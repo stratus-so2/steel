@@ -26,7 +26,7 @@
   </a>
 
   <a href="https://codecov.io/gh/StratusTI/steel">
-    <img src="https://codecov.io/gh/StratusTI/steel/graph/badge.svg?token=LHSP0EU1VT" alt="Codecov" />
+    <img src="https://codecov.io/gh/StratusTI/steel/graph/badge.svg?token=3c586d5c-e149-4988-b7ec-480ee0a75864" alt="Codecov" />
   </a>
 
   <a href="https://github.com/StratusTI/steel/actions/workflows/cd.yml">
