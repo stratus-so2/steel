@@ -4,9 +4,9 @@
 // inbound (Resend) and legal/public listing. Keep this file in sync with the
 // Resend domain + inbound configuration.
 
-export const mailDomain = 'steel.stratustelecom.com.br'
+export const mailDomain = 'stratustelecom.com.br'
 
-const displayName = 'steel'
+const displayName = 'Steel'
 
 function sender(localPart: string): string {
   return `${displayName} <${localPart}@${mailDomain}>`

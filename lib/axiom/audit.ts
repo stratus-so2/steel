@@ -15,6 +15,7 @@ type AuditEntity =
   | 'user_preference'
   | 'notification_setting'
   | 'invitation'
+  | 'workspace_module_connection'
 
 type AuditAction =
   | 'create'
@@ -30,6 +31,7 @@ type AuditAction =
   | 'export_requested'
   | 'export_completed'
   | 'archive'
+  | 'test'
   | 'restore'
   | 'onboarding_step_completed'
   | 'onboarding_role_saved'

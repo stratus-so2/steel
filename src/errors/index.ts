@@ -1,6 +1,9 @@
 export {
   badRequest,
   conflict,
+  connectionForbidden,
+  connectionNotFound,
+  connectionTestFailed,
   couponInvalid,
   databaseError,
   featureNotInPlan,

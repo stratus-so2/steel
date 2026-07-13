@@ -9,6 +9,7 @@ export const ERROR_CODES = {
   PROJECT_FORBIDDEN: { code: 'PROJECT_FORBIDDEN', status: 403 },
   SEAT_LIMIT_REACHED: { code: 'SEAT_LIMIT_REACHED', status: 403 },
   FEATURE_NOT_IN_PLAN: { code: 'FEATURE_NOT_IN_PLAN', status: 403 },
+  CONNECTION_FORBIDDEN: { code: 'CONNECTION_FORBIDDEN', status: 403 },
 
   // Client Errors (400, 404, 409, 422, 429)
   BAD_REQUEST: { code: 'BAD_REQUEST', status: 400 },
@@ -35,6 +36,7 @@ export const ERROR_CODES = {
     status: 409,
   },
   COUPON_INVALID: { code: 'COUPON_INVALID', status: 422 },
+  CONNECTION_NOT_FOUND: { code: 'CONNECTION_NOT_FOUND', status: 404 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
@@ -42,6 +44,7 @@ export const ERROR_CODES = {
   STORAGE_ERROR: { code: 'STORAGE_ERROR', status: 500 },
   PAYMENT_ERROR: { code: 'PAYMENT_ERROR', status: 502 },
   MAIL_ERROR: { code: 'MAIL_ERROR', status: 502 },
+  CONNECTION_TEST_FAILED: { code: 'CONNECTION_TEST_FAILED', status: 502 },
 } as const
 
 export type ErrorCode = keyof typeof ERROR_CODES

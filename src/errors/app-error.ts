@@ -117,3 +117,14 @@ export const mailError = (
 export const couponInvalid = (
   message = 'Cupom inválido ou expirado',
 ): AppError => appError('COUPON_INVALID', message)
+
+export const connectionNotFound = (): AppError =>
+  appError('CONNECTION_NOT_FOUND', 'Conexão não encontrada')
+
+export const connectionForbidden = (
+  message = 'Apenas OWNER ou ADMIN podem gerenciar conexões',
+): AppError => appError('CONNECTION_FORBIDDEN', message)
+
+export const connectionTestFailed = (
+  message = 'Não foi possível conectar ao banco de dados informado',
+): AppError => appError('CONNECTION_TEST_FAILED', message)

@@ -24,6 +24,7 @@ const serverEnv = {
   ABACATE_PAY: process.env.ABACATE_PAY,
   ABACATE_PAY_WEBHOOK_SECRET: process.env.ABACATE_PAY_WEBHOOK_SECRET,
   STATUS_COLLECTOR_SECRET: process.env.STATUS_COLLECTOR_SECRET,
+  CONNECTION_SECRETS: process.env.CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS:
     process.env.ACCOUNT_DELETION_GRACE_OVERRIDE_MS,
 }
@@ -65,6 +66,10 @@ const serverEnvSchema = z.object({
   ABACATE_PAY: z.string().min(1).max(100),
   ABACATE_PAY_WEBHOOK_SECRET: z.string().min(1).max(100),
   STATUS_COLLECTOR_SECRET: z.string().min(32).max(128),
+  CONNECTION_SECRETS: z.string().regex(/^\d+:.{32,}(,\d+:.{32,})*$/, {
+    message:
+      'CONNECTION_SECRETS must be "v:secret[,v:secret...]" with secrets >= 32 chars',
+  }),
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS: z
     .string()
     .optional()
@@ -103,5 +108,6 @@ export const {
   ABACATE_PAY,
   ABACATE_PAY_WEBHOOK_SECRET,
   STATUS_COLLECTOR_SECRET,
+  CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS,
 } = validatedServerEnv

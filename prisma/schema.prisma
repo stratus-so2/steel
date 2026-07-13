@@ -37,6 +37,7 @@ model User {
   projectMemberships  ProjectMember[]
   projectFavourites ProjectFavorite[]
   sentInvitations WorkspaceInvitation[] @relation("SentInvitations")
+  moduleConnectionsCreated WorkspaceModuleConnection[]
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -206,6 +207,7 @@ model Workspace {
   projects      Project[]
 
   invitations WorkspaceInvitation[]
+  moduleConnections WorkspaceModuleConnection[]
 
   @@map("workspaces")
 }
@@ -463,4 +465,32 @@ model ProjectFavorite {
   @@index([userId])
   @@index([projectId])
   @@map("project_favorites")
+}
+
+enum ModuleKind {
+  SERVICE_DESK
+  CRM
+  COMMUNICATION
+}
+
+model WorkspaceModuleConnection {
+  id                String     @id @default(cuid())
+  workspaceId       String     @map("workspace_id")
+  module            ModuleKind
+  host              String
+  port              Int
+  username          String
+  encryptedPassword String     @map("encrypted_password")
+  database          String
+  sslEnabled        Boolean    @default(true) @map("ssl_enabled")
+  createdById       String     @map("created_by_id")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, module])
+  @@index([workspaceId])
+  @@map("workspace_module_connections")
 }
