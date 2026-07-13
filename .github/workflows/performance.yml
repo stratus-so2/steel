@@ -191,9 +191,9 @@ jobs:
       - name: Run smoke test against production
         run: k6 run k6/smoke-test.js
         env:
-          BASE_URL: https://steel.stratustelecom.com.br
+          BASE_URL: https://homologacao.stratustelecom.com.br
 
       - name: Run API smoke test against production
         run: k6 run k6/api-smoke-test.js
         env:
-          BASE_URL: https://steel.stratustelecom.com.br
+          BASE_URL: https://homologacao.stratustelecom.com.br

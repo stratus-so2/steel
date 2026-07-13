@@ -48,8 +48,8 @@ jobs:
       contents: read
       packages: write
     environment:
-      name: production
-      url: https://steel.stratustelecom.com.br
+      name: homologacao
+      url: https://homologacao.stratustelecom.com.br
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -84,7 +84,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           build-args: |
-            NEXT_PUBLIC_URL=https://steel.stratustelecom.com.br
+            NEXT_PUBLIC_URL=https://homologacao.stratustelecom.com.br
             NEXT_PUBLIC_AXIOM_TOKEN=${{ secrets.NEXT_PUBLIC_AXIOM_TOKEN }}
             NEXT_PUBLIC_AXIOM_DATASET=${{ secrets.NEXT_PUBLIC_AXIOM_DATASET }}
           secrets: |
