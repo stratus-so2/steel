@@ -45,7 +45,8 @@ openssl req -new -x509 \
 openssl genrsa -out redis.key 2048
 
 # OpenSSL config with the SANs that cover every scenario:
-#   DNS:redis        → Docker internal network (container hostname)
+#   DNS:redis        → Docker internal network (generic container hostname)
+#   DNS:steel-redis  → Docker internal network (docker-compose.yml's actual container name)
 #   DNS:localhost    → local dev / test (port-forwarded)
 #   IP:127.0.0.1    → local dev / test (IP-based connections)
 #   IP:::1           → IPv6 loopback
@@ -66,6 +67,7 @@ extendedKeyUsage = serverAuth
 [alt_names]
 DNS.1 = redis
 DNS.2 = localhost
+DNS.3 = steel-redis
 IP.1  = 127.0.0.1
 IP.2  = ::1
 EOF
