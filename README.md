@@ -4,7 +4,7 @@
 <p  align="center">
     <a href="https://steel.stratustelecom.com.br" target="_blank" align="center">
       <img
-        src="./public/brand/steel-readme.png"
+        src="./public/brand/logo.svg"
         alt="Steel"
         width="50%"
         align="center"
@@ -26,7 +26,7 @@
   </a>
 
   <a href="https://codecov.io/gh/StratusTI/steel">
-    <img src="https://codecov.io/gh/StratusTI/steel/graph/badge.svg?token=3c586d5c-e149-4988-b7ec-480ee0a75864" alt="Codecov" />
+    <img src="https://codecov.io/gh/StratusTI/steel/graph/badge.svg?token=3c586d5c-e149-4988-b7ec-480ee0a75864" alt="Codecov" /> <!-- gitleaks:allow — Codecov's badge graph token is meant to be public in READMEs, it's not an API credential -->
   </a>
 
   <a href="https://github.com/StratusTI/steel/actions/workflows/cd.yml">
