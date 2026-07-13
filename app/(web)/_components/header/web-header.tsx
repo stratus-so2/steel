@@ -221,8 +221,8 @@ export function WebHeader() {
                           Descubra por que as equipes migram para o Steel
                         </CardTitle>
                         <CardDescription className='mt-1.5'>
-                          Veja como o Steel se compara às ferramentas que você já
-                          conhece
+                          Veja como o Steel se compara às ferramentas que você
+                          já conhece
                         </CardDescription>
                         <div className='mt-auto flex flex-wrap gap-2 pt-4'>
                           <Badge

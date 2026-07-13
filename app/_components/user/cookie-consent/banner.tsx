@@ -15,8 +15,8 @@ export function CookieConsentBanner() {
       className='fixed inset-x-3 bottom-3 z-50 mx-auto flex max-w-3xl flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg md:flex-row md:items-center md:justify-between'
     >
       <p className='text-sm text-muted-foreground'>
-        Usamos cookies de análise para entender como o Steel é usado e melhorar o
-        produto. Você pode revogar a qualquer momento nas configurações.{' '}
+        Usamos cookies de análise para entender como o Steel é usado e melhorar
+        o produto. Você pode revogar a qualquer momento nas configurações.{' '}
         <Link
           href='/legals/privacy#cookies'
           className='text-primary hover:underline'

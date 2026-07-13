@@ -81,7 +81,10 @@ export function UserModalCustomProfile({
                     value='preferences'
                     className='data-active:bg-secondary! data-active:text-secondary-foreground! data-active:hover:bg-secondary/80! border-none!'
                   >
-                    <SteelIcon icon={PreferenceHorizontalIcon} strokeWidth={2} />
+                    <SteelIcon
+                      icon={PreferenceHorizontalIcon}
+                      strokeWidth={2}
+                    />
                     Preferências
                   </TabsTrigger>
                   <TabsTrigger

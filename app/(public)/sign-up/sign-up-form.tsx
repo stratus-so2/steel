@@ -135,7 +135,9 @@ export function SignUpForm({ redirectTo = '/' }: { redirectTo?: string }) {
           <>
             <div>
               <H4>Trabalhe em todas as dimensões.</H4>
-              <H4 className='text-muted-foreground'>Crie sua conta do Steel.</H4>
+              <H4 className='text-muted-foreground'>
+                Crie sua conta do Steel.
+              </H4>
             </div>
 
             <div className='flex flex-col gap-3'>
