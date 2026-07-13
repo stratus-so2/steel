@@ -25,12 +25,12 @@
     <img src="https://www.react.doctor/share/badge?p=steel&s=84&e=1&w=62&f=31" alt="React Doctor" />
   </a>
 
-  <a href="https://codecov.io/gh/stratus/steel">
-    <img src="https://codecov.io/gh/stratus/steel/graph/badge.svg?token=LHSP0EU1VT" alt="Codecov" />
+  <a href="https://codecov.io/gh/StratusTI/steel">
+    <img src="https://codecov.io/gh/StratusTI/steel/graph/badge.svg?token=LHSP0EU1VT" alt="Codecov" />
   </a>
 
-  <a href="https://github.com/stratus/steel/actions/workflows/cd.yml">
-    <img src="https://github.com/stratus/steel/actions/workflows/cd.yml/badge.svg" alt="CD" />
+  <a href="https://github.com/StratusTI/steel/actions/workflows/cd.yml">
+    <img src="https://github.com/StratusTI/steel/actions/workflows/cd.yml/badge.svg" alt="CD" />
   </a>
 </p>
 
