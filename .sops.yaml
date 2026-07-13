@@ -1,0 +1,6 @@
+creation_rules:
+  - path_regex: secrets/.*\.env$
+    age: >-
+      age10wrg4rde8cy5v6e9v4n5ewaw7mv8rf8cstg4wzvu4xed2hag2d9suk4jxj
+    # Steel's own age key pair (independent from nexo's). Private key lives
+    # only as the SOPS_AGE_KEY GitHub Actions secret — never committed.
