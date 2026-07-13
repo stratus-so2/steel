@@ -1,0 +1,232 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: stratus/steel
+
+jobs:
+  migrate:
+    name: Run Database Migrations
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+
+      - name: Configure HugeIcons registry
+        run: |
+          echo "@hugeicons-pro:registry=https://npm.hugeicons.com" > .npmrc
+          echo "//npm.hugeicons.com/:_authToken=${{ secrets.HUGEICONS_TOKEN }}" >> .npmrc
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run migrations
+        run: pnpm prisma:deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATE }}
+
+  deploy:
+    name: Build & Deploy
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: write
+    environment:
+      name: production
+      url: https://steel.stratustelecom.com.br
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build image for scanning
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:scan
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            NEXT_PUBLIC_URL=https://steel.stratustelecom.com.br
+            NEXT_PUBLIC_AXIOM_TOKEN=${{ secrets.NEXT_PUBLIC_AXIOM_TOKEN }}
+            NEXT_PUBLIC_AXIOM_DATASET=${{ secrets.NEXT_PUBLIC_AXIOM_DATASET }}
+          secrets: |
+            hugeicons_token=${{ secrets.HUGEICONS_TOKEN }}
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:scan
+          format: table
+          # Block the deploy on CRITICAL only; HIGH stays visible in the log and
+          # is chased via Dependabot. Blocking deploys on transitive HIGH (often
+          # build-time DoS without a quick fix) is disproportionate.
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Push scanned image
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag "${{ env.IMAGE_NAME }}:scan" "$tag"
+            docker push "$tag"
+          done <<< "${{ steps.meta.outputs.tags }}"
+
+      - name: Decrypt production secrets
+        run: |
+          sops --decrypt secrets/production.enc.env > /var/www/steel/.env
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+
+      - name: Deploy to server
+        run: |
+          cp docker-compose.yml /var/www/steel/docker-compose.yml
+          cd /var/www/steel/
+          docker compose pull
+          docker compose up -d
+          docker image prune -f
+
+  release:
+    name: Tag & Release
+    needs: [migrate, deploy]
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        # Checkout do branch padrão (main), não do head_sha do workflow_run:
+        # o job roda com contents:write e o checkout do ref não-confiável do
+        # evento é o padrão "pwn request" (Semgrep workflow-run-target-code-checkout).
+        # O release é fixado no commit certo via `gh release create --target "$SHA"`,
+        # e `git tag --list` só precisa das tags (presentes em qualquer checkout).
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create CalVer tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # CalVer YYYY.MM.DD[.N] (UTC). First release of the day has no suffix;
+          # subsequent deploys the same day get .1, .2, ... (see versioning doc).
+          TODAY=$(date -u +%Y.%m.%d)
+          EXISTING=$(git tag --list "$TODAY" "$TODAY.*" | wc -l)
+          if [ "$EXISTING" -eq 0 ]; then TAG="$TODAY"; else TAG="$TODAY.$EXISTING"; fi
+          echo "Releasing $TAG at $SHA (existing today: $EXISTING)"
+          # gh creates the tag at $SHA and the release together; --generate-notes
+          # builds the body from merged PRs/commits since the previous release.
+          gh release create "$TAG" --target "$SHA" --title "$TAG" --generate-notes
+
+  notify-slack:
+    name: Notify Slack
+    needs: [migrate, deploy]
+    if: always() && needs.migrate.result != 'skipped' && needs.deploy.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare notification context
+        id: ctx
+        env:
+          COMMIT_MSG: ${{ github.event.workflow_run.head_commit.message || '' }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          ACTOR: ${{ github.event.workflow_run.head_commit.author.name || github.actor }}
+        run: |
+          first_line="${COMMIT_MSG%%$'\n'*}"
+          escaped=$(printf '%s' "$first_line" | sed 's/\\/\\\\/g; s/"/\\"/g')
+          echo "commit_msg=$escaped" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${COMMIT_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "actor=$ACTOR" >> "$GITHUB_OUTPUT"
+
+          if [[ "${{ needs.migrate.result }}" == "success" && "${{ needs.deploy.result }}" == "success" ]]; then
+            echo "status_text=Deploy succeeded" >> "$GITHUB_OUTPUT"
+            echo "color=#16a34a" >> "$GITHUB_OUTPUT"
+          else
+            echo "status_text=Deploy failed" >> "$GITHUB_OUTPUT"
+            echo "color=#dc2626" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "${{ steps.ctx.outputs.status_text }} on ${{ steps.ctx.outputs.branch }}",
+              "attachments": [
+                {
+                  "color": "${{ steps.ctx.outputs.color }}",
+                  "fallback": "${{ steps.ctx.outputs.status_text }} on ${{ steps.ctx.outputs.branch }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": { "type": "mrkdwn", "text": "*${{ steps.ctx.outputs.status_text }}*" }
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*Environment*\nproduction" },
+                        { "type": "mrkdwn", "text": "*Branch*\n`${{ steps.ctx.outputs.branch }}`" },
+                        { "type": "mrkdwn", "text": "*Migrate*\n${{ needs.migrate.result }}" },
+                        { "type": "mrkdwn", "text": "*Deploy*\n${{ needs.deploy.result }}" },
+                        { "type": "mrkdwn", "text": "*Author*\n${{ steps.ctx.outputs.actor }}" },
+                        { "type": "mrkdwn", "text": "*Commit*\n<${{ github.server_url }}/${{ github.repository }}/commit/${{ steps.ctx.outputs.commit_sha }}|`${{ steps.ctx.outputs.short_sha }}`> ${{ steps.ctx.outputs.commit_msg }}" }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": { "type": "plain_text", "text": "Open run" },
+                          "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }

@@ -1,0 +1,119 @@
+import {
+  Analytics01Icon,
+  Archive03Icon,
+  Home03Icon,
+  KeyframesMultipleAddIcon,
+  LayerMask01Icon,
+  Layers01Icon,
+  PanelLeftIcon,
+  PencilEdit01Icon,
+  PresentationLineChart01Icon,
+  SlidersHorizontalIcon,
+  StickyNote02Icon,
+  UserLove01Icon,
+  WorkIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
+import type { ReactNode } from 'react'
+import {
+  ContextHeader,
+  ContextPrimaryAction,
+  ContextSidebar,
+  NavGroup,
+  NavGroupAccordion,
+  NavItem,
+} from '@/app/_components/navigation/sidebar-context'
+import { SidebarProjects } from '@/app/_components/navigation/sidebar-project/sidebar-projects'
+import { SteelIcon } from '@/components/icon/icon'
+import { Button } from '@/components/ui/button'
+import { getAuthSession } from '@/src/lib/auth-session'
+import { MembershipService } from '@/src/services/membership.service'
+
+export default async function HomeLayout({
+  children,
+  params,
+}: {
+  children: ReactNode
+  params: Promise<{ 'workspace-slug': string }>
+}) {
+  const { 'workspace-slug': slug } = await params
+  const base = `/${slug}`
+
+  const session = await getAuthSession()
+  let workspaceId: string | null = null
+  if (session.ok) {
+    const membership = await MembershipService.getByUserAndSlug(
+      session.value.user.id,
+      slug,
+    )
+    if (membership.ok && membership.value) {
+      workspaceId = membership.value.workspaceId
+    }
+  }
+
+  return (
+    <>
+      <ContextSidebar>
+        <ContextHeader
+          title='Projetos'
+          actions={
+            <>
+              <Button variant='ghost' size='icon-sm'>
+                <SteelIcon icon={SlidersHorizontalIcon} strokeWidth={2} />
+              </Button>
+              <Button variant='ghost' size='icon-sm'>
+                <SteelIcon icon={PanelLeftIcon} strokeWidth={2} />
+              </Button>
+            </>
+          }
+          primaryAction={
+            <ContextPrimaryAction>
+              <SteelIcon icon={KeyframesMultipleAddIcon} strokeWidth={2} />
+              Nova issue
+            </ContextPrimaryAction>
+          }
+        />
+        <NavGroup>
+          <NavItem href={base} icon={Home03Icon}>
+            Página inicial
+          </NavItem>
+          <NavItem href={`${base}/drafts`} icon={PencilEdit01Icon}>
+            Rascunhos
+          </NavItem>
+          <NavItem href={`${base}/profile`} icon={UserLove01Icon}>
+            Seu trabalho
+          </NavItem>
+          <NavItem href={`${base}/stickies`} icon={StickyNote02Icon}>
+            Notas adesivas
+          </NavItem>
+        </NavGroup>
+        <NavGroupAccordion label='Espaço de trabalho' defaultOpen={true}>
+          <NavItem href={`${base}/projects`} icon={WorkIcon}>
+            Projetos
+          </NavItem>
+          <NavItem href={`${base}/workspace-views`} icon={Layers01Icon}>
+            Visualizações
+          </NavItem>
+          <NavItem href={`${base}/active-cycles`} icon={LayerMask01Icon}>
+            Ciclos
+          </NavItem>
+          <NavItem href={`${base}/analytics`} icon={Analytics01Icon}>
+            Análises
+          </NavItem>
+          <NavItem href={`${base}/archives`} icon={Archive03Icon}>
+            Arquivados
+          </NavItem>
+          <NavItem
+            href={`${base}/dashboards`}
+            icon={PresentationLineChart01Icon}
+          >
+            Dashboards
+          </NavItem>
+        </NavGroupAccordion>
+        {workspaceId && (
+          <SidebarProjects workspaceId={workspaceId} base={base} />
+        )}
+      </ContextSidebar>
+      {children}
+    </>
+  )
+}

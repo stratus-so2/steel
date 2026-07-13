@@ -1,0 +1,466 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  name                 String
+  email                String    @unique
+  username             String    @unique
+  emailVerified        Boolean   @default(false) @map("email_verified")
+  image                String?
+  coverImage           String?   @map("cover_image")
+  twoFactorEnabled     Boolean   @default(false) @map("two_factor_enabled")
+  deletionScheduledAt  DateTime? @map("deletion_scheduled_at")
+  acceptedTermsAt      DateTime? @map("accepted_terms_at")
+  acceptedPrivacyAt    DateTime? @map("accepted_privacy_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  onboardingStep       OnboardingStep?      @default(PROFILE) @map("onboarding_step")
+  role                 UserRole?  @map("role")
+  goals                UserGoal[] @map("goals")
+  preference           UserPreference?
+  notificationSetting NotificationSetting?
+
+  memberships   Membership[]
+  sessions      Session[]
+  accounts      Account[]
+  twoFactors    TwoFactor[]
+  shortLinks    ShortLink[]
+  stickyNotes   StickyNote[]
+  consentEvents ConsentEvent[]
+  projectsLed   Project[]       @relation("ProjectLead")
+  projectMemberships  ProjectMember[]
+  projectFavourites ProjectFavorite[]
+  sentInvitations WorkspaceInvitation[] @relation("SentInvitations")
+
+  @@index([deletionScheduledAt])
+  @@map("users")
+}
+
+enum ConsentDocument {
+  TERMS
+  PRIVACY
+  COOKIES
+}
+
+enum ConsentAction {
+  GRANTED
+  REVOKED
+}
+
+enum OnboardingStep {
+  PROFILE
+  ROLE
+  BRINGS
+  WORKSPACE
+}
+
+enum UserRole {
+  PRODUCT_MANAGER
+  ENGINEERING_MANAGER
+  DESIGNER
+  DEVELOPER
+  FOUNDER_EXECUTIVE
+  OPERATIONS_MANAGER
+  OTHER
+}
+
+enum UserGoal {
+  ROADMAP
+  SPRINTS
+  CROSS_FUNCTIONAL
+  REPLACE_TOOL
+  EXPLORING
+}
+
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum QuickSendShortcut {
+  ENTER
+  CTRL_ENTER
+}
+
+model UserPreference {
+  id       String          @id @default(cuid())
+  userId   String          @unique @map("user_id")
+  theme    Theme           @default(SYSTEM)
+  smoothCursor  Boolean    @default(false) @map("smooth_cursor")
+  quickSendShortcut   QuickSendShortcut    @default(ENTER) @map("quick_send_shortcut")
+  timezone  String    @default("UTC")
+  weekStartsOn  Int   @default(1) @map("week_starts_on")
+  weekendDays   Int[] @default([0, 6]) @map("weekend_days")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationSetting {
+  id              String   @id @default(cuid())
+  userId          String   @unique @map("user_id")
+  priorityChanges Boolean  @default(true) @map("priority_changes")
+  stateChanges    Boolean  @default(true) @map("state_changes")
+  comments        Boolean  @default(true)
+  mentions        Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_setting")
+}
+
+model ConsentEvent {
+  id        String          @id @default(cuid())
+  userId    String          @map("user_id")
+  document  ConsentDocument
+  version   String
+  action    ConsentAction
+  ipAddress String?         @map("ip_address")
+  userAgent String?         @map("user_agent")
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, document, createdAt])
+  @@map("consent_events")
+}
+
+model TwoFactor {
+  id          String   @id @default(cuid())
+  secret      String
+  backupCodes String   @map("backup_codes")
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verified    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("two_factors")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  userId                String    @map("user_id")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime  @map("expires_at")
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+
+  @@map("verifications")
+}
+
+model Workspace {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  activePlan    Plan           @default(FREE) @map("active_plan")
+  trialEndsAt   DateTime?      @map("trial_ends_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  memberships   Membership[]
+  subscriptions Subscription[]
+  projects      Project[]
+
+  invitations WorkspaceInvitation[]
+
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  workspaceId String   @map("workspace_id")
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+  @@map("memberships")
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  billId      String             @unique @map("bill_id")
+  plan        Plan
+  status      SubscriptionStatus @default(PENDING)
+  amount      Int
+  seats       Int                @default(1)
+  interval    BillingInterval    @default(MONTHLY)
+  coupon      String?
+  paymentUrl  String             @map("payment_url")
+  workspaceId String             @map("workspace_id")
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  @@index([workspaceId])
+  @@map("subscriptions")
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+model WorkspaceInvitation {
+  id  String @id @default(cuid())
+  email String
+  role  Role  @default(MEMBER)
+  token String  @unique @default(cuid())
+  status  InviteStatus  @default(PENDING)
+  expiresAt DateTime  @map("expiresa_at")
+  invitedById  String  @map("invited_by_id")
+  workspaceId String  @map("workspace_id")
+  projectId String? @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inviter User  @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([email])
+  @@map("workspace_invitations")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum ComponentStatus {
+  OPERATIONAL
+  DEGRADED
+  PARTIAL_OUTAGE
+  MAJOR_OUTAGE
+  MAINTENANCE
+}
+
+model HealthCheck {
+  id           String          @id @default(cuid())
+  componentKey String          @map("component_key")
+  status       ComponentStatus
+  latencyMs    Int             @map("latency_ms")
+  error        String?
+  checkedAt    DateTime        @default(now()) @map("checked_at")
+
+  @@index([componentKey, checkedAt])
+  @@index([checkedAt])
+  @@map("health_checks")
+}
+
+model ComponentDaily {
+  id           String          @id @default(cuid())
+  componentKey String          @map("component_key")
+  day          DateTime        @db.Date
+  worstStatus  ComponentStatus @map("worst_status")
+  totalChecks  Int             @map("total_checks")
+  upChecks     Int             @map("up_checks")
+  uptimePct    Decimal         @map("uptime_pct") @db.Decimal(6, 3)
+  avgLatencyMs Int             @map("avg_latency_ms")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+
+  @@unique([componentKey, day])
+  @@index([componentKey, day])
+  @@map("component_dailies")
+}
+
+enum IncidentEvent {
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+}
+
+model Incident {
+  id           String           @id @default(cuid())
+  componentKey String           @map("component_key")
+  severity     ComponentStatus
+  title        String
+  startedAt    DateTime         @map("started_at")
+  resolvedAt   DateTime?        @map("resolved_at")
+  updates      IncidentUpdate[]
+
+  @@index([componentKey, startedAt])
+  @@index([resolvedAt])
+  @@index([startedAt])
+  @@map("incidents")
+}
+
+model IncidentUpdate {
+  id         String        @id @default(cuid())
+  incidentId String        @map("incident_id")
+  event      IncidentEvent
+  message    String
+  postedAt   DateTime      @default(now()) @map("posted_at")
+  incident   Incident      @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, postedAt])
+  @@map("incident_updates")
+}
+
+model ShortLink {
+  id        String        @id @default(cuid())
+  title     String        @map("title")
+  url       String        @map("url")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String        @map("user_id")
+
+  @@index([createdAt])
+  @@map("short_links")
+}
+
+enum StickyColor {
+  RED
+  YELLOW
+  BLUE
+  GREEN
+  PURPLE
+  ZINC
+}
+
+model StickyNote {
+  id        String        @id @default(cuid())
+  content   Json          @map("content")
+  color     StickyColor   @default(ZINC) @map("color")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String        @map("user_id")
+
+  @@index([userId, updatedAt])
+  @@map("sticky_notes")
+}
+
+model Project {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  emoji       String?
+  coverImage  String?   @map("cover_image")
+  isPublic    Boolean   @default(false) @map("is_public")
+  leadId      String    @map("lead_id")
+  workspaceId String    @map("workspace_id")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  lead      User            @relation("ProjectLead", fields: [leadId], references: [id])
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members   ProjectMember[]
+  favourites ProjectFavorite[]
+  invitations WorkspaceInvitation[]
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, archivedAt])
+  @@index([leadId])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model ProjectFavorite {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@index([userId])
+  @@index([projectId])
+  @@map("project_favorites")
+}

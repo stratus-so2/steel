@@ -1,0 +1,284 @@
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { EmailValidationWithOtp } from '@/components/form/email-validation-with-otp'
+import { HeaderLogin } from '@/components/header-login'
+import { SocialLoginButtonProps } from '@/components/social-login-button'
+import { H4 } from '@/components/typography/heading/h4'
+import { Muted } from '@/components/typography/text/muted'
+import { Button } from '@/components/ui/button'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { authClient } from '@/src/lib/auth-client'
+
+type Step = 'form' | 'otp' | 'backup'
+
+export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
+  const { push } = useRouter()
+  const [step, setStep] = useState<Step>('form')
+  const [email, setEmail] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string
+    password?: string
+  }>({})
+  const [isPending, setIsPending] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [backupCode, setBackupCode] = useState('')
+
+  const signUpHref =
+    redirectTo === '/'
+      ? '/sign-up'
+      : `/sign-up?redirect=${encodeURIComponent(redirectTo)}`
+
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setError(null)
+    setFieldErrors({})
+    setIsPending(true)
+
+    const formData = new FormData(e.currentTarget)
+    const submittedEmail = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    const errors: { email?: string; password?: string } = {}
+    if (!submittedEmail) errors.email = 'E-mail é obrigatório'
+    if (!password) errors.password = 'Senha é obrigatória'
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setIsPending(false)
+      return
+    }
+
+    const { data, error: signInError } = await authClient.signIn.email({
+      email: submittedEmail,
+      password,
+    })
+
+    if (signInError) {
+      setError(signInError.message ?? 'E-mail ou senha inválidos')
+      setIsPending(false)
+      return
+    }
+
+    if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) {
+      setEmail(submittedEmail)
+      setStep('otp')
+      setIsPending(false)
+      const { error: sendError } = await authClient.twoFactor.sendOtp()
+      if (sendError) {
+        setOtpError(
+          sendError.message ?? 'Não foi possível enviar o código de acesso',
+        )
+      }
+      return
+    }
+
+    push(redirectTo)
+  }
+
+  async function handleVerify(otp: string) {
+    setOtpError(null)
+    setIsVerifying(true)
+    const { error: verifyError } = await authClient.twoFactor.verifyOtp({
+      code: otp,
+    })
+    setIsVerifying(false)
+
+    if (verifyError) {
+      setOtpError(verifyError.message ?? 'Código inválido ou expirado')
+      return
+    }
+
+    push(redirectTo)
+  }
+
+  async function handleResend() {
+    setOtpError(null)
+    const { error: resendError } = await authClient.twoFactor.sendOtp()
+    if (resendError) {
+      setOtpError(resendError.message ?? 'Não foi possível reenviar o código')
+    }
+  }
+
+  async function handleVerifyBackupCode(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!backupCode.trim()) {
+      setOtpError('Informe um código de backup')
+      return
+    }
+    setOtpError(null)
+    setIsVerifying(true)
+    const { error: verifyError } = await authClient.twoFactor.verifyBackupCode({
+      code: backupCode.trim(),
+    })
+    setIsVerifying(false)
+    if (verifyError) {
+      setOtpError(verifyError.message ?? 'Código de backup inválido')
+      return
+    }
+    push(redirectTo)
+  }
+
+  function handleBack() {
+    setStep('form')
+    setOtpError(null)
+  }
+
+  return (
+    <div className='min-h-screen flex flex-col items-center justiyf-center p-4 pb-12'>
+      <HeaderLogin path={signUpHref} pathname='Cadastre-se' />
+      <div className='flex-1 w-full flex flex-col justify-center gap-y-6 max-w-90'>
+        {step === 'form' && (
+          <>
+            <div>
+              <H4>Trabalhe em todas as dimensões.</H4>
+              <H4 className='text-muted-foreground'>
+                Bem-vindo de volta ao Steel.
+              </H4>
+            </div>
+
+            <div className='flex flex-col gap-3'>
+              <SocialLoginButtonProps
+                provider='google'
+                isPending={isPending}
+                callbackURL={redirectTo}
+              />
+              <SocialLoginButtonProps
+                provider='github'
+                isPending={isPending}
+                callbackURL={redirectTo}
+              />
+            </div>
+
+            <div className='relative'>
+              <div className='absolute inset-0 flex items-center'>
+                <span className='w-full border-t' />
+              </div>
+              <div className='relative flex justify-center text-xs uppercase'>
+                <span className='bg-background px-2 text-muted-foreground'>
+                  ou
+                </span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className='w-full space-y-4'>
+              {error && (
+                <div className='rounded-md bg-destructive/10 p-3 text-sm text-destructive'>
+                  {error}
+                </div>
+              )}
+              <Field data-invalid={!!fieldErrors.email || undefined}>
+                <FieldLabel>E-mail</FieldLabel>
+                <Input
+                  name='email'
+                  type='email'
+                  placeholder='nome@empresa.com'
+                  disabled={isPending}
+                />
+                {fieldErrors.email && (
+                  <FieldError>{fieldErrors.email}</FieldError>
+                )}
+              </Field>
+              <Field data-invalid={!!fieldErrors.password || undefined}>
+                <FieldLabel>Senha</FieldLabel>
+                <Input
+                  name='password'
+                  type='password'
+                  placeholder='••••••'
+                  disabled={isPending}
+                />
+                {fieldErrors.password && (
+                  <FieldError>{fieldErrors.password}</FieldError>
+                )}
+              </Field>
+
+              <Button type='submit' className='w-full' disabled={isPending}>
+                {isPending ? 'Entrando...' : 'Continuar'}
+              </Button>
+
+              <div className='flex items-center justify-center'>
+                <Muted className='text-center text-sm p-4'>
+                  Esqueceu sua senha?{' '}
+                  <Link
+                    href='/forget-password'
+                    className='text-primary hover:underline'
+                  >
+                    Redefinir senha
+                  </Link>
+                  .
+                </Muted>
+              </div>
+            </form>
+          </>
+        )}
+
+        {step === 'otp' && (
+          <EmailValidationWithOtp
+            email={email}
+            onBack={handleBack}
+            onVerify={handleVerify}
+            onResend={handleResend}
+            isPending={isVerifying}
+            error={otpError}
+            onUseBackupCode={() => {
+              setStep('backup')
+              setOtpError(null)
+            }}
+          />
+        )}
+
+        {step === 'backup' && (
+          <>
+            <div>
+              <H4>Use um código de backup.</H4>
+              <H4 className='text-muted-foreground'>
+                Digite um dos códigos que você guardou ao ativar a verificação
+                em duas etapas.
+              </H4>
+            </div>
+            <form
+              onSubmit={handleVerifyBackupCode}
+              className='w-full space-y-4'
+            >
+              <Field data-invalid={!!otpError || undefined}>
+                <FieldLabel>Código de backup</FieldLabel>
+                <Input
+                  value={backupCode}
+                  onChange={(e) => setBackupCode(e.target.value)}
+                  placeholder='xxxxxxxx'
+                  autoFocus
+                  disabled={isVerifying}
+                />
+                {otpError && <FieldError>{otpError}</FieldError>}
+              </Field>
+              <Button type='submit' className='w-full' disabled={isVerifying}>
+                {isVerifying ? 'Verificando...' : 'Verificar código'}
+              </Button>
+              <div className='text-center text-sm'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setStep('otp')
+                    setOtpError(null)
+                    setBackupCode('')
+                  }}
+                  className='text-primary hover:underline'
+                >
+                  Usar o código enviado por e-mail
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+      </div>
+      <div>
+        <Muted>Junte-se a mais de 1.000 times no Steel</Muted>
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,47 @@
+export const ERROR_CODES = {
+  // Authentication & Authorization (401, 403)
+  UNAUTHORIZED: { code: 'UNAUTHORIZED', status: 401 },
+  INVALID_TOKEN: { code: 'INVALID_TOKEN', status: 401 },
+  TOKEN_EXPIRED: { code: 'TOKEN_EXPIRED', status: 401 },
+  INVALID_CREDENTIALS: { code: 'INVALID_CREDENTIALS', status: 401 },
+  FORBIDDEN: { code: 'FORBIDDEN', status: 403 },
+  INSUFFICIENT_PERMISSIONS: { code: 'INSUFFICIENT_PERMISSIONS', status: 403 },
+  PROJECT_FORBIDDEN: { code: 'PROJECT_FORBIDDEN', status: 403 },
+  SEAT_LIMIT_REACHED: { code: 'SEAT_LIMIT_REACHED', status: 403 },
+  FEATURE_NOT_IN_PLAN: { code: 'FEATURE_NOT_IN_PLAN', status: 403 },
+
+  // Client Errors (400, 404, 409, 422, 429)
+  BAD_REQUEST: { code: 'BAD_REQUEST', status: 400 },
+  VALIDATION_ERROR: { code: 'VALIDATION_ERROR', status: 422 },
+  RESOURCE_NOT_FOUND: { code: 'RESOURCE_NOT_FOUND', status: 404 },
+  CONFLICT: { code: 'CONFLICT', status: 409 },
+  USERNAME_CONFLICT: { code: 'USERNAME_CONFLICT', status: 409 },
+  RATE_LIMITED: { code: 'RATE_LIMITED', status: 429 },
+  PROJECT_NOT_FOUND: { code: 'PROJECT_NOT_FOUND', status: 404 },
+  PROJECT_SLUG_CONFLICT: { code: 'PROJECT_SLUG_CONFLICT', status: 409 },
+  INVITATION_NOT_FOUND: { code: 'INVITATION_NOT_FOUND', status: 404 },
+  INVITATION_NOT_PENDING: { code: 'INVITATION_NOT_PENDING', status: 409 },
+  INVITATION_EXPIRED: { code: 'INVITATION_EXPIRED', status: 410 },
+  INVITATION_EMAIL_MISMATCH: { code: 'INVITATION_EMAIL_MISMATCH', status: 403 },
+  INVITATION_DUPLICATE: { code: 'INVITATION_DUPLICATE', status: 409 },
+  INVITATION_ALREADY_MEMBER: { code: 'INVITATION_ALREADY_MEMBER', status: 409 },
+  PROJECT_MEMBER_ALREADY_EXISTS: {
+    code: 'PROJECT_MEMBER_ALREADY_EXISTS',
+    status: 409,
+  },
+  PROJECT_MEMBER_NOT_FOUND: { code: 'PROJECT_MEMBER_NOT_FOUND', status: 404 },
+  PROJECT_MEMBER_NOT_IN_WORKSPACE: {
+    code: 'PROJECT_MEMBER_NOT_IN_WORKSPACE',
+    status: 409,
+  },
+  COUPON_INVALID: { code: 'COUPON_INVALID', status: 422 },
+
+  // Server Errors (500)
+  INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
+  DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },
+  STORAGE_ERROR: { code: 'STORAGE_ERROR', status: 500 },
+  PAYMENT_ERROR: { code: 'PAYMENT_ERROR', status: 502 },
+  MAIL_ERROR: { code: 'MAIL_ERROR', status: 502 },
+} as const
+
+export type ErrorCode = keyof typeof ERROR_CODES

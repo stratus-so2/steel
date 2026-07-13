@@ -1,0 +1,117 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"ignoreUnknown": false,
+		"includes": [
+			"app/**/*",
+			"src/**/*",
+			"worker/**/*",
+			"!!**/.next",
+			"!!**/node_modules",
+			"!!**/app/globals.css"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": "on"
+			}
+		}
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"a11y": {
+				"noSvgWithoutTitle": "off",
+				"useButtonType": "off",
+				"useAltText": "off",
+				"noAutofocus": "off",
+				"noPositiveTabindex": "off",
+				"useIframeTitle": "off",
+				"noStaticElementInteractions": "off",
+				"useKeyWithClickEvents": "off"
+			},
+			"complexity": {
+				"noForEach": "off",
+				"noUselessConstructor": "off"
+			},
+			"performance": {
+				"noImgElement": "off"
+			},
+			"suspicious": {
+				"noDebugger": "off",
+				"noAssignInExpressions": "off",
+				"noArrayIndexKey": "off",
+				"useIterableCallbackReturn": "off",
+				"noUnknownAtRules": "off",
+				"noExplicitAny": "off",
+				"noConsole": {
+					"level": "off",
+					"options": {
+						"allow": ["log"]
+					}
+				}
+			},
+			"style": {
+				"noShoutyConstants": "off",
+				"useNamingConvention": "off",
+				"noParameterAssign": "error",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error"
+			},
+			"correctness": {
+				"useExhaustiveDependencies": "off",
+				"useUniqueElementIds": "off"
+			},
+			"security": {
+				"noDangerouslySetInnerHtml": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single",
+			"bracketSpacing": true,
+			"quoteProperties": "asNeeded",
+			"trailingCommas": "all",
+			"semicolons": "asNeeded",
+			"arrowParentheses": "always",
+			"bracketSameLine": false,
+			"jsxQuoteStyle": "single",
+			"attributePosition": "auto",
+			"indentStyle": "space",
+			"indentWidth": 2,
+			"lineWidth": 80
+		}
+	},
+	"css": {
+		"parser": {
+			"cssModules": false,
+			"allowWrongLineComments": true
+		},
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "space",
+			"indentWidth": 2,
+			"lineWidth": 80,
+			"quoteStyle": "double"
+		}
+	}
+}

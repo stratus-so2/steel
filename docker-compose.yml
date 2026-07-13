@@ -1,0 +1,36 @@
+services:
+  steel-app:
+    image: ghcr.io/stratus/steel:latest
+    container_name: nextjs-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./redis-tls/ca.crt:/etc/redis-tls/ca.crt:ro
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - app-network
+
+  steel-worker:
+    image: ghcr.io/stratus/steel:latest
+    container_name: steel-worker
+    restart: unless-stopped
+    command: ["node", "dist/worker.cjs"]
+    env_file:
+      - .env
+    volumes:
+      - ./redis-tls/ca.crt:/etc/redis-tls/ca.crt:ro
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
+    name: steel_default
