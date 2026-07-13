@@ -161,7 +161,7 @@ jobs:
   notify-slack:
     name: Notify Slack
     needs: [migrate, deploy]
-    if: always() && needs.migrate.result != 'skipped' && needs.deploy.result != 'skipped'
+    if: always() && needs.migrate.result != 'skipped' && needs.deploy.result != 'skipped' && secrets.SLACK_WEBHOOK_URL != ''
     runs-on: ubuntu-latest
     steps:
       - name: Prepare notification context

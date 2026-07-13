@@ -38,12 +38,23 @@ function parseConnectionSecrets(value: string): SecretConfig {
   return { keys, currentVersion }
 }
 
-const secretConfig = parseConnectionSecrets(CONNECTION_SECRETS)
+// Parsed lazily (not at module load) so importing this file doesn't crash
+// build/introspection steps that never actually encrypt/decrypt anything —
+// e.g. `next build`'s page-data collection imports every route module with
+// SKIP_ENV_VALIDATION set and no CONNECTION_SECRETS configured.
+let cachedSecretConfig: SecretConfig | undefined
+
+function getSecretConfig(): SecretConfig {
+  if (!cachedSecretConfig) {
+    cachedSecretConfig = parseConnectionSecrets(CONNECTION_SECRETS)
+  }
+  return cachedSecretConfig
+}
 
 export function encryptConnectionSecret(plain: string): Promise<string> {
-  return symmetricEncrypt({ key: secretConfig, data: plain })
+  return symmetricEncrypt({ key: getSecretConfig(), data: plain })
 }
 
 export function decryptConnectionSecret(envelope: string): Promise<string> {
-  return symmetricDecrypt({ key: secretConfig, data: envelope })
+  return symmetricDecrypt({ key: getSecretConfig(), data: envelope })
 }
