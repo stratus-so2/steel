@@ -11,7 +11,7 @@
       />
     </a>
 </p>
-<p align="center"><b>Project management that actually works for your team</b></p>
+<p align="center"><b>ServiceDesk, CRM, and Comunicação — one platform per workspace</b></p>
 
 <p align="center">
     <a href="https://steel.stratustelecom.com.br/"><b>Website</b></a> •
@@ -34,9 +34,9 @@
   </a>
 </p>
 
-Meet [Steel](https://steel.stratustelecom.com.br/), a project management platform built for teams that want to ship without fighting their tools. Multi-tenant by default, opinionated where it matters, and ready to grow with you.
+Meet [Steel](https://steel.stratustelecom.com.br/), a platform that brings ServiceDesk, CRM, and Comunicação (WhatsApp Business) into a single multi-tenant workspace. Each system ships built into Steel, and a workspace can optionally point any of them at its own external database instead of Steel's — same app, same queries, different data source.
 
-> Steel is in active development. The foundation — auth, workspaces, billing, status, and docs — is in place, and project tracking primitives are landing next. Suggestions, ideas, and reported bugs help us immensely.
+> Steel is in active development. The foundation — auth, workspaces, billing, status, docs, and the ServiceDesk/CRM/Comunicação shell with per-workspace connection management — is in place. The actual domain data for each system (tickets, contacts, WhatsApp threads) is landing next. Suggestions, ideas, and reported bugs help us immensely.
 
 ## Installation
 
@@ -52,6 +52,8 @@ Two ways to run Steel:
 ## Features
 
 - **Workspaces.** Multi-tenant from day one. Slug-based URLs, role-based access (`OWNER`, `ADMIN`, `MEMBER`, `VIEWER`), and isolated data per team.
+- **ServiceDesk, CRM, Comunicação.** Three systems built into Steel, selectable from the global nav per workspace.
+- **Per-workspace database connections.** OWNER/ADMIN can point any system at a workspace-owned external Postgres instance (host/port/credentials, encrypted at rest) instead of Steel's own — validated with a live connection test before it's trusted.
 - **Authentication.** Email and password, Google and GitHub OAuth, two-factor auth via OTP, email verification, and password reset.
 - **Billing.** Plans (`FREE`, `PRO`, `BUSINESS`, `ENTERPRISE`) with AbacatePay integration and a webhook-driven subscription lifecycle.
 - **Status page.** Built-in `/status` with proactive probes across seven components (app, database, cache, auth, payment, email, storage), incident timelines, post-mortems, and uptime history.
@@ -60,14 +62,12 @@ Two ways to run Steel:
 
 ## Roadmap
 
-Project management primitives are next on deck:
+The connection layer is in place; the domain data for each system is next:
 
-- **Work items** — rich-text issues with sub-tasks, links, and file uploads.
-- **Cycles** — time-boxed sprints with burn-down charts.
-- **Modules** — break large initiatives into manageable units.
-- **Views** — saved filters and shared queries.
-- **Pages** — collaborative documents with rich editing.
-- **Analytics** — real-time insights across projects.
+- **ServiceDesk** — tickets, queues, SLAs, and agent assignment.
+- **CRM** — contacts, companies, deals, and pipelines.
+- **Comunicação** — WhatsApp Business threads, templates, and routing.
+- **Shared Steel-hosted databases** — a default instance per system for workspaces that don't bring their own.
 
 ## Stack
 
@@ -85,31 +85,31 @@ Project management primitives are next on deck:
 
 <p>
     <a href="https://steel.stratustelecom.com.br" target="_blank">
-      <!-- <img src="./public/brand/screens/workspaces.png" alt="Workspaces" width="100%" /> -->
+      <!-- <img src="./public/brand/screens/servicedesk.png" alt="ServiceDesk" width="100%" /> -->
     </a>
 </p>
 
 <p>
     <a href="https://steel.stratustelecom.com.br" target="_blank">
-      <!-- <img src="./public/brand/screens/auth.png" alt="Authentication" width="100%" /> -->
+      <!-- <img src="./public/brand/screens/crm.png" alt="CRM" width="100%" /> -->
     </a>
 </p>
 
 <p>
     <a href="https://steel.stratustelecom.com.br" target="_blank">
-      <!-- <img src="./public/brand/screens/billing.png" alt="Billing" width="100%" /> -->
+      <!-- <img src="./public/brand/screens/comunicacao.png" alt="Comunicação" width="100%" /> -->
+    </a>
+</p>
+
+<p>
+    <a href="https://steel.stratustelecom.com.br" target="_blank">
+      <!-- <img src="./public/brand/screens/connections.png" alt="Workspace connections" width="100%" /> -->
     </a>
 </p>
 
 <p>
     <a href="https://steel.stratustelecom.com.br" target="_blank">
       <!-- <img src="./public/brand/screens/status.png" alt="Status page" width="100%" /> -->
-    </a>
-</p>
-
-<p>
-    <a href="https://steel.stratustelecom.com.br" target="_blank">
-      <!-- <img src="./public/brand/screens/docs.png" alt="API docs" width="100%" /> -->
     </a>
 </p>
 
