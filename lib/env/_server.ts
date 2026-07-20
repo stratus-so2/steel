@@ -27,6 +27,9 @@ const serverEnv = {
   CONNECTION_SECRETS: process.env.CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS:
     process.env.ACCOUNT_DELETION_GRACE_OVERRIDE_MS,
+  WHATSAPP_META_APP_SECRET: process.env.WHATSAPP_META_APP_SECRET,
+  WHATSAPP_META_VERIFY_TOKEN: process.env.WHATSAPP_META_VERIFY_TOKEN,
+  JITSI_DOMAIN: process.env.JITSI_DOMAIN,
 }
 
 const serverEnvSchema = z.object({
@@ -77,6 +80,9 @@ const serverEnvSchema = z.object({
     .refine((v) => v === undefined || (Number.isFinite(v) && v >= 0), {
       message: 'ACCOUNT_DELETION_GRACE_OVERRIDE_MS must be a non-negative number',
     }),
+  WHATSAPP_META_APP_SECRET: z.string().min(1).max(255).optional(),
+  WHATSAPP_META_VERIFY_TOKEN: z.string().min(8).max(255).optional(),
+  JITSI_DOMAIN: z.string().min(1).max(255).default('meet.jit.si'),
 })
 
 const validatedServerEnv =
@@ -110,4 +116,7 @@ export const {
   STATUS_COLLECTOR_SECRET,
   CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS,
+  WHATSAPP_META_APP_SECRET,
+  WHATSAPP_META_VERIFY_TOKEN,
+  JITSI_DOMAIN,
 } = validatedServerEnv
