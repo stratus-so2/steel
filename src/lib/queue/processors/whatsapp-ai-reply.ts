@@ -1,5 +1,10 @@
+import type { WhatsAppMessage } from '@prisma/client'
 import type { Job } from 'bullmq'
-import OpenAI from 'openai'
+import OpenAI, { toFile } from 'openai'
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionMessageParam,
+} from 'openai/resources/chat/completions'
 import { logger } from '@/lib/axiom/logger'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { prisma } from '@/src/lib/prisma'
@@ -11,6 +16,7 @@ import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conv
 import { WhatsappAiReplyJob, type WhatsappAiReplyJobPayload } from '../jobs'
 
 const HISTORY_LIMIT = 20
+const TRANSCRIPTION_MODEL = 'whisper-1'
 
 function previewForNonText(type: string): string {
   switch (type) {
@@ -27,10 +33,70 @@ function previewForNonText(type: string): string {
   }
 }
 
+async function transcribeAudio(
+  client: OpenAI,
+  mediaUrl: string,
+): Promise<string | null> {
+  try {
+    const response = await fetch(mediaUrl)
+    if (!response.ok) return null
+    const buffer = Buffer.from(await response.arrayBuffer())
+    const file = await toFile(buffer, 'audio.ogg')
+    const transcription = await client.audio.transcriptions.create({
+      file,
+      model: TRANSCRIPTION_MODEL,
+    })
+    return transcription.text?.trim() || null
+  } catch (error) {
+    logger.error('queue.whatsapp_ai_reply.transcription_failed', {
+      component: 'WhatsappAiReply',
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return null
+  }
+}
+
+// Only the message that triggered this job gets the full (costly) media
+// read — older history entries stay as cheap text placeholders. Only
+// customer-sent (IN) messages are eligible: past assistant image/audio
+// output doesn't need re-reading to stay in context.
+async function describeMessageContent(
+  client: OpenAI,
+  message: WhatsAppMessage,
+  triggerMessageId: string,
+  readMedia: boolean,
+): Promise<string | ChatCompletionContentPart[]> {
+  const isTrigger = message.id === triggerMessageId
+  if (
+    !readMedia ||
+    !isTrigger ||
+    message.direction !== 'IN' ||
+    !message.mediaUrl
+  ) {
+    return message.text ?? previewForNonText(message.type)
+  }
+
+  if (message.type === 'IMAGE') {
+    return [
+      { type: 'text', text: message.text || 'Imagem enviada pelo cliente' },
+      { type: 'image_url', image_url: { url: message.mediaUrl } },
+    ]
+  }
+
+  if (message.type === 'AUDIO') {
+    const transcribed = await transcribeAudio(client, message.mediaUrl)
+    return transcribed
+      ? `[áudio transcrito] ${transcribed}`
+      : previewForNonText(message.type)
+  }
+
+  return message.text ?? previewForNonText(message.type)
+}
+
 async function processGenerateAiReply(
   job: Job<WhatsappAiReplyJobPayload['generate-ai-reply']>,
 ): Promise<void> {
-  const { conversationId } = job.data
+  const { conversationId, messageId } = job.data
 
   const conversation = await prisma.whatsAppConversation.findUnique({
     where: { id: conversationId },
@@ -68,19 +134,30 @@ async function processGenerateAiReply(
   const apiKey = await decryptConnectionSecret(aiConfig.encryptedOpenaiApiKey)
   const client = new OpenAI({ apiKey })
 
-  const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] =
-    [
-      { role: 'system', content: aiConfig.systemPrompt },
-      ...history
-        .slice()
-        .reverse()
-        .map((message) => ({
-          role: (message.direction === 'IN' ? 'user' : 'assistant') as
-            | 'user'
-            | 'assistant',
-          content: message.text ?? previewForNonText(message.type),
-        })),
-    ]
+  const orderedHistory = history.slice().reverse()
+  const historyMessages = await Promise.all(
+    orderedHistory.map(async (message) => {
+      const content = await describeMessageContent(
+        client,
+        message,
+        messageId,
+        aiConfig.readMedia,
+      )
+      // Vision content parts only ever come back for IN messages (see
+      // describeMessageContent), so the 'assistant' branch is always a
+      // plain string at runtime.
+      return message.direction === 'IN'
+        ? ({ role: 'user', content } as ChatCompletionMessageParam)
+        : ({
+            role: 'assistant',
+            content: content as string,
+          } as ChatCompletionMessageParam)
+    }),
+  )
+  const messages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: aiConfig.systemPrompt },
+    ...historyMessages,
+  ]
 
   let replyText: string
   try {
