@@ -128,3 +128,62 @@ export const connectionForbidden = (
 export const connectionTestFailed = (
   message = 'Não foi possível conectar ao banco de dados informado',
 ): AppError => appError('CONNECTION_TEST_FAILED', message)
+
+export const whatsappConnectionNotFound = (): AppError =>
+  appError(
+    'WHATSAPP_CONNECTION_NOT_FOUND',
+    'Conexão do WhatsApp não encontrada',
+  )
+
+export const whatsappConnectionConflict = (
+  message = 'Já existe uma conexão com este número neste workspace',
+): AppError => appError('WHATSAPP_CONNECTION_CONFLICT', message)
+
+export const whatsappContactNotFound = (): AppError =>
+  appError('WHATSAPP_CONTACT_NOT_FOUND', 'Contato não encontrado')
+
+export const whatsappConversationNotFound = (): AppError =>
+  appError('WHATSAPP_CONVERSATION_NOT_FOUND', 'Conversa não encontrada')
+
+export const whatsappConversationAiHandling = (
+  message = 'A IA está atendendo esta conversa. Remova-a do atendimento da IA para enviar mensagens.',
+): AppError => appError('WHATSAPP_CONVERSATION_AI_HANDLING', message)
+
+export const whatsappQuickReplyNotFound = (): AppError =>
+  appError('WHATSAPP_QUICK_REPLY_NOT_FOUND', 'Mensagem rápida não encontrada')
+
+export const whatsappQuickReplyConflict = (
+  message = 'Já existe uma mensagem rápida com este atalho',
+): AppError => appError('WHATSAPP_QUICK_REPLY_CONFLICT', message)
+
+export const whatsappTemplateNotFound = (): AppError =>
+  appError('WHATSAPP_TEMPLATE_NOT_FOUND', 'Template não encontrado')
+
+export const whatsappTemplateNotApproved = (): AppError =>
+  appError(
+    'WHATSAPP_TEMPLATE_NOT_APPROVED',
+    'Este template ainda não foi aprovado pela Meta',
+  )
+
+export const whatsappBroadcastNotFound = (): AppError =>
+  appError(
+    'WHATSAPP_BROADCAST_NOT_FOUND',
+    'Lista de transmissão não encontrada',
+  )
+
+export const whatsappBroadcastLocked = (
+  message = 'Esta lista de transmissão já foi iniciada e não pode ser editada',
+): AppError => appError('WHATSAPP_BROADCAST_LOCKED', message)
+
+export const whatsappAiConfigNotFound = (): AppError =>
+  appError(
+    'WHATSAPP_AI_CONFIG_NOT_FOUND',
+    'Configuração de IA não encontrada para este workspace',
+  )
+
+export const whatsappProviderError = (
+  message = 'Falha ao comunicar com o provedor do WhatsApp',
+): AppError => appError('WHATSAPP_PROVIDER_ERROR', message)
+
+export const whatsappWebhookUnauthorized = (): AppError =>
+  appError('WHATSAPP_WEBHOOK_UNAUTHORIZED', 'Assinatura do webhook inválida')

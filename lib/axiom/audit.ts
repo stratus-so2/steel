@@ -16,6 +16,14 @@ type AuditEntity =
   | 'notification_setting'
   | 'invitation'
   | 'workspace_module_connection'
+  | 'whatsapp_connection'
+  | 'whatsapp_contact'
+  | 'whatsapp_conversation'
+  | 'whatsapp_message'
+  | 'whatsapp_quick_reply'
+  | 'whatsapp_broadcast_list'
+  | 'whatsapp_template'
+  | 'whatsapp_ai_config'
 
 type AuditAction =
   | 'create'
@@ -39,6 +47,12 @@ type AuditAction =
   | 'onboarding_profile_saved'
   | 'onboarding_step_reverted'
   | 'accept'
+  | 'send'
+  | 'assign'
+  | 'sync'
+  | 'start'
+  | 'connect'
+  | 'disconnect'
 
 type AuditOutcome = 'success' | 'failure'
 
