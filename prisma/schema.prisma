@@ -7,37 +7,42 @@ datasource db {
 }
 
 model User {
-  id                   String    @id @default(cuid())
-  name                 String
-  email                String    @unique
-  username             String    @unique
-  emailVerified        Boolean   @default(false) @map("email_verified")
-  image                String?
-  coverImage           String?   @map("cover_image")
-  twoFactorEnabled     Boolean   @default(false) @map("two_factor_enabled")
-  deletionScheduledAt  DateTime? @map("deletion_scheduled_at")
-  acceptedTermsAt      DateTime? @map("accepted_terms_at")
-  acceptedPrivacyAt    DateTime? @map("accepted_privacy_at")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
-  onboardingStep       OnboardingStep?      @default(PROFILE) @map("onboarding_step")
-  role                 UserRole?  @map("role")
-  goals                UserGoal[] @map("goals")
-  preference           UserPreference?
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  username            String               @unique
+  emailVerified       Boolean              @default(false) @map("email_verified")
+  image               String?
+  coverImage          String?              @map("cover_image")
+  twoFactorEnabled    Boolean              @default(false) @map("two_factor_enabled")
+  deletionScheduledAt DateTime?            @map("deletion_scheduled_at")
+  acceptedTermsAt     DateTime?            @map("accepted_terms_at")
+  acceptedPrivacyAt   DateTime?            @map("accepted_privacy_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  onboardingStep      OnboardingStep?      @default(PROFILE) @map("onboarding_step")
+  role                UserRole?            @map("role")
+  goals               UserGoal[]           @map("goals")
+  preference          UserPreference?
   notificationSetting NotificationSetting?
 
-  memberships   Membership[]
-  sessions      Session[]
-  accounts      Account[]
-  twoFactors    TwoFactor[]
-  shortLinks    ShortLink[]
-  stickyNotes   StickyNote[]
-  consentEvents ConsentEvent[]
-  projectsLed   Project[]       @relation("ProjectLead")
-  projectMemberships  ProjectMember[]
-  projectFavourites ProjectFavorite[]
-  sentInvitations WorkspaceInvitation[] @relation("SentInvitations")
+  memberships              Membership[]
+  sessions                 Session[]
+  accounts                 Account[]
+  twoFactors               TwoFactor[]
+  shortLinks               ShortLink[]
+  stickyNotes              StickyNote[]
+  consentEvents            ConsentEvent[]
+  projectsLed              Project[]                   @relation("ProjectLead")
+  projectMemberships       ProjectMember[]
+  projectFavourites        ProjectFavorite[]
+  sentInvitations          WorkspaceInvitation[]       @relation("SentInvitations")
   moduleConnectionsCreated WorkspaceModuleConnection[]
+
+  whatsappConnectionsCreated    WhatsAppConnection[]    @relation("WhatsAppConnectionCreatedBy")
+  whatsappConversationsAssigned WhatsAppConversation[]  @relation("WhatsAppConversationAssignee")
+  whatsappMessagesSent          WhatsAppMessage[]       @relation("WhatsAppMessageSender")
+  whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -91,16 +96,16 @@ enum QuickSendShortcut {
 }
 
 model UserPreference {
-  id       String          @id @default(cuid())
-  userId   String          @unique @map("user_id")
-  theme    Theme           @default(SYSTEM)
-  smoothCursor  Boolean    @default(false) @map("smooth_cursor")
-  quickSendShortcut   QuickSendShortcut    @default(ENTER) @map("quick_send_shortcut")
-  timezone  String    @default("UTC")
-  weekStartsOn  Int   @default(1) @map("week_starts_on")
-  weekendDays   Int[] @default([0, 6]) @map("weekend_days")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id                String            @id @default(cuid())
+  userId            String            @unique @map("user_id")
+  theme             Theme             @default(SYSTEM)
+  smoothCursor      Boolean           @default(false) @map("smooth_cursor")
+  quickSendShortcut QuickSendShortcut @default(ENTER) @map("quick_send_shortcut")
+  timezone          String            @default("UTC")
+  weekStartsOn      Int               @default(1) @map("week_starts_on")
+  weekendDays       Int[]             @default([0, 6]) @map("weekend_days")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -206,8 +211,17 @@ model Workspace {
   subscriptions Subscription[]
   projects      Project[]
 
-  invitations WorkspaceInvitation[]
+  invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
+
+  whatsappConnections    WhatsAppConnection[]
+  whatsappContacts       WhatsAppContact[]
+  whatsappConversations  WhatsAppConversation[]
+  whatsappMessages       WhatsAppMessage[]
+  whatsappQuickReplies   WhatsAppQuickReply[]
+  whatsappBroadcastLists WhatsAppBroadcastList[]
+  whatsappTemplates      WhatsAppTemplate[]
+  whatsappAiConfig       WhatsAppAiConfig?
 
   @@map("workspaces")
 }
@@ -253,21 +267,21 @@ enum BillingInterval {
 }
 
 model WorkspaceInvitation {
-  id  String @id @default(cuid())
-  email String
-  role  Role  @default(MEMBER)
-  token String  @unique @default(cuid())
-  status  InviteStatus  @default(PENDING)
-  expiresAt DateTime  @map("expiresa_at")
-  invitedById  String  @map("invited_by_id")
-  workspaceId String  @map("workspace_id")
-  projectId String? @map("project_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id          String       @id @default(cuid())
+  email       String
+  role        Role         @default(MEMBER)
+  token       String       @unique @default(cuid())
+  status      InviteStatus @default(PENDING)
+  expiresAt   DateTime     @map("expiresa_at")
+  invitedById String       @map("invited_by_id")
+  workspaceId String       @map("workspace_id")
+  projectId   String?      @map("project_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  inviter User  @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter   User      @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, status])
   @@index([email])
@@ -375,14 +389,14 @@ model IncidentUpdate {
 }
 
 model ShortLink {
-  id        String        @id @default(cuid())
-  title     String        @map("title")
-  url       String        @map("url")
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
+  id        String   @id @default(cuid())
+  title     String   @map("title")
+  url       String   @map("url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String        @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
 
   @@index([createdAt])
   @@map("short_links")
@@ -398,14 +412,14 @@ enum StickyColor {
 }
 
 model StickyNote {
-  id        String        @id @default(cuid())
-  content   Json          @map("content")
-  color     StickyColor   @default(ZINC) @map("color")
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
+  id        String      @id @default(cuid())
+  content   Json        @map("content")
+  color     StickyColor @default(ZINC) @map("color")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
 
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String        @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
 
   @@index([userId, updatedAt])
   @@map("sticky_notes")
@@ -425,10 +439,10 @@ model Project {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  lead      User            @relation("ProjectLead", fields: [leadId], references: [id])
-  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  members   ProjectMember[]
-  favourites ProjectFavorite[]
+  lead        User                  @relation("ProjectLead", fields: [leadId], references: [id])
+  workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  members     ProjectMember[]
+  favourites  ProjectFavorite[]
   invitations WorkspaceInvitation[]
 
   @@unique([workspaceId, slug])
@@ -493,4 +507,262 @@ model WorkspaceModuleConnection {
   @@unique([workspaceId, module])
   @@index([workspaceId])
   @@map("workspace_module_connections")
+}
+
+// ─── WhatsApp domain ───────────────────────────────────────────────────────
+
+enum WhatsAppProvider {
+  ZAPI
+  META
+}
+
+enum WhatsAppConnectionStatus {
+  CONNECTING
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+model WhatsAppConnection {
+  id                       String                   @id @default(cuid())
+  workspaceId              String                   @map("workspace_id")
+  provider                 WhatsAppProvider
+  label                    String
+  phoneNumber              String                   @map("phone_number")
+  status                   WhatsAppConnectionStatus @default(CONNECTING)
+  statusError              String?                  @map("status_error")
+  webhookSecret            String                   @unique @default(cuid()) @map("webhook_secret")
+  zapiInstanceId           String?                  @map("zapi_instance_id")
+  encryptedZapiToken       String?                  @map("encrypted_zapi_token")
+  encryptedZapiClientToken String?                  @map("encrypted_zapi_client_token")
+  metaPhoneNumberId        String?                  @map("meta_phone_number_id")
+  metaWabaId               String?                  @map("meta_waba_id")
+  encryptedMetaAccessToken String?                  @map("encrypted_meta_access_token")
+  createdById              String                   @map("created_by_id")
+  createdAt                DateTime                 @default(now()) @map("created_at")
+  updatedAt                DateTime                 @updatedAt @map("updated_at")
+
+  workspace      Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User                    @relation("WhatsAppConnectionCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  conversations  WhatsAppConversation[]
+  broadcastLists WhatsAppBroadcastList[]
+  templates      WhatsAppTemplate[]
+
+  @@unique([workspaceId, provider, phoneNumber])
+  @@index([workspaceId])
+  @@index([zapiInstanceId])
+  @@index([metaPhoneNumberId])
+  @@map("whatsapp_connections")
+}
+
+model WhatsAppContact {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  waId        String   @map("wa_id")
+  name        String?
+  avatarUrl   String?  @map("avatar_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace           Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversations       WhatsAppConversation[]
+  broadcastRecipients WhatsAppBroadcastRecipient[]
+
+  @@unique([workspaceId, waId])
+  @@index([workspaceId])
+  @@map("whatsapp_contacts")
+}
+
+enum WhatsAppConversationStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+model WhatsAppConversation {
+  id             String                     @id @default(cuid())
+  workspaceId    String                     @map("workspace_id")
+  connectionId   String                     @map("connection_id")
+  contactId      String                     @map("contact_id")
+  status         WhatsAppConversationStatus @default(NEW)
+  assignedUserId String?                    @map("assigned_user_id")
+  aiActive       Boolean                    @default(false) @map("ai_active")
+  aiHandoff      Boolean                    @default(false) @map("ai_handoff")
+  unreadCount    Int                        @default(0) @map("unread_count")
+  lastMessageAt  DateTime?                  @map("last_message_at")
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  workspace    Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection   WhatsAppConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  contact      WhatsAppContact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedUser User?              @relation("WhatsAppConversationAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  messages     WhatsAppMessage[]
+
+  @@index([workspaceId, status, lastMessageAt])
+  @@index([connectionId])
+  @@index([contactId])
+  @@index([assignedUserId])
+  @@map("whatsapp_conversations")
+}
+
+enum WhatsAppMessageDirection {
+  IN
+  OUT
+}
+
+enum WhatsAppMessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  STICKER
+  LOCATION
+  TEMPLATE
+  BUTTON
+}
+
+enum WhatsAppMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model WhatsAppMessage {
+  id                String                   @id @default(cuid())
+  workspaceId       String                   @map("workspace_id")
+  conversationId    String                   @map("conversation_id")
+  direction         WhatsAppMessageDirection
+  type              WhatsAppMessageType
+  text              String?
+  mediaUrl          String?                  @map("media_url")
+  providerMessageId String?                  @unique @map("provider_message_id")
+  status            WhatsAppMessageStatus    @default(PENDING)
+  senderUserId      String?                  @map("sender_user_id")
+  sentByAi          Boolean                  @default(false) @map("sent_by_ai")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUser   User?                @relation("WhatsAppMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([conversationId, createdAt])
+  @@map("whatsapp_messages")
+}
+
+model WhatsAppQuickReply {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  shortcut    String
+  title       String
+  body        String
+  mediaUrl    String?  @map("media_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, shortcut])
+  @@index([workspaceId])
+  @@map("whatsapp_quick_replies")
+}
+
+enum WhatsAppBroadcastStatus {
+  DRAFT
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+model WhatsAppBroadcastList {
+  id           String                  @id @default(cuid())
+  workspaceId  String                  @map("workspace_id")
+  connectionId String                  @map("connection_id")
+  name         String
+  messageBody  String                  @map("message_body")
+  mediaUrl     String?                 @map("media_url")
+  status       WhatsAppBroadcastStatus @default(DRAFT)
+  scheduledAt  DateTime?               @map("scheduled_at")
+  createdById  String                  @map("created_by_id")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  workspace  Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection WhatsAppConnection           @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  createdBy  User                         @relation("WhatsAppBroadcastCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  recipients WhatsAppBroadcastRecipient[]
+
+  @@index([workspaceId])
+  @@map("whatsapp_broadcast_lists")
+}
+
+enum WhatsAppBroadcastRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model WhatsAppBroadcastRecipient {
+  id                String                           @id @default(cuid())
+  broadcastListId   String                           @map("broadcast_list_id")
+  contactId         String                           @map("contact_id")
+  status            WhatsAppBroadcastRecipientStatus @default(PENDING)
+  providerMessageId String?                          @map("provider_message_id")
+  errorMessage      String?                          @map("error_message")
+  sentAt            DateTime?                        @map("sent_at")
+  createdAt         DateTime                         @default(now()) @map("created_at")
+
+  broadcastList WhatsAppBroadcastList @relation(fields: [broadcastListId], references: [id], onDelete: Cascade)
+  contact       WhatsAppContact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([broadcastListId, contactId])
+  @@index([broadcastListId, status])
+  @@map("whatsapp_broadcast_recipients")
+}
+
+enum WhatsAppTemplateStatus {
+  APPROVED
+  PENDING
+  REJECTED
+}
+
+model WhatsAppTemplate {
+  id           String                 @id @default(cuid())
+  workspaceId  String                 @map("workspace_id")
+  connectionId String                 @map("connection_id")
+  name         String
+  language     String
+  category     String
+  status       WhatsAppTemplateStatus @default(PENDING)
+  components   Json
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection WhatsAppConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, name, language])
+  @@index([workspaceId])
+  @@map("whatsapp_templates")
+}
+
+model WhatsAppAiConfig {
+  id                    String   @id @default(cuid())
+  workspaceId           String   @unique @map("workspace_id")
+  encryptedOpenaiApiKey String   @map("encrypted_openai_api_key")
+  model                 String   @default("gpt-4o-mini")
+  systemPrompt          String   @map("system_prompt")
+  active                Boolean  @default(false)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_ai_configs")
 }
