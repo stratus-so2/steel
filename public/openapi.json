@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Steel API",
-    "version": "1.0.0",
+    "version": "2.2.0",
     "description": "API do Steel — gestão ágil de projetos. As respostas de sucesso seguem o envelope padrão `{ success, statusCode, data }` e os erros o envelope `{ success, statusCode, message, error }`, exceto as rotas `/auth/*` (Better Auth), que retornam payloads próprios fora do envelope. As rotas de e-mail transacional são disparadas internamente pelo Better Auth e não são expostas publicamente.",
     "contact": {
       "name": "Stratus Telecom",
