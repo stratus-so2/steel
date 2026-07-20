@@ -9,6 +9,9 @@ import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
+import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
+import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-broadcast'
+import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
 import { closeQueues } from '../src/lib/queue/queues'
 import {
   scheduleDataRetentionJobs,
@@ -93,6 +96,13 @@ async function main(): Promise<void> {
   )
   workers.push(registerWorker(QueueName.DataExport, processDataExport))
   workers.push(registerWorker(QueueName.TrialLifecycle, processTrialLifecycle))
+  workers.push(registerWorker(QueueName.WhatsappMedia, processWhatsappMedia))
+  workers.push(
+    registerWorker(QueueName.WhatsappAiReply, processWhatsappAiReply),
+  )
+  workers.push(
+    registerWorker(QueueName.WhatsappBroadcast, processWhatsappBroadcast),
+  )
 
   await scheduleDataRetentionJobs()
   await scheduleTrialLifecycleJobs()
