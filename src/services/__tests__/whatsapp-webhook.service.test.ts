@@ -215,6 +215,78 @@ describe('WhatsAppWebhookService', () => {
     })
   })
 
+  describe('ingestOutboundDeviceMessage()', () => {
+    it('should be a no-op when the message was already ingested (dedupe)', async () => {
+      mockedMessageRepo.findByProviderMessageId.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ providerMessageId: 'pm-new' })),
+      )
+
+      const result = await WhatsAppWebhookService.ingestOutboundDeviceMessage(
+        baseInbound(),
+      )
+
+      expectOk(result)
+      expect(mockedContactRepo.upsertByWaId).not.toHaveBeenCalled()
+    })
+
+    it('should persist the message as OUT and hand off from AI on an existing conversation', async () => {
+      mockedMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+      mockedContactRepo.upsertByWaId.mockResolvedValue(
+        ok(createFakeWhatsAppContact({ id: 'contact1' })),
+      )
+      const existing = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+        aiActive: true,
+        aiHandoff: false,
+      })
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(ok(existing))
+      mockedConversationRepo.update.mockResolvedValue(ok(existing))
+      mockedConversationRepo.findById.mockResolvedValue(ok(existing))
+      mockedMessageRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ conversationId: 'conv1' })),
+      )
+
+      await WhatsAppWebhookService.ingestOutboundDeviceMessage(baseInbound())
+
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith(
+        'conv1',
+        expect.objectContaining({ aiActive: false, aiHandoff: true }),
+      )
+      expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ direction: 'OUT', status: 'SENT' }),
+      )
+      expect(aiReplyAdd).not.toHaveBeenCalled()
+    })
+
+    it('should create a new conversation already handed off when none exists', async () => {
+      mockedMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+      mockedContactRepo.upsertByWaId.mockResolvedValue(
+        ok(createFakeWhatsAppContact({ id: 'contact1' })),
+      )
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(ok(null))
+      const created = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+        aiActive: false,
+        aiHandoff: true,
+      })
+      mockedConversationRepo.create.mockResolvedValue(ok(created))
+      mockedConversationRepo.findById.mockResolvedValue(ok(created))
+      mockedMessageRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ conversationId: 'conv1' })),
+      )
+
+      await WhatsAppWebhookService.ingestOutboundDeviceMessage(baseInbound())
+
+      expect(mockedConversationRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiActive: false,
+          aiHandoff: true,
+          unreadCount: 0,
+        }),
+      )
+    })
+  })
+
   describe('ingestStatusUpdate()', () => {
     it('should be a no-op when the message is unknown', async () => {
       mockedMessageRepo.updateStatusByProviderMessageId.mockResolvedValue(

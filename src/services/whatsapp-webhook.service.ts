@@ -143,6 +143,93 @@ export const WhatsAppWebhookService = {
     return ok(undefined)
   },
 
+  // A message the agent sent directly from the linked phone (outside the
+  // platform) — Z-API reports these with fromMe=true. Persisted as an
+  // outbound message so it shows up in the conversation, and hands off from
+  // AI (a human already replied), unlike a genuine inbound message.
+  async ingestOutboundDeviceMessage(
+    input: InboundWhatsAppMessage,
+  ): Promise<Result<void>> {
+    const { connection } = input
+    const workspaceId = connection.workspaceId
+
+    const dedupe = await WhatsAppMessageRepository.findByProviderMessageId(
+      input.providerMessageId,
+    )
+    if (!dedupe.ok) return dedupe
+    if (dedupe.value) return ok(undefined)
+
+    const contact = await WhatsAppContactRepository.upsertByWaId({
+      workspaceId,
+      waId: input.waId,
+      name: input.contactName,
+    })
+    if (!contact.ok) return contact
+
+    const existingConversation =
+      await WhatsAppConversationRepository.findActiveByContact(
+        workspaceId,
+        contact.value.id,
+      )
+    if (!existingConversation.ok) return existingConversation
+
+    let conversationId: string
+
+    if (existingConversation.value) {
+      const conversation = existingConversation.value
+      const updated = await WhatsAppConversationRepository.update(
+        conversation.id,
+        {
+          lastMessageAt: new Date(),
+          aiActive: false,
+          aiHandoff: true,
+        },
+      )
+      if (!updated.ok) return updated
+      conversationId = updated.value.id
+    } else {
+      const created = await WhatsAppConversationRepository.create({
+        workspaceId,
+        connectionId: connection.id,
+        contactId: contact.value.id,
+        status: 'IN_PROGRESS',
+        aiActive: false,
+        aiHandoff: true,
+        unreadCount: 0,
+        lastMessageAt: new Date(),
+      })
+      if (!created.ok) return created
+      conversationId = created.value.id
+    }
+
+    const message = await WhatsAppMessageRepository.create({
+      workspaceId,
+      conversationId,
+      direction: 'OUT',
+      type: input.type,
+      text: input.text,
+      mediaUrl: input.rawMediaUrl,
+      providerMessageId: input.providerMessageId,
+      status: 'SENT',
+    })
+    if (!message.ok) return message
+
+    if (input.rawMediaUrl) {
+      await getWhatsappMediaQueue().add(WhatsappMediaJob.DownloadInboundMedia, {
+        messageId: message.value.id,
+      })
+    }
+
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'message.created',
+      conversationId,
+      message: toWhatsAppMessageDTO(message.value),
+    })
+    await publishConversationSnapshot(workspaceId, conversationId)
+
+    return ok(undefined)
+  },
+
   async ingestStatusUpdate(input: {
     providerMessageId: string
     status: WhatsAppMessageStatus

@@ -118,7 +118,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
     return new Response('STATUS_RECEIVED', { status: 200 })
   }
 
-  if (body.type !== 'ReceivedCallback' || body.fromMe) {
+  if (body.type !== 'ReceivedCallback') {
     return new Response('IGNORED', { status: 200 })
   }
 
@@ -129,13 +129,25 @@ export const POST = withAxiom(async (request: NextRequest) => {
 
   const content = extractMessageContent(body)
 
-  const result = await WhatsAppWebhookService.ingestInboundMessage({
-    connection,
-    waId,
-    contactName: body.senderName,
-    providerMessageId: body.messageId,
-    ...content,
-  })
+  // fromMe=true covers two cases Z-API can't distinguish for us: an echo of
+  // a message the platform itself sent (already persisted, so the dedupe by
+  // providerMessageId below is a no-op) and one the agent sent directly from
+  // the linked phone, which we do want to show up in the conversation.
+  const result = body.fromMe
+    ? await WhatsAppWebhookService.ingestOutboundDeviceMessage({
+        connection,
+        waId,
+        contactName: body.senderName,
+        providerMessageId: body.messageId,
+        ...content,
+      })
+    : await WhatsAppWebhookService.ingestInboundMessage({
+        connection,
+        waId,
+        contactName: body.senderName,
+        providerMessageId: body.messageId,
+        ...content,
+      })
   if (!result.ok) {
     return new Response('Erro ao processar mensagem', { status: 500 })
   }
