@@ -4,7 +4,7 @@ import {
   ComputerVideoCallIcon,
   UserSwitchIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -25,10 +25,12 @@ import {
   useWhatsAppAssignableMembers,
 } from '@/src/hooks/use-whatsapp-conversations'
 import {
+  useReactToWhatsAppMessage,
   useSendWhatsAppTextMessage,
   useWhatsAppMessages,
 } from '@/src/hooks/use-whatsapp-messages'
 import type { WhatsAppConversationDTO } from '@/types/whatsapp-conversation'
+import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
 import { WhatsappAiBanner } from './whatsapp-ai-banner'
 import { WhatsappComposer } from './whatsapp-composer'
 import { WhatsappVideoCallDialog } from './whatsapp-video-call-dialog'
@@ -41,6 +43,9 @@ export function WhatsappConversationView({
   conversation: WhatsAppConversationDTO
 }) {
   const [callOpen, setCallOpen] = useState(false)
+  const [replyTarget, setReplyTarget] = useState<WhatsAppMessageDTO | null>(
+    null,
+  )
   const roomName = `steel-${conversation.id}`
 
   const currentUser = useUser()
@@ -53,6 +58,13 @@ export function WhatsappConversationView({
     conversation.id,
   )
   const sendText = useSendWhatsAppTextMessage(workspaceId, conversation.id)
+  const reactToMessage = useReactToWhatsAppMessage(workspaceId, conversation.id)
+
+  const messagesById = useMemo(() => {
+    const map = new Map<string, WhatsAppMessageDTO>()
+    for (const message of messages.data ?? []) map.set(message.id, message)
+    return map
+  }, [messages.data])
 
   useEffect(() => {
     if (conversation.unreadCount > 0) {
@@ -62,9 +74,9 @@ export function WhatsappConversationView({
 
   async function handleStartCall() {
     try {
-      await sendText.mutateAsync(
-        `Vamos iniciar uma videochamada. Entre pelo link: https://meet.jit.si/${roomName}`,
-      )
+      await sendText.mutateAsync({
+        text: `Vamos iniciar uma videochamada. Entre pelo link: https://meet.jit.si/${roomName}`,
+      })
       setCallOpen(true)
     } catch {
       notify.error('Erro ao iniciar chamada')
@@ -147,7 +159,19 @@ export function WhatsappConversationView({
 
       <MessageScroller dependencyKey={messages.data?.length}>
         {(messages.data ?? []).map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            replyToMessage={
+              message.replyToMessageId
+                ? messagesById.get(message.replyToMessageId)
+                : undefined
+            }
+            onReply={setReplyTarget}
+            onReact={(messageId, emoji) =>
+              reactToMessage.mutate({ messageId, emoji })
+            }
+          />
         ))}
       </MessageScroller>
 
@@ -155,6 +179,8 @@ export function WhatsappConversationView({
         workspaceId={workspaceId}
         conversationId={conversation.id}
         disabled={conversation.aiActive}
+        replyTarget={replyTarget}
+        onClearReply={() => setReplyTarget(null)}
       />
 
       <WhatsappVideoCallDialog

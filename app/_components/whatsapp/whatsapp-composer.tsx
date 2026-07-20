@@ -52,7 +52,10 @@ import {
 } from '@/src/hooks/use-whatsapp-messages'
 import { useWhatsAppQuickReplies } from '@/src/hooks/use-whatsapp-quick-replies'
 import { useWhatsAppTemplates } from '@/src/hooks/use-whatsapp-templates'
-import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
+import type {
+  WhatsAppMessageDTO,
+  WhatsAppMessageTypeDTO,
+} from '@/types/whatsapp-message'
 
 function mediaTypeFromMime(mime: string): WhatsAppMessageTypeDTO {
   if (mime.startsWith('image/')) return 'IMAGE'
@@ -74,6 +77,23 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function replyPreviewText(message: WhatsAppMessageDTO): string {
+  switch (message.type) {
+    case 'IMAGE':
+      return '📷 Imagem'
+    case 'AUDIO':
+      return '🎤 Áudio'
+    case 'VIDEO':
+      return '🎬 Vídeo'
+    case 'DOCUMENT':
+      return `📄 ${message.text ?? 'Documento'}`
+    case 'STICKER':
+      return '🖼️ Figurinha'
+    default:
+      return message.text ?? ''
+  }
 }
 
 function useAudioRecorder(onRecorded: (blob: Blob) => void) {
@@ -118,10 +138,14 @@ export function WhatsappComposer({
   workspaceId,
   conversationId,
   disabled,
+  replyTarget,
+  onClearReply,
 }: {
   workspaceId: string
   conversationId: string
   disabled?: boolean
+  replyTarget?: WhatsAppMessageDTO | null
+  onClearReply?: () => void
 }) {
   const [text, setText] = useState('')
   const [attachments, setAttachments] = useState<StagedAttachment[]>([])
@@ -187,6 +211,7 @@ export function WhatsappComposer({
             type: attachment.type,
             fileName: attachment.file.name,
             caption: index === 0 ? trimmed || undefined : undefined,
+            replyToMessageId: index === 0 ? replyTarget?.id : undefined,
           })
         }
         for (const attachment of readyAttachments) {
@@ -194,6 +219,7 @@ export function WhatsappComposer({
         }
         setAttachments((current) => current.filter((a) => a.status !== 'done'))
         setText('')
+        onClearReply?.()
       } catch {
         notify.error('Erro ao enviar arquivo')
       }
@@ -202,8 +228,12 @@ export function WhatsappComposer({
 
     if (!trimmed) return
     try {
-      await sendText.mutateAsync(trimmed)
+      await sendText.mutateAsync({
+        text: trimmed,
+        replyToMessageId: replyTarget?.id,
+      })
       setText('')
+      onClearReply?.()
     } catch {
       notify.error('Erro ao enviar mensagem')
     }
@@ -247,6 +277,25 @@ export function WhatsappComposer({
 
   return (
     <div className='border-t p-2'>
+      {replyTarget && (
+        <div className='mb-2 flex items-center justify-between gap-2 rounded-md border-primary border-l-2 bg-muted/50 px-2.5 py-1.5'>
+          <div className='min-w-0'>
+            <p className='font-medium text-primary text-xs'>Respondendo</p>
+            <p className='truncate text-muted-foreground text-xs'>
+              {replyPreviewText(replyTarget)}
+            </p>
+          </div>
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon-sm'
+            aria-label='Cancelar resposta'
+            onClick={onClearReply}
+          >
+            <SteelIcon icon={Cancel01Icon} size={14} />
+          </Button>
+        </div>
+      )}
       {hasAttachments && (
         <AttachmentGroup className='mb-2 px-0.5'>
           {attachments.map((attachment) => (

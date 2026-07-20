@@ -3,14 +3,44 @@
 import {
   Download01Icon,
   Robot01Icon,
+  SmileIcon,
   Tick01Icon,
   Tick02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import { MediaLightbox } from '@/components/ui/chat/media-lightbox'
 import { cn } from '@/lib/utils'
 import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
+
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
+
+function messagePreviewText(message: WhatsAppMessageDTO): string {
+  switch (message.type) {
+    case 'IMAGE':
+      return '📷 Imagem'
+    case 'AUDIO':
+      return '🎤 Áudio'
+    case 'VIDEO':
+      return '🎬 Vídeo'
+    case 'DOCUMENT':
+      return `📄 ${message.text ?? 'Documento'}`
+    case 'STICKER':
+      return '🖼️ Figurinha'
+    default:
+      return message.text ?? ''
+  }
+}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('pt-BR', {
@@ -105,7 +135,17 @@ function MessageBubbleMedia({
   }
 }
 
-export function MessageBubble({ message }: { message: WhatsAppMessageDTO }) {
+export function MessageBubble({
+  message,
+  replyToMessage,
+  onReply,
+  onReact,
+}: {
+  message: WhatsAppMessageDTO
+  replyToMessage?: WhatsAppMessageDTO
+  onReply?: (message: WhatsAppMessageDTO) => void
+  onReact?: (messageId: string, emoji: string) => void
+}) {
   const [lightboxMedia, setLightboxMedia] = useState<{
     url: string
     type: 'IMAGE' | 'VIDEO'
@@ -117,35 +157,92 @@ export function MessageBubble({ message }: { message: WhatsAppMessageDTO }) {
     <div
       className={cn('flex w-full', isOutbound ? 'justify-end' : 'justify-start')}
     >
-      <div
-        className={cn(
-          'max-w-[70%] rounded-2xl px-3 py-2 text-sm',
-          isOutbound
-            ? 'rounded-br-sm bg-primary text-primary-foreground'
-            : 'rounded-bl-sm bg-muted text-foreground',
-        )}
-      >
-        {message.sentByAi && (
-          <div className='mb-1 flex items-center gap-1 text-[10px] opacity-70'>
-            <SteelIcon icon={Robot01Icon} size={12} />
-            <span>IA</span>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div className={cn('flex flex-col', isOutbound ? 'items-end' : 'items-start')}>
+            <div
+              className={cn(
+                'max-w-[70%] rounded-2xl px-3 py-2 text-sm',
+                isOutbound
+                  ? 'rounded-br-sm bg-primary text-primary-foreground'
+                  : 'rounded-bl-sm bg-muted text-foreground',
+              )}
+            >
+              {message.sentByAi && (
+                <div className='mb-1 flex items-center gap-1 text-[10px] opacity-70'>
+                  <SteelIcon icon={Robot01Icon} size={12} />
+                  <span>IA</span>
+                </div>
+              )}
+              {replyToMessage && (
+                <div className='mb-1.5 rounded-md border-current/20 border-l-2 bg-current/5 px-2 py-1 text-xs opacity-80'>
+                  <p className='truncate'>{messagePreviewText(replyToMessage)}</p>
+                </div>
+              )}
+              <MessageBubbleMedia
+                message={message}
+                onOpenLightbox={setLightboxMedia}
+              />
+              {showTextBelowMedia && (
+                <p className='whitespace-pre-wrap break-words'>{message.text}</p>
+              )}
+              <div
+                className={cn(
+                  'mt-1 flex items-center gap-1 text-[10px]',
+                  isOutbound ? 'justify-end opacity-80' : 'opacity-60',
+                )}
+              >
+                <span>{formatTime(message.createdAt)}</span>
+                {isOutbound && <MessageStatusTicks status={message.status} />}
+              </div>
+            </div>
+            {message.reactionEmoji && (
+              <span className='-mt-1.5 rounded-full border bg-background px-1.5 py-0.5 text-xs shadow-sm'>
+                {message.reactionEmoji}
+              </span>
+            )}
           </div>
+        </ContextMenuTrigger>
+        {(onReply || onReact) && (
+          <ContextMenuContent>
+            {onReply && (
+              <ContextMenuItem onClick={() => onReply(message)}>
+                Responder
+              </ContextMenuItem>
+            )}
+            {onReact && (
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                  <SteelIcon icon={SmileIcon} size={16} />
+                  Reagir
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                  {QUICK_REACTIONS.map((emoji) => (
+                    <ContextMenuItem
+                      key={emoji}
+                      onClick={() => onReact(message.id, emoji)}
+                    >
+                      {emoji}
+                    </ContextMenuItem>
+                  ))}
+                  {message.reactionEmoji && (
+                    <>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => onReact(message.id, '')}>
+                        Remover reação
+                      </ContextMenuItem>
+                    </>
+                  )}
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+            )}
+          </ContextMenuContent>
         )}
-        <MessageBubbleMedia message={message} onOpenLightbox={setLightboxMedia} />
-        {showTextBelowMedia && (
-          <p className='whitespace-pre-wrap break-words'>{message.text}</p>
-        )}
-        <div
-          className={cn(
-            'mt-1 flex items-center gap-1 text-[10px]',
-            isOutbound ? 'justify-end opacity-80' : 'opacity-60',
-          )}
-        >
-          <span>{formatTime(message.createdAt)}</span>
-          {isOutbound && <MessageStatusTicks status={message.status} />}
-        </div>
-      </div>
-      <MediaLightbox media={lightboxMedia} onOpenChange={() => setLightboxMedia(null)} />
+      </ContextMenu>
+      <MediaLightbox
+        media={lightboxMedia}
+        onOpenChange={() => setLightboxMedia(null)}
+      />
     </div>
   )
 }

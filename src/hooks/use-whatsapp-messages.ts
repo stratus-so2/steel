@@ -25,6 +25,11 @@ export function useWhatsAppMessages(
   })
 }
 
+interface SendWhatsAppTextInput {
+  text: string
+  replyToMessageId?: string
+}
+
 export function useSendWhatsAppTextMessage(
   workspaceId: string,
   conversationId: string,
@@ -32,13 +37,13 @@ export function useSendWhatsAppTextMessage(
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (text: string) =>
+    mutationFn: (data: SendWhatsAppTextInput) =>
       apiFetch<WhatsAppMessageDTO>(
         `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/messages`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify(data),
         },
         'Erro ao enviar mensagem',
       ),
@@ -58,6 +63,7 @@ interface SendWhatsAppMediaInput {
   type: WhatsAppMessageTypeDTO
   caption?: string
   fileName?: string
+  replyToMessageId?: string
 }
 
 interface SendWhatsAppTemplateInput {
@@ -89,6 +95,31 @@ export function useSendWhatsAppTemplateMessage(
       })
       queryClient.invalidateQueries({
         queryKey: ['whatsapp-conversations', workspaceId],
+      })
+    },
+  })
+}
+
+export function useReactToWhatsAppMessage(
+  workspaceId: string,
+  conversationId: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) =>
+      apiFetch<WhatsAppMessageDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/messages/${messageId}/react`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emoji }),
+        },
+        'Erro ao reagir à mensagem',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: MESSAGES_KEY(workspaceId, conversationId),
       })
     },
   })
