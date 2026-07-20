@@ -185,6 +185,7 @@ describe('WorkspaceService', () => {
       mockedWorkspaceRepo.update.mockResolvedValue(ok(updated))
       mockedWorkspaceCache.invalidate.mockResolvedValue(undefined)
       mockedUserCache.invalidate.mockResolvedValue(undefined)
+      mockedMembershipRepo.listUserByWorkspace.mockResolvedValue(ok(['owner']))
 
       const result = await WorkspaceService.update('owner', 'ws1', {
         name: 'Renamed',
@@ -210,6 +211,7 @@ describe('WorkspaceService', () => {
       mockedWorkspaceRepo.update.mockResolvedValue(ok(updated))
       mockedWorkspaceCache.invalidate.mockResolvedValue(undefined)
       mockedUserCache.invalidate.mockResolvedValue(undefined)
+      mockedMembershipRepo.listUserByWorkspace.mockResolvedValue(ok(['admin']))
 
       const result = await WorkspaceService.update('admin', 'ws1', {
         name: 'X',
@@ -309,6 +311,7 @@ describe('WorkspaceService', () => {
       mockedWorkspaceRepo.delete.mockResolvedValue(ok(undefined))
       mockedWorkspaceCache.invalidate.mockResolvedValue(undefined)
       mockedUserCache.invalidate.mockResolvedValue(undefined)
+      mockedMembershipRepo.listUserByWorkspace.mockResolvedValue(ok(['owner']))
 
       const result = await WorkspaceService.delete('owner', 'ws1')
 
