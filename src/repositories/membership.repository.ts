@@ -71,4 +71,25 @@ export const MembershipRepository = {
       return err(dbError('Faield to count memberships', error))
     }
   },
+
+  async listWithUserByWorkspace(workspaceId: string): Promise<
+    Result<
+      (Membership & {
+        user: { id: string; name: string; email: string; image: string | null }
+      })[]
+    >
+  > {
+    try {
+      const memberships = await prisma.membership.findMany({
+        where: { workspaceId },
+        include: {
+          user: { select: { id: true, name: true, email: true, image: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      })
+      return ok(memberships)
+    } catch (error) {
+      return err(dbError('Failed to list workspace members', error))
+    }
+  },
 }
