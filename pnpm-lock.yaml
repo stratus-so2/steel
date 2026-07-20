@@ -59,6 +59,9 @@ importers:
       '@icons-pack/react-simple-icons':
         specifier: ^13.13.0
         version: 13.13.0(react@19.2.5)
+      '@jitsi/react-sdk':
+        specifier: ^1.4.4
+        version: 1.4.4(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@next/third-parties':
         specifier: ^16.2.10
         version: 16.2.10(next@16.2.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)
@@ -149,6 +152,9 @@ importers:
       nuqs:
         specifier: ^2.9.0
         version: 2.9.0(next@16.2.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react@19.2.5)
+      openai:
+        specifier: ^6.46.0
+        version: 6.46.0(@aws-sdk/credential-provider-node@3.972.62)(@smithy/signature-v4@5.6.1)(ws@8.21.0)(zod@4.4.3)
       rate-limiter-flexible:
         specifier: ^11.2.0
         version: 11.2.0
@@ -1516,6 +1522,12 @@ packages:
 
   '@ioredis/commands@1.5.1':
     resolution: {integrity: sha512-JH8ZL/ywcJyR9MmJ5BNqZllXNZQqQbnVZOqpPQqE1vHiFgAw4NHbvE0FOduNU8IX9babitBT46571OnPTT0Zcw==}
+
+  '@jitsi/react-sdk@1.4.4':
+    resolution: {integrity: sha512-VV5sy94zmGYByz8ebsOinwvzK/Srekbg+dECHBqGloeyPYpwlOLe6WiqmCCJ2l+wv2CT++xIznkZwcnh2YX2ug==}
+    peerDependencies:
+      react: 16 || 17 || 18 || 19
+      react-dom: 16 || 17 || 18 || 19
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -5284,6 +5296,26 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
+  openai@6.46.0:
+    resolution: {integrity: sha512-DFg6jEPT2RO+oAyXtddeUJU8zkGy1OQ1AjGzNIJUMQG03TTqvCpy9tBpQ+2VVVnvrl3E56F8GEin2JYtWpITtA==}
+    peerDependencies:
+      '@aws-sdk/credential-provider-node': '>=3.972.0 <4'
+      '@smithy/hash-node': '>=4.3.0 <5'
+      '@smithy/signature-v4': '>=5.4.0 <6'
+      ws: '>=8.21.0'
+      zod: ^3.25 || ^4.0
+    peerDependenciesMeta:
+      '@aws-sdk/credential-provider-node':
+        optional: true
+      '@smithy/hash-node':
+        optional: true
+      '@smithy/signature-v4':
+        optional: true
+      ws:
+        optional: true
+      zod:
+        optional: true
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -7702,6 +7734,11 @@ snapshots:
       '@types/node': 25.9.4
 
   '@ioredis/commands@1.5.1': {}
+
+  '@jitsi/react-sdk@1.4.4(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
+    dependencies:
+      react: 19.2.5
+      react-dom: 19.2.5(react@19.2.5)
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
@@ -11398,6 +11435,13 @@ snapshots:
       define-lazy-prop: 2.0.0
       is-docker: 2.2.1
       is-wsl: 2.2.0
+
+  openai@6.46.0(@aws-sdk/credential-provider-node@3.972.62)(@smithy/signature-v4@5.6.1)(ws@8.21.0)(zod@4.4.3):
+    optionalDependencies:
+      '@aws-sdk/credential-provider-node': 3.972.62
+      '@smithy/signature-v4': 5.6.1
+      ws: 8.21.0
+      zod: 4.4.3
 
   optionator@0.9.4:
     dependencies:
