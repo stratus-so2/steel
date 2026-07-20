@@ -213,6 +213,37 @@ describe('WhatsAppWebhookService', () => {
         expect.objectContaining({ messageId: 'msg1' }),
       )
     })
+
+    it('should resolve a quoted provider message id to our internal replyToMessageId', async () => {
+      mockedMessageRepo.findByProviderMessageId.mockImplementation(
+        async (providerMessageId: string) => {
+          if (providerMessageId === 'pm-new') return ok(null)
+          if (providerMessageId === 'pm-quoted') {
+            return ok(createFakeWhatsAppMessage({ id: 'quoted-internal-id' }))
+          }
+          return ok(null)
+        },
+      )
+      mockedContactRepo.upsertByWaId.mockResolvedValue(
+        ok(createFakeWhatsAppContact({ id: 'contact1' })),
+      )
+      mockedAiConfigRepo.findByWorkspace.mockResolvedValue(ok(null))
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(ok(null))
+      const created = createFakeWhatsAppConversationWithPreview({ id: 'conv1' })
+      mockedConversationRepo.create.mockResolvedValue(ok(created))
+      mockedConversationRepo.findById.mockResolvedValue(ok(created))
+      mockedMessageRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppMessage()),
+      )
+
+      await WhatsAppWebhookService.ingestInboundMessage(
+        baseInbound({ quotedProviderMessageId: 'pm-quoted' }),
+      )
+
+      expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ replyToMessageId: 'quoted-internal-id' }),
+      )
+    })
   })
 
   describe('ingestOutboundDeviceMessage()', () => {

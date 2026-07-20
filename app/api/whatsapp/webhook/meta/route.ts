@@ -44,6 +44,8 @@ interface MetaMessage {
     button_reply?: { title?: string }
     list_reply?: { title?: string }
   }
+  // Present when this message is a reply/quote to another one.
+  context?: { id?: string }
 }
 
 interface MetaWebhookValue {
@@ -207,6 +209,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
     waId,
     contactName,
     providerMessageId: message.id,
+    quotedProviderMessageId: message.context?.id,
     ...content,
   })
   if (!result.ok) {

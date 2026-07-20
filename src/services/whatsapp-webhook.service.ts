@@ -22,6 +22,17 @@ export interface InboundWhatsAppMessage {
   type: WhatsAppMessageTypeDTO
   text?: string
   rawMediaUrl?: string
+  quotedProviderMessageId?: string
+}
+
+async function resolveReplyToMessageId(
+  quotedProviderMessageId: string | undefined,
+): Promise<string | undefined> {
+  if (!quotedProviderMessageId) return undefined
+  const quoted = await WhatsAppMessageRepository.findByProviderMessageId(
+    quotedProviderMessageId,
+  )
+  return quoted.ok ? quoted.value?.id : undefined
 }
 
 async function publishConversationSnapshot(
@@ -108,6 +119,10 @@ export const WhatsAppWebhookService = {
       aiActive = aiConfigActive
     }
 
+    const replyToMessageId = await resolveReplyToMessageId(
+      input.quotedProviderMessageId,
+    )
+
     const message = await WhatsAppMessageRepository.create({
       workspaceId,
       conversationId,
@@ -117,6 +132,7 @@ export const WhatsAppWebhookService = {
       mediaUrl: input.rawMediaUrl,
       providerMessageId: input.providerMessageId,
       status: 'DELIVERED',
+      replyToMessageId,
     })
     if (!message.ok) return message
 
@@ -202,6 +218,10 @@ export const WhatsAppWebhookService = {
       conversationId = created.value.id
     }
 
+    const replyToMessageId = await resolveReplyToMessageId(
+      input.quotedProviderMessageId,
+    )
+
     const message = await WhatsAppMessageRepository.create({
       workspaceId,
       conversationId,
@@ -211,6 +231,7 @@ export const WhatsAppWebhookService = {
       mediaUrl: input.rawMediaUrl,
       providerMessageId: input.providerMessageId,
       status: 'SENT',
+      replyToMessageId,
     })
     if (!message.ok) return message
 

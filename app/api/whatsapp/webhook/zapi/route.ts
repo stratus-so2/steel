@@ -30,6 +30,8 @@ interface ZapiPayload {
   sticker?: unknown
   location?: unknown
   reaction?: { value?: string; referencedMessage?: { messageId?: string } }
+  // Present on the payload when this message is a reply/quote to another one.
+  referenceMessageId?: string
 }
 
 function extractMessageContent(payload: ZapiPayload): {
@@ -149,6 +151,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
         waId,
         contactName: body.senderName,
         providerMessageId: body.messageId,
+        quotedProviderMessageId: body.referenceMessageId,
         ...content,
       })
     : await WhatsAppWebhookService.ingestInboundMessage({
@@ -156,6 +159,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
         waId,
         contactName: body.senderName,
         providerMessageId: body.messageId,
+        quotedProviderMessageId: body.referenceMessageId,
         ...content,
       })
   if (!result.ok) {
