@@ -2,6 +2,7 @@ import 'server-only'
 import { logger } from '@/lib/axiom/logger'
 import type {
   WhatsAppOutboundMedia,
+  WhatsAppOutboundReaction,
   WhatsAppOutboundTemplate,
   WhatsAppOutboundText,
   WhatsAppProviderClient,
@@ -58,6 +59,7 @@ export function createMetaClient(
     async sendText({
       to,
       text,
+      quotedProviderMessageId,
     }: WhatsAppOutboundText): Promise<WhatsAppSendResult> {
       const result = await metaRequest<{ messages: { id: string }[] }>(
         credentials,
@@ -69,6 +71,9 @@ export function createMetaClient(
             to,
             type: 'text',
             text: { body: text },
+            ...(quotedProviderMessageId
+              ? { context: { message_id: quotedProviderMessageId } }
+              : {}),
           }),
         },
       )
@@ -80,6 +85,7 @@ export function createMetaClient(
       mediaUrl,
       caption,
       type,
+      quotedProviderMessageId,
     }: WhatsAppOutboundMedia): Promise<WhatsAppSendResult> {
       const result = await metaRequest<{ messages: { id: string }[] }>(
         credentials,
@@ -91,6 +97,9 @@ export function createMetaClient(
             to,
             type,
             [type]: { link: mediaUrl, ...(caption ? { caption } : {}) },
+            ...(quotedProviderMessageId
+              ? { context: { message_id: quotedProviderMessageId } }
+              : {}),
           }),
         },
       )
@@ -121,6 +130,22 @@ export function createMetaClient(
         },
       )
       return { providerMessageId: result.messages[0].id }
+    },
+
+    async sendReaction({
+      to,
+      providerMessageId,
+      emoji,
+    }: WhatsAppOutboundReaction): Promise<void> {
+      await metaRequest(credentials, messagesPath, {
+        method: 'POST',
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to,
+          type: 'reaction',
+          reaction: { message_id: providerMessageId, emoji },
+        }),
+      })
     },
 
     async getConnectionStatus(): Promise<{ connected: boolean }> {

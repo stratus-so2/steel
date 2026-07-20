@@ -7,6 +7,7 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { createMetaClient } from './meta-client'
 import type {
   WhatsAppOutboundMedia,
+  WhatsAppOutboundReaction,
   WhatsAppOutboundTemplate,
   WhatsAppOutboundText,
   WhatsAppProviderClient,
@@ -89,5 +90,12 @@ export const WhatsAppSend = {
     input: WhatsAppOutboundTemplate,
   ): Promise<Result<WhatsAppSendResult>> {
     return withProvider(connection, (client) => client.sendTemplate(input))
+  },
+
+  reaction(
+    connection: WhatsAppConnection,
+    input: WhatsAppOutboundReaction,
+  ): Promise<Result<void>> {
+    return withProvider(connection, (client) => client.sendReaction(input))
   },
 }

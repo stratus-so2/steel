@@ -7,6 +7,7 @@ export interface WhatsAppSendResult {
 export interface WhatsAppOutboundText {
   to: string
   text: string
+  quotedProviderMessageId?: string
 }
 
 export type WhatsAppOutboundMediaType = 'image' | 'audio' | 'video' | 'document'
@@ -17,6 +18,14 @@ export interface WhatsAppOutboundMedia {
   type: WhatsAppOutboundMediaType
   caption?: string
   fileName?: string
+  quotedProviderMessageId?: string
+}
+
+export interface WhatsAppOutboundReaction {
+  to: string
+  providerMessageId: string
+  // Empty string removes the reaction.
+  emoji: string
 }
 
 export interface WhatsAppOutboundTemplate {
@@ -35,6 +44,7 @@ export interface WhatsAppProviderClient {
   sendText(input: WhatsAppOutboundText): Promise<WhatsAppSendResult>
   sendMedia(input: WhatsAppOutboundMedia): Promise<WhatsAppSendResult>
   sendTemplate(input: WhatsAppOutboundTemplate): Promise<WhatsAppSendResult>
+  sendReaction(input: WhatsAppOutboundReaction): Promise<void>
   getConnectionStatus(): Promise<{ connected: boolean }>
 }
 

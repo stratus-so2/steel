@@ -2,6 +2,7 @@ import 'server-only'
 import { logger } from '@/lib/axiom/logger'
 import type {
   WhatsAppOutboundMedia,
+  WhatsAppOutboundReaction,
   WhatsAppOutboundText,
   WhatsAppQrCode,
   WhatsAppSendResult,
@@ -71,11 +72,21 @@ export function createZapiClient(
     async sendText({
       to,
       text,
+      quotedProviderMessageId,
     }: WhatsAppOutboundText): Promise<WhatsAppSendResult> {
       const result = await zapiRequest<{ messageId: string }>(
         credentials,
         '/send-text',
-        { method: 'POST', body: JSON.stringify({ phone: to, message: text }) },
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: to,
+            message: text,
+            ...(quotedProviderMessageId
+              ? { messageId: quotedProviderMessageId }
+              : {}),
+          }),
+        },
       )
       return { providerMessageId: result.messageId }
     },
@@ -86,6 +97,7 @@ export function createZapiClient(
       caption,
       type,
       fileName,
+      quotedProviderMessageId,
     }: WhatsAppOutboundMedia): Promise<WhatsAppSendResult> {
       const result = await zapiRequest<{ messageId: string }>(
         credentials,
@@ -97,6 +109,9 @@ export function createZapiClient(
             [MEDIA_PAYLOAD_KEY_BY_TYPE[type]]: mediaUrl,
             ...(caption ? { caption } : {}),
             ...(fileName ? { fileName } : {}),
+            ...(quotedProviderMessageId
+              ? { messageId: quotedProviderMessageId }
+              : {}),
           }),
         },
       )
@@ -105,6 +120,21 @@ export function createZapiClient(
 
     async sendTemplate(): Promise<WhatsAppSendResult> {
       throw new Error('Z-API não suporta templates de mensagem da Meta')
+    },
+
+    async sendReaction({
+      to,
+      providerMessageId,
+      emoji,
+    }: WhatsAppOutboundReaction): Promise<void> {
+      await zapiRequest(credentials, '/send-reaction', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: to,
+          messageId: providerMessageId,
+          reaction: emoji,
+        }),
+      })
     },
 
     async getConnectionStatus(): Promise<{ connected: boolean }> {
