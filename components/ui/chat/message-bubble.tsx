@@ -162,7 +162,7 @@ export function MessageBubble({
           <div className={cn('flex flex-col', isOutbound ? 'items-end' : 'items-start')}>
             <div
               className={cn(
-                'max-w-[70%] rounded-2xl px-3 py-2 text-sm',
+                'max-w-fit rounded-2xl px-3 py-2 text-sm',
                 isOutbound
                   ? 'rounded-br-sm bg-primary text-primary-foreground'
                   : 'rounded-bl-sm bg-muted text-foreground',
