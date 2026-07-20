@@ -81,7 +81,7 @@ describe('POST /api/payment/webhook', () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.received).toBe(true)
+    expect(body.data.received).toBe(true)
 
     const sub = await prisma.subscription.findUnique({ where: { billId } })
     expect(sub?.status).toBe('PAID')
