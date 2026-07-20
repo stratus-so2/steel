@@ -51,15 +51,15 @@ describe('POST /api/payment/webhook', () => {
     expect(res.status).toBe(401)
   })
 
-  it('should return 400 when payload is missing event or data.id', async () => {
+  it('should return 422 when payload is missing event or data.id', async () => {
     const r1 = await postWebhook({ data: { id: 'b1' } })
-    expect(r1.status).toBe(400)
+    expect(r1.status).toBe(422)
 
     const r2 = await postWebhook({ event: 'subscription.completed' })
-    expect(r2.status).toBe(400)
+    expect(r2.status).toBe(422)
 
     const r3 = await postWebhook({ event: 'subscription.completed', data: {} })
-    expect(r3.status).toBe(400)
+    expect(r3.status).toBe(422)
   })
 
   it('should activate subscription and bump workspace plan on subscription.completed', async () => {
@@ -173,12 +173,12 @@ describe('POST /api/payment/webhook', () => {
     expect(sub?.status).toBe('PENDING')
   })
 
-  it('should return 500 when billId does not exist', async () => {
+  it('should return 404 when billId does not exist', async () => {
     const res = await postWebhook({
       event: 'subscription.completed',
       data: { id: 'bill_does_not_exist' },
     })
 
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(404)
   })
 })

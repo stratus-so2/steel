@@ -19,12 +19,9 @@ function constantTimeEqual(a: string, b: string): boolean {
 }
 
 const WebhookPayloadSchema = z.object({
-  id: z.string(),
   event: z.string(),
-  apiVersion: z.string(),
   data: z.object({
     id: z.string(),
-    status: z.string(),
   }),
 })
 
