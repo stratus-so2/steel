@@ -767,6 +767,10 @@ model WhatsAppAiConfig {
   model                 String   @default("gpt-4o-mini")
   systemPrompt          String   @map("system_prompt")
   active                Boolean  @default(false)
+  // Opt-in: lets the AI look at received images (Vision) and transcribe
+  // received audio (Whisper) instead of a static "[imagem]"/"[áudio]"
+  // placeholder. Off by default — extra OpenAI cost/latency per media message.
+  readMedia             Boolean  @default(false) @map("read_media")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 

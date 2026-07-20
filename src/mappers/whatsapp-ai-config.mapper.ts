@@ -10,6 +10,7 @@ export function toWhatsAppAiConfigDTO(
     model: config.model,
     systemPrompt: config.systemPrompt,
     active: config.active,
+    readMedia: config.readMedia,
     hasApiKey: Boolean(config.encryptedOpenaiApiKey),
     createdAt: config.createdAt.toISOString(),
     updatedAt: config.updatedAt.toISOString(),

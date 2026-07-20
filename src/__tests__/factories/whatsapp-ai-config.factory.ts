@@ -12,6 +12,7 @@ export function createFakeWhatsAppAiConfig(
     model: 'gpt-4o-mini',
     systemPrompt: 'Você é um assistente de atendimento via WhatsApp.',
     active: false,
+    readMedia: false,
     createdAt: now,
     updatedAt: now,
     ...overrides,

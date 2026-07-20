@@ -52,6 +52,7 @@ export const WhatsAppAiConfigService = {
       systemPrompt:
         dto.systemPrompt ?? existing.value?.systemPrompt ?? DEFAULT_PROMPT,
       active: dto.active ?? existing.value?.active ?? false,
+      readMedia: dto.readMedia ?? existing.value?.readMedia ?? false,
     })
     if (!result.ok) return result
 

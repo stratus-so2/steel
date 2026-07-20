@@ -10,6 +10,7 @@ interface SaveAiConfigInput {
   model?: string
   systemPrompt?: string
   active?: boolean
+  readMedia?: boolean
 }
 
 export function useWhatsAppAiConfig(workspaceId: string) {

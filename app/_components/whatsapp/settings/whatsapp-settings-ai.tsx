@@ -23,12 +23,14 @@ export function WhatsappSettingsAi({ workspaceId }: { workspaceId: string }) {
   const [model, setModel] = useState('gpt-4o-mini')
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_PROMPT)
   const [active, setActive] = useState(false)
+  const [readMedia, setReadMedia] = useState(false)
 
   useEffect(() => {
     if (aiConfig.data) {
       setModel(aiConfig.data.model)
       setSystemPrompt(aiConfig.data.systemPrompt)
       setActive(aiConfig.data.active)
+      setReadMedia(aiConfig.data.readMedia)
     }
   }, [aiConfig.data])
 
@@ -40,6 +42,7 @@ export function WhatsappSettingsAi({ workspaceId }: { workspaceId: string }) {
         model,
         systemPrompt,
         active,
+        readMedia,
       },
       {
         onSuccess: () => {
@@ -71,6 +74,18 @@ export function WhatsappSettingsAi({ workspaceId }: { workspaceId: string }) {
           </p>
         </div>
         <Switch checked={active} onCheckedChange={setActive} />
+      </div>
+
+      <div className='flex items-center justify-between rounded-md border p-3'>
+        <div>
+          <p className='font-medium text-sm'>Ler imagens e áudios</p>
+          <p className='text-muted-foreground text-xs'>
+            A IA passa a enxergar fotos (Vision) e transcrever áudios (Whisper)
+            recebidos do cliente antes de responder. Aumenta o custo e o tempo
+            de resposta por mensagem de mídia.
+          </p>
+        </div>
+        <Switch checked={readMedia} onCheckedChange={setReadMedia} />
       </div>
 
       <div className='space-y-1.5'>
