@@ -1,5 +1,5 @@
 import { logger } from '@/lib/axiom/logger'
-import { MINIO_ENDPOINT } from '@/lib/env/_server'
+import { MINIO_ENDPOINT, MINIO_PUBLIC_URL } from '@/lib/env/_server'
 import { storageError, validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { ensurePublicBucket, putObject } from '@/src/lib/storage/s3'
@@ -48,7 +48,7 @@ export async function persistObject({
   try {
     await ensurePublicBucket(bucket)
     await putObject({ bucket, key, body, contentType })
-    return ok(`${MINIO_ENDPOINT}/${bucket}/${key}`)
+    return ok(`${MINIO_PUBLIC_URL ?? MINIO_ENDPOINT}/${bucket}/${key}`)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     logger.error(event, { component, bucket, key, message })

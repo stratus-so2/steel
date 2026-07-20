@@ -10,6 +10,7 @@ const serverEnv = {
   REDIS_TLS_ENABLED: process.env.REDIS_TLS_ENABLED,
   REDIS_TLS_CA_PATH: process.env.REDIS_TLS_CA_PATH,
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
+  MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL,
   MINIO_USER: process.env.MINIO_USER,
   MINIO_PASSWORD: process.env.MINIO_PASSWORD,
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
@@ -49,6 +50,12 @@ const serverEnvSchema = z.object({
     .transform((v) => v === 'true'),
   REDIS_TLS_CA_PATH: z.string().min(1).optional(),
   MINIO_ENDPOINT: z.url().startsWith('http'),
+  // Publicly reachable base URL for objects in public buckets (browsers and
+  // external providers like Z-API fetch media from here). Defaults to
+  // MINIO_ENDPOINT for local dev, where it's directly reachable; production
+  // must set this to a domain the internal MINIO_ENDPOINT (Docker service
+  // name) isn't.
+  MINIO_PUBLIC_URL: z.url().startsWith('http').optional(),
   MINIO_USER: z.string().min(3).max(63),
   MINIO_PASSWORD: z.string().min(8).max(128),
   BETTER_AUTH_SECRET: z.string().min(16).startsWith('ba_'),
@@ -100,6 +107,7 @@ export const {
   REDIS_TLS_ENABLED,
   REDIS_TLS_CA_PATH,
   MINIO_ENDPOINT,
+  MINIO_PUBLIC_URL,
   MINIO_USER,
   MINIO_PASSWORD,
   BETTER_AUTH_SECRET,
