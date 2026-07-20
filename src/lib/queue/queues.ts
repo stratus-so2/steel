@@ -10,6 +10,14 @@ import {
   QueueName,
   type TrialLifecycleJob,
   type TrialLifecycleJobPayload,
+  type WhatsappAiReplyJob,
+  type WhatsappAiReplyJobPayload,
+  type WhatsappBroadcastJob,
+  type WhatsappBroadcastJobPayload,
+  type WhatsappMediaJob,
+  type WhatsappMediaJobPayload,
+  type WhatsappTemplateSyncJob,
+  type WhatsappTemplateSyncJobPayload,
 } from './jobs'
 
 const defaultJobOptions = {
@@ -23,6 +31,10 @@ let dataRetentionQueue: Queue | null = null
 let accountLifecycleQueue: Queue | null = null
 let dataExportQueue: Queue | null = null
 let trialLifecycleQueue: Queue | null = null
+let whatsappMediaQueue: Queue | null = null
+let whatsappAiReplyQueue: Queue | null = null
+let whatsappBroadcastQueue: Queue | null = null
+let whatsappTemplateSyncQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -96,15 +108,95 @@ export function getTrialLifecycleQueue(): Queue<
   >
 }
 
+export function getWhatsappMediaQueue(): Queue<
+  WhatsappMediaJobPayload[WhatsappMediaJob],
+  unknown,
+  WhatsappMediaJob
+> {
+  if (!whatsappMediaQueue) {
+    whatsappMediaQueue = new Queue(QueueName.WhatsappMedia, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return whatsappMediaQueue as Queue<
+    WhatsappMediaJobPayload[WhatsappMediaJob],
+    unknown,
+    WhatsappMediaJob
+  >
+}
+
+export function getWhatsappAiReplyQueue(): Queue<
+  WhatsappAiReplyJobPayload[WhatsappAiReplyJob],
+  unknown,
+  WhatsappAiReplyJob
+> {
+  if (!whatsappAiReplyQueue) {
+    whatsappAiReplyQueue = new Queue(QueueName.WhatsappAiReply, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return whatsappAiReplyQueue as Queue<
+    WhatsappAiReplyJobPayload[WhatsappAiReplyJob],
+    unknown,
+    WhatsappAiReplyJob
+  >
+}
+
+export function getWhatsappBroadcastQueue(): Queue<
+  WhatsappBroadcastJobPayload[WhatsappBroadcastJob],
+  unknown,
+  WhatsappBroadcastJob
+> {
+  if (!whatsappBroadcastQueue) {
+    whatsappBroadcastQueue = new Queue(QueueName.WhatsappBroadcast, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return whatsappBroadcastQueue as Queue<
+    WhatsappBroadcastJobPayload[WhatsappBroadcastJob],
+    unknown,
+    WhatsappBroadcastJob
+  >
+}
+
+export function getWhatsappTemplateSyncQueue(): Queue<
+  WhatsappTemplateSyncJobPayload[WhatsappTemplateSyncJob],
+  unknown,
+  WhatsappTemplateSyncJob
+> {
+  if (!whatsappTemplateSyncQueue) {
+    whatsappTemplateSyncQueue = new Queue(QueueName.WhatsappTemplateSync, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return whatsappTemplateSyncQueue as Queue<
+    WhatsappTemplateSyncJobPayload[WhatsappTemplateSyncJob],
+    unknown,
+    WhatsappTemplateSyncJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
     accountLifecycleQueue?.close(),
     dataExportQueue?.close(),
     trialLifecycleQueue?.close(),
+    whatsappMediaQueue?.close(),
+    whatsappAiReplyQueue?.close(),
+    whatsappBroadcastQueue?.close(),
+    whatsappTemplateSyncQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
   dataExportQueue = null
   trialLifecycleQueue = null
+  whatsappMediaQueue = null
+  whatsappAiReplyQueue = null
+  whatsappBroadcastQueue = null
+  whatsappTemplateSyncQueue = null
 }

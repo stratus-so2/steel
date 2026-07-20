@@ -3,6 +3,10 @@ export const QueueName = {
   AccountLifecycle: 'account-lifecycle',
   DataExport: 'data-export',
   TrialLifecycle: 'trial-lifecycle',
+  WhatsappMedia: 'whatsapp-media',
+  WhatsappAiReply: 'whatsapp-ai-reply',
+  WhatsappBroadcast: 'whatsapp-broadcast',
+  WhatsappTemplateSync: 'whatsapp-template-sync',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -52,4 +56,54 @@ export type TrialLifecycleJob =
 
 export type TrialLifecycleJobPayload = {
   [TrialLifecycleJob.RevertExpiredTrials]: Record<string, never>
+}
+
+export const WhatsappMediaJob = {
+  DownloadInboundMedia: 'download-inbound-media',
+} as const
+
+export type WhatsappMediaJob =
+  (typeof WhatsappMediaJob)[keyof typeof WhatsappMediaJob]
+
+export type WhatsappMediaJobPayload = {
+  [WhatsappMediaJob.DownloadInboundMedia]: { messageId: string }
+}
+
+export const WhatsappAiReplyJob = {
+  GenerateAiReply: 'generate-ai-reply',
+} as const
+
+export type WhatsappAiReplyJob =
+  (typeof WhatsappAiReplyJob)[keyof typeof WhatsappAiReplyJob]
+
+export type WhatsappAiReplyJobPayload = {
+  [WhatsappAiReplyJob.GenerateAiReply]: {
+    conversationId: string
+    messageId: string
+  }
+}
+
+export const WhatsappBroadcastJob = {
+  SendBroadcastMessage: 'send-broadcast-message',
+} as const
+
+export type WhatsappBroadcastJob =
+  (typeof WhatsappBroadcastJob)[keyof typeof WhatsappBroadcastJob]
+
+export type WhatsappBroadcastJobPayload = {
+  [WhatsappBroadcastJob.SendBroadcastMessage]: {
+    broadcastListId: string
+    recipientId: string
+  }
+}
+
+export const WhatsappTemplateSyncJob = {
+  SyncTemplates: 'sync-templates',
+} as const
+
+export type WhatsappTemplateSyncJob =
+  (typeof WhatsappTemplateSyncJob)[keyof typeof WhatsappTemplateSyncJob]
+
+export type WhatsappTemplateSyncJobPayload = {
+  [WhatsappTemplateSyncJob.SyncTemplates]: { connectionId: string }
 }
