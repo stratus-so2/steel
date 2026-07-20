@@ -29,6 +29,12 @@ const EXPORT_DURATION_SECONDS = 24 * 60 * 60
 const UPLOAD_POINTS = 10
 const UPLOAD_DURATION_SECONDS = 60
 
+const WHATSAPP_SEND_POINTS = 20
+const WHATSAPP_SEND_DURATION_SECONDS = 60
+
+const WHATSAPP_WEBHOOK_POINTS = 120
+const WHATSAPP_WEBHOOK_DURATION_SECONDS = 60
+
 const authInsurance = new RateLimiterMemory({
   points: AUTH_POINTS,
   duration: AUTH_DURATION_SECONDS,
@@ -99,6 +105,24 @@ export const uploadLimiter = new RateLimiterRedis({
   duration: UPLOAD_DURATION_SECONDS,
 })
 
+export const whatsappSendLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  storeType: 'redis',
+  useRedisPackage: true,
+  keyPrefix: 'rl:whatsapp:send',
+  points: WHATSAPP_SEND_POINTS,
+  duration: WHATSAPP_SEND_DURATION_SECONDS,
+})
+
+export const whatsappWebhookLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  storeType: 'redis',
+  useRedisPackage: true,
+  keyPrefix: 'rl:whatsapp:webhook',
+  points: WHATSAPP_WEBHOOK_POINTS,
+  duration: WHATSAPP_WEBHOOK_DURATION_SECONDS,
+})
+
 export type Limiter = RateLimiterRedis
 
 const limiterNames = new WeakMap<Limiter, string>([
@@ -108,6 +132,8 @@ const limiterNames = new WeakMap<Limiter, string>([
   [apiLimiter, 'api'],
   [exportLimiter, 'export'],
   [uploadLimiter, 'upload'],
+  [whatsappSendLimiter, 'whatsapp_send'],
+  [whatsappWebhookLimiter, 'whatsapp_webhook'],
 ])
 
 let connectionEnsured: Promise<unknown> | null = null
