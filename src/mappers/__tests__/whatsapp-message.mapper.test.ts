@@ -26,6 +26,9 @@ describe('toWhatsAppMessageDTO()', () => {
       status: 'SENT',
       senderUserId: null,
       sentByAi: true,
+      replyToMessageId: null,
+      reactionEmoji: null,
+      reactedByContact: null,
       createdAt: message.createdAt.toISOString(),
     })
   })

@@ -55,6 +55,10 @@ export const ERROR_CODES = {
     code: 'WHATSAPP_CONVERSATION_NOT_FOUND',
     status: 404,
   },
+  WHATSAPP_MESSAGE_NOT_FOUND: {
+    code: 'WHATSAPP_MESSAGE_NOT_FOUND',
+    status: 404,
+  },
   WHATSAPP_CONVERSATION_AI_HANDLING: {
     code: 'WHATSAPP_CONVERSATION_AI_HANDLING',
     status: 409,

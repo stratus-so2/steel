@@ -145,6 +145,9 @@ export const whatsappContactNotFound = (): AppError =>
 export const whatsappConversationNotFound = (): AppError =>
   appError('WHATSAPP_CONVERSATION_NOT_FOUND', 'Conversa não encontrada')
 
+export const whatsappMessageNotFound = (): AppError =>
+  appError('WHATSAPP_MESSAGE_NOT_FOUND', 'Mensagem não encontrada')
+
 export const whatsappConversationAiHandling = (
   message = 'A IA está atendendo esta conversa. Remova-a do atendimento da IA para enviar mensagens.',
 ): AppError => appError('WHATSAPP_CONVERSATION_AI_HANDLING', message)

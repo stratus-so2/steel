@@ -29,5 +29,8 @@ export interface WhatsAppMessageDTO {
   status: WhatsAppMessageStatusDTO
   senderUserId: string | null
   sentByAi: boolean
+  replyToMessageId: string | null
+  reactionEmoji: string | null
+  reactedByContact: boolean | null
   createdAt: string
 }

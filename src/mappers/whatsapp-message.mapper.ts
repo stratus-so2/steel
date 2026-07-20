@@ -15,6 +15,9 @@ export function toWhatsAppMessageDTO(
     status: message.status,
     senderUserId: message.senderUserId,
     sentByAi: message.sentByAi,
+    replyToMessageId: message.replyToMessageId,
+    reactionEmoji: message.reactionEmoji,
+    reactedByContact: message.reactedByContact,
     createdAt: message.createdAt.toISOString(),
   }
 }

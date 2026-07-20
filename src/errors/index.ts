@@ -38,6 +38,7 @@ export {
   whatsappContactNotFound,
   whatsappConversationAiHandling,
   whatsappConversationNotFound,
+  whatsappMessageNotFound,
   whatsappProviderError,
   whatsappQuickReplyConflict,
   whatsappQuickReplyNotFound,
