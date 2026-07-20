@@ -27,6 +27,7 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
       ok: true,
       value: { providerMessageId: 'pm3' },
     })),
+    reaction: vi.fn(async () => ({ ok: true, value: undefined })),
   },
 }))
 
@@ -156,6 +157,100 @@ describe('WhatsAppMessageService', () => {
       const dto = expectOk(result)
       expect(dto.mediaUrl).toBe('https://minio.internal/whatsapp-media/img.jpg')
       expect(mockedSend.media).toHaveBeenCalled()
+    })
+  })
+
+  describe('sendText() with a reply target', () => {
+    it('should resolve the quoted message and pass its providerMessageId', async () => {
+      mockSendableConversation()
+      mockedMessageRepo.findById.mockResolvedValue(
+        ok(
+          createFakeWhatsAppMessage({
+            id: 'quoted1',
+            providerMessageId: 'pm-quoted',
+          }),
+        ),
+      )
+      mockedMessageRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ replyToMessageId: 'quoted1' })),
+      )
+      mockedConversationRepo.update.mockResolvedValue(
+        ok(createFakeWhatsAppConversationWithPreview()),
+      )
+
+      await WhatsAppMessageService.sendText('u1', 'ws1', 'conv1', {
+        text: 'Respondendo',
+        replyToMessageId: 'quoted1',
+      })
+
+      expect(mockedSend.text).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ quotedProviderMessageId: 'pm-quoted' }),
+      )
+      expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ replyToMessageId: 'quoted1' }),
+      )
+    })
+  })
+
+  describe('react()', () => {
+    it('should send the reaction and persist it on the target message', async () => {
+      mockSendableConversation()
+      mockedMessageRepo.findById.mockResolvedValue(
+        ok(
+          createFakeWhatsAppMessage({
+            id: 'msg1',
+            conversationId: 'conv1',
+            providerMessageId: 'pm1',
+          }),
+        ),
+      )
+      mockedMessageRepo.update.mockResolvedValue(
+        ok(
+          createFakeWhatsAppMessage({
+            id: 'msg1',
+            reactionEmoji: '👍',
+            reactedByContact: false,
+          }),
+        ),
+      )
+
+      const result = await WhatsAppMessageService.react(
+        'u1',
+        'ws1',
+        'conv1',
+        'msg1',
+        { emoji: '👍' },
+      )
+
+      const dto = expectOk(result)
+      expect(dto.reactionEmoji).toBe('👍')
+      expect(mockedSend.reaction).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ providerMessageId: 'pm1', emoji: '👍' }),
+      )
+      expect(mockedMessageRepo.update).toHaveBeenCalledWith('msg1', {
+        reactionEmoji: '👍',
+        reactedByContact: false,
+      })
+    })
+
+    it('should return WHATSAPP_MESSAGE_NOT_FOUND for a message in another conversation', async () => {
+      mockSendableConversation()
+      mockedMessageRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ id: 'msg1', conversationId: 'other' })),
+      )
+
+      const result = await WhatsAppMessageService.react(
+        'u1',
+        'ws1',
+        'conv1',
+        'msg1',
+        { emoji: '👍' },
+      )
+
+      expectErr(result, 'WHATSAPP_MESSAGE_NOT_FOUND')
+      expect(mockedSend.reaction).not.toHaveBeenCalled()
     })
   })
 

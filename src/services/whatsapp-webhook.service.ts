@@ -230,6 +230,27 @@ export const WhatsAppWebhookService = {
     return ok(undefined)
   },
 
+  async ingestInboundReaction(input: {
+    providerMessageId: string
+    emoji: string
+  }): Promise<Result<void>> {
+    const result =
+      await WhatsAppMessageRepository.updateReactionByProviderMessageId(
+        input.providerMessageId,
+        { emoji: input.emoji || null, reactedByContact: true },
+      )
+    if (!result.ok) return result
+    if (!result.value) return ok(undefined)
+
+    await publishWhatsAppEvent(result.value.workspaceId, {
+      type: 'message.updated',
+      conversationId: result.value.conversationId,
+      message: toWhatsAppMessageDTO(result.value),
+    })
+
+    return ok(undefined)
+  },
+
   async ingestStatusUpdate(input: {
     providerMessageId: string
     status: WhatsAppMessageStatus

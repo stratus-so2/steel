@@ -78,6 +78,29 @@ export const WhatsAppMessageRepository = {
     }
   },
 
+  async updateReactionByProviderMessageId(
+    providerMessageId: string,
+    reaction: { emoji: string | null; reactedByContact: boolean },
+  ): Promise<Result<WhatsAppMessage | null>> {
+    try {
+      const existing = await prisma.whatsAppMessage.findUnique({
+        where: { providerMessageId },
+      })
+      if (!existing) return ok(null)
+
+      const message = await prisma.whatsAppMessage.update({
+        where: { providerMessageId },
+        data: {
+          reactionEmoji: reaction.emoji || null,
+          reactedByContact: reaction.emoji ? reaction.reactedByContact : null,
+        },
+      })
+      return ok(message)
+    } catch (error) {
+      return err(dbError('Failed to update whatsapp message reaction', error))
+    }
+  },
+
   async update(
     id: string,
     data: Prisma.WhatsAppMessageUpdateInput,

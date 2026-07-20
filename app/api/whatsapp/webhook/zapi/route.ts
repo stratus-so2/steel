@@ -29,6 +29,7 @@ interface ZapiPayload {
   document?: { documentUrl?: string; filename?: string }
   sticker?: unknown
   location?: unknown
+  reaction?: { value?: string; referencedMessage?: { messageId?: string } }
 }
 
 function extractMessageContent(payload: ZapiPayload): {
@@ -120,6 +121,15 @@ export const POST = withAxiom(async (request: NextRequest) => {
 
   if (body.type !== 'ReceivedCallback') {
     return new Response('IGNORED', { status: 200 })
+  }
+
+  const referencedMessageId = body.reaction?.referencedMessage?.messageId
+  if (referencedMessageId) {
+    await WhatsAppWebhookService.ingestInboundReaction({
+      providerMessageId: referencedMessageId,
+      emoji: body.reaction?.value ?? '',
+    })
+    return new Response('REACTION_RECEIVED', { status: 200 })
   }
 
   const waId = (body.phone ?? '').replace(/\D/g, '')

@@ -287,6 +287,44 @@ describe('WhatsAppWebhookService', () => {
     })
   })
 
+  describe('ingestInboundReaction()', () => {
+    it('should be a no-op when the message is unknown', async () => {
+      mockedMessageRepo.updateReactionByProviderMessageId.mockResolvedValue(
+        ok(null),
+      )
+
+      const result = await WhatsAppWebhookService.ingestInboundReaction({
+        providerMessageId: 'unknown',
+        emoji: '👍',
+      })
+
+      expectOk(result)
+    })
+
+    it('should persist the reaction as coming from the contact', async () => {
+      const updated = createFakeWhatsAppMessage({
+        reactionEmoji: '👍',
+        reactedByContact: true,
+      })
+      mockedMessageRepo.updateReactionByProviderMessageId.mockResolvedValue(
+        ok(updated),
+      )
+
+      const result = await WhatsAppWebhookService.ingestInboundReaction({
+        providerMessageId: updated.providerMessageId ?? '',
+        emoji: '👍',
+      })
+
+      expectOk(result)
+      expect(
+        mockedMessageRepo.updateReactionByProviderMessageId,
+      ).toHaveBeenCalledWith(updated.providerMessageId, {
+        emoji: '👍',
+        reactedByContact: true,
+      })
+    })
+  })
+
   describe('ingestStatusUpdate()', () => {
     it('should be a no-op when the message is unknown', async () => {
       mockedMessageRepo.updateStatusByProviderMessageId.mockResolvedValue(

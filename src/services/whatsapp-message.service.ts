@@ -3,6 +3,7 @@ import {
   whatsappConnectionNotFound,
   whatsappConversationAiHandling,
   whatsappConversationNotFound,
+  whatsappMessageNotFound,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
@@ -17,6 +18,7 @@ import {
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import type {
   ListWhatsAppMessagesDTO,
+  ReactToWhatsAppMessageDTO,
   SendWhatsAppMediaMessageDTO,
   SendWhatsAppTemplateMessageDTO,
   SendWhatsAppTextMessageDTO,
@@ -52,6 +54,14 @@ async function loadSendableConversation(
   })
 }
 
+async function resolveQuotedProviderMessageId(
+  replyToMessageId: string | undefined,
+): Promise<string | undefined> {
+  if (!replyToMessageId) return undefined
+  const quoted = await WhatsAppMessageRepository.findById(replyToMessageId)
+  return quoted.ok ? (quoted.value?.providerMessageId ?? undefined) : undefined
+}
+
 async function finalizeOutboundMessage(input: {
   workspaceId: string
   conversationId: string
@@ -60,6 +70,7 @@ async function finalizeOutboundMessage(input: {
   text?: string
   mediaUrl?: string
   providerMessageId: string
+  replyToMessageId?: string
 }): Promise<Result<WhatsAppMessageDTO>> {
   const message = await WhatsAppMessageRepository.create({
     workspaceId: input.workspaceId,
@@ -71,6 +82,7 @@ async function finalizeOutboundMessage(input: {
     providerMessageId: input.providerMessageId,
     status: 'SENT',
     senderUserId: input.actorId,
+    replyToMessageId: input.replyToMessageId,
   })
   if (!message.ok) return message
 
@@ -146,9 +158,14 @@ export const WhatsAppMessageService = {
     const loaded = await loadSendableConversation(workspaceId, conversationId)
     if (!loaded.ok) return loaded
 
+    const quotedProviderMessageId = await resolveQuotedProviderMessageId(
+      dto.replyToMessageId,
+    )
+
     const sendResult = await WhatsAppSend.text(loaded.value.connection, {
       to: loaded.value.conversation.contact.waId,
       text: dto.text,
+      quotedProviderMessageId,
     })
     if (!sendResult.ok) return sendResult
 
@@ -159,6 +176,7 @@ export const WhatsAppMessageService = {
       type: 'TEXT',
       text: dto.text,
       providerMessageId: sendResult.value.providerMessageId,
+      replyToMessageId: dto.replyToMessageId,
     })
   },
 
@@ -180,12 +198,17 @@ export const WhatsAppMessageService = {
       | 'video'
       | 'document'
 
+    const quotedProviderMessageId = await resolveQuotedProviderMessageId(
+      dto.replyToMessageId,
+    )
+
     const sendResult = await WhatsAppSend.media(loaded.value.connection, {
       to: loaded.value.conversation.contact.waId,
       mediaUrl: dto.mediaUrl,
       type: mediaType,
       caption: dto.caption,
       fileName: dto.fileName,
+      quotedProviderMessageId,
     })
     if (!sendResult.ok) return sendResult
 
@@ -197,6 +220,7 @@ export const WhatsAppMessageService = {
       text: dto.caption,
       mediaUrl: dto.mediaUrl,
       providerMessageId: sendResult.value.providerMessageId,
+      replyToMessageId: dto.replyToMessageId,
     })
   },
 
@@ -228,5 +252,50 @@ export const WhatsAppMessageService = {
       text: dto.templateName,
       providerMessageId: sendResult.value.providerMessageId,
     })
+  },
+
+  async react(
+    actorId: string,
+    workspaceId: string,
+    conversationId: string,
+    messageId: string,
+    dto: ReactToWhatsAppMessageDTO,
+  ): Promise<Result<WhatsAppMessageDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const loaded = await loadSendableConversation(workspaceId, conversationId)
+    if (!loaded.ok) return loaded
+
+    const target = await WhatsAppMessageRepository.findById(messageId)
+    if (!target.ok) return target
+    if (!target.value || target.value.conversationId !== conversationId) {
+      return err(whatsappMessageNotFound())
+    }
+    if (!target.value.providerMessageId) {
+      return err(whatsappMessageNotFound())
+    }
+
+    const sendResult = await WhatsAppSend.reaction(loaded.value.connection, {
+      to: loaded.value.conversation.contact.waId,
+      providerMessageId: target.value.providerMessageId,
+      emoji: dto.emoji,
+    })
+    if (!sendResult.ok) return sendResult
+
+    const updated = await WhatsAppMessageRepository.update(messageId, {
+      reactionEmoji: dto.emoji || null,
+      reactedByContact: dto.emoji ? false : null,
+    })
+    if (!updated.ok) return updated
+
+    const messageDto = toWhatsAppMessageDTO(updated.value)
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'message.updated',
+      conversationId,
+      message: messageDto,
+    })
+
+    return ok(messageDto)
   },
 }

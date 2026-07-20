@@ -38,6 +38,7 @@ interface MetaMessage {
   document?: { id?: string; filename?: string }
   sticker?: unknown
   location?: unknown
+  reaction?: { message_id?: string; emoji?: string }
   button?: { text?: string }
   interactive?: {
     button_reply?: { title?: string }
@@ -188,7 +189,13 @@ export const POST = withAxiom(async (request: NextRequest) => {
   }
 
   if (message.type === 'reaction') {
-    return new Response('IGNORED', { status: 200 })
+    if (message.reaction?.message_id) {
+      await WhatsAppWebhookService.ingestInboundReaction({
+        providerMessageId: message.reaction.message_id,
+        emoji: message.reaction.emoji ?? '',
+      })
+    }
+    return new Response('REACTION_RECEIVED', { status: 200 })
   }
 
   const waId = message.from.replace(/\D/g, '')
