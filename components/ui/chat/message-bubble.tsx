@@ -1,9 +1,14 @@
+'use client'
+
 import {
+  Download01Icon,
   Robot01Icon,
   Tick01Icon,
   Tick02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import { MediaLightbox } from '@/components/ui/chat/media-lightbox'
 import { cn } from '@/lib/utils'
 import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
 
@@ -39,43 +44,60 @@ function MessageStatusTicks({
   )
 }
 
-function MessageBubbleMedia({ message }: { message: WhatsAppMessageDTO }) {
+function MessageBubbleMedia({
+  message,
+  onOpenLightbox,
+}: {
+  message: WhatsAppMessageDTO
+  onOpenLightbox: (media: { url: string; type: 'IMAGE' | 'VIDEO' }) => void
+}) {
   if (!message.mediaUrl) return null
+  const mediaUrl = message.mediaUrl
 
   switch (message.type) {
     case 'IMAGE':
     case 'STICKER':
       return (
-        // biome-ignore lint/performance/noImgElement: media served from workspace's own MinIO bucket, not a next/image remote pattern
-        <img
-          src={message.mediaUrl}
-          alt={message.text ?? 'Imagem'}
-          className='mb-1 max-w-64 rounded-md'
-        />
+        <button
+          type='button'
+          className='mb-1 block cursor-zoom-in'
+          onClick={() => onOpenLightbox({ url: mediaUrl, type: 'IMAGE' })}
+        >
+          {/* biome-ignore lint/performance/noImgElement: media served from workspace's own MinIO bucket, not a next/image remote pattern */}
+          <img
+            src={mediaUrl}
+            alt={message.text ?? 'Imagem'}
+            className='max-w-64 rounded-md'
+          />
+        </button>
       )
     case 'VIDEO':
       return (
-        // biome-ignore lint/a11y/useMediaCaption: WhatsApp media has no caption tracks
-        <video
-          src={message.mediaUrl}
-          controls
-          className='mb-1 max-w-64 rounded-md'
-        />
+        <button
+          type='button'
+          className='mb-1 block cursor-zoom-in'
+          onClick={() => onOpenLightbox({ url: mediaUrl, type: 'VIDEO' })}
+        >
+          {/* biome-ignore lint/a11y/useMediaCaption: WhatsApp media has no caption tracks */}
+          <video src={mediaUrl} className='max-w-64 rounded-md' />
+        </button>
       )
     case 'AUDIO':
       return (
         // biome-ignore lint/a11y/useMediaCaption: WhatsApp media has no caption tracks
-        <audio src={message.mediaUrl} controls className='mb-1 max-w-64' />
+        <audio src={mediaUrl} controls className='mb-1 max-w-64' />
       )
     case 'DOCUMENT':
       return (
         <a
-          href={message.mediaUrl}
+          href={mediaUrl}
+          download={message.text ?? undefined}
           target='_blank'
           rel='noreferrer'
-          className='mb-1 block text-sm underline'
+          className='mb-1 flex items-center gap-2 rounded-md border border-current/10 px-2.5 py-2 text-sm underline-offset-2 hover:underline'
         >
-          {message.text ?? 'Documento'}
+          <SteelIcon icon={Download01Icon} size={16} className='shrink-0' />
+          <span className='truncate'>{message.text ?? 'Documento'}</span>
         </a>
       )
     default:
@@ -84,6 +106,10 @@ function MessageBubbleMedia({ message }: { message: WhatsAppMessageDTO }) {
 }
 
 export function MessageBubble({ message }: { message: WhatsAppMessageDTO }) {
+  const [lightboxMedia, setLightboxMedia] = useState<{
+    url: string
+    type: 'IMAGE' | 'VIDEO'
+  } | null>(null)
   const isOutbound = message.direction === 'OUT'
   const showTextBelowMedia = message.text && message.type !== 'DOCUMENT'
 
@@ -105,7 +131,7 @@ export function MessageBubble({ message }: { message: WhatsAppMessageDTO }) {
             <span>IA</span>
           </div>
         )}
-        <MessageBubbleMedia message={message} />
+        <MessageBubbleMedia message={message} onOpenLightbox={setLightboxMedia} />
         {showTextBelowMedia && (
           <p className='whitespace-pre-wrap break-words'>{message.text}</p>
         )}
@@ -119,6 +145,7 @@ export function MessageBubble({ message }: { message: WhatsAppMessageDTO }) {
           {isOutbound && <MessageStatusTicks status={message.status} />}
         </div>
       </div>
+      <MediaLightbox media={lightboxMedia} onOpenChange={() => setLightboxMedia(null)} />
     </div>
   )
 }
