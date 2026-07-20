@@ -20,27 +20,14 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { MediaLightbox } from '@/components/ui/chat/media-lightbox'
+import {
+  quotedMessageLabel,
+  QuotedMessageThumbnail,
+} from '@/components/ui/chat/quoted-message-preview'
 import { cn } from '@/lib/utils'
 import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
-
-function messagePreviewText(message: WhatsAppMessageDTO): string {
-  switch (message.type) {
-    case 'IMAGE':
-      return '📷 Imagem'
-    case 'AUDIO':
-      return '🎤 Áudio'
-    case 'VIDEO':
-      return '🎬 Vídeo'
-    case 'DOCUMENT':
-      return `📄 ${message.text ?? 'Documento'}`
-    case 'STICKER':
-      return '🖼️ Figurinha'
-    default:
-      return message.text ?? ''
-  }
-}
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('pt-BR', {
@@ -175,8 +162,9 @@ export function MessageBubble({
                 </div>
               )}
               {replyToMessage && (
-                <div className='mb-1.5 rounded-md border-current/20 border-l-2 bg-current/5 px-2 py-1 text-xs opacity-80'>
-                  <p className='truncate'>{messagePreviewText(replyToMessage)}</p>
+                <div className='mb-1.5 flex items-center gap-2 rounded-md border-current/20 border-l-2 bg-current/5 px-2 py-1 text-xs opacity-80'>
+                  <QuotedMessageThumbnail message={replyToMessage} />
+                  <p className='truncate'>{quotedMessageLabel(replyToMessage)}</p>
                 </div>
               )}
               <MessageBubbleMedia

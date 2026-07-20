@@ -26,6 +26,10 @@ import {
 } from '@/components/ui/attachment'
 import { Button } from '@/components/ui/button'
 import {
+  QuotedMessageThumbnail,
+  quotedMessageLabel,
+} from '@/components/ui/chat/quoted-message-preview'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -77,23 +81,6 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function replyPreviewText(message: WhatsAppMessageDTO): string {
-  switch (message.type) {
-    case 'IMAGE':
-      return '📷 Imagem'
-    case 'AUDIO':
-      return '🎤 Áudio'
-    case 'VIDEO':
-      return '🎬 Vídeo'
-    case 'DOCUMENT':
-      return `📄 ${message.text ?? 'Documento'}`
-    case 'STICKER':
-      return '🖼️ Figurinha'
-    default:
-      return message.text ?? ''
-  }
 }
 
 function useAudioRecorder(onRecorded: (blob: Blob) => void) {
@@ -279,11 +266,14 @@ export function WhatsappComposer({
     <div className='border-t p-2'>
       {replyTarget && (
         <div className='mb-2 flex items-center justify-between gap-2 rounded-md border-primary border-l-2 bg-muted/50 px-2.5 py-1.5'>
-          <div className='min-w-0'>
-            <p className='font-medium text-primary text-xs'>Respondendo</p>
-            <p className='truncate text-muted-foreground text-xs'>
-              {replyPreviewText(replyTarget)}
-            </p>
+          <div className='flex min-w-0 items-center gap-2'>
+            <QuotedMessageThumbnail message={replyTarget} />
+            <div className='min-w-0'>
+              <p className='font-medium text-primary text-xs'>Respondendo</p>
+              <p className='truncate text-muted-foreground text-xs'>
+                {quotedMessageLabel(replyTarget)}
+              </p>
+            </div>
           </div>
           <Button
             type='button'
