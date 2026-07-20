@@ -3,6 +3,7 @@
 import {
   Attachment01Icon,
   Camera01Icon,
+  Cancel01Icon,
   File02Icon,
   FlashIcon,
   Folder01Icon,
@@ -13,6 +14,16 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type ChangeEvent, useRef, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentGroup,
+  AttachmentMedia,
+  AttachmentTitle,
+} from '@/components/ui/attachment'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -48,6 +59,21 @@ function mediaTypeFromMime(mime: string): WhatsAppMessageTypeDTO {
   if (mime.startsWith('video/')) return 'VIDEO'
   if (mime.startsWith('audio/')) return 'AUDIO'
   return 'DOCUMENT'
+}
+
+interface StagedAttachment {
+  id: string
+  file: File
+  type: WhatsAppMessageTypeDTO
+  previewUrl?: string
+  status: 'uploading' | 'done' | 'error'
+  uploadedUrl?: string
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function useAudioRecorder(onRecorded: (blob: Blob) => void) {
@@ -98,6 +124,7 @@ export function WhatsappComposer({
   disabled?: boolean
 }) {
   const [text, setText] = useState('')
+  const [attachments, setAttachments] = useState<StagedAttachment[]>([])
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [quickReplyOpen, setQuickReplyOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -131,13 +158,49 @@ export function WhatsappComposer({
     }
   })
 
+  const isUploading = attachments.some((a) => a.status === 'uploading')
   const isBusy =
     sendText.isPending || sendMedia.isPending || uploadMedia.isPending
-  const isDisabled = Boolean(disabled) || isBusy
+  const isDisabled = Boolean(disabled) || isBusy || isUploading
+  const hasAttachments = attachments.length > 0
 
-  async function handleSendText() {
+  function removeAttachment(id: string) {
+    setAttachments((current) => {
+      const target = current.find((a) => a.id === id)
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+      return current.filter((a) => a.id !== id)
+    })
+  }
+
+  async function handleSend() {
     const trimmed = text.trim()
-    if (!trimmed || isDisabled) return
+    if (isDisabled) return
+
+    if (hasAttachments) {
+      const readyAttachments = attachments.filter((a) => a.status === 'done')
+      if (readyAttachments.length === 0) return
+      try {
+        for (const [index, attachment] of readyAttachments.entries()) {
+          if (!attachment.uploadedUrl) continue
+          await sendMedia.mutateAsync({
+            mediaUrl: attachment.uploadedUrl,
+            type: attachment.type,
+            fileName: attachment.file.name,
+            caption: index === 0 ? trimmed || undefined : undefined,
+          })
+        }
+        for (const attachment of readyAttachments) {
+          if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl)
+        }
+        setAttachments((current) => current.filter((a) => a.status !== 'done'))
+        setText('')
+      } catch {
+        notify.error('Erro ao enviar arquivo')
+      }
+      return
+    }
+
+    if (!trimmed) return
     try {
       await sendText.mutateAsync(trimmed)
       setText('')
@@ -146,235 +209,296 @@ export function WhatsappComposer({
     }
   }
 
-  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+  function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
 
-    try {
-      const uploaded = await uploadMedia.mutateAsync(file)
-      await sendMedia.mutateAsync({
-        mediaUrl: uploaded.url,
-        type: mediaTypeFromMime(file.type),
-        fileName: file.name,
-      })
-    } catch {
-      notify.error('Erro ao enviar arquivo')
-    }
+    const id = crypto.randomUUID()
+    const type = mediaTypeFromMime(file.type)
+    const previewUrl =
+      type === 'IMAGE' || type === 'VIDEO'
+        ? URL.createObjectURL(file)
+        : undefined
+
+    setAttachments((current) => [
+      ...current,
+      { id, file, type, previewUrl, status: 'uploading' },
+    ])
+
+    uploadMedia.mutate(file, {
+      onSuccess: (uploaded) => {
+        setAttachments((current) =>
+          current.map((a) =>
+            a.id === id
+              ? { ...a, status: 'done', uploadedUrl: uploaded.url }
+              : a,
+          ),
+        )
+      },
+      onError: () => {
+        notify.error('Erro ao enviar arquivo')
+        setAttachments((current) =>
+          current.map((a) => (a.id === id ? { ...a, status: 'error' } : a)),
+        )
+      },
+    })
   }
 
   return (
-    <div className='flex items-end gap-1.5 border-t p-2'>
-      <input
-        ref={photoInputRef}
-        type='file'
-        accept='image/*'
-        className='hidden'
-        onChange={handleFileSelected}
-      />
-      <input
-        ref={videoInputRef}
-        type='file'
-        accept='video/*'
-        className='hidden'
-        onChange={handleFileSelected}
-      />
-      <input
-        ref={fileInputRef}
-        type='file'
-        className='hidden'
-        onChange={handleFileSelected}
-      />
-
-      <Popover open={quickReplyOpen} onOpenChange={setQuickReplyOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              disabled={isDisabled}
-              aria-label='Mensagem rápida'
-            >
-              <SteelIcon icon={FlashIcon} size={18} />
-            </Button>
-          }
-        />
-        <PopoverContent align='start' className='w-72 p-1'>
-          <div className='max-h-64 overflow-y-auto'>
-            {quickReplies.data?.length ? (
-              quickReplies.data.map((qr) => (
-                <button
-                  key={qr.id}
-                  type='button'
-                  className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
-                  onClick={() => {
-                    setText((current) => `${current}${qr.body}`)
-                    setQuickReplyOpen(false)
-                  }}
+    <div className='border-t p-2'>
+      {hasAttachments && (
+        <AttachmentGroup className='mb-2 px-0.5'>
+          {attachments.map((attachment) => (
+            <Attachment key={attachment.id} size='sm' state={attachment.status}>
+              <AttachmentMedia
+                variant={attachment.previewUrl ? 'image' : 'icon'}
+              >
+                {attachment.previewUrl && attachment.type === 'IMAGE' ? (
+                  <img src={attachment.previewUrl} alt={attachment.file.name} />
+                ) : (
+                  <SteelIcon icon={File02Icon} size={16} />
+                )}
+              </AttachmentMedia>
+              <AttachmentContent>
+                <AttachmentTitle>{attachment.file.name}</AttachmentTitle>
+                <AttachmentDescription>
+                  {attachment.status === 'uploading'
+                    ? 'Enviando…'
+                    : attachment.status === 'error'
+                      ? 'Falha no envio'
+                      : formatFileSize(attachment.file.size)}
+                </AttachmentDescription>
+              </AttachmentContent>
+              <AttachmentActions>
+                <AttachmentAction
+                  aria-label='Remover anexo'
+                  onClick={() => removeAttachment(attachment.id)}
                 >
-                  <span className='font-medium'>/{qr.shortcut}</span>
-                  <span className='line-clamp-1 text-muted-foreground text-xs'>
-                    {qr.body}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <p className='p-2 text-muted-foreground text-xs'>
-                Nenhuma mensagem rápida cadastrada
-              </p>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      <Popover open={templateOpen} onOpenChange={setTemplateOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              disabled={isDisabled}
-              aria-label='Template'
-            >
-              <SteelIcon icon={File02Icon} size={18} />
-            </Button>
-          }
+                  <SteelIcon icon={Cancel01Icon} size={14} />
+                </AttachmentAction>
+              </AttachmentActions>
+            </Attachment>
+          ))}
+        </AttachmentGroup>
+      )}
+      <div className='flex items-end gap-1.5'>
+        <input
+          ref={photoInputRef}
+          type='file'
+          accept='image/*'
+          className='hidden'
+          onChange={handleFileSelected}
         />
-        <PopoverContent align='start' className='w-72 p-1'>
-          <div className='max-h-64 overflow-y-auto'>
-            {templates.data?.length ? (
-              templates.data.map((template) => (
-                <button
-                  key={template.id}
-                  type='button'
-                  className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50'
-                  disabled={
-                    template.status !== 'APPROVED' || sendTemplate.isPending
-                  }
-                  onClick={async () => {
-                    setTemplateOpen(false)
-                    try {
-                      await sendTemplate.mutateAsync({
-                        templateName: template.name,
-                        language: template.language,
-                      })
-                    } catch {
-                      notify.error('Erro ao enviar template')
+        <input
+          ref={videoInputRef}
+          type='file'
+          accept='video/*'
+          className='hidden'
+          onChange={handleFileSelected}
+        />
+        <input
+          ref={fileInputRef}
+          type='file'
+          className='hidden'
+          onChange={handleFileSelected}
+        />
+
+        <Popover open={quickReplyOpen} onOpenChange={setQuickReplyOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                disabled={isDisabled}
+                aria-label='Mensagem rápida'
+              >
+                <SteelIcon icon={FlashIcon} size={18} />
+              </Button>
+            }
+          />
+          <PopoverContent align='start' className='w-72 p-1'>
+            <div className='max-h-64 overflow-y-auto'>
+              {quickReplies.data?.length ? (
+                quickReplies.data.map((qr) => (
+                  <button
+                    key={qr.id}
+                    type='button'
+                    className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
+                    onClick={() => {
+                      setText((current) => `${current}${qr.body}`)
+                      setQuickReplyOpen(false)
+                    }}
+                  >
+                    <span className='font-medium'>/{qr.shortcut}</span>
+                    <span className='line-clamp-1 text-muted-foreground text-xs'>
+                      {qr.body}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className='p-2 text-muted-foreground text-xs'>
+                  Nenhuma mensagem rápida cadastrada
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover open={templateOpen} onOpenChange={setTemplateOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                disabled={isDisabled}
+                aria-label='Template'
+              >
+                <SteelIcon icon={File02Icon} size={18} />
+              </Button>
+            }
+          />
+          <PopoverContent align='start' className='w-72 p-1'>
+            <div className='max-h-64 overflow-y-auto'>
+              {templates.data?.length ? (
+                templates.data.map((template) => (
+                  <button
+                    key={template.id}
+                    type='button'
+                    className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50'
+                    disabled={
+                      template.status !== 'APPROVED' || sendTemplate.isPending
                     }
-                  }}
-                >
-                  <span className='font-medium'>{template.name}</span>
-                  <span className='text-muted-foreground text-xs'>
-                    {template.language} · {template.status}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <p className='p-2 text-muted-foreground text-xs'>
-                Nenhum template sincronizado
-              </p>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+                    onClick={async () => {
+                      setTemplateOpen(false)
+                      try {
+                        await sendTemplate.mutateAsync({
+                          templateName: template.name,
+                          language: template.language,
+                        })
+                      } catch {
+                        notify.error('Erro ao enviar template')
+                      }
+                    }}
+                  >
+                    <span className='font-medium'>{template.name}</span>
+                    <span className='text-muted-foreground text-xs'>
+                      {template.language} · {template.status}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className='p-2 text-muted-foreground text-xs'>
+                  Nenhum template sincronizado
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
 
-      <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              disabled={isDisabled}
-              aria-label='Emoji'
+        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                disabled={isDisabled}
+                aria-label='Emoji'
+              >
+                <SteelIcon icon={SmileIcon} size={18} />
+              </Button>
+            }
+          />
+          <PopoverContent className='h-80 w-72 p-0'>
+            <EmojiPicker
+              className='h-full'
+              onEmojiSelect={({ emoji }) => {
+                setText((current) => `${current}${emoji}`)
+              }}
             >
-              <SteelIcon icon={SmileIcon} size={18} />
-            </Button>
+              <EmojiPickerSearch />
+              <EmojiPickerContent />
+              <EmojiPickerFooter />
+            </EmojiPicker>
+          </PopoverContent>
+        </Popover>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                disabled={isDisabled}
+                aria-label='Anexo'
+              >
+                <SteelIcon icon={Attachment01Icon} size={18} />
+              </Button>
+            }
+          />
+          <DropdownMenuContent align='start'>
+            <DropdownMenuItem onClick={() => photoInputRef.current?.click()}>
+              <SteelIcon icon={Camera01Icon} size={16} />
+              Foto
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => videoInputRef.current?.click()}>
+              <SteelIcon icon={Video01Icon} size={16} />
+              Vídeo
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
+              <SteelIcon icon={Folder01Icon} size={16} />
+              Arquivo
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button
+          type='button'
+          variant={audioRecorder.isRecording ? 'destructive' : 'ghost'}
+          size='icon-sm'
+          disabled={isDisabled}
+          aria-label={
+            audioRecorder.isRecording ? 'Parar gravação' : 'Gravar áudio'
           }
+          onClick={() =>
+            audioRecorder.isRecording
+              ? audioRecorder.stop()
+              : audioRecorder.start()
+          }
+        >
+          <SteelIcon icon={Mic01Icon} size={18} />
+        </Button>
+
+        <Textarea
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault()
+              handleSend()
+            }
+          }}
+          placeholder='Digite uma mensagem'
+          disabled={isDisabled}
+          className='max-h-32 min-h-9 flex-1 resize-none'
+          rows={1}
         />
-        <PopoverContent className='h-80 w-72 p-0'>
-          <EmojiPicker
-            className='h-full'
-            onEmojiSelect={({ emoji }) => {
-              setText((current) => `${current}${emoji}`)
-            }}
-          >
-            <EmojiPickerSearch />
-            <EmojiPickerContent />
-            <EmojiPickerFooter />
-          </EmojiPicker>
-        </PopoverContent>
-      </Popover>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              disabled={isDisabled}
-              aria-label='Anexo'
-            >
-              <SteelIcon icon={Attachment01Icon} size={18} />
-            </Button>
+        <Button
+          type='button'
+          size='icon-sm'
+          disabled={
+            isDisabled ||
+            (hasAttachments
+              ? !attachments.some((a) => a.status === 'done')
+              : !text.trim())
           }
-        />
-        <DropdownMenuContent align='start'>
-          <DropdownMenuItem onClick={() => photoInputRef.current?.click()}>
-            <SteelIcon icon={Camera01Icon} size={16} />
-            Foto
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => videoInputRef.current?.click()}>
-            <SteelIcon icon={Video01Icon} size={16} />
-            Vídeo
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-            <SteelIcon icon={Folder01Icon} size={16} />
-            Arquivo
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Button
-        type='button'
-        variant={audioRecorder.isRecording ? 'destructive' : 'ghost'}
-        size='icon-sm'
-        disabled={isDisabled}
-        aria-label={
-          audioRecorder.isRecording ? 'Parar gravação' : 'Gravar áudio'
-        }
-        onClick={() =>
-          audioRecorder.isRecording
-            ? audioRecorder.stop()
-            : audioRecorder.start()
-        }
-      >
-        <SteelIcon icon={Mic01Icon} size={18} />
-      </Button>
-
-      <Textarea
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault()
-            handleSendText()
-          }
-        }}
-        placeholder='Digite uma mensagem'
-        disabled={isDisabled}
-        className='max-h-32 min-h-9 flex-1 resize-none'
-        rows={1}
-      />
-
-      <Button
-        type='button'
-        size='icon-sm'
-        disabled={isDisabled || !text.trim()}
-        aria-label='Enviar'
-        onClick={handleSendText}
-      >
-        <SteelIcon icon={SentIcon} size={16} />
-      </Button>
+          aria-label='Enviar'
+          onClick={handleSend}
+        >
+          <SteelIcon icon={SentIcon} size={16} />
+        </Button>
+      </div>
     </div>
   )
 }
