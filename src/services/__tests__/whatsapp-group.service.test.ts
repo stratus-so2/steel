@@ -18,6 +18,10 @@ vi.mock('@/src/lib/crypto', () => ({
     envelope.replace(/^enc:/, ''),
   ),
 }))
+vi.mock('@/src/lib/rate-limit', () => ({
+  consume: vi.fn(async () => ({ ok: true, value: undefined })),
+  whatsappSendLimiter: { __mock: 'whatsappSendLimiter' },
+}))
 vi.mock('@/src/lib/whatsapp/send', () => ({
   WhatsAppSend: {
     text: vi.fn(async () => ({
