@@ -1,6 +1,16 @@
 'use client'
 
 import { type FormEvent, useState } from 'react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -34,6 +44,7 @@ import {
   useWhatsAppQuickReplies,
 } from '@/src/hooks/use-whatsapp-quick-replies'
 import { QUICK_REPLY_VARIABLES } from '@/src/lib/whatsapp/template-variables'
+import type { WhatsAppQuickReplyDTO } from '@/types/whatsapp-quick-reply'
 
 function CreateQuickReplyDialog({ workspaceId }: { workspaceId: string }) {
   const [open, setOpen] = useState(false)
@@ -135,6 +146,8 @@ export function WhatsappSettingsQuickReplies({
 }: {
   workspaceId: string
 }) {
+  const [deletingQuickReply, setDeletingQuickReply] =
+    useState<WhatsAppQuickReplyDTO | null>(null)
   const quickReplies = useWhatsAppQuickReplies(workspaceId)
   const deleteQuickReply = useDeleteWhatsAppQuickReply(workspaceId)
 
@@ -171,14 +184,7 @@ export function WhatsappSettingsQuickReplies({
                 <Button
                   size='xs'
                   variant='destructive'
-                  disabled={deleteQuickReply.isPending}
-                  onClick={() =>
-                    deleteQuickReply.mutate(quickReply.id, {
-                      onSuccess: () => notify.success('Mensagem removida'),
-                      onError: (error) =>
-                        notify.error(error, 'Não foi possível remover'),
-                    })
-                  }
+                  onClick={() => setDeletingQuickReply(quickReply)}
                 >
                   Remover
                 </Button>
@@ -194,6 +200,45 @@ export function WhatsappSettingsQuickReplies({
           )}
         </TableBody>
       </Table>
+
+      <AlertDialog
+        open={deletingQuickReply !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingQuickReply(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover mensagem rápida</AlertDialogTitle>
+            <AlertDialogDescription>
+              "/{deletingQuickReply?.shortcut}" não vai mais aparecer no
+              composer da conversa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteQuickReply.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleteQuickReply.isPending}
+              onClick={() => {
+                if (!deletingQuickReply) return
+                deleteQuickReply.mutate(deletingQuickReply.id, {
+                  onSuccess: () => {
+                    notify.success('Mensagem removida')
+                    setDeletingQuickReply(null)
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Não foi possível remover'),
+                })
+              }}
+            >
+              {deleteQuickReply.isPending ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

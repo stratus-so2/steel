@@ -5,6 +5,16 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { type FormEvent, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -213,6 +223,8 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
   const [search, setSearch] = useState('')
   const [editingContact, setEditingContact] =
     useState<WhatsAppContactDTO | null>(null)
+  const [deletingContact, setDeletingContact] =
+    useState<WhatsAppContactDTO | null>(null)
   const contacts = useWhatsAppContacts(workspaceId, search)
   const deleteContact = useDeleteWhatsAppContact(workspaceId)
   const syncAvatar = useSyncWhatsAppContactAvatar(workspaceId)
@@ -304,14 +316,7 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
                   <Button
                     size='xs'
                     variant='destructive'
-                    disabled={deleteContact.isPending}
-                    onClick={() =>
-                      deleteContact.mutate(contact.id, {
-                        onSuccess: () => notify.success('Contato removido'),
-                        onError: (error) =>
-                          notify.error(error, 'Não foi possível remover'),
-                      })
-                    }
+                    onClick={() => setDeletingContact(contact)}
                   >
                     Remover
                   </Button>
@@ -339,6 +344,45 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
           }}
         />
       )}
+
+      <AlertDialog
+        open={deletingContact !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingContact(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover contato</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deletingContact?.name ?? deletingContact?.waId} será removido da
+              lista de contatos. Conversas já existentes não são afetadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteContact.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleteContact.isPending}
+              onClick={() => {
+                if (!deletingContact) return
+                deleteContact.mutate(deletingContact.id, {
+                  onSuccess: () => {
+                    notify.success('Contato removido')
+                    setDeletingContact(null)
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Não foi possível remover'),
+                })
+              }}
+            >
+              {deleteContact.isPending ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

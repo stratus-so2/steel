@@ -3,6 +3,16 @@
 import { QrCodeIcon, TradeMarkIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +49,10 @@ import {
   useWhatsAppConnectionQrCode,
   useWhatsAppConnections,
 } from '@/src/hooks/use-whatsapp-connections'
-import type { WhatsAppProviderDTO } from '@/types/whatsapp-connection'
+import type {
+  WhatsAppConnectionDTO,
+  WhatsAppProviderDTO,
+} from '@/types/whatsapp-connection'
 
 const EMPTY_FORM = {
   provider: 'ZAPI' as WhatsAppProviderDTO,
@@ -296,6 +309,8 @@ export function WhatsappSettingsConnections({
 }: {
   workspaceId: string
 }) {
+  const [deletingConnection, setDeletingConnection] =
+    useState<WhatsAppConnectionDTO | null>(null)
   const connections = useWhatsAppConnections(workspaceId)
   const deleteConnection = useDeleteWhatsAppConnection(workspaceId)
 
@@ -338,14 +353,7 @@ export function WhatsappSettingsConnections({
               <Button
                 size='xs'
                 variant='destructive'
-                disabled={deleteConnection.isPending}
-                onClick={() =>
-                  deleteConnection.mutate(connection.id, {
-                    onSuccess: () => notify.success('Conexão removida'),
-                    onError: (error) =>
-                      notify.error(error, 'Não foi possível remover'),
-                  })
-                }
+                onClick={() => setDeletingConnection(connection)}
               >
                 Remover
               </Button>
@@ -358,6 +366,46 @@ export function WhatsappSettingsConnections({
           </p>
         )}
       </div>
+
+      <AlertDialog
+        open={deletingConnection !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingConnection(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover conexão</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{deletingConnection?.label}" será desconectado. Conversas e
+              mensagens já recebidas por ele não são apagadas, mas ele deixa de
+              enviar/receber mensagens novas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteConnection.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleteConnection.isPending}
+              onClick={() => {
+                if (!deletingConnection) return
+                deleteConnection.mutate(deletingConnection.id, {
+                  onSuccess: () => {
+                    notify.success('Conexão removida')
+                    setDeletingConnection(null)
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Não foi possível remover'),
+                })
+              }}
+            >
+              {deleteConnection.isPending ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

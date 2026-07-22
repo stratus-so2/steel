@@ -10,6 +10,16 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -197,6 +207,8 @@ export function WhatsappConversationSidebar({
 }) {
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'active' | 'archived'>('active')
+  const [clearTargetId, setClearTargetId] = useState<string | null>(null)
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const conversations = useWhatsAppConversations(
     workspaceId,
     undefined,
@@ -343,13 +355,7 @@ export function WhatsappConversationSidebar({
                     {conversation.archived ? 'Desarquivar' : 'Arquivar'}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => {
-                      if (
-                        confirm('Limpar todas as mensagens desta conversa?')
-                      ) {
-                        clearChat.mutate(conversation.id)
-                      }
-                    }}
+                    onClick={() => setClearTargetId(conversation.id)}
                   >
                     <SteelIcon icon={Delete02Icon} size={14} />
                     Limpar conversa
@@ -357,11 +363,7 @@ export function WhatsappConversationSidebar({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     variant='destructive'
-                    onClick={() => {
-                      if (confirm('Excluir esta conversa?')) {
-                        deleteConversation.mutate(conversation.id)
-                      }
-                    }}
+                    onClick={() => setDeleteTargetId(conversation.id)}
                   >
                     <SteelIcon icon={Delete02Icon} size={14} />
                     Excluir conversa
@@ -372,6 +374,79 @@ export function WhatsappConversationSidebar({
           ))
         )}
       </div>
+
+      <AlertDialog
+        open={clearTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setClearTargetId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar conversa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as mensagens desta conversa serão ocultadas. Essa ação não
+              pode ser desfeita pela interface.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearChat.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={clearChat.isPending}
+              onClick={() => {
+                if (!clearTargetId) return
+                clearChat.mutate(clearTargetId, {
+                  onSuccess: () => setClearTargetId(null),
+                  onError: (error) =>
+                    notify.error(error, 'Erro ao limpar conversa'),
+                })
+              }}
+            >
+              {clearChat.isPending ? 'Limpando...' : 'Limpar conversa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir conversa</AlertDialogTitle>
+            <AlertDialogDescription>
+              A conversa será removida da lista. Essa ação não pode ser desfeita
+              pela interface.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteConversation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleteConversation.isPending}
+              onClick={() => {
+                if (!deleteTargetId) return
+                deleteConversation.mutate(deleteTargetId, {
+                  onSuccess: () => setDeleteTargetId(null),
+                  onError: (error) =>
+                    notify.error(error, 'Erro ao excluir conversa'),
+                })
+              }}
+            >
+              {deleteConversation.isPending
+                ? 'Excluindo...'
+                : 'Excluir conversa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

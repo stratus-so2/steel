@@ -4,12 +4,23 @@ import {
   Add01Icon,
   Copy01Icon,
   Delete02Icon,
+  FlashIcon,
   SentIcon,
   Settings02Icon,
   ShieldUserIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useRef, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { MessageScroller } from '@/components/ui/chat/message-scroller'
@@ -22,6 +33,11 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -38,6 +54,7 @@ import {
   useUpdateWhatsAppGroup,
   useWhatsAppGroupInviteLink,
 } from '@/src/hooks/use-whatsapp-groups'
+import { useWhatsAppQuickReplies } from '@/src/hooks/use-whatsapp-quick-replies'
 import type {
   WhatsAppGroupDTO,
   WhatsAppGroupParticipantDTO,
@@ -180,6 +197,11 @@ function GroupSettingsDialog({
   const [name, setName] = useState(group.name)
   const [description, setDescription] = useState(group.description ?? '')
   const [newParticipant, setNewParticipant] = useState<string>()
+  const [removeParticipantTarget, setRemoveParticipantTarget] = useState<{
+    waId: string
+    label: string
+  } | null>(null)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
 
   const contacts = useWhatsAppContacts(workspaceId)
   const updateGroup = useUpdateWhatsAppGroup(workspaceId, group.id)
@@ -305,7 +327,10 @@ function GroupSettingsDialog({
                     aria-label='Remover participante'
                     disabled={removeParticipants.isPending}
                     onClick={() =>
-                      removeParticipants.mutate([participant.waId])
+                      setRemoveParticipantTarget({
+                        waId: participant.waId,
+                        label: participant.name ?? participant.waId,
+                      })
                     }
                   >
                     <SteelIcon icon={Delete02Icon} size={14} />
@@ -354,22 +379,81 @@ function GroupSettingsDialog({
             type='button'
             variant='destructive'
             disabled={leaveGroup.isPending}
-            onClick={() => {
-              if (!confirm('Sair deste grupo?')) return
-              leaveGroup.mutate(group.id, {
-                onSuccess: () => {
-                  onOpenChange(false)
-                  onLeft()
-                },
-                onError: (error) =>
-                  notify.error(error, 'Erro ao sair do grupo'),
-              })
-            }}
+            onClick={() => setLeaveConfirmOpen(true)}
           >
             Sair do grupo
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog
+        open={removeParticipantTarget !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setRemoveParticipantTarget(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover participante</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeParticipantTarget?.label} será removido deste grupo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeParticipants.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={removeParticipants.isPending}
+              onClick={() => {
+                if (!removeParticipantTarget) return
+                removeParticipants.mutate([removeParticipantTarget.waId], {
+                  onSuccess: () => setRemoveParticipantTarget(null),
+                  onError: (error) =>
+                    notify.error(error, 'Erro ao remover participante'),
+                })
+              }}
+            >
+              {removeParticipants.isPending ? 'Removendo...' : 'Remover'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sair do grupo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você vai sair de "{group.name}" e não vai mais receber mensagens
+              dele.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={leaveGroup.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={leaveGroup.isPending}
+              onClick={() => {
+                leaveGroup.mutate(group.id, {
+                  onSuccess: () => {
+                    setLeaveConfirmOpen(false)
+                    onOpenChange(false)
+                    onLeft()
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Erro ao sair do grupo'),
+                })
+              }}
+            >
+              {leaveGroup.isPending ? 'Saindo...' : 'Sair do grupo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }
@@ -386,10 +470,12 @@ export function WhatsappGroupView({
   const [text, setText] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [quickReplyOpen, setQuickReplyOpen] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const messages = useWhatsAppGroupMessages(workspaceId, group.id)
   const sendText = useSendWhatsAppGroupTextMessage(workspaceId, group.id)
+  const quickReplies = useWhatsAppQuickReplies(workspaceId)
 
   const mentionCandidates =
     mentionQuery === null
@@ -504,6 +590,46 @@ export function WhatsappGroupView({
           </div>
         )}
         <div className='flex items-end gap-1.5'>
+          <Popover open={quickReplyOpen} onOpenChange={setQuickReplyOpen}>
+            <PopoverTrigger
+              render={
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  disabled={sendText.isPending}
+                  aria-label='Mensagem rápida'
+                >
+                  <SteelIcon icon={FlashIcon} size={18} />
+                </Button>
+              }
+            />
+            <PopoverContent align='start' className='w-72 p-1'>
+              <div className='max-h-64 overflow-y-auto'>
+                {quickReplies.data?.length ? (
+                  quickReplies.data.map((qr) => (
+                    <button
+                      key={qr.id}
+                      type='button'
+                      className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
+                      onClick={() => {
+                        setText((current) => `${current}${qr.body}`)
+                        setQuickReplyOpen(false)
+                      }}
+                    >
+                      <span className='font-medium'>/{qr.shortcut}</span>
+                      <span className='line-clamp-1 text-muted-foreground text-xs'>
+                        {qr.body}
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className='p-2 text-muted-foreground text-xs'>
+                    Nenhuma mensagem rápida cadastrada
+                  </p>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Textarea
             ref={textareaRef}
             value={text}
