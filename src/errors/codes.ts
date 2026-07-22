@@ -105,6 +105,10 @@ export const ERROR_CODES = {
     code: 'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED',
     status: 422,
   },
+  WHATSAPP_CONTACT_PHOTO_UNAVAILABLE: {
+    code: 'WHATSAPP_CONTACT_PHOTO_UNAVAILABLE',
+    status: 422,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

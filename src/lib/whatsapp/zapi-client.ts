@@ -183,3 +183,19 @@ export function createZapiClient(
     },
   }
 }
+
+// Z-API-only: the contact's own WhatsApp profile photo. Meta's Cloud API has
+// no equivalent — it only exposes the business's own profile picture, never
+// an arbitrary customer's. The returned link is a temporary WhatsApp CDN URL
+// (expires after ~48h), so this is meant for an on-demand refresh, not a
+// one-time fetch to store forever.
+export async function getZapiContactProfilePicture(
+  credentials: ZapiCredentials,
+  phone: string,
+): Promise<string | null> {
+  const result = await zapiRequest<{ link?: string }>(
+    credentials,
+    `/contacts/profilePicture?phone=${encodeURIComponent(phone)}`,
+  )
+  return result.link ?? null
+}

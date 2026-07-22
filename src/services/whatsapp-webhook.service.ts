@@ -20,6 +20,7 @@ export interface InboundWhatsAppMessage {
   connection: WhatsAppConnection
   waId: string
   contactName?: string
+  contactAvatarUrl?: string
   providerMessageId: string
   type: WhatsAppMessageTypeDTO
   text?: string
@@ -71,6 +72,7 @@ export const WhatsAppWebhookService = {
       workspaceId,
       waId: input.waId,
       name: input.contactName,
+      avatarUrl: input.contactAvatarUrl,
     })
     if (!contact.ok) return contact
 
@@ -183,6 +185,7 @@ export const WhatsAppWebhookService = {
       workspaceId,
       waId: input.waId,
       name: input.contactName,
+      avatarUrl: input.contactAvatarUrl,
     })
     if (!contact.ok) return contact
 

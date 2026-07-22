@@ -1,7 +1,14 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { whatsappContactNotFound } from '@/src/errors'
+import {
+  whatsappContactNotFound,
+  whatsappContactPhotoUnavailable,
+  whatsappProviderError,
+} from '@/src/errors'
+import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { err, ok, type Result } from '@/src/lib/result'
+import { getZapiContactProfilePicture } from '@/src/lib/whatsapp/zapi-client'
 import { toWhatsAppContactDTO } from '@/src/mappers/whatsapp-contact.mapper'
+import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import type {
   CreateWhatsAppContactDTO,
@@ -79,6 +86,61 @@ export const WhatsAppContactService = {
       waId: dto.waId,
       name: dto.name,
     })
+    if (!result.ok) return result
+
+    return ok(toWhatsAppContactDTO(result.value))
+  },
+
+  async syncAvatar(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+  ): Promise<Result<WhatsAppContactDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppContactRepository.findById(id, workspaceId)
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappContactNotFound())
+
+    const connections =
+      await WhatsAppConnectionRepository.listByWorkspace(workspaceId)
+    if (!connections.ok) return connections
+    const zapiConnection = connections.value.find(
+      (connection) =>
+        connection.provider === 'ZAPI' &&
+        connection.zapiInstanceId &&
+        connection.encryptedZapiToken,
+    )
+    if (!zapiConnection) return err(whatsappContactPhotoUnavailable())
+
+    let avatarUrl: string | null
+    try {
+      const token = await decryptConnectionSecret(
+        zapiConnection.encryptedZapiToken as string,
+      )
+      const clientToken = zapiConnection.encryptedZapiClientToken
+        ? await decryptConnectionSecret(zapiConnection.encryptedZapiClientToken)
+        : undefined
+      avatarUrl = await getZapiContactProfilePicture(
+        {
+          instanceId: zapiConnection.zapiInstanceId as string,
+          token,
+          clientToken,
+        },
+        existing.value.waId,
+      )
+    } catch (error) {
+      return err(
+        whatsappProviderError(
+          error instanceof Error ? error.message : 'Falha ao buscar foto',
+        ),
+      )
+    }
+
+    if (!avatarUrl) return err(whatsappContactPhotoUnavailable())
+
+    const result = await WhatsAppContactRepository.update(id, { avatarUrl })
     if (!result.ok) return result
 
     return ok(toWhatsAppContactDTO(result.value))

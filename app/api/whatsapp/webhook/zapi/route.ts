@@ -19,6 +19,7 @@ interface ZapiPayload {
   type?: string
   phone?: string
   senderName?: string
+  senderPhoto?: string
   messageId?: string
   fromMe?: boolean
   status?: string
@@ -191,6 +192,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
         connection,
         waId,
         contactName: body.senderName,
+        contactAvatarUrl: body.senderPhoto,
         providerMessageId: body.messageId,
         quotedProviderMessageId: body.referenceMessageId,
         ...content,
@@ -199,6 +201,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
         connection,
         waId,
         contactName: body.senderName,
+        contactAvatarUrl: body.senderPhoto,
         providerMessageId: body.messageId,
         quotedProviderMessageId: body.referenceMessageId,
         ...content,

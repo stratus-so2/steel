@@ -75,6 +75,24 @@ export function useFindOrCreateWhatsAppContact(workspaceId: string) {
   })
 }
 
+export function useSyncWhatsAppContactAvatar(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (contactId: string) =>
+      apiFetch<WhatsAppContactDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/contacts/${contactId}/sync-avatar`,
+        { method: 'POST' },
+        'Erro ao buscar foto de perfil',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-contacts', workspaceId],
+      })
+    },
+  })
+}
+
 export function useUpdateWhatsAppContact(
   workspaceId: string,
   contactId: string,

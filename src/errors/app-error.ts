@@ -205,3 +205,9 @@ export const whatsappGroupProviderUnsupported = (): AppError =>
     'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED',
     'Grupos só são suportados em conexões Z-API — a API oficial da Meta não expõe esse recurso',
   )
+
+export const whatsappContactPhotoUnavailable = (): AppError =>
+  appError(
+    'WHATSAPP_CONTACT_PHOTO_UNAVAILABLE',
+    'Buscar foto de perfil exige uma conexão Z-API — a API oficial da Meta não expõe fotos de contato',
+  )

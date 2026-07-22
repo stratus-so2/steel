@@ -1,19 +1,35 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
+import { createFakeWhatsAppConnection } from '@/src/__tests__/factories/whatsapp-connection.factory'
 import { createFakeWhatsAppContact } from '@/src/__tests__/factories/whatsapp-contact.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
+vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/src/repositories/whatsapp-contact.repository')
+vi.mock('@/src/lib/crypto', () => ({
+  decryptConnectionSecret: vi.fn(async (envelope: string) =>
+    envelope.replace(/^enc:/, ''),
+  ),
+}))
+vi.mock('@/src/lib/whatsapp/zapi-client', () => ({
+  getZapiContactProfilePicture: vi.fn(
+    async () => 'https://cdn.z-api/photo.jpg',
+  ),
+}))
 
+import { getZapiContactProfilePicture } from '@/src/lib/whatsapp/zapi-client'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppContactService } from '../whatsapp-contact.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
+const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
 const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
+const mockedGetProfilePicture = vi.mocked(getZapiContactProfilePicture)
 
 describe('WhatsAppContactService', () => {
   describe('list()', () => {
@@ -113,6 +129,99 @@ describe('WhatsAppContactService', () => {
 
       expectErr(result, 'FORBIDDEN')
       expect(mockedContactRepo.upsertByWaId).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('syncAvatar()', () => {
+    it('should fetch and persist the profile picture from a Z-API connection', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const contact = createFakeWhatsAppContact({
+        id: 'ct1',
+        waId: '5511988887777',
+      })
+      mockedContactRepo.findById.mockResolvedValue(ok(contact))
+      mockedConnectionRepo.listByWorkspace.mockResolvedValue(
+        ok([
+          createFakeWhatsAppConnection({ provider: 'META' }),
+          createFakeWhatsAppConnection({
+            provider: 'ZAPI',
+            zapiInstanceId: 'instance-1',
+            encryptedZapiToken: 'enc:token',
+          }),
+        ]),
+      )
+      mockedContactRepo.update.mockResolvedValue(
+        ok(
+          createFakeWhatsAppContact({
+            id: 'ct1',
+            avatarUrl: 'https://cdn.z-api/photo.jpg',
+          }),
+        ),
+      )
+
+      const result = await WhatsAppContactService.syncAvatar('u1', 'ws1', 'ct1')
+
+      const dto = expectOk(result)
+      expect(dto.avatarUrl).toBe('https://cdn.z-api/photo.jpg')
+      expect(mockedGetProfilePicture).toHaveBeenCalledWith(
+        expect.objectContaining({ instanceId: 'instance-1', token: 'token' }),
+        '5511988887777',
+      )
+      expect(mockedContactRepo.update).toHaveBeenCalledWith('ct1', {
+        avatarUrl: 'https://cdn.z-api/photo.jpg',
+      })
+    })
+
+    it('should return WHATSAPP_CONTACT_PHOTO_UNAVAILABLE without a Z-API connection', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const contact = createFakeWhatsAppContact({ id: 'ct1' })
+      mockedContactRepo.findById.mockResolvedValue(ok(contact))
+      mockedConnectionRepo.listByWorkspace.mockResolvedValue(
+        ok([createFakeWhatsAppConnection({ provider: 'META' })]),
+      )
+
+      const result = await WhatsAppContactService.syncAvatar('u1', 'ws1', 'ct1')
+
+      expectErr(result, 'WHATSAPP_CONTACT_PHOTO_UNAVAILABLE')
+      expect(mockedGetProfilePicture).not.toHaveBeenCalled()
+    })
+
+    it('should return WHATSAPP_CONTACT_PHOTO_UNAVAILABLE when Z-API has no picture on file', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const contact = createFakeWhatsAppContact({ id: 'ct1' })
+      mockedContactRepo.findById.mockResolvedValue(ok(contact))
+      mockedConnectionRepo.listByWorkspace.mockResolvedValue(
+        ok([
+          createFakeWhatsAppConnection({
+            provider: 'ZAPI',
+            zapiInstanceId: 'instance-1',
+            encryptedZapiToken: 'enc:token',
+          }),
+        ]),
+      )
+      mockedGetProfilePicture.mockResolvedValueOnce(null)
+
+      const result = await WhatsAppContactService.syncAvatar('u1', 'ws1', 'ct1')
+
+      expectErr(result, 'WHATSAPP_CONTACT_PHOTO_UNAVAILABLE')
+      expect(mockedContactRepo.update).not.toHaveBeenCalled()
+    })
+
+    it('should return WHATSAPP_CONTACT_NOT_FOUND when missing', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedContactRepo.findById.mockResolvedValue(ok(null))
+
+      const result = await WhatsAppContactService.syncAvatar('u1', 'ws1', 'ct1')
+
+      expectErr(result, 'WHATSAPP_CONTACT_NOT_FOUND')
     })
   })
 

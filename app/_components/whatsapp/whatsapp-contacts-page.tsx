@@ -1,8 +1,10 @@
 'use client'
 
+import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { type FormEvent, useState } from 'react'
+import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +31,7 @@ import { notify } from '@/lib/notify'
 import {
   useCreateWhatsAppContact,
   useDeleteWhatsAppContact,
+  useSyncWhatsAppContactAvatar,
   useUpdateWhatsAppContact,
   useWhatsAppContacts,
 } from '@/src/hooks/use-whatsapp-contacts'
@@ -212,6 +215,7 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
     useState<WhatsAppContactDTO | null>(null)
   const contacts = useWhatsAppContacts(workspaceId, search)
   const deleteContact = useDeleteWhatsAppContact(workspaceId)
+  const syncAvatar = useSyncWhatsAppContactAvatar(workspaceId)
 
   return (
     <div className='space-y-4'>
@@ -241,12 +245,36 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
           {(contacts.data ?? []).map((contact) => (
             <TableRow key={contact.id}>
               <TableCell>
-                <Avatar className='size-8'>
-                  <AvatarImage src={contact.avatarUrl ?? undefined} />
-                  <AvatarFallback className='text-xs'>
-                    {(contact.name ?? contact.waId).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className='group relative w-fit'>
+                  <Avatar className='size-8'>
+                    <AvatarImage src={contact.avatarUrl ?? undefined} />
+                    <AvatarFallback className='text-xs'>
+                      {(contact.name ?? contact.waId).slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    type='button'
+                    aria-label='Buscar foto de perfil'
+                    disabled={syncAvatar.isPending}
+                    className='absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100'
+                    onClick={() =>
+                      syncAvatar.mutate(contact.id, {
+                        onSuccess: () => notify.success('Foto atualizada'),
+                        onError: (error) =>
+                          notify.error(
+                            error,
+                            'Não foi possível buscar a foto (exige conexão Z-API)',
+                          ),
+                      })
+                    }
+                  >
+                    <SteelIcon
+                      icon={RefreshIcon}
+                      size={14}
+                      className='text-white'
+                    />
+                  </button>
+                </div>
               </TableCell>
               <TableCell>{contact.name ?? '—'}</TableCell>
               <TableCell>{contact.waId}</TableCell>

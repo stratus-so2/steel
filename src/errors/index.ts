@@ -36,6 +36,7 @@ export {
   whatsappConnectionConflict,
   whatsappConnectionNotFound,
   whatsappContactNotFound,
+  whatsappContactPhotoUnavailable,
   whatsappConversationAiHandling,
   whatsappConversationNotFound,
   whatsappGroupMessageNotFound,
