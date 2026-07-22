@@ -122,7 +122,17 @@ export const auth = betterAuth({
     },
   },
   account: {
-    accountLinking: { enabled: true },
+    accountLinking: {
+      enabled: true,
+      // Google/GitHub already verify the email on their end, so don't also
+      // require our own local account to have emailVerified: true before
+      // linking — without this, a user who signed up with email/password
+      // but never clicked the verification link gets stuck on
+      // "account not linked" when trying to sign in with Google/GitHub
+      // using that same address.
+      trustedProviders: ['google', 'github'],
+      requireLocalEmailVerified: false,
+    },
     // Encrypt OAuth access/refresh/id tokens at rest using better-auth's
     // native XChaCha20-Poly1305 envelope ($ba$<version>$<ct>). Keys come
     // from BETTER_AUTH_SECRETS (versioned, comma-separated "v:secret"
