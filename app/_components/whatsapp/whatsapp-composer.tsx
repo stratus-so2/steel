@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
+import { useUser } from '@/src/hooks/use-user'
 import { useUploadWhatsAppMedia } from '@/src/hooks/use-whatsapp-media-upload'
 import {
   useSendWhatsAppMediaMessage,
@@ -56,10 +57,18 @@ import {
 } from '@/src/hooks/use-whatsapp-messages'
 import { useWhatsAppQuickReplies } from '@/src/hooks/use-whatsapp-quick-replies'
 import { useWhatsAppTemplates } from '@/src/hooks/use-whatsapp-templates'
+import {
+  extractTemplateFillableFields,
+  hasFillableFields,
+  parseMetaTemplateComponents,
+  renderQuickReplyBody,
+} from '@/src/lib/whatsapp/template-variables'
 import type {
   WhatsAppMessageDTO,
   WhatsAppMessageTypeDTO,
 } from '@/types/whatsapp-message'
+import type { WhatsAppTemplateDTO } from '@/types/whatsapp-template'
+import { TemplateVariablesDialog } from './template-variables-dialog'
 
 function mediaTypeFromMime(mime: string): WhatsAppMessageTypeDTO {
   if (mime.startsWith('image/')) return 'IMAGE'
@@ -124,12 +133,14 @@ function useAudioRecorder(onRecorded: (blob: Blob) => void) {
 export function WhatsappComposer({
   workspaceId,
   conversationId,
+  contactName,
   disabled,
   replyTarget,
   onClearReply,
 }: {
   workspaceId: string
   conversationId: string
+  contactName?: string | null
   disabled?: boolean
   replyTarget?: WhatsAppMessageDTO | null
   onClearReply?: () => void
@@ -139,10 +150,14 @@ export function WhatsappComposer({
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [quickReplyOpen, setQuickReplyOpen] = useState(false)
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [pendingTemplate, setPendingTemplate] =
+    useState<WhatsAppTemplateDTO | null>(null)
+  const [variablesDialogOpen, setVariablesDialogOpen] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const currentUser = useUser()
   const quickReplies = useWhatsAppQuickReplies(workspaceId)
   const templates = useWhatsAppTemplates(workspaceId)
   const sendText = useSendWhatsAppTextMessage(workspaceId, conversationId)
@@ -365,7 +380,11 @@ export function WhatsappComposer({
                     type='button'
                     className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
                     onClick={() => {
-                      setText((current) => `${current}${qr.body}`)
+                      const rendered = renderQuickReplyBody(qr.body, {
+                        contactName,
+                        userName: currentUser.data?.name,
+                      })
+                      setText((current) => `${current}${rendered}`)
                       setQuickReplyOpen(false)
                     }}
                   >
@@ -410,6 +429,14 @@ export function WhatsappComposer({
                     }
                     onClick={async () => {
                       setTemplateOpen(false)
+                      const fields = extractTemplateFillableFields(
+                        parseMetaTemplateComponents(template.components),
+                      )
+                      if (hasFillableFields(fields)) {
+                        setPendingTemplate(template)
+                        setVariablesDialogOpen(true)
+                        return
+                      }
                       try {
                         await sendTemplate.mutateAsync({
                           templateName: template.name,
@@ -538,6 +565,27 @@ export function WhatsappComposer({
           <SteelIcon icon={SentIcon} size={16} />
         </Button>
       </div>
+
+      <TemplateVariablesDialog
+        template={pendingTemplate}
+        open={variablesDialogOpen}
+        onOpenChange={setVariablesDialogOpen}
+        isSubmitting={sendTemplate.isPending}
+        onConfirm={async (components) => {
+          if (!pendingTemplate) return
+          try {
+            await sendTemplate.mutateAsync({
+              templateName: pendingTemplate.name,
+              language: pendingTemplate.language,
+              components,
+            })
+            setVariablesDialogOpen(false)
+            setPendingTemplate(null)
+          } catch {
+            notify.error('Erro ao enviar template')
+          }
+        }}
+      />
     </div>
   )
 }

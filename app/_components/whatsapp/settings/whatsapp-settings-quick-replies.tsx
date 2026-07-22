@@ -10,6 +10,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -27,6 +33,7 @@ import {
   useDeleteWhatsAppQuickReply,
   useWhatsAppQuickReplies,
 } from '@/src/hooks/use-whatsapp-quick-replies'
+import { QUICK_REPLY_VARIABLES } from '@/src/lib/whatsapp/template-variables'
 
 function CreateQuickReplyDialog({ workspaceId }: { workspaceId: string }) {
   const [open, setOpen] = useState(false)
@@ -80,7 +87,30 @@ function CreateQuickReplyDialog({ workspaceId }: { workspaceId: string }) {
             />
           </div>
           <div className='space-y-1.5'>
-            <Label htmlFor='body'>Mensagem</Label>
+            <div className='flex items-center justify-between'>
+              <Label htmlFor='body'>Mensagem</Label>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button variant='ghost' size='xs' type='button'>
+                      Inserir variável
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align='end'>
+                  {QUICK_REPLY_VARIABLES.map((variable) => (
+                    <DropdownMenuItem
+                      key={variable.token}
+                      onClick={() =>
+                        setBody((current) => `${current}{${variable.token}}`)
+                      }
+                    >
+                      {variable.label} — {`{${variable.token}}`}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
             <Textarea
               id='body'
               required

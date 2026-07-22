@@ -178,6 +178,7 @@ export function WhatsappConversationView({
       <WhatsappComposer
         workspaceId={workspaceId}
         conversationId={conversation.id}
+        contactName={conversation.contactName ?? conversation.contactWaId}
         disabled={conversation.aiActive}
         replyTarget={replyTarget}
         onClearReply={() => setReplyTarget(null)}
