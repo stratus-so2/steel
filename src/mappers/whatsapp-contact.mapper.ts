@@ -2,7 +2,7 @@ import type { WhatsAppContact } from '@prisma/client'
 import type { WhatsAppContactDTO } from '@/types/whatsapp-contact'
 
 export function toWhatsAppContactDTO(
-  contact: WhatsAppContact,
+  contact: WhatsAppContact & { _count?: { conversations: number } },
 ): WhatsAppContactDTO {
   return {
     id: contact.id,
@@ -10,6 +10,8 @@ export function toWhatsAppContactDTO(
     waId: contact.waId,
     name: contact.name,
     avatarUrl: contact.avatarUrl,
+    description: contact.description,
+    conversationCount: contact._count?.conversations ?? 0,
     createdAt: contact.createdAt.toISOString(),
     updatedAt: contact.updatedAt.toISOString(),
   }

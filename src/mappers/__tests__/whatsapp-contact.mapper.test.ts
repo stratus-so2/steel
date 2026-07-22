@@ -19,6 +19,8 @@ describe('toWhatsAppContactDTO()', () => {
       waId: '5511988887777',
       name: 'Maria Silva',
       avatarUrl: 'https://minio.internal/avatars/ct1.jpg',
+      description: null,
+      conversationCount: 0,
       createdAt: contact.createdAt.toISOString(),
       updatedAt: contact.updatedAt.toISOString(),
     })

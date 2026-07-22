@@ -43,6 +43,7 @@ export const WhatsAppContactService = {
       waId: dto.waId,
       name: dto.name,
       avatarUrl: dto.avatarUrl,
+      description: dto.description,
     })
     if (!result.ok) {
       auditMutation({

@@ -565,6 +565,8 @@ model WhatsAppContact {
   waId        String   @map("wa_id")
   name        String?
   avatarUrl   String?  @map("avatar_url")
+  // Freeform "about"/bio text — manually entered, no provider API exposes this.
+  description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

@@ -1,9 +1,10 @@
 import { createId } from '@paralleldrive/cuid2'
 import type { WhatsAppContact } from '@prisma/client'
+import type { WhatsAppContactWithCount } from '@/src/repositories/whatsapp-contact.repository'
 
 export function createFakeWhatsAppContact(
-  overrides?: Partial<WhatsAppContact>,
-): WhatsAppContact {
+  overrides?: Partial<WhatsAppContactWithCount>,
+): WhatsAppContactWithCount {
   const now = new Date()
   return {
     id: createId(),
@@ -11,8 +12,17 @@ export function createFakeWhatsAppContact(
     waId: '5511988887777',
     name: 'Maria Silva',
     avatarUrl: null,
+    description: null,
     createdAt: now,
     updatedAt: now,
+    _count: { conversations: 0 },
     ...overrides,
   }
+}
+
+export function createFakeWhatsAppContactWithoutCount(
+  overrides?: Partial<WhatsAppContact>,
+): WhatsAppContact {
+  const { _count, ...contact } = createFakeWhatsAppContact()
+  return { ...contact, ...overrides }
 }

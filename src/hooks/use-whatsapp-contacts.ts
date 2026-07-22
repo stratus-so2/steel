@@ -9,11 +9,13 @@ interface CreateWhatsAppContactInput {
   waId: string
   name?: string
   avatarUrl?: string
+  description?: string
 }
 
 interface UpdateWhatsAppContactInput {
   name?: string
   avatarUrl?: string
+  description?: string
 }
 
 export function useWhatsAppContacts(workspaceId: string, search?: string) {

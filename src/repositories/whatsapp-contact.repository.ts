@@ -4,11 +4,15 @@ import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
+export type WhatsAppContactWithCount = WhatsAppContact & {
+  _count: { conversations: number }
+}
+
 export const WhatsAppContactRepository = {
   async listByWorkspace(
     workspaceId: string,
     search?: string,
-  ): Promise<Result<WhatsAppContact[]>> {
+  ): Promise<Result<WhatsAppContactWithCount[]>> {
     try {
       const contacts = await prisma.whatsAppContact.findMany({
         where: {
@@ -22,6 +26,7 @@ export const WhatsAppContactRepository = {
               }
             : {}),
         },
+        include: { _count: { select: { conversations: true } } },
         orderBy: { name: 'asc' },
       })
       return ok(contacts)
@@ -63,6 +68,7 @@ export const WhatsAppContactRepository = {
     waId: string
     name?: string
     avatarUrl?: string
+    description?: string
   }): Promise<Result<WhatsAppContact>> {
     try {
       const contact = await prisma.whatsAppContact.create({ data })
@@ -100,7 +106,7 @@ export const WhatsAppContactRepository = {
 
   async update(
     id: string,
-    data: { name?: string; avatarUrl?: string },
+    data: { name?: string; avatarUrl?: string; description?: string },
   ): Promise<Result<WhatsAppContact>> {
     try {
       const contact = await prisma.whatsAppContact.update({

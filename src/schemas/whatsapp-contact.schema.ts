@@ -10,6 +10,7 @@ export const CreateWhatsAppContactSchema = z.object({
   waId: WaIdField,
   name: z.string().min(1).max(120).optional(),
   avatarUrl: z.url().max(2048).optional(),
+  description: z.string().max(500).optional(),
 })
 
 export type CreateWhatsAppContactDTO = z.infer<
@@ -19,6 +20,7 @@ export type CreateWhatsAppContactDTO = z.infer<
 export const UpdateWhatsAppContactSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   avatarUrl: z.url().max(2048).optional(),
+  description: z.string().max(500).optional(),
 })
 
 export type UpdateWhatsAppContactDTO = z.infer<
