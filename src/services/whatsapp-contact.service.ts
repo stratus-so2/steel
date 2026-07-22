@@ -112,7 +112,13 @@ export const WhatsAppContactService = {
         connection.zapiInstanceId &&
         connection.encryptedZapiToken,
     )
-    if (!zapiConnection) return err(whatsappContactPhotoUnavailable())
+    if (!zapiConnection) {
+      return err(
+        whatsappContactPhotoUnavailable(
+          'Buscar foto de perfil exige uma conexão Z-API — a API oficial da Meta não expõe fotos de contato',
+        ),
+      )
+    }
 
     let avatarUrl: string | null
     try {
@@ -138,7 +144,13 @@ export const WhatsAppContactService = {
       )
     }
 
-    if (!avatarUrl) return err(whatsappContactPhotoUnavailable())
+    if (!avatarUrl) {
+      return err(
+        whatsappContactPhotoUnavailable(
+          'Este contato não tem foto de perfil disponível no WhatsApp',
+        ),
+      )
+    }
 
     const result = await WhatsAppContactRepository.update(id, { avatarUrl })
     if (!result.ok) return result

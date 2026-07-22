@@ -184,20 +184,42 @@ export function createZapiClient(
   }
 }
 
-// Z-API-only: the contact's own WhatsApp profile photo. Meta's Cloud API has
-// no equivalent — it only exposes the business's own profile picture, never
-// an arbitrary customer's. The returned link is a temporary WhatsApp CDN URL
-// (expires after ~48h), so this is meant for an on-demand refresh, not a
-// one-time fetch to store forever.
+export interface ZapiContactInfo {
+  name?: string
+  phone: string
+  imgUrl?: string
+  about?: string
+}
+
+// Z-API-only: basic profile info for a contact (name, "about" status, and a
+// photo URL). Meta's Cloud API has no equivalent — it only exposes the
+// business's own profile, never an arbitrary customer's. Useful for name/
+// about, but don't rely on `imgUrl` here for a fresh photo — Z-API's own
+// docs note it can be a link WhatsApp already expired; use
+// getZapiContactProfilePicture for that.
+export async function getZapiContactInfo(
+  credentials: ZapiCredentials,
+  phone: string,
+): Promise<ZapiContactInfo | null> {
+  const result = await zapiRequest<ZapiContactInfo | null>(
+    credentials,
+    `/contacts/${encodeURIComponent(phone)}`,
+  )
+  return result
+}
+
+// Z-API-only: returns a fresh (non-expired) URL for the contact's current
+// WhatsApp profile photo. This is the endpoint Z-API's own docs point to
+// specifically for refreshing a photo link once the one from
+// getZapiContactInfo's imgUrl (valid ~48h) has gone stale — note the path is
+// `/profile-picture`, not nested under `/contacts/`.
 export async function getZapiContactProfilePicture(
   credentials: ZapiCredentials,
   phone: string,
 ): Promise<string | null> {
-  // Z-API responds with a bare `null` body (not `{ link: null }`) when the
-  // contact has no profile picture set, so `result` itself can be null.
   const result = await zapiRequest<{ link?: string } | null>(
     credentials,
-    `/contacts/profilePicture?phone=${encodeURIComponent(phone)}`,
+    `/profile-picture?phone=${encodeURIComponent(phone)}`,
   )
   return result?.link ?? null
 }
