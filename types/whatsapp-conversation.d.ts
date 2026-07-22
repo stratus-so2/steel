@@ -15,6 +15,9 @@ export interface WhatsAppConversationDTO {
   unreadCount: number
   lastMessageAt: string | null
   lastMessagePreview: string | null
+  pinned: boolean
+  archived: boolean
+  contactSince: string
   createdAt: string
   updatedAt: string
 }

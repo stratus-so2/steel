@@ -1,6 +1,13 @@
 'use client'
 
-import { Add01Icon, Search01Icon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  Add01Icon,
+  ArchiveIcon,
+  Delete02Icon,
+  MoreVerticalIcon,
+  PinIcon,
+  Search01Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -14,6 +21,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -24,11 +38,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useWhatsAppConnections } from '@/src/hooks/use-whatsapp-connections'
 import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
 import {
+  useArchiveWhatsAppConversation,
+  useClearWhatsAppChat,
+  useDeleteWhatsAppConversation,
+  usePinWhatsAppConversation,
   useStartWhatsAppConversation,
   useWhatsAppConversations,
 } from '@/src/hooks/use-whatsapp-conversations'
@@ -177,7 +196,16 @@ export function WhatsappConversationSidebar({
   onSelect: (conversation: WhatsAppConversationDTO) => void
 }) {
   const [search, setSearch] = useState('')
-  const conversations = useWhatsAppConversations(workspaceId)
+  const [tab, setTab] = useState<'active' | 'archived'>('active')
+  const conversations = useWhatsAppConversations(
+    workspaceId,
+    undefined,
+    tab === 'archived',
+  )
+  const pinConversation = usePinWhatsAppConversation(workspaceId)
+  const archiveConversation = useArchiveWhatsAppConversation(workspaceId)
+  const deleteConversation = useDeleteWhatsAppConversation(workspaceId)
+  const clearChat = useClearWhatsAppChat(workspaceId)
 
   const filtered = (conversations.data ?? []).filter((conversation) => {
     if (!search) return true
@@ -206,6 +234,20 @@ export function WhatsappConversationSidebar({
         </div>
         <NewConversationDialog workspaceId={workspaceId} onCreated={onSelect} />
       </div>
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as 'active' | 'archived')}
+        className='px-3'
+      >
+        <TabsList className='w-full'>
+          <TabsTrigger value='active' className='flex-1'>
+            Ativas
+          </TabsTrigger>
+          <TabsTrigger value='archived' className='flex-1'>
+            Arquivadas
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
       <div className='flex-1 overflow-y-auto'>
         {filtered.length === 0 ? (
           <p className='px-3 py-6 text-center text-muted-foreground text-sm'>
@@ -213,44 +255,120 @@ export function WhatsappConversationSidebar({
           </p>
         ) : (
           filtered.map((conversation) => (
-            <button
+            <div
               key={conversation.id}
-              type='button'
-              onClick={() => onSelect(conversation)}
               className={cn(
-                'flex w-full items-center gap-2.5 border-b px-3 py-2.5 text-left hover:bg-muted',
+                'group flex w-full items-center gap-2.5 border-b px-3 py-2.5 hover:bg-muted',
                 selectedConversationId === conversation.id && 'bg-muted',
               )}
             >
-              <Avatar>
-                <AvatarImage src={conversation.contactAvatarUrl ?? undefined} />
-                <AvatarFallback>
-                  {(conversation.contactName ?? conversation.contactWaId)
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className='min-w-0 flex-1'>
-                <div className='flex items-center justify-between gap-2'>
-                  <span className='truncate font-medium text-sm'>
-                    {conversation.contactName ?? conversation.contactWaId}
-                  </span>
-                  <span className='shrink-0 text-[10px] text-muted-foreground'>
-                    {formatRelativeTime(conversation.lastMessageAt)}
-                  </span>
+              <button
+                type='button'
+                onClick={() => onSelect(conversation)}
+                className='flex min-w-0 flex-1 items-center gap-2.5 text-left'
+              >
+                <Avatar>
+                  <AvatarImage
+                    src={conversation.contactAvatarUrl ?? undefined}
+                  />
+                  <AvatarFallback>
+                    {(conversation.contactName ?? conversation.contactWaId)
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className='min-w-0 flex-1'>
+                  <div className='flex items-center gap-1.5'>
+                    {conversation.pinned && (
+                      <SteelIcon
+                        icon={PinIcon}
+                        size={11}
+                        className='shrink-0 text-muted-foreground'
+                      />
+                    )}
+                    <span className='truncate font-medium text-sm'>
+                      {conversation.contactName ?? conversation.contactWaId}
+                    </span>
+                    <span className='ml-auto shrink-0 text-[10px] text-muted-foreground'>
+                      {formatRelativeTime(conversation.lastMessageAt)}
+                    </span>
+                  </div>
+                  <div className='flex items-center justify-between gap-2'>
+                    <span className='truncate text-muted-foreground text-xs'>
+                      {conversation.lastMessagePreview ?? 'Sem mensagens'}
+                    </span>
+                    {conversation.unreadCount > 0 && (
+                      <Badge className='shrink-0'>
+                        {conversation.unreadCount}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div className='flex items-center justify-between gap-2'>
-                  <span className='truncate text-muted-foreground text-xs'>
-                    {conversation.lastMessagePreview ?? 'Sem mensagens'}
-                  </span>
-                  {conversation.unreadCount > 0 && (
-                    <Badge className='shrink-0'>
-                      {conversation.unreadCount}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </button>
+              </button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant='ghost'
+                      size='icon-sm'
+                      className='shrink-0 opacity-0 group-hover:opacity-100'
+                      aria-label='Ações da conversa'
+                    >
+                      <SteelIcon icon={MoreVerticalIcon} size={16} />
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      pinConversation.mutate({
+                        conversationId: conversation.id,
+                        pinned: !conversation.pinned,
+                      })
+                    }
+                  >
+                    <SteelIcon icon={PinIcon} size={14} />
+                    {conversation.pinned ? 'Desafixar' : 'Fixar'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      archiveConversation.mutate({
+                        conversationId: conversation.id,
+                        archived: !conversation.archived,
+                      })
+                    }
+                  >
+                    <SteelIcon icon={ArchiveIcon} size={14} />
+                    {conversation.archived ? 'Desarquivar' : 'Arquivar'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (
+                        confirm('Limpar todas as mensagens desta conversa?')
+                      ) {
+                        clearChat.mutate(conversation.id)
+                      }
+                    }}
+                  >
+                    <SteelIcon icon={Delete02Icon} size={14} />
+                    Limpar conversa
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant='destructive'
+                    onClick={() => {
+                      if (confirm('Excluir esta conversa?')) {
+                        deleteConversation.mutate(conversation.id)
+                      }
+                    }}
+                  >
+                    <SteelIcon icon={Delete02Icon} size={14} />
+                    Excluir conversa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ))
         )}
       </div>

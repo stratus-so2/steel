@@ -48,6 +48,9 @@ export function toWhatsAppConversationDTO(
     lastMessagePreview: lastMessage
       ? (lastMessage.text ?? previewForType(lastMessage.type))
       : null,
+    pinned: conversation.pinnedAt !== null,
+    archived: conversation.archivedAt !== null,
+    contactSince: conversation.contact.createdAt.toISOString(),
     createdAt: conversation.createdAt.toISOString(),
     updatedAt: conversation.updatedAt.toISOString(),
   }

@@ -15,6 +15,7 @@ type WhatsAppRealtimeEvent =
       message: WhatsAppMessageDTO
     }
   | { type: 'conversation.updated'; conversation: WhatsAppConversationDTO }
+  | { type: 'conversation.deleted'; conversationId: string }
 
 export function useWhatsAppRealtimeEvents(workspaceId: string) {
   const queryClient = useQueryClient()
@@ -46,7 +47,10 @@ export function useWhatsAppRealtimeEvents(workspaceId: string) {
         })
       }
 
-      if (parsed.type === 'conversation.updated') {
+      if (
+        parsed.type === 'conversation.updated' ||
+        parsed.type === 'conversation.deleted'
+      ) {
         queryClient.invalidateQueries({
           queryKey: ['whatsapp-conversations', workspaceId],
         })

@@ -6,11 +6,14 @@ import { dbError } from './db-error'
 export const WhatsAppMessageRepository = {
   async listByConversation(
     conversationId: string,
-    options: { cursor?: string; limit: number },
+    options: { cursor?: string; limit: number; after?: Date | null },
   ): Promise<Result<WhatsAppMessage[]>> {
     try {
       const messages = await prisma.whatsAppMessage.findMany({
-        where: { conversationId },
+        where: {
+          conversationId,
+          ...(options.after ? { createdAt: { gt: options.after } } : {}),
+        },
         orderBy: { createdAt: 'desc' },
         take: options.limit,
         ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),

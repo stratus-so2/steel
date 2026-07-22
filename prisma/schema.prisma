@@ -590,6 +590,10 @@ model WhatsAppConversation {
   aiHandoff      Boolean                    @default(false) @map("ai_handoff")
   unreadCount    Int                        @default(0) @map("unread_count")
   lastMessageAt  DateTime?                  @map("last_message_at")
+  pinnedAt       DateTime?                  @map("pinned_at")
+  archivedAt     DateTime?                  @map("archived_at")
+  deletedAt      DateTime?                  @map("deleted_at")
+  clearedAt      DateTime?                  @map("cleared_at")
   createdAt      DateTime                   @default(now()) @map("created_at")
   updatedAt      DateTime                   @updatedAt @map("updated_at")
 
@@ -600,6 +604,7 @@ model WhatsAppConversation {
   messages     WhatsAppMessage[]
 
   @@index([workspaceId, status, lastMessageAt])
+  @@index([workspaceId, deletedAt, archivedAt, pinnedAt])
   @@index([connectionId])
   @@index([contactId])
   @@index([assignedUserId])

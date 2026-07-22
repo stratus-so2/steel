@@ -4,6 +4,8 @@ import {
   ComputerVideoCallIcon,
   UserSwitchIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { useEffect, useMemo, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -16,6 +18,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { notify } from '@/lib/notify'
 import { useUser } from '@/src/hooks/use-user'
 import {
@@ -86,24 +93,69 @@ export function WhatsappConversationView({
   return (
     <div className='flex h-full min-w-0 flex-1 flex-col'>
       <div className='flex items-center justify-between gap-3 border-b px-4 py-3'>
-        <div className='flex items-center gap-2.5'>
-          <Avatar>
-            <AvatarImage src={conversation.contactAvatarUrl ?? undefined} />
-            <AvatarFallback>
-              {(conversation.contactName ?? conversation.contactWaId)
-                .slice(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className='font-medium text-sm'>
-              {conversation.contactName ?? conversation.contactWaId}
-            </p>
-            <p className='text-muted-foreground text-xs'>
-              {conversation.contactWaId}
-            </p>
-          </div>
-        </div>
+        <Popover>
+          <PopoverTrigger
+            render={
+              <button
+                type='button'
+                className='flex items-center gap-2.5 rounded-md text-left'
+              >
+                <Avatar>
+                  <AvatarImage
+                    src={conversation.contactAvatarUrl ?? undefined}
+                  />
+                  <AvatarFallback>
+                    {(conversation.contactName ?? conversation.contactWaId)
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className='font-medium text-sm'>
+                    {conversation.contactName ?? conversation.contactWaId}
+                  </p>
+                  <p className='text-muted-foreground text-xs'>
+                    {conversation.contactWaId}
+                  </p>
+                </div>
+              </button>
+            }
+          />
+          <PopoverContent align='start' className='w-72 p-4'>
+            <div className='flex flex-col items-center gap-2 text-center'>
+              <Avatar className='size-16'>
+                <AvatarImage src={conversation.contactAvatarUrl ?? undefined} />
+                <AvatarFallback className='text-lg'>
+                  {(conversation.contactName ?? conversation.contactWaId)
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className='font-medium text-sm'>
+                  {conversation.contactName ?? 'Sem nome'}
+                </p>
+                <p className='text-muted-foreground text-xs'>
+                  {conversation.contactWaId}
+                </p>
+              </div>
+            </div>
+            <div className='mt-3 space-y-1.5 border-t pt-3 text-xs'>
+              <div className='flex justify-between'>
+                <span className='text-muted-foreground'>Cliente desde</span>
+                <span>
+                  {format(new Date(conversation.contactSince), 'dd/MM/yyyy', {
+                    locale: ptBR,
+                  })}
+                </span>
+              </div>
+              <div className='flex justify-between'>
+                <span className='text-muted-foreground'>Status</span>
+                <span>{conversation.status}</span>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
         <div className='flex items-center gap-1'>
           <Button
             variant='ghost'

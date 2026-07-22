@@ -19,19 +19,25 @@ export const WhatsAppConversationRepository = {
     filters: {
       status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED'
       assignedUserId?: string
+      archived?: boolean
     } = {},
   ): Promise<Result<WhatsAppConversationWithPreview[]>> {
     try {
       const conversations = await prisma.whatsAppConversation.findMany({
         where: {
           workspaceId,
+          deletedAt: null,
+          archivedAt: filters.archived ? { not: null } : null,
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.assignedUserId
             ? { assignedUserId: filters.assignedUserId }
             : {}),
         },
         include: conversationListInclude,
-        orderBy: { lastMessageAt: 'desc' },
+        orderBy: [
+          { pinnedAt: { sort: 'desc', nulls: 'last' } },
+          { lastMessageAt: 'desc' },
+        ],
       })
       return ok(conversations)
     } catch (error) {

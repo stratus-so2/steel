@@ -139,7 +139,11 @@ export const WhatsAppMessageService = {
 
     const result = await WhatsAppMessageRepository.listByConversation(
       conversationId,
-      { cursor: options.cursor, limit: options.limit },
+      {
+        cursor: options.cursor,
+        limit: options.limit,
+        after: conversation.value.clearedAt,
+      },
     )
     if (!result.ok) return result
 

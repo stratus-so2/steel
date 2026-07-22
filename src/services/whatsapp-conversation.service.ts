@@ -23,7 +23,10 @@ export const WhatsAppConversationService = {
   async list(
     actorId: string,
     workspaceId: string,
-    filters: { status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED' } = {},
+    filters: {
+      status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED'
+      archived?: boolean
+    } = {},
   ): Promise<Result<WhatsAppConversationDTO[]>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
@@ -195,6 +198,159 @@ export const WhatsAppConversationService = {
       actorId,
       targetId: id,
       meta: { aiHandoff: true },
+    })
+
+    return ok(dto)
+  },
+
+  async setPinned(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+    pinned: boolean,
+  ): Promise<Result<WhatsAppConversationDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappConversationNotFound())
+
+    const updated = await WhatsAppConversationRepository.update(id, {
+      pinnedAt: pinned ? new Date() : null,
+    })
+    if (!updated.ok) return updated
+
+    const fresh = await WhatsAppConversationRepository.findById(id, workspaceId)
+    if (!fresh.ok) return fresh
+    if (!fresh.value) return err(whatsappConversationNotFound())
+
+    const dto = toWhatsAppConversationDTO(fresh.value)
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'conversation.updated',
+      conversation: dto,
+    })
+
+    return ok(dto)
+  },
+
+  async setArchived(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+    archived: boolean,
+  ): Promise<Result<WhatsAppConversationDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappConversationNotFound())
+
+    const updated = await WhatsAppConversationRepository.update(id, {
+      archivedAt: archived ? new Date() : null,
+    })
+    if (!updated.ok) return updated
+
+    const fresh = await WhatsAppConversationRepository.findById(id, workspaceId)
+    if (!fresh.ok) return fresh
+    if (!fresh.value) return err(whatsappConversationNotFound())
+
+    const dto = toWhatsAppConversationDTO(fresh.value)
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'conversation.updated',
+      conversation: dto,
+    })
+
+    auditMutation({
+      entity: 'whatsapp_conversation',
+      action: 'update',
+      actorId,
+      targetId: id,
+      meta: { archived },
+    })
+
+    return ok(dto)
+  },
+
+  async remove(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+  ): Promise<Result<{ id: string }>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappConversationNotFound())
+
+    const updated = await WhatsAppConversationRepository.update(id, {
+      deletedAt: new Date(),
+    })
+    if (!updated.ok) return updated
+
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'conversation.deleted',
+      conversationId: id,
+    })
+
+    auditMutation({
+      entity: 'whatsapp_conversation',
+      action: 'delete',
+      actorId,
+      targetId: id,
+    })
+
+    return ok({ id })
+  },
+
+  async clear(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+  ): Promise<Result<WhatsAppConversationDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappConversationNotFound())
+
+    const updated = await WhatsAppConversationRepository.update(id, {
+      clearedAt: new Date(),
+      lastMessageAt: null,
+    })
+    if (!updated.ok) return updated
+
+    const fresh = await WhatsAppConversationRepository.findById(id, workspaceId)
+    if (!fresh.ok) return fresh
+    if (!fresh.value) return err(whatsappConversationNotFound())
+
+    const dto = toWhatsAppConversationDTO(fresh.value)
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'conversation.updated',
+      conversation: dto,
+    })
+
+    auditMutation({
+      entity: 'whatsapp_conversation',
+      action: 'update',
+      actorId,
+      targetId: id,
+      meta: { cleared: true },
     })
 
     return ok(dto)
