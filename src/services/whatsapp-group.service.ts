@@ -139,7 +139,7 @@ export const WhatsAppGroupService = {
     )
     if (!limit.ok) return limit
 
-    let created: { groupJid: string }
+    let created: Awaited<ReturnType<typeof createZapiGroup>>
     try {
       created = await createZapiGroup(resolved.value.credentials, {
         name: dto.name,
@@ -158,6 +158,7 @@ export const WhatsAppGroupService = {
       connectionId: dto.connectionId,
       groupJid: created.groupJid,
       name: dto.name,
+      inviteLink: created.inviteLink,
     })
     if (!group.ok) return group
 

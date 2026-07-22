@@ -8,7 +8,7 @@ import {
   Settings02Icon,
   ShieldUserIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useRef, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -38,10 +38,82 @@ import {
   useUpdateWhatsAppGroup,
   useWhatsAppGroupInviteLink,
 } from '@/src/hooks/use-whatsapp-groups'
-import type { WhatsAppGroupDTO } from '@/types/whatsapp-group'
+import type {
+  WhatsAppGroupDTO,
+  WhatsAppGroupParticipantDTO,
+} from '@/types/whatsapp-group'
 import type { WhatsAppGroupMessageDTO } from '@/types/whatsapp-group-message'
 
-function GroupMessageBubble({ message }: { message: WhatsAppGroupMessageDTO }) {
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function mentionPattern(label: string, flags = 'u'): RegExp {
+  return new RegExp(`@${escapeRegExp(label)}(?![\\w])`, flags)
+}
+
+function sortByLabelLengthDesc(
+  participants: WhatsAppGroupParticipantDTO[],
+): WhatsAppGroupParticipantDTO[] {
+  return [...participants].sort(
+    (a, b) => (b.name ?? b.waId).length - (a.name ?? a.waId).length,
+  )
+}
+
+// Z-API only renders a WhatsApp @mention when the message text contains the
+// participant's literal phone number (e.g. "@5511999999999"), not their
+// display name — so the friendly "@Nome" typed in the composer has to be
+// swapped for "@waId" right before sending. Deriving mentions from the text
+// itself (rather than tracking picker selections separately) means a
+// deleted "@Nome" naturally drops out and a manually typed one still counts.
+function buildOutgoingGroupMessage(
+  text: string,
+  participants: WhatsAppGroupParticipantDTO[],
+): { text: string; mentionedWaIds: string[] } {
+  let outgoing = text
+  const mentionedWaIds: string[] = []
+
+  for (const participant of sortByLabelLengthDesc(participants)) {
+    const label = participant.name ?? participant.waId
+    if (mentionPattern(label).test(outgoing)) {
+      mentionedWaIds.push(participant.waId)
+      outgoing = outgoing.replace(
+        mentionPattern(label, 'gu'),
+        `@${participant.waId}`,
+      )
+    }
+  }
+
+  return { text: outgoing, mentionedWaIds }
+}
+
+// Reverse of the above, for display: turns the "@waId" wire format that was
+// actually sent back into "@Nome" so already-sent messages don't show raw
+// phone numbers in the thread.
+function formatIncomingGroupText(
+  text: string,
+  participants: WhatsAppGroupParticipantDTO[],
+): string {
+  let display = text
+
+  for (const participant of sortByLabelLengthDesc(participants)) {
+    if (!participant.name) continue
+    display = display.replace(
+      mentionPattern(participant.waId, 'gu'),
+      `@${participant.name}`,
+    )
+  }
+
+  return display
+}
+
+function GroupMessageBubble({
+  message,
+  participants,
+}: {
+  message: WhatsAppGroupMessageDTO
+  participants: WhatsAppGroupParticipantDTO[]
+}) {
   const isOutbound = message.direction === 'OUT'
 
   return (
@@ -70,7 +142,11 @@ function GroupMessageBubble({ message }: { message: WhatsAppGroupMessageDTO }) {
               : 'rounded-bl-sm bg-muted text-foreground',
           )}
         >
-          <p className='whitespace-pre-wrap break-words'>{message.text}</p>
+          <p className='whitespace-pre-wrap break-words'>
+            {message.text
+              ? formatIncomingGroupText(message.text, participants)
+              : message.text}
+          </p>
           <div
             className={cn(
               'mt-1 text-[10px]',
@@ -309,25 +385,57 @@ export function WhatsappGroupView({
 }) {
   const [text, setText] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const messages = useWhatsAppGroupMessages(workspaceId, group.id)
   const sendText = useSendWhatsAppGroupTextMessage(workspaceId, group.id)
 
-  function extractMentions(value: string): string[] {
-    return group.participants
-      .filter((p) => value.includes(`@${p.name ?? p.waId}`))
-      .map((p) => p.waId)
+  const mentionCandidates =
+    mentionQuery === null
+      ? []
+      : group.participants.filter((p) =>
+          (p.name ?? p.waId).toLowerCase().includes(mentionQuery.toLowerCase()),
+        )
+
+  function handleTextChange(value: string, cursor: number) {
+    setText(value)
+    const upToCursor = value.slice(0, cursor)
+    const match = upToCursor.match(/(?:^|\s)@([^\s@]*)$/)
+    setMentionQuery(match ? match[1] : null)
+  }
+
+  function insertMention(participant: WhatsAppGroupParticipantDTO) {
+    const el = textareaRef.current
+    const cursor = el?.selectionStart ?? text.length
+    const upToCursor = text.slice(0, cursor)
+    const match = upToCursor.match(/(?:^|\s)@([^\s@]*)$/)
+    if (!match) return
+
+    const mentionStart = cursor - match[1].length - 1
+    const label = participant.name ?? participant.waId
+    const before = text.slice(0, mentionStart)
+    const after = text.slice(cursor)
+    const insertion = `@${label} `
+
+    setText(`${before}${insertion}${after}`)
+    setMentionQuery(null)
+
+    requestAnimationFrame(() => {
+      const pos = before.length + insertion.length
+      el?.focus()
+      el?.setSelectionRange(pos, pos)
+    })
   }
 
   async function handleSend() {
     const trimmed = text.trim()
     if (!trimmed) return
     try {
-      await sendText.mutateAsync({
-        text: trimmed,
-        mentionedWaIds: extractMentions(trimmed),
-      })
+      const outgoing = buildOutgoingGroupMessage(trimmed, group.participants)
+      await sendText.mutateAsync(outgoing)
       setText('')
+      setMentionQuery(null)
     } catch {
       notify.error('Erro ao enviar mensagem')
     }
@@ -367,34 +475,69 @@ export function WhatsappGroupView({
 
       <MessageScroller dependencyKey={messages.data?.length}>
         {(messages.data ?? []).map((message) => (
-          <GroupMessageBubble key={message.id} message={message} />
+          <GroupMessageBubble
+            key={message.id}
+            message={message}
+            participants={group.participants}
+          />
         ))}
       </MessageScroller>
 
-      <div className='flex items-end gap-1.5 border-t p-2'>
-        <Textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              handleSend()
+      <div className='relative border-t p-2'>
+        {mentionQuery !== null && mentionCandidates.length > 0 && (
+          <div className='absolute bottom-full left-2 z-10 mb-1 max-h-40 w-64 overflow-y-auto rounded-md border bg-popover p-1 shadow-md'>
+            {mentionCandidates.map((participant) => (
+              <button
+                key={participant.waId}
+                type='button'
+                className='flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  insertMention(participant)
+                }}
+              >
+                <span className='truncate'>
+                  {participant.name ?? participant.waId}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className='flex items-end gap-1.5'>
+          <Textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(event) =>
+              handleTextChange(
+                event.target.value,
+                event.target.selectionStart ?? event.target.value.length,
+              )
             }
-          }}
-          placeholder='Digite uma mensagem — use @nome para mencionar'
-          disabled={sendText.isPending}
-          className='max-h-32 min-h-9 flex-1 resize-none'
-          rows={1}
-        />
-        <Button
-          type='button'
-          size='icon-sm'
-          disabled={sendText.isPending || !text.trim()}
-          aria-label='Enviar'
-          onClick={handleSend}
-        >
-          <SteelIcon icon={SentIcon} size={16} />
-        </Button>
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && mentionQuery !== null) {
+                setMentionQuery(null)
+                return
+              }
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault()
+                handleSend()
+              }
+            }}
+            placeholder='Digite uma mensagem — use @ para mencionar'
+            disabled={sendText.isPending}
+            className='max-h-32 min-h-9 flex-1 resize-none'
+            rows={1}
+          />
+          <Button
+            type='button'
+            size='icon-sm'
+            disabled={sendText.isPending || !text.trim()}
+            aria-label='Enviar'
+            onClick={handleSend}
+          >
+            <SteelIcon icon={SentIcon} size={16} />
+          </Button>
+        </div>
       </div>
 
       <GroupSettingsDialog

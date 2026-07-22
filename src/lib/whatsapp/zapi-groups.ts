@@ -13,7 +13,8 @@ export interface ZapiGroupParticipant {
 
 export interface ZapiGroupMetadata {
   phone: string
-  name: string
+  // Z-API calls the group name "subject", not "name".
+  subject: string
   description?: string
   participants: ZapiGroupParticipant[]
 }
@@ -21,20 +22,28 @@ export interface ZapiGroupMetadata {
 export async function createZapiGroup(
   credentials: ZapiCredentials,
   input: { name: string; phones: string[] },
-): Promise<{ groupJid: string }> {
-  const result = await zapiRequest<{ phone: string }>(
-    credentials,
-    '/create-group',
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        groupName: input.name,
-        phones: input.phones,
-        autoInvite: true,
-      }),
-    },
-  )
-  return { groupJid: result.phone }
+): Promise<{
+  groupJid: string
+  phonesNotAdded: string[]
+  inviteLink?: string
+}> {
+  const result = await zapiRequest<{
+    phone: string
+    phonesNotAdded?: string[]
+    invitationLink?: string
+  }>(credentials, '/create-group', {
+    method: 'POST',
+    body: JSON.stringify({
+      groupName: input.name,
+      phones: input.phones,
+      autoInvite: true,
+    }),
+  })
+  return {
+    groupJid: result.phone,
+    phonesNotAdded: result.phonesNotAdded ?? [],
+    inviteLink: result.invitationLink,
+  }
 }
 
 export async function updateZapiGroupName(
@@ -79,7 +88,11 @@ export async function addZapiGroupParticipants(
 ): Promise<void> {
   await zapiRequest(credentials, '/add-participant', {
     method: 'POST',
-    body: JSON.stringify({ groupId: input.groupJid, phones: input.phones }),
+    body: JSON.stringify({
+      groupId: input.groupJid,
+      phones: input.phones,
+      autoInvite: true,
+    }),
   })
 }
 
@@ -99,7 +112,10 @@ export async function setZapiGroupAdmin(
 ): Promise<void> {
   await zapiRequest(credentials, input.admin ? '/add-admin' : '/remove-admin', {
     method: 'POST',
-    body: JSON.stringify({ groupId: input.groupJid, phone: input.phone }),
+    body: JSON.stringify({
+      groupId: input.groupJid,
+      phones: [input.phone],
+    }),
   })
 }
 
@@ -127,9 +143,9 @@ export async function getZapiGroupInviteLink(
   credentials: ZapiCredentials,
   input: { groupJid: string },
 ): Promise<string> {
-  const result = await zapiRequest<{ link: string }>(
+  const result = await zapiRequest<{ invitationLink: string }>(
     credentials,
     `/group-invitation-link/${input.groupJid}`,
   )
-  return result.link
+  return result.invitationLink
 }
