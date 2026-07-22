@@ -79,6 +79,43 @@ describe('WhatsAppContactService', () => {
     })
   })
 
+  describe('findOrCreate()', () => {
+    it('should upsert the contact by waId', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const upserted = createFakeWhatsAppContact({
+        waId: '5511988887777',
+        name: 'Maria',
+      })
+      mockedContactRepo.upsertByWaId.mockResolvedValue(ok(upserted))
+
+      const result = await WhatsAppContactService.findOrCreate('u1', 'ws1', {
+        waId: '5511988887777',
+        name: 'Maria',
+      })
+
+      const dto = expectOk(result)
+      expect(dto.waId).toBe('5511988887777')
+      expect(mockedContactRepo.upsertByWaId).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        waId: '5511988887777',
+        name: 'Maria',
+      })
+    })
+
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+
+      const result = await WhatsAppContactService.findOrCreate('u1', 'ws1', {
+        waId: '5511988887777',
+      })
+
+      expectErr(result, 'FORBIDDEN')
+      expect(mockedContactRepo.upsertByWaId).not.toHaveBeenCalled()
+    })
+  })
+
   describe('remove()', () => {
     it('should delete an existing contact', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(

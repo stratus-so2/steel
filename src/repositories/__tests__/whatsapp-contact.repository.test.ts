@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import { WhatsAppContactRepository } from '../whatsapp-contact.repository'
 
 describe('WhatsAppContactRepository', () => {
@@ -95,6 +97,63 @@ describe('WhatsAppContactRepository', () => {
       const list = expectOk(result)
       expect(list).toHaveLength(1)
       expect(list[0].name).toBe('Maria Silva')
+    })
+  })
+
+  describe('listByWorkspace() conversation count', () => {
+    it('should include the number of conversations for each contact', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const contact = expectOk(
+        await WhatsAppContactRepository.create({
+          workspaceId: workspace.id,
+          waId: '5511988887777',
+        }),
+      )
+      const connection = await prisma.whatsAppConnection.create({
+        data: {
+          workspaceId: workspace.id,
+          provider: 'ZAPI',
+          label: 'Suporte',
+          phoneNumber: '5511999999999',
+          zapiInstanceId: 'instance-count-test',
+          encryptedZapiToken: 'enc:token',
+          createdById: user.id,
+        },
+      })
+      await prisma.whatsAppConversation.create({
+        data: {
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        },
+      })
+
+      const list = expectOk(
+        await WhatsAppContactRepository.listByWorkspace(workspace.id),
+      )
+
+      expect(list[0]._count.conversations).toBe(1)
+    })
+  })
+
+  describe('description field', () => {
+    it('should persist and update the description', async () => {
+      const workspace = await seedWorkspace()
+      const created = expectOk(
+        await WhatsAppContactRepository.create({
+          workspaceId: workspace.id,
+          waId: '5511988887777',
+          description: 'Cliente VIP',
+        }),
+      )
+      expect(created.description).toBe('Cliente VIP')
+
+      const updated = expectOk(
+        await WhatsAppContactRepository.update(created.id, {
+          description: 'Cliente VIP — renovar contrato',
+        }),
+      )
+      expect(updated.description).toBe('Cliente VIP — renovar contrato')
     })
   })
 

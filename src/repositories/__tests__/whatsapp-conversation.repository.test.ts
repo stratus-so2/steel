@@ -117,6 +117,95 @@ describe('WhatsAppConversationRepository', () => {
       expect(result).toHaveLength(1)
       expect(result[0].status).toBe('CLOSED')
     })
+
+    it('should exclude soft-deleted conversations by default', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      const active = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      const deleted = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      await WhatsAppConversationRepository.update(deleted.id, {
+        deletedAt: new Date(),
+      })
+
+      const result = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id),
+      )
+
+      expect(result.map((c) => c.id)).toEqual([active.id])
+    })
+
+    it('should only return archived conversations when archived: true', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      const active = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      const archived = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      await WhatsAppConversationRepository.update(archived.id, {
+        archivedAt: new Date(),
+      })
+
+      const activeList = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id),
+      )
+      expect(activeList.map((c) => c.id)).toEqual([active.id])
+
+      const archivedList = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id, {
+          archived: true,
+        }),
+      )
+      expect(archivedList.map((c) => c.id)).toEqual([archived.id])
+    })
+
+    it('should sort pinned conversations first', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      const unpinned = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+          lastMessageAt: new Date(),
+        }),
+      )
+      const pinned = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      await WhatsAppConversationRepository.update(pinned.id, {
+        pinnedAt: new Date(),
+      })
+
+      const result = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id),
+      )
+
+      expect(result[0].id).toBe(pinned.id)
+      expect(result[1].id).toBe(unpinned.id)
+    })
   })
 
   describe('update()', () => {

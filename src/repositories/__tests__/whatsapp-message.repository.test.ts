@@ -65,6 +65,66 @@ describe('WhatsAppMessageRepository', () => {
         'Segunda mensagem',
       ])
     })
+
+    it('should exclude soft-deleted messages', async () => {
+      const { workspace, conversation } = await seedConversation()
+      await WhatsAppMessageRepository.create({
+        workspaceId: workspace.id,
+        conversationId: conversation.id,
+        direction: 'IN',
+        type: 'TEXT',
+        text: 'Visível',
+      })
+      const deleted = expectOk(
+        await WhatsAppMessageRepository.create({
+          workspaceId: workspace.id,
+          conversationId: conversation.id,
+          direction: 'IN',
+          type: 'TEXT',
+          text: 'Apagada',
+        }),
+      )
+      await WhatsAppMessageRepository.update(deleted.id, {
+        deletedAt: new Date(),
+      })
+
+      const result = expectOk(
+        await WhatsAppMessageRepository.listByConversation(conversation.id, {
+          limit: 50,
+        }),
+      )
+
+      expect(result.map((m) => m.text)).toEqual(['Visível'])
+    })
+
+    it('should only return messages created after the "after" cursor', async () => {
+      const { workspace, conversation } = await seedConversation()
+      await WhatsAppMessageRepository.create({
+        workspaceId: workspace.id,
+        conversationId: conversation.id,
+        direction: 'IN',
+        type: 'TEXT',
+        text: 'Antes de limpar',
+      })
+      const cursor = new Date()
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      await WhatsAppMessageRepository.create({
+        workspaceId: workspace.id,
+        conversationId: conversation.id,
+        direction: 'IN',
+        type: 'TEXT',
+        text: 'Depois de limpar',
+      })
+
+      const result = expectOk(
+        await WhatsAppMessageRepository.listByConversation(conversation.id, {
+          limit: 50,
+          after: cursor,
+        }),
+      )
+
+      expect(result.map((m) => m.text)).toEqual(['Depois de limpar'])
+    })
   })
 
   describe('findByProviderMessageId()', () => {

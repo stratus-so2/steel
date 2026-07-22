@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWhatsAppConnection } from '@/src/__tests__/factories/whatsapp-connection.factory'
+import { createFakeWhatsAppContact } from '@/src/__tests__/factories/whatsapp-contact.factory'
 import { createFakeWhatsAppConversationWithPreview } from '@/src/__tests__/factories/whatsapp-conversation.factory'
 import { createFakeWhatsAppMessage } from '@/src/__tests__/factories/whatsapp-message.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -8,6 +9,7 @@ import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
+vi.mock('@/src/repositories/whatsapp-contact.repository')
 vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/repositories/whatsapp-message.repository')
 vi.mock('@/src/lib/whatsapp/realtime', () => ({
@@ -27,6 +29,10 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
       ok: true,
       value: { providerMessageId: 'pm3' },
     })),
+    contact: vi.fn(async () => ({
+      ok: true,
+      value: { providerMessageId: 'pm4' },
+    })),
     reaction: vi.fn(async () => ({ ok: true, value: undefined })),
   },
 }))
@@ -34,12 +40,14 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import { WhatsAppMessageService } from '../whatsapp-message.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
+const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
 const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
 const mockedMessageRepo = vi.mocked(WhatsAppMessageRepository)
 const mockedSend = vi.mocked(WhatsAppSend)
@@ -251,6 +259,110 @@ describe('WhatsAppMessageService', () => {
 
       expectErr(result, 'WHATSAPP_MESSAGE_NOT_FOUND')
       expect(mockedSend.reaction).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('sendContact()', () => {
+    it('should send a shared contact card and persist it with the payload', async () => {
+      mockSendableConversation()
+      mockedContactRepo.findById.mockResolvedValue(
+        ok(
+          createFakeWhatsAppContact({
+            id: 'shared1',
+            waId: '5511977776666',
+            name: 'João',
+          }),
+        ),
+      )
+      const created = createFakeWhatsAppMessage({
+        direction: 'OUT',
+        type: 'CONTACT',
+        contactPayload: { name: 'João', waId: '5511977776666' },
+      })
+      mockedMessageRepo.create.mockResolvedValue(ok(created))
+      mockedConversationRepo.update.mockResolvedValue(
+        ok(createFakeWhatsAppConversationWithPreview()),
+      )
+
+      const result = await WhatsAppMessageService.sendContact(
+        'u1',
+        'ws1',
+        'conv1',
+        { contactId: 'shared1' },
+      )
+
+      const dto = expectOk(result)
+      expect(dto.type).toBe('CONTACT')
+      expect(mockedSend.contact).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          name: 'João',
+          waId: '5511977776666',
+        }),
+      )
+      expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'CONTACT',
+          contactPayload: { name: 'João', waId: '5511977776666' },
+        }),
+      )
+    })
+
+    it('should return WHATSAPP_CONTACT_NOT_FOUND for an unknown contact', async () => {
+      mockSendableConversation()
+      mockedContactRepo.findById.mockResolvedValue(ok(null))
+
+      const result = await WhatsAppMessageService.sendContact(
+        'u1',
+        'ws1',
+        'conv1',
+        { contactId: 'unknown' },
+      )
+
+      expectErr(result, 'WHATSAPP_CONTACT_NOT_FOUND')
+      expect(mockedSend.contact).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('remove()', () => {
+    it('should soft-delete a message belonging to the conversation', async () => {
+      mockSendableConversation()
+      mockedMessageRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ id: 'msg1', conversationId: 'conv1' })),
+      )
+      mockedMessageRepo.update.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ id: 'msg1' })),
+      )
+
+      const result = await WhatsAppMessageService.remove(
+        'u1',
+        'ws1',
+        'conv1',
+        'msg1',
+      )
+
+      const value = expectOk(result)
+      expect(value).toEqual({ id: 'msg1' })
+      expect(mockedMessageRepo.update).toHaveBeenCalledWith('msg1', {
+        deletedAt: expect.any(Date),
+      })
+    })
+
+    it('should return WHATSAPP_MESSAGE_NOT_FOUND for a message in another conversation', async () => {
+      mockSendableConversation()
+      mockedMessageRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ id: 'msg1', conversationId: 'other' })),
+      )
+
+      const result = await WhatsAppMessageService.remove(
+        'u1',
+        'ws1',
+        'conv1',
+        'msg1',
+      )
+
+      expectErr(result, 'WHATSAPP_MESSAGE_NOT_FOUND')
+      expect(mockedMessageRepo.update).not.toHaveBeenCalled()
     })
   })
 

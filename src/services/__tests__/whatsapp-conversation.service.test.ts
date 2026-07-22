@@ -282,4 +282,182 @@ describe('WhatsAppConversationService', () => {
       })
     })
   })
+
+  describe('setPinned()', () => {
+    it('should pin a conversation with a timestamp', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.setPinned(
+        'u1',
+        'ws1',
+        'conv1',
+        true,
+      )
+
+      expectOk(result)
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        pinnedAt: expect.any(Date),
+      })
+    })
+
+    it('should unpin a conversation by clearing the timestamp', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.setPinned(
+        'u1',
+        'ws1',
+        'conv1',
+        false,
+      )
+
+      expectOk(result)
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        pinnedAt: null,
+      })
+    })
+
+    it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedConversationRepo.findById.mockResolvedValue(ok(null))
+
+      const result = await WhatsAppConversationService.setPinned(
+        'u1',
+        'ws1',
+        'conv1',
+        true,
+      )
+
+      expectErr(result, 'WHATSAPP_CONVERSATION_NOT_FOUND')
+      expect(mockedConversationRepo.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('setArchived()', () => {
+    it('should archive a conversation with a timestamp', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.setArchived(
+        'u1',
+        'ws1',
+        'conv1',
+        true,
+      )
+
+      expectOk(result)
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        archivedAt: expect.any(Date),
+      })
+    })
+
+    it('should unarchive a conversation by clearing the timestamp', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.setArchived(
+        'u1',
+        'ws1',
+        'conv1',
+        false,
+      )
+
+      expectOk(result)
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        archivedAt: null,
+      })
+    })
+  })
+
+  describe('remove()', () => {
+    it('should soft-delete the conversation', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.remove(
+        'u1',
+        'ws1',
+        'conv1',
+      )
+
+      const value = expectOk(result)
+      expect(value).toEqual({ id: 'conv1' })
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        deletedAt: expect.any(Date),
+      })
+    })
+
+    it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedConversationRepo.findById.mockResolvedValue(ok(null))
+
+      const result = await WhatsAppConversationService.remove(
+        'u1',
+        'ws1',
+        'conv1',
+      )
+
+      expectErr(result, 'WHATSAPP_CONVERSATION_NOT_FOUND')
+    })
+  })
+
+  describe('clear()', () => {
+    it('should set a clearedAt cursor and reset lastMessageAt', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.clear(
+        'u1',
+        'ws1',
+        'conv1',
+      )
+
+      expectOk(result)
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        clearedAt: expect.any(Date),
+        lastMessageAt: null,
+      })
+    })
+  })
 })
