@@ -63,6 +63,21 @@ export const WhatsAppContactRepository = {
     }
   },
 
+  async findManyByWaIds(
+    workspaceId: string,
+    waIds: string[],
+  ): Promise<Result<WhatsAppContact[]>> {
+    if (waIds.length === 0) return ok([])
+    try {
+      const contacts = await prisma.whatsAppContact.findMany({
+        where: { workspaceId, waId: { in: waIds } },
+      })
+      return ok(contacts)
+    } catch (error) {
+      return err(dbError('Failed to find whatsapp contacts by wa_ids', error))
+    }
+  },
+
   async create(data: {
     workspaceId: string
     waId: string

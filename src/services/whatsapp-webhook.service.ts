@@ -1,4 +1,5 @@
 import type { WhatsAppConnection, WhatsAppMessageStatus } from '@prisma/client'
+import { logger } from '@/lib/axiom/logger'
 import { WhatsappAiReplyJob, WhatsappMediaJob } from '@/src/lib/queue/jobs'
 import {
   getWhatsappAiReplyQueue,
@@ -262,6 +263,7 @@ export const WhatsAppWebhookService = {
   async ingestInboundGroupMessage(input: {
     connection: WhatsAppConnection
     groupJid: string
+    groupName?: string
     senderWaId: string
     senderName?: string
     providerMessageId: string
@@ -277,18 +279,57 @@ export const WhatsAppWebhookService = {
     if (!dedupe.ok) return dedupe
     if (dedupe.value) return ok(undefined)
 
-    const group = await WhatsAppGroupRepository.findByGroupJid(
+    const existingGroup = await WhatsAppGroupRepository.findByGroupJid(
       workspaceId,
       input.groupJid,
     )
-    if (!group.ok) return group
-    // Unknown group (created outside the platform) — nothing to attach the
-    // message to, so it's simply not persisted.
-    if (!group.value) return ok(undefined)
+    if (!existingGroup.ok) return existingGroup
+
+    let group = existingGroup.value
+    if (!group) {
+      // The group exists on WhatsApp but isn't in our DB yet — most likely
+      // it predates this workspace's connection, or was created from the
+      // linked phone directly rather than through our "Criar grupo" flow.
+      // Auto-create a minimal record instead of silently dropping the
+      // message; participants/admins/invite link get filled in the first
+      // time someone opens the group's settings and syncs from the provider.
+      const created = await WhatsAppGroupRepository.create({
+        workspaceId,
+        connectionId: input.connection.id,
+        groupJid: input.groupJid,
+        name: input.groupName?.trim() || 'Grupo sem nome',
+      })
+      if (!created.ok) return created
+      group = created.value
+
+      logger.info('whatsapp.group.auto_created_from_inbound_message', {
+        workspaceId,
+        groupId: group.id,
+        groupJid: input.groupJid,
+      })
+    }
+
+    // Z-API's group metadata never carries participant names, only phone
+    // numbers — this is the only place a name for a group member ever shows
+    // up, so feed it both into the workspace's contact book (used the next
+    // time participants get synced) and directly onto this participant row
+    // (so the name shows up immediately, without waiting for a sync).
+    if (input.senderName && input.senderWaId) {
+      await WhatsAppContactRepository.upsertByWaId({
+        workspaceId,
+        waId: input.senderWaId,
+        name: input.senderName,
+      })
+      await WhatsAppGroupRepository.upsertParticipantName(
+        group.id,
+        input.senderWaId,
+        input.senderName,
+      )
+    }
 
     const message = await WhatsAppGroupMessageRepository.create({
       workspaceId,
-      groupId: group.value.id,
+      groupId: group.id,
       direction: 'IN',
       type: input.type,
       text: input.text,
@@ -300,13 +341,13 @@ export const WhatsAppWebhookService = {
     })
     if (!message.ok) return message
 
-    await WhatsAppGroupRepository.update(group.value.id, {
+    await WhatsAppGroupRepository.update(group.id, {
       lastMessageAt: new Date(),
     })
 
     await publishWhatsAppEvent(workspaceId, {
       type: 'group-message.created',
-      groupId: group.value.id,
+      groupId: group.id,
     })
 
     return ok(undefined)

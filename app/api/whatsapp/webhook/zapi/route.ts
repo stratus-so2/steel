@@ -25,6 +25,7 @@ interface ZapiPayload {
   status?: string
   isGroup?: boolean
   participantPhone?: string
+  chatName?: string
   text?: { message?: string }
   image?: { imageUrl?: string; caption?: string }
   audio?: { audioUrl?: string }
@@ -168,6 +169,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
     await WhatsAppWebhookService.ingestInboundGroupMessage({
       connection,
       groupJid,
+      groupName: body.chatName,
       senderWaId: (body.participantPhone ?? '').replace(/\D/g, ''),
       senderName: body.senderName,
       providerMessageId: body.messageId,

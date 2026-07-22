@@ -84,6 +84,24 @@ export const WhatsAppGroupRepository = {
     }
   },
 
+  async upsertParticipantName(
+    groupId: string,
+    waId: string,
+    name: string,
+  ): Promise<Result<void>> {
+    try {
+      await prisma.whatsAppGroupParticipant.updateMany({
+        where: { groupId, waId },
+        data: { name },
+      })
+      return ok(undefined)
+    } catch (error) {
+      return err(
+        dbError('Failed to update whatsapp group participant name', error),
+      )
+    }
+  },
+
   async replaceParticipants(
     groupId: string,
     participants: {

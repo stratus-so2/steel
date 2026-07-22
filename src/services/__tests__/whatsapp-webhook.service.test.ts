@@ -3,13 +3,20 @@ import { createFakeWhatsAppAiConfig } from '@/src/__tests__/factories/whatsapp-a
 import { createFakeWhatsAppConnection } from '@/src/__tests__/factories/whatsapp-connection.factory'
 import { createFakeWhatsAppContact } from '@/src/__tests__/factories/whatsapp-contact.factory'
 import { createFakeWhatsAppConversationWithPreview } from '@/src/__tests__/factories/whatsapp-conversation.factory'
+import { createFakeWhatsAppGroupWithParticipants } from '@/src/__tests__/factories/whatsapp-group.factory'
+import { createFakeWhatsAppGroupMessage } from '@/src/__tests__/factories/whatsapp-group-message.factory'
 import { createFakeWhatsAppMessage } from '@/src/__tests__/factories/whatsapp-message.factory'
 import { expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}))
 vi.mock('@/src/repositories/whatsapp-ai-config.repository')
 vi.mock('@/src/repositories/whatsapp-contact.repository')
 vi.mock('@/src/repositories/whatsapp-conversation.repository')
+vi.mock('@/src/repositories/whatsapp-group.repository')
+vi.mock('@/src/repositories/whatsapp-group-message.repository')
 vi.mock('@/src/repositories/whatsapp-message.repository')
 vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
@@ -27,12 +34,16 @@ vi.mock('@/src/lib/queue/queues', () => ({
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
+import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repository'
+import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import { WhatsAppWebhookService } from '../whatsapp-webhook.service'
 
 const mockedAiConfigRepo = vi.mocked(WhatsAppAiConfigRepository)
 const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
 const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
+const mockedGroupRepo = vi.mocked(WhatsAppGroupRepository)
+const mockedGroupMessageRepo = vi.mocked(WhatsAppGroupMessageRepository)
 const mockedMessageRepo = vi.mocked(WhatsAppMessageRepository)
 
 const connection = createFakeWhatsAppConnection({
@@ -382,6 +393,96 @@ describe('WhatsAppWebhookService', () => {
       })
 
       expectOk(result)
+    })
+  })
+
+  describe('ingestInboundGroupMessage()', () => {
+    it('should persist the message against an existing group', async () => {
+      mockedGroupMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+      const group = createFakeWhatsAppGroupWithParticipants({
+        id: 'g1',
+        groupJid: '120363000000000000-group',
+      })
+      mockedGroupRepo.findByGroupJid.mockResolvedValue(ok(group))
+      const created = createFakeWhatsAppGroupMessage({
+        groupId: 'g1',
+        senderWaId: '5511988887777',
+        senderName: 'Maria',
+      })
+      mockedGroupMessageRepo.create.mockResolvedValue(ok(created))
+      mockedGroupRepo.update.mockResolvedValue(ok(group))
+
+      const result = await WhatsAppWebhookService.ingestInboundGroupMessage({
+        connection,
+        groupJid: '120363000000000000-group',
+        senderWaId: '5511988887777',
+        senderName: 'Maria',
+        providerMessageId: 'pm-group-1',
+        type: 'TEXT',
+        text: 'Bom dia',
+      })
+
+      expectOk(result)
+      expect(mockedGroupRepo.create).not.toHaveBeenCalled()
+      expect(mockedGroupMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ groupId: 'g1', senderWaId: '5511988887777' }),
+      )
+    })
+
+    it('should auto-create the group instead of dropping the message when unknown', async () => {
+      mockedGroupMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+      mockedGroupRepo.findByGroupJid.mockResolvedValue(ok(null))
+      const autoCreated = createFakeWhatsAppGroupWithParticipants({
+        id: 'g-new',
+        groupJid: '120363000000000000-group',
+        name: 'Grupo do Zap',
+      })
+      mockedGroupRepo.create.mockResolvedValue(ok(autoCreated))
+      const created = createFakeWhatsAppGroupMessage({ groupId: 'g-new' })
+      mockedGroupMessageRepo.create.mockResolvedValue(ok(created))
+      mockedGroupRepo.update.mockResolvedValue(ok(autoCreated))
+
+      const result = await WhatsAppWebhookService.ingestInboundGroupMessage({
+        connection,
+        groupJid: '120363000000000000-group',
+        groupName: 'Grupo do Zap',
+        senderWaId: '5511988887777',
+        senderName: 'Maria',
+        providerMessageId: 'pm-group-2',
+        type: 'TEXT',
+        text: 'Primeira mensagem de um grupo desconhecido',
+      })
+
+      expectOk(result)
+      expect(mockedGroupRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws1',
+          connectionId: 'conn1',
+          groupJid: '120363000000000000-group',
+          name: 'Grupo do Zap',
+        }),
+      )
+      expect(mockedGroupMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ groupId: 'g-new' }),
+      )
+    })
+
+    it('should dedupe by providerMessageId', async () => {
+      mockedGroupMessageRepo.findByProviderMessageId.mockResolvedValue(
+        ok(createFakeWhatsAppGroupMessage({ providerMessageId: 'pm-dup' })),
+      )
+
+      const result = await WhatsAppWebhookService.ingestInboundGroupMessage({
+        connection,
+        groupJid: '120363000000000000-group',
+        senderWaId: '5511988887777',
+        providerMessageId: 'pm-dup',
+        type: 'TEXT',
+        text: 'Duplicada',
+      })
+
+      expectOk(result)
+      expect(mockedGroupRepo.findByGroupJid).not.toHaveBeenCalled()
     })
   })
 })
