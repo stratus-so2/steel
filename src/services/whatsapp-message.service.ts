@@ -1,6 +1,7 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import {
   whatsappConnectionNotFound,
+  whatsappContactNotFound,
   whatsappConversationAiHandling,
   whatsappConversationNotFound,
   whatsappMessageNotFound,
@@ -11,6 +12,7 @@ import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
 import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import {
   WhatsAppConversationRepository,
   type WhatsAppConversationWithPreview,
@@ -19,6 +21,7 @@ import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.r
 import type {
   ListWhatsAppMessagesDTO,
   ReactToWhatsAppMessageDTO,
+  SendWhatsAppContactMessageDTO,
   SendWhatsAppMediaMessageDTO,
   SendWhatsAppTemplateMessageDTO,
   SendWhatsAppTextMessageDTO,
@@ -71,6 +74,7 @@ async function finalizeOutboundMessage(input: {
   mediaUrl?: string
   providerMessageId: string
   replyToMessageId?: string
+  contactPayload?: { name: string; waId: string }
 }): Promise<Result<WhatsAppMessageDTO>> {
   const message = await WhatsAppMessageRepository.create({
     workspaceId: input.workspaceId,
@@ -83,6 +87,7 @@ async function finalizeOutboundMessage(input: {
     status: 'SENT',
     senderUserId: input.actorId,
     replyToMessageId: input.replyToMessageId,
+    contactPayload: input.contactPayload,
   })
   if (!message.ok) return message
 
@@ -256,6 +261,90 @@ export const WhatsAppMessageService = {
       text: dto.templateName,
       providerMessageId: sendResult.value.providerMessageId,
     })
+  },
+
+  async sendContact(
+    actorId: string,
+    workspaceId: string,
+    conversationId: string,
+    dto: SendWhatsAppContactMessageDTO,
+  ): Promise<Result<WhatsAppMessageDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const loaded = await loadSendableConversation(workspaceId, conversationId)
+    if (!loaded.ok) return loaded
+
+    const sharedContact = await WhatsAppContactRepository.findById(
+      dto.contactId,
+      workspaceId,
+    )
+    if (!sharedContact.ok) return sharedContact
+    if (!sharedContact.value) return err(whatsappContactNotFound())
+
+    const contactPayload = {
+      name: sharedContact.value.name ?? sharedContact.value.waId,
+      waId: sharedContact.value.waId,
+    }
+
+    const sendResult = await WhatsAppSend.contact(loaded.value.connection, {
+      to: loaded.value.conversation.contact.waId,
+      name: contactPayload.name,
+      waId: contactPayload.waId,
+    })
+    if (!sendResult.ok) return sendResult
+
+    return finalizeOutboundMessage({
+      workspaceId,
+      conversationId,
+      actorId,
+      type: 'CONTACT',
+      providerMessageId: sendResult.value.providerMessageId,
+      contactPayload,
+    })
+  },
+
+  async remove(
+    actorId: string,
+    workspaceId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<Result<{ id: string }>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const conversation = await WhatsAppConversationRepository.findById(
+      conversationId,
+      workspaceId,
+    )
+    if (!conversation.ok) return conversation
+    if (!conversation.value) return err(whatsappConversationNotFound())
+
+    const target = await WhatsAppMessageRepository.findById(messageId)
+    if (!target.ok) return target
+    if (!target.value || target.value.conversationId !== conversationId) {
+      return err(whatsappMessageNotFound())
+    }
+
+    const updated = await WhatsAppMessageRepository.update(messageId, {
+      deletedAt: new Date(),
+    })
+    if (!updated.ok) return updated
+
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'message.deleted',
+      conversationId,
+      messageId,
+    })
+
+    auditMutation({
+      entity: 'whatsapp_message',
+      action: 'delete',
+      actorId,
+      targetId: messageId,
+    })
+
+    return ok({ id: messageId })
   },
 
   async react(

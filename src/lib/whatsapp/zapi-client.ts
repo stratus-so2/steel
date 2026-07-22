@@ -1,6 +1,7 @@
 import 'server-only'
 import { logger } from '@/lib/axiom/logger'
 import type {
+  WhatsAppOutboundContact,
   WhatsAppOutboundMedia,
   WhatsAppOutboundReaction,
   WhatsAppOutboundText,
@@ -120,6 +121,26 @@ export function createZapiClient(
 
     async sendTemplate(): Promise<WhatsAppSendResult> {
       throw new Error('Z-API não suporta templates de mensagem da Meta')
+    },
+
+    async sendContact({
+      to,
+      name,
+      waId,
+    }: WhatsAppOutboundContact): Promise<WhatsAppSendResult> {
+      const result = await zapiRequest<{ messageId: string }>(
+        credentials,
+        '/send-contact',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            phone: to,
+            contactName: name,
+            contactPhone: waId,
+          }),
+        },
+      )
+      return { providerMessageId: result.messageId }
     },
 
     async sendReaction({

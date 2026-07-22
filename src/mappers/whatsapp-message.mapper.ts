@@ -1,5 +1,8 @@
 import type { WhatsAppMessage } from '@prisma/client'
-import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
+import type {
+  WhatsAppMessageContactPayload,
+  WhatsAppMessageDTO,
+} from '@/types/whatsapp-message'
 
 export function toWhatsAppMessageDTO(
   message: WhatsAppMessage,
@@ -18,6 +21,8 @@ export function toWhatsAppMessageDTO(
     replyToMessageId: message.replyToMessageId,
     reactionEmoji: message.reactionEmoji,
     reactedByContact: message.reactedByContact,
+    contactPayload:
+      (message.contactPayload as WhatsAppMessageContactPayload | null) ?? null,
     createdAt: message.createdAt.toISOString(),
   }
 }

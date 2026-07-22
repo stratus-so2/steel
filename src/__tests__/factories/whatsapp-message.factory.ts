@@ -20,6 +20,8 @@ export function createFakeWhatsAppMessage(
     replyToMessageId: null,
     reactionEmoji: null,
     reactedByContact: null,
+    contactPayload: null,
+    deletedAt: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,

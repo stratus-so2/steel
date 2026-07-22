@@ -1,6 +1,7 @@
 import 'server-only'
 import { logger } from '@/lib/axiom/logger'
 import type {
+  WhatsAppOutboundContact,
   WhatsAppOutboundMedia,
   WhatsAppOutboundReaction,
   WhatsAppOutboundTemplate,
@@ -126,6 +127,32 @@ export function createMetaClient(
               language: { code: language },
               ...(components ? { components } : {}),
             },
+          }),
+        },
+      )
+      return { providerMessageId: result.messages[0].id }
+    },
+
+    async sendContact({
+      to,
+      name,
+      waId,
+    }: WhatsAppOutboundContact): Promise<WhatsAppSendResult> {
+      const result = await metaRequest<{ messages: { id: string }[] }>(
+        credentials,
+        messagesPath,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to,
+            type: 'contacts',
+            contacts: [
+              {
+                name: { formatted_name: name, first_name: name },
+                phones: [{ phone: waId, type: 'CELL' }],
+              },
+            ],
           }),
         },
       )

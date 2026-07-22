@@ -30,15 +30,34 @@ interface ZapiPayload {
   sticker?: unknown
   location?: unknown
   reaction?: { value?: string; referencedMessage?: { messageId?: string } }
+  contact?: { displayName?: string; vcard?: string }
   // Present on the payload when this message is a reply/quote to another one.
   referenceMessageId?: string
+}
+
+function waIdFromVcard(vcard: string | undefined): string | undefined {
+  const match = vcard?.match(/waid=(\d+)/)
+  return match?.[1]
 }
 
 function extractMessageContent(payload: ZapiPayload): {
   type: WhatsAppMessageTypeDTO
   text?: string
   rawMediaUrl?: string
+  contactPayload?: { name: string; waId: string }
 } {
+  if (payload.contact) {
+    const waId = waIdFromVcard(payload.contact.vcard)
+    if (waId) {
+      return {
+        type: 'CONTACT',
+        contactPayload: {
+          name: payload.contact.displayName ?? waId,
+          waId,
+        },
+      }
+    }
+  }
   if (payload.text?.message !== undefined) {
     return { type: 'TEXT', text: payload.text.message }
   }

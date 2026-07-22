@@ -23,6 +23,7 @@ export interface InboundWhatsAppMessage {
   text?: string
   rawMediaUrl?: string
   quotedProviderMessageId?: string
+  contactPayload?: { name: string; waId: string }
 }
 
 async function resolveReplyToMessageId(
@@ -133,6 +134,7 @@ export const WhatsAppWebhookService = {
       providerMessageId: input.providerMessageId,
       status: 'DELIVERED',
       replyToMessageId,
+      contactPayload: input.contactPayload,
     })
     if (!message.ok) return message
 
@@ -232,6 +234,7 @@ export const WhatsAppWebhookService = {
       providerMessageId: input.providerMessageId,
       status: 'SENT',
       replyToMessageId,
+      contactPayload: input.contactPayload,
     })
     if (!message.ok) return message
 

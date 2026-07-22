@@ -22,6 +22,7 @@ export function WhatsappPageClient({ workspaceId }: { workspaceId: string }) {
         <WhatsappConversationView
           workspaceId={workspaceId}
           conversation={selected}
+          onSelectConversation={setSelected}
         />
       ) : (
         <div className='flex flex-1 items-center justify-center text-muted-foreground text-sm'>

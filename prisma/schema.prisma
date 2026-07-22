@@ -626,6 +626,7 @@ enum WhatsAppMessageType {
   LOCATION
   TEMPLATE
   BUTTON
+  CONTACT
 }
 
 enum WhatsAppMessageStatus {
@@ -653,6 +654,8 @@ model WhatsAppMessage {
   // Who set reactionEmoji: true = the contact reacted, false = an agent
   // reacted. Meaningless while reactionEmoji is null.
   reactedByContact   Boolean?                 @map("reacted_by_contact")
+  contactPayload     Json?                    @map("contact_payload")
+  deletedAt          DateTime?                @map("deleted_at")
   createdAt          DateTime                 @default(now()) @map("created_at")
   updatedAt          DateTime                 @updatedAt @map("updated_at")
 

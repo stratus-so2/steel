@@ -35,6 +35,12 @@ export interface WhatsAppOutboundTemplate {
   components?: unknown[]
 }
 
+export interface WhatsAppOutboundContact {
+  to: string
+  name: string
+  waId: string
+}
+
 export interface WhatsAppQrCode {
   status: 'connected' | 'awaiting_scan'
   qrCodeBase64?: string
@@ -44,6 +50,7 @@ export interface WhatsAppProviderClient {
   sendText(input: WhatsAppOutboundText): Promise<WhatsAppSendResult>
   sendMedia(input: WhatsAppOutboundMedia): Promise<WhatsAppSendResult>
   sendTemplate(input: WhatsAppOutboundTemplate): Promise<WhatsAppSendResult>
+  sendContact(input: WhatsAppOutboundContact): Promise<WhatsAppSendResult>
   sendReaction(input: WhatsAppOutboundReaction): Promise<void>
   getConnectionStatus(): Promise<{ connected: boolean }>
 }

@@ -3,7 +3,7 @@ import type {
   WhatsAppMessageDTO,
   WhatsAppMessageTypeDTO,
 } from '@/types/whatsapp-message'
-import { apiFetch } from './_fetch'
+import { apiFetch, apiSend } from './_fetch'
 
 const MESSAGES_KEY = (workspaceId: string, conversationId: string) =>
   ['whatsapp-messages', workspaceId, conversationId] as const
@@ -95,6 +95,55 @@ export function useSendWhatsAppTemplateMessage(
       })
       queryClient.invalidateQueries({
         queryKey: ['whatsapp-conversations', workspaceId],
+      })
+    },
+  })
+}
+
+export function useSendWhatsAppContactMessage(
+  workspaceId: string,
+  conversationId: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: { contactId: string }) =>
+      apiFetch<WhatsAppMessageDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/messages/contact`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        },
+        'Erro ao enviar contato',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: MESSAGES_KEY(workspaceId, conversationId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-conversations', workspaceId],
+      })
+    },
+  })
+}
+
+export function useDeleteWhatsAppMessage(
+  workspaceId: string,
+  conversationId: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (messageId: string) =>
+      apiSend(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/messages/${messageId}`,
+        { method: 'DELETE' },
+        'Erro ao apagar mensagem',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: MESSAGES_KEY(workspaceId, conversationId),
       })
     },
   })

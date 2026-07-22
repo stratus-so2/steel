@@ -25,13 +25,16 @@ import {
 } from '@/components/ui/popover'
 import { notify } from '@/lib/notify'
 import { useUser } from '@/src/hooks/use-user'
+import { useFindOrCreateWhatsAppContact } from '@/src/hooks/use-whatsapp-contacts'
 import {
   useAssignWhatsAppConversation,
   useMarkWhatsAppConversationRead,
   useRemoveWhatsAppConversationFromAi,
+  useStartWhatsAppConversation,
   useWhatsAppAssignableMembers,
 } from '@/src/hooks/use-whatsapp-conversations'
 import {
+  useDeleteWhatsAppMessage,
   useReactToWhatsAppMessage,
   useSendWhatsAppTextMessage,
   useWhatsAppMessages,
@@ -45,9 +48,11 @@ import { WhatsappVideoCallDialog } from './whatsapp-video-call-dialog'
 export function WhatsappConversationView({
   workspaceId,
   conversation,
+  onSelectConversation,
 }: {
   workspaceId: string
   conversation: WhatsAppConversationDTO
+  onSelectConversation?: (conversation: WhatsAppConversationDTO) => void
 }) {
   const [callOpen, setCallOpen] = useState(false)
   const [replyTarget, setReplyTarget] = useState<WhatsAppMessageDTO | null>(
@@ -66,6 +71,25 @@ export function WhatsappConversationView({
   )
   const sendText = useSendWhatsAppTextMessage(workspaceId, conversation.id)
   const reactToMessage = useReactToWhatsAppMessage(workspaceId, conversation.id)
+  const deleteMessage = useDeleteWhatsAppMessage(workspaceId, conversation.id)
+  const findOrCreateContact = useFindOrCreateWhatsAppContact(workspaceId)
+  const startConversation = useStartWhatsAppConversation(workspaceId)
+
+  async function handleStartConversationWithContact(contact: {
+    name: string
+    waId: string
+  }) {
+    try {
+      const found = await findOrCreateContact.mutateAsync(contact)
+      const started = await startConversation.mutateAsync({
+        contactId: found.id,
+        connectionId: conversation.connectionId,
+      })
+      onSelectConversation?.(started)
+    } catch {
+      notify.error('Erro ao iniciar conversa com o contato')
+    }
+  }
 
   const messagesById = useMemo(() => {
     const map = new Map<string, WhatsAppMessageDTO>()
@@ -223,6 +247,8 @@ export function WhatsappConversationView({
             onReact={(messageId, emoji) =>
               reactToMessage.mutate({ messageId, emoji })
             }
+            onDelete={(messageId) => deleteMessage.mutate(messageId)}
+            onStartConversationWithContact={handleStartConversationWithContact}
           />
         ))}
       </MessageScroller>

@@ -5,6 +5,7 @@ import { toWhatsAppContactDTO } from '@/src/mappers/whatsapp-contact.mapper'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import type {
   CreateWhatsAppContactDTO,
+  FindOrCreateWhatsAppContactDTO,
   ListWhatsAppContactsDTO,
   UpdateWhatsAppContactDTO,
 } from '@/src/schemas/whatsapp-contact.schema'
@@ -60,6 +61,24 @@ export const WhatsAppContactService = {
       actorId,
       targetId: result.value.id,
     })
+
+    return ok(toWhatsAppContactDTO(result.value))
+  },
+
+  async findOrCreate(
+    actorId: string,
+    workspaceId: string,
+    dto: FindOrCreateWhatsAppContactDTO,
+  ): Promise<Result<WhatsAppContactDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const result = await WhatsAppContactRepository.upsertByWaId({
+      workspaceId,
+      waId: dto.waId,
+      name: dto.name,
+    })
+    if (!result.ok) return result
 
     return ok(toWhatsAppContactDTO(result.value))
   },

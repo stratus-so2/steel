@@ -31,6 +31,14 @@ export type SendWhatsAppTemplateMessageDTO = z.infer<
   typeof SendWhatsAppTemplateMessageSchema
 >
 
+export const SendWhatsAppContactMessageSchema = z.object({
+  contactId: z.string().min(1, 'Contato é obrigatório'),
+})
+
+export type SendWhatsAppContactMessageDTO = z.infer<
+  typeof SendWhatsAppContactMessageSchema
+>
+
 export const ReactToWhatsAppMessageSchema = z.object({
   // Empty string removes the reaction.
   emoji: z.string().max(8),

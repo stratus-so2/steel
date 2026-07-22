@@ -1,14 +1,18 @@
 'use client'
 
 import {
+  Contact01Icon,
+  Delete02Icon,
   Download01Icon,
   Robot01Icon,
   SmileIcon,
   Tick01Icon,
   Tick02Icon,
+  UserAdd01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import { Button } from '@/components/ui/button'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -127,11 +131,18 @@ export function MessageBubble({
   replyToMessage,
   onReply,
   onReact,
+  onDelete,
+  onStartConversationWithContact,
 }: {
   message: WhatsAppMessageDTO
   replyToMessage?: WhatsAppMessageDTO
   onReply?: (message: WhatsAppMessageDTO) => void
   onReact?: (messageId: string, emoji: string) => void
+  onDelete?: (messageId: string) => void
+  onStartConversationWithContact?: (contact: {
+    name: string
+    waId: string
+  }) => void
 }) {
   const [lightboxMedia, setLightboxMedia] = useState<{
     url: string
@@ -167,6 +178,35 @@ export function MessageBubble({
                   <p className='truncate'>{quotedMessageLabel(replyToMessage)}</p>
                 </div>
               )}
+              {message.type === 'CONTACT' && message.contactPayload && (
+                <div className='mb-1 flex min-w-48 flex-col gap-2 rounded-md border border-current/10 px-2.5 py-2'>
+                  <div className='flex items-center gap-2'>
+                    <SteelIcon icon={Contact01Icon} size={20} />
+                    <div className='min-w-0'>
+                      <p className='truncate font-medium text-sm'>
+                        {message.contactPayload.name}
+                      </p>
+                      <p className='truncate text-xs opacity-70'>
+                        {message.contactPayload.waId}
+                      </p>
+                    </div>
+                  </div>
+                  {!isOutbound && onStartConversationWithContact && (
+                    <Button
+                      type='button'
+                      size='xs'
+                      variant='secondary'
+                      onClick={() =>
+                        message.contactPayload &&
+                        onStartConversationWithContact(message.contactPayload)
+                      }
+                    >
+                      <SteelIcon icon={UserAdd01Icon} size={14} />
+                      Iniciar conversa
+                    </Button>
+                  )}
+                </div>
+              )}
               <MessageBubbleMedia
                 message={message}
                 onOpenLightbox={setLightboxMedia}
@@ -191,11 +231,20 @@ export function MessageBubble({
             )}
           </div>
         </ContextMenuTrigger>
-        {(onReply || onReact) && (
+        {(onReply || onReact || onDelete) && (
           <ContextMenuContent>
             {onReply && (
               <ContextMenuItem onClick={() => onReply(message)}>
                 Responder
+              </ContextMenuItem>
+            )}
+            {onDelete && (
+              <ContextMenuItem
+                variant='destructive'
+                onClick={() => onDelete(message.id)}
+              >
+                <SteelIcon icon={Delete02Icon} size={16} />
+                Apagar mensagem
               </ContextMenuItem>
             )}
             {onReact && (

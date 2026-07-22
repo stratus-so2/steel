@@ -12,6 +12,7 @@ export const WhatsAppMessageRepository = {
       const messages = await prisma.whatsAppMessage.findMany({
         where: {
           conversationId,
+          deletedAt: null,
           ...(options.after ? { createdAt: { gt: options.after } } : {}),
         },
         orderBy: { createdAt: 'desc' },

@@ -44,6 +44,10 @@ interface MetaMessage {
     button_reply?: { title?: string }
     list_reply?: { title?: string }
   }
+  contacts?: {
+    name?: { formatted_name?: string }
+    phones?: { phone?: string; wa_id?: string }[]
+  }[]
   // Present when this message is a reply/quote to another one.
   context?: { id?: string }
 }
@@ -59,6 +63,7 @@ function extractMessageContent(message: MetaMessage): {
   type: WhatsAppMessageTypeDTO
   text?: string
   rawMediaUrl?: string
+  contactPayload?: { name: string; waId: string }
 } {
   switch (message.type) {
     case 'text':
@@ -100,6 +105,18 @@ function extractMessageContent(message: MetaMessage): {
           message.interactive?.button_reply?.title ??
           message.interactive?.list_reply?.title,
       }
+    case 'contacts': {
+      const shared = message.contacts?.[0]
+      const waId = shared?.phones?.[0]?.wa_id ?? shared?.phones?.[0]?.phone
+      if (!shared || !waId) return { type: 'TEXT', text: '[Contato]' }
+      return {
+        type: 'CONTACT',
+        contactPayload: {
+          name: shared.name?.formatted_name ?? waId,
+          waId: waId.replace(/\D/g, ''),
+        },
+      }
+    }
     default:
       return { type: 'TEXT', text: `[Mensagem não suportada: ${message.type}]` }
   }

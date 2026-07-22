@@ -25,6 +25,15 @@ export type UpdateWhatsAppContactDTO = z.infer<
   typeof UpdateWhatsAppContactSchema
 >
 
+export const FindOrCreateWhatsAppContactSchema = z.object({
+  waId: WaIdField,
+  name: z.string().min(1).max(120).optional(),
+})
+
+export type FindOrCreateWhatsAppContactDTO = z.infer<
+  typeof FindOrCreateWhatsAppContactSchema
+>
+
 export const ListWhatsAppContactsSchema = z.object({
   search: z.string().max(120).optional(),
 })

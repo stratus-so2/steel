@@ -51,6 +51,28 @@ export function useCreateWhatsAppContact(workspaceId: string) {
   })
 }
 
+export function useFindOrCreateWhatsAppContact(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: { waId: string; name?: string }) =>
+      apiFetch<WhatsAppContactDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/contacts/find-or-create`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        },
+        'Erro ao localizar contato',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-contacts', workspaceId],
+      })
+    },
+  })
+}
+
 export function useUpdateWhatsAppContact(
   workspaceId: string,
   contactId: string,

@@ -10,6 +10,7 @@ export type WhatsAppMessageTypeDTO =
   | 'LOCATION'
   | 'TEMPLATE'
   | 'BUTTON'
+  | 'CONTACT'
 
 export type WhatsAppMessageStatusDTO =
   | 'PENDING'
@@ -17,6 +18,11 @@ export type WhatsAppMessageStatusDTO =
   | 'DELIVERED'
   | 'READ'
   | 'FAILED'
+
+export interface WhatsAppMessageContactPayload {
+  name: string
+  waId: string
+}
 
 export interface WhatsAppMessageDTO {
   id: string
@@ -32,5 +38,6 @@ export interface WhatsAppMessageDTO {
   replyToMessageId: string | null
   reactionEmoji: string | null
   reactedByContact: boolean | null
+  contactPayload: WhatsAppMessageContactPayload | null
   createdAt: string
 }

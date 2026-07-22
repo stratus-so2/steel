@@ -6,6 +6,7 @@ import { consume, whatsappSendLimiter } from '@/src/lib/rate-limit'
 import { err, ok, type Result } from '@/src/lib/result'
 import { createMetaClient } from './meta-client'
 import type {
+  WhatsAppOutboundContact,
   WhatsAppOutboundMedia,
   WhatsAppOutboundReaction,
   WhatsAppOutboundTemplate,
@@ -90,6 +91,13 @@ export const WhatsAppSend = {
     input: WhatsAppOutboundTemplate,
   ): Promise<Result<WhatsAppSendResult>> {
     return withProvider(connection, (client) => client.sendTemplate(input))
+  },
+
+  contact(
+    connection: WhatsAppConnection,
+    input: WhatsAppOutboundContact,
+  ): Promise<Result<WhatsAppSendResult>> {
+    return withProvider(connection, (client) => client.sendContact(input))
   },
 
   reaction(

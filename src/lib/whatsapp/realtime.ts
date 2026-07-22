@@ -15,6 +15,7 @@ export type WhatsAppRealtimeEvent =
       conversationId: string
       message: WhatsAppMessageDTO
     }
+  | { type: 'message.deleted'; conversationId: string; messageId: string }
   | { type: 'conversation.updated'; conversation: WhatsAppConversationDTO }
   | { type: 'conversation.deleted'; conversationId: string }
 

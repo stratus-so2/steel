@@ -14,6 +14,7 @@ type WhatsAppRealtimeEvent =
       conversationId: string
       message: WhatsAppMessageDTO
     }
+  | { type: 'message.deleted'; conversationId: string; messageId: string }
   | { type: 'conversation.updated'; conversation: WhatsAppConversationDTO }
   | { type: 'conversation.deleted'; conversationId: string }
 
@@ -37,7 +38,8 @@ export function useWhatsAppRealtimeEvents(workspaceId: string) {
 
       if (
         parsed.type === 'message.created' ||
-        parsed.type === 'message.updated'
+        parsed.type === 'message.updated' ||
+        parsed.type === 'message.deleted'
       ) {
         queryClient.invalidateQueries({
           queryKey: ['whatsapp-messages', workspaceId, parsed.conversationId],

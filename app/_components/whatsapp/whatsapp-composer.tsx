@@ -4,6 +4,7 @@ import {
   Attachment01Icon,
   Camera01Icon,
   Cancel01Icon,
+  Contact01Icon,
   File02Icon,
   FlashIcon,
   Folder01Icon,
@@ -30,6 +31,12 @@ import {
   quotedMessageLabel,
 } from '@/components/ui/chat/quoted-message-preview'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -49,8 +56,10 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import { useUser } from '@/src/hooks/use-user'
+import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
 import { useUploadWhatsAppMedia } from '@/src/hooks/use-whatsapp-media-upload'
 import {
+  useSendWhatsAppContactMessage,
   useSendWhatsAppMediaMessage,
   useSendWhatsAppTemplateMessage,
   useSendWhatsAppTextMessage,
@@ -153,6 +162,7 @@ export function WhatsappComposer({
   const [pendingTemplate, setPendingTemplate] =
     useState<WhatsAppTemplateDTO | null>(null)
   const [variablesDialogOpen, setVariablesDialogOpen] = useState(false)
+  const [shareContactOpen, setShareContactOpen] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -160,12 +170,14 @@ export function WhatsappComposer({
   const currentUser = useUser()
   const quickReplies = useWhatsAppQuickReplies(workspaceId)
   const templates = useWhatsAppTemplates(workspaceId)
+  const contacts = useWhatsAppContacts(workspaceId)
   const sendText = useSendWhatsAppTextMessage(workspaceId, conversationId)
   const sendMedia = useSendWhatsAppMediaMessage(workspaceId, conversationId)
   const sendTemplate = useSendWhatsAppTemplateMessage(
     workspaceId,
     conversationId,
   )
+  const sendContact = useSendWhatsAppContactMessage(workspaceId, conversationId)
   const uploadMedia = useUploadWhatsAppMedia(workspaceId)
 
   const audioRecorder = useAudioRecorder(async (blob) => {
@@ -515,6 +527,10 @@ export function WhatsappComposer({
               <SteelIcon icon={Folder01Icon} size={16} />
               Arquivo
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShareContactOpen(true)}>
+              <SteelIcon icon={Contact01Icon} size={16} />
+              Contato
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -586,6 +602,45 @@ export function WhatsappComposer({
           }
         }}
       />
+
+      <Dialog open={shareContactOpen} onOpenChange={setShareContactOpen}>
+        <DialogContent className='max-w-sm'>
+          <DialogHeader>
+            <DialogTitle>Enviar contato</DialogTitle>
+          </DialogHeader>
+          <div className='max-h-72 overflow-y-auto'>
+            {contacts.data?.length ? (
+              contacts.data.map((contact) => (
+                <button
+                  key={contact.id}
+                  type='button'
+                  disabled={sendContact.isPending}
+                  className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted disabled:opacity-50'
+                  onClick={async () => {
+                    try {
+                      await sendContact.mutateAsync({ contactId: contact.id })
+                      setShareContactOpen(false)
+                    } catch {
+                      notify.error('Erro ao enviar contato')
+                    }
+                  }}
+                >
+                  <span className='font-medium'>
+                    {contact.name ?? contact.waId}
+                  </span>
+                  <span className='text-muted-foreground text-xs'>
+                    {contact.waId}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className='p-2 text-muted-foreground text-xs'>
+                Nenhum contato cadastrado
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
