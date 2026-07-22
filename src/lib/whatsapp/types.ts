@@ -8,6 +8,9 @@ export interface WhatsAppOutboundText {
   to: string
   text: string
   quotedProviderMessageId?: string
+  // Z-API group mentions — phone numbers to highlight as @mentions. Ignored
+  // by providers/targets that don't support it (Meta has no group support at all).
+  mentionedWaIds?: string[]
 }
 
 export type WhatsAppOutboundMediaType = 'image' | 'audio' | 'video' | 'document'

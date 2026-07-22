@@ -18,6 +18,7 @@ export type WhatsAppRealtimeEvent =
   | { type: 'message.deleted'; conversationId: string; messageId: string }
   | { type: 'conversation.updated'; conversation: WhatsAppConversationDTO }
   | { type: 'conversation.deleted'; conversationId: string }
+  | { type: 'group-message.created'; groupId: string }
 
 function channelForWorkspace(workspaceId: string): string {
   return `whatsapp:workspace:${workspaceId}`

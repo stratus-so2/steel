@@ -190,3 +190,18 @@ export const whatsappProviderError = (
 
 export const whatsappWebhookUnauthorized = (): AppError =>
   appError('WHATSAPP_WEBHOOK_UNAUTHORIZED', 'Assinatura do webhook inválida')
+
+export const whatsappGroupNotFound = (): AppError =>
+  appError('WHATSAPP_GROUP_NOT_FOUND', 'Grupo não encontrado')
+
+export const whatsappGroupMessageNotFound = (): AppError =>
+  appError(
+    'WHATSAPP_GROUP_MESSAGE_NOT_FOUND',
+    'Mensagem do grupo não encontrada',
+  )
+
+export const whatsappGroupProviderUnsupported = (): AppError =>
+  appError(
+    'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED',
+    'Grupos só são suportados em conexões Z-API — a API oficial da Meta não expõe esse recurso',
+  )

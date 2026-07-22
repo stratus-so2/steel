@@ -17,6 +17,7 @@ type WhatsAppRealtimeEvent =
   | { type: 'message.deleted'; conversationId: string; messageId: string }
   | { type: 'conversation.updated'; conversation: WhatsAppConversationDTO }
   | { type: 'conversation.deleted'; conversationId: string }
+  | { type: 'group-message.created'; groupId: string }
 
 export function useWhatsAppRealtimeEvents(workspaceId: string) {
   const queryClient = useQueryClient()
@@ -55,6 +56,15 @@ export function useWhatsAppRealtimeEvents(workspaceId: string) {
       ) {
         queryClient.invalidateQueries({
           queryKey: ['whatsapp-conversations', workspaceId],
+        })
+      }
+
+      if (parsed.type === 'group-message.created') {
+        queryClient.invalidateQueries({
+          queryKey: ['whatsapp-group-messages', workspaceId, parsed.groupId],
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['whatsapp-groups', workspaceId],
         })
       }
     }

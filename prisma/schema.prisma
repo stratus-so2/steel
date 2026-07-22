@@ -43,6 +43,7 @@ model User {
   whatsappConversationsAssigned WhatsAppConversation[]  @relation("WhatsAppConversationAssignee")
   whatsappMessagesSent          WhatsAppMessage[]       @relation("WhatsAppMessageSender")
   whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
+  whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -222,6 +223,8 @@ model Workspace {
   whatsappBroadcastLists WhatsAppBroadcastList[]
   whatsappTemplates      WhatsAppTemplate[]
   whatsappAiConfig       WhatsAppAiConfig?
+  whatsappGroups         WhatsAppGroup[]
+  whatsappGroupMessages  WhatsAppGroupMessage[]
 
   @@map("workspaces")
 }
@@ -547,6 +550,7 @@ model WhatsAppConnection {
   conversations  WhatsAppConversation[]
   broadcastLists WhatsAppBroadcastList[]
   templates      WhatsAppTemplate[]
+  groups         WhatsAppGroup[]
 
   @@unique([workspaceId, provider, phoneNumber])
   @@index([workspaceId])
@@ -785,4 +789,87 @@ model WhatsAppAiConfig {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("whatsapp_ai_configs")
+}
+
+// ─── WhatsApp groups (Z-API only — the Meta Cloud API has no group endpoints) ──
+
+enum WhatsAppGroupParticipantRole {
+  MEMBER
+  ADMIN
+}
+
+model WhatsAppGroup {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  connectionId  String    @map("connection_id")
+  groupJid      String    @map("group_jid")
+  name          String
+  imageUrl      String?   @map("image_url")
+  description   String?
+  inviteLink    String?   @map("invite_link")
+  lastMessageAt DateTime? @map("last_message_at")
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  workspace    Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection   WhatsAppConnection         @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  participants WhatsAppGroupParticipant[]
+  messages     WhatsAppGroupMessage[]
+
+  @@unique([workspaceId, groupJid])
+  @@index([workspaceId, archivedAt, lastMessageAt])
+  @@index([connectionId])
+  @@map("whatsapp_groups")
+}
+
+model WhatsAppGroupParticipant {
+  id        String                       @id @default(cuid())
+  groupId   String                       @map("group_id")
+  waId      String                       @map("wa_id")
+  name      String?
+  role      WhatsAppGroupParticipantRole @default(MEMBER)
+  createdAt DateTime                     @default(now()) @map("created_at")
+
+  group WhatsAppGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, waId])
+  @@index([groupId])
+  @@map("whatsapp_group_participants")
+}
+
+enum WhatsAppGroupMessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model WhatsAppGroupMessage {
+  id                String                     @id @default(cuid())
+  workspaceId       String                     @map("workspace_id")
+  groupId           String                     @map("group_id")
+  direction         WhatsAppMessageDirection
+  type              WhatsAppMessageType
+  text              String?
+  mediaUrl          String?                    @map("media_url")
+  providerMessageId String?                    @unique @map("provider_message_id")
+  status            WhatsAppGroupMessageStatus @default(PENDING)
+  senderUserId      String?                    @map("sender_user_id")
+  // Inbound only: which participant actually sent it, since group messages
+  // arrive addressed to the group JID, not an individual contact.
+  senderWaId        String?                    @map("sender_wa_id")
+  senderName        String?                    @map("sender_name")
+  deletedAt         DateTime?                  @map("deleted_at")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+  updatedAt         DateTime                   @updatedAt @map("updated_at")
+
+  workspace  Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  group      WhatsAppGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderUser User?         @relation("WhatsAppGroupMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([groupId, createdAt])
+  @@map("whatsapp_group_messages")
 }

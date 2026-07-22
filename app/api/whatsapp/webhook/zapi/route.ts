@@ -22,6 +22,8 @@ interface ZapiPayload {
   messageId?: string
   fromMe?: boolean
   status?: string
+  isGroup?: boolean
+  participantPhone?: string
   text?: { message?: string }
   image?: { imageUrl?: string; caption?: string }
   audio?: { audioUrl?: string }
@@ -151,6 +153,26 @@ export const POST = withAxiom(async (request: NextRequest) => {
       emoji: body.reaction?.value ?? '',
     })
     return new Response('REACTION_RECEIVED', { status: 200 })
+  }
+
+  if (body.isGroup) {
+    const groupJid = body.phone
+    if (!groupJid || !body.messageId || body.fromMe) {
+      return new Response('IGNORED', { status: 200 })
+    }
+    const content = extractMessageContent(body)
+    if (content.type === 'CONTACT') {
+      return new Response('IGNORED', { status: 200 })
+    }
+    await WhatsAppWebhookService.ingestInboundGroupMessage({
+      connection,
+      groupJid,
+      senderWaId: (body.participantPhone ?? '').replace(/\D/g, ''),
+      senderName: body.senderName,
+      providerMessageId: body.messageId,
+      ...content,
+    })
+    return new Response('GROUP_MESSAGE_RECEIVED', { status: 200 })
   }
 
   const waId = (body.phone ?? '').replace(/\D/g, '')

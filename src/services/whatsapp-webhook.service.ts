@@ -11,6 +11,8 @@ import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
+import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repository'
+import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
 
@@ -250,6 +252,59 @@ export const WhatsAppWebhookService = {
       message: toWhatsAppMessageDTO(message.value),
     })
     await publishConversationSnapshot(workspaceId, conversationId)
+
+    return ok(undefined)
+  },
+
+  async ingestInboundGroupMessage(input: {
+    connection: WhatsAppConnection
+    groupJid: string
+    senderWaId: string
+    senderName?: string
+    providerMessageId: string
+    type: WhatsAppMessageTypeDTO
+    text?: string
+    rawMediaUrl?: string
+  }): Promise<Result<void>> {
+    const workspaceId = input.connection.workspaceId
+
+    const dedupe = await WhatsAppGroupMessageRepository.findByProviderMessageId(
+      input.providerMessageId,
+    )
+    if (!dedupe.ok) return dedupe
+    if (dedupe.value) return ok(undefined)
+
+    const group = await WhatsAppGroupRepository.findByGroupJid(
+      workspaceId,
+      input.groupJid,
+    )
+    if (!group.ok) return group
+    // Unknown group (created outside the platform) — nothing to attach the
+    // message to, so it's simply not persisted.
+    if (!group.value) return ok(undefined)
+
+    const message = await WhatsAppGroupMessageRepository.create({
+      workspaceId,
+      groupId: group.value.id,
+      direction: 'IN',
+      type: input.type,
+      text: input.text,
+      mediaUrl: input.rawMediaUrl,
+      providerMessageId: input.providerMessageId,
+      status: 'DELIVERED',
+      senderWaId: input.senderWaId,
+      senderName: input.senderName,
+    })
+    if (!message.ok) return message
+
+    await WhatsAppGroupRepository.update(group.value.id, {
+      lastMessageAt: new Date(),
+    })
+
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'group-message.created',
+      groupId: group.value.id,
+    })
 
     return ok(undefined)
   },

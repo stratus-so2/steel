@@ -24,6 +24,8 @@ type AuditEntity =
   | 'whatsapp_broadcast_list'
   | 'whatsapp_template'
   | 'whatsapp_ai_config'
+  | 'whatsapp_group'
+  | 'whatsapp_group_message'
 
 type AuditAction =
   | 'create'

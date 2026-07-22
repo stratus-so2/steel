@@ -18,7 +18,7 @@ export interface ZapiCredentials {
   clientToken?: string
 }
 
-async function zapiRequest<T>(
+export async function zapiRequest<T>(
   credentials: ZapiCredentials,
   path: string,
   init?: RequestInit,
@@ -74,6 +74,7 @@ export function createZapiClient(
       to,
       text,
       quotedProviderMessageId,
+      mentionedWaIds,
     }: WhatsAppOutboundText): Promise<WhatsAppSendResult> {
       const result = await zapiRequest<{ messageId: string }>(
         credentials,
@@ -86,6 +87,7 @@ export function createZapiClient(
             ...(quotedProviderMessageId
               ? { messageId: quotedProviderMessageId }
               : {}),
+            ...(mentionedWaIds?.length ? { mentioned: mentionedWaIds } : {}),
           }),
         },
       )
