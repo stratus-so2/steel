@@ -193,9 +193,11 @@ export async function getZapiContactProfilePicture(
   credentials: ZapiCredentials,
   phone: string,
 ): Promise<string | null> {
-  const result = await zapiRequest<{ link?: string }>(
+  // Z-API responds with a bare `null` body (not `{ link: null }`) when the
+  // contact has no profile picture set, so `result` itself can be null.
+  const result = await zapiRequest<{ link?: string } | null>(
     credentials,
     `/contacts/profilePicture?phone=${encodeURIComponent(phone)}`,
   )
-  return result.link ?? null
+  return result?.link ?? null
 }

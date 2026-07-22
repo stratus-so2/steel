@@ -25,6 +25,7 @@ import {
 import { toWhatsAppGroupDTO } from '@/src/mappers/whatsapp-group.mapper'
 import { toWhatsAppGroupMessageDTO } from '@/src/mappers/whatsapp-group-message.mapper'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repository'
 import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import type {
@@ -73,6 +74,25 @@ async function resolveZapiConnection(
       clientToken,
     },
   })
+}
+
+// Z-API's group-metadata endpoint only returns { phone, isAdmin } per
+// participant — no name at all — so we cross-reference the workspace's own
+// contact book to show a name instead of a raw phone number wherever we can.
+async function resolveParticipantNames(
+  workspaceId: string,
+  waIds: string[],
+): Promise<Map<string, string>> {
+  const contacts = await WhatsAppContactRepository.findManyByWaIds(
+    workspaceId,
+    waIds,
+  )
+  const names = new Map<string, string>()
+  if (!contacts.ok) return names
+  for (const contact of contacts.value) {
+    if (contact.name) names.set(contact.waId, contact.name)
+  }
+  return names
 }
 
 async function loadGroupWithZapi(workspaceId: string, groupId: string) {
@@ -162,9 +182,17 @@ export const WhatsAppGroupService = {
     })
     if (!group.ok) return group
 
+    const participantNames = await resolveParticipantNames(
+      workspaceId,
+      dto.participantWaIds,
+    )
     await WhatsAppGroupRepository.replaceParticipants(
       group.value.id,
-      dto.participantWaIds.map((waId) => ({ waId, role: 'MEMBER' as const })),
+      dto.participantWaIds.map((waId) => ({
+        waId,
+        name: participantNames.get(waId),
+        role: 'MEMBER' as const,
+      })),
     )
 
     const fresh = await WhatsAppGroupRepository.findById(
@@ -341,13 +369,16 @@ export const WhatsAppGroupService = {
     if (!loaded.ok) return loaded
     const { group, credentials } = loaded.value
 
-    let inviteLink: string
+    let inviteLink: string | null
     try {
       inviteLink = await getZapiGroupInviteLink(credentials, {
         groupJid: group.groupJid,
       })
     } catch {
       return err(whatsappGroupProviderUnsupported())
+    }
+    if (!inviteLink) {
+      return err(whatsappProviderError('Link de convite indisponível'))
     }
 
     await WhatsAppGroupRepository.update(id, { inviteLink })
@@ -476,10 +507,15 @@ async function syncParticipantsFromProvider(
     )
   }
 
+  const participantNames = await resolveParticipantNames(
+    workspaceId,
+    metadata.participants.map((p) => p.phone),
+  )
   await WhatsAppGroupRepository.replaceParticipants(
     groupId,
     metadata.participants.map((p) => ({
       waId: p.phone,
+      name: participantNames.get(p.phone),
       role: p.isAdmin ? ('ADMIN' as const) : ('MEMBER' as const),
     })),
   )

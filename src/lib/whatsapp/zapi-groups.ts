@@ -142,10 +142,12 @@ export async function getZapiGroupMetadata(
 export async function getZapiGroupInviteLink(
   credentials: ZapiCredentials,
   input: { groupJid: string },
-): Promise<string> {
-  const result = await zapiRequest<{ invitationLink: string }>(
+): Promise<string | null> {
+  // Same defensive shape as getZapiContactProfilePicture — Z-API can return
+  // a bare `null` body instead of `{ invitationLink: null }`.
+  const result = await zapiRequest<{ invitationLink?: string } | null>(
     credentials,
     `/group-invitation-link/${input.groupJid}`,
   )
-  return result.invitationLink
+  return result?.invitationLink ?? null
 }
