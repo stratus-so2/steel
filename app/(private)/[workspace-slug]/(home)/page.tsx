@@ -1,21 +1,37 @@
-import { Shapes01Icon } from '@hugeicons-pro/core-solid-rounded'
-import { Home09Icon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  BookOpen01Icon,
+  Home09Icon,
+  SparklesIcon,
+  Ticket01Icon,
+  UserGroupIcon,
+  WhatsappBusinessIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { cacheLife, cacheTag } from 'next/cache'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
 } from '@/app/_components/header/breadcrumb-page'
 import HeaderInternalNavigation from '@/app/_components/header/header-internal-navigation'
-import { UserShortcutLinkList } from '@/app/_components/user/shortcut-link/user-shortcut-link-list'
-import { UserShortcutLinkModal } from '@/app/_components/user/shortcut-link/user-shortcut-link-modal'
-import { UserStickyCreateButton } from '@/app/_components/user/sticky/user-sticky-create-button'
-import { UserStickyList } from '@/app/_components/user/sticky/user-sticky-list'
 import { SteelIcon } from '@/components/icon/icon'
 import { H4 } from '@/components/typography/heading/h4'
 import { Muted } from '@/components/typography/text/muted'
-import { Small } from '@/components/typography/text/small'
-import { Button } from '@/components/ui/button'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarImage,
+} from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { getAuthSession } from '@/src/lib/auth-session'
+import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
   title: 'Página inicial | Steel',
@@ -43,6 +59,23 @@ async function getGreeting() {
   return 'Boa noite'
 }
 
+function nameInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('')
+}
+
+const WORKSPACE_QUICK_LINKS = [
+  { label: 'Servicedesk', href: 'servicedesk', icon: Ticket01Icon },
+  { label: 'CRM', href: 'crm', icon: UserGroupIcon },
+  { label: 'Comunicação', href: 'zap', icon: WhatsappBusinessIcon },
+  { label: 'Wiki', href: 'wiki', icon: BookOpen01Icon },
+  { label: 'IA', href: 'ai', icon: SparklesIcon },
+] as const
+
 async function getFullDate() {
   'use cache'
   cacheLife('hours')
@@ -58,7 +91,31 @@ async function getFullDate() {
     .join('')
 }
 
-export default async function Page() {
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ 'workspace-slug': string }>
+}) {
+  const { 'workspace-slug': slug } = await params
+
+  const session = await getAuthSession()
+  if (!session.ok) redirect('/sign-in')
+
+  const userName = session.value.user.name
+
+  const membership = await MembershipService.getByUserAndSlug(
+    session.value.user.id,
+    slug,
+  )
+  if (!membership.ok || !membership.value) redirect('/create-workspace')
+
+  const [greeting, fullDate, members] = await Promise.all([
+    getGreeting(),
+    getFullDate(),
+    MembershipService.listWithUserByWorkspace(membership.value.workspaceId),
+  ])
+  const workspaceMembers = members.ok ? members.value : []
+
   return (
     <div className='w-full h-full overflow-y-scroll'>
       <HeaderInternalNavigation>
@@ -71,34 +128,104 @@ export default async function Page() {
             />
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
-        <Button variant='outline' size='xs'>
-          <SteelIcon icon={Shapes01Icon} />
-          Gerenciar widgets
-        </Button>
       </HeaderInternalNavigation>
       <div className='max-w-200 w-full h-full mx-auto p-6 space-y-8'>
         <div>
           <div className='text-center'>
-            <H4>{getGreeting()}, Gusttavo Castro</H4>
-            <Muted>{getFullDate()}</Muted>
+            <H4>
+              {greeting}, {userName}
+            </H4>
+            <Muted>{fullDate}</Muted>
           </div>
         </div>
-
-        <div className='flex flex-col flex-wrap w-full gap-y-3'>
-          <div className='w-full flex items-center justify-between'>
-            <Small>Links rápidos</Small>
-            <UserShortcutLinkModal />
-          </div>
-          <UserShortcutLinkList />
-        </div>
-
-        <div className='flex flex-col flex-wrap w-full gap-y-3'>
-          <div className='w-full flex items-center justify-between'>
-            <Small>Suas anotações</Small>
-            <UserStickyCreateButton />
-          </div>
+        <div className='space-y-4'>
           <div>
-            <UserStickyList />
+            <H4 className='text-base'>Chame toda sua equipe</H4>
+            <Muted className='text-sx text-muted-foreground'>
+              Convide seus colegas para colaborar e construir juntos.
+            </Muted>
+          </div>
+          <div className='bg-accent rounded-xl gap-4 flex items-center border border-border w-full px-4 py-5 flex-wrap'>
+            {workspaceMembers.length === 0 ? (
+              <Muted>Não foi possível carregar os membros do workspace.</Muted>
+            ) : (
+              <AvatarGroup>
+                {workspaceMembers.map((member) => (
+                  <Tooltip key={member.id}>
+                    <TooltipTrigger
+                      render={<Avatar size='lg' className='cursor-default' />}
+                    >
+                      <AvatarImage
+                        src={member.user.image ?? undefined}
+                        alt={member.user.name}
+                      />
+                      <AvatarFallback>
+                        {nameInitials(member.user.name)}
+                      </AvatarFallback>
+                    </TooltipTrigger>
+                    <TooltipContent side='bottom'>
+                      {member.user.name}
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </AvatarGroup>
+            )}
+          </div>
+          <Link
+            href={`/${slug}/settings/members`}
+            className='hover:underline text-sm'
+          >
+            Adicionar novo membro
+          </Link>
+        </div>
+        <div className='flex items-center gap-4 w-full'>
+          <div className='h-52 bg-accent rounded-xl gap-4 flex flex-col border border-border w-full px-4 py-5'>
+            <H4>Alimente seu workspace</H4>
+            <div className='flex items-center gap-4 flex-wrap'>
+              {WORKSPACE_QUICK_LINKS.map((link) => (
+                <Link key={link.href} href={`/${slug}/${link.href}`}>
+                  <Badge variant='outline' className='rounded-sm h-7 px-2'>
+                    <SteelIcon icon={link.icon} size={14} />
+                    {link.label}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className='max-w-52 h-52 bg-accent rounded-xl gap-4 flex flex-col border border-border w-full px-4 py-5'>
+            <Link href='/docs' className='hover:underline text-sm'>
+              Documentação
+            </Link>
+            <Link href='/talk-to-sales' className='hover:underline text-sm'>
+              Contate as vendas
+            </Link>
+            {/* TODO: sem um número/link de suporte oficial definido ainda */}
+            <Link href='#' className='hover:underline text-sm'>
+              Suporte por WhatsApp
+            </Link>
+          </div>
+        </div>
+        <div className='space-y-4'>
+          <div>
+            <H4 className='text-base'>
+              Descubra por que as equipes migram para o Steel
+            </H4>
+            <Muted className='text-sx text-muted-foreground'>
+              Compare o Steel com as ferramentas que você usa hoje e veja a
+              diferença.
+            </Muted>
+          </div>
+          <div className='bg-accent rounded-xl gap-4 flex items-center border border-border w-full px-4 py-5 flex-wrap'>
+            <Link href='#'>
+              <Badge variant='outline' className='rounded-sm h-7 px-2'>
+                Compare com o Glpi
+              </Badge>
+            </Link>
+            <Link href='#'>
+              <Badge variant='outline' className='rounded-sm h-7 px-2'>
+                Compare com o Glpi
+              </Badge>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import type { Membership } from '@prisma/client'
 import type { Result } from '../lib/result'
 import {
   MembershipRepository,
@@ -18,5 +19,15 @@ export const MembershipService = {
 
   async countByWorkspace(workspaceId: string): Promise<Result<number>> {
     return MembershipRepository.countByWorkspace(workspaceId)
+  },
+
+  async listWithUserByWorkspace(workspaceId: string): Promise<
+    Result<
+      (Membership & {
+        user: { id: string; name: string; email: string; image: string | null }
+      })[]
+    >
+  > {
+    return MembershipRepository.listWithUserByWorkspace(workspaceId)
   },
 }
