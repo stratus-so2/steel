@@ -1,4 +1,4 @@
-import { WhatsappBusinessIcon } from '@hugeicons-pro/core-stroke-rounded'
+import { UserGroupIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import {
@@ -6,17 +6,17 @@ import {
   HeaderBreadcrumbList,
 } from '@/app/_components/header/breadcrumb-page'
 import HeaderInternalNavigation from '@/app/_components/header/header-internal-navigation'
-import { WhatsappPageClient } from '@/app/_components/whatsapp/whatsapp-page-client'
+import { WhatsappGroupsPageClient } from '@/app/_components/whatsapp/whatsapp-groups-page-client'
 import { SteelIcon } from '@/components/icon/icon'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
-  title: 'WhatsApp | Steel',
-  description: 'Envie e receba mensagens de WhatsApp direto do Steel',
+  title: 'Grupos | Steel',
+  description: 'Crie e gerencie grupos de WhatsApp',
 }
 
-export default async function ZapPage({
+export default async function ZapGroupsPage({
   params,
 }: {
   params: Promise<{ 'workspace-slug': string }>
@@ -36,9 +36,9 @@ export default async function ZapPage({
     <div className='flex h-full w-full flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
-          <HeaderBreadcrumbCrumb title='WhatsApp'>
+          <HeaderBreadcrumbCrumb title='Grupos'>
             <SteelIcon
-              icon={WhatsappBusinessIcon}
+              icon={UserGroupIcon}
               strokeWidth={2}
               className='text-primary'
             />
@@ -46,7 +46,7 @@ export default async function ZapPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='min-h-0 flex-1'>
-        <WhatsappPageClient workspaceId={membership.value.workspaceId} />
+        <WhatsappGroupsPageClient workspaceId={membership.value.workspaceId} />
       </div>
     </div>
   )

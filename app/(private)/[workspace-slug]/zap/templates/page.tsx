@@ -1,4 +1,4 @@
-import { Settings02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { Shapes01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import {
@@ -6,19 +6,17 @@ import {
   HeaderBreadcrumbList,
 } from '@/app/_components/header/breadcrumb-page'
 import HeaderInternalNavigation from '@/app/_components/header/header-internal-navigation'
-import { WhatsappSettingsAi } from '@/app/_components/whatsapp/settings/whatsapp-settings-ai'
-import { WhatsappSettingsConnections } from '@/app/_components/whatsapp/settings/whatsapp-settings-connections'
+import { WhatsappSettingsTemplates } from '@/app/_components/whatsapp/settings/whatsapp-settings-templates'
 import { SteelIcon } from '@/components/icon/icon'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
-  title: 'Configurações do WhatsApp | Steel',
-  description: 'Conexões e IA do WhatsApp',
+  title: 'Templates | Steel',
+  description: 'Templates de mensagem aprovados pela Meta',
 }
 
-export default async function ZapSettingsPage({
+export default async function ZapTemplatesPage({
   params,
 }: {
   params: Promise<{ 'workspace-slug': string }>
@@ -34,15 +32,13 @@ export default async function ZapSettingsPage({
   )
   if (!membership.ok || !membership.value) notFound()
 
-  const workspaceId = membership.value.workspaceId
-
   return (
     <div className='w-full overflow-y-auto'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
-          <HeaderBreadcrumbCrumb title='Configurações do WhatsApp'>
+          <HeaderBreadcrumbCrumb title='Templates'>
             <SteelIcon
-              icon={Settings02Icon}
+              icon={Shapes01Icon}
               strokeWidth={2}
               className='text-primary'
             />
@@ -50,18 +46,7 @@ export default async function ZapSettingsPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='w-full p-6'>
-        <Tabs defaultValue='connections'>
-          <TabsList>
-            <TabsTrigger value='connections'>Conexões</TabsTrigger>
-            <TabsTrigger value='ai'>IA</TabsTrigger>
-          </TabsList>
-          <TabsContent value='connections' className='pt-4'>
-            <WhatsappSettingsConnections workspaceId={workspaceId} />
-          </TabsContent>
-          <TabsContent value='ai' className='pt-4'>
-            <WhatsappSettingsAi workspaceId={workspaceId} />
-          </TabsContent>
-        </Tabs>
+        <WhatsappSettingsTemplates workspaceId={membership.value.workspaceId} />
       </div>
     </div>
   )
