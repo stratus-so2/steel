@@ -9,6 +9,7 @@ import { CrmOpportunitiesBoard } from './crm-opportunities-board'
 import { CrmPeopleTable } from './crm-people-table'
 import { CrmPipelinesPanel } from './crm-pipelines-panel'
 import { CrmProductsTable } from './crm-products-table'
+import { CrmReportsPanel } from './crm-reports-panel'
 import { CrmTasksTable } from './crm-tasks-table'
 
 export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
@@ -25,6 +26,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='pipelines'>Pipelines</TabsTrigger>
           <TabsTrigger value='products'>Produtos</TabsTrigger>
           <TabsTrigger value='custom-fields'>Campos customizados</TabsTrigger>
+          <TabsTrigger value='reports'>Relatórios</TabsTrigger>
         </TabsList>
         <TabsContent value='leads'>
           <CrmLeadsTable workspaceId={workspaceId} />
@@ -52,6 +54,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='custom-fields'>
           <CrmCustomFieldsPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='reports'>
+          <CrmReportsPanel workspaceId={workspaceId} />
         </TabsContent>
       </Tabs>
     </div>
