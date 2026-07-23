@@ -166,6 +166,8 @@ export const ERROR_CODES = {
     status: 404,
   },
   CRM_PROPOSAL_NOT_FOUND: { code: 'CRM_PROPOSAL_NOT_FOUND', status: 404 },
+  CRM_FORM_NOT_FOUND: { code: 'CRM_FORM_NOT_FOUND', status: 404 },
+  CRM_FORM_NOT_PUBLISHED: { code: 'CRM_FORM_NOT_PUBLISHED', status: 422 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

@@ -300,3 +300,9 @@ export const crmDashboardWidgetNotFound = (): AppError =>
 
 export const crmProposalNotFound = (): AppError =>
   appError('CRM_PROPOSAL_NOT_FOUND', 'Proposta não encontrada')
+
+export const crmFormNotFound = (): AppError =>
+  appError('CRM_FORM_NOT_FOUND', 'Formulário não encontrado')
+
+export const crmFormNotPublished = (): AppError =>
+  appError('CRM_FORM_NOT_PUBLISHED', 'Este formulário não está publicado')
