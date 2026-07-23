@@ -7,6 +7,7 @@ import {
 } from '../src/lib/queue/connection'
 import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
+import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
@@ -14,6 +15,7 @@ import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-b
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
 import { closeQueues } from '../src/lib/queue/queues'
 import {
+  scheduleCrmScheduledSendJobs,
   scheduleDataRetentionJobs,
   scheduleTrialLifecycleJobs,
 } from '../src/lib/queue/scheduler'
@@ -103,9 +105,13 @@ async function main(): Promise<void> {
   workers.push(
     registerWorker(QueueName.WhatsappBroadcast, processWhatsappBroadcast),
   )
+  workers.push(
+    registerWorker(QueueName.CrmScheduledSend, processCrmScheduledSend),
+  )
 
   await scheduleDataRetentionJobs()
   await scheduleTrialLifecycleJobs()
+  await scheduleCrmScheduledSendJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

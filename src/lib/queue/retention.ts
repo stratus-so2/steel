@@ -10,3 +10,6 @@ export const RetentionCron = {
 } as const
 
 export const RetentionTimezone = 'UTC' as const
+
+/** Frequência do tick que dispara campanhas de e-mail agendadas. */
+export const CrmScheduledSendCron = '*/5 * * * *' as const

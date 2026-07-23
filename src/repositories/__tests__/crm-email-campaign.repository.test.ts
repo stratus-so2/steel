@@ -31,6 +31,26 @@ describe('CrmEmailCampaignRepository', () => {
     })
   })
 
+  describe('listDueScheduled()', () => {
+    it('should return only SCHEDULED campaigns with scheduledAt in the past', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const due = await seedCrmEmailCampaign(workspace.id, user.id, {
+        status: 'SCHEDULED',
+        scheduledAt: new Date(Date.now() - 60_000),
+      })
+      await seedCrmEmailCampaign(workspace.id, user.id, {
+        status: 'SCHEDULED',
+        scheduledAt: new Date(Date.now() + 60_000),
+      })
+      await seedCrmEmailCampaign(workspace.id, user.id, { status: 'SENT' })
+
+      const list = expectOk(
+        await CrmEmailCampaignRepository.listDueScheduled(new Date()),
+      )
+      expect(list.map((c) => c.id)).toEqual([due.id])
+    })
+  })
+
   describe('setStatus()', () => {
     it('should update status and sentAt', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])

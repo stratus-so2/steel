@@ -34,6 +34,19 @@ export const CrmEmailCampaignRepository = {
     }
   },
 
+  /** Campanhas agendadas cuja hora de disparo já chegou — cross-workspace,
+   * usada pelo tick do worker, não pela API. */
+  async listDueScheduled(now: Date): Promise<Result<CrmEmailCampaign[]>> {
+    try {
+      const campaigns = await prisma.crmEmailCampaign.findMany({
+        where: { status: 'SCHEDULED', scheduledAt: { lte: now } },
+      })
+      return ok(campaigns)
+    } catch (error) {
+      return err(dbError('Failed to list due CRM email campaigns', error))
+    }
+  },
+
   async findById(
     id: string,
     workspaceId: string,

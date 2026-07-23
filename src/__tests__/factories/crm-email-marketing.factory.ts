@@ -71,7 +71,10 @@ export async function seedCrmEmailCampaign(
   workspaceId: string,
   createdById: string,
   overrides?: Partial<
-    Pick<CrmEmailCampaign, 'subject' | 'status' | 'recipientScope'>
+    Pick<
+      CrmEmailCampaign,
+      'subject' | 'status' | 'recipientScope' | 'scheduledAt'
+    >
   >,
 ) {
   return prisma.crmEmailCampaign.create({
