@@ -72,6 +72,10 @@ model User {
   crmQuotasOwned           CrmQuota[]                 @relation("CrmQuotaOwner")
   crmQuotasCreated         CrmQuota[]                 @relation("CrmQuotaCreatedBy")
   crmQuotasUpdated         CrmQuota[]                 @relation("CrmQuotaUpdatedBy")
+  crmReportsCreated        CrmReport[]                @relation("CrmReportCreatedBy")
+  crmReportsUpdated        CrmReport[]                @relation("CrmReportUpdatedBy")
+  crmDashboardsCreated     CrmDashboard[]             @relation("CrmDashboardCreatedBy")
+  crmDashboardsUpdated     CrmDashboard[]             @relation("CrmDashboardUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -267,6 +271,8 @@ model Workspace {
   crmNotes                  CrmNote[]
   crmActivities             CrmActivity[]
   crmQuotas                 CrmQuota[]
+  crmReports                CrmReport[]
+  crmDashboards             CrmDashboard[]
 
   @@map("workspaces")
 }
@@ -1438,4 +1444,80 @@ model CrmQuota {
   @@index([workspaceId])
   @@index([workspaceId, period, periodKey])
   @@map("crm_quotas")
+}
+
+/// Relatório tabular salvo: fonte + colunas/filtros/agrupamento/ordenação (Json).
+model CrmReport {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  name        String
+  source      String
+  columns     Json
+  filters     Json
+  groupBy     String?   @map("group_by")
+  sort        Json?
+  position    Int       @default(0)
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmReportCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmReportUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_reports")
+}
+
+enum CrmWidgetType {
+  CHART
+  VIEW
+  IFRAME
+  RICH_TEXT
+}
+
+/// Dashboard customizável por workspace (grade de widgets).
+model CrmDashboard {
+  id          String    @id @default(cuid())
+  title       String
+  workspaceId String    @map("workspace_id")
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                 @relation("CrmDashboardCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?                @relation("CrmDashboardUpdatedBy", fields: [updatedById], references: [id])
+  widgets   CrmDashboardWidget[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_dashboards")
+}
+
+/// Widget de um dashboard (posição em grade x/y/w/h + config tipada por tipo).
+model CrmDashboardWidget {
+  id          String        @id @default(cuid())
+  dashboardId String        @map("dashboard_id")
+  type        CrmWidgetType
+  x           Int           @default(0)
+  y           Int           @default(0)
+  w           Int           @default(4)
+  h           Int           @default(6)
+  config      Json
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  dashboard CrmDashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+  @@map("crm_dashboard_widgets")
 }
