@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { CrmOpportunityLineItems } from '@/app/_components/crm/crm-opportunity-line-items'
+import { CrmRecordTimeline } from '@/app/_components/crm/crm-record-timeline'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
 import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
@@ -110,12 +111,19 @@ export function CrmOpportunitiesTable({
       searchPlaceholder='Buscar oportunidades…'
       refetch={refetch}
       renderRecordExtra={(record) => (
-        <CrmOpportunityLineItems
-          workspaceId={workspaceId}
-          opportunityId={record.id}
-          productOptions={lookups.options.products}
-          onChanged={refetch}
-        />
+        <div className='flex flex-col gap-5'>
+          <CrmOpportunityLineItems
+            workspaceId={workspaceId}
+            opportunityId={record.id}
+            productOptions={lookups.options.products}
+            onChanged={refetch}
+          />
+          <CrmRecordTimeline
+            workspaceId={workspaceId}
+            opportunityId={record.id}
+            userMap={lookups.maps.users}
+          />
+        </div>
       )}
     />
   )

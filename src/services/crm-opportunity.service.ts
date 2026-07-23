@@ -24,6 +24,7 @@ import type {
   CrmOpportunityLineItemDTO,
 } from '@/types/crm-opportunity'
 import { assertMember } from './authz'
+import { recordCrmActivity } from './crm-activity-recorder'
 import { CrmPipelineService } from './crm-pipeline.service'
 
 type StageRefs = { pipelineId: string; stageId: string }
@@ -194,7 +195,16 @@ export const CrmOpportunityService = {
       targetId: result.value.id,
     })
 
-    return ok(toCrmOpportunityDTO(result.value))
+    const createdDto = toCrmOpportunityDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'opportunity',
+      event: 'created',
+      record: createdDto,
+    })
+
+    return ok(createdDto)
   },
 
   async update(
@@ -241,7 +251,16 @@ export const CrmOpportunityService = {
       meta: { fields: Object.keys(dto) },
     })
 
-    return ok(toCrmOpportunityDTO(result.value))
+    const updatedDto = toCrmOpportunityDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'opportunity',
+      event: 'updated',
+      record: updatedDto,
+    })
+
+    return ok(updatedDto)
   },
 
   async remove(
@@ -266,6 +285,14 @@ export const CrmOpportunityService = {
       action: 'delete',
       actorId,
       targetId: opportunityId,
+    })
+
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'opportunity',
+      event: 'deleted',
+      record: toCrmOpportunityDTO(existing.value),
     })
 
     return ok(undefined)

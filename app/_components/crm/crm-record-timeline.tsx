@@ -1,0 +1,108 @@
+'use client'
+
+import {
+  Activity01Icon,
+  Delete02Icon,
+  PencilEdit02Icon,
+  PlusSignIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
+import { SteelIcon } from '@/components/icon/icon'
+import { useCrmTimeline } from '@/src/hooks/use-crm-timeline'
+import type { CrmActivityDTO } from '@/types/crm-activity'
+
+const ACTION_META: Record<
+  CrmActivityDTO['action'],
+  { icon: typeof Activity01Icon; color: string; verb: string }
+> = {
+  CREATED: { icon: PlusSignIcon, color: 'text-emerald-600', verb: 'criou' },
+  UPDATED: {
+    icon: PencilEdit02Icon,
+    color: 'text-blue-600',
+    verb: 'atualizou',
+  },
+  DELETED: { icon: Delete02Icon, color: 'text-rose-600', verb: 'removeu' },
+}
+
+function formatRelative(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const minutes = Math.round(diffMs / 60_000)
+  if (minutes < 1) return 'agora'
+  if (minutes < 60) return `há ${minutes}min`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `há ${hours}h`
+  const days = Math.round(hours / 24)
+  return `há ${days}d`
+}
+
+/** Feed cronológico de atividades de um registro (empresa, pessoa ou
+ * oportunidade), renderizado no rodapé do `RecordPanel` via
+ * `renderRecordExtra`. `userMap` resolve id→nome do ator. */
+export function CrmRecordTimeline({
+  workspaceId,
+  companyId,
+  personId,
+  opportunityId,
+  userMap = {},
+}: {
+  workspaceId: string
+  companyId?: string
+  personId?: string
+  opportunityId?: string
+  userMap?: Record<string, string>
+}) {
+  const { items, isLoading } = useCrmTimeline(workspaceId, {
+    companyId,
+    personId,
+    opportunityId,
+  })
+
+  return (
+    <div className='flex flex-col gap-3'>
+      <div className='flex items-center gap-2'>
+        <SteelIcon
+          icon={Activity01Icon}
+          strokeWidth={2}
+          className='size-4 text-muted-foreground'
+        />
+        <span className='font-medium text-sm'>Atividade</span>
+      </div>
+
+      {isLoading ? (
+        <p className='text-muted-foreground text-sm'>Carregando…</p>
+      ) : items.length === 0 ? (
+        <p className='text-muted-foreground text-sm'>Sem atividade ainda.</p>
+      ) : (
+        <ol className='flex flex-col gap-3'>
+          {items.map((item) => {
+            const meta = ACTION_META[item.action]
+            const actor = item.actorUserId
+              ? (userMap[item.actorUserId] ?? 'Alguém')
+              : 'Sistema'
+            return (
+              <li key={item.id} className='flex gap-2.5'>
+                <div
+                  className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-muted ${meta.color}`}
+                >
+                  <SteelIcon
+                    icon={meta.icon}
+                    strokeWidth={2}
+                    className='size-3.5'
+                  />
+                </div>
+                <div className='min-w-0 flex-1'>
+                  <p className='text-sm'>
+                    <span className='font-medium'>{actor}</span>{' '}
+                    {item.summary ?? meta.verb}
+                  </p>
+                  <p className='text-muted-foreground text-xs'>
+                    {formatRelative(item.createdAt)}
+                  </p>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </div>
+  )
+}

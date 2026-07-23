@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { CrmRecordTimeline } from '@/app/_components/crm/crm-record-timeline'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
 import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
@@ -98,6 +99,13 @@ export function CrmPeopleTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar pessoas…'
       refetch={refetch}
+      renderRecordExtra={(record) => (
+        <CrmRecordTimeline
+          workspaceId={workspaceId}
+          personId={record.id}
+          userMap={lookups.maps.users}
+        />
+      )}
     />
   )
 }

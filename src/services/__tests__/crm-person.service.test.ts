@@ -7,13 +7,16 @@ import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-person.repository')
+vi.mock('@/src/repositories/crm-activity.repository')
 
+import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmPersonService } from '../crm-person.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedPersonRepo = vi.mocked(CrmPersonRepository)
+const mockedActivityRepo = vi.mocked(CrmActivityRepository)
 
 describe('CrmPersonService', () => {
   describe('list()', () => {
@@ -57,6 +60,9 @@ describe('CrmPersonService', () => {
 
       const dto = expectOk(result)
       expect(dto.name).toBe('Jane')
+      expect(mockedActivityRepo.record).toHaveBeenCalledWith(
+        expect.objectContaining({ entity: 'person', action: 'CREATED' }),
+      )
     })
 
     it('should propagate repository errors', async () => {

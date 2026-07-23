@@ -9,6 +9,7 @@ import type {
 } from '@/src/schemas/crm-person.schema'
 import type { CrmPersonDTO } from '@/types/crm-person'
 import { assertMember } from './authz'
+import { recordCrmActivity } from './crm-activity-recorder'
 
 export const CrmPersonService = {
   async list(
@@ -80,7 +81,16 @@ export const CrmPersonService = {
       targetId: result.value.id,
     })
 
-    return ok(toCrmPersonDTO(result.value))
+    const createdDto = toCrmPersonDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'person',
+      event: 'created',
+      record: createdDto,
+    })
+
+    return ok(createdDto)
   },
 
   async update(
@@ -128,7 +138,16 @@ export const CrmPersonService = {
       meta: { fields: Object.keys(dto) },
     })
 
-    return ok(toCrmPersonDTO(result.value))
+    const updatedDto = toCrmPersonDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'person',
+      event: 'updated',
+      record: updatedDto,
+    })
+
+    return ok(updatedDto)
   },
 
   async remove(
@@ -150,6 +169,14 @@ export const CrmPersonService = {
       action: 'delete',
       actorId,
       targetId: personId,
+    })
+
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'person',
+      event: 'deleted',
+      record: toCrmPersonDTO(existing.value),
     })
 
     return ok(undefined)

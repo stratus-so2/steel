@@ -10,6 +10,7 @@ import type {
 } from '@/src/schemas/crm-company.schema'
 import type { CrmCompanyDTO } from '@/types/crm-company'
 import { assertMember } from './authz'
+import { recordCrmActivity } from './crm-activity-recorder'
 
 export const CrmCompanyService = {
   async list(
@@ -82,7 +83,16 @@ export const CrmCompanyService = {
       targetId: result.value.id,
     })
 
-    return ok(toCrmCompanyDTO(result.value))
+    const createdDto = toCrmCompanyDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'company',
+      event: 'created',
+      record: createdDto,
+    })
+
+    return ok(createdDto)
   },
 
   async update(
@@ -131,7 +141,16 @@ export const CrmCompanyService = {
       meta: { fields: Object.keys(dto) },
     })
 
-    return ok(toCrmCompanyDTO(result.value))
+    const updatedDto = toCrmCompanyDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'company',
+      event: 'updated',
+      record: updatedDto,
+    })
+
+    return ok(updatedDto)
   },
 
   async remove(
@@ -153,6 +172,14 @@ export const CrmCompanyService = {
       action: 'delete',
       actorId,
       targetId: companyId,
+    })
+
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'company',
+      event: 'deleted',
+      record: toCrmCompanyDTO(existing.value),
     })
 
     return ok(undefined)

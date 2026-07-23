@@ -14,7 +14,9 @@ import { ok } from '@/src/lib/result'
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-opportunity.repository')
 vi.mock('@/src/repositories/crm-pipeline.repository')
+vi.mock('@/src/repositories/crm-activity.repository')
 
+import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
 import {
   CrmOpportunityLineItemRepository,
   CrmOpportunityRepository,
@@ -34,6 +36,7 @@ const mockedOpportunityRepo = vi.mocked(CrmOpportunityRepository)
 const mockedLineItemRepo = vi.mocked(CrmOpportunityLineItemRepository)
 const mockedPipelineRepo = vi.mocked(CrmPipelineRepository)
 const mockedStageRepo = vi.mocked(CrmPipelineStageRepository)
+const mockedActivityRepo = vi.mocked(CrmActivityRepository)
 
 describe('CrmOpportunityService', () => {
   describe('list()', () => {
@@ -84,6 +87,9 @@ describe('CrmOpportunityService', () => {
       )
       expect(mockedOpportunityRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ pipelineId: 'pl-default', stageId: 's1' }),
+      )
+      expect(mockedActivityRepo.record).toHaveBeenCalledWith(
+        expect.objectContaining({ entity: 'opportunity', action: 'CREATED' }),
       )
     })
 

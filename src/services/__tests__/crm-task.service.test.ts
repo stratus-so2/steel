@@ -6,13 +6,16 @@ import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-task.repository')
+vi.mock('@/src/repositories/crm-activity.repository')
 
+import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
 import { CrmTaskRepository } from '@/src/repositories/crm-task.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmTaskService } from '../crm-task.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedTaskRepo = vi.mocked(CrmTaskRepository)
+const mockedActivityRepo = vi.mocked(CrmActivityRepository)
 
 describe('CrmTaskService', () => {
   describe('list()', () => {
@@ -31,6 +34,28 @@ describe('CrmTaskService', () => {
 
       const dtos = expectOk(await CrmTaskService.list('u1', 'ws1', {}))
       expect(dtos).toHaveLength(1)
+    })
+  })
+
+  describe('create()', () => {
+    it('should record a CRM activity on success', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedTaskRepo.create.mockResolvedValue(
+        ok(createFakeCrmTask({ title: 'Ligar' })),
+      )
+
+      expectOk(
+        await CrmTaskService.create('u1', 'ws1', {
+          title: 'Ligar',
+          status: 'TODO',
+        }),
+      )
+
+      expect(mockedActivityRepo.record).toHaveBeenCalledWith(
+        expect.objectContaining({ entity: 'task', action: 'CREATED' }),
+      )
     })
   })
 })

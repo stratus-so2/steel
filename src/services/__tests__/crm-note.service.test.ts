@@ -6,13 +6,16 @@ import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-note.repository')
+vi.mock('@/src/repositories/crm-activity.repository')
 
+import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
 import { CrmNoteRepository } from '@/src/repositories/crm-note.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmNoteService } from '../crm-note.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedNoteRepo = vi.mocked(CrmNoteRepository)
+const mockedActivityRepo = vi.mocked(CrmActivityRepository)
 
 describe('CrmNoteService', () => {
   describe('list()', () => {
@@ -31,6 +34,23 @@ describe('CrmNoteService', () => {
 
       const dtos = expectOk(await CrmNoteService.list('u1', 'ws1', {}))
       expect(dtos).toHaveLength(1)
+    })
+  })
+
+  describe('create()', () => {
+    it('should record a CRM activity on success', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedNoteRepo.create.mockResolvedValue(
+        ok(createFakeCrmNote({ title: 'Kickoff' })),
+      )
+
+      expectOk(await CrmNoteService.create('u1', 'ws1', { title: 'Kickoff' }))
+
+      expect(mockedActivityRepo.record).toHaveBeenCalledWith(
+        expect.objectContaining({ entity: 'note', action: 'CREATED' }),
+      )
     })
   })
 })

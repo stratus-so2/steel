@@ -9,6 +9,7 @@ import type {
 } from '@/src/schemas/crm-note.schema'
 import type { CrmNoteDTO } from '@/types/crm-note'
 import { assertMember } from './authz'
+import { recordCrmActivity } from './crm-activity-recorder'
 
 export const CrmNoteService = {
   async list(
@@ -61,7 +62,16 @@ export const CrmNoteService = {
       targetId: result.value.id,
     })
 
-    return ok(toCrmNoteDTO(result.value))
+    const createdDto = toCrmNoteDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'note',
+      event: 'created',
+      record: createdDto,
+    })
+
+    return ok(createdDto)
   },
 
   async update(
@@ -94,7 +104,16 @@ export const CrmNoteService = {
       meta: { fields: Object.keys(dto) },
     })
 
-    return ok(toCrmNoteDTO(result.value))
+    const updatedDto = toCrmNoteDTO(result.value)
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'note',
+      event: 'updated',
+      record: updatedDto,
+    })
+
+    return ok(updatedDto)
   },
 
   async remove(
@@ -116,6 +135,14 @@ export const CrmNoteService = {
       action: 'delete',
       actorId,
       targetId: noteId,
+    })
+
+    void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'note',
+      event: 'deleted',
+      record: toCrmNoteDTO(existing.value),
     })
 
     return ok(undefined)
