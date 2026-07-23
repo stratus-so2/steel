@@ -1,0 +1,30 @@
+import z from 'zod'
+
+export const CreateCrmPersonSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(200),
+  emails: z.array(z.email()).default([]),
+  phones: z.array(z.string().max(30)).default([]),
+  city: z.string().max(100).optional(),
+  jobTitle: z.string().max(150).optional(),
+  linkedin: z.string().max(300).optional(),
+  avatar: z.string().max(500).optional(),
+  companyId: z.string().optional(),
+})
+
+export type CreateCrmPersonDTO = z.infer<typeof CreateCrmPersonSchema>
+
+export const UpdateCrmPersonSchema = CreateCrmPersonSchema.partial()
+
+export type UpdateCrmPersonDTO = z.infer<typeof UpdateCrmPersonSchema>
+
+export const ListCrmPeopleSchema = z.object({
+  companyId: z.string().optional(),
+})
+
+export type ListCrmPeopleDTO = z.infer<typeof ListCrmPeopleSchema>
+
+export const ReorderCrmPeopleSchema = z.object({
+  orderedIds: z.array(z.string()).min(1),
+})
+
+export type ReorderCrmPeopleDTO = z.infer<typeof ReorderCrmPeopleSchema>
