@@ -79,6 +79,9 @@ export const CrmNoteService = {
     const result = await CrmNoteRepository.update(noteId, {
       title: dto.title,
       body: dto.body,
+      companyId: dto.companyId,
+      personId: dto.personId,
+      opportunityId: dto.opportunityId,
       updatedById: actorId,
     })
     if (!result.ok) return result
@@ -116,5 +119,16 @@ export const CrmNoteService = {
     })
 
     return ok(undefined)
+  },
+
+  async reorder(
+    actorId: string,
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    return CrmNoteRepository.reorder(workspaceId, orderedIds)
   },
 }

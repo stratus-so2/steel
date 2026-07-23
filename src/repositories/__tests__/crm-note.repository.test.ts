@@ -24,4 +24,19 @@ describe('CrmNoteRepository', () => {
       expect(list.map((n) => n.id)).toEqual([matched.id])
     })
   })
+
+  describe('reorder()', () => {
+    it('should update positions across the whole workspace', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const a = await seedCrmNote(workspace.id, user.id)
+      const b = await seedCrmNote(workspace.id, user.id)
+
+      expectOk(await CrmNoteRepository.reorder(workspace.id, [b.id, a.id]))
+
+      const list = expectOk(
+        await CrmNoteRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((n) => n.id)).toEqual([b.id, a.id])
+    })
+  })
 })

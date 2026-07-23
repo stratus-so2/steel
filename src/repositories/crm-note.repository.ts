@@ -20,7 +20,7 @@ export const CrmNoteRepository = {
             ? { opportunityId: filters.opportunityId }
             : {}),
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
       })
       return ok(notes)
     } catch (error) {
@@ -62,7 +62,14 @@ export const CrmNoteRepository = {
 
   async update(
     id: string,
-    data: { title?: string; body?: string; updatedById?: string },
+    data: {
+      title?: string
+      body?: string
+      companyId?: string | null
+      personId?: string | null
+      opportunityId?: string | null
+      updatedById?: string
+    },
   ): Promise<Result<CrmNote>> {
     try {
       const note = await prisma.crmNote.update({ where: { id }, data })
@@ -81,6 +88,26 @@ export const CrmNoteRepository = {
       return ok(undefined)
     } catch (error) {
       return err(dbError('Failed to delete CRM note', error))
+    }
+  },
+
+  /** Reordena globalmente — usado pela grade genérica. */
+  async reorder(
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    try {
+      await prisma.$transaction(
+        orderedIds.map((id, position) =>
+          prisma.crmNote.update({
+            where: { id, workspaceId },
+            data: { position },
+          }),
+        ),
+      )
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to reorder CRM notes', error))
     }
   },
 }
