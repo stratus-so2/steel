@@ -7,6 +7,8 @@ export {
   couponInvalid,
   crmCompanyConflict,
   crmCompanyNotFound,
+  crmOpportunityLineItemNotFound,
+  crmOpportunityNotFound,
   crmPersonNotFound,
   crmPipelineNotFound,
   crmPipelineStageInUse,

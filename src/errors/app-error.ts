@@ -236,3 +236,12 @@ export const crmProductNotFound = (): AppError =>
 export const crmProductConflict = (
   message = 'Já existe um produto com este SKU neste workspace',
 ): AppError => appError('CRM_PRODUCT_CONFLICT', message)
+
+export const crmOpportunityNotFound = (): AppError =>
+  appError('CRM_OPPORTUNITY_NOT_FOUND', 'Oportunidade não encontrada')
+
+export const crmOpportunityLineItemNotFound = (): AppError =>
+  appError(
+    'CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND',
+    'Item da oportunidade não encontrado',
+  )

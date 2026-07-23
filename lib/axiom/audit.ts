@@ -31,6 +31,8 @@ type AuditEntity =
   | 'crm_pipeline'
   | 'crm_pipeline_stage'
   | 'crm_product'
+  | 'crm_opportunity'
+  | 'crm_opportunity_line_item'
 
 type AuditAction =
   | 'create'
