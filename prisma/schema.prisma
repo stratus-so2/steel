@@ -45,22 +45,24 @@ model User {
   whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
   whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
 
-  crmCompaniesCreated      CrmCompany[]         @relation("CrmCompanyCreatedBy")
-  crmCompaniesOwned        CrmCompany[]         @relation("CrmCompanyAccountOwner")
-  crmCompaniesUpdated      CrmCompany[]         @relation("CrmCompanyUpdatedBy")
-  crmPeopleCreated         CrmPerson[]          @relation("CrmPersonCreatedBy")
-  crmPeopleUpdated         CrmPerson[]          @relation("CrmPersonUpdatedBy")
-  crmPipelinesCreated      CrmPipeline[]        @relation("CrmPipelineCreatedBy")
-  crmPipelinesUpdated      CrmPipeline[]        @relation("CrmPipelineUpdatedBy")
-  crmProductsCreated       CrmProduct[]         @relation("CrmProductCreatedBy")
-  crmProductsUpdated       CrmProduct[]         @relation("CrmProductUpdatedBy")
-  crmOpportunitiesCreated  CrmOpportunity[]     @relation("CrmOpportunityCreatedBy")
-  crmOpportunitiesUpdated  CrmOpportunity[]     @relation("CrmOpportunityUpdatedBy")
-  crmOpportunitiesOwned    CrmOpportunity[]     @relation("CrmOpportunityOwner")
-  crmLeadsCreated          CrmLead[]            @relation("CrmLeadCreatedBy")
-  crmLeadsUpdated          CrmLead[]            @relation("CrmLeadUpdatedBy")
-  crmLeadsOwned            CrmLead[]            @relation("CrmLeadOwner")
-  crmLeadRoutingRulesOwned CrmLeadRoutingRule[] @relation("CrmLeadRoutingOwner")
+  crmCompaniesCreated      CrmCompany[]               @relation("CrmCompanyCreatedBy")
+  crmCompaniesOwned        CrmCompany[]               @relation("CrmCompanyAccountOwner")
+  crmCompaniesUpdated      CrmCompany[]               @relation("CrmCompanyUpdatedBy")
+  crmPeopleCreated         CrmPerson[]                @relation("CrmPersonCreatedBy")
+  crmPeopleUpdated         CrmPerson[]                @relation("CrmPersonUpdatedBy")
+  crmPipelinesCreated      CrmPipeline[]              @relation("CrmPipelineCreatedBy")
+  crmPipelinesUpdated      CrmPipeline[]              @relation("CrmPipelineUpdatedBy")
+  crmProductsCreated       CrmProduct[]               @relation("CrmProductCreatedBy")
+  crmProductsUpdated       CrmProduct[]               @relation("CrmProductUpdatedBy")
+  crmOpportunitiesCreated  CrmOpportunity[]           @relation("CrmOpportunityCreatedBy")
+  crmOpportunitiesUpdated  CrmOpportunity[]           @relation("CrmOpportunityUpdatedBy")
+  crmOpportunitiesOwned    CrmOpportunity[]           @relation("CrmOpportunityOwner")
+  crmLeadsCreated          CrmLead[]                  @relation("CrmLeadCreatedBy")
+  crmLeadsUpdated          CrmLead[]                  @relation("CrmLeadUpdatedBy")
+  crmLeadsOwned            CrmLead[]                  @relation("CrmLeadOwner")
+  crmLeadRoutingRulesOwned CrmLeadRoutingRule[]       @relation("CrmLeadRoutingOwner")
+  crmCustomFieldsCreated   CrmCustomFieldDefinition[] @relation("CrmCustomFieldCreatedBy")
+  crmCustomFieldsUpdated   CrmCustomFieldDefinition[] @relation("CrmCustomFieldUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -243,14 +245,15 @@ model Workspace {
   whatsappGroups         WhatsAppGroup[]
   whatsappGroupMessages  WhatsAppGroupMessage[]
 
-  crmCompanies        CrmCompany[]
-  crmPeople           CrmPerson[]
-  crmPipelines        CrmPipeline[]
-  crmProducts         CrmProduct[]
-  crmOpportunities    CrmOpportunity[]
-  crmLeads            CrmLead[]
-  crmLeadScoringRules CrmLeadScoringRule[]
-  crmLeadRoutingRules CrmLeadRoutingRule[]
+  crmCompanies              CrmCompany[]
+  crmPeople                 CrmPerson[]
+  crmPipelines              CrmPipeline[]
+  crmProducts               CrmProduct[]
+  crmOpportunities          CrmOpportunity[]
+  crmLeads                  CrmLead[]
+  crmLeadScoringRules       CrmLeadScoringRule[]
+  crmLeadRoutingRules       CrmLeadRoutingRule[]
+  crmCustomFieldDefinitions CrmCustomFieldDefinition[]
 
   @@map("workspaces")
 }
@@ -1229,4 +1232,65 @@ model CrmLeadRoutingRule {
 
   @@index([workspaceId, position])
   @@map("crm_lead_routing_rules")
+}
+
+enum CrmCustomFieldEntity {
+  COMPANY
+  PERSON
+  OPPORTUNITY
+}
+
+enum CrmCustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+}
+
+/// Definição de um campo customizado (no-code) por workspace e entidade.
+model CrmCustomFieldDefinition {
+  id          String               @id @default(cuid())
+  workspaceId String               @map("workspace_id")
+  entity      CrmCustomFieldEntity
+  key         String
+  label       String
+  type        CrmCustomFieldType   @default(TEXT)
+  options     String[]             @default([])
+  required    Boolean              @default(false)
+  position    Int                  @default(0)
+  createdById String               @map("created_by_id")
+  updatedById String?              @map("updated_by_id")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  deletedAt   DateTime?            @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmCustomFieldCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmCustomFieldUpdatedBy", fields: [updatedById], references: [id])
+
+  values CrmCustomFieldValue[]
+
+  @@unique([workspaceId, entity, key])
+  @@index([workspaceId, entity])
+  @@index([deletedAt])
+  @@map("crm_custom_field_definitions")
+}
+
+/// Valor de um campo customizado para um registro (Company/Person/Opportunity).
+/// `recordId` é o id do registro da entidade da definição. `value` é JSON tipado.
+model CrmCustomFieldValue {
+  id           String   @id @default(cuid())
+  definitionId String   @map("definition_id")
+  recordId     String   @map("record_id")
+  value        Json
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  definition CrmCustomFieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  @@unique([definitionId, recordId])
+  @@index([recordId])
+  @@index([definitionId])
+  @@map("crm_custom_field_values")
 }
