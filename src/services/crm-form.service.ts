@@ -16,6 +16,7 @@ import { CrmLeadRepository } from '@/src/repositories/crm-lead.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import type {
   CreateCrmFormDTO,
+  CrmFormFieldDTO,
   SubmitCrmFormDTO,
   UpdateCrmFormDTO,
 } from '@/src/schemas/crm-form.schema'
@@ -30,6 +31,24 @@ function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
 }
 
+type TargetAttrs = Record<string, unknown>
+
+/** Agrupa os valores enviados pelos atributos de destino declarados no
+ * `mapping` de cada campo (ex.: `{ person: { name, email }, ... }`). */
+function groupByTarget(
+  fields: CrmFormFieldDTO[],
+  values: Record<string, string | boolean>,
+): Record<string, TargetAttrs> {
+  const byTarget: Record<string, TargetAttrs> = {}
+  for (const field of fields) {
+    const raw = values[field.key]
+    if (raw === undefined || raw === '') continue
+    const target = (byTarget[field.mapping.target] ??= {})
+    target[field.mapping.attribute] = raw
+  }
+  return byTarget
+}
+
 export const CrmFormService = {
   async list(
     actorId: string,
@@ -42,6 +61,20 @@ export const CrmFormService = {
     if (!result.ok) return result
 
     return ok(result.value.map(toCrmFormDTO))
+  },
+
+  async getById(
+    actorId: string,
+    workspaceId: string,
+    formId: string,
+  ): Promise<Result<CrmFormDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const result = await CrmFormRepository.findById(formId, workspaceId)
+    if (!result.ok) return result
+
+    return ok(toCrmFormDTO(result.value))
   },
 
   async create(
@@ -99,7 +132,15 @@ export const CrmFormService = {
     const result = await CrmFormRepository.update(formId, {
       name: dto.name,
       description: dto.description,
+      action: dto.action,
       fields: dto.fields as unknown as Prisma.InputJsonValue | undefined,
+      status: dto.status,
+      publishedAt:
+        dto.status === undefined
+          ? undefined
+          : dto.status === 'PUBLISHED'
+            ? new Date()
+            : null,
       successMessage: dto.successMessage,
       redirectUrl: dto.redirectUrl,
       updatedById: actorId,
@@ -214,37 +255,53 @@ export const CrmFormService = {
     const form = await CrmFormRepository.findPublishedByPublicToken(publicToken)
     if (!form.ok) return form
 
-    const name = dto.values.name ?? dto.values.email ?? 'Sem nome'
+    const fields = (form.value.fields as unknown as CrmFormFieldDTO[]) ?? []
+    const byTarget = groupByTarget(fields, dto.values)
+
     let createdCompanyId: string | undefined
     let createdPersonId: string | undefined
     let createdLeadId: string | undefined
 
     if (form.value.action === 'COMPANY') {
+      const attrs = byTarget.company ?? {}
       const created = await CrmCompanyRepository.create({
         workspaceId: form.value.workspaceId,
         createdById: form.value.createdById,
-        name,
-        domain: dto.values.domain,
+        name: String(attrs.name ?? 'Sem nome'),
+        cnpj: attrs.cnpj ? String(attrs.cnpj) : undefined,
+        domain: attrs.domain ? String(attrs.domain) : undefined,
+        employees: attrs.employees ? Number(attrs.employees) : undefined,
+        linkedin: attrs.linkedin ? String(attrs.linkedin) : undefined,
+        arr: attrs.arr ? Number(attrs.arr) : undefined,
       })
       if (!created.ok) return created
       createdCompanyId = created.value.id
     } else if (form.value.action === 'PERSON') {
+      const attrs = byTarget.person ?? {}
       const created = await CrmPersonRepository.create({
         workspaceId: form.value.workspaceId,
         createdById: form.value.createdById,
-        name,
-        emails: dto.values.email ? [dto.values.email] : [],
-        phones: dto.values.phone ? [dto.values.phone] : [],
+        name: String(attrs.name ?? attrs.email ?? 'Sem nome'),
+        emails: attrs.email ? [String(attrs.email)] : [],
+        phones: attrs.phone ? [String(attrs.phone)] : [],
+        city: attrs.city ? String(attrs.city) : undefined,
+        jobTitle: attrs.jobTitle ? String(attrs.jobTitle) : undefined,
+        linkedin: attrs.linkedin ? String(attrs.linkedin) : undefined,
+        avatar: attrs.avatar ? String(attrs.avatar) : undefined,
       })
       if (!created.ok) return created
       createdPersonId = created.value.id
     } else {
+      const attrs = byTarget.lead ?? {}
       const created = await CrmLeadRepository.create({
         workspaceId: form.value.workspaceId,
         createdById: form.value.createdById,
-        name,
-        emails: dto.values.email ? [dto.values.email] : [],
-        phones: dto.values.phone ? [dto.values.phone] : [],
+        name: String(attrs.name ?? attrs.email ?? 'Sem nome'),
+        emails: attrs.email ? [String(attrs.email)] : [],
+        phones: attrs.phone ? [String(attrs.phone)] : [],
+        company: attrs.company ? String(attrs.company) : undefined,
+        jobTitle: attrs.jobTitle ? String(attrs.jobTitle) : undefined,
+        source: attrs.source ? String(attrs.source) : 'form',
         score: 0,
       })
       if (!created.ok) return created

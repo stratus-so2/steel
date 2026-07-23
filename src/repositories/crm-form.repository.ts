@@ -78,7 +78,10 @@ export const CrmFormRepository = {
     data: {
       name?: string
       description?: string
+      action?: CrmFormAction
       fields?: Prisma.InputJsonValue
+      status?: 'DRAFT' | 'PUBLISHED'
+      publishedAt?: Date | null
       successMessage?: string
       redirectUrl?: string
       updatedById?: string

@@ -30,7 +30,7 @@ describe('CrmFormService', () => {
   })
 
   describe('submit()', () => {
-    it('should create a lead and a submission for a LEAD-action form', async () => {
+    it('should apply field mappings and create a lead + submission for a LEAD-action form', async () => {
       mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
         ok(
           createFakeCrmForm({
@@ -38,6 +38,22 @@ describe('CrmFormService', () => {
             action: 'LEAD',
             workspaceId: 'ws1',
             createdById: 'owner1',
+            fields: [
+              {
+                key: 'full_name',
+                label: 'Nome',
+                type: 'text',
+                required: true,
+                mapping: { target: 'lead', attribute: 'name' },
+              },
+              {
+                key: 'work_email',
+                label: 'E-mail',
+                type: 'email',
+                required: true,
+                mapping: { target: 'lead', attribute: 'email' },
+              },
+            ],
           }),
         ),
       )
@@ -48,7 +64,7 @@ describe('CrmFormService', () => {
         ok({
           id: 's1',
           formId: 'f1',
-          values: { name: 'Jane' },
+          values: { full_name: 'Jane', work_email: 'jane@acme.com' },
           action: 'LEAD',
           createdPersonId: null,
           createdCompanyId: null,
@@ -61,12 +77,57 @@ describe('CrmFormService', () => {
 
       const dto = expectOk(
         await CrmFormService.submit('tok', '1.2.3.4', undefined, {
-          values: { name: 'Jane' },
+          values: { full_name: 'Jane', work_email: 'jane@acme.com' },
         }),
       )
       expect(dto.createdLeadId).toBe('lead1')
       expect(mockedLeadRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ workspaceId: 'ws1', createdById: 'owner1' }),
+        expect.objectContaining({
+          workspaceId: 'ws1',
+          createdById: 'owner1',
+          name: 'Jane',
+          emails: ['jane@acme.com'],
+        }),
+      )
+    })
+
+    it('should fall back to a default name when no name mapping matched', async () => {
+      mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
+        ok(
+          createFakeCrmForm({
+            id: 'f1',
+            action: 'LEAD',
+            workspaceId: 'ws1',
+            createdById: 'owner1',
+            fields: [],
+          }),
+        ),
+      )
+      mockedLeadRepo.create.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'lead1' })),
+      )
+      mockedSubmissionRepo.create.mockResolvedValue(
+        ok({
+          id: 's1',
+          formId: 'f1',
+          values: {},
+          action: 'LEAD',
+          createdPersonId: null,
+          createdCompanyId: null,
+          createdLeadId: 'lead1',
+          ipHash: 'hashed',
+          referrer: null,
+          createdAt: new Date(),
+        }),
+      )
+
+      expectOk(
+        await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+          values: {},
+        }),
+      )
+      expect(mockedLeadRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Sem nome' }),
       )
     })
   })

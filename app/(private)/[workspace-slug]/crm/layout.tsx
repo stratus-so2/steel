@@ -6,6 +6,7 @@ import {
   ChartHistogramIcon,
   CheckListIcon,
   DocumentValidationIcon,
+  FormIcon,
   FunnelIcon,
   Key01Icon,
   Mail01Icon,
@@ -71,6 +72,9 @@ export default async function CrmLayout({
           </NavItem>
           <NavItem href={`${base}/proposals`} icon={DocumentValidationIcon}>
             Documentos
+          </NavItem>
+          <NavItem href={`${base}/forms`} icon={FormIcon}>
+            Formulários
           </NavItem>
           <NavItem href={`${base}/custom-fields`} icon={CheckListIcon}>
             Campos customizados

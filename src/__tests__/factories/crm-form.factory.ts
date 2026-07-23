@@ -103,6 +103,7 @@ export function createFakeCrmFormSubmissionDTO(
     createdPersonId: null,
     createdCompanyId: null,
     createdLeadId: null,
+    referrer: null,
     createdAt: new Date().toISOString(),
     ...overrides,
   }

@@ -16,6 +16,7 @@ const SEGMENTS = [
   'tasks',
   'notes',
   'proposals',
+  'forms',
   'custom-fields',
   'email-templates',
   'email-campaigns',

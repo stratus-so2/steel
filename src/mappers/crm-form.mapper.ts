@@ -45,11 +45,12 @@ export function toCrmFormSubmissionDTO(
   return {
     id: submission.id,
     formId: submission.formId,
-    values: submission.values as Record<string, string>,
+    values: submission.values as Record<string, string | boolean>,
     action: submission.action,
     createdPersonId: submission.createdPersonId,
     createdCompanyId: submission.createdCompanyId,
     createdLeadId: submission.createdLeadId,
+    referrer: submission.referrer,
     createdAt: submission.createdAt.toISOString(),
   }
 }

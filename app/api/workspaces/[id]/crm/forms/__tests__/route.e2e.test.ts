@@ -18,7 +18,15 @@ describe('CRM forms CRUD', () => {
       {
         name: 'Contato',
         action: 'LEAD',
-        fields: [{ key: 'name', label: 'Nome', type: 'text', required: true }],
+        fields: [
+          {
+            key: 'name',
+            label: 'Nome',
+            type: 'text',
+            required: true,
+            mapping: { target: 'lead', attribute: 'name' },
+          },
+        ],
       },
       user.cookie,
     )
@@ -47,7 +55,24 @@ describe('CRM form publish and public submit', () => {
     const created = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/forms`,
-        { name: 'Contato', action: 'LEAD' },
+        {
+          name: 'Contato',
+          action: 'LEAD',
+          fields: [
+            {
+              key: 'full_name',
+              label: 'Nome',
+              type: 'text',
+              mapping: { target: 'lead', attribute: 'name' },
+            },
+            {
+              key: 'work_email',
+              label: 'E-mail',
+              type: 'email',
+              mapping: { target: 'lead', attribute: 'email' },
+            },
+          ],
+        },
         user.cookie,
       )
     ).json()
@@ -76,7 +101,7 @@ describe('CRM form publish and public submit', () => {
         method: 'POST',
         headers: defaultHeaders,
         body: JSON.stringify({
-          values: { name: 'Jane Doe', email: 'jane@acme.com' },
+          values: { full_name: 'Jane Doe', work_email: 'jane@acme.com' },
         }),
       },
     )
@@ -96,10 +121,67 @@ describe('CRM form publish and public submit', () => {
       user.cookie,
     )
     const leadsBody = await leads.json()
-    expect(
-      leadsBody.data.some(
-        (l: { id: string }) => l.id === submitBody.data.createdLeadId,
-      ),
-    ).toBe(true)
+    const createdLead = leadsBody.data.find(
+      (l: { id: string }) => l.id === submitBody.data.createdLeadId,
+    )
+    expect(createdLead).toBeTruthy()
+    expect(createdLead.name).toBe('Jane Doe')
+    expect(createdLead.emails).toEqual(['jane@acme.com'])
+  })
+})
+
+describe('CRM form builder + public pages (SSR)', () => {
+  it('should render the builder page and the public form page without a server error', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/forms`,
+        { name: 'Página de teste', action: 'LEAD' },
+        user.cookie,
+      )
+    ).json()
+
+    const builderPage = await fetch(
+      `${BASE_URL}/${workspace.slug}/crm/forms/${created.data.id}`,
+      { headers: { ...defaultHeaders, Cookie: user.cookie } },
+    )
+    expect(builderPage.status).toBe(200)
+    const builderHtml = await builderPage.text()
+    expect(builderHtml).not.toContain('Application error')
+
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/forms/${created.data.id}/publish`,
+      {},
+      user.cookie,
+    )
+
+    const publicPage = await fetch(
+      `${BASE_URL}/f/${created.data.publicToken}`,
+      { headers: defaultHeaders },
+    )
+    expect(publicPage.status).toBe(200)
+    const publicHtml = await publicPage.text()
+    expect(publicHtml).not.toContain('Application error')
+    expect(publicHtml).toContain('Página de teste')
+  })
+
+  it('should not render the form for an unpublished (draft) form', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/forms`,
+        { name: 'Rascunho Único XPTO', action: 'LEAD' },
+        user.cookie,
+      )
+    ).json()
+
+    const publicPage = await fetch(
+      `${BASE_URL}/f/${created.data.publicToken}`,
+      { headers: defaultHeaders },
+    )
+    const html = await publicPage.text()
+    // notFound() renderiza o boundary global (app/not-found.tsx) em vez do
+    // formulário — o nome do formulário rascunho nunca deve vazar.
+    expect(html).not.toContain('Rascunho Único XPTO')
   })
 })
