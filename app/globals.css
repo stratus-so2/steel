@@ -241,3 +241,62 @@
   font-weight: 600;
   background-color: var(--muted);
 }
+
+/* ── @react-email/editor: ajuste pro dark-mode do projeto (class-based) ──
+   O CSS embarcado do editor usa `prefers-color-scheme: dark` pra alternar
+   variáveis. Aqui forçamos a paleta dark sempre que o ancestral tiver `.dark`,
+   alinhada aos tokens do tema do Steel. */
+.email-editor-shell,
+.email-editor-shell .ProseMirror {
+  background: var(--card);
+  color: var(--foreground);
+}
+/* Garante que o editor e seus filhos respeitem a largura do container —
+   evita scroll horizontal quando o painel é estreito. */
+.email-editor-shell,
+.email-editor-shell > * {
+  max-width: 100%;
+  min-width: 0;
+}
+.email-editor-shell .ProseMirror {
+  padding: 0.75rem 1rem;
+  min-height: 360px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.email-editor-shell .ProseMirror img,
+.email-editor-shell .ProseMirror table {
+  max-width: 100%;
+  height: auto;
+}
+.email-editor-shell .ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.dark .email-editor-shell {
+  --re-bg: var(--card);
+  --re-bg-active: var(--muted);
+  --re-bg-hover: var(--muted);
+  --re-border: var(--border);
+  --re-text: var(--foreground);
+  --re-text-muted: var(--muted-foreground);
+  --re-hover: color-mix(in oklch, var(--foreground) 6%, transparent);
+  --re-active: color-mix(in oklch, var(--foreground) 9%, transparent);
+  --re-pressed: color-mix(in oklch, var(--foreground) 9%, transparent);
+  --re-separator: var(--border);
+  --re-danger: var(--destructive);
+  --re-danger-hover: color-mix(in oklch, var(--destructive) 15%, transparent);
+  --re-tooltip-bg: var(--popover);
+  --re-tooltip-text: var(--popover-foreground);
+}
+/* Popups do editor são portados pro <body> sem z-index — quando o editor
+   abre dentro de um Sheet/Dialog (z-50), o popup fica escondido atrás.
+   O wrapper (parent imediato) tem `position: absolute` inline mas z-auto;
+   `:has()` deixa subir o stacking sem mexer no library. */
+:has(> [data-re-slash-command]),
+:has(> [data-re-bubble-menu]) {
+  z-index: 60;
+}

@@ -2,6 +2,7 @@
 
 import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
+import { EmailEditorPanel } from '@/app/_components/crm/email-editor-panel'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,13 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import {
   useCreateCrmEmailTemplate,
   useCrmEmailTemplates,
   useDeleteCrmEmailTemplate,
+  useUpdateCrmEmailTemplate,
 } from '@/src/hooks/use-crm-email-marketing'
+import type { CrmEmailTemplateDTO } from '@/types/crm-email-marketing'
 
 export function CrmEmailTemplatesPanel({
   workspaceId,
@@ -35,6 +37,8 @@ export function CrmEmailTemplatesPanel({
 }) {
   const { data: templates, isLoading } = useCrmEmailTemplates(workspaceId)
   const deleteTemplate = useDeleteCrmEmailTemplate(workspaceId)
+  const [editingTemplate, setEditingTemplate] =
+    useState<CrmEmailTemplateDTO | null>(null)
 
   async function handleDelete(templateId: string) {
     try {
@@ -48,14 +52,17 @@ export function CrmEmailTemplatesPanel({
   return (
     <div className='flex flex-col gap-3'>
       <div className='flex items-center justify-end'>
-        <CreateCrmEmailTemplateDialog workspaceId={workspaceId} />
+        <CreateCrmEmailTemplateDialog
+          workspaceId={workspaceId}
+          onCreated={setEditingTemplate}
+        />
       </div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>Assunto</TableHead>
-            <TableHead className='w-10' />
+            <TableHead className='w-24' />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -73,7 +80,14 @@ export function CrmEmailTemplatesPanel({
             <TableRow key={template.id}>
               <TableCell>{template.name}</TableCell>
               <TableCell>{template.subject}</TableCell>
-              <TableCell>
+              <TableCell className='flex items-center justify-end gap-1'>
+                <Button
+                  variant='outline'
+                  size='xs'
+                  onClick={() => setEditingTemplate(template)}
+                >
+                  Editar conteúdo
+                </Button>
                 <Button
                   variant='ghost'
                   size='icon-xs'
@@ -86,35 +100,82 @@ export function CrmEmailTemplatesPanel({
           ))}
         </TableBody>
       </Table>
+      {editingTemplate && (
+        <EditCrmEmailTemplateContentPanel
+          workspaceId={workspaceId}
+          template={editingTemplate}
+          onOpenChange={(open) => {
+            if (!open) setEditingTemplate(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function EditCrmEmailTemplateContentPanel({
+  workspaceId,
+  template,
+  onOpenChange,
+}: {
+  workspaceId: string
+  template: CrmEmailTemplateDTO
+  onOpenChange: (open: boolean) => void
+}) {
+  const updateTemplate = useUpdateCrmEmailTemplate(workspaceId)
+
+  async function handleSave(html: string) {
+    try {
+      await updateTemplate.mutateAsync({
+        templateId: template.id,
+        data: { contentHtml: html },
+      })
+      notify.success('Conteúdo salvo')
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  return (
+    <EmailEditorPanel
+      open
+      onOpenChange={onOpenChange}
+      value={template.contentHtml}
+      title={template.name}
+      onSave={handleSave}
+    />
   )
 }
 
 function CreateCrmEmailTemplateDialog({
   workspaceId,
+  onCreated,
 }: {
   workspaceId: string
+  onCreated: (template: CrmEmailTemplateDTO) => void
 }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [subject, setSubject] = useState('')
-  const [contentHtml, setContentHtml] = useState('')
   const createTemplate = useCreateCrmEmailTemplate(workspaceId)
 
   function handleClose() {
     setOpen(false)
     setName('')
     setSubject('')
-    setContentHtml('')
     createTemplate.reset()
   }
 
   async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     try {
-      await createTemplate.mutateAsync({ name, subject, contentHtml })
-      notify.success('Template criado')
+      const created = await createTemplate.mutateAsync({
+        name,
+        subject,
+        contentHtml: '<p></p>',
+      })
       handleClose()
+      onCreated(created)
     } catch (err) {
       notify.error(err)
     }
@@ -152,15 +213,6 @@ function CreateCrmEmailTemplateDialog({
                 required
               />
             </Field>
-            <Field>
-              <Textarea
-                placeholder='Conteúdo (HTML)'
-                value={contentHtml}
-                onChange={(e) => setContentHtml(e.target.value)}
-                rows={8}
-                required
-              />
-            </Field>
           </FieldGroup>
           <div className='flex justify-end gap-2'>
             <DialogClose
@@ -178,9 +230,7 @@ function CreateCrmEmailTemplateDialog({
             <Button
               size='sm'
               type='submit'
-              disabled={
-                createTemplate.isPending || !name || !subject || !contentHtml
-              }
+              disabled={createTemplate.isPending || !name || !subject}
             >
               {createTemplate.isPending ? 'Criando...' : 'Criar template'}
             </Button>

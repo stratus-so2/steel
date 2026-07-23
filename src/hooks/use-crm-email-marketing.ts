@@ -69,6 +69,34 @@ export function useCreateCrmEmailTemplate(workspaceId: string) {
   })
 }
 
+export function useUpdateCrmEmailTemplate(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      data,
+    }: {
+      templateId: string
+      data: { name?: string; subject?: string; contentHtml?: string }
+    }) =>
+      apiFetch<CrmEmailTemplateDTO>(
+        `/api/workspaces/${workspaceId}/crm/email-templates/${templateId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        },
+        'Erro ao atualizar template de e-mail',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: emailTemplatesKey(workspaceId),
+      })
+    },
+  })
+}
+
 export function useDeleteCrmEmailTemplate(workspaceId: string) {
   const queryClient = useQueryClient()
 
