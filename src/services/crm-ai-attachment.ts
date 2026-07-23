@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import type { CrmAiAttachmentKind } from '@prisma/client'
-import { validationError } from '@/src/errors'
+import { logger } from '@/lib/axiom/logger'
+import { storageError, validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
   ensureBucket,
@@ -43,11 +44,22 @@ export async function storeAttachment(
   body: Buffer,
   contentType: string,
   ext: string,
-): Promise<string> {
+): Promise<Result<string>> {
   const key = `${conversationId}/${createId()}.${ext}`
-  await ensureBucket(BUCKET)
-  await putObject({ bucket: BUCKET, key, body, contentType })
-  return key
+  try {
+    await ensureBucket(BUCKET)
+    await putObject({ bucket: BUCKET, key, body, contentType })
+    return ok(key)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    logger.error('crm_ai_attachment.persist_failed', {
+      component: 'CrmAiAttachmentService',
+      bucket: BUCKET,
+      key,
+      message,
+    })
+    return err(storageError('Falha ao armazenar o anexo'))
+  }
 }
 
 export async function getAttachmentDownloadUrl(

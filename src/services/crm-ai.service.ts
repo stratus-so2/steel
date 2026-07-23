@@ -278,12 +278,14 @@ export const CrmAiConversationService = {
     const { kind, ext } = classification.value
 
     const body = await input.readBody()
-    const storageKey = await storeAttachment(
+    const stored = await storeAttachment(
       conversationId,
       body,
       input.contentType,
       ext,
     )
+    if (!stored.ok) return stored
+    const storageKey = stored.value
 
     const attachment = await CrmAiAttachmentRepository.create({
       conversationId,
