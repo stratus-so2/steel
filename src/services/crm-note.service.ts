@@ -1,0 +1,120 @@
+import { auditMutation } from '@/lib/axiom/audit'
+import { ok, type Result } from '@/src/lib/result'
+import { toCrmNoteDTO } from '@/src/mappers/crm-note.mapper'
+import { CrmNoteRepository } from '@/src/repositories/crm-note.repository'
+import type {
+  CreateCrmNoteDTO,
+  ListCrmNotesDTO,
+  UpdateCrmNoteDTO,
+} from '@/src/schemas/crm-note.schema'
+import type { CrmNoteDTO } from '@/types/crm-note'
+import { assertMember } from './authz'
+
+export const CrmNoteService = {
+  async list(
+    actorId: string,
+    workspaceId: string,
+    filters: ListCrmNotesDTO,
+  ): Promise<Result<CrmNoteDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const result = await CrmNoteRepository.listByWorkspace(workspaceId, filters)
+    if (!result.ok) return result
+
+    return ok(result.value.map(toCrmNoteDTO))
+  },
+
+  async create(
+    actorId: string,
+    workspaceId: string,
+    dto: CreateCrmNoteDTO,
+  ): Promise<Result<CrmNoteDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const result = await CrmNoteRepository.create({
+      workspaceId,
+      createdById: actorId,
+      title: dto.title,
+      body: dto.body,
+      companyId: dto.companyId,
+      personId: dto.personId,
+      opportunityId: dto.opportunityId,
+    })
+
+    if (!result.ok) {
+      auditMutation({
+        entity: 'crm_note',
+        action: 'create',
+        actorId,
+        outcome: 'failure',
+        reason: result.error.code,
+      })
+      return result
+    }
+
+    auditMutation({
+      entity: 'crm_note',
+      action: 'create',
+      actorId,
+      targetId: result.value.id,
+    })
+
+    return ok(toCrmNoteDTO(result.value))
+  },
+
+  async update(
+    actorId: string,
+    workspaceId: string,
+    noteId: string,
+    dto: UpdateCrmNoteDTO,
+  ): Promise<Result<CrmNoteDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmNoteRepository.findById(noteId, workspaceId)
+    if (!existing.ok) return existing
+
+    const result = await CrmNoteRepository.update(noteId, {
+      title: dto.title,
+      body: dto.body,
+      updatedById: actorId,
+    })
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_note',
+      action: 'update',
+      actorId,
+      targetId: noteId,
+      meta: { fields: Object.keys(dto) },
+    })
+
+    return ok(toCrmNoteDTO(result.value))
+  },
+
+  async remove(
+    actorId: string,
+    workspaceId: string,
+    noteId: string,
+  ): Promise<Result<void>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmNoteRepository.findById(noteId, workspaceId)
+    if (!existing.ok) return existing
+
+    const result = await CrmNoteRepository.softDelete(noteId)
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_note',
+      action: 'delete',
+      actorId,
+      targetId: noteId,
+    })
+
+    return ok(undefined)
+  },
+}
