@@ -1,162 +1,103 @@
 'use client'
 
-import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
-import { SteelIcon } from '@/components/icon/icon'
-import { Button } from '@/components/ui/button'
+import { useMemo } from 'react'
+import { DataTable } from '@/app/_components/crm/table/data-table'
+import type { GridColumn } from '@/app/_components/crm/table/grid'
+import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Field, FieldGroup } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { notify } from '@/lib/notify'
-import {
-  useCreateCrmPerson,
-  useCrmPeople,
-  useDeleteCrmPerson,
-} from '@/src/hooks/use-crm-person'
+  type LookupKind,
+  useCrmWorkspaceLookups,
+} from '@/src/hooks/use-crm-workspace-lookups'
+import type { CrmPersonDTO } from '@/types/crm-person'
 
-export function CrmPeopleTable({ workspaceId }: { workspaceId: string }) {
-  const { data: people, isLoading } = useCrmPeople(workspaceId)
-  const deletePerson = useDeleteCrmPerson(workspaceId)
+const LOOKUP_KINDS: LookupKind[] = ['companies', 'users']
 
-  async function handleDelete(personId: string) {
-    try {
-      await deletePerson.mutateAsync(personId)
-      notify.success('Pessoa removida')
-    } catch (err) {
-      notify.error(err)
-    }
-  }
+const COLUMNS: GridColumn[] = [
+  {
+    key: 'name',
+    header: 'Nome',
+    kind: 'text',
+    required: true,
+    primary: true,
+    placeholder: 'Ada Lovelace',
+  },
+  {
+    key: 'emails',
+    header: 'E-mails',
+    kind: 'tags',
+    placeholder: 'ada@acme.com, ada@gmail.com',
+  },
+  {
+    key: 'phones',
+    header: 'Telefones',
+    kind: 'tags',
+    placeholder: '+55 11 99999-0000',
+  },
+  { key: 'city', header: 'Cidade', kind: 'text', placeholder: 'Recife, PE' },
+  {
+    key: 'jobTitle',
+    header: 'Cargo',
+    kind: 'text',
+    placeholder: 'Head of Sales',
+  },
+  {
+    key: 'linkedin',
+    header: 'LinkedIn',
+    kind: 'link',
+    placeholder: 'linkedin.com/in/adalovelace',
+  },
+  {
+    key: 'companyId',
+    header: 'Empresa',
+    kind: 'relation',
+    relationKind: 'companies',
+    clearable: true,
+  },
+  {
+    key: 'createdById',
+    header: 'Criado por',
+    kind: 'relation',
+    relationKind: 'users',
+    readonly: true,
+  },
+  {
+    key: 'updatedById',
+    header: 'Atualizado por',
+    kind: 'relation',
+    relationKind: 'users',
+    readonly: true,
+  },
+  { key: 'createdAt', header: 'Criado em', kind: 'readonly-date' },
+  { key: 'updatedAt', header: 'Última atualização', kind: 'readonly-date' },
+]
 
-  return (
-    <div className='flex flex-col gap-3'>
-      <div className='flex justify-end'>
-        <CreateCrmPersonDialog workspaceId={workspaceId} />
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>E-mail</TableHead>
-            <TableHead>Cargo</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && people?.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhuma pessoa cadastrada
-              </TableCell>
-            </TableRow>
-          )}
-          {people?.map((person) => (
-            <TableRow key={person.id}>
-              <TableCell>{person.name}</TableCell>
-              <TableCell>{person.emails[0] ?? '—'}</TableCell>
-              <TableCell>{person.jobTitle ?? '—'}</TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(person.id)}
-                >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+export function CrmPeopleTable({
+  workspaceId,
+  slug,
+}: {
+  workspaceId: string
+  slug: string
+}) {
+  const { items, isLoading, refetch } = useCrmResourceList<CrmPersonDTO>(
+    workspaceId,
+    'people',
   )
-}
+  const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
 
-function CreateCrmPersonDialog({ workspaceId }: { workspaceId: string }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const createPerson = useCreateCrmPerson(workspaceId)
-
-  function handleClose() {
-    setOpen(false)
-    setName('')
-    createPerson.reset()
-  }
-
-  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
-    try {
-      await createPerson.mutateAsync({ name })
-      notify.success('Pessoa criada')
-      handleClose()
-    } catch (err) {
-      notify.error(err)
-    }
-  }
+  const columns = useMemo(() => COLUMNS, [])
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => (v ? setOpen(true) : handleClose())}
-    >
-      <DialogTrigger
-        render={
-          <Button variant='default' size='xs'>
-            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-            Adicionar pessoa
-          </Button>
-        }
-      />
-      <DialogContent className='w-full sm:max-w-md'>
-        <form onSubmit={handleSubmit} className='flex flex-col gap-4 p-4'>
-          <FieldGroup>
-            <Field>
-              <Input
-                placeholder='Nome da pessoa'
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </Field>
-          </FieldGroup>
-          <div className='flex justify-end gap-2'>
-            <DialogClose
-              render={
-                <Button
-                  variant='outline'
-                  size='sm'
-                  type='button'
-                  onClick={handleClose}
-                >
-                  Cancelar
-                </Button>
-              }
-            />
-            <Button
-              size='sm'
-              type='submit'
-              disabled={createPerson.isPending || !name}
-            >
-              {createPerson.isPending ? 'Criando...' : 'Criar pessoa'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <DataTable
+      columns={columns}
+      data={items}
+      workspaceId={workspaceId}
+      slug={slug}
+      resource='people'
+      createTitle='pessoa'
+      lookups={lookups}
+      isLoading={isLoading}
+      searchPlaceholder='Buscar pessoas…'
+      refetch={refetch}
+    />
   )
 }

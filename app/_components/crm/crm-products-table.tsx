@@ -1,184 +1,102 @@
 'use client'
 
-import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
-import { SteelIcon } from '@/components/icon/icon'
-import { Button } from '@/components/ui/button'
+import { useMemo } from 'react'
+import { DataTable } from '@/app/_components/crm/table/data-table'
+import type { GridColumn } from '@/app/_components/crm/table/grid'
+import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Field, FieldGroup } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { notify } from '@/lib/notify'
-import {
-  useCreateCrmProduct,
-  useCrmProducts,
-  useDeleteCrmProduct,
-} from '@/src/hooks/use-crm-product'
+  type LookupKind,
+  useCrmWorkspaceLookups,
+} from '@/src/hooks/use-crm-workspace-lookups'
+import type { CrmBillingTypeDTO, CrmProductDTO } from '@/types/crm-product'
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-})
+const LOOKUP_KINDS: LookupKind[] = ['users']
 
-export function CrmProductsTable({ workspaceId }: { workspaceId: string }) {
-  const { data: products, isLoading } = useCrmProducts(workspaceId)
-  const deleteProduct = useDeleteCrmProduct(workspaceId)
+const BILLING_TYPES: CrmBillingTypeDTO[] = ['ONE_TIME', 'MONTHLY', 'YEARLY']
 
-  async function handleDelete(productId: string) {
-    try {
-      await deleteProduct.mutateAsync(productId)
-      notify.success('Produto removido')
-    } catch (err) {
-      notify.error(err)
-    }
-  }
-
-  return (
-    <div className='flex flex-col gap-3'>
-      <div className='flex justify-end'>
-        <CreateCrmProductDialog workspaceId={workspaceId} />
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Produto</TableHead>
-            <TableHead>Preço</TableHead>
-            <TableHead>Ativo</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && products?.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhum produto cadastrado
-              </TableCell>
-            </TableRow>
-          )}
-          {products?.map((product) => (
-            <TableRow key={product.id}>
-              <TableCell>{product.name}</TableCell>
-              <TableCell>
-                {currencyFormatter.format(product.unitPrice)}
-              </TableCell>
-              <TableCell>{product.active ? 'Sim' : 'Não'}</TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(product.id)}
-                >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
+const BILLING_LABELS: Record<CrmBillingTypeDTO, string> = {
+  ONE_TIME: 'Único',
+  MONTHLY: 'Mensal',
+  YEARLY: 'Anual',
 }
 
-function CreateCrmProductDialog({ workspaceId }: { workspaceId: string }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [unitPrice, setUnitPrice] = useState('')
-  const createProduct = useCreateCrmProduct(workspaceId)
+const BILLING_STYLES: Record<CrmBillingTypeDTO, string> = {
+  ONE_TIME: 'bg-slate-500/15 text-slate-600',
+  MONTHLY: 'bg-blue-500/15 text-blue-600',
+  YEARLY: 'bg-violet-500/15 text-violet-600',
+}
 
-  function handleClose() {
-    setOpen(false)
-    setName('')
-    setUnitPrice('')
-    createProduct.reset()
-  }
+const COLUMNS: GridColumn[] = [
+  {
+    key: 'name',
+    header: 'Nome',
+    kind: 'text',
+    required: true,
+    primary: true,
+    placeholder: 'Plano Pro',
+  },
+  { key: 'sku', header: 'SKU', kind: 'text', placeholder: 'PRO-001' },
+  { key: 'unitPrice', header: 'Preço', kind: 'money', placeholder: '199' },
+  {
+    key: 'billingType',
+    header: 'Cobrança',
+    kind: 'select',
+    defaultValue: 'ONE_TIME',
+    options: BILLING_TYPES.map((b) => ({ value: b, label: BILLING_LABELS[b] })),
+    optionStyles: BILLING_STYLES,
+  },
+  {
+    key: 'description',
+    header: 'Descrição',
+    kind: 'text',
+    placeholder: 'Resumo do produto',
+  },
+  { key: 'active', header: 'Ativo', kind: 'boolean' },
+  {
+    key: 'createdById',
+    header: 'Criado por',
+    kind: 'relation',
+    relationKind: 'users',
+    readonly: true,
+  },
+  {
+    key: 'updatedById',
+    header: 'Atualizado por',
+    kind: 'relation',
+    relationKind: 'users',
+    readonly: true,
+  },
+  { key: 'createdAt', header: 'Criado em', kind: 'readonly-date' },
+  { key: 'updatedAt', header: 'Última atualização', kind: 'readonly-date' },
+]
 
-  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
-    try {
-      await createProduct.mutateAsync({
-        name,
-        unitPrice: unitPrice ? Number(unitPrice) : undefined,
-      })
-      notify.success('Produto criado')
-      handleClose()
-    } catch (err) {
-      notify.error(err)
-    }
-  }
+export function CrmProductsTable({
+  workspaceId,
+  slug,
+}: {
+  workspaceId: string
+  slug: string
+}) {
+  const { items, isLoading, refetch } = useCrmResourceList<CrmProductDTO>(
+    workspaceId,
+    'products',
+  )
+  const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
+
+  const columns = useMemo(() => COLUMNS, [])
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => (v ? setOpen(true) : handleClose())}
-    >
-      <DialogTrigger
-        render={
-          <Button variant='default' size='xs'>
-            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-            Adicionar produto
-          </Button>
-        }
-      />
-      <DialogContent className='w-full sm:max-w-md'>
-        <form onSubmit={handleSubmit} className='flex flex-col gap-4 p-4'>
-          <FieldGroup>
-            <Field>
-              <Input
-                placeholder='Nome do produto'
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </Field>
-            <Field>
-              <Input
-                type='number'
-                min='0'
-                step='0.01'
-                placeholder='Preço (opcional)'
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </Field>
-          </FieldGroup>
-          <div className='flex justify-end gap-2'>
-            <DialogClose
-              render={
-                <Button
-                  variant='outline'
-                  size='sm'
-                  type='button'
-                  onClick={handleClose}
-                >
-                  Cancelar
-                </Button>
-              }
-            />
-            <Button
-              size='sm'
-              type='submit'
-              disabled={createProduct.isPending || !name}
-            >
-              {createProduct.isPending ? 'Criando...' : 'Criar produto'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <DataTable
+      columns={columns}
+      data={items}
+      workspaceId={workspaceId}
+      slug={slug}
+      resource='products'
+      createTitle='produto'
+      lookups={lookups}
+      isLoading={isLoading}
+      searchPlaceholder='Buscar produtos…'
+      refetch={refetch}
+    />
   )
 }

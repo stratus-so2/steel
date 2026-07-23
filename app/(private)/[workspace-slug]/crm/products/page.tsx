@@ -33,7 +33,7 @@ export default async function CrmProductsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Produtos'>
@@ -45,8 +45,11 @@ export default async function CrmProductsPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmProductsTable workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmProductsTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

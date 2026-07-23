@@ -1,44 +1,21 @@
 'use client'
 
-import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
-import { SteelIcon } from '@/components/icon/icon'
+import { useMemo } from 'react'
+import { DataTable } from '@/app/_components/crm/table/data-table'
+import type { GridColumn } from '@/app/_components/crm/table/grid'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Field, FieldGroup } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { notify } from '@/lib/notify'
+import { useConvertCrmLead } from '@/src/hooks/use-crm-lead'
+import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import {
-  useConvertCrmLead,
-  useCreateCrmLead,
-  useCrmLeads,
-  useDeleteCrmLead,
-  useUpdateCrmLeadStatus,
-} from '@/src/hooks/use-crm-lead'
-import type { CrmLeadStatusDTO } from '@/types/crm-lead'
+  type LookupKind,
+  useCrmWorkspaceLookups,
+} from '@/src/hooks/use-crm-workspace-lookups'
+import type { CrmLeadDTO, CrmLeadStatusDTO } from '@/types/crm-lead'
 
-const STATUSES: CrmLeadStatusDTO[] = [
+const LOOKUP_KINDS: LookupKind[] = ['users']
+
+const LEAD_STATUSES: CrmLeadStatusDTO[] = [
   'NEW',
   'WORKING',
   'QUALIFIED',
@@ -46,200 +23,138 @@ const STATUSES: CrmLeadStatusDTO[] = [
   'CONVERTED',
 ]
 
-export function CrmLeadsTable({ workspaceId }: { workspaceId: string }) {
-  const { data: leads, isLoading } = useCrmLeads(workspaceId)
-  const updateStatus = useUpdateCrmLeadStatus(workspaceId)
-  const convertLead = useConvertCrmLead(workspaceId)
-  const deleteLead = useDeleteCrmLead(workspaceId)
+const STATUS_STYLES: Record<CrmLeadStatusDTO, string> = {
+  NEW: 'bg-slate-500/15 text-slate-600',
+  WORKING: 'bg-blue-500/15 text-blue-600',
+  QUALIFIED: 'bg-emerald-500/15 text-emerald-600',
+  UNQUALIFIED: 'bg-rose-500/15 text-rose-600',
+  CONVERTED: 'bg-violet-500/15 text-violet-600',
+}
 
-  async function handleStatusChange(leadId: string, status: CrmLeadStatusDTO) {
-    try {
-      await updateStatus.mutateAsync({ leadId, status })
-    } catch (err) {
-      notify.error(err)
-    }
-  }
+const STATUS_LABELS: Record<CrmLeadStatusDTO, string> = {
+  NEW: 'Novo',
+  WORKING: 'Em contato',
+  QUALIFIED: 'Qualificado',
+  UNQUALIFIED: 'Desqualificado',
+  CONVERTED: 'Convertido',
+}
 
-  async function handleConvert(leadId: string) {
-    try {
-      await convertLead.mutateAsync(leadId)
-      notify.success('Lead convertido em pessoa')
-    } catch (err) {
-      notify.error(err)
-    }
-  }
+const COLUMNS: GridColumn[] = [
+  {
+    key: 'name',
+    header: 'Nome',
+    kind: 'text',
+    required: true,
+    primary: true,
+    placeholder: 'Maria Silva',
+  },
+  {
+    key: 'emails',
+    header: 'E-mails',
+    kind: 'tags',
+    placeholder: 'maria@x.com',
+  },
+  { key: 'phones', header: 'Telefones', kind: 'tags' },
+  { key: 'company', header: 'Empresa', kind: 'text' },
+  { key: 'jobTitle', header: 'Cargo', kind: 'text' },
+  { key: 'source', header: 'Origem', kind: 'text', placeholder: 'WhatsApp' },
+  {
+    key: 'status',
+    header: 'Status',
+    kind: 'select',
+    defaultValue: 'NEW',
+    options: LEAD_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] })),
+    optionStyles: STATUS_STYLES,
+  },
+  { key: 'score', header: 'Score', kind: 'number', readonly: true },
+  {
+    key: 'ownerId',
+    header: 'Responsável',
+    kind: 'relation',
+    relationKind: 'users',
+    clearable: true,
+  },
+  { key: 'createdAt', header: 'Criado em', kind: 'readonly-date' },
+]
 
-  async function handleDelete(leadId: string) {
-    try {
-      await deleteLead.mutateAsync(leadId)
-      notify.success('Lead removido')
-    } catch (err) {
-      notify.error(err)
-    }
-  }
+export function CrmLeadsTable({
+  workspaceId,
+  slug,
+}: {
+  workspaceId: string
+  slug: string
+}) {
+  const { items, isLoading, refetch } = useCrmResourceList<CrmLeadDTO>(
+    workspaceId,
+    'leads',
+  )
+  const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
+
+  const columns = useMemo(() => COLUMNS, [])
 
   return (
-    <div className='flex flex-col gap-3'>
-      <div className='flex justify-end'>
-        <CreateCrmLeadDialog workspaceId={workspaceId} />
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Lead</TableHead>
-            <TableHead>Score</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className='w-24' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && leads?.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhum lead cadastrado
-              </TableCell>
-            </TableRow>
-          )}
-          {leads?.map((lead) => (
-            <TableRow key={lead.id}>
-              <TableCell>{lead.name}</TableCell>
-              <TableCell>{lead.score}</TableCell>
-              <TableCell>
-                <Select
-                  items={STATUSES.map((s) => ({ value: s, label: s }))}
-                  value={lead.status}
-                  onValueChange={(value) =>
-                    handleStatusChange(lead.id, value as CrmLeadStatusDTO)
-                  }
-                  disabled={lead.status === 'CONVERTED'}
-                >
-                  <SelectTrigger className='h-7 w-36 text-xs'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {STATUSES.map((s) => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </TableCell>
-              <TableCell>
-                <div className='flex items-center gap-1'>
-                  <Button
-                    variant='outline'
-                    size='xs'
-                    disabled={lead.status === 'CONVERTED'}
-                    onClick={() => handleConvert(lead.id)}
-                  >
-                    Converter
-                  </Button>
-                  <Button
-                    variant='ghost'
-                    size='icon-xs'
-                    onClick={() => handleDelete(lead.id)}
-                  >
-                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={items}
+      workspaceId={workspaceId}
+      slug={slug}
+      resource='leads'
+      createTitle='lead'
+      lookups={lookups}
+      isLoading={isLoading}
+      searchPlaceholder='Buscar leads…'
+      refetch={refetch}
+      renderRecordExtra={(record) => (
+        <LeadConvert
+          workspaceId={workspaceId}
+          leadId={record.id}
+          status={record.status}
+          onConverted={refetch}
+        />
+      )}
+    />
   )
 }
 
-function CreateCrmLeadDialog({ workspaceId }: { workspaceId: string }) {
-  const [open, setOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const createLead = useCreateCrmLead(workspaceId)
+function LeadConvert({
+  workspaceId,
+  leadId,
+  status,
+  onConverted,
+}: {
+  workspaceId: string
+  leadId: string
+  status: CrmLeadStatusDTO
+  onConverted: () => void
+}) {
+  const convertLead = useConvertCrmLead(workspaceId)
 
-  function handleClose() {
-    setOpen(false)
-    setName('')
-    setEmail('')
-    createLead.reset()
-  }
-
-  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
-    e.preventDefault()
+  async function handleConvert() {
     try {
-      await createLead.mutateAsync({
-        name,
-        emails: email ? [email] : undefined,
-      })
-      notify.success('Lead criado')
-      handleClose()
+      await convertLead.mutateAsync(leadId)
+      notify.success('Lead convertido em pessoa')
+      onConverted()
     } catch (err) {
       notify.error(err)
     }
   }
 
+  if (status === 'CONVERTED') {
+    return (
+      <p className='text-muted-foreground text-sm'>
+        Este lead já foi convertido.
+      </p>
+    )
+  }
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => (v ? setOpen(true) : handleClose())}
+    <Button
+      size='sm'
+      className='w-full'
+      disabled={convertLead.isPending}
+      onClick={handleConvert}
     >
-      <DialogTrigger
-        render={
-          <Button variant='default' size='xs'>
-            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-            Novo lead
-          </Button>
-        }
-      />
-      <DialogContent className='w-full sm:max-w-md'>
-        <form onSubmit={handleSubmit} className='flex flex-col gap-4 p-4'>
-          <FieldGroup>
-            <Field>
-              <Input
-                placeholder='Nome'
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </Field>
-            <Field>
-              <Input
-                type='email'
-                placeholder='E-mail (opcional)'
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </Field>
-          </FieldGroup>
-          <div className='flex justify-end gap-2'>
-            <DialogClose
-              render={
-                <Button
-                  variant='outline'
-                  size='sm'
-                  type='button'
-                  onClick={handleClose}
-                >
-                  Cancelar
-                </Button>
-              }
-            />
-            <Button
-              size='sm'
-              type='submit'
-              disabled={createLead.isPending || !name}
-            >
-              {createLead.isPending ? 'Criando...' : 'Criar lead'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+      {convertLead.isPending ? 'Convertendo…' : 'Converter em pessoa'}
+    </Button>
   )
 }

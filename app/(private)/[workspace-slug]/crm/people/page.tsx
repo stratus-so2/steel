@@ -33,7 +33,7 @@ export default async function CrmPeoplePage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Pessoas'>
@@ -45,8 +45,11 @@ export default async function CrmPeoplePage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmPeopleTable workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmPeopleTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )
