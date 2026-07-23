@@ -89,6 +89,8 @@ model User {
   crmWorkflowsCreated          CrmWorkflow[]              @relation("CrmWorkflowCreatedBy")
   crmWorkflowsUpdated          CrmWorkflow[]              @relation("CrmWorkflowUpdatedBy")
   crmWorkflowRunsStarted       CrmWorkflowRun[]           @relation("CrmWorkflowRunStartedBy")
+  crmLandingPagesCreated       CrmLandingPage[]           @relation("CrmLandingPageCreatedBy")
+  crmLandingPagesUpdated       CrmLandingPage[]           @relation("CrmLandingPageUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -295,6 +297,7 @@ model Workspace {
   crmEmailCampaigns         CrmEmailCampaign[]
   crmMailingLists           CrmMailingList[]
   crmWorkflows              CrmWorkflow[]
+  crmLandingPages           CrmLandingPage[]
 
   @@map("workspaces")
 }
@@ -1971,4 +1974,55 @@ model CrmWorkflowRunStep {
   @@index([runId])
   @@index([status])
   @@map("crm_workflow_run_steps")
+}
+
+enum CrmLandingPageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model CrmLandingPage {
+  id          String               @id @default(cuid())
+  title       String
+  html        String               @default("") @db.Text
+  status      CrmLandingPageStatus @default(DRAFT)
+  shareToken  String               @unique @map("share_token")
+  publishedAt DateTime?            @map("published_at")
+  workspaceId String               @map("workspace_id")
+  createdById String               @map("created_by_id")
+  updatedById String?              @map("updated_by_id")
+  position    Int                  @default(0)
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  deletedAt   DateTime?            @map("deleted_at")
+
+  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                 @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?                @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
+  views     CrmLandingPageView[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_landing_pages")
+}
+
+/// Beacon de visualização anônima de uma landing page pública (LGPD: IP com hash).
+model CrmLandingPageView {
+  id            String   @id @default(cuid())
+  landingPageId String   @map("landing_page_id")
+  viewId        String   @map("view_id")
+  ipHash        String   @map("ip_hash")
+  durationMs    Int      @default(0) @map("duration_ms")
+  ctaClicks     Int      @default(0) @map("cta_clicks")
+  referrer      String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  landingPage CrmLandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+
+  @@unique([landingPageId, viewId])
+  @@index([landingPageId])
+  @@map("crm_landing_page_views")
 }

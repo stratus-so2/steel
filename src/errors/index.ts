@@ -20,6 +20,7 @@ export {
   crmFormNotPublished,
   crmIntegrationKeyInvalid,
   crmIntegrationKeyNotFound,
+  crmLandingPageNotFound,
   crmLeadAlreadyConverted,
   crmLeadNotFound,
   crmLeadRoutingRuleNotFound,

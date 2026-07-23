@@ -350,3 +350,6 @@ export const crmWorkflowNotActive = (): AppError =>
     'CRM_WORKFLOW_NOT_ACTIVE',
     'Workflow precisa estar ativo para ser disparado por webhook',
   )
+
+export const crmLandingPageNotFound = (): AppError =>
+  appError('CRM_LANDING_PAGE_NOT_FOUND', 'Landing page não encontrada')
