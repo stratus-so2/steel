@@ -80,6 +80,7 @@ model User {
   crmProposalsUpdated      CrmProposal[]              @relation("CrmProposalUpdatedBy")
   crmFormsCreated          CrmForm[]                  @relation("CrmFormCreatedBy")
   crmFormsUpdated          CrmForm[]                  @relation("CrmFormUpdatedBy")
+  crmAiConversationsOwned  CrmAiConversation[]        @relation("CrmAiConversationUser")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -279,6 +280,8 @@ model Workspace {
   crmDashboards             CrmDashboard[]
   crmProposals              CrmProposal[]
   crmForms                  CrmForm[]
+  crmAiConversations        CrmAiConversation[]
+  crmAiUsage                CrmAiUsage[]
 
   @@map("workspaces")
 }
@@ -1651,4 +1654,60 @@ model CrmFormSubmission {
 
   @@index([formId])
   @@map("crm_form_submissions")
+}
+
+enum CrmAiMessageRole {
+  USER
+  ASSISTANT
+}
+
+/// Conversa do assistente de IA do workspace. Privada por usuário.
+model CrmAiConversation {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  userId      String    @map("user_id")
+  title       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User           @relation("CrmAiConversationUser", fields: [userId], references: [id], onDelete: Cascade)
+  messages  CrmAiMessage[]
+  usage     CrmAiUsage[]
+
+  @@index([workspaceId, userId])
+  @@map("crm_ai_conversations")
+}
+
+model CrmAiMessage {
+  id             String           @id @default(cuid())
+  conversationId String           @map("conversation_id")
+  role           CrmAiMessageRole
+  content        String           @db.Text
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  conversation CrmAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("crm_ai_messages")
+}
+
+/// Contagem de tokens por chamada de modelo, para custeio/observabilidade.
+model CrmAiUsage {
+  id             String   @id @default(cuid())
+  workspaceId    String   @map("workspace_id")
+  conversationId String   @map("conversation_id")
+  inputTokens    Int      @default(0) @map("input_tokens")
+  outputTokens   Int      @default(0) @map("output_tokens")
+  model          String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  workspace    Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversation CrmAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("crm_ai_usage")
 }
