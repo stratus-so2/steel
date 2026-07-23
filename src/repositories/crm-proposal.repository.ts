@@ -57,6 +57,7 @@ export const CrmProposalRepository = {
     createdById: string
     title: string
     content?: string
+    contentJson?: string
     type?: CrmDocumentType
   }): Promise<Result<CrmProposal>> {
     try {
@@ -77,6 +78,7 @@ export const CrmProposalRepository = {
     data: {
       title?: string
       content?: string
+      contentJson?: string
       type?: CrmDocumentType
       status?: 'DRAFT' | 'PUBLISHED'
       publishedAt?: Date

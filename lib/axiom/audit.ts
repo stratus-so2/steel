@@ -44,6 +44,7 @@ type AuditEntity =
   | 'crm_dashboard'
   | 'crm_dashboard_widget'
   | 'crm_proposal'
+  | 'crm_document_template'
   | 'crm_form'
   | 'crm_ai_conversation'
   | 'crm_integration_api_key'

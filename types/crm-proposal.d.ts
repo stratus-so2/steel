@@ -10,6 +10,7 @@ export interface CrmProposalDTO {
   id: string
   title: string
   content: string
+  contentJson: string | null
   type: CrmDocumentTypeDTO
   status: CrmProposalStatusDTO
   shareToken: string

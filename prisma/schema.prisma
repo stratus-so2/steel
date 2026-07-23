@@ -84,6 +84,7 @@ model User {
   crmIntegrationApiKeysCreated CrmIntegrationApiKey[]     @relation("CrmIntegrationApiKeyCreatedBy")
   crmEmailTemplatesCreated     CrmEmailTemplate[]         @relation("CrmEmailTemplateCreatedBy")
   crmEmailTemplatesUpdated     CrmEmailTemplate[]         @relation("CrmEmailTemplateUpdatedBy")
+  crmDocumentTemplatesCreated  CrmDocumentTemplate[]      @relation("CrmDocumentTemplateCreatedBy")
   crmEmailCampaignsCreated     CrmEmailCampaign[]         @relation("CrmEmailCampaignCreatedBy")
   crmMailingListsCreated       CrmMailingList[]           @relation("CrmMailingListCreatedBy")
   crmWorkflowsCreated          CrmWorkflow[]              @relation("CrmWorkflowCreatedBy")
@@ -300,6 +301,7 @@ model Workspace {
   crmAiUsage                CrmAiUsage[]
   crmIntegrationApiKeys     CrmIntegrationApiKey[]
   crmEmailTemplates         CrmEmailTemplate[]
+  crmDocumentTemplates      CrmDocumentTemplate[]
   crmEmailCampaigns         CrmEmailCampaign[]
   crmMailingLists           CrmMailingList[]
   crmWorkflows              CrmWorkflow[]
@@ -1580,6 +1582,7 @@ model CrmProposal {
   id          String            @id @default(cuid())
   title       String
   content     String            @default("") @db.Text
+  contentJson String?           @map("content_json") @db.Text
   type        CrmDocumentType   @default(PROPOSAL)
   status      CrmProposalStatus @default(DRAFT)
   shareToken  String            @unique @map("share_token")
@@ -1817,6 +1820,29 @@ model CrmEmailTemplate {
   @@index([workspaceId])
   @@index([deletedAt])
   @@map("crm_email_templates")
+}
+
+/// Snapshot reutilizável (título + doc do TipTap) escopado por workspace e
+/// `type`, criado a partir de uma proposta via "Salvar como template".
+model CrmDocumentTemplate {
+  id          String          @id @default(cuid())
+  title       String
+  content     String          @default("") @db.Text
+  contentJson String?         @map("content_json") @db.Text
+  type        CrmDocumentType @default(PROPOSAL)
+  workspaceId String          @map("workspace_id")
+  createdById String          @map("created_by_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  deletedAt   DateTime?       @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmDocumentTemplateCreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("crm_document_templates")
 }
 
 enum CrmCampaignStatus {

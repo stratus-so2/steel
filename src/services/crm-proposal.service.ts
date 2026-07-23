@@ -62,6 +62,7 @@ export const CrmProposalService = {
       createdById: actorId,
       title: dto.title,
       content: dto.content,
+      contentJson: dto.contentJson,
       type: dto.type,
     })
 
@@ -110,6 +111,7 @@ export const CrmProposalService = {
     const result = await CrmProposalRepository.update(proposalId, {
       title: dto.title,
       content: dto.content,
+      contentJson: dto.contentJson,
       type: dto.type,
       status: dto.status,
       publishedAt,

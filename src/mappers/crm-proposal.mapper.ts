@@ -8,6 +8,7 @@ export function toCrmProposalDTO(
     id: proposal.id,
     title: proposal.title,
     content: proposal.content,
+    contentJson: proposal.contentJson,
     type: proposal.type,
     status: proposal.status,
     shareToken: proposal.shareToken,
