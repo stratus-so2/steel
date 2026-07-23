@@ -13,7 +13,8 @@ const PUBLIC_ROUTES = [
   '/api/payment/webhook', '/docs', '/legals',
   '/status', '/pricing', '/talk-to-sales',
   '/marketplace', '/invite', '/api/talk-to-sales',
-  '/api/whatsapp/webhook', '/api/crm/proposals', '/api/crm/forms'
+  '/api/whatsapp/webhook', '/api/crm/proposals', '/api/crm/forms',
+  '/api/crm/integrations'
 ]
 
 function buildCspHeader(nonce: string): string {
