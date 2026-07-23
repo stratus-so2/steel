@@ -2,6 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CrmCompaniesTable } from './crm-companies-table'
+import { CrmCustomFieldsPanel } from './crm-custom-fields-panel'
 import { CrmLeadsTable } from './crm-leads-table'
 import { CrmOpportunitiesBoard } from './crm-opportunities-board'
 import { CrmPeopleTable } from './crm-people-table'
@@ -19,6 +20,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='people'>Pessoas</TabsTrigger>
           <TabsTrigger value='pipelines'>Pipelines</TabsTrigger>
           <TabsTrigger value='products'>Produtos</TabsTrigger>
+          <TabsTrigger value='custom-fields'>Campos customizados</TabsTrigger>
         </TabsList>
         <TabsContent value='leads'>
           <CrmLeadsTable workspaceId={workspaceId} />
@@ -37,6 +39,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='products'>
           <CrmProductsTable workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='custom-fields'>
+          <CrmCustomFieldsPanel workspaceId={workspaceId} />
         </TabsContent>
       </Tabs>
     </div>
