@@ -45,15 +45,18 @@ model User {
   whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
   whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
 
-  crmCompaniesCreated CrmCompany[]  @relation("CrmCompanyCreatedBy")
-  crmCompaniesOwned   CrmCompany[]  @relation("CrmCompanyAccountOwner")
-  crmCompaniesUpdated CrmCompany[]  @relation("CrmCompanyUpdatedBy")
-  crmPeopleCreated    CrmPerson[]   @relation("CrmPersonCreatedBy")
-  crmPeopleUpdated    CrmPerson[]   @relation("CrmPersonUpdatedBy")
-  crmPipelinesCreated CrmPipeline[] @relation("CrmPipelineCreatedBy")
-  crmPipelinesUpdated CrmPipeline[] @relation("CrmPipelineUpdatedBy")
-  crmProductsCreated  CrmProduct[]  @relation("CrmProductCreatedBy")
-  crmProductsUpdated  CrmProduct[]  @relation("CrmProductUpdatedBy")
+  crmCompaniesCreated     CrmCompany[]     @relation("CrmCompanyCreatedBy")
+  crmCompaniesOwned       CrmCompany[]     @relation("CrmCompanyAccountOwner")
+  crmCompaniesUpdated     CrmCompany[]     @relation("CrmCompanyUpdatedBy")
+  crmPeopleCreated        CrmPerson[]      @relation("CrmPersonCreatedBy")
+  crmPeopleUpdated        CrmPerson[]      @relation("CrmPersonUpdatedBy")
+  crmPipelinesCreated     CrmPipeline[]    @relation("CrmPipelineCreatedBy")
+  crmPipelinesUpdated     CrmPipeline[]    @relation("CrmPipelineUpdatedBy")
+  crmProductsCreated      CrmProduct[]     @relation("CrmProductCreatedBy")
+  crmProductsUpdated      CrmProduct[]     @relation("CrmProductUpdatedBy")
+  crmOpportunitiesCreated CrmOpportunity[] @relation("CrmOpportunityCreatedBy")
+  crmOpportunitiesUpdated CrmOpportunity[] @relation("CrmOpportunityUpdatedBy")
+  crmOpportunitiesOwned   CrmOpportunity[] @relation("CrmOpportunityOwner")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -236,10 +239,11 @@ model Workspace {
   whatsappGroups         WhatsAppGroup[]
   whatsappGroupMessages  WhatsAppGroupMessage[]
 
-  crmCompanies CrmCompany[]
-  crmPeople    CrmPerson[]
-  crmPipelines CrmPipeline[]
-  crmProducts  CrmProduct[]
+  crmCompanies     CrmCompany[]
+  crmPeople        CrmPerson[]
+  crmPipelines     CrmPipeline[]
+  crmProducts      CrmProduct[]
+  crmOpportunities CrmOpportunity[]
 
   @@map("workspaces")
 }
@@ -918,7 +922,8 @@ model CrmCompany {
   accountOwner User?     @relation("CrmCompanyAccountOwner", fields: [accountOwnerId], references: [id])
   updatedBy    User?     @relation("CrmCompanyUpdatedBy", fields: [updatedById], references: [id])
 
-  people CrmPerson[]
+  people        CrmPerson[]
+  opportunities CrmOpportunity[]
 
   @@unique([workspaceId, domain])
   @@unique([workspaceId, cnpj])
@@ -952,6 +957,8 @@ model CrmPerson {
   company   CrmCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdBy User        @relation("CrmPersonCreatedBy", fields: [createdById], references: [id])
   updatedBy User?       @relation("CrmPersonUpdatedBy", fields: [updatedById], references: [id])
+
+  opportunitiesAsPointOfContact CrmOpportunity[] @relation("CrmOpportunityPointOfContact")
 
   @@index([workspaceId])
   @@index([companyId])
@@ -989,7 +996,8 @@ model CrmPipeline {
   createdBy User      @relation("CrmPipelineCreatedBy", fields: [createdById], references: [id])
   updatedBy User?     @relation("CrmPipelineUpdatedBy", fields: [updatedById], references: [id])
 
-  stages CrmPipelineStage[]
+  stages        CrmPipelineStage[]
+  opportunities CrmOpportunity[]
 
   @@index([workspaceId])
   @@index([workspaceId, position])
@@ -1009,7 +1017,8 @@ model CrmPipelineStage {
   createdAt   DateTime         @default(now()) @map("created_at")
   updatedAt   DateTime         @updatedAt @map("updated_at")
 
-  pipeline CrmPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipeline      CrmPipeline      @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  opportunities CrmOpportunity[]
 
   @@index([pipelineId])
   @@index([pipelineId, position])
@@ -1038,9 +1047,75 @@ model CrmProduct {
   createdBy User      @relation("CrmProductCreatedBy", fields: [createdById], references: [id])
   updatedBy User?     @relation("CrmProductUpdatedBy", fields: [updatedById], references: [id])
 
+  lineItems CrmOpportunityLineItem[]
+
   @@unique([workspaceId, sku])
   @@index([workspaceId])
   @@index([workspaceId, position])
   @@index([deletedAt])
   @@map("crm_products")
+}
+
+/// Oportunidade de venda vinculada a um pipeline/etapa.
+model CrmOpportunity {
+  id               String    @id @default(cuid())
+  name             String
+  amount           Decimal?  @db.Decimal(14, 2)
+  closeDate        DateTime? @map("close_date")
+  pipelineId       String    @map("pipeline_id")
+  stageId          String    @map("stage_id")
+  companyId        String?   @map("company_id")
+  pointOfContactId String?   @map("point_of_contact_id")
+  ownerId          String?   @map("owner_id")
+  source           String?
+  workspaceId      String    @map("workspace_id")
+  createdById      String    @map("created_by_id")
+  updatedById      String?   @map("updated_by_id")
+  position         Int       @default(0)
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pipeline       CrmPipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  stage          CrmPipelineStage @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  company        CrmCompany?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  pointOfContact CrmPerson?       @relation("CrmOpportunityPointOfContact", fields: [pointOfContactId], references: [id], onDelete: SetNull)
+  owner          User?            @relation("CrmOpportunityOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy      User             @relation("CrmOpportunityCreatedBy", fields: [createdById], references: [id])
+  updatedBy      User?            @relation("CrmOpportunityUpdatedBy", fields: [updatedById], references: [id])
+
+  lineItems CrmOpportunityLineItem[]
+
+  @@index([workspaceId])
+  @@index([pipelineId])
+  @@index([stageId])
+  @@index([companyId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_opportunities")
+}
+
+/// Item de uma oportunidade. Faz snapshot do produto (nome/preço) no momento da inclusão.
+model CrmOpportunityLineItem {
+  id            String         @id @default(cuid())
+  opportunityId String         @map("opportunity_id")
+  productId     String?        @map("product_id")
+  name          String
+  quantity      Int            @default(1)
+  unitPrice     Decimal        @default(0) @map("unit_price") @db.Decimal(14, 2)
+  discountPct   Decimal        @default(0) @map("discount_pct") @db.Decimal(5, 2)
+  billingType   CrmBillingType @default(ONE_TIME) @map("billing_type")
+  total         Decimal        @default(0) @db.Decimal(14, 2)
+  position      Int            @default(0)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  product     CrmProduct?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([opportunityId])
+  @@index([opportunityId, position])
+  @@index([productId])
+  @@map("crm_opportunity_line_items")
 }
