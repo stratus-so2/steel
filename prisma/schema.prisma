@@ -45,11 +45,15 @@ model User {
   whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
   whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
 
-  crmCompaniesCreated CrmCompany[] @relation("CrmCompanyCreatedBy")
-  crmCompaniesOwned   CrmCompany[] @relation("CrmCompanyAccountOwner")
-  crmCompaniesUpdated CrmCompany[] @relation("CrmCompanyUpdatedBy")
-  crmPeopleCreated    CrmPerson[]  @relation("CrmPersonCreatedBy")
-  crmPeopleUpdated    CrmPerson[]  @relation("CrmPersonUpdatedBy")
+  crmCompaniesCreated CrmCompany[]  @relation("CrmCompanyCreatedBy")
+  crmCompaniesOwned   CrmCompany[]  @relation("CrmCompanyAccountOwner")
+  crmCompaniesUpdated CrmCompany[]  @relation("CrmCompanyUpdatedBy")
+  crmPeopleCreated    CrmPerson[]   @relation("CrmPersonCreatedBy")
+  crmPeopleUpdated    CrmPerson[]   @relation("CrmPersonUpdatedBy")
+  crmPipelinesCreated CrmPipeline[] @relation("CrmPipelineCreatedBy")
+  crmPipelinesUpdated CrmPipeline[] @relation("CrmPipelineUpdatedBy")
+  crmProductsCreated  CrmProduct[]  @relation("CrmProductCreatedBy")
+  crmProductsUpdated  CrmProduct[]  @relation("CrmProductUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -234,6 +238,8 @@ model Workspace {
 
   crmCompanies CrmCompany[]
   crmPeople    CrmPerson[]
+  crmPipelines CrmPipeline[]
+  crmProducts  CrmProduct[]
 
   @@map("workspaces")
 }
@@ -952,4 +958,89 @@ model CrmPerson {
   @@index([deletedAt])
   @@index([workspaceId, position])
   @@map("crm_people")
+}
+
+enum CrmBillingType {
+  ONE_TIME
+  MONTHLY
+  YEARLY
+}
+
+enum CrmStageCategory {
+  OPEN
+  WON
+  LOST
+}
+
+/// Funil de vendas configurável por workspace.
+model CrmPipeline {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  name        String
+  position    Int       @default(0)
+  isDefault   Boolean   @default(false) @map("is_default")
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmPipelineCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmPipelineUpdatedBy", fields: [updatedById], references: [id])
+
+  stages CrmPipelineStage[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, position])
+  @@index([deletedAt])
+  @@map("crm_pipelines")
+}
+
+/// Etapa de um pipeline. `probability` (0-100) e `category` alimentam o forecast.
+model CrmPipelineStage {
+  id          String           @id @default(cuid())
+  pipelineId  String           @map("pipeline_id")
+  name        String
+  position    Int              @default(0)
+  probability Int              @default(0)
+  category    CrmStageCategory @default(OPEN)
+  color       String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  pipeline CrmPipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  @@index([pipelineId])
+  @@index([pipelineId, position])
+  @@map("crm_pipeline_stages")
+}
+
+/// Produto/serviço do catálogo da workspace.
+model CrmProduct {
+  id          String         @id @default(cuid())
+  workspaceId String         @map("workspace_id")
+  name        String
+  sku         String?
+  description String?
+  unitPrice   Decimal        @default(0) @map("unit_price") @db.Decimal(14, 2)
+  currency    String         @default("BRL")
+  billingType CrmBillingType @default(ONE_TIME) @map("billing_type")
+  active      Boolean        @default(true)
+  position    Int            @default(0)
+  createdById String         @map("created_by_id")
+  updatedById String?        @map("updated_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmProductUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([workspaceId, sku])
+  @@index([workspaceId])
+  @@index([workspaceId, position])
+  @@index([deletedAt])
+  @@map("crm_products")
 }
