@@ -245,3 +245,22 @@ export const crmOpportunityLineItemNotFound = (): AppError =>
     'CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND',
     'Item da oportunidade não encontrado',
   )
+
+export const crmLeadNotFound = (): AppError =>
+  appError('CRM_LEAD_NOT_FOUND', 'Lead não encontrado')
+
+export const crmLeadAlreadyConverted = (
+  message = 'Este lead já foi convertido',
+): AppError => appError('CRM_LEAD_ALREADY_CONVERTED', message)
+
+export const crmLeadScoringRuleNotFound = (): AppError =>
+  appError(
+    'CRM_LEAD_SCORING_RULE_NOT_FOUND',
+    'Regra de pontuação não encontrada',
+  )
+
+export const crmLeadRoutingRuleNotFound = (): AppError =>
+  appError(
+    'CRM_LEAD_ROUTING_RULE_NOT_FOUND',
+    'Regra de roteamento não encontrada',
+  )

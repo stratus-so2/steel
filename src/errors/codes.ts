@@ -130,6 +130,19 @@ export const ERROR_CODES = {
     code: 'CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND',
     status: 404,
   },
+  CRM_LEAD_NOT_FOUND: { code: 'CRM_LEAD_NOT_FOUND', status: 404 },
+  CRM_LEAD_ALREADY_CONVERTED: {
+    code: 'CRM_LEAD_ALREADY_CONVERTED',
+    status: 409,
+  },
+  CRM_LEAD_SCORING_RULE_NOT_FOUND: {
+    code: 'CRM_LEAD_SCORING_RULE_NOT_FOUND',
+    status: 404,
+  },
+  CRM_LEAD_ROUTING_RULE_NOT_FOUND: {
+    code: 'CRM_LEAD_ROUTING_RULE_NOT_FOUND',
+    status: 404,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

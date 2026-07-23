@@ -33,6 +33,9 @@ type AuditEntity =
   | 'crm_product'
   | 'crm_opportunity'
   | 'crm_opportunity_line_item'
+  | 'crm_lead'
+  | 'crm_lead_scoring_rule'
+  | 'crm_lead_routing_rule'
 
 type AuditAction =
   | 'create'
