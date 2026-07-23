@@ -168,6 +168,11 @@ export const ERROR_CODES = {
   CRM_PROPOSAL_NOT_FOUND: { code: 'CRM_PROPOSAL_NOT_FOUND', status: 404 },
   CRM_FORM_NOT_FOUND: { code: 'CRM_FORM_NOT_FOUND', status: 404 },
   CRM_FORM_NOT_PUBLISHED: { code: 'CRM_FORM_NOT_PUBLISHED', status: 422 },
+  CRM_AI_CONVERSATION_NOT_FOUND: {
+    code: 'CRM_AI_CONVERSATION_NOT_FOUND',
+    status: 404,
+  },
+  CRM_AI_NOT_CONFIGURED: { code: 'CRM_AI_NOT_CONFIGURED', status: 503 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

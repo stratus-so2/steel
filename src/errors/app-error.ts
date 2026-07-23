@@ -306,3 +306,12 @@ export const crmFormNotFound = (): AppError =>
 
 export const crmFormNotPublished = (): AppError =>
   appError('CRM_FORM_NOT_PUBLISHED', 'Este formulário não está publicado')
+
+export const crmAiConversationNotFound = (): AppError =>
+  appError('CRM_AI_CONVERSATION_NOT_FOUND', 'Conversa não encontrada')
+
+export const crmAiNotConfigured = (): AppError =>
+  appError(
+    'CRM_AI_NOT_CONFIGURED',
+    'Assistente de IA não configurado neste ambiente (OPENAI_API_KEY ausente)',
+  )

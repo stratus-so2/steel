@@ -31,6 +31,7 @@ const serverEnv = {
   WHATSAPP_META_APP_SECRET: process.env.WHATSAPP_META_APP_SECRET,
   WHATSAPP_META_VERIFY_TOKEN: process.env.WHATSAPP_META_VERIFY_TOKEN,
   JITSI_DOMAIN: process.env.JITSI_DOMAIN,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 }
 
 const serverEnvSchema = z.object({
@@ -90,6 +91,7 @@ const serverEnvSchema = z.object({
   WHATSAPP_META_APP_SECRET: z.string().min(1).max(255).optional(),
   WHATSAPP_META_VERIFY_TOKEN: z.string().min(8).max(255).optional(),
   JITSI_DOMAIN: z.string().min(1).max(255).default('meet.jit.si'),
+  OPENAI_API_KEY: z.string().min(1).optional(),
 })
 
 const validatedServerEnv =
@@ -127,4 +129,5 @@ export const {
   WHATSAPP_META_APP_SECRET,
   WHATSAPP_META_VERIFY_TOKEN,
   JITSI_DOMAIN,
+  OPENAI_API_KEY,
 } = validatedServerEnv

@@ -45,6 +45,7 @@ type AuditEntity =
   | 'crm_dashboard_widget'
   | 'crm_proposal'
   | 'crm_form'
+  | 'crm_ai_conversation'
 
 type AuditAction =
   | 'create'
