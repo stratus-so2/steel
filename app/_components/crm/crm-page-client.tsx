@@ -16,6 +16,7 @@ import { CrmPipelinesPanel } from './crm-pipelines-panel'
 import { CrmProductsTable } from './crm-products-table'
 import { CrmReportsPanel } from './crm-reports-panel'
 import { CrmTasksTable } from './crm-tasks-table'
+import { CrmWorkflowsPanel } from './crm-workflows-panel'
 
 export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
   return (
@@ -34,6 +35,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='email-templates'>Templates de e-mail</TabsTrigger>
           <TabsTrigger value='email-campaigns'>Campanhas de e-mail</TabsTrigger>
           <TabsTrigger value='mailing-lists'>Listas de e-mail</TabsTrigger>
+          <TabsTrigger value='workflows'>Workflows</TabsTrigger>
           <TabsTrigger value='reports'>Relatórios</TabsTrigger>
           <TabsTrigger value='ai'>Assistente IA</TabsTrigger>
           <TabsTrigger value='integration-keys'>Chaves de API</TabsTrigger>
@@ -73,6 +75,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='mailing-lists'>
           <CrmMailingListsPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='workflows'>
+          <CrmWorkflowsPanel workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value='reports'>
           <CrmReportsPanel workspaceId={workspaceId} />
