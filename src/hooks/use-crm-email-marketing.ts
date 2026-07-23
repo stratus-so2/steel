@@ -3,15 +3,10 @@ import type {
   CrmCampaignRecipientScopeDTO,
   CrmEmailCampaignDTO,
   CrmEmailCampaignRecipientDTO,
-  CrmEmailTemplateDTO,
   CrmMailingListDTO,
   CrmMailingListMemberDTO,
 } from '@/types/crm-email-marketing'
 import { apiFetch, apiSend } from './_fetch'
-
-function emailTemplatesKey(workspaceId: string) {
-  return ['crm-email-templates', workspaceId] as const
-}
 
 function mailingListsKey(workspaceId: string) {
   return ['crm-mailing-lists', workspaceId] as const
@@ -27,92 +22,6 @@ function emailCampaignsKey(workspaceId: string) {
 
 function emailCampaignRecipientsKey(workspaceId: string, campaignId: string) {
   return ['crm-email-campaign-recipients', workspaceId, campaignId] as const
-}
-
-export function useCrmEmailTemplates(workspaceId: string) {
-  return useQuery({
-    queryKey: emailTemplatesKey(workspaceId),
-    queryFn: () =>
-      apiFetch<CrmEmailTemplateDTO[]>(
-        `/api/workspaces/${workspaceId}/crm/email-templates`,
-        undefined,
-        'Erro ao buscar templates de e-mail',
-      ),
-    enabled: !!workspaceId,
-    staleTime: 60 * 1000,
-  })
-}
-
-export function useCreateCrmEmailTemplate(workspaceId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: {
-      name: string
-      subject: string
-      contentHtml: string
-    }) =>
-      apiFetch<CrmEmailTemplateDTO>(
-        `/api/workspaces/${workspaceId}/crm/email-templates`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        },
-        'Erro ao criar template de e-mail',
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: emailTemplatesKey(workspaceId),
-      })
-    },
-  })
-}
-
-export function useUpdateCrmEmailTemplate(workspaceId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({
-      templateId,
-      data,
-    }: {
-      templateId: string
-      data: { name?: string; subject?: string; contentHtml?: string }
-    }) =>
-      apiFetch<CrmEmailTemplateDTO>(
-        `/api/workspaces/${workspaceId}/crm/email-templates/${templateId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        },
-        'Erro ao atualizar template de e-mail',
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: emailTemplatesKey(workspaceId),
-      })
-    },
-  })
-}
-
-export function useDeleteCrmEmailTemplate(workspaceId: string) {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (templateId: string) =>
-      apiSend(
-        `/api/workspaces/${workspaceId}/crm/email-templates/${templateId}`,
-        { method: 'DELETE' },
-        'Erro ao remover template de e-mail',
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: emailTemplatesKey(workspaceId),
-      })
-    },
-  })
 }
 
 export function useCrmMailingLists(workspaceId: string) {
