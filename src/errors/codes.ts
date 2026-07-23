@@ -110,6 +110,11 @@ export const ERROR_CODES = {
     status: 422,
   },
 
+  // CRM domain
+  CRM_COMPANY_NOT_FOUND: { code: 'CRM_COMPANY_NOT_FOUND', status: 404 },
+  CRM_COMPANY_CONFLICT: { code: 'CRM_COMPANY_CONFLICT', status: 409 },
+  CRM_PERSON_NOT_FOUND: { code: 'CRM_PERSON_NOT_FOUND', status: 404 },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

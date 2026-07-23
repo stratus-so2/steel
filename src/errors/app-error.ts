@@ -209,3 +209,13 @@ export const whatsappGroupProviderUnsupported = (): AppError =>
 export const whatsappContactPhotoUnavailable = (
   message = 'Buscar foto de perfil exige uma conexão Z-API — a API oficial da Meta não expõe fotos de contato',
 ): AppError => appError('WHATSAPP_CONTACT_PHOTO_UNAVAILABLE', message)
+
+export const crmCompanyNotFound = (): AppError =>
+  appError('CRM_COMPANY_NOT_FOUND', 'Empresa não encontrada')
+
+export const crmCompanyConflict = (
+  message = 'Já existe uma empresa com este domínio ou CNPJ neste workspace',
+): AppError => appError('CRM_COMPANY_CONFLICT', message)
+
+export const crmPersonNotFound = (): AppError =>
+  appError('CRM_PERSON_NOT_FOUND', 'Pessoa não encontrada')
