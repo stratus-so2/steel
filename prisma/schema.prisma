@@ -76,6 +76,8 @@ model User {
   crmReportsUpdated        CrmReport[]                @relation("CrmReportUpdatedBy")
   crmDashboardsCreated     CrmDashboard[]             @relation("CrmDashboardCreatedBy")
   crmDashboardsUpdated     CrmDashboard[]             @relation("CrmDashboardUpdatedBy")
+  crmProposalsCreated      CrmProposal[]              @relation("CrmProposalCreatedBy")
+  crmProposalsUpdated      CrmProposal[]              @relation("CrmProposalUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -273,6 +275,7 @@ model Workspace {
   crmQuotas                 CrmQuota[]
   crmReports                CrmReport[]
   crmDashboards             CrmDashboard[]
+  crmProposals              CrmProposal[]
 
   @@map("workspaces")
 }
@@ -1520,4 +1523,66 @@ model CrmDashboardWidget {
 
   @@index([dashboardId])
   @@map("crm_dashboard_widgets")
+}
+
+enum CrmDocumentType {
+  PREMISES
+  PORTFOLIO
+  PROPOSAL
+  CONTRACT
+}
+
+enum CrmProposalStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// Documento rico (HTML do TipTap), escopado por workspace. `status` PUBLISHED
+/// = online: o `shareToken` opaco serve a página pública sem autenticação.
+model CrmProposal {
+  id          String            @id @default(cuid())
+  title       String
+  content     String            @default("") @db.Text
+  type        CrmDocumentType   @default(PROPOSAL)
+  status      CrmProposalStatus @default(DRAFT)
+  shareToken  String            @unique @map("share_token")
+  publishedAt DateTime?         @map("published_at")
+  workspaceId String            @map("workspace_id")
+  createdById String            @map("created_by_id")
+  updatedById String?           @map("updated_by_id")
+  position    Int               @default(0)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User              @relation("CrmProposalCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?             @relation("CrmProposalUpdatedBy", fields: [updatedById], references: [id])
+  views     CrmProposalView[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_proposals")
+}
+
+/// Beacon de visualização anônima de uma proposta pública (LGPD: IP com hash).
+model CrmProposalView {
+  id          String   @id @default(cuid())
+  proposalId  String   @map("proposal_id")
+  viewId      String   @map("view_id")
+  ipHash      String   @map("ip_hash")
+  durationMs  Int      @default(0) @map("duration_ms")
+  reachedEnd  Boolean  @default(false) @map("reached_end")
+  scrolledPct Int      @default(0) @map("scrolled_pct")
+  referrer    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  proposal CrmProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, viewId])
+  @@index([proposalId])
+  @@map("crm_proposal_views")
 }
