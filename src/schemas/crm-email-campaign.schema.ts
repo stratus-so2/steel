@@ -6,8 +6,12 @@ export const CreateCrmEmailCampaignSchema = z.object({
   contentJson: z.string().max(200_000).optional(),
   fromAddress: z.email(),
   recipientScope: z.enum(['ALL', 'SELECTED']),
-  mailingListId: z.string().optional(),
+  // Quando SELECTED, os três conjuntos abaixo são unidos (dedupe por
+  // e-mail) — combinar pessoas + várias listas + e-mails avulsos numa
+  // campanha só, igual ao original.
+  mailingListIds: z.array(z.string()).optional(),
   personIds: z.array(z.string()).optional(),
+  extraEmails: z.array(z.email()).optional(),
   scheduledAt: z.coerce.date().optional(),
 })
 

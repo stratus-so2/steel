@@ -4,6 +4,7 @@ import { Cancel01Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { useMemo, useRef, useState } from 'react'
 import {
   CrmEmailCampaignRecipientPicker,
+  crmDefaultRecipientSelection,
   type RecipientSelection,
 } from '@/app/_components/crm/crm-email-campaign-recipient-picker'
 import { EmailEditorShell } from '@/app/_components/crm/email-editor-shell'
@@ -251,9 +252,9 @@ function CampaignComposer({
   const [fromAddress, setFromAddress] = useState('')
   const [scheduleEnabled, setScheduleEnabled] = useState(false)
   const [scheduledAtLocal, setScheduledAtLocal] = useState('')
-  const [recipients, setRecipients] = useState<RecipientSelection>({
-    scope: 'ALL',
-  })
+  const [recipients, setRecipients] = useState<RecipientSelection>(
+    crmDefaultRecipientSelection(),
+  )
   const createCampaign = useCreateCrmEmailCampaign(workspaceId)
   const sendCampaign = useSendCrmEmailCampaign(workspaceId)
   const [submitting, setSubmitting] = useState(false)
@@ -269,18 +270,11 @@ function CampaignComposer({
     }
     if (
       recipients.scope === 'SELECTED' &&
-      recipients.mode === 'people' &&
-      recipients.personIds.length === 0
+      recipients.personIds.length === 0 &&
+      recipients.mailingListIds.length === 0 &&
+      recipients.extraEmails.length === 0
     ) {
-      notify.error('Selecione ao menos uma pessoa')
-      return
-    }
-    if (
-      recipients.scope === 'SELECTED' &&
-      recipients.mode === 'list' &&
-      !recipients.mailingListId
-    ) {
-      notify.error('Selecione uma lista')
+      notify.error('Selecione ao menos um destinatário')
       return
     }
 
@@ -313,14 +307,14 @@ function CampaignComposer({
         contentJson: json,
         fromAddress,
         recipientScope: recipients.scope,
-        mailingListId:
-          recipients.scope === 'SELECTED' && recipients.mode === 'list'
-            ? recipients.mailingListId
-            : undefined,
         personIds:
-          recipients.scope === 'SELECTED' && recipients.mode === 'people'
-            ? recipients.personIds
+          recipients.scope === 'SELECTED' ? recipients.personIds : undefined,
+        mailingListIds:
+          recipients.scope === 'SELECTED'
+            ? recipients.mailingListIds
             : undefined,
+        extraEmails:
+          recipients.scope === 'SELECTED' ? recipients.extraEmails : undefined,
         scheduledAt,
       })
       if (!scheduledAt) {

@@ -86,8 +86,11 @@ export const CrmEmailCampaignService = {
     const recipients = await resolveRecipients(
       workspaceId,
       dto.recipientScope,
-      dto.mailingListId,
-      dto.personIds,
+      {
+        mailingListIds: dto.mailingListIds,
+        personIds: dto.personIds,
+        extraEmails: dto.extraEmails,
+      },
     )
     if (!recipients.ok) return recipients
 
@@ -241,13 +244,35 @@ export const CrmEmailCampaignService = {
   },
 }
 
+type Recipient = { email: string; name?: string; personId?: string }
+
+/** Une candidatos por e-mail (case-insensitive), mantendo o primeiro
+ * personId/nome encontrado para cada endereço. */
+function dedupeByEmail(candidates: Recipient[]): Recipient[] {
+  const byEmail = new Map<string, Recipient>()
+  for (const candidate of candidates) {
+    const key = candidate.email.trim().toLowerCase()
+    if (!key || byEmail.has(key)) continue
+    byEmail.set(key, candidate)
+  }
+  return Array.from(byEmail.values())
+}
+
 async function resolveRecipients(
   workspaceId: string,
   scope: 'ALL' | 'SELECTED',
-  mailingListId: string | undefined,
-  personIds: string[] | undefined,
-): Promise<Result<{ email: string; name?: string; personId?: string }[]>> {
-  if (scope === 'ALL' || (!mailingListId && !personIds)) {
+  input: {
+    mailingListIds?: string[]
+    personIds?: string[]
+    extraEmails?: string[]
+  },
+): Promise<Result<Recipient[]>> {
+  const hasSelection =
+    (input.mailingListIds?.length ?? 0) > 0 ||
+    (input.personIds?.length ?? 0) > 0 ||
+    (input.extraEmails?.length ?? 0) > 0
+
+  if (scope === 'ALL' || !hasSelection) {
     const people = await CrmPersonRepository.listByWorkspace(workspaceId)
     if (!people.ok) return people
     return ok(
@@ -261,33 +286,41 @@ async function resolveRecipients(
     )
   }
 
-  if (mailingListId) {
-    const members =
-      await CrmMailingListMemberRepository.listByList(mailingListId)
-    if (!members.ok) return members
-    return ok(
-      members.value.map((member) => ({
-        email: member.email,
-        name: member.name ?? undefined,
-        personId: member.personId ?? undefined,
-      })),
-    )
-  }
+  // Ordem importa pro dedupe: personIds primeiro (vínculo mais preciso),
+  // depois listas, depois avulsos — o primeiro candidato por e-mail vence.
+  const candidates: Recipient[] = []
 
   const people = await Promise.all(
-    (personIds ?? []).map((id) =>
+    (input.personIds ?? []).map((id) =>
       CrmPersonRepository.findById(id, workspaceId),
     ),
   )
-  const resolved: { email: string; name?: string; personId?: string }[] = []
   for (const result of people) {
     if (result.ok && result.value.emails.length > 0) {
-      resolved.push({
+      candidates.push({
         email: result.value.emails[0],
         name: result.value.name,
         personId: result.value.id,
       })
     }
   }
-  return ok(resolved)
+
+  for (const mailingListId of input.mailingListIds ?? []) {
+    const members =
+      await CrmMailingListMemberRepository.listByList(mailingListId)
+    if (!members.ok) return members
+    for (const member of members.value) {
+      candidates.push({
+        email: member.email,
+        name: member.name ?? undefined,
+        personId: member.personId ?? undefined,
+      })
+    }
+  }
+
+  for (const email of input.extraEmails ?? []) {
+    candidates.push({ email })
+  }
+
+  return ok(dedupeByEmail(candidates))
 }

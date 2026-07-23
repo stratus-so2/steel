@@ -116,8 +116,9 @@ export function useCreateCrmEmailCampaign(workspaceId: string) {
       contentJson?: string
       fromAddress: string
       recipientScope: CrmCampaignRecipientScopeDTO
-      mailingListId?: string
+      mailingListIds?: string[]
       personIds?: string[]
+      extraEmails?: string[]
       scheduledAt?: string
     }) =>
       apiFetch<CrmEmailCampaignDTO>(

@@ -26,6 +26,32 @@ describe('CreateCrmEmailCampaignSchema', () => {
       }).success,
     ).toBe(true)
   })
+
+  it('should accept combined personIds/mailingListIds/extraEmails', () => {
+    expect(
+      CreateCrmEmailCampaignSchema.safeParse({
+        subject: 'Promo',
+        contentHtml: '<p>Oi</p>',
+        fromAddress: 'crm@stratustelecom.com.br',
+        recipientScope: 'SELECTED',
+        personIds: ['p1'],
+        mailingListIds: ['l1', 'l2'],
+        extraEmails: ['avulso@acme.com'],
+      }).success,
+    ).toBe(true)
+  })
+
+  it('should reject an invalid extraEmails entry', () => {
+    expect(
+      CreateCrmEmailCampaignSchema.safeParse({
+        subject: 'Promo',
+        contentHtml: '<p>Oi</p>',
+        fromAddress: 'crm@stratustelecom.com.br',
+        recipientScope: 'SELECTED',
+        extraEmails: ['not-an-email'],
+      }).success,
+    ).toBe(false)
+  })
 })
 
 describe('UpdateCrmEmailCampaignSchema', () => {
