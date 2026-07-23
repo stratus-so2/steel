@@ -46,8 +46,14 @@ export type CreateCrmOpportunityLineItemDTO = z.infer<
   typeof CreateCrmOpportunityLineItemSchema
 >
 
-export const UpdateCrmOpportunityLineItemSchema =
-  CreateCrmOpportunityLineItemSchema.partial()
+export const UpdateCrmOpportunityLineItemSchema = z.object({
+  productId: z.string().optional(),
+  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+  quantity: z.number().int().min(1).optional(),
+  unitPrice: z.number().min(0).optional(),
+  discountPct: z.number().min(0).max(100).optional(),
+  billingType: z.enum(['ONE_TIME', 'MONTHLY', 'YEARLY']).optional(),
+})
 
 export type UpdateCrmOpportunityLineItemDTO = z.infer<
   typeof UpdateCrmOpportunityLineItemSchema

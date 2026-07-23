@@ -13,7 +13,16 @@ export const CreateCrmPersonSchema = z.object({
 
 export type CreateCrmPersonDTO = z.infer<typeof CreateCrmPersonSchema>
 
-export const UpdateCrmPersonSchema = CreateCrmPersonSchema.partial()
+export const UpdateCrmPersonSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+  emails: z.array(z.email()).optional(),
+  phones: z.array(z.string().max(30)).optional(),
+  city: z.string().max(100).optional(),
+  jobTitle: z.string().max(150).optional(),
+  linkedin: z.string().max(300).optional(),
+  avatar: z.string().max(500).optional(),
+  companyId: z.string().optional(),
+})
 
 export type UpdateCrmPersonDTO = z.infer<typeof UpdateCrmPersonSchema>
 

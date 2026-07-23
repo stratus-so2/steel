@@ -12,7 +12,15 @@ export const CreateCrmProductSchema = z.object({
 
 export type CreateCrmProductDTO = z.infer<typeof CreateCrmProductSchema>
 
-export const UpdateCrmProductSchema = CreateCrmProductSchema.partial()
+export const UpdateCrmProductSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+  sku: z.string().max(100).optional(),
+  description: z.string().max(2000).optional(),
+  unitPrice: z.number().min(0).optional(),
+  currency: z.string().max(10).optional(),
+  billingType: z.enum(['ONE_TIME', 'MONTHLY', 'YEARLY']).optional(),
+  active: z.boolean().optional(),
+})
 
 export type UpdateCrmProductDTO = z.infer<typeof UpdateCrmProductSchema>
 

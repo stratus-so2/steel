@@ -27,7 +27,17 @@ export const CreateCrmCompanySchema = z.object({
 
 export type CreateCrmCompanyDTO = z.infer<typeof CreateCrmCompanySchema>
 
-export const UpdateCrmCompanySchema = CreateCrmCompanySchema.partial()
+export const UpdateCrmCompanySchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+  cnpj: z.string().max(20).optional(),
+  domain: z.string().max(200).optional(),
+  employees: z.number().int().min(0).optional(),
+  linkedin: z.string().max(300).optional(),
+  address: AddressSchema,
+  arr: z.number().min(0).optional(),
+  icp: z.boolean().optional(),
+  accountOwnerId: z.string().optional(),
+})
 
 export type UpdateCrmCompanyDTO = z.infer<typeof UpdateCrmCompanySchema>
 

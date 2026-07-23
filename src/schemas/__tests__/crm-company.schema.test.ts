@@ -54,6 +54,11 @@ describe('UpdateCrmCompanySchema', () => {
     const result = UpdateCrmCompanySchema.safeParse({})
     expect(result.success).toBe(true)
   })
+
+  it('should leave icp undefined when omitted, not reset to its default', () => {
+    const result = UpdateCrmCompanySchema.safeParse({ name: 'New name' })
+    expect(result.data?.icp).toBeUndefined()
+  })
 })
 
 describe('ListCrmCompaniesSchema', () => {

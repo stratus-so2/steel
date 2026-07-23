@@ -95,4 +95,11 @@ describe('UpdateCrmOpportunityLineItemSchema', () => {
   it('should accept an empty payload', () => {
     expect(UpdateCrmOpportunityLineItemSchema.safeParse({}).success).toBe(true)
   })
+
+  it('should leave unitPrice undefined when omitted, not reset to 0', () => {
+    const result = UpdateCrmOpportunityLineItemSchema.safeParse({
+      quantity: 3,
+    })
+    expect(result.data?.unitPrice).toBeUndefined()
+  })
 })

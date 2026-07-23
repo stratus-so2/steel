@@ -49,6 +49,12 @@ describe('UpdateCrmPersonSchema', () => {
     const result = UpdateCrmPersonSchema.safeParse({})
     expect(result.success).toBe(true)
   })
+
+  it('should leave emails/phones undefined when omitted, not reset to []', () => {
+    const result = UpdateCrmPersonSchema.safeParse({ name: 'Jane' })
+    expect(result.data?.emails).toBeUndefined()
+    expect(result.data?.phones).toBeUndefined()
+  })
 })
 
 describe('ListCrmPeopleSchema', () => {

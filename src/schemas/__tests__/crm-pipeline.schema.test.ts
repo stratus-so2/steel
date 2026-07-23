@@ -25,6 +25,11 @@ describe('UpdateCrmPipelineSchema', () => {
   it('should accept an empty payload', () => {
     expect(UpdateCrmPipelineSchema.safeParse({}).success).toBe(true)
   })
+
+  it('should leave isDefault undefined when omitted, not reset to false', () => {
+    const result = UpdateCrmPipelineSchema.safeParse({ name: 'Vendas' })
+    expect(result.data?.isDefault).toBeUndefined()
+  })
 })
 
 describe('ReorderCrmPipelinesSchema', () => {
@@ -65,6 +70,11 @@ describe('UpdateCrmPipelineStageSchema', () => {
     expect(
       UpdateCrmPipelineStageSchema.safeParse({ probability: 50 }).success,
     ).toBe(true)
+  })
+
+  it('should leave category undefined when omitted, not reset to OPEN', () => {
+    const result = UpdateCrmPipelineStageSchema.safeParse({ probability: 50 })
+    expect(result.data?.category).toBeUndefined()
   })
 })
 

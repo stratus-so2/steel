@@ -33,6 +33,12 @@ describe('UpdateCrmProductSchema', () => {
   it('should accept an empty payload', () => {
     expect(UpdateCrmProductSchema.safeParse({}).success).toBe(true)
   })
+
+  it('should leave unitPrice/active undefined when omitted, not reset to defaults', () => {
+    const result = UpdateCrmProductSchema.safeParse({ name: 'Plano Pro' })
+    expect(result.data?.unitPrice).toBeUndefined()
+    expect(result.data?.active).toBeUndefined()
+  })
 })
 
 describe('ListCrmProductsSchema', () => {

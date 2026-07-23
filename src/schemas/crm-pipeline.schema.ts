@@ -7,7 +7,10 @@ export const CreateCrmPipelineSchema = z.object({
 
 export type CreateCrmPipelineDTO = z.infer<typeof CreateCrmPipelineSchema>
 
-export const UpdateCrmPipelineSchema = CreateCrmPipelineSchema.partial()
+export const UpdateCrmPipelineSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+  isDefault: z.boolean().optional(),
+})
 
 export type UpdateCrmPipelineDTO = z.infer<typeof UpdateCrmPipelineSchema>
 
@@ -28,8 +31,12 @@ export type CreateCrmPipelineStageDTO = z.infer<
   typeof CreateCrmPipelineStageSchema
 >
 
-export const UpdateCrmPipelineStageSchema =
-  CreateCrmPipelineStageSchema.partial()
+export const UpdateCrmPipelineStageSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(100).optional(),
+  probability: z.number().int().min(0).max(100).optional(),
+  category: z.enum(['OPEN', 'WON', 'LOST']).optional(),
+  color: z.string().max(20).optional(),
+})
 
 export type UpdateCrmPipelineStageDTO = z.infer<
   typeof UpdateCrmPipelineStageSchema
