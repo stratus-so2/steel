@@ -86,6 +86,9 @@ model User {
   crmEmailTemplatesUpdated     CrmEmailTemplate[]         @relation("CrmEmailTemplateUpdatedBy")
   crmEmailCampaignsCreated     CrmEmailCampaign[]         @relation("CrmEmailCampaignCreatedBy")
   crmMailingListsCreated       CrmMailingList[]           @relation("CrmMailingListCreatedBy")
+  crmWorkflowsCreated          CrmWorkflow[]              @relation("CrmWorkflowCreatedBy")
+  crmWorkflowsUpdated          CrmWorkflow[]              @relation("CrmWorkflowUpdatedBy")
+  crmWorkflowRunsStarted       CrmWorkflowRun[]           @relation("CrmWorkflowRunStartedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -291,6 +294,7 @@ model Workspace {
   crmEmailTemplates         CrmEmailTemplate[]
   crmEmailCampaigns         CrmEmailCampaign[]
   crmMailingLists           CrmMailingList[]
+  crmWorkflows              CrmWorkflow[]
 
   @@map("workspaces")
 }
@@ -1863,4 +1867,105 @@ model CrmMailingListMember {
   @@index([mailingListId])
   @@index([personId])
   @@map("crm_mailing_list_members")
+}
+
+enum CrmWorkflowStatus {
+  DRAFT
+  ACTIVE
+  DEACTIVATED
+}
+
+enum CrmWorkflowTriggerType {
+  MANUAL
+  WEBHOOK
+}
+
+enum CrmWorkflowRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum CrmWorkflowRunStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+/// `definition` é uma lista sequencial de nodes ({ id, type, config }),
+/// validada pelo Zod schema (CrmWorkflowDefinitionSchema). Diferente do motor
+/// de grafo (nodes/edges/branching) do CRM original, aqui a execução é
+/// estritamente sequencial — escopo reduzido deliberado para o módulo CRM
+/// dentro do Steel; ver commit message para detalhes.
+model CrmWorkflow {
+  id          String                 @id @default(cuid())
+  name        String
+  description String?
+  status      CrmWorkflowStatus      @default(DRAFT)
+  triggerType CrmWorkflowTriggerType @map("trigger_type")
+  definition  Json
+  workspaceId String                 @map("workspace_id")
+  createdById String                 @map("created_by_id")
+  updatedById String?                @map("updated_by_id")
+  lastRunAt   DateTime?              @map("last_run_at")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+  deletedAt   DateTime?              @map("deleted_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("CrmWorkflowCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?            @relation("CrmWorkflowUpdatedBy", fields: [updatedById], references: [id])
+  runs      CrmWorkflowRun[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("crm_workflows")
+}
+
+model CrmWorkflowRun {
+  id             String                 @id @default(cuid())
+  workflowId     String                 @map("workflow_id")
+  status         CrmWorkflowRunStatus   @default(PENDING)
+  triggerType    CrmWorkflowTriggerType @map("trigger_type")
+  triggerPayload Json                   @default("{}") @map("trigger_payload")
+  startedById    String?                @map("started_by_id")
+  error          String?
+  startedAt      DateTime?              @map("started_at")
+  finishedAt     DateTime?              @map("finished_at")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+
+  workflow  CrmWorkflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  startedBy User?                @relation("CrmWorkflowRunStartedBy", fields: [startedById], references: [id], onDelete: SetNull)
+  steps     CrmWorkflowRunStep[]
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([workflowId, createdAt])
+  @@map("crm_workflow_runs")
+}
+
+model CrmWorkflowRunStep {
+  id         String                   @id @default(cuid())
+  runId      String                   @map("run_id")
+  nodeId     String                   @map("node_id")
+  nodeType   String                   @map("node_type")
+  status     CrmWorkflowRunStepStatus @default(PENDING)
+  input      Json?
+  output     Json?
+  error      String?
+  startedAt  DateTime?                @map("started_at")
+  finishedAt DateTime?                @map("finished_at")
+  createdAt  DateTime                 @default(now()) @map("created_at")
+  updatedAt  DateTime                 @updatedAt @map("updated_at")
+
+  run CrmWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([status])
+  @@map("crm_workflow_run_steps")
 }

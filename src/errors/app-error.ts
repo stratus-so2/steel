@@ -341,3 +341,12 @@ export const crmMailingListNotFound = (): AppError =>
 export const crmMailingListMemberConflict = (
   message = 'Este e-mail já está nesta lista',
 ): AppError => appError('CRM_MAILING_LIST_MEMBER_CONFLICT', message)
+
+export const crmWorkflowNotFound = (): AppError =>
+  appError('CRM_WORKFLOW_NOT_FOUND', 'Workflow não encontrado')
+
+export const crmWorkflowNotActive = (): AppError =>
+  appError(
+    'CRM_WORKFLOW_NOT_ACTIVE',
+    'Workflow precisa estar ativo para ser disparado por webhook',
+  )

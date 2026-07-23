@@ -201,6 +201,14 @@ export const ERROR_CODES = {
     code: 'CRM_MAILING_LIST_MEMBER_CONFLICT',
     status: 409,
   },
+  CRM_WORKFLOW_NOT_FOUND: {
+    code: 'CRM_WORKFLOW_NOT_FOUND',
+    status: 404,
+  },
+  CRM_WORKFLOW_NOT_ACTIVE: {
+    code: 'CRM_WORKFLOW_NOT_ACTIVE',
+    status: 409,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

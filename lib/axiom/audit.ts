@@ -50,6 +50,7 @@ type AuditEntity =
   | 'crm_email_template'
   | 'crm_email_campaign'
   | 'crm_mailing_list'
+  | 'crm_workflow'
 
 type AuditAction =
   | 'create'

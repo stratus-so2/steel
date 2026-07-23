@@ -41,6 +41,8 @@ export {
   crmReportInvalidSource,
   crmReportNotFound,
   crmTaskNotFound,
+  crmWorkflowNotActive,
+  crmWorkflowNotFound,
   databaseError,
   featureNotInPlan,
   forbidden,
