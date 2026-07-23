@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { CrmAiConversationDTO, CrmAiMessageDTO } from '@/types/crm-ai'
+import type {
+  CrmAiAttachmentDTO,
+  CrmAiConversationDTO,
+  CrmAiMessageDTO,
+} from '@/types/crm-ai'
 import { apiFetch, apiSend } from './_fetch'
 
 function conversationsKey(workspaceId: string) {
@@ -82,13 +86,19 @@ export function useSendCrmAiMessage(
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (content: string) =>
+    mutationFn: ({
+      content,
+      attachmentIds,
+    }: {
+      content: string
+      attachmentIds?: string[]
+    }) =>
       apiFetch<CrmAiMessageDTO>(
         `/api/workspaces/${workspaceId}/crm/ai/conversations/${conversationId}/messages`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, attachmentIds }),
         },
         'Erro ao enviar mensagem',
       ),
@@ -96,6 +106,28 @@ export function useSendCrmAiMessage(
       queryClient.invalidateQueries({
         queryKey: messagesKey(workspaceId, conversationId),
       })
+    },
+  })
+}
+
+export function useUploadCrmAiAttachment(
+  workspaceId: string,
+  conversationId: string | null,
+) {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/crm/ai/conversations/${conversationId}/attachments`,
+        { method: 'POST', body: form },
+      )
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.message ?? 'Erro ao enviar anexo')
+      }
+      const json = await res.json()
+      return json.data as CrmAiAttachmentDTO
     },
   })
 }

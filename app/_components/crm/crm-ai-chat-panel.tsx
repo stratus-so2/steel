@@ -1,7 +1,11 @@
 'use client'
 
-import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
+import {
+  Attachment01Icon,
+  Delete02Icon,
+  PlusSignIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
+import { useRef, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,7 +16,9 @@ import {
   useCrmAiMessages,
   useDeleteCrmAiConversation,
   useSendCrmAiMessage,
+  useUploadCrmAiAttachment,
 } from '@/src/hooks/use-crm-ai'
+import type { CrmAiAttachmentDTO } from '@/types/crm-ai'
 
 export function CrmAiChatPanel({ workspaceId }: { workspaceId: string }) {
   const { data: conversations } = useCrmAiConversations(workspaceId)
@@ -21,7 +27,12 @@ export function CrmAiChatPanel({ workspaceId }: { workspaceId: string }) {
   const deleteConversation = useDeleteCrmAiConversation(workspaceId)
   const { data: messages } = useCrmAiMessages(workspaceId, selectedId)
   const sendMessage = useSendCrmAiMessage(workspaceId, selectedId)
+  const uploadAttachment = useUploadCrmAiAttachment(workspaceId, selectedId)
   const [draft, setDraft] = useState('')
+  const [pendingAttachments, setPendingAttachments] = useState<
+    CrmAiAttachmentDTO[]
+  >([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleNewConversation() {
     try {
@@ -45,8 +56,24 @@ export function CrmAiChatPanel({ workspaceId }: { workspaceId: string }) {
     e.preventDefault()
     if (!draft.trim()) return
     try {
-      await sendMessage.mutateAsync(draft)
+      await sendMessage.mutateAsync({
+        content: draft,
+        attachmentIds: pendingAttachments.map((a) => a.id),
+      })
       setDraft('')
+      setPendingAttachments([])
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const attachment = await uploadAttachment.mutateAsync(file)
+      setPendingAttachments((current) => [...current, attachment])
     } catch (err) {
       notify.error(err)
     }
@@ -99,10 +126,53 @@ export function CrmAiChatPanel({ workspaceId }: { workspaceId: string }) {
                   }
                 >
                   {message.content}
+                  {message.attachments?.map((attachment) => (
+                    <div key={attachment.id} className='mt-1'>
+                      {attachment.kind === 'IMAGE' && attachment.url ? (
+                        <img
+                          src={attachment.url}
+                          alt={attachment.filename}
+                          className='max-h-32 rounded-md'
+                        />
+                      ) : (
+                        <span className='text-muted-foreground text-xs underline'>
+                          {attachment.filename}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
+            {pendingAttachments.length > 0 && (
+              <div className='flex flex-wrap gap-2'>
+                {pendingAttachments.map((attachment) => (
+                  <span
+                    key={attachment.id}
+                    className='rounded-md bg-muted px-2 py-1 text-xs'
+                  >
+                    {attachment.filename}
+                  </span>
+                ))}
+              </div>
+            )}
             <form onSubmit={handleSend} className='flex gap-2'>
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='image/jpeg,image/png,image/webp,application/pdf,text/plain'
+                className='hidden'
+                onChange={handleFileSelect}
+              />
+              <Button
+                type='button'
+                variant='outline'
+                size='icon-sm'
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadAttachment.isPending}
+              >
+                <SteelIcon icon={Attachment01Icon} strokeWidth={2} />
+              </Button>
               <Input
                 placeholder='Pergunte algo sobre seus contatos e oportunidades'
                 value={draft}
