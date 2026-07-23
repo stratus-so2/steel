@@ -82,6 +82,10 @@ model User {
   crmFormsUpdated              CrmForm[]                  @relation("CrmFormUpdatedBy")
   crmAiConversationsOwned      CrmAiConversation[]        @relation("CrmAiConversationUser")
   crmIntegrationApiKeysCreated CrmIntegrationApiKey[]     @relation("CrmIntegrationApiKeyCreatedBy")
+  crmEmailTemplatesCreated     CrmEmailTemplate[]         @relation("CrmEmailTemplateCreatedBy")
+  crmEmailTemplatesUpdated     CrmEmailTemplate[]         @relation("CrmEmailTemplateUpdatedBy")
+  crmEmailCampaignsCreated     CrmEmailCampaign[]         @relation("CrmEmailCampaignCreatedBy")
+  crmMailingListsCreated       CrmMailingList[]           @relation("CrmMailingListCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -284,6 +288,9 @@ model Workspace {
   crmAiConversations        CrmAiConversation[]
   crmAiUsage                CrmAiUsage[]
   crmIntegrationApiKeys     CrmIntegrationApiKey[]
+  crmEmailTemplates         CrmEmailTemplate[]
+  crmEmailCampaigns         CrmEmailCampaign[]
+  crmMailingLists           CrmMailingList[]
 
   @@map("workspaces")
 }
@@ -1734,4 +1741,126 @@ model CrmIntegrationApiKey {
 
   @@index([workspaceId])
   @@map("crm_integration_api_keys")
+}
+
+model CrmEmailTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  subject     String
+  contentHtml String    @map("content_html") @db.Text
+  contentJson String?   @map("content_json") @db.Text
+  workspaceId String    @map("workspace_id")
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmEmailTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmEmailTemplateUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@map("crm_email_templates")
+}
+
+enum CrmCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum CrmCampaignRecipientScope {
+  ALL
+  SELECTED
+}
+
+enum CrmCampaignRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model CrmEmailCampaign {
+  id             String                    @id @default(cuid())
+  subject        String
+  contentHtml    String                    @map("content_html") @db.Text
+  contentJson    String?                   @map("content_json") @db.Text
+  fromAddress    String                    @map("from_address")
+  status         CrmCampaignStatus         @default(DRAFT)
+  recipientScope CrmCampaignRecipientScope @map("recipient_scope")
+  scheduledAt    DateTime?                 @map("scheduled_at")
+  sentAt         DateTime?                 @map("sent_at")
+  workspaceId    String                    @map("workspace_id")
+  createdById    String                    @map("created_by_id")
+  createdAt      DateTime                  @default(now()) @map("created_at")
+  updatedAt      DateTime                  @updatedAt @map("updated_at")
+
+  workspace  Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy  User                        @relation("CrmEmailCampaignCreatedBy", fields: [createdById], references: [id])
+  recipients CrmEmailCampaignRecipient[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@map("crm_email_campaigns")
+}
+
+/// Linha por destinatário da campanha; guarda snapshot de e-mail/nome no envio.
+model CrmEmailCampaignRecipient {
+  id                String                     @id @default(cuid())
+  campaignId        String                     @map("campaign_id")
+  personId          String?                    @map("person_id")
+  email             String
+  name              String?
+  status            CrmCampaignRecipientStatus @default(PENDING)
+  providerMessageId String?                    @map("provider_message_id")
+  errorMessage      String?                    @map("error_message")
+  sentAt            DateTime?                  @map("sent_at")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+  updatedAt         DateTime                   @updatedAt @map("updated_at")
+
+  campaign CrmEmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([personId])
+  @@index([status])
+  @@map("crm_email_campaign_recipients")
+}
+
+model CrmMailingList {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  workspaceId String    @map("workspace_id")
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                   @relation("CrmMailingListCreatedBy", fields: [createdById], references: [id])
+  members   CrmMailingListMember[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@map("crm_mailing_lists")
+}
+
+model CrmMailingListMember {
+  id            String   @id @default(cuid())
+  mailingListId String   @map("mailing_list_id")
+  email         String
+  name          String?
+  personId      String?  @map("person_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  mailingList CrmMailingList @relation(fields: [mailingListId], references: [id], onDelete: Cascade)
+
+  @@unique([mailingListId, email])
+  @@index([mailingListId])
+  @@index([personId])
+  @@map("crm_mailing_list_members")
 }
