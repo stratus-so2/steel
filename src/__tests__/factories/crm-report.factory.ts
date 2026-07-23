@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import type { CrmReport, Prisma } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
+import type { CrmReportQuery } from '@/src/schemas/crm-report.schema'
 import type { CrmReportDTO } from '@/types/crm-report'
 
 export function createFakeCrmReport(overrides?: Partial<CrmReport>): CrmReport {
@@ -11,9 +12,10 @@ export function createFakeCrmReport(overrides?: Partial<CrmReport>): CrmReport {
     name: 'Pipeline por etapa',
     source: 'opportunity',
     columns: ['name', 'amount'],
-    filters: {},
+    filters: [],
     groupBy: null,
     sort: null,
+    query: null,
     position: 0,
     createdById: createId(),
     updatedById: null,
@@ -22,6 +24,14 @@ export function createFakeCrmReport(overrides?: Partial<CrmReport>): CrmReport {
     deletedAt: null,
     ...overrides,
   }
+}
+
+const FAKE_QUERY: CrmReportQuery = {
+  mode: 'join',
+  datasets: [{ alias: 'opportunity', source: 'opportunity', filters: [] }],
+  joins: [],
+  columns: ['opportunity.name', 'opportunity.amount'],
+  sort: undefined,
 }
 
 export function createFakeCrmReportDTO(
@@ -34,9 +44,10 @@ export function createFakeCrmReportDTO(
     name: 'Pipeline por etapa',
     source: 'opportunity',
     columns: ['name', 'amount'],
-    filters: {},
+    filters: [],
     groupBy: null,
     sort: null,
+    query: FAKE_QUERY,
     position: 0,
     createdById: createId(),
     updatedById: null,
@@ -51,14 +62,14 @@ export async function seedCrmReport(
   createdById: string,
   overrides?: Partial<
     Pick<CrmReport, 'name' | 'source' | 'position' | 'deletedAt'>
-  > & { columns?: Prisma.InputJsonValue },
+  > & { columns?: Prisma.InputJsonValue; query?: Prisma.InputJsonValue },
 ) {
   return prisma.crmReport.create({
     data: {
       name: 'Seed Report',
       source: 'opportunity',
       columns: ['name'] as Prisma.InputJsonValue,
-      filters: {} as Prisma.InputJsonValue,
+      filters: [] as Prisma.InputJsonValue,
       workspaceId,
       createdById,
       ...overrides,

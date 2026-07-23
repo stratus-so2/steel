@@ -1,16 +1,65 @@
 import type { Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { crmReportInvalidSource } from '@/src/errors'
-import { isCrmReportSource, runCrmReport } from '@/src/lib/crm-report-runner'
+import type { CrmReportRow } from '@/src/lib/crm-report-runner'
+import { runCrmReportQuery } from '@/src/lib/crm-report-runner'
 import { err, ok, type Result } from '@/src/lib/result'
 import { toCrmReportDTO } from '@/src/mappers/crm-report.mapper'
 import { CrmReportRepository } from '@/src/repositories/crm-report.repository'
 import type {
   CreateCrmReportDTO,
+  CrmReportData,
+  CrmReportSource,
   UpdateCrmReportDTO,
 } from '@/src/schemas/crm-report.schema'
+import { CrmCompanyService } from '@/src/services/crm-company.service'
+import { CrmLeadService } from '@/src/services/crm-lead.service'
+import { CrmNoteService } from '@/src/services/crm-note.service'
+import { CrmOpportunityService } from '@/src/services/crm-opportunity.service'
+import { CrmPersonService } from '@/src/services/crm-person.service'
+import { CrmProductService } from '@/src/services/crm-product.service'
+import { CrmTaskService } from '@/src/services/crm-task.service'
 import type { CrmReportDTO } from '@/types/crm-report'
 import { assertMember } from './authz'
+
+/** Busca as linhas brutas da fonte via o service correspondente (com VIEW). */
+async function fetchSourceRows(
+  actorId: string,
+  workspaceId: string,
+  source: CrmReportSource,
+): Promise<Result<CrmReportRow[]>> {
+  switch (source) {
+    case 'company':
+      return CrmCompanyService.list(actorId, workspaceId, {
+        icp: undefined,
+      }) as Promise<Result<CrmReportRow[]>>
+    case 'person':
+      return CrmPersonService.list(actorId, workspaceId, {}) as Promise<
+        Result<CrmReportRow[]>
+      >
+    case 'opportunity':
+      return CrmOpportunityService.list(actorId, workspaceId, {}) as Promise<
+        Result<CrmReportRow[]>
+      >
+    case 'lead':
+      return CrmLeadService.list(actorId, workspaceId, {}) as Promise<
+        Result<CrmReportRow[]>
+      >
+    case 'task':
+      return CrmTaskService.list(actorId, workspaceId, {}) as Promise<
+        Result<CrmReportRow[]>
+      >
+    case 'note':
+      return CrmNoteService.list(actorId, workspaceId, {}) as Promise<
+        Result<CrmReportRow[]>
+      >
+    case 'product':
+      return CrmProductService.list(actorId, workspaceId, {
+        active: undefined,
+      }) as Promise<Result<CrmReportRow[]>>
+    default:
+      return ok([])
+  }
+}
 
 export const CrmReportService = {
   async list(
@@ -24,6 +73,20 @@ export const CrmReportService = {
     if (!result.ok) return result
 
     return ok(result.value.map(toCrmReportDTO))
+  },
+
+  async getById(
+    actorId: string,
+    workspaceId: string,
+    reportId: string,
+  ): Promise<Result<CrmReportDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const report = await CrmReportRepository.findById(reportId, workspaceId)
+    if (!report.ok) return report
+
+    return ok(toCrmReportDTO(report.value))
   },
 
   async create(
@@ -43,6 +106,7 @@ export const CrmReportService = {
       filters: dto.filters as Prisma.InputJsonValue,
       groupBy: dto.groupBy,
       sort: dto.sort as Prisma.InputJsonValue | undefined,
+      query: dto.query as Prisma.InputJsonValue | undefined,
     })
 
     if (!result.ok) {
@@ -82,8 +146,13 @@ export const CrmReportService = {
       name: dto.name,
       columns: dto.columns as Prisma.InputJsonValue | undefined,
       filters: dto.filters as Prisma.InputJsonValue | undefined,
-      groupBy: dto.groupBy,
-      sort: dto.sort as Prisma.InputJsonValue | undefined,
+      ...('groupBy' in dto && { groupBy: dto.groupBy ?? null }),
+      ...('sort' in dto && {
+        sort: (dto.sort ?? null) as Prisma.InputJsonValue | null,
+      }),
+      ...('query' in dto && {
+        query: (dto.query ?? null) as Prisma.InputJsonValue | null,
+      }),
       updatedById: actorId,
     })
     if (!result.ok) return result
@@ -134,33 +203,28 @@ export const CrmReportService = {
     return CrmReportRepository.reorder(workspaceId, orderedIds)
   },
 
+  /** Processa o relatório (busca de cada dataset + join/union/agrupamento). */
   async runData(
     actorId: string,
     workspaceId: string,
     reportId: string,
-  ): Promise<Result<Record<string, unknown>[]>> {
+  ): Promise<Result<CrmReportData>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
 
-    const report = await CrmReportRepository.findById(reportId, workspaceId)
-    if (!report.ok) return report
+    const found = await CrmReportRepository.findById(reportId, workspaceId)
+    if (!found.ok) return found
+    const report = toCrmReportDTO(found.value)
 
-    if (!isCrmReportSource(report.value.source)) {
-      return err(crmReportInvalidSource())
+    // Busca as linhas de cada dataset (uma vez por alias).
+    const rowsByAlias: Record<string, CrmReportRow[]> = {}
+    for (const dataset of report.query.datasets) {
+      if (rowsByAlias[dataset.alias]) continue
+      const rows = await fetchSourceRows(actorId, workspaceId, dataset.source)
+      if (!rows.ok) return err(rows.error)
+      rowsByAlias[dataset.alias] = rows.value
     }
 
-    const rows = await runCrmReport({
-      source: report.value.source,
-      workspaceId,
-      columns: report.value.columns as string[],
-      filters: (report.value.filters as Record<string, unknown>) ?? {},
-      groupBy: report.value.groupBy,
-      sort: report.value.sort as {
-        field: string
-        direction: 'asc' | 'desc'
-      } | null,
-    })
-
-    return ok(rows)
+    return ok(runCrmReportQuery(report.query, rowsByAlias))
   },
 }

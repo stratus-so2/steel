@@ -1,4 +1,4 @@
-import type { CrmReport, Prisma } from '@prisma/client'
+import { type CrmReport, Prisma } from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -38,6 +38,7 @@ export const CrmReportRepository = {
     filters: Prisma.InputJsonValue
     groupBy?: string
     sort?: Prisma.InputJsonValue
+    query?: Prisma.InputJsonValue
   }): Promise<Result<CrmReport>> {
     try {
       const position = await prisma.crmReport.count({
@@ -58,13 +59,22 @@ export const CrmReportRepository = {
       name?: string
       columns?: Prisma.InputJsonValue
       filters?: Prisma.InputJsonValue
-      groupBy?: string
-      sort?: Prisma.InputJsonValue
+      groupBy?: string | null
+      sort?: Prisma.InputJsonValue | null
+      query?: Prisma.InputJsonValue | null
       updatedById?: string
     },
   ): Promise<Result<CrmReport>> {
     try {
-      const report = await prisma.crmReport.update({ where: { id }, data })
+      const { sort, query, ...rest } = data
+      const report = await prisma.crmReport.update({
+        where: { id },
+        data: {
+          ...rest,
+          ...('sort' in data ? { sort: sort ?? Prisma.JsonNull } : {}),
+          ...('query' in data ? { query: query ?? Prisma.JsonNull } : {}),
+        },
+      })
       return ok(report)
     } catch (error) {
       return err(dbError('Failed to update CRM report', error))

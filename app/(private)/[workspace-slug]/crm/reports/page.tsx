@@ -1,7 +1,7 @@
 import { ChartHistogramIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmReportsPanel } from '@/app/_components/crm/crm-reports-panel'
+import { CrmReportsTable } from '@/app/_components/crm/crm-reports-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -46,7 +46,10 @@ export default async function CrmReportsPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='w-full p-6'>
-        <CrmReportsPanel workspaceId={membership.value.workspaceId} />
+        <CrmReportsTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

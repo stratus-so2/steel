@@ -30,7 +30,35 @@ describe('CRM reports', () => {
     )
     expect(data.status).toBe(200)
     const dataBody = await data.json()
-    expect(dataBody.data).toEqual([{ name: 'Acme', icp: true }])
+    expect(dataBody.data.rows).toEqual([
+      { 'company.name': 'Acme', 'company.icp': true },
+    ])
+    expect(dataBody.data.columns).toEqual([
+      { key: 'company.name', label: 'Nome' },
+      { key: 'company.icp', label: 'PCI' },
+    ])
+    expect(dataBody.data.grouped).toBe(false)
+    expect(dataBody.data.total).toBe(1)
+  })
+
+  it('should get a single report by id', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/reports`,
+        { name: 'Empresas', source: 'company', columns: ['name'] },
+        user.cookie,
+      )
+    ).json()
+
+    const fetched = await getJson(
+      `/api/workspaces/${workspace.id}/crm/reports/${created.data.id}`,
+      user.cookie,
+    )
+    expect(fetched.status).toBe(200)
+    const fetchedBody = await fetched.json()
+    expect(fetchedBody.data.id).toBe(created.data.id)
+    expect(fetchedBody.data.query.mode).toBe('join')
   })
 
   it('should update and delete a report', async () => {
@@ -55,5 +83,30 @@ describe('CRM reports', () => {
       user.cookie,
     )
     expect(deleted.status).toBe(200)
+  })
+
+  it('should export the report data as CSV', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/companies`,
+      { name: 'Acme' },
+      user.cookie,
+    )
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/reports`,
+        { name: 'Empresas', source: 'company', columns: ['name'] },
+        user.cookie,
+      )
+    ).json()
+
+    const res = await getJson(
+      `/api/workspaces/${workspace.id}/crm/reports/${created.data.id}/export`,
+      user.cookie,
+    )
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/csv')
+    const body = await res.text()
+    expect(body).toContain('Acme')
   })
 })

@@ -17,11 +17,33 @@ describe('CrmReportRepository', () => {
         name: 'Second',
         source: 'company',
         columns: ['name'],
-        filters: {},
+        filters: [],
       })
 
       const report = expectOk(result)
       expect(report.position).toBe(1)
+    })
+
+    it('should persist the mega-query when given', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const query = {
+        mode: 'join',
+        datasets: [{ alias: 'company', source: 'company', filters: [] }],
+        columns: ['company.name'],
+      }
+
+      const result = await CrmReportRepository.create({
+        workspaceId: workspace.id,
+        createdById: user.id,
+        name: 'With query',
+        source: 'company',
+        columns: ['name'],
+        filters: [],
+        query,
+      })
+
+      const report = expectOk(result)
+      expect(report.query).toEqual(query)
     })
   })
 
@@ -35,6 +57,26 @@ describe('CrmReportRepository', () => {
         await CrmReportRepository.listByWorkspace(workspace.id),
       )
       expect(list.map((r) => r.id)).toEqual([kept.id])
+    })
+  })
+
+  describe('update()', () => {
+    it('should clear the mega-query back to legacy mode with explicit null', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const seeded = await seedCrmReport(workspace.id, user.id, {
+        query: {
+          mode: 'join',
+          datasets: [{ alias: 'company', source: 'company', filters: [] }],
+          columns: ['company.name'],
+        },
+      })
+
+      const result = await CrmReportRepository.update(seeded.id, {
+        query: null,
+      })
+
+      const report = expectOk(result)
+      expect(report.query).toBeNull()
     })
   })
 })

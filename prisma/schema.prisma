@@ -1498,6 +1498,10 @@ model CrmReport {
   filters     Json
   groupBy     String?   @map("group_by")
   sort        Json?
+  /// Mega-relatório: query normalizada (múltiplas fontes + JOIN/UNION +
+  /// agregação). Quando nulo, os campos legados acima (source/columns/
+  /// filters/groupBy/sort) sintetizam uma query de fonte única.
+  query       Json?
   position    Int       @default(0)
   createdById String    @map("created_by_id")
   updatedById String?   @map("updated_by_id")
