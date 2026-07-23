@@ -24,9 +24,10 @@ export const UpdateCrmOpportunitySchema = z.object({
   closeDate: z.coerce.date().optional(),
   pipelineId: z.string().min(1).optional(),
   stageId: z.string().min(1).optional(),
-  companyId: z.string().optional(),
-  pointOfContactId: z.string().optional(),
-  ownerId: z.string().optional(),
+  // Nullable: colunas limpáveis na grade (enviam null para desvincular).
+  companyId: z.string().nullable().optional(),
+  pointOfContactId: z.string().nullable().optional(),
+  ownerId: z.string().nullable().optional(),
   source: z.string().max(100).optional(),
 })
 

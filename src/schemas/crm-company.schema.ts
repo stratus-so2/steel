@@ -36,7 +36,8 @@ export const UpdateCrmCompanySchema = z.object({
   address: AddressSchema,
   arr: z.number().min(0).optional(),
   icp: z.boolean().optional(),
-  accountOwnerId: z.string().optional(),
+  // Nullable: a coluna é limpável na grade (envia null para desvincular).
+  accountOwnerId: z.string().nullable().optional(),
 })
 
 export type UpdateCrmCompanyDTO = z.infer<typeof UpdateCrmCompanySchema>

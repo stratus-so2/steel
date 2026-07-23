@@ -32,7 +32,8 @@ export const UpdateCrmLeadSchema = z.object({
   linkedin: z.string().max(300).optional(),
   source: z.string().max(100).optional(),
   status: LeadStatusEnum.optional(),
-  ownerId: z.string().optional(),
+  // Nullable: a coluna é limpável na grade (envia null para desvincular).
+  ownerId: z.string().nullable().optional(),
 })
 
 export type UpdateCrmLeadDTO = z.infer<typeof UpdateCrmLeadSchema>

@@ -21,7 +21,8 @@ export const UpdateCrmPersonSchema = z.object({
   jobTitle: z.string().max(150).optional(),
   linkedin: z.string().max(300).optional(),
   avatar: z.string().max(500).optional(),
-  companyId: z.string().optional(),
+  // Nullable: a coluna é limpável na grade (envia null para desvincular).
+  companyId: z.string().nullable().optional(),
 })
 
 export type UpdateCrmPersonDTO = z.infer<typeof UpdateCrmPersonSchema>
