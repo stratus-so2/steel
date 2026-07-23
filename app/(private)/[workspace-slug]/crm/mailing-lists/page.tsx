@@ -1,7 +1,7 @@
 import { UserGroup02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmMailingListsPanel } from '@/app/_components/crm/crm-mailing-lists-panel'
+import { CrmMailingListsTable } from '@/app/_components/crm/crm-mailing-lists-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -33,7 +33,7 @@ export default async function CrmMailingListsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Listas de e-mail'>
@@ -45,8 +45,11 @@ export default async function CrmMailingListsPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmMailingListsPanel workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmMailingListsTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

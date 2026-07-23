@@ -31,4 +31,15 @@ describe('toCrmMailingListDTO()', () => {
     const list = createFakeCrmMailingList({ id: 'l-1' })
     expect(toCrmMailingListDTO(list).id).toBe('l-1')
   })
+
+  it('should default memberCount to 0 when _count is absent', () => {
+    const list = createFakeCrmMailingList({ id: 'l-1' })
+    expect(toCrmMailingListDTO(list).memberCount).toBe(0)
+  })
+
+  it('should read memberCount from _count.members when present', () => {
+    const list = createFakeCrmMailingList({ id: 'l-1' })
+    const dto = toCrmMailingListDTO({ ...list, _count: { members: 4 } })
+    expect(dto.memberCount).toBe(4)
+  })
 })

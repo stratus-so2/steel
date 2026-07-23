@@ -24,20 +24,6 @@ function emailCampaignRecipientsKey(workspaceId: string, campaignId: string) {
   return ['crm-email-campaign-recipients', workspaceId, campaignId] as const
 }
 
-export function useCrmMailingLists(workspaceId: string) {
-  return useQuery({
-    queryKey: mailingListsKey(workspaceId),
-    queryFn: () =>
-      apiFetch<CrmMailingListDTO[]>(
-        `/api/workspaces/${workspaceId}/crm/mailing-lists`,
-        undefined,
-        'Erro ao buscar listas de e-mail',
-      ),
-    enabled: !!workspaceId,
-    staleTime: 60 * 1000,
-  })
-}
-
 export function useCreateCrmMailingList(workspaceId: string) {
   const queryClient = useQueryClient()
 
@@ -71,20 +57,6 @@ export function useDeleteCrmMailingList(workspaceId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mailingListsKey(workspaceId) })
     },
-  })
-}
-
-export function useCrmMailingListMembers(workspaceId: string, listId: string) {
-  return useQuery({
-    queryKey: mailingListMembersKey(workspaceId, listId),
-    queryFn: () =>
-      apiFetch<CrmMailingListMemberDTO[]>(
-        `/api/workspaces/${workspaceId}/crm/mailing-lists/${listId}/members`,
-        undefined,
-        'Erro ao buscar contatos da lista',
-      ),
-    enabled: !!workspaceId && !!listId,
-    staleTime: 30 * 1000,
   })
 }
 

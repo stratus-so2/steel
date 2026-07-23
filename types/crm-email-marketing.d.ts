@@ -53,6 +53,7 @@ export interface CrmMailingListDTO {
   id: string
   name: string
   description: string | null
+  memberCount: number
   workspaceId: string
   createdById: string
   createdAt: string

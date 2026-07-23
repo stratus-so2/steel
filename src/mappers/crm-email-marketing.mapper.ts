@@ -69,11 +69,14 @@ export function toCrmEmailCampaignRecipientDTO(
   }
 }
 
-export function toCrmMailingListDTO(list: CrmMailingList): CrmMailingListDTO {
+export function toCrmMailingListDTO(
+  list: CrmMailingList & { _count?: { members: number } },
+): CrmMailingListDTO {
   return {
     id: list.id,
     name: list.name,
     description: list.description,
+    memberCount: list._count?.members ?? 0,
     workspaceId: list.workspaceId,
     createdById: list.createdById,
     createdAt: list.createdAt.toISOString(),

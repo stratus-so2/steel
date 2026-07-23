@@ -7,10 +7,11 @@ import { dbError } from './db-error'
 export const CrmMailingListRepository = {
   async listByWorkspace(
     workspaceId: string,
-  ): Promise<Result<CrmMailingList[]>> {
+  ): Promise<Result<(CrmMailingList & { _count: { members: number } })[]>> {
     try {
       const lists = await prisma.crmMailingList.findMany({
         where: { workspaceId, deletedAt: null },
+        include: { _count: { select: { members: true } } },
         orderBy: { createdAt: 'desc' },
       })
       return ok(lists)
