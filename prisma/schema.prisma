@@ -94,6 +94,9 @@ model User {
   crmSocialConnectionsCreated  CrmSocialConnection[]      @relation("CrmSocialConnectionCreatedBy")
   crmSocialConnectionsUpdated  CrmSocialConnection[]      @relation("CrmSocialConnectionUpdatedBy")
   crmScheduledPostsCreated     CrmScheduledPost[]         @relation("CrmScheduledPostCreatedBy")
+  crmEmailAccounts             CrmEmailAccount[]          @relation("CrmEmailAccountUser")
+  crmEmailMessagesCreated      CrmEmailMessage[]          @relation("CrmEmailMessageCreatedBy")
+  crmCalendarEventsCreated     CrmCalendarEvent[]         @relation("CrmCalendarEventCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -303,6 +306,9 @@ model Workspace {
   crmLandingPages           CrmLandingPage[]
   crmSocialConnections      CrmSocialConnection[]
   crmScheduledPosts         CrmScheduledPost[]
+  crmEmailAccounts          CrmEmailAccount[]
+  crmEmailMessages          CrmEmailMessage[]
+  crmCalendarEvents         CrmCalendarEvent[]
 
   @@map("workspaces")
 }
@@ -1019,10 +1025,12 @@ model CrmPerson {
   createdBy User        @relation("CrmPersonCreatedBy", fields: [createdById], references: [id])
   updatedBy User?       @relation("CrmPersonUpdatedBy", fields: [updatedById], references: [id])
 
-  opportunitiesAsPointOfContact CrmOpportunity[] @relation("CrmOpportunityPointOfContact")
+  opportunitiesAsPointOfContact CrmOpportunity[]   @relation("CrmOpportunityPointOfContact")
   convertedFromLeads            CrmLead[]
   tasks                         CrmTask[]
   notes                         CrmNote[]
+  emailMessages                 CrmEmailMessage[]
+  calendarEvents                CrmCalendarEvent[]
 
   @@index([workspaceId])
   @@index([companyId])
@@ -1149,9 +1157,11 @@ model CrmOpportunity {
   createdBy      User             @relation("CrmOpportunityCreatedBy", fields: [createdById], references: [id])
   updatedBy      User?            @relation("CrmOpportunityUpdatedBy", fields: [updatedById], references: [id])
 
-  lineItems CrmOpportunityLineItem[]
-  tasks     CrmTask[]
-  notes     CrmNote[]
+  lineItems      CrmOpportunityLineItem[]
+  tasks          CrmTask[]
+  notes          CrmNote[]
+  emailMessages  CrmEmailMessage[]
+  calendarEvents CrmCalendarEvent[]
 
   @@index([workspaceId])
   @@index([pipelineId])
@@ -2127,4 +2137,97 @@ model CrmScheduledPostTarget {
   @@unique([postId, platform])
   @@index([postId])
   @@map("crm_scheduled_post_targets")
+}
+
+enum CrmEmailProvider {
+  GMAIL
+  OUTLOOK
+}
+
+enum CrmMailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+/// Registro de conta de e-mail vinculada a um usuário do workspace. Este
+/// módulo NÃO implementa o sync real contra Gmail/Outlook (exige client
+/// OAuth por provedor, não fornecido) — `lastSyncedAt` permanece null;
+/// CrmEmailMessage/CrmCalendarEvent são preenchidos manualmente pelo usuário
+/// como registro de atividade, não por importação automática.
+model CrmEmailAccount {
+  id           String           @id @default(cuid())
+  workspaceId  String           @map("workspace_id")
+  userId       String           @map("user_id")
+  provider     CrmEmailProvider
+  email        String
+  lastSyncedAt DateTime?        @map("last_synced_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User               @relation("CrmEmailAccountUser", fields: [userId], references: [id], onDelete: Cascade)
+  messages  CrmEmailMessage[]
+  events    CrmCalendarEvent[]
+
+  @@unique([workspaceId, userId, provider])
+  @@index([workspaceId])
+  @@map("crm_email_accounts")
+}
+
+/// E-mail registrado manualmente (não sincronizado), vinculado a um contato
+/// e/ou oportunidade para dar contexto de histórico de comunicação.
+model CrmEmailMessage {
+  id            String           @id @default(cuid())
+  workspaceId   String           @map("workspace_id")
+  accountId     String?          @map("account_id")
+  createdById   String           @map("created_by_id")
+  direction     CrmMailDirection
+  subject       String?
+  snippet       String?          @db.Text
+  fromEmail     String           @map("from_email")
+  toEmails      String[]         @default([]) @map("to_emails")
+  personId      String?          @map("person_id")
+  opportunityId String?          @map("opportunity_id")
+  sentAt        DateTime         @map("sent_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account     CrmEmailAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy   User             @relation("CrmEmailMessageCreatedBy", fields: [createdById], references: [id])
+  person      CrmPerson?       @relation(fields: [personId], references: [id], onDelete: SetNull)
+  opportunity CrmOpportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([personId, sentAt])
+  @@index([opportunityId, sentAt])
+  @@map("crm_email_messages")
+}
+
+/// Evento de agenda registrado manualmente, vinculado a um contato e/ou
+/// oportunidade.
+model CrmCalendarEvent {
+  id            String   @id @default(cuid())
+  workspaceId   String   @map("workspace_id")
+  accountId     String?  @map("account_id")
+  createdById   String   @map("created_by_id")
+  title         String
+  description   String?
+  startsAt      DateTime @map("starts_at")
+  endsAt        DateTime @map("ends_at")
+  attendees     String[] @default([])
+  personId      String?  @map("person_id")
+  opportunityId String?  @map("opportunity_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account     CrmEmailAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  createdBy   User             @relation("CrmCalendarEventCreatedBy", fields: [createdById], references: [id])
+  person      CrmPerson?       @relation(fields: [personId], references: [id], onDelete: SetNull)
+  opportunity CrmOpportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([personId, startsAt])
+  @@index([opportunityId, startsAt])
+  @@map("crm_calendar_events")
 }

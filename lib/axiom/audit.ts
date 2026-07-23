@@ -54,6 +54,9 @@ type AuditEntity =
   | 'crm_landing_page'
   | 'crm_social_connection'
   | 'crm_scheduled_post'
+  | 'crm_email_account'
+  | 'crm_email_message'
+  | 'crm_calendar_event'
 
 type AuditAction =
   | 'create'

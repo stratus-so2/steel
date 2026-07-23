@@ -229,6 +229,22 @@ export const ERROR_CODES = {
     code: 'CRM_SCHEDULED_POST_ALREADY_PUBLISHED',
     status: 409,
   },
+  CRM_EMAIL_ACCOUNT_NOT_FOUND: {
+    code: 'CRM_EMAIL_ACCOUNT_NOT_FOUND',
+    status: 404,
+  },
+  CRM_EMAIL_ACCOUNT_CONFLICT: {
+    code: 'CRM_EMAIL_ACCOUNT_CONFLICT',
+    status: 409,
+  },
+  CRM_EMAIL_MESSAGE_NOT_FOUND: {
+    code: 'CRM_EMAIL_MESSAGE_NOT_FOUND',
+    status: 404,
+  },
+  CRM_CALENDAR_EVENT_NOT_FOUND: {
+    code: 'CRM_CALENDAR_EVENT_NOT_FOUND',
+    status: 404,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

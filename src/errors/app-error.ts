@@ -368,3 +368,18 @@ export const crmScheduledPostNotFound = (): AppError =>
 
 export const crmScheduledPostAlreadyPublished = (): AppError =>
   appError('CRM_SCHEDULED_POST_ALREADY_PUBLISHED', 'Este post já foi publicado')
+
+export const crmEmailAccountNotFound = (): AppError =>
+  appError('CRM_EMAIL_ACCOUNT_NOT_FOUND', 'Conta de e-mail não encontrada')
+
+export const crmEmailAccountConflict = (): AppError =>
+  appError(
+    'CRM_EMAIL_ACCOUNT_CONFLICT',
+    'Já existe uma conta deste provedor para este usuário neste workspace',
+  )
+
+export const crmEmailMessageNotFound = (): AppError =>
+  appError('CRM_EMAIL_MESSAGE_NOT_FOUND', 'E-mail não encontrado')
+
+export const crmCalendarEventNotFound = (): AppError =>
+  appError('CRM_CALENDAR_EVENT_NOT_FOUND', 'Evento não encontrado')
