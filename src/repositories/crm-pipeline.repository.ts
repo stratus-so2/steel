@@ -3,7 +3,7 @@ import type {
   CrmPipelineStage,
   CrmStageCategory,
 } from '@prisma/client'
-import { notFound } from '@/src/errors'
+import { crmPipelineStageInUse, notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
@@ -177,6 +177,9 @@ export const CrmPipelineStageRepository = {
       await prisma.crmPipelineStage.delete({ where: { id } })
       return ok(undefined)
     } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'P2003') {
+        return err(crmPipelineStageInUse())
+      }
       return err(dbError('Failed to delete CRM pipeline stage', error))
     }
   },
