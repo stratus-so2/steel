@@ -1702,10 +1702,11 @@ model CrmAiConversation {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User           @relation("CrmAiConversationUser", fields: [userId], references: [id], onDelete: Cascade)
-  messages  CrmAiMessage[]
-  usage     CrmAiUsage[]
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User              @relation("CrmAiConversationUser", fields: [userId], references: [id], onDelete: Cascade)
+  messages    CrmAiMessage[]
+  usage       CrmAiUsage[]
+  attachments CrmAiAttachment[]
 
   @@index([workspaceId, userId])
   @@map("crm_ai_conversations")
@@ -1719,9 +1720,40 @@ model CrmAiMessage {
   createdAt      DateTime         @default(now()) @map("created_at")
 
   conversation CrmAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments  CrmAiAttachment[]
 
   @@index([conversationId])
   @@map("crm_ai_messages")
+}
+
+enum CrmAiAttachmentKind {
+  IMAGE
+  DOCUMENT
+}
+
+/// Anexo de uma mensagem do assistente de IA do CRM. `messageId` fica null
+/// entre o upload e o envio da mensagem (o front sobe o arquivo antes de
+/// digitar o texto); `POST .../messages` vincula os anexos pendentes à
+/// mensagem criada. Anexos IMAGE viram um content-part de visão na chamada
+/// à OpenAI (URL pré-assinada do MinIO); DOCUMENT só fica anexado como
+/// referência hoje — extração de texto não está implementada.
+model CrmAiAttachment {
+  id             String              @id @default(cuid())
+  conversationId String              @map("conversation_id")
+  messageId      String?             @map("message_id")
+  kind           CrmAiAttachmentKind
+  filename       String
+  contentType    String              @map("content_type")
+  sizeBytes      Int                 @map("size_bytes")
+  storageKey     String              @map("storage_key")
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  conversation CrmAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      CrmAiMessage?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([messageId])
+  @@map("crm_ai_attachments")
 }
 
 /// Contagem de tokens por chamada de modelo, para custeio/observabilidade.

@@ -57,6 +57,7 @@ type AuditEntity =
   | 'crm_email_account'
   | 'crm_email_message'
   | 'crm_calendar_event'
+  | 'crm_ai_attachment'
 
 type AuditAction =
   | 'create'

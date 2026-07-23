@@ -1,5 +1,9 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { CrmAiConversation, CrmAiMessage } from '@prisma/client'
+import type {
+  CrmAiAttachment,
+  CrmAiConversation,
+  CrmAiMessage,
+} from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import type { CrmAiConversationDTO, CrmAiMessageDTO } from '@/types/crm-ai'
 
@@ -76,5 +80,39 @@ export async function seedCrmAiMessage(
 ) {
   return prisma.crmAiMessage.create({
     data: { conversationId, content: 'Olá', role: 'USER', ...overrides },
+  })
+}
+
+export function createFakeCrmAiAttachment(
+  overrides?: Partial<CrmAiAttachment>,
+): CrmAiAttachment {
+  return {
+    id: createId(),
+    conversationId: createId(),
+    messageId: null,
+    kind: 'IMAGE',
+    filename: 'foto.jpg',
+    contentType: 'image/jpeg',
+    sizeBytes: 1024,
+    storageKey: `${createId()}/${createId()}.jpg`,
+    createdAt: new Date(),
+    ...overrides,
+  }
+}
+
+export async function seedCrmAiAttachment(
+  conversationId: string,
+  overrides?: Partial<Pick<CrmAiAttachment, 'kind' | 'messageId'>>,
+) {
+  return prisma.crmAiAttachment.create({
+    data: {
+      conversationId,
+      kind: 'IMAGE',
+      filename: 'foto.jpg',
+      contentType: 'image/jpeg',
+      sizeBytes: 1024,
+      storageKey: `${conversationId}/${createId()}.jpg`,
+      ...overrides,
+    },
   })
 }

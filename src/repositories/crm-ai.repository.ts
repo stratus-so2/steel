@@ -1,4 +1,6 @@
 import type {
+  CrmAiAttachment,
+  CrmAiAttachmentKind,
   CrmAiConversation,
   CrmAiMessage,
   CrmAiMessageRole,
@@ -103,6 +105,64 @@ export const CrmAiMessageRepository = {
       return ok(message)
     } catch (error) {
       return err(dbError('Failed to create CRM AI message', error))
+    }
+  },
+}
+
+export const CrmAiAttachmentRepository = {
+  async create(data: {
+    conversationId: string
+    kind: CrmAiAttachmentKind
+    filename: string
+    contentType: string
+    sizeBytes: number
+    storageKey: string
+  }): Promise<Result<CrmAiAttachment>> {
+    try {
+      const attachment = await prisma.crmAiAttachment.create({ data })
+      return ok(attachment)
+    } catch (error) {
+      return err(dbError('Failed to create CRM AI attachment', error))
+    }
+  },
+
+  async findPendingByIds(
+    ids: string[],
+    conversationId: string,
+  ): Promise<Result<CrmAiAttachment[]>> {
+    try {
+      const attachments = await prisma.crmAiAttachment.findMany({
+        where: { id: { in: ids }, conversationId, messageId: null },
+      })
+      return ok(attachments)
+    } catch (error) {
+      return err(dbError('Failed to find pending CRM AI attachments', error))
+    }
+  },
+
+  async attachToMessage(
+    ids: string[],
+    messageId: string,
+  ): Promise<Result<void>> {
+    try {
+      await prisma.crmAiAttachment.updateMany({
+        where: { id: { in: ids } },
+        data: { messageId },
+      })
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to attach CRM AI attachments', error))
+    }
+  },
+
+  async listByMessage(messageId: string): Promise<Result<CrmAiAttachment[]>> {
+    try {
+      const attachments = await prisma.crmAiAttachment.findMany({
+        where: { messageId },
+      })
+      return ok(attachments)
+    } catch (error) {
+      return err(dbError('Failed to list CRM AI attachments', error))
     }
   },
 }

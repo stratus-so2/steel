@@ -3,13 +3,9 @@ import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { SendCrmAiMessageSchema } from '@/src/schemas/crm-ai.schema'
 import { CrmAiConversationService } from '@/src/services/crm-ai.service'
-import {
-  handleError,
-  standardError,
-  successResponse,
-} from '@/utils/http-response'
+import { readUploadFile } from '@/utils/form-data'
+import { handleError, successResponse } from '@/utils/http-response'
 
 type Params = { params: Promise<{ id: string; conversationId: string }> }
 
@@ -22,29 +18,28 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
 
   const consent = await requireConsent(
     auth.value.user.id,
-    'POST /api/workspaces/[id]/crm/ai/conversations/[conversationId]/messages',
+    'POST /api/workspaces/[id]/crm/ai/conversations/[conversationId]/attachments',
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, conversationId }, body] = await Promise.all([
-    ctx.params,
-    request.json().catch(() => ({})),
-  ])
-  const parsed = SendCrmAiMessageSchema.safeParse(body)
+  const { id, conversationId } = await ctx.params
 
-  if (!parsed.success) {
-    return standardError(
-      'VALIDATION_ERROR',
-      'Dados inválidos',
-      parsed.error.issues,
-    )
-  }
+  const file = await readUploadFile(request, 'file', {
+    invalidBody: 'Formulário inválido',
+    invalidFile: 'Arquivo não enviado',
+  })
+  if (!file.ok) return handleError(file.error)
 
-  const result = await CrmAiConversationService.sendMessage(
+  const result = await CrmAiConversationService.uploadAttachment(
     auth.value.user.id,
     id,
     conversationId,
-    parsed.data,
+    {
+      contentType: file.value.type,
+      byteSize: file.value.size,
+      filename: file.value.name,
+      readBody: async () => Buffer.from(await file.value.arrayBuffer()),
+    },
   )
   if (!result.ok) return handleError(result.error)
 

@@ -383,3 +383,6 @@ export const crmEmailMessageNotFound = (): AppError =>
 
 export const crmCalendarEventNotFound = (): AppError =>
   appError('CRM_CALENDAR_EVENT_NOT_FOUND', 'Evento não encontrado')
+
+export const crmAiAttachmentNotFound = (): AppError =>
+  appError('CRM_AI_ATTACHMENT_NOT_FOUND', 'Anexo não encontrado')

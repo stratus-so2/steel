@@ -10,6 +10,7 @@ export type CreateCrmAiConversationDTO = z.infer<
 
 export const SendCrmAiMessageSchema = z.object({
   content: z.string().min(1, 'Mensagem não pode ser vazia').max(8000),
+  attachmentIds: z.array(z.string()).max(5).optional(),
 })
 
 export type SendCrmAiMessageDTO = z.infer<typeof SendCrmAiMessageSchema>

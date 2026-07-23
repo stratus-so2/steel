@@ -45,7 +45,9 @@ describe('CrmAiConversationService', () => {
       )
 
       expectErr(
-        await CrmAiConversationService.sendMessage('u1', 'ws1', 'c1', 'Oi'),
+        await CrmAiConversationService.sendMessage('u1', 'ws1', 'c1', {
+          content: 'Oi',
+        }),
         'CRM_AI_NOT_CONFIGURED',
       )
     })

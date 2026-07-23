@@ -245,6 +245,10 @@ export const ERROR_CODES = {
     code: 'CRM_CALENDAR_EVENT_NOT_FOUND',
     status: 404,
   },
+  CRM_AI_ATTACHMENT_NOT_FOUND: {
+    code: 'CRM_AI_ATTACHMENT_NOT_FOUND',
+    status: 404,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

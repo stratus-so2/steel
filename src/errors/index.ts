@@ -5,6 +5,7 @@ export {
   connectionNotFound,
   connectionTestFailed,
   couponInvalid,
+  crmAiAttachmentNotFound,
   crmAiConversationNotFound,
   crmAiNotConfigured,
   crmCalendarEventNotFound,
