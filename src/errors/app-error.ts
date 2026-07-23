@@ -264,3 +264,10 @@ export const crmLeadRoutingRuleNotFound = (): AppError =>
     'CRM_LEAD_ROUTING_RULE_NOT_FOUND',
     'Regra de roteamento não encontrada',
   )
+
+export const crmCustomFieldNotFound = (): AppError =>
+  appError('CRM_CUSTOM_FIELD_NOT_FOUND', 'Campo customizado não encontrado')
+
+export const crmCustomFieldConflict = (
+  message = 'Já existe um campo customizado com esta chave para esta entidade',
+): AppError => appError('CRM_CUSTOM_FIELD_CONFLICT', message)

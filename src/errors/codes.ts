@@ -143,6 +143,14 @@ export const ERROR_CODES = {
     code: 'CRM_LEAD_ROUTING_RULE_NOT_FOUND',
     status: 404,
   },
+  CRM_CUSTOM_FIELD_NOT_FOUND: {
+    code: 'CRM_CUSTOM_FIELD_NOT_FOUND',
+    status: 404,
+  },
+  CRM_CUSTOM_FIELD_CONFLICT: {
+    code: 'CRM_CUSTOM_FIELD_CONFLICT',
+    status: 409,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

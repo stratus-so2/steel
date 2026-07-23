@@ -36,6 +36,7 @@ type AuditEntity =
   | 'crm_lead'
   | 'crm_lead_scoring_rule'
   | 'crm_lead_routing_rule'
+  | 'crm_custom_field_definition'
 
 type AuditAction =
   | 'create'

@@ -7,6 +7,8 @@ export {
   couponInvalid,
   crmCompanyConflict,
   crmCompanyNotFound,
+  crmCustomFieldConflict,
+  crmCustomFieldNotFound,
   crmLeadAlreadyConverted,
   crmLeadNotFound,
   crmLeadRoutingRuleNotFound,
