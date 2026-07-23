@@ -3,6 +3,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CrmCompaniesTable } from './crm-companies-table'
 import { CrmPeopleTable } from './crm-people-table'
+import { CrmPipelinesPanel } from './crm-pipelines-panel'
+import { CrmProductsTable } from './crm-products-table'
 
 export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
   return (
@@ -11,12 +13,20 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         <TabsList>
           <TabsTrigger value='companies'>Empresas</TabsTrigger>
           <TabsTrigger value='people'>Pessoas</TabsTrigger>
+          <TabsTrigger value='pipelines'>Pipelines</TabsTrigger>
+          <TabsTrigger value='products'>Produtos</TabsTrigger>
         </TabsList>
         <TabsContent value='companies'>
           <CrmCompaniesTable workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value='people'>
           <CrmPeopleTable workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='pipelines'>
+          <CrmPipelinesPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='products'>
+          <CrmProductsTable workspaceId={workspaceId} />
         </TabsContent>
       </Tabs>
     </div>
