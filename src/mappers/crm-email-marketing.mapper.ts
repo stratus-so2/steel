@@ -31,7 +31,10 @@ export function toCrmEmailTemplateDTO(
 }
 
 export function toCrmEmailCampaignDTO(
-  campaign: CrmEmailCampaign,
+  campaign: CrmEmailCampaign & {
+    _count?: { recipients: number }
+    recipients?: { status: string }[]
+  },
 ): CrmEmailCampaignDTO {
   return {
     id: campaign.id,
@@ -41,6 +44,11 @@ export function toCrmEmailCampaignDTO(
     fromAddress: campaign.fromAddress,
     status: campaign.status,
     recipientScope: campaign.recipientScope,
+    recipientCount: campaign._count?.recipients ?? 0,
+    sentCount:
+      campaign.recipients?.filter((r) => r.status === 'SENT').length ?? 0,
+    failedCount:
+      campaign.recipients?.filter((r) => r.status === 'FAILED').length ?? 0,
     scheduledAt: campaign.scheduledAt
       ? campaign.scheduledAt.toISOString()
       : null,

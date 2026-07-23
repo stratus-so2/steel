@@ -28,6 +28,9 @@ export interface CrmEmailCampaignDTO {
   fromAddress: string
   status: CrmCampaignStatusDTO
   recipientScope: CrmCampaignRecipientScopeDTO
+  recipientCount: number
+  sentCount: number
+  failedCount: number
   scheduledAt: string | null
   sentAt: string | null
   workspaceId: string

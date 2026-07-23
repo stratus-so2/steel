@@ -1,7 +1,7 @@
 import { MailSend01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmEmailCampaignsPanel } from '@/app/_components/crm/crm-email-campaigns-panel'
+import { CrmEmailCampaignsTable } from '@/app/_components/crm/crm-email-campaigns-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -33,7 +33,7 @@ export default async function CrmEmailCampaignsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Campanhas de e-mail'>
@@ -45,8 +45,11 @@ export default async function CrmEmailCampaignsPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmEmailCampaignsPanel workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmEmailCampaignsTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

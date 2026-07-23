@@ -11,13 +11,22 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export const CrmEmailCampaignRepository = {
-  async listByWorkspace(
-    workspaceId: string,
-  ): Promise<Result<CrmEmailCampaign[]>> {
+  async listByWorkspace(workspaceId: string): Promise<
+    Result<
+      (CrmEmailCampaign & {
+        _count: { recipients: number }
+        recipients: { status: CrmCampaignRecipientStatus }[]
+      })[]
+    >
+  > {
     try {
       const campaigns = await prisma.crmEmailCampaign.findMany({
         where: { workspaceId },
         orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { recipients: true } },
+          recipients: { select: { status: true } },
+        },
       })
       return ok(campaigns)
     } catch (error) {

@@ -24,6 +24,30 @@ describe('toCrmEmailCampaignDTO()', () => {
     expect(dto.id).toBe('c-1')
     expect(dto.status).toBe('SENT')
   })
+
+  it('should default recipient/sent/failed counts to 0 when absent', () => {
+    const campaign = createFakeCrmEmailCampaign({ id: 'c-1' })
+    const dto = toCrmEmailCampaignDTO(campaign)
+    expect(dto.recipientCount).toBe(0)
+    expect(dto.sentCount).toBe(0)
+    expect(dto.failedCount).toBe(0)
+  })
+
+  it('should compute sent/failed counts from the recipients list', () => {
+    const campaign = createFakeCrmEmailCampaign({ id: 'c-1' })
+    const dto = toCrmEmailCampaignDTO({
+      ...campaign,
+      _count: { recipients: 3 },
+      recipients: [
+        { status: 'SENT' },
+        { status: 'SENT' },
+        { status: 'FAILED' },
+      ],
+    })
+    expect(dto.recipientCount).toBe(3)
+    expect(dto.sentCount).toBe(2)
+    expect(dto.failedCount).toBe(1)
+  })
 })
 
 describe('toCrmMailingListDTO()', () => {

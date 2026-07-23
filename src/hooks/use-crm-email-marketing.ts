@@ -106,20 +106,6 @@ export function useRemoveCrmMailingListMember(
   })
 }
 
-export function useCrmEmailCampaigns(workspaceId: string) {
-  return useQuery({
-    queryKey: emailCampaignsKey(workspaceId),
-    queryFn: () =>
-      apiFetch<CrmEmailCampaignDTO[]>(
-        `/api/workspaces/${workspaceId}/crm/email-campaigns`,
-        undefined,
-        'Erro ao buscar campanhas de e-mail',
-      ),
-    enabled: !!workspaceId,
-    staleTime: 30 * 1000,
-  })
-}
-
 export function useCreateCrmEmailCampaign(workspaceId: string) {
   const queryClient = useQueryClient()
 
@@ -127,10 +113,12 @@ export function useCreateCrmEmailCampaign(workspaceId: string) {
     mutationFn: (data: {
       subject: string
       contentHtml: string
+      contentJson?: string
       fromAddress: string
       recipientScope: CrmCampaignRecipientScopeDTO
       mailingListId?: string
       personIds?: string[]
+      scheduledAt?: string
     }) =>
       apiFetch<CrmEmailCampaignDTO>(
         `/api/workspaces/${workspaceId}/crm/email-campaigns`,
