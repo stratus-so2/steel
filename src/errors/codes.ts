@@ -173,6 +173,14 @@ export const ERROR_CODES = {
     status: 404,
   },
   CRM_AI_NOT_CONFIGURED: { code: 'CRM_AI_NOT_CONFIGURED', status: 503 },
+  CRM_INTEGRATION_KEY_NOT_FOUND: {
+    code: 'CRM_INTEGRATION_KEY_NOT_FOUND',
+    status: 404,
+  },
+  CRM_INTEGRATION_KEY_INVALID: {
+    code: 'CRM_INTEGRATION_KEY_INVALID',
+    status: 401,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

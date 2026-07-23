@@ -315,3 +315,12 @@ export const crmAiNotConfigured = (): AppError =>
     'CRM_AI_NOT_CONFIGURED',
     'Assistente de IA não configurado neste ambiente (OPENAI_API_KEY ausente)',
   )
+
+export const crmIntegrationKeyNotFound = (): AppError =>
+  appError(
+    'CRM_INTEGRATION_KEY_NOT_FOUND',
+    'Chave de integração não encontrada',
+  )
+
+export const crmIntegrationKeyInvalid = (): AppError =>
+  appError('CRM_INTEGRATION_KEY_INVALID', 'Chave de API inválida ou revogada')

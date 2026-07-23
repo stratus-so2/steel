@@ -15,6 +15,8 @@ export {
   crmDashboardWidgetNotFound,
   crmFormNotFound,
   crmFormNotPublished,
+  crmIntegrationKeyInvalid,
+  crmIntegrationKeyNotFound,
   crmLeadAlreadyConverted,
   crmLeadNotFound,
   crmLeadRoutingRuleNotFound,
