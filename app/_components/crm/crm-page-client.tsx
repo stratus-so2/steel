@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CrmAiChatPanel } from './crm-ai-chat-panel'
 import { CrmCompaniesTable } from './crm-companies-table'
 import { CrmCustomFieldsPanel } from './crm-custom-fields-panel'
+import { CrmIntegrationKeysPanel } from './crm-integration-keys-panel'
 import { CrmLeadsTable } from './crm-leads-table'
 import { CrmNotesList } from './crm-notes-list'
 import { CrmOpportunitiesBoard } from './crm-opportunities-board'
@@ -29,6 +30,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='custom-fields'>Campos customizados</TabsTrigger>
           <TabsTrigger value='reports'>Relatórios</TabsTrigger>
           <TabsTrigger value='ai'>Assistente IA</TabsTrigger>
+          <TabsTrigger value='integration-keys'>Chaves de API</TabsTrigger>
         </TabsList>
         <TabsContent value='leads'>
           <CrmLeadsTable workspaceId={workspaceId} />
@@ -62,6 +64,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='ai'>
           <CrmAiChatPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='integration-keys'>
+          <CrmIntegrationKeysPanel workspaceId={workspaceId} />
         </TabsContent>
       </Tabs>
     </div>
