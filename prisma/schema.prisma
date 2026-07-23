@@ -45,18 +45,22 @@ model User {
   whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
   whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
 
-  crmCompaniesCreated     CrmCompany[]     @relation("CrmCompanyCreatedBy")
-  crmCompaniesOwned       CrmCompany[]     @relation("CrmCompanyAccountOwner")
-  crmCompaniesUpdated     CrmCompany[]     @relation("CrmCompanyUpdatedBy")
-  crmPeopleCreated        CrmPerson[]      @relation("CrmPersonCreatedBy")
-  crmPeopleUpdated        CrmPerson[]      @relation("CrmPersonUpdatedBy")
-  crmPipelinesCreated     CrmPipeline[]    @relation("CrmPipelineCreatedBy")
-  crmPipelinesUpdated     CrmPipeline[]    @relation("CrmPipelineUpdatedBy")
-  crmProductsCreated      CrmProduct[]     @relation("CrmProductCreatedBy")
-  crmProductsUpdated      CrmProduct[]     @relation("CrmProductUpdatedBy")
-  crmOpportunitiesCreated CrmOpportunity[] @relation("CrmOpportunityCreatedBy")
-  crmOpportunitiesUpdated CrmOpportunity[] @relation("CrmOpportunityUpdatedBy")
-  crmOpportunitiesOwned   CrmOpportunity[] @relation("CrmOpportunityOwner")
+  crmCompaniesCreated      CrmCompany[]         @relation("CrmCompanyCreatedBy")
+  crmCompaniesOwned        CrmCompany[]         @relation("CrmCompanyAccountOwner")
+  crmCompaniesUpdated      CrmCompany[]         @relation("CrmCompanyUpdatedBy")
+  crmPeopleCreated         CrmPerson[]          @relation("CrmPersonCreatedBy")
+  crmPeopleUpdated         CrmPerson[]          @relation("CrmPersonUpdatedBy")
+  crmPipelinesCreated      CrmPipeline[]        @relation("CrmPipelineCreatedBy")
+  crmPipelinesUpdated      CrmPipeline[]        @relation("CrmPipelineUpdatedBy")
+  crmProductsCreated       CrmProduct[]         @relation("CrmProductCreatedBy")
+  crmProductsUpdated       CrmProduct[]         @relation("CrmProductUpdatedBy")
+  crmOpportunitiesCreated  CrmOpportunity[]     @relation("CrmOpportunityCreatedBy")
+  crmOpportunitiesUpdated  CrmOpportunity[]     @relation("CrmOpportunityUpdatedBy")
+  crmOpportunitiesOwned    CrmOpportunity[]     @relation("CrmOpportunityOwner")
+  crmLeadsCreated          CrmLead[]            @relation("CrmLeadCreatedBy")
+  crmLeadsUpdated          CrmLead[]            @relation("CrmLeadUpdatedBy")
+  crmLeadsOwned            CrmLead[]            @relation("CrmLeadOwner")
+  crmLeadRoutingRulesOwned CrmLeadRoutingRule[] @relation("CrmLeadRoutingOwner")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -239,11 +243,14 @@ model Workspace {
   whatsappGroups         WhatsAppGroup[]
   whatsappGroupMessages  WhatsAppGroupMessage[]
 
-  crmCompanies     CrmCompany[]
-  crmPeople        CrmPerson[]
-  crmPipelines     CrmPipeline[]
-  crmProducts      CrmProduct[]
-  crmOpportunities CrmOpportunity[]
+  crmCompanies        CrmCompany[]
+  crmPeople           CrmPerson[]
+  crmPipelines        CrmPipeline[]
+  crmProducts         CrmProduct[]
+  crmOpportunities    CrmOpportunity[]
+  crmLeads            CrmLead[]
+  crmLeadScoringRules CrmLeadScoringRule[]
+  crmLeadRoutingRules CrmLeadRoutingRule[]
 
   @@map("workspaces")
 }
@@ -959,6 +966,7 @@ model CrmPerson {
   updatedBy User?       @relation("CrmPersonUpdatedBy", fields: [updatedById], references: [id])
 
   opportunitiesAsPointOfContact CrmOpportunity[] @relation("CrmOpportunityPointOfContact")
+  convertedFromLeads            CrmLead[]
 
   @@index([workspaceId])
   @@index([companyId])
@@ -1118,4 +1126,107 @@ model CrmOpportunityLineItem {
   @@index([opportunityId, position])
   @@index([productId])
   @@map("crm_opportunity_line_items")
+}
+
+enum CrmLeadStatus {
+  NEW
+  WORKING
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+}
+
+enum CrmLeadRuleField {
+  name
+  email
+  phone
+  company
+  jobTitle
+  source
+  city
+}
+
+enum CrmLeadRuleOperator {
+  equals
+  not_equals
+  contains
+  is_empty
+  is_not_empty
+}
+
+/// Lead (contato bruto de marketing) antes de virar Pessoa. Pontuado e roteado
+/// automaticamente via CrmLeadScoringRule/CrmLeadRoutingRule; convertido manualmente.
+model CrmLead {
+  id                String        @id @default(cuid())
+  workspaceId       String        @map("workspace_id")
+  name              String
+  emails            String[]      @default([])
+  phones            String[]      @default([])
+  company           String?
+  jobTitle          String?       @map("job_title")
+  city              String?
+  linkedin          String?
+  source            String?
+  status            CrmLeadStatus @default(NEW)
+  score             Int           @default(0)
+  ownerId           String?       @map("owner_id")
+  convertedPersonId String?       @map("converted_person_id")
+  createdById       String        @map("created_by_id")
+  updatedById       String?       @map("updated_by_id")
+  position          Int           @default(0)
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+  deletedAt         DateTime?     @map("deleted_at")
+
+  workspace       Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner           User?      @relation("CrmLeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy       User       @relation("CrmLeadCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?      @relation("CrmLeadUpdatedBy", fields: [updatedById], references: [id])
+  convertedPerson CrmPerson? @relation(fields: [convertedPersonId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_leads")
+}
+
+/// Regra de pontuação de leads: condição → pontos somados ao score.
+model CrmLeadScoringRule {
+  id          String              @id @default(cuid())
+  workspaceId String              @map("workspace_id")
+  field       CrmLeadRuleField
+  operator    CrmLeadRuleOperator
+  value       String?
+  points      Int                 @default(0)
+  active      Boolean             @default(true)
+  position    Int                 @default(0)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, position])
+  @@map("crm_lead_scoring_rules")
+}
+
+/// Regra de roteamento de leads: condição → responsável. Sem match → sem dono.
+model CrmLeadRoutingRule {
+  id          String              @id @default(cuid())
+  workspaceId String              @map("workspace_id")
+  field       CrmLeadRuleField
+  operator    CrmLeadRuleOperator
+  value       String?
+  ownerId     String              @map("owner_id")
+  active      Boolean             @default(true)
+  position    Int                 @default(0)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User      @relation("CrmLeadRoutingOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, position])
+  @@map("crm_lead_routing_rules")
 }
