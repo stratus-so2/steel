@@ -78,6 +78,8 @@ model User {
   crmDashboardsUpdated     CrmDashboard[]             @relation("CrmDashboardUpdatedBy")
   crmProposalsCreated      CrmProposal[]              @relation("CrmProposalCreatedBy")
   crmProposalsUpdated      CrmProposal[]              @relation("CrmProposalUpdatedBy")
+  crmFormsCreated          CrmForm[]                  @relation("CrmFormCreatedBy")
+  crmFormsUpdated          CrmForm[]                  @relation("CrmFormUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -276,6 +278,7 @@ model Workspace {
   crmReports                CrmReport[]
   crmDashboards             CrmDashboard[]
   crmProposals              CrmProposal[]
+  crmForms                  CrmForm[]
 
   @@map("workspaces")
 }
@@ -1585,4 +1588,67 @@ model CrmProposalView {
   @@unique([proposalId, viewId])
   @@index([proposalId])
   @@map("crm_proposal_views")
+}
+
+enum CrmFormStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CrmFormAction {
+  COMPANY
+  PERSON
+  LEAD
+}
+
+/// Formulário customizável de captação, escopado por workspace. `fields` é um
+/// array de definições de campo (validado por Zod na camada de serviço).
+model CrmForm {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?       @db.Text
+  status          CrmFormStatus @default(DRAFT)
+  publicToken     String        @unique @map("public_token")
+  action          CrmFormAction @default(LEAD)
+  fields          Json          @default("[]")
+  successMessage  String?       @map("success_message")
+  redirectUrl     String?       @map("redirect_url")
+  submissionCount Int           @default(0) @map("submission_count")
+  workspaceId     String        @map("workspace_id")
+  createdById     String        @map("created_by_id")
+  updatedById     String?       @map("updated_by_id")
+  position        Int           @default(0)
+  publishedAt     DateTime?     @map("published_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("CrmFormCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?               @relation("CrmFormUpdatedBy", fields: [updatedById], references: [id])
+  submissions CrmFormSubmission[]
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_forms")
+}
+
+/// Envio de um formulário público. Cria Company/Person/Lead conforme `action`.
+model CrmFormSubmission {
+  id               String        @id @default(cuid())
+  formId           String        @map("form_id")
+  values           Json
+  action           CrmFormAction
+  createdPersonId  String?       @map("created_person_id")
+  createdCompanyId String?       @map("created_company_id")
+  createdLeadId    String?       @map("created_lead_id")
+  ipHash           String?       @map("ip_hash")
+  referrer         String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  form CrmForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@map("crm_form_submissions")
 }
