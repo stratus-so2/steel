@@ -1,0 +1,164 @@
+import {
+  type CrmCustomFieldDefinition,
+  type CrmCustomFieldEntity,
+  type CrmCustomFieldType,
+  type CrmCustomFieldValue,
+  Prisma,
+} from '@prisma/client'
+import { crmCustomFieldConflict, notFound } from '@/src/errors'
+import { prisma } from '@/src/lib/prisma'
+import { err, ok, type Result } from '@/src/lib/result'
+import { dbError } from './db-error'
+
+export const CrmCustomFieldDefinitionRepository = {
+  async listByWorkspace(
+    workspaceId: string,
+    filters?: { entity?: CrmCustomFieldEntity },
+  ): Promise<Result<CrmCustomFieldDefinition[]>> {
+    try {
+      const definitions = await prisma.crmCustomFieldDefinition.findMany({
+        where: {
+          workspaceId,
+          deletedAt: null,
+          ...(filters?.entity ? { entity: filters.entity } : {}),
+        },
+        orderBy: { position: 'asc' },
+      })
+      return ok(definitions)
+    } catch (error) {
+      return err(dbError('Failed to list CRM custom field definitions', error))
+    }
+  },
+
+  async findById(
+    id: string,
+    workspaceId: string,
+  ): Promise<Result<CrmCustomFieldDefinition>> {
+    try {
+      const definition = await prisma.crmCustomFieldDefinition.findFirst({
+        where: { id, workspaceId, deletedAt: null },
+      })
+      if (!definition) return err(notFound('CrmCustomFieldDefinition'))
+      return ok(definition)
+    } catch (error) {
+      return err(
+        dbError('Failed to find CRM custom field definition by id', error),
+      )
+    }
+  },
+
+  async create(data: {
+    workspaceId: string
+    createdById: string
+    entity: CrmCustomFieldEntity
+    key: string
+    label: string
+    type?: CrmCustomFieldType
+    options?: string[]
+    required?: boolean
+  }): Promise<Result<CrmCustomFieldDefinition>> {
+    try {
+      const position = await prisma.crmCustomFieldDefinition.count({
+        where: {
+          workspaceId: data.workspaceId,
+          entity: data.entity,
+          deletedAt: null,
+        },
+      })
+      const definition = await prisma.crmCustomFieldDefinition.create({
+        data: { ...data, position },
+      })
+      return ok(definition)
+    } catch (error) {
+      if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+        return err(crmCustomFieldConflict())
+      }
+      return err(dbError('Failed to create CRM custom field definition', error))
+    }
+  },
+
+  async update(
+    id: string,
+    data: {
+      label?: string
+      type?: CrmCustomFieldType
+      options?: string[]
+      required?: boolean
+      updatedById?: string
+    },
+  ): Promise<Result<CrmCustomFieldDefinition>> {
+    try {
+      const definition = await prisma.crmCustomFieldDefinition.update({
+        where: { id },
+        data,
+      })
+      return ok(definition)
+    } catch (error) {
+      return err(dbError('Failed to update CRM custom field definition', error))
+    }
+  },
+
+  async softDelete(id: string): Promise<Result<void>> {
+    try {
+      await prisma.crmCustomFieldDefinition.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      })
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to delete CRM custom field definition', error))
+    }
+  },
+
+  async reorder(
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    try {
+      await prisma.$transaction(
+        orderedIds.map((id, position) =>
+          prisma.crmCustomFieldDefinition.update({
+            where: { id, workspaceId },
+            data: { position },
+          }),
+        ),
+      )
+      return ok(undefined)
+    } catch (error) {
+      return err(
+        dbError('Failed to reorder CRM custom field definitions', error),
+      )
+    }
+  },
+}
+
+export const CrmCustomFieldValueRepository = {
+  async listByRecord(recordId: string): Promise<Result<CrmCustomFieldValue[]>> {
+    try {
+      const values = await prisma.crmCustomFieldValue.findMany({
+        where: { recordId },
+      })
+      return ok(values)
+    } catch (error) {
+      return err(dbError('Failed to list CRM custom field values', error))
+    }
+  },
+
+  async upsert(
+    definitionId: string,
+    recordId: string,
+    value: string | number | boolean | null,
+  ): Promise<Result<CrmCustomFieldValue>> {
+    try {
+      const jsonValue = value === null ? Prisma.JsonNull : value
+      const record = await prisma.crmCustomFieldValue.upsert({
+        where: { definitionId_recordId: { definitionId, recordId } },
+        create: { definitionId, recordId, value: jsonValue },
+        update: { value: jsonValue },
+      })
+      return ok(record)
+    } catch (error) {
+      return err(dbError('Failed to upsert CRM custom field value', error))
+    }
+  },
+}
