@@ -22,6 +22,8 @@ export {
   crmPipelineStageNotFound,
   crmProductConflict,
   crmProductNotFound,
+  crmQuotaConflict,
+  crmQuotaNotFound,
   crmTaskNotFound,
   databaseError,
   featureNotInPlan,

@@ -277,3 +277,10 @@ export const crmTaskNotFound = (): AppError =>
 
 export const crmNoteNotFound = (): AppError =>
   appError('CRM_NOTE_NOT_FOUND', 'Nota não encontrada')
+
+export const crmQuotaNotFound = (): AppError =>
+  appError('CRM_QUOTA_NOT_FOUND', 'Meta não encontrada')
+
+export const crmQuotaConflict = (
+  message = 'Já existe uma meta para este responsável neste período',
+): AppError => appError('CRM_QUOTA_CONFLICT', message)

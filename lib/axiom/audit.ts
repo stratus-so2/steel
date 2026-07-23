@@ -39,6 +39,7 @@ type AuditEntity =
   | 'crm_custom_field_definition'
   | 'crm_task'
   | 'crm_note'
+  | 'crm_quota'
 
 type AuditAction =
   | 'create'
