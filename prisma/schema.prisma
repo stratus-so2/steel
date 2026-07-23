@@ -45,6 +45,12 @@ model User {
   whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
   whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
 
+  crmCompaniesCreated CrmCompany[] @relation("CrmCompanyCreatedBy")
+  crmCompaniesOwned   CrmCompany[] @relation("CrmCompanyAccountOwner")
+  crmCompaniesUpdated CrmCompany[] @relation("CrmCompanyUpdatedBy")
+  crmPeopleCreated    CrmPerson[]  @relation("CrmPersonCreatedBy")
+  crmPeopleUpdated    CrmPerson[]  @relation("CrmPersonUpdatedBy")
+
   @@index([deletionScheduledAt])
   @@map("users")
 }
@@ -225,6 +231,9 @@ model Workspace {
   whatsappAiConfig       WhatsAppAiConfig?
   whatsappGroups         WhatsAppGroup[]
   whatsappGroupMessages  WhatsAppGroupMessage[]
+
+  crmCompanies CrmCompany[]
+  crmPeople    CrmPerson[]
 
   @@map("workspaces")
 }
@@ -644,32 +653,32 @@ enum WhatsAppMessageStatus {
 }
 
 model WhatsAppMessage {
-  id                 String                   @id @default(cuid())
-  workspaceId        String                   @map("workspace_id")
-  conversationId     String                   @map("conversation_id")
-  direction          WhatsAppMessageDirection
-  type               WhatsAppMessageType
-  text               String?
-  mediaUrl           String?                  @map("media_url")
-  providerMessageId  String?                  @unique @map("provider_message_id")
-  status             WhatsAppMessageStatus    @default(PENDING)
-  senderUserId       String?                  @map("sender_user_id")
-  sentByAi           Boolean                  @default(false) @map("sent_by_ai")
-  replyToMessageId   String?                  @map("reply_to_message_id")
-  reactionEmoji      String?                  @map("reaction_emoji")
+  id                String                   @id @default(cuid())
+  workspaceId       String                   @map("workspace_id")
+  conversationId    String                   @map("conversation_id")
+  direction         WhatsAppMessageDirection
+  type              WhatsAppMessageType
+  text              String?
+  mediaUrl          String?                  @map("media_url")
+  providerMessageId String?                  @unique @map("provider_message_id")
+  status            WhatsAppMessageStatus    @default(PENDING)
+  senderUserId      String?                  @map("sender_user_id")
+  sentByAi          Boolean                  @default(false) @map("sent_by_ai")
+  replyToMessageId  String?                  @map("reply_to_message_id")
+  reactionEmoji     String?                  @map("reaction_emoji")
   // Who set reactionEmoji: true = the contact reacted, false = an agent
   // reacted. Meaningless while reactionEmoji is null.
-  reactedByContact   Boolean?                 @map("reacted_by_contact")
-  contactPayload     Json?                    @map("contact_payload")
-  deletedAt          DateTime?                @map("deleted_at")
-  createdAt          DateTime                 @default(now()) @map("created_at")
-  updatedAt          DateTime                 @updatedAt @map("updated_at")
+  reactedByContact  Boolean?                 @map("reacted_by_contact")
+  contactPayload    Json?                    @map("contact_payload")
+  deletedAt         DateTime?                @map("deleted_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
 
-  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  senderUser   User?                @relation("WhatsAppMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
-  replyToMessage WhatsAppMessage?   @relation("WhatsAppMessageReply", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies        WhatsAppMessage[]  @relation("WhatsAppMessageReply")
+  workspace      Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversation   WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUser     User?                @relation("WhatsAppMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+  replyToMessage WhatsAppMessage?     @relation("WhatsAppMessageReply", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies        WhatsAppMessage[]    @relation("WhatsAppMessageReply")
 
   @@index([workspaceId])
   @@index([conversationId, createdAt])
@@ -874,4 +883,73 @@ model WhatsAppGroupMessage {
   @@index([workspaceId])
   @@index([groupId, createdAt])
   @@map("whatsapp_group_messages")
+}
+
+// ─── CRM domain ─────────────────────────────────────────────────────────────
+
+/// Empresa/conta do CRM, escopada por workspace.
+model CrmCompany {
+  id             String    @id @default(cuid())
+  name           String    @default("")
+  cnpj           String?
+  domain         String?
+  employees      Int?
+  linkedin       String?
+  address        Json?
+  arr            Decimal?  @db.Decimal(14, 2)
+  icp            Boolean   @default(false)
+  workspaceId    String    @map("workspace_id")
+  createdById    String    @map("created_by_id")
+  accountOwnerId String?   @map("account_owner_id")
+  updatedById    String?   @map("updated_by_id")
+  position       Int       @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy    User      @relation("CrmCompanyCreatedBy", fields: [createdById], references: [id])
+  accountOwner User?     @relation("CrmCompanyAccountOwner", fields: [accountOwnerId], references: [id])
+  updatedBy    User?     @relation("CrmCompanyUpdatedBy", fields: [updatedById], references: [id])
+
+  people CrmPerson[]
+
+  @@unique([workspaceId, domain])
+  @@unique([workspaceId, cnpj])
+  @@index([workspaceId])
+  @@index([accountOwnerId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_companies")
+}
+
+/// Pessoa/contato do CRM, escopada por workspace e opcionalmente ligada a uma CrmCompany.
+model CrmPerson {
+  id          String    @id @default(cuid())
+  name        String
+  emails      String[]  @default([])
+  phones      String[]  @default([])
+  city        String?
+  jobTitle    String?   @map("job_title")
+  linkedin    String?
+  avatar      String?
+  companyId   String?   @map("company_id")
+  workspaceId String    @map("workspace_id")
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  company   CrmCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  createdBy User        @relation("CrmPersonCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?       @relation("CrmPersonUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workspaceId])
+  @@index([companyId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_people")
 }
