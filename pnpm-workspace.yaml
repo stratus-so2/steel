@@ -24,6 +24,13 @@ overrides:
   # local dev server, never production, and Snyk is non-blocking in CI. Snyk
   # alert #131 is accepted for this reason.
   'react-email>esbuild': '0.28.0'
+  # Deliberate: chokidar@4.0.3 (pulled by react-email, a transitive dep of
+  # @react-email/editor) was published without npm provenance attestation
+  # while 4.0.1/4.0.0 had it, tripping trustPolicy: no-downgrade. Pinned to
+  # 4.0.1 (last provenance-attested 4.x release) rather than disabling the
+  # policy. chokidar here is only react-email's dev-tooling file watcher, not
+  # something @react-email/editor's React component uses at runtime.
+  'react-email>chokidar': '4.0.1'
 
 onlyBuiltDependencies:
   - '@prisma/engines'
