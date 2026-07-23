@@ -85,6 +85,9 @@ export const CrmTaskService = {
       body: dto.body,
       dueDate: dto.dueDate,
       assigneeId: dto.assigneeId,
+      companyId: dto.companyId,
+      personId: dto.personId,
+      opportunityId: dto.opportunityId,
       updatedById: actorId,
     })
     if (!result.ok) return result
@@ -122,5 +125,16 @@ export const CrmTaskService = {
     })
 
     return ok(undefined)
+  },
+
+  async reorder(
+    actorId: string,
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    return CrmTaskRepository.reorder(workspaceId, orderedIds)
   },
 }

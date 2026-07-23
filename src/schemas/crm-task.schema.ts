@@ -20,7 +20,11 @@ export const UpdateCrmTaskSchema = z.object({
   status: TaskStatusEnum.optional(),
   body: z.string().max(5000).optional(),
   dueDate: z.coerce.date().optional(),
-  assigneeId: z.string().optional(),
+  // Nullable: colunas limpáveis na grade (enviam null para desvincular).
+  assigneeId: z.string().nullable().optional(),
+  companyId: z.string().nullable().optional(),
+  personId: z.string().nullable().optional(),
+  opportunityId: z.string().nullable().optional(),
 })
 
 export type UpdateCrmTaskDTO = z.infer<typeof UpdateCrmTaskSchema>
@@ -33,3 +37,9 @@ export const ListCrmTasksSchema = z.object({
 })
 
 export type ListCrmTasksDTO = z.infer<typeof ListCrmTasksSchema>
+
+export const ReorderCrmTasksSchema = z.object({
+  orderedIds: z.array(z.string()).min(1),
+})
+
+export type ReorderCrmTasksDTO = z.infer<typeof ReorderCrmTasksSchema>

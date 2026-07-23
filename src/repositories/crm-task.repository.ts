@@ -76,7 +76,10 @@ export const CrmTaskRepository = {
       status?: CrmTaskStatus
       body?: string
       dueDate?: Date
-      assigneeId?: string
+      assigneeId?: string | null
+      companyId?: string | null
+      personId?: string | null
+      opportunityId?: string | null
       updatedById?: string
     },
   ): Promise<Result<CrmTask>> {
@@ -97,6 +100,26 @@ export const CrmTaskRepository = {
       return ok(undefined)
     } catch (error) {
       return err(dbError('Failed to delete CRM task', error))
+    }
+  },
+
+  /** Reordena globalmente — usado pela grade genérica. */
+  async reorder(
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    try {
+      await prisma.$transaction(
+        orderedIds.map((id, position) =>
+          prisma.crmTask.update({
+            where: { id, workspaceId },
+            data: { position },
+          }),
+        ),
+      )
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to reorder CRM tasks', error))
     }
   },
 }

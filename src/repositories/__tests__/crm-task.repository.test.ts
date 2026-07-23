@@ -42,4 +42,19 @@ describe('CrmTaskRepository', () => {
       )
     })
   })
+
+  describe('reorder()', () => {
+    it('should update positions across the whole workspace', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const a = await seedCrmTask(workspace.id, user.id)
+      const b = await seedCrmTask(workspace.id, user.id)
+
+      expectOk(await CrmTaskRepository.reorder(workspace.id, [b.id, a.id]))
+
+      const list = expectOk(
+        await CrmTaskRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((t) => t.id)).toEqual([b.id, a.id])
+    })
+  })
 })

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CreateCrmTaskSchema,
   ListCrmTasksSchema,
+  ReorderCrmTasksSchema,
   UpdateCrmTaskSchema,
 } from '../crm-task.schema'
 
@@ -30,12 +31,36 @@ describe('UpdateCrmTaskSchema', () => {
     const result = UpdateCrmTaskSchema.safeParse({ title: 'Novo título' })
     expect(result.data?.status).toBeUndefined()
   })
+
+  it('should accept null for clearable relation fields', () => {
+    const result = UpdateCrmTaskSchema.safeParse({
+      assigneeId: null,
+      companyId: null,
+      personId: null,
+      opportunityId: null,
+    })
+    expect(result.success).toBe(true)
+  })
 })
 
 describe('ListCrmTasksSchema', () => {
   it('should accept optional filters', () => {
     expect(
       ListCrmTasksSchema.safeParse({ companyId: 'c1', status: 'DONE' }).success,
+    ).toBe(true)
+  })
+})
+
+describe('ReorderCrmTasksSchema', () => {
+  it('should require a non-empty orderedIds', () => {
+    expect(ReorderCrmTasksSchema.safeParse({ orderedIds: [] }).success).toBe(
+      false,
+    )
+  })
+
+  it('should accept a valid orderedIds list', () => {
+    expect(
+      ReorderCrmTasksSchema.safeParse({ orderedIds: ['a', 'b'] }).success,
     ).toBe(true)
   })
 })
