@@ -284,3 +284,16 @@ export const crmQuotaNotFound = (): AppError =>
 export const crmQuotaConflict = (
   message = 'Já existe uma meta para este responsável neste período',
 ): AppError => appError('CRM_QUOTA_CONFLICT', message)
+
+export const crmReportNotFound = (): AppError =>
+  appError('CRM_REPORT_NOT_FOUND', 'Relatório não encontrado')
+
+export const crmReportInvalidSource = (
+  message = 'Fonte de dados do relatório não suportada',
+): AppError => appError('CRM_REPORT_INVALID_SOURCE', message)
+
+export const crmDashboardNotFound = (): AppError =>
+  appError('CRM_DASHBOARD_NOT_FOUND', 'Dashboard não encontrado')
+
+export const crmDashboardWidgetNotFound = (): AppError =>
+  appError('CRM_DASHBOARD_WIDGET_NOT_FOUND', 'Widget não encontrado')

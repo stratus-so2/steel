@@ -155,6 +155,16 @@ export const ERROR_CODES = {
   CRM_NOTE_NOT_FOUND: { code: 'CRM_NOTE_NOT_FOUND', status: 404 },
   CRM_QUOTA_NOT_FOUND: { code: 'CRM_QUOTA_NOT_FOUND', status: 404 },
   CRM_QUOTA_CONFLICT: { code: 'CRM_QUOTA_CONFLICT', status: 409 },
+  CRM_REPORT_NOT_FOUND: { code: 'CRM_REPORT_NOT_FOUND', status: 404 },
+  CRM_REPORT_INVALID_SOURCE: {
+    code: 'CRM_REPORT_INVALID_SOURCE',
+    status: 422,
+  },
+  CRM_DASHBOARD_NOT_FOUND: { code: 'CRM_DASHBOARD_NOT_FOUND', status: 404 },
+  CRM_DASHBOARD_WIDGET_NOT_FOUND: {
+    code: 'CRM_DASHBOARD_WIDGET_NOT_FOUND',
+    status: 404,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

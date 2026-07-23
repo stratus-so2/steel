@@ -40,6 +40,9 @@ type AuditEntity =
   | 'crm_task'
   | 'crm_note'
   | 'crm_quota'
+  | 'crm_report'
+  | 'crm_dashboard'
+  | 'crm_dashboard_widget'
 
 type AuditAction =
   | 'create'
