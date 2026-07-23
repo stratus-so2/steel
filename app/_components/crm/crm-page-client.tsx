@@ -4,8 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CrmAiChatPanel } from './crm-ai-chat-panel'
 import { CrmCompaniesTable } from './crm-companies-table'
 import { CrmCustomFieldsPanel } from './crm-custom-fields-panel'
+import { CrmEmailCampaignsPanel } from './crm-email-campaigns-panel'
+import { CrmEmailTemplatesPanel } from './crm-email-templates-panel'
 import { CrmIntegrationKeysPanel } from './crm-integration-keys-panel'
 import { CrmLeadsTable } from './crm-leads-table'
+import { CrmMailingListsPanel } from './crm-mailing-lists-panel'
 import { CrmNotesList } from './crm-notes-list'
 import { CrmOpportunitiesBoard } from './crm-opportunities-board'
 import { CrmPeopleTable } from './crm-people-table'
@@ -28,6 +31,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='pipelines'>Pipelines</TabsTrigger>
           <TabsTrigger value='products'>Produtos</TabsTrigger>
           <TabsTrigger value='custom-fields'>Campos customizados</TabsTrigger>
+          <TabsTrigger value='email-templates'>Templates de e-mail</TabsTrigger>
+          <TabsTrigger value='email-campaigns'>Campanhas de e-mail</TabsTrigger>
+          <TabsTrigger value='mailing-lists'>Listas de e-mail</TabsTrigger>
           <TabsTrigger value='reports'>Relatórios</TabsTrigger>
           <TabsTrigger value='ai'>Assistente IA</TabsTrigger>
           <TabsTrigger value='integration-keys'>Chaves de API</TabsTrigger>
@@ -58,6 +64,15 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='custom-fields'>
           <CrmCustomFieldsPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='email-templates'>
+          <CrmEmailTemplatesPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='email-campaigns'>
+          <CrmEmailCampaignsPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='mailing-lists'>
+          <CrmMailingListsPanel workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value='reports'>
           <CrmReportsPanel workspaceId={workspaceId} />
