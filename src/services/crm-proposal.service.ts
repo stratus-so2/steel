@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto'
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { notFound } from '@/src/errors'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmProposalDTO,
+  toCrmProposalMetricsDTO,
   toCrmProposalPublicDTO,
 } from '@/src/mappers/crm-proposal.mapper'
+import { CrmDocumentTemplateRepository } from '@/src/repositories/crm-document-template.repository'
 import {
   CrmProposalRepository,
   CrmProposalViewRepository,
@@ -14,7 +17,11 @@ import type {
   RecordCrmProposalViewDTO,
   UpdateCrmProposalDTO,
 } from '@/src/schemas/crm-proposal.schema'
-import type { CrmProposalDTO, CrmProposalPublicDTO } from '@/types/crm-proposal'
+import type {
+  CrmProposalDTO,
+  CrmProposalMetricsDTO,
+  CrmProposalPublicDTO,
+} from '@/types/crm-proposal'
 import { assertMember } from './authz'
 
 function hashIp(ip: string): string {
@@ -57,12 +64,32 @@ export const CrmProposalService = {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
 
+    let title = dto.title ?? 'Documento sem título'
+    let content = dto.content ?? ''
+    let contentJson = dto.contentJson
+
+    // Criação a partir de um template: copia o conteúdo (mesmo workspace/tipo).
+    if (dto.templateId) {
+      const template = await CrmDocumentTemplateRepository.findById(
+        dto.templateId,
+        workspaceId,
+      )
+      if (!template.ok) return template
+      if (template.value.type !== dto.type) {
+        return err(notFound('CrmDocumentTemplate'))
+      }
+
+      content = template.value.content
+      contentJson = template.value.contentJson ?? undefined
+      if (!dto.title) title = template.value.title
+    }
+
     const result = await CrmProposalRepository.create({
       workspaceId,
       createdById: actorId,
-      title: dto.title,
-      content: dto.content,
-      contentJson: dto.contentJson,
+      title,
+      content,
+      contentJson,
       type: dto.type,
     })
 
@@ -198,6 +225,26 @@ export const CrmProposalService = {
     if (!membership.ok) return membership
 
     return CrmProposalRepository.reorder(workspaceId, orderedIds)
+  },
+
+  async getMetrics(
+    actorId: string,
+    workspaceId: string,
+    proposalId: string,
+  ): Promise<Result<CrmProposalMetricsDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmProposalRepository.findById(
+      proposalId,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+
+    const metrics = await CrmProposalViewRepository.metricsFor(proposalId)
+    if (!metrics.ok) return metrics
+
+    return ok(toCrmProposalMetricsDTO(metrics.value))
   },
 
   async getPublicByShareToken(

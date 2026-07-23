@@ -9,6 +9,15 @@ import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
+/** Agregados crus de leitura; o mapper compõe o DTO (completionRate etc.). */
+export type CrmProposalMetricsRaw = {
+  totalViews: number
+  uniqueVisitors: number
+  completed: number
+  avgDurationMs: number
+  views: CrmProposalView[]
+}
+
 export const CrmProposalRepository = {
   async listByWorkspace(
     workspaceId: string,
@@ -186,6 +195,40 @@ export const CrmProposalViewRepository = {
       return ok(views)
     } catch (error) {
       return err(dbError('Failed to list CRM proposal views', error))
+    }
+  },
+
+  /** Agregados de leitura + lista recente das visitas (cap de 200). */
+  async metricsFor(proposalId: string): Promise<Result<CrmProposalMetricsRaw>> {
+    try {
+      const [agg, completed, uniques, views] = await Promise.all([
+        prisma.crmProposalView.aggregate({
+          where: { proposalId },
+          _count: { _all: true },
+          _avg: { durationMs: true },
+        }),
+        prisma.crmProposalView.count({
+          where: { proposalId, reachedEnd: true },
+        }),
+        prisma.crmProposalView.groupBy({
+          by: ['ipHash'],
+          where: { proposalId },
+        }),
+        prisma.crmProposalView.findMany({
+          where: { proposalId },
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+        }),
+      ])
+      return ok({
+        totalViews: agg._count._all,
+        uniqueVisitors: uniques.length,
+        completed,
+        avgDurationMs: Math.round(agg._avg.durationMs ?? 0),
+        views,
+      })
+    } catch (error) {
+      return err(dbError('Failed to compute CRM proposal metrics', error))
     }
   },
 }

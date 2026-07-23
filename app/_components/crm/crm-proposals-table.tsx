@@ -1,9 +1,28 @@
 'use client'
 
-import { useMemo } from 'react'
+import { Add01Icon, FileEmpty02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
-import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
+import { SteelIcon } from '@/components/icon/icon'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { notify } from '@/lib/notify'
+import { useCrmDocumentTemplates } from '@/src/hooks/use-crm-document-template'
+import {
+  createCrmResource,
+  useCrmResourceList,
+} from '@/src/hooks/use-crm-resource-list'
 import {
   type LookupKind,
   useCrmWorkspaceLookups,
@@ -44,6 +63,7 @@ const COLUMNS: GridColumn[] = [
     header: 'Título',
     kind: 'text',
     primary: true,
+    linkView: true,
     placeholder: 'Documento sem título',
   },
   {
@@ -64,12 +84,6 @@ const COLUMNS: GridColumn[] = [
       { value: 'PUBLISHED', label: 'Online' },
     ],
     optionStyles: STATUS_STYLES,
-  },
-  {
-    key: 'content',
-    header: 'Conteúdo',
-    kind: 'richtext',
-    placeholder: 'Conteúdo do documento…',
   },
   {
     key: 'viewsCount',
@@ -95,12 +109,35 @@ export function CrmProposalsTable({
   workspaceId: string
   slug: string
 }) {
+  const router = useRouter()
   const { items, isLoading, refetch } = useCrmResourceList<CrmProposalDTO>(
     workspaceId,
     'proposals',
   )
   const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
+  const { templates } = useCrmDocumentTemplates(workspaceId)
   const columns = useMemo(() => COLUMNS, [])
+  const [creating, setCreating] = useState(false)
+
+  /** Cria o documento (em branco ou a partir de um template) e abre o editor. */
+  async function onCreate(type: CrmDocumentTypeDTO, templateId?: string) {
+    if (creating) return
+    setCreating(true)
+    const res = await createCrmResource<CrmProposalDTO>(
+      workspaceId,
+      'proposals',
+      {
+        type,
+        ...(templateId ? { templateId } : {}),
+      },
+    )
+    setCreating(false)
+    if (res.ok && res.data) {
+      router.push(`/${slug}/crm/proposals/${res.data.id}`)
+    } else {
+      notify.error(res.message ?? 'Não foi possível criar o documento.')
+    }
+  }
 
   return (
     <DataTable
@@ -114,6 +151,51 @@ export function CrmProposalsTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar documentos…'
       refetch={refetch}
+      disableInlineCreate
+      headerAction={
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            nativeButton={true}
+            render={
+              <Button size='sm' disabled={creating}>
+                <SteelIcon icon={Add01Icon} strokeWidth={2} />
+                Novo documento
+              </Button>
+            }
+          />
+          <DropdownMenuContent align='end' className='w-52'>
+            {DOCUMENT_TYPES.map((type) => {
+              const ofType = templates.filter((t) => t.type === type)
+              return (
+                <DropdownMenuSub key={type}>
+                  <DropdownMenuSubTrigger>
+                    {TYPE_LABEL[type]}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className='w-52'>
+                    <DropdownMenuItem onClick={() => onCreate(type)}>
+                      <SteelIcon
+                        icon={FileEmpty02Icon}
+                        strokeWidth={2}
+                        className='size-4 shrink-0'
+                      />
+                      Em branco
+                    </DropdownMenuItem>
+                    {ofType.length ? <DropdownMenuSeparator /> : null}
+                    {ofType.map((t) => (
+                      <DropdownMenuItem
+                        key={t.id}
+                        onClick={() => onCreate(type, t.id)}
+                      >
+                        <span className='truncate'>{t.title}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      }
     />
   )
 }

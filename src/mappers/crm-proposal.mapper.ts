@@ -1,5 +1,11 @@
-import type { CrmProposal } from '@prisma/client'
-import type { CrmProposalDTO, CrmProposalPublicDTO } from '@/types/crm-proposal'
+import type { CrmProposal, CrmProposalView } from '@prisma/client'
+import type { CrmProposalMetricsRaw } from '@/src/repositories/crm-proposal.repository'
+import type {
+  CrmProposalDTO,
+  CrmProposalMetricsDTO,
+  CrmProposalPublicDTO,
+  CrmProposalViewDTO,
+} from '@/types/crm-proposal'
 
 export function toCrmProposalDTO(
   proposal: CrmProposal & { _count?: { views: number } },
@@ -33,5 +39,32 @@ export function toCrmProposalPublicDTO(
     title: proposal.title,
     content: proposal.content,
     type: proposal.type,
+  }
+}
+
+export function toCrmProposalViewDTO(
+  view: CrmProposalView,
+): CrmProposalViewDTO {
+  return {
+    id: view.id,
+    durationMs: view.durationMs,
+    reachedEnd: view.reachedEnd,
+    scrolledPct: view.scrolledPct,
+    referrer: view.referrer,
+    createdAt: view.createdAt.toISOString(),
+    updatedAt: view.updatedAt.toISOString(),
+  }
+}
+
+/** Agregados crus → DTO de métricas (deriva `completionRate`). */
+export function toCrmProposalMetricsDTO(
+  raw: CrmProposalMetricsRaw,
+): CrmProposalMetricsDTO {
+  return {
+    totalViews: raw.totalViews,
+    uniqueVisitors: raw.uniqueVisitors,
+    completionRate: raw.totalViews ? raw.completed / raw.totalViews : 0,
+    avgDurationMs: raw.avgDurationMs,
+    views: raw.views.map(toCrmProposalViewDTO),
   }
 }

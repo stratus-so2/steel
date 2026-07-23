@@ -5,7 +5,9 @@ import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-proposal.repository')
+vi.mock('@/src/repositories/crm-document-template.repository')
 
+import { CrmDocumentTemplateRepository } from '@/src/repositories/crm-document-template.repository'
 import {
   CrmProposalRepository,
   CrmProposalViewRepository,
@@ -16,12 +18,96 @@ import { CrmProposalService } from '../crm-proposal.service'
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedProposalRepo = vi.mocked(CrmProposalRepository)
 const mockedViewRepo = vi.mocked(CrmProposalViewRepository)
+const mockedDocumentTemplateRepo = vi.mocked(CrmDocumentTemplateRepository)
 
 describe('CrmProposalService', () => {
   describe('list()', () => {
     it('should return FORBIDDEN for a non-member', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
       expectErr(await CrmProposalService.list('u1', 'ws1'), 'FORBIDDEN')
+    })
+  })
+
+  describe('create()', () => {
+    it('should default the title when none is given', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      mockedProposalRepo.create.mockResolvedValue(
+        ok(createFakeCrmProposal({ id: 'p1', title: 'Documento sem título' })),
+      )
+
+      expectOk(
+        await CrmProposalService.create('u1', 'ws1', { type: 'PROPOSAL' }),
+      )
+      expect(mockedProposalRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Documento sem título', content: '' }),
+      )
+    })
+
+    it('should copy content/contentJson from the template of the same type', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      mockedDocumentTemplateRepo.findById.mockResolvedValue(
+        ok({
+          id: 't1',
+          title: 'Template X',
+          content: '<p>modelo</p>',
+          contentJson: '{"type":"doc"}',
+          type: 'PROPOSAL',
+          workspaceId: 'ws1',
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+        }),
+      )
+      mockedProposalRepo.create.mockResolvedValue(
+        ok(createFakeCrmProposal({ id: 'p1', title: 'Template X' })),
+      )
+
+      expectOk(
+        await CrmProposalService.create('u1', 'ws1', {
+          type: 'PROPOSAL',
+          templateId: 't1',
+        }),
+      )
+      expect(mockedProposalRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Template X',
+          content: '<p>modelo</p>',
+          contentJson: '{"type":"doc"}',
+        }),
+      )
+    })
+
+    it('should reject a template of a different type', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      mockedDocumentTemplateRepo.findById.mockResolvedValue(
+        ok({
+          id: 't1',
+          title: 'Template X',
+          content: '',
+          contentJson: null,
+          type: 'CONTRACT',
+          workspaceId: 'ws1',
+          createdById: 'u1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null,
+        }),
+      )
+
+      expectErr(
+        await CrmProposalService.create('u1', 'ws1', {
+          type: 'PROPOSAL',
+          templateId: 't1',
+        }),
+        'RESOURCE_NOT_FOUND',
+      )
     })
   })
 

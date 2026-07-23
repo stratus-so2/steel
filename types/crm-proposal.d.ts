@@ -30,3 +30,22 @@ export interface CrmProposalPublicDTO {
   content: string
   type: CrmDocumentTypeDTO
 }
+
+export interface CrmProposalViewDTO {
+  id: string
+  durationMs: number
+  reachedEnd: boolean
+  scrolledPct: number
+  referrer: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CrmProposalMetricsDTO {
+  totalViews: number
+  uniqueVisitors: number
+  /** Fração 0..1 de visitas que chegaram ao fim. */
+  completionRate: number
+  avgDurationMs: number
+  views: CrmProposalViewDTO[]
+}

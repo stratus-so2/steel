@@ -6,15 +6,14 @@ import {
 } from '../crm-proposal.schema'
 
 describe('CreateCrmProposalSchema', () => {
-  it('should default content to empty and type to PROPOSAL', () => {
+  it('should default type to PROPOSAL', () => {
     const result = CreateCrmProposalSchema.safeParse({ title: 'Proposta X' })
     expect(result.success).toBe(true)
-    expect(result.data?.content).toBe('')
     expect(result.data?.type).toBe('PROPOSAL')
   })
 
-  it('should reject when title is missing', () => {
-    expect(CreateCrmProposalSchema.safeParse({}).success).toBe(false)
+  it('should accept an empty payload (title/content default in the service)', () => {
+    expect(CreateCrmProposalSchema.safeParse({}).success).toBe(true)
   })
 })
 

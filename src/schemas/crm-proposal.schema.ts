@@ -10,10 +10,13 @@ const DocumentTypeEnum = z.enum([
 const DocumentStatusEnum = z.enum(['DRAFT', 'PUBLISHED'])
 
 export const CreateCrmProposalSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório').max(200),
-  content: z.string().max(200_000).default(''),
+  // Opcional: o service aplica um título padrão (ou o do template).
+  title: z.string().min(1, 'Título é obrigatório').max(200).optional(),
+  content: z.string().max(200_000).optional(),
   contentJson: z.string().max(200_000).optional(),
   type: DocumentTypeEnum.default('PROPOSAL'),
+  // Quando presente, o service copia o conteúdo do template (mesmo tipo).
+  templateId: z.string().optional(),
 })
 
 export type CreateCrmProposalDTO = z.infer<typeof CreateCrmProposalSchema>
