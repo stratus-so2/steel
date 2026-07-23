@@ -47,6 +47,9 @@ type AuditEntity =
   | 'crm_form'
   | 'crm_ai_conversation'
   | 'crm_integration_api_key'
+  | 'crm_email_template'
+  | 'crm_email_campaign'
+  | 'crm_mailing_list'
 
 type AuditAction =
   | 'create'

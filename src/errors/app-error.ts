@@ -324,3 +324,20 @@ export const crmIntegrationKeyNotFound = (): AppError =>
 
 export const crmIntegrationKeyInvalid = (): AppError =>
   appError('CRM_INTEGRATION_KEY_INVALID', 'Chave de API inválida ou revogada')
+
+export const crmEmailTemplateNotFound = (): AppError =>
+  appError('CRM_EMAIL_TEMPLATE_NOT_FOUND', 'Template não encontrado')
+
+export const crmEmailCampaignNotFound = (): AppError =>
+  appError('CRM_EMAIL_CAMPAIGN_NOT_FOUND', 'Campanha não encontrada')
+
+export const crmEmailCampaignAlreadySent = (
+  message = 'Esta campanha já foi enviada ou está em envio',
+): AppError => appError('CRM_EMAIL_CAMPAIGN_ALREADY_SENT', message)
+
+export const crmMailingListNotFound = (): AppError =>
+  appError('CRM_MAILING_LIST_NOT_FOUND', 'Lista de e-mail não encontrada')
+
+export const crmMailingListMemberConflict = (
+  message = 'Este e-mail já está nesta lista',
+): AppError => appError('CRM_MAILING_LIST_MEMBER_CONFLICT', message)

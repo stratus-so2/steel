@@ -181,6 +181,26 @@ export const ERROR_CODES = {
     code: 'CRM_INTEGRATION_KEY_INVALID',
     status: 401,
   },
+  CRM_EMAIL_TEMPLATE_NOT_FOUND: {
+    code: 'CRM_EMAIL_TEMPLATE_NOT_FOUND',
+    status: 404,
+  },
+  CRM_EMAIL_CAMPAIGN_NOT_FOUND: {
+    code: 'CRM_EMAIL_CAMPAIGN_NOT_FOUND',
+    status: 404,
+  },
+  CRM_EMAIL_CAMPAIGN_ALREADY_SENT: {
+    code: 'CRM_EMAIL_CAMPAIGN_ALREADY_SENT',
+    status: 409,
+  },
+  CRM_MAILING_LIST_NOT_FOUND: {
+    code: 'CRM_MAILING_LIST_NOT_FOUND',
+    status: 404,
+  },
+  CRM_MAILING_LIST_MEMBER_CONFLICT: {
+    code: 'CRM_MAILING_LIST_MEMBER_CONFLICT',
+    status: 409,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
