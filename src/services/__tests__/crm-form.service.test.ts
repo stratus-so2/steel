@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeCrmForm } from '@/src/__tests__/factories/crm-form.factory'
 import { createFakeCrmLead } from '@/src/__tests__/factories/crm-lead.factory'
-import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 

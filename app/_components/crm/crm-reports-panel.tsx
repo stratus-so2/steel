@@ -117,10 +117,8 @@ export function CrmReportsPanel({ workspaceId }: { workspaceId: string }) {
                 </TableRow>
               )}
               {rows.map((row, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: report rows have no stable id
                 <TableRow key={i}>
                   {Object.values(row).map((value, j) => (
-                    // biome-ignore lint/suspicious/noArrayIndexKey: report rows have no stable id
                     <TableCell key={j}>{String(value)}</TableCell>
                   ))}
                 </TableRow>
