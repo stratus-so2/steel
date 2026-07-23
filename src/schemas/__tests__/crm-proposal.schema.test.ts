@@ -22,6 +22,18 @@ describe('UpdateCrmProposalSchema', () => {
   it('should accept an empty payload', () => {
     expect(UpdateCrmProposalSchema.safeParse({}).success).toBe(true)
   })
+
+  it('should accept a status transition', () => {
+    expect(
+      UpdateCrmProposalSchema.safeParse({ status: 'PUBLISHED' }).success,
+    ).toBe(true)
+  })
+
+  it('should reject an invalid status', () => {
+    expect(
+      UpdateCrmProposalSchema.safeParse({ status: 'ARCHIVED' }).success,
+    ).toBe(false)
+  })
 })
 
 describe('RecordCrmProposalViewSchema', () => {

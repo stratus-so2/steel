@@ -101,10 +101,18 @@ export const CrmProposalService = {
     )
     if (!existing.ok) return existing
 
+    // Carimba o 1º publish; despublicar não apaga o timestamp original.
+    const publishedAt =
+      dto.status === 'PUBLISHED' && !existing.value.publishedAt
+        ? new Date()
+        : undefined
+
     const result = await CrmProposalRepository.update(proposalId, {
       title: dto.title,
       content: dto.content,
       type: dto.type,
+      status: dto.status,
+      publishedAt,
       updatedById: actorId,
     })
     if (!result.ok) return result

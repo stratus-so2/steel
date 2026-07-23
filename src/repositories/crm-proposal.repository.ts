@@ -10,11 +10,14 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export const CrmProposalRepository = {
-  async listByWorkspace(workspaceId: string): Promise<Result<CrmProposal[]>> {
+  async listByWorkspace(
+    workspaceId: string,
+  ): Promise<Result<(CrmProposal & { _count: { views: number } })[]>> {
     try {
       const proposals = await prisma.crmProposal.findMany({
         where: { workspaceId, deletedAt: null },
         orderBy: { position: 'asc' },
+        include: { _count: { select: { views: true } } },
       })
       return ok(proposals)
     } catch (error) {
@@ -75,6 +78,8 @@ export const CrmProposalRepository = {
       title?: string
       content?: string
       type?: CrmDocumentType
+      status?: 'DRAFT' | 'PUBLISHED'
+      publishedAt?: Date
       updatedById?: string
     },
   ): Promise<Result<CrmProposal>> {

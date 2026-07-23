@@ -14,6 +14,7 @@ export interface CrmProposalDTO {
   status: CrmProposalStatusDTO
   shareToken: string
   publishedAt: string | null
+  viewsCount: number
   workspaceId: string
   createdById: string
   updatedById: string | null

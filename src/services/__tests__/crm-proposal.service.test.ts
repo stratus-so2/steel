@@ -25,6 +25,60 @@ describe('CrmProposalService', () => {
     })
   })
 
+  describe('update()', () => {
+    it('should stamp publishedAt on the first publish', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      const existing = createFakeCrmProposal({
+        id: 'p1',
+        status: 'DRAFT',
+        publishedAt: null,
+      })
+      mockedProposalRepo.findById.mockResolvedValue(ok(existing))
+      mockedProposalRepo.update.mockResolvedValue(
+        ok({ ...existing, status: 'PUBLISHED', publishedAt: new Date() }),
+      )
+
+      expectOk(
+        await CrmProposalService.update('u1', 'ws1', 'p1', {
+          status: 'PUBLISHED',
+        }),
+      )
+      expect(mockedProposalRepo.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({
+          status: 'PUBLISHED',
+          publishedAt: expect.any(Date),
+        }),
+      )
+    })
+
+    it('should not overwrite publishedAt when re-publishing', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      const originalPublishedAt = new Date('2026-01-01T00:00:00Z')
+      const existing = createFakeCrmProposal({
+        id: 'p1',
+        status: 'DRAFT',
+        publishedAt: originalPublishedAt,
+      })
+      mockedProposalRepo.findById.mockResolvedValue(ok(existing))
+      mockedProposalRepo.update.mockResolvedValue(ok(existing))
+
+      expectOk(
+        await CrmProposalService.update('u1', 'ws1', 'p1', {
+          status: 'PUBLISHED',
+        }),
+      )
+      expect(mockedProposalRepo.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ publishedAt: undefined }),
+      )
+    })
+  })
+
   describe('getPublicByShareToken()', () => {
     it('should return the public shape without auth', async () => {
       mockedProposalRepo.findByShareToken.mockResolvedValue(

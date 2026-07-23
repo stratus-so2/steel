@@ -1,7 +1,7 @@
 import { DocumentValidationIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmProposalsPanel } from '@/app/_components/crm/crm-proposals-panel'
+import { CrmProposalsTable } from '@/app/_components/crm/crm-proposals-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -33,7 +33,7 @@ export default async function CrmProposalsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Documentos'>
@@ -45,8 +45,11 @@ export default async function CrmProposalsPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmProposalsPanel workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmProposalsTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

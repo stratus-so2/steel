@@ -12,6 +12,17 @@ describe('toCrmProposalDTO()', () => {
     expect(dto.id).toBe('p-1')
     expect(dto.title).toBe('Proposta')
   })
+
+  it('should default viewsCount to 0 when _count is absent', () => {
+    const proposal = createFakeCrmProposal({ id: 'p-1' })
+    expect(toCrmProposalDTO(proposal).viewsCount).toBe(0)
+  })
+
+  it('should read viewsCount from _count.views when present', () => {
+    const proposal = createFakeCrmProposal({ id: 'p-1' })
+    const dto = toCrmProposalDTO({ ...proposal, _count: { views: 7 } })
+    expect(dto.viewsCount).toBe(7)
+  })
 })
 
 describe('toCrmProposalPublicDTO()', () => {

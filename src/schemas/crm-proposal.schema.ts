@@ -7,6 +7,8 @@ const DocumentTypeEnum = z.enum([
   'CONTRACT',
 ])
 
+const DocumentStatusEnum = z.enum(['DRAFT', 'PUBLISHED'])
+
 export const CreateCrmProposalSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200),
   content: z.string().max(200_000).default(''),
@@ -19,6 +21,8 @@ export const UpdateCrmProposalSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200).optional(),
   content: z.string().max(200_000).optional(),
   type: DocumentTypeEnum.optional(),
+  // Alterna online/offline; o service carimba publishedAt no 1º publish.
+  status: DocumentStatusEnum.optional(),
 })
 
 export type UpdateCrmProposalDTO = z.infer<typeof UpdateCrmProposalSchema>

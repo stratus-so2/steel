@@ -1,7 +1,9 @@
 import type { CrmProposal } from '@prisma/client'
 import type { CrmProposalDTO, CrmProposalPublicDTO } from '@/types/crm-proposal'
 
-export function toCrmProposalDTO(proposal: CrmProposal): CrmProposalDTO {
+export function toCrmProposalDTO(
+  proposal: CrmProposal & { _count?: { views: number } },
+): CrmProposalDTO {
   return {
     id: proposal.id,
     title: proposal.title,
@@ -12,6 +14,7 @@ export function toCrmProposalDTO(proposal: CrmProposal): CrmProposalDTO {
     publishedAt: proposal.publishedAt
       ? proposal.publishedAt.toISOString()
       : null,
+    viewsCount: proposal._count?.views ?? 0,
     workspaceId: proposal.workspaceId,
     createdById: proposal.createdById,
     updatedById: proposal.updatedById,

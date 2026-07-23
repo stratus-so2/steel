@@ -38,6 +38,7 @@ export function createFakeCrmProposalDTO(
     status: 'DRAFT',
     shareToken: createId(),
     publishedAt: null,
+    viewsCount: 0,
     workspaceId: createId(),
     createdById: createId(),
     updatedById: null,
