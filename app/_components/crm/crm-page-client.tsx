@@ -5,6 +5,7 @@ import { CrmAiChatPanel } from './crm-ai-chat-panel'
 import { CrmCompaniesTable } from './crm-companies-table'
 import { CrmCustomFieldsPanel } from './crm-custom-fields-panel'
 import { CrmEmailCampaignsPanel } from './crm-email-campaigns-panel'
+import { CrmEmailSyncPanel } from './crm-email-sync-panel'
 import { CrmEmailTemplatesPanel } from './crm-email-templates-panel'
 import { CrmIntegrationKeysPanel } from './crm-integration-keys-panel'
 import { CrmLandingPagesPanel } from './crm-landing-pages-panel'
@@ -40,6 +41,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='workflows'>Workflows</TabsTrigger>
           <TabsTrigger value='landing-pages'>Landing pages</TabsTrigger>
           <TabsTrigger value='social'>Redes sociais</TabsTrigger>
+          <TabsTrigger value='email-sync'>E-mail e agenda</TabsTrigger>
           <TabsTrigger value='reports'>Relatórios</TabsTrigger>
           <TabsTrigger value='ai'>Assistente IA</TabsTrigger>
           <TabsTrigger value='integration-keys'>Chaves de API</TabsTrigger>
@@ -88,6 +90,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='social'>
           <CrmSocialPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='email-sync'>
+          <CrmEmailSyncPanel workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value='reports'>
           <CrmReportsPanel workspaceId={workspaceId} />
