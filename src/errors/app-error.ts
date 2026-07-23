@@ -353,3 +353,18 @@ export const crmWorkflowNotActive = (): AppError =>
 
 export const crmLandingPageNotFound = (): AppError =>
   appError('CRM_LANDING_PAGE_NOT_FOUND', 'Landing page não encontrada')
+
+export const crmSocialConnectionNotFound = (): AppError =>
+  appError('CRM_SOCIAL_CONNECTION_NOT_FOUND', 'Conexão social não encontrada')
+
+export const crmSocialConnectionConflict = (): AppError =>
+  appError(
+    'CRM_SOCIAL_CONNECTION_CONFLICT',
+    'Já existe uma conexão para esta plataforma neste workspace',
+  )
+
+export const crmScheduledPostNotFound = (): AppError =>
+  appError('CRM_SCHEDULED_POST_NOT_FOUND', 'Post agendado não encontrado')
+
+export const crmScheduledPostAlreadyPublished = (): AppError =>
+  appError('CRM_SCHEDULED_POST_ALREADY_PUBLISHED', 'Este post já foi publicado')

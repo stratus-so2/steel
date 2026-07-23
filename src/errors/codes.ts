@@ -213,6 +213,22 @@ export const ERROR_CODES = {
     code: 'CRM_LANDING_PAGE_NOT_FOUND',
     status: 404,
   },
+  CRM_SOCIAL_CONNECTION_NOT_FOUND: {
+    code: 'CRM_SOCIAL_CONNECTION_NOT_FOUND',
+    status: 404,
+  },
+  CRM_SOCIAL_CONNECTION_CONFLICT: {
+    code: 'CRM_SOCIAL_CONNECTION_CONFLICT',
+    status: 409,
+  },
+  CRM_SCHEDULED_POST_NOT_FOUND: {
+    code: 'CRM_SCHEDULED_POST_NOT_FOUND',
+    status: 404,
+  },
+  CRM_SCHEDULED_POST_ALREADY_PUBLISHED: {
+    code: 'CRM_SCHEDULED_POST_ALREADY_PUBLISHED',
+    status: 409,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

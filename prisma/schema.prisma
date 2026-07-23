@@ -91,6 +91,9 @@ model User {
   crmWorkflowRunsStarted       CrmWorkflowRun[]           @relation("CrmWorkflowRunStartedBy")
   crmLandingPagesCreated       CrmLandingPage[]           @relation("CrmLandingPageCreatedBy")
   crmLandingPagesUpdated       CrmLandingPage[]           @relation("CrmLandingPageUpdatedBy")
+  crmSocialConnectionsCreated  CrmSocialConnection[]      @relation("CrmSocialConnectionCreatedBy")
+  crmSocialConnectionsUpdated  CrmSocialConnection[]      @relation("CrmSocialConnectionUpdatedBy")
+  crmScheduledPostsCreated     CrmScheduledPost[]         @relation("CrmScheduledPostCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -298,6 +301,8 @@ model Workspace {
   crmMailingLists           CrmMailingList[]
   crmWorkflows              CrmWorkflow[]
   crmLandingPages           CrmLandingPage[]
+  crmSocialConnections      CrmSocialConnection[]
+  crmScheduledPosts         CrmScheduledPost[]
 
   @@map("workspaces")
 }
@@ -2025,4 +2030,101 @@ model CrmLandingPageView {
   @@unique([landingPageId, viewId])
   @@index([landingPageId])
   @@map("crm_landing_page_views")
+}
+
+enum CrmSocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+  TWITTER
+  LINKEDIN
+}
+
+enum CrmSocialConnectionStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+}
+
+/// Registro de uma conta social vinculada ao workspace. Diferente do CRM
+/// original, este módulo NÃO implementa o handshake OAuth contra as APIs
+/// reais (Meta/TikTok/YouTube/X/LinkedIn) — isso exige credenciais de app
+/// específicas por plataforma que não foram fornecidas. `externalAccountId`
+/// e `accountName` são preenchidos manualmente pelo admin ao registrar uma
+/// conta já autorizada fora do Steel. Ver CrmSocialPublisher no service layer.
+model CrmSocialConnection {
+  id                String                    @id @default(cuid())
+  platform          CrmSocialPlatform
+  externalAccountId String                    @map("external_account_id")
+  accountName       String?                   @map("account_name")
+  status            CrmSocialConnectionStatus @default(CONNECTED)
+  workspaceId       String                    @map("workspace_id")
+  createdById       String                    @map("created_by_id")
+  updatedById       String?                   @map("updated_by_id")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmSocialConnectionCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmSocialConnectionUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([workspaceId, platform])
+  @@index([workspaceId])
+  @@map("crm_social_connections")
+}
+
+enum CrmScheduledPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum CrmScheduledPostTargetStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model CrmScheduledPost {
+  id           String                 @id @default(cuid())
+  content      String                 @default("") @db.Text
+  title        String?
+  status       CrmScheduledPostStatus @default(DRAFT)
+  scheduledFor DateTime?              @map("scheduled_for")
+  publishedAt  DateTime?              @map("published_at")
+  workspaceId  String                 @map("workspace_id")
+  createdById  String                 @map("created_by_id")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  deletedAt    DateTime?              @map("deleted_at")
+
+  workspace Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                     @relation("CrmScheduledPostCreatedBy", fields: [createdById], references: [id])
+  targets   CrmScheduledPostTarget[]
+
+  @@index([workspaceId])
+  @@index([status, scheduledFor])
+  @@index([deletedAt])
+  @@map("crm_scheduled_posts")
+}
+
+/// `error` explica por que o alvo não foi publicado — hoje sempre
+/// CRM_SOCIAL_PUBLISHING_NOT_CONFIGURED, já que não há client OAuth real.
+model CrmScheduledPostTarget {
+  id          String                       @id @default(cuid())
+  postId      String                       @map("post_id")
+  platform    CrmSocialPlatform
+  status      CrmScheduledPostTargetStatus @default(PENDING)
+  error       String?
+  publishedAt DateTime?                    @map("published_at")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+
+  post CrmScheduledPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, platform])
+  @@index([postId])
+  @@map("crm_scheduled_post_targets")
 }
