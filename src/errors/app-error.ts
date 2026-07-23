@@ -297,3 +297,6 @@ export const crmDashboardNotFound = (): AppError =>
 
 export const crmDashboardWidgetNotFound = (): AppError =>
   appError('CRM_DASHBOARD_WIDGET_NOT_FOUND', 'Widget não encontrado')
+
+export const crmProposalNotFound = (): AppError =>
+  appError('CRM_PROPOSAL_NOT_FOUND', 'Proposta não encontrada')
