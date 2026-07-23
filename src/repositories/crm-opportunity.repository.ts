@@ -84,6 +84,7 @@ export const CrmOpportunityRepository = {
       name?: string
       amount?: number | null
       closeDate?: Date | null
+      pipelineId?: string
       stageId?: string
       companyId?: string | null
       pointOfContactId?: string | null

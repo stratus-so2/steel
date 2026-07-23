@@ -36,6 +36,17 @@ export const CrmPipelineRepository = {
     }
   },
 
+  async findDefault(workspaceId: string): Promise<Result<CrmPipeline | null>> {
+    try {
+      const pipeline = await prisma.crmPipeline.findFirst({
+        where: { workspaceId, deletedAt: null, isDefault: true },
+      })
+      return ok(pipeline)
+    } catch (error) {
+      return err(dbError('Failed to find default CRM pipeline', error))
+    }
+  },
+
   async create(data: {
     workspaceId: string
     createdById: string

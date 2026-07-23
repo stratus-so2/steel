@@ -44,6 +44,90 @@ describe('CrmPipelineService', () => {
       expectErr(await CrmPipelineService.list('u1', 'ws1'), 'FORBIDDEN')
     })
   })
+
+  describe('resolveDefaultStage()', () => {
+    it('should prefer the pipeline marked as default', async () => {
+      mockedPipelineRepo.findDefault.mockResolvedValue(
+        ok(createFakeCrmPipeline({ id: 'pl-default' })),
+      )
+      mockedStageRepo.listByPipeline.mockResolvedValue(
+        ok([
+          createFakeCrmPipelineStage({
+            id: 's1',
+            category: 'WON',
+            position: 0,
+          }),
+          createFakeCrmPipelineStage({
+            id: 's2',
+            category: 'OPEN',
+            position: 1,
+          }),
+        ]),
+      )
+
+      const result = expectOk(
+        await CrmPipelineService.resolveDefaultStage('ws1'),
+      )
+      expect(result).toEqual({ pipelineId: 'pl-default', stageId: 's2' })
+    })
+
+    it('should fall back to the first pipeline when none is marked default', async () => {
+      mockedPipelineRepo.findDefault.mockResolvedValue(ok(null))
+      mockedPipelineRepo.listByWorkspace.mockResolvedValue(
+        ok([createFakeCrmPipeline({ id: 'pl-first' })]),
+      )
+      mockedStageRepo.listByPipeline.mockResolvedValue(
+        ok([createFakeCrmPipelineStage({ id: 's1', category: 'OPEN' })]),
+      )
+
+      const result = expectOk(
+        await CrmPipelineService.resolveDefaultStage('ws1'),
+      )
+      expect(result).toEqual({ pipelineId: 'pl-first', stageId: 's1' })
+    })
+
+    it('should fall back to the first stage by position when none is OPEN', async () => {
+      mockedPipelineRepo.findDefault.mockResolvedValue(
+        ok(createFakeCrmPipeline({ id: 'pl1' })),
+      )
+      mockedStageRepo.listByPipeline.mockResolvedValue(
+        ok([
+          createFakeCrmPipelineStage({
+            id: 's1',
+            category: 'WON',
+            position: 0,
+          }),
+        ]),
+      )
+
+      const result = expectOk(
+        await CrmPipelineService.resolveDefaultStage('ws1'),
+      )
+      expect(result.stageId).toBe('s1')
+    })
+
+    it('should return CRM_PIPELINE_NOT_FOUND when the workspace has no pipeline', async () => {
+      mockedPipelineRepo.findDefault.mockResolvedValue(ok(null))
+      mockedPipelineRepo.listByWorkspace.mockResolvedValue(ok([]))
+
+      expectErr(
+        await CrmPipelineService.resolveDefaultStage('ws1'),
+        'CRM_PIPELINE_NOT_FOUND',
+      )
+    })
+
+    it('should return CRM_PIPELINE_NOT_FOUND when the pipeline has no stages', async () => {
+      mockedPipelineRepo.findDefault.mockResolvedValue(
+        ok(createFakeCrmPipeline({ id: 'pl1' })),
+      )
+      mockedStageRepo.listByPipeline.mockResolvedValue(ok([]))
+
+      expectErr(
+        await CrmPipelineService.resolveDefaultStage('ws1'),
+        'CRM_PIPELINE_NOT_FOUND',
+      )
+    })
+  })
 })
 
 describe('CrmPipelineStageService', () => {

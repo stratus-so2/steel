@@ -4,8 +4,12 @@ export const CreateCrmOpportunitySchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
   amount: z.number().min(0).optional(),
   closeDate: z.coerce.date().optional(),
-  pipelineId: z.string().min(1, 'Pipeline é obrigatório'),
-  stageId: z.string().min(1, 'Etapa é obrigatória'),
+  // Pipeline/etapa são opcionais: quando omitidos, o service resolve o
+  // pipeline padrão da workspace e sua primeira etapa. Se stageId é
+  // informado, pipelineId também deve ser — o service valida essa
+  // combinação e que a etapa pertence ao pipeline informado.
+  pipelineId: z.string().min(1).optional(),
+  stageId: z.string().min(1).optional(),
   companyId: z.string().optional(),
   pointOfContactId: z.string().optional(),
   ownerId: z.string().optional(),
@@ -14,13 +18,17 @@ export const CreateCrmOpportunitySchema = z.object({
 
 export type CreateCrmOpportunityDTO = z.infer<typeof CreateCrmOpportunitySchema>
 
-export const UpdateCrmOpportunitySchema = CreateCrmOpportunitySchema.omit({
-  pipelineId: true,
+export const UpdateCrmOpportunitySchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+  amount: z.number().min(0).optional(),
+  closeDate: z.coerce.date().optional(),
+  pipelineId: z.string().min(1).optional(),
+  stageId: z.string().min(1).optional(),
+  companyId: z.string().optional(),
+  pointOfContactId: z.string().optional(),
+  ownerId: z.string().optional(),
+  source: z.string().max(100).optional(),
 })
-  .partial()
-  .extend({
-    stageId: z.string().min(1).optional(),
-  })
 
 export type UpdateCrmOpportunityDTO = z.infer<typeof UpdateCrmOpportunitySchema>
 

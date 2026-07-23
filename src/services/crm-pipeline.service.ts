@@ -1,5 +1,6 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { crmPipelineNotFound } from '@/src/errors'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmPipelineDTO,
   toCrmPipelineStageDTO,
@@ -136,6 +137,33 @@ export const CrmPipelineService = {
     if (!membership.ok) return membership
 
     return CrmPipelineRepository.reorder(workspaceId, orderedIds)
+  },
+
+  /// Resolve o pipeline padrão da workspace (ou o primeiro, se nenhum estiver
+  /// marcado como padrão) e sua primeira etapa (categoria OPEN, ou a primeira
+  /// por posição). Usado por CrmOpportunityService quando pipeline/etapa são
+  /// omitidos na criação de uma oportunidade.
+  async resolveDefaultStage(
+    workspaceId: string,
+  ): Promise<Result<{ pipelineId: string; stageId: string }>> {
+    const def = await CrmPipelineRepository.findDefault(workspaceId)
+    if (!def.ok) return def
+
+    let pipeline = def.value
+    if (!pipeline) {
+      const all = await CrmPipelineRepository.listByWorkspace(workspaceId)
+      if (!all.ok) return all
+      pipeline = all.value[0] ?? null
+    }
+    if (!pipeline) return err(crmPipelineNotFound())
+
+    const stages = await CrmPipelineStageRepository.listByPipeline(pipeline.id)
+    if (!stages.ok) return stages
+    if (stages.value.length === 0) return err(crmPipelineNotFound())
+
+    const ordered = [...stages.value].sort((a, b) => a.position - b.position)
+    const stage = ordered.find((s) => s.category === 'OPEN') ?? ordered[0]
+    return ok({ pipelineId: pipeline.id, stageId: stage.id })
   },
 }
 

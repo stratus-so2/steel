@@ -17,12 +17,17 @@ describe('CreateCrmOpportunitySchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('should reject when pipelineId is missing', () => {
+  it('should accept a payload with no pipeline/stage — the service resolves the workspace default', () => {
+    const result = CreateCrmOpportunitySchema.safeParse({ name: 'Negócio X' })
+    expect(result.success).toBe(true)
+  })
+
+  it('should accept stageId without pipelineId — the service rejects this combination, not the schema', () => {
     const result = CreateCrmOpportunitySchema.safeParse({
       name: 'Negócio X',
       stageId: 'stg1',
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it('should coerce closeDate to a Date', () => {

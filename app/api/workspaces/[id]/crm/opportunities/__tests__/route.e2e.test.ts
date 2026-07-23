@@ -71,11 +71,67 @@ describe('POST /api/workspaces/[id]/crm/opportunities', () => {
 
     const res = await postJson(
       `/api/workspaces/${workspace.id}/crm/opportunities`,
-      { name: 'Negócio X' },
+      {},
       user.cookie,
     )
 
     expect(res.status).toBe(422)
+  })
+
+  it('should resolve the workspace default pipeline/stage when both are omitted', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const { pipelineId, stageId } = await seedFunnel(workspace.id, user.cookie)
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/opportunities`,
+      { name: 'Negócio X' },
+      user.cookie,
+    )
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.data.pipelineId).toBe(pipelineId)
+    expect(body.data.stageId).toBe(stageId)
+  })
+
+  it('should resolve the first stage when only pipelineId is given', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const { pipelineId, stageId } = await seedFunnel(workspace.id, user.cookie)
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/opportunities`,
+      { name: 'Negócio X', pipelineId },
+      user.cookie,
+    )
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.data.stageId).toBe(stageId)
+  })
+
+  it('should return 400 when stageId is given without pipelineId', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const { stageId } = await seedFunnel(workspace.id, user.cookie)
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/opportunities`,
+      { name: 'Negócio X', stageId },
+      user.cookie,
+    )
+
+    expect(res.status).toBe(400)
+  })
+
+  it('should return 404 when the workspace has no pipeline at all', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/opportunities`,
+      { name: 'Negócio X' },
+      user.cookie,
+    )
+
+    expect(res.status).toBe(404)
   })
 })
 

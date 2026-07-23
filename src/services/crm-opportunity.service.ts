@@ -1,5 +1,6 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { badRequest, crmPipelineNotFound } from '@/src/errors'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmOpportunityDTO,
   toCrmOpportunityLineItemDTO,
@@ -8,6 +9,10 @@ import {
   CrmOpportunityLineItemRepository,
   CrmOpportunityRepository,
 } from '@/src/repositories/crm-opportunity.repository'
+import {
+  CrmPipelineRepository,
+  CrmPipelineStageRepository,
+} from '@/src/repositories/crm-pipeline.repository'
 import type {
   CreateCrmOpportunityDTO,
   CreateCrmOpportunityLineItemDTO,
@@ -19,6 +24,94 @@ import type {
   CrmOpportunityLineItemDTO,
 } from '@/types/crm-opportunity'
 import { assertMember } from './authz'
+import { CrmPipelineService } from './crm-pipeline.service'
+
+type StageRefs = { pipelineId: string; stageId: string }
+
+/** Primeira etapa (categoria OPEN, ou a primeira por posição) do pipeline. */
+async function firstStageOf(
+  workspaceId: string,
+  pipelineId: string,
+): Promise<Result<string>> {
+  const pipeline = await CrmPipelineRepository.findById(pipelineId, workspaceId)
+  if (!pipeline.ok) return pipeline
+
+  const stages = await CrmPipelineStageRepository.listByPipeline(pipelineId)
+  if (!stages.ok) return stages
+  if (stages.value.length === 0) return err(crmPipelineNotFound())
+
+  const ordered = [...stages.value].sort((a, b) => a.position - b.position)
+  const stage = ordered.find((s) => s.category === 'OPEN') ?? ordered[0]
+  return ok(stage.id)
+}
+
+/** Valida que `stageId` pertence ao `pipelineId` informado e à workspace. */
+async function assertStage(
+  workspaceId: string,
+  pipelineId: string,
+  stageId: string,
+): Promise<Result<true>> {
+  const pipeline = await CrmPipelineRepository.findById(pipelineId, workspaceId)
+  if (!pipeline.ok) return pipeline
+
+  const stage = await CrmPipelineStageRepository.findById(stageId, pipelineId)
+  if (!stage.ok) return stage
+
+  return ok(true)
+}
+
+/** Resolve pipeline+etapa para a criação, aplicando os defaults da workspace. */
+async function resolveStageForCreate(
+  workspaceId: string,
+  input: { pipelineId?: string; stageId?: string },
+): Promise<Result<StageRefs>> {
+  if (input.stageId) {
+    if (!input.pipelineId) {
+      return err(badRequest('Informe o pipeline ao definir a etapa'))
+    }
+    const valid = await assertStage(
+      workspaceId,
+      input.pipelineId,
+      input.stageId,
+    )
+    if (!valid.ok) return valid
+    return ok({ pipelineId: input.pipelineId, stageId: input.stageId })
+  }
+  if (input.pipelineId) {
+    const stage = await firstStageOf(workspaceId, input.pipelineId)
+    if (!stage.ok) return stage
+    return ok({ pipelineId: input.pipelineId, stageId: stage.value })
+  }
+  return CrmPipelineService.resolveDefaultStage(workspaceId)
+}
+
+/**
+ * Resolve pipeline+etapa para a atualização. Retorna `null` quando nem
+ * pipelineId nem stageId foram informados (nada a mudar). Quando só
+ * pipelineId muda, a etapa é resolvida para a primeira do pipeline alvo.
+ */
+async function resolveStageForUpdate(
+  workspaceId: string,
+  currentPipelineId: string,
+  input: { pipelineId?: string; stageId?: string },
+): Promise<Result<StageRefs | null>> {
+  if (input.pipelineId === undefined && input.stageId === undefined) {
+    return ok(null)
+  }
+  const targetPipelineId = input.pipelineId ?? currentPipelineId
+  if (input.stageId !== undefined) {
+    const valid = await assertStage(
+      workspaceId,
+      targetPipelineId,
+      input.stageId,
+    )
+    if (!valid.ok) return valid
+    return ok({ pipelineId: targetPipelineId, stageId: input.stageId })
+  }
+  const stage = await firstStageOf(workspaceId, targetPipelineId)
+  if (!stage.ok) return stage
+  return ok({ pipelineId: targetPipelineId, stageId: stage.value })
+}
 
 export const CrmOpportunityService = {
   async list(
@@ -63,14 +156,20 @@ export const CrmOpportunityService = {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
 
+    const stageRefs = await resolveStageForCreate(workspaceId, {
+      pipelineId: dto.pipelineId,
+      stageId: dto.stageId,
+    })
+    if (!stageRefs.ok) return stageRefs
+
     const result = await CrmOpportunityRepository.create({
       workspaceId,
       createdById: actorId,
       name: dto.name,
       amount: dto.amount,
       closeDate: dto.closeDate,
-      pipelineId: dto.pipelineId,
-      stageId: dto.stageId,
+      pipelineId: stageRefs.value.pipelineId,
+      stageId: stageRefs.value.stageId,
       companyId: dto.companyId,
       pointOfContactId: dto.pointOfContactId,
       ownerId: dto.ownerId,
@@ -113,11 +212,19 @@ export const CrmOpportunityService = {
     )
     if (!existing.ok) return existing
 
+    const stageRefs = await resolveStageForUpdate(
+      workspaceId,
+      existing.value.pipelineId,
+      { pipelineId: dto.pipelineId, stageId: dto.stageId },
+    )
+    if (!stageRefs.ok) return stageRefs
+
     const result = await CrmOpportunityRepository.update(opportunityId, {
       name: dto.name,
       amount: dto.amount,
       closeDate: dto.closeDate,
-      stageId: dto.stageId,
+      pipelineId: stageRefs.value?.pipelineId,
+      stageId: stageRefs.value?.stageId,
       companyId: dto.companyId,
       pointOfContactId: dto.pointOfContactId,
       ownerId: dto.ownerId,
