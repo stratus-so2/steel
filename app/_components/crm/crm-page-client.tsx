@@ -7,6 +7,7 @@ import { CrmCustomFieldsPanel } from './crm-custom-fields-panel'
 import { CrmEmailCampaignsPanel } from './crm-email-campaigns-panel'
 import { CrmEmailTemplatesPanel } from './crm-email-templates-panel'
 import { CrmIntegrationKeysPanel } from './crm-integration-keys-panel'
+import { CrmLandingPagesPanel } from './crm-landing-pages-panel'
 import { CrmLeadsTable } from './crm-leads-table'
 import { CrmMailingListsPanel } from './crm-mailing-lists-panel'
 import { CrmNotesList } from './crm-notes-list'
@@ -36,6 +37,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='email-campaigns'>Campanhas de e-mail</TabsTrigger>
           <TabsTrigger value='mailing-lists'>Listas de e-mail</TabsTrigger>
           <TabsTrigger value='workflows'>Workflows</TabsTrigger>
+          <TabsTrigger value='landing-pages'>Landing pages</TabsTrigger>
           <TabsTrigger value='reports'>Relatórios</TabsTrigger>
           <TabsTrigger value='ai'>Assistente IA</TabsTrigger>
           <TabsTrigger value='integration-keys'>Chaves de API</TabsTrigger>
@@ -78,6 +80,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='workflows'>
           <CrmWorkflowsPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='landing-pages'>
+          <CrmLandingPagesPanel workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value='reports'>
           <CrmReportsPanel workspaceId={workspaceId} />
