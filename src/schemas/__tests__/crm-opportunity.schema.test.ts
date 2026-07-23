@@ -54,15 +54,24 @@ describe('UpdateCrmOpportunitySchema', () => {
 })
 
 describe('ReorderCrmOpportunitiesSchema', () => {
-  it('should require stageId and a non-empty orderedIds', () => {
+  it('should accept an optional stageId with a non-empty orderedIds', () => {
     expect(
       ReorderCrmOpportunitiesSchema.safeParse({
         stageId: 'stg1',
         orderedIds: ['a'],
       }).success,
     ).toBe(true)
+  })
+
+  it('should accept omitted stageId — reorders globally', () => {
     expect(
       ReorderCrmOpportunitiesSchema.safeParse({ orderedIds: ['a'] }).success,
+    ).toBe(true)
+  })
+
+  it('should require a non-empty orderedIds', () => {
+    expect(
+      ReorderCrmOpportunitiesSchema.safeParse({ orderedIds: [] }).success,
     ).toBe(false)
   })
 })

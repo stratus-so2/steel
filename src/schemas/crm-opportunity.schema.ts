@@ -33,7 +33,10 @@ export const UpdateCrmOpportunitySchema = z.object({
 export type UpdateCrmOpportunityDTO = z.infer<typeof UpdateCrmOpportunitySchema>
 
 export const ReorderCrmOpportunitiesSchema = z.object({
-  stageId: z.string().min(1),
+  // Quando omitido, reordena globalmente (usado pela grade genérica); quando
+  // informado, reordena apenas dentro dessa etapa (usado por uma eventual
+  // visão em quadro/Kanban).
+  stageId: z.string().min(1).optional(),
   orderedIds: z.array(z.string()).min(1),
 })
 

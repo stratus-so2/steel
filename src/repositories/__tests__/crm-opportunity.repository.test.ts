@@ -96,6 +96,33 @@ describe('CrmOpportunityRepository', () => {
     })
   })
 
+  describe('reorder()', () => {
+    it('should update positions across the whole workspace', async () => {
+      const { workspace, user, pipeline, stage } = await setup()
+      const a = await seedCrmOpportunity(
+        workspace.id,
+        user.id,
+        pipeline.id,
+        stage.id,
+      )
+      const b = await seedCrmOpportunity(
+        workspace.id,
+        user.id,
+        pipeline.id,
+        stage.id,
+      )
+
+      expectOk(
+        await CrmOpportunityRepository.reorder(workspace.id, [b.id, a.id]),
+      )
+
+      const list = expectOk(
+        await CrmOpportunityRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((o) => o.id)).toEqual([b.id, a.id])
+    })
+  })
+
   describe('findById()', () => {
     it('should return RESOURCE_NOT_FOUND for a soft-deleted opportunity', async () => {
       const { workspace, user, pipeline, stage } = await setup()

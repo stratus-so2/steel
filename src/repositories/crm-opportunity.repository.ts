@@ -134,6 +134,26 @@ export const CrmOpportunityRepository = {
       return err(dbError('Failed to reorder CRM opportunities', error))
     }
   },
+
+  /** Reordena globalmente (independente da etapa) — usado pela grade genérica. */
+  async reorder(
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    try {
+      await prisma.$transaction(
+        orderedIds.map((id, position) =>
+          prisma.crmOpportunity.update({
+            where: { id, workspaceId },
+            data: { position },
+          }),
+        ),
+      )
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to reorder CRM opportunities', error))
+    }
+  },
 }
 
 export const CrmOpportunityLineItemRepository = {

@@ -282,6 +282,17 @@ export const CrmOpportunityService = {
 
     return CrmOpportunityRepository.reorderInStage(stageId, orderedIds)
   },
+
+  async reorder(
+    actorId: string,
+    workspaceId: string,
+    orderedIds: string[],
+  ): Promise<Result<void>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    return CrmOpportunityRepository.reorder(workspaceId, orderedIds)
+  },
 }
 
 export const CrmOpportunityLineItemService = {

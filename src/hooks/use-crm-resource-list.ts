@@ -147,7 +147,7 @@ export async function reorderCrmResource(
 ): Promise<void> {
   try {
     await fetch(`/api/workspaces/${workspaceId}/crm/${resource}/reorder`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderedIds }),
     })

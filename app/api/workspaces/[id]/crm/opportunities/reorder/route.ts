@@ -37,12 +37,18 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
     )
   }
 
-  const result = await CrmOpportunityService.reorderInStage(
-    auth.value.user.id,
-    id,
-    parsed.data.stageId,
-    parsed.data.orderedIds,
-  )
+  const result = parsed.data.stageId
+    ? await CrmOpportunityService.reorderInStage(
+        auth.value.user.id,
+        id,
+        parsed.data.stageId,
+        parsed.data.orderedIds,
+      )
+    : await CrmOpportunityService.reorder(
+        auth.value.user.id,
+        id,
+        parsed.data.orderedIds,
+      )
   if (!result.ok) return handleError(result.error)
 
   return successResponse(null, 200)

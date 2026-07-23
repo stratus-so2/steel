@@ -1,7 +1,7 @@
 import { TargetDollarIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmOpportunitiesBoard } from '@/app/_components/crm/crm-opportunities-board'
+import { CrmOpportunitiesTable } from '@/app/_components/crm/crm-opportunities-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -33,7 +33,7 @@ export default async function CrmOpportunitiesPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Oportunidades'>
@@ -45,8 +45,11 @@ export default async function CrmOpportunitiesPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmOpportunitiesBoard workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmOpportunitiesTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )
