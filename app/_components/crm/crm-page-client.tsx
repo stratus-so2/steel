@@ -16,6 +16,7 @@ import { CrmPeopleTable } from './crm-people-table'
 import { CrmPipelinesPanel } from './crm-pipelines-panel'
 import { CrmProductsTable } from './crm-products-table'
 import { CrmReportsPanel } from './crm-reports-panel'
+import { CrmSocialPanel } from './crm-social-panel'
 import { CrmTasksTable } from './crm-tasks-table'
 import { CrmWorkflowsPanel } from './crm-workflows-panel'
 
@@ -38,6 +39,7 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
           <TabsTrigger value='mailing-lists'>Listas de e-mail</TabsTrigger>
           <TabsTrigger value='workflows'>Workflows</TabsTrigger>
           <TabsTrigger value='landing-pages'>Landing pages</TabsTrigger>
+          <TabsTrigger value='social'>Redes sociais</TabsTrigger>
           <TabsTrigger value='reports'>Relatórios</TabsTrigger>
           <TabsTrigger value='ai'>Assistente IA</TabsTrigger>
           <TabsTrigger value='integration-keys'>Chaves de API</TabsTrigger>
@@ -83,6 +85,9 @@ export function CrmPageClient({ workspaceId }: { workspaceId: string }) {
         </TabsContent>
         <TabsContent value='landing-pages'>
           <CrmLandingPagesPanel workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value='social'>
+          <CrmSocialPanel workspaceId={workspaceId} />
         </TabsContent>
         <TabsContent value='reports'>
           <CrmReportsPanel workspaceId={workspaceId} />
