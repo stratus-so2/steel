@@ -26,6 +26,8 @@ type AuditEntity =
   | 'whatsapp_ai_config'
   | 'whatsapp_group'
   | 'whatsapp_group_message'
+  | 'crm_company'
+  | 'crm_person'
 
 type AuditAction =
   | 'create'
