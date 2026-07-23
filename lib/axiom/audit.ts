@@ -28,6 +28,9 @@ type AuditEntity =
   | 'whatsapp_group_message'
   | 'crm_company'
   | 'crm_person'
+  | 'crm_pipeline'
+  | 'crm_pipeline_stage'
+  | 'crm_product'
 
 type AuditAction =
   | 'create'

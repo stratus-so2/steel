@@ -219,3 +219,20 @@ export const crmCompanyConflict = (
 
 export const crmPersonNotFound = (): AppError =>
   appError('CRM_PERSON_NOT_FOUND', 'Pessoa não encontrada')
+
+export const crmPipelineNotFound = (): AppError =>
+  appError('CRM_PIPELINE_NOT_FOUND', 'Pipeline não encontrado')
+
+export const crmPipelineStageNotFound = (): AppError =>
+  appError('CRM_PIPELINE_STAGE_NOT_FOUND', 'Etapa do pipeline não encontrada')
+
+export const crmPipelineStageInUse = (
+  message = 'Esta etapa possui oportunidades vinculadas e não pode ser removida',
+): AppError => appError('CRM_PIPELINE_STAGE_IN_USE', message)
+
+export const crmProductNotFound = (): AppError =>
+  appError('CRM_PRODUCT_NOT_FOUND', 'Produto não encontrado')
+
+export const crmProductConflict = (
+  message = 'Já existe um produto com este SKU neste workspace',
+): AppError => appError('CRM_PRODUCT_CONFLICT', message)

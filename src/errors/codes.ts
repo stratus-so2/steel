@@ -114,6 +114,17 @@ export const ERROR_CODES = {
   CRM_COMPANY_NOT_FOUND: { code: 'CRM_COMPANY_NOT_FOUND', status: 404 },
   CRM_COMPANY_CONFLICT: { code: 'CRM_COMPANY_CONFLICT', status: 409 },
   CRM_PERSON_NOT_FOUND: { code: 'CRM_PERSON_NOT_FOUND', status: 404 },
+  CRM_PIPELINE_NOT_FOUND: { code: 'CRM_PIPELINE_NOT_FOUND', status: 404 },
+  CRM_PIPELINE_STAGE_NOT_FOUND: {
+    code: 'CRM_PIPELINE_STAGE_NOT_FOUND',
+    status: 404,
+  },
+  CRM_PIPELINE_STAGE_IN_USE: {
+    code: 'CRM_PIPELINE_STAGE_IN_USE',
+    status: 409,
+  },
+  CRM_PRODUCT_NOT_FOUND: { code: 'CRM_PRODUCT_NOT_FOUND', status: 404 },
+  CRM_PRODUCT_CONFLICT: { code: 'CRM_PRODUCT_CONFLICT', status: 409 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
