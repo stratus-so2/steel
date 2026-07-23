@@ -6,6 +6,7 @@ export interface CrmLandingPageDTO {
   html: string
   status: CrmLandingPageStatusDTO
   shareToken: string
+  viewsCount: number
   publishedAt: string | null
   workspaceId: string
   createdById: string

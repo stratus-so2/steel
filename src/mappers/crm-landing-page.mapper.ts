@@ -5,13 +5,16 @@ import type {
   CrmLandingPageViewDTO,
 } from '@/types/crm-landing-page'
 
-export function toCrmLandingPageDTO(page: CrmLandingPage): CrmLandingPageDTO {
+export function toCrmLandingPageDTO(
+  page: CrmLandingPage & { _count?: { views: number } },
+): CrmLandingPageDTO {
   return {
     id: page.id,
     title: page.title,
     html: page.html,
     status: page.status,
     shareToken: page.shareToken,
+    viewsCount: page._count?.views ?? 0,
     publishedAt: page.publishedAt ? page.publishedAt.toISOString() : null,
     workspaceId: page.workspaceId,
     createdById: page.createdById,

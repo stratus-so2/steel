@@ -26,6 +26,18 @@ describe('UpdateCrmLandingPageSchema', () => {
     const result = UpdateCrmLandingPageSchema.safeParse({ title: 'Novo' })
     expect(result.data?.html).toBeUndefined()
   })
+
+  it('should accept a status transition', () => {
+    expect(
+      UpdateCrmLandingPageSchema.safeParse({ status: 'PUBLISHED' }).success,
+    ).toBe(true)
+  })
+
+  it('should reject an invalid status', () => {
+    expect(
+      UpdateCrmLandingPageSchema.safeParse({ status: 'ARCHIVED' }).success,
+    ).toBe(false)
+  })
 })
 
 describe('RecordCrmLandingPageViewSchema', () => {

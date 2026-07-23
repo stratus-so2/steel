@@ -8,11 +8,12 @@ import { dbError } from './db-error'
 export const CrmLandingPageRepository = {
   async listByWorkspace(
     workspaceId: string,
-  ): Promise<Result<CrmLandingPage[]>> {
+  ): Promise<Result<(CrmLandingPage & { _count: { views: number } })[]>> {
     try {
       const pages = await prisma.crmLandingPage.findMany({
         where: { workspaceId, deletedAt: null },
         orderBy: { position: 'asc' },
+        include: { _count: { select: { views: true } } },
       })
       return ok(pages)
     } catch (error) {
@@ -70,7 +71,13 @@ export const CrmLandingPageRepository = {
 
   async update(
     id: string,
-    data: { title?: string; html?: string; updatedById?: string },
+    data: {
+      title?: string
+      html?: string
+      status?: 'DRAFT' | 'PUBLISHED'
+      publishedAt?: Date
+      updatedById?: string
+    },
   ): Promise<Result<CrmLandingPage>> {
     try {
       const page = await prisma.crmLandingPage.update({ where: { id }, data })

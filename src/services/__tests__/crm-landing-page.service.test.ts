@@ -25,6 +25,70 @@ describe('CrmLandingPageService', () => {
     })
   })
 
+  describe('update()', () => {
+    it('should stamp publishedAt on the first publish', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      const existing = createFakeCrmLandingPage({
+        id: 'p1',
+        status: 'DRAFT',
+        publishedAt: null,
+      })
+      mockedPageRepo.findById.mockResolvedValue(ok(existing))
+      mockedPageRepo.update.mockResolvedValue(
+        ok({ ...existing, status: 'PUBLISHED', publishedAt: new Date() }),
+      )
+
+      expectOk(
+        await CrmLandingPageService.update('u1', 'ws1', 'p1', {
+          status: 'PUBLISHED',
+        }),
+      )
+      expect(mockedPageRepo.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({
+          status: 'PUBLISHED',
+          publishedAt: expect.any(Date),
+        }),
+      )
+    })
+
+    it('should not overwrite publishedAt when re-publishing', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      const originalPublishedAt = new Date('2026-01-01T00:00:00Z')
+      const existing = createFakeCrmLandingPage({
+        id: 'p1',
+        status: 'DRAFT',
+        publishedAt: originalPublishedAt,
+      })
+      mockedPageRepo.findById.mockResolvedValue(ok(existing))
+      mockedPageRepo.update.mockResolvedValue(ok(existing))
+
+      expectOk(
+        await CrmLandingPageService.update('u1', 'ws1', 'p1', {
+          status: 'PUBLISHED',
+        }),
+      )
+      expect(mockedPageRepo.update).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ publishedAt: undefined }),
+      )
+    })
+  })
+
+  describe('listViews()', () => {
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+      expectErr(
+        await CrmLandingPageService.listViews('u1', 'ws1', 'p1'),
+        'FORBIDDEN',
+      )
+    })
+  })
+
   describe('getPublicByShareToken()', () => {
     it('should return only title and html without auth', async () => {
       mockedPageRepo.findByShareToken.mockResolvedValue(

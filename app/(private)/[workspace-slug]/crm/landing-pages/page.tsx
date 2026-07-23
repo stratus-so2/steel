@@ -1,7 +1,7 @@
 import { BrowserIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmLandingPagesPanel } from '@/app/_components/crm/crm-landing-pages-panel'
+import { CrmLandingPagesTable } from '@/app/_components/crm/crm-landing-pages-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -33,7 +33,7 @@ export default async function CrmLandingPagesPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Landing pages'>
@@ -45,8 +45,11 @@ export default async function CrmLandingPagesPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
-        <CrmLandingPagesPanel workspaceId={membership.value.workspaceId} />
+      <div className='min-h-0 flex-1'>
+        <CrmLandingPagesTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

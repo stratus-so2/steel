@@ -4,6 +4,7 @@ import { ok, type Result } from '@/src/lib/result'
 import {
   toCrmLandingPageDTO,
   toCrmLandingPagePublicDTO,
+  toCrmLandingPageViewDTO,
 } from '@/src/mappers/crm-landing-page.mapper'
 import {
   CrmLandingPageRepository,
@@ -17,6 +18,7 @@ import type {
 import type {
   CrmLandingPageDTO,
   CrmLandingPagePublicDTO,
+  CrmLandingPageViewDTO,
 } from '@/types/crm-landing-page'
 import { assertMember } from './authz'
 
@@ -103,9 +105,17 @@ export const CrmLandingPageService = {
     )
     if (!existing.ok) return existing
 
+    // Carimba o 1º publish; despublicar não apaga o timestamp original.
+    const publishedAt =
+      dto.status === 'PUBLISHED' && !existing.value.publishedAt
+        ? new Date()
+        : undefined
+
     const result = await CrmLandingPageRepository.update(pageId, {
       title: dto.title,
       html: dto.html,
+      status: dto.status,
+      publishedAt,
       updatedById: actorId,
     })
     if (!result.ok) return result
@@ -189,6 +199,23 @@ export const CrmLandingPageService = {
     if (!membership.ok) return membership
 
     return CrmLandingPageRepository.reorder(workspaceId, orderedIds)
+  },
+
+  async listViews(
+    actorId: string,
+    workspaceId: string,
+    pageId: string,
+  ): Promise<Result<CrmLandingPageViewDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const page = await CrmLandingPageRepository.findById(pageId, workspaceId)
+    if (!page.ok) return page
+
+    const result = await CrmLandingPageViewRepository.listByLandingPage(pageId)
+    if (!result.ok) return result
+
+    return ok(result.value.map(toCrmLandingPageViewDTO))
   },
 
   async getPublicByShareToken(

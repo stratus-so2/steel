@@ -7,9 +7,13 @@ export const CreateCrmLandingPageSchema = z.object({
 
 export type CreateCrmLandingPageDTO = z.infer<typeof CreateCrmLandingPageSchema>
 
+const LandingPageStatusEnum = z.enum(['DRAFT', 'PUBLISHED'])
+
 export const UpdateCrmLandingPageSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200).optional(),
   html: z.string().max(500_000).optional(),
+  // Alterna online/offline; o service carimba publishedAt no 1º publish.
+  status: LandingPageStatusEnum.optional(),
 })
 
 export type UpdateCrmLandingPageDTO = z.infer<typeof UpdateCrmLandingPageSchema>

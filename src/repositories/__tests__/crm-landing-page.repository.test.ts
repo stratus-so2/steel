@@ -56,6 +56,23 @@ describe('CrmLandingPageRepository', () => {
       expect(found.id).toBe(page.id)
     })
   })
+
+  describe('reorder()', () => {
+    it('should update positions across the whole workspace', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const a = await seedCrmLandingPage(workspace.id, user.id)
+      const b = await seedCrmLandingPage(workspace.id, user.id)
+
+      expectOk(
+        await CrmLandingPageRepository.reorder(workspace.id, [b.id, a.id]),
+      )
+
+      const list = expectOk(
+        await CrmLandingPageRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((p) => p.id)).toEqual([b.id, a.id])
+    })
+  })
 })
 
 describe('CrmLandingPageViewRepository', () => {
