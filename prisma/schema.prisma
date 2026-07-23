@@ -69,6 +69,9 @@ model User {
   crmNotesCreated          CrmNote[]                  @relation("CrmNoteCreatedBy")
   crmNotesUpdated          CrmNote[]                  @relation("CrmNoteUpdatedBy")
   crmActivitiesActed       CrmActivity[]              @relation("CrmActivityActor")
+  crmQuotasOwned           CrmQuota[]                 @relation("CrmQuotaOwner")
+  crmQuotasCreated         CrmQuota[]                 @relation("CrmQuotaCreatedBy")
+  crmQuotasUpdated         CrmQuota[]                 @relation("CrmQuotaUpdatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -263,6 +266,7 @@ model Workspace {
   crmTasks                  CrmTask[]
   crmNotes                  CrmNote[]
   crmActivities             CrmActivity[]
+  crmQuotas                 CrmQuota[]
 
   @@map("workspaces")
 }
@@ -1405,4 +1409,33 @@ model CrmActivity {
   @@index([personId, createdAt])
   @@index([opportunityId, createdAt])
   @@map("crm_activities")
+}
+
+enum CrmQuotaPeriod {
+  MONTH
+  QUARTER
+}
+
+/// Meta de receita por responsável e período (mês/trimestre), usada no forecast.
+model CrmQuota {
+  id           String         @id @default(cuid())
+  workspaceId  String         @map("workspace_id")
+  ownerId      String         @map("owner_id")
+  period       CrmQuotaPeriod
+  periodKey    String         @map("period_key")
+  targetAmount Decimal        @default(0) @map("target_amount") @db.Decimal(14, 2)
+  createdById  String         @map("created_by_id")
+  updatedById  String?        @map("updated_by_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User      @relation("CrmQuotaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmQuotaCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmQuotaUpdatedBy", fields: [updatedById], references: [id])
+
+  @@unique([workspaceId, ownerId, period, periodKey])
+  @@index([workspaceId])
+  @@index([workspaceId, period, periodKey])
+  @@map("crm_quotas")
 }
