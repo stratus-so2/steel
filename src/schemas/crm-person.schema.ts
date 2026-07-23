@@ -1,4 +1,5 @@
 import z from 'zod'
+import { CustomFieldsInputSchema } from '@/src/schemas/crm-custom-field.schema'
 
 export const CreateCrmPersonSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
@@ -9,6 +10,7 @@ export const CreateCrmPersonSchema = z.object({
   linkedin: z.string().max(300).optional(),
   avatar: z.string().max(500).optional(),
   companyId: z.string().optional(),
+  customFields: CustomFieldsInputSchema.optional(),
 })
 
 export type CreateCrmPersonDTO = z.infer<typeof CreateCrmPersonSchema>
@@ -23,6 +25,7 @@ export const UpdateCrmPersonSchema = z.object({
   avatar: z.string().max(500).optional(),
   // Nullable: a coluna é limpável na grade (envia null para desvincular).
   companyId: z.string().nullable().optional(),
+  customFields: CustomFieldsInputSchema.optional(),
 })
 
 export type UpdateCrmPersonDTO = z.infer<typeof UpdateCrmPersonSchema>

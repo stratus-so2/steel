@@ -17,6 +17,8 @@ export interface CrmOpportunityDTO {
   position: number
   createdAt: string
   updatedAt: string
+  /** Valores de campos customizados achatados, chave `cf_<definitionId>`. */
+  customFields?: Record<string, unknown>
 }
 
 export interface CrmOpportunityLineItemDTO {

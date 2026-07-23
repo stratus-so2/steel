@@ -4,6 +4,10 @@ import { useMemo } from 'react'
 import { CrmRecordTimeline } from '@/app/_components/crm/crm-record-timeline'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
+import {
+  customFieldColumns,
+  useCrmCustomFields,
+} from '@/src/hooks/use-crm-custom-field'
 import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import {
   type LookupKind,
@@ -84,13 +88,21 @@ export function CrmPeopleTable({
     'people',
   )
   const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
+  const { data: customFields } = useCrmCustomFields(workspaceId, 'PERSON')
 
-  const columns = useMemo(() => COLUMNS, [])
+  const columns = useMemo(
+    () => [...COLUMNS, ...customFieldColumns(customFields ?? [])],
+    [customFields],
+  )
+  const rows = useMemo(
+    () => items.map((item) => ({ ...item, ...(item.customFields ?? {}) })),
+    [items],
+  )
 
   return (
     <DataTable
       columns={columns}
-      data={items}
+      data={rows}
       workspaceId={workspaceId}
       slug={slug}
       resource='people'

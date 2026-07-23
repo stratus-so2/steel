@@ -15,8 +15,10 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-opportunity.repository')
 vi.mock('@/src/repositories/crm-pipeline.repository')
 vi.mock('@/src/repositories/crm-activity.repository')
+vi.mock('@/src/repositories/crm-custom-field.repository')
 
 import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
+import { CrmCustomFieldValueRepository } from '@/src/repositories/crm-custom-field.repository'
 import {
   CrmOpportunityLineItemRepository,
   CrmOpportunityRepository,
@@ -34,6 +36,9 @@ import {
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedOpportunityRepo = vi.mocked(CrmOpportunityRepository)
 const mockedLineItemRepo = vi.mocked(CrmOpportunityLineItemRepository)
+const mockedCustomFieldValueRepo = vi.mocked(CrmCustomFieldValueRepository)
+
+mockedCustomFieldValueRepo.listByRecords.mockResolvedValue(ok([]))
 const mockedPipelineRepo = vi.mocked(CrmPipelineRepository)
 const mockedStageRepo = vi.mocked(CrmPipelineStageRepository)
 const mockedActivityRepo = vi.mocked(CrmActivityRepository)

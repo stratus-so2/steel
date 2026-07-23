@@ -72,6 +72,35 @@ describe('POST /api/workspaces/[id]/crm/companies', () => {
     expect(res.status).toBe(422)
   })
 
+  it('should apply and flatten custom field values', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const defRes = await postJson(
+      `/api/workspaces/${workspace.id}/crm/custom-fields`,
+      { entity: 'COMPANY', key: 'segment', label: 'Segmento' },
+      user.cookie,
+    )
+    expect(defRes.status).toBe(201)
+    const def = (await defRes.json()).data
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/companies`,
+      { name: 'Acme Inc.', customFields: { [def.id]: 'Enterprise' } },
+      user.cookie,
+    )
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.data.customFields).toEqual({ [`cf_${def.id}`]: 'Enterprise' })
+
+    const listRes = await getJson(
+      `/api/workspaces/${workspace.id}/crm/companies`,
+      user.cookie,
+    )
+    const list = (await listRes.json()).data
+    expect(list[0].customFields).toEqual({ [`cf_${def.id}`]: 'Enterprise' })
+  })
+
   it('should return 409 on duplicate domain', async () => {
     const { user, workspace } = await authenticatedOwner()
     await postJson(

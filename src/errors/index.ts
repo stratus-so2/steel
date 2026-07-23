@@ -12,6 +12,7 @@ export {
   crmCompanyConflict,
   crmCompanyNotFound,
   crmCustomFieldConflict,
+  crmCustomFieldInvalid,
   crmCustomFieldNotFound,
   crmDashboardNotFound,
   crmDashboardWidgetNotFound,

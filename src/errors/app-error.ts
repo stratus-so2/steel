@@ -272,6 +272,9 @@ export const crmCustomFieldConflict = (
   message = 'Já existe um campo customizado com esta chave para esta entidade',
 ): AppError => appError('CRM_CUSTOM_FIELD_CONFLICT', message)
 
+export const crmCustomFieldInvalid = (message: string): AppError =>
+  appError('CRM_CUSTOM_FIELD_INVALID', message)
+
 export const crmTaskNotFound = (): AppError =>
   appError('CRM_TASK_NOT_FOUND', 'Tarefa não encontrada')
 

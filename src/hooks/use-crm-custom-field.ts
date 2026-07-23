@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { GridColumn } from '@/app/_components/crm/table/grid'
 import type {
   CrmCustomFieldDefinitionDTO,
   CrmCustomFieldEntityDTO,
@@ -67,5 +68,40 @@ export function useDeleteCrmCustomField(workspaceId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: customFieldsKey(workspaceId) })
     },
+  })
+}
+
+/**
+ * Converte definições em `GridColumn`s dinâmicas. `key` é `cf_<defId>`
+ * (leitura via DTO achatado); `customFieldId` roteia a escrita para o
+ * objeto `customFields` no PATCH — ver `grid.tsx`/`record-panel.tsx`.
+ */
+export function customFieldColumns(
+  fields: CrmCustomFieldDefinitionDTO[],
+): GridColumn[] {
+  return fields.map((f): GridColumn => {
+    const base = {
+      key: `cf_${f.id}`,
+      customFieldId: f.id,
+      header: f.label,
+      required: f.required,
+    }
+    switch (f.type) {
+      case 'NUMBER':
+        return { ...base, kind: 'number' }
+      case 'DATE':
+        return { ...base, kind: 'date' }
+      case 'BOOLEAN':
+        return { ...base, kind: 'boolean' }
+      case 'SELECT':
+        return {
+          ...base,
+          kind: 'select',
+          clearable: true,
+          options: f.options.map((o) => ({ value: o, label: o })),
+        }
+      default:
+        return { ...base, kind: 'text' }
+    }
   })
 }

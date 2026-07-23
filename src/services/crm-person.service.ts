@@ -10,6 +10,11 @@ import type {
 import type { CrmPersonDTO } from '@/types/crm-person'
 import { assertMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
+import {
+  applyCustomFieldValues,
+  withCustomFields,
+  withCustomFieldsList,
+} from './crm-custom-field-sync'
 
 export const CrmPersonService = {
   async list(
@@ -25,7 +30,7 @@ export const CrmPersonService = {
     })
     if (!result.ok) return result
 
-    return ok(result.value.map(toCrmPersonDTO))
+    return withCustomFieldsList(result.value.map(toCrmPersonDTO))
   },
 
   async getById(
@@ -39,7 +44,7 @@ export const CrmPersonService = {
     const result = await CrmPersonRepository.findById(personId, workspaceId)
     if (!result.ok) return result
 
-    return ok(toCrmPersonDTO(result.value))
+    return withCustomFields(toCrmPersonDTO(result.value))
   },
 
   async create(
@@ -81,16 +86,28 @@ export const CrmPersonService = {
       targetId: result.value.id,
     })
 
-    const createdDto = toCrmPersonDTO(result.value)
+    if (dto.customFields) {
+      const applied = await applyCustomFieldValues(
+        workspaceId,
+        'PERSON',
+        result.value.id,
+        dto.customFields,
+      )
+      if (!applied.ok) return applied
+    }
+
+    const merged = await withCustomFields(toCrmPersonDTO(result.value))
+    if (!merged.ok) return merged
+
     void recordCrmActivity({
       workspaceId,
       actorUserId: actorId,
       entity: 'person',
       event: 'created',
-      record: createdDto,
+      record: merged.value,
     })
 
-    return ok(createdDto)
+    return ok(merged.value)
   },
 
   async update(
@@ -138,16 +155,28 @@ export const CrmPersonService = {
       meta: { fields: Object.keys(dto) },
     })
 
-    const updatedDto = toCrmPersonDTO(result.value)
+    if (dto.customFields) {
+      const applied = await applyCustomFieldValues(
+        workspaceId,
+        'PERSON',
+        personId,
+        dto.customFields,
+      )
+      if (!applied.ok) return applied
+    }
+
+    const merged = await withCustomFields(toCrmPersonDTO(result.value))
+    if (!merged.ok) return merged
+
     void recordCrmActivity({
       workspaceId,
       actorUserId: actorId,
       entity: 'person',
       event: 'updated',
-      record: updatedDto,
+      record: merged.value,
     })
 
-    return ok(updatedDto)
+    return ok(merged.value)
   },
 
   async remove(

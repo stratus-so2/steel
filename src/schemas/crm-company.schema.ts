@@ -1,4 +1,5 @@
 import z from 'zod'
+import { CustomFieldsInputSchema } from '@/src/schemas/crm-custom-field.schema'
 
 const AddressSchema = z
   .object({
@@ -23,6 +24,7 @@ export const CreateCrmCompanySchema = z.object({
   arr: z.number().min(0).optional(),
   icp: z.boolean().default(false),
   accountOwnerId: z.string().optional(),
+  customFields: CustomFieldsInputSchema.optional(),
 })
 
 export type CreateCrmCompanyDTO = z.infer<typeof CreateCrmCompanySchema>
@@ -38,6 +40,7 @@ export const UpdateCrmCompanySchema = z.object({
   icp: z.boolean().optional(),
   // Nullable: a coluna é limpável na grade (envia null para desvincular).
   accountOwnerId: z.string().nullable().optional(),
+  customFields: CustomFieldsInputSchema.optional(),
 })
 
 export type UpdateCrmCompanyDTO = z.infer<typeof UpdateCrmCompanySchema>

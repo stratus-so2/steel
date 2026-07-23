@@ -144,6 +144,21 @@ export const CrmCustomFieldValueRepository = {
     }
   },
 
+  /** Batch, para achatar valores em listagens sem uma query por registro. */
+  async listByRecords(
+    recordIds: string[],
+  ): Promise<Result<CrmCustomFieldValue[]>> {
+    if (recordIds.length === 0) return ok([])
+    try {
+      const values = await prisma.crmCustomFieldValue.findMany({
+        where: { recordId: { in: recordIds } },
+      })
+      return ok(values)
+    } catch (error) {
+      return err(dbError('Failed to list CRM custom field values', error))
+    }
+  },
+
   async upsert(
     definitionId: string,
     recordId: string,
@@ -159,6 +174,38 @@ export const CrmCustomFieldValueRepository = {
       return ok(record)
     } catch (error) {
       return err(dbError('Failed to upsert CRM custom field value', error))
+    }
+  },
+
+  /** Aplica vários valores do mesmo registro numa transação (create/update
+   * com `customFields` embutido no payload). */
+  async applyForRecord(
+    writes: { definitionId: string; recordId: string; value: unknown }[],
+  ): Promise<Result<void>> {
+    if (writes.length === 0) return ok(undefined)
+    try {
+      await prisma.$transaction(
+        writes.map((w) => {
+          const jsonValue = w.value === null ? Prisma.JsonNull : w.value
+          return prisma.crmCustomFieldValue.upsert({
+            where: {
+              definitionId_recordId: {
+                definitionId: w.definitionId,
+                recordId: w.recordId,
+              },
+            },
+            create: {
+              definitionId: w.definitionId,
+              recordId: w.recordId,
+              value: jsonValue as Prisma.InputJsonValue,
+            },
+            update: { value: jsonValue as Prisma.InputJsonValue },
+          })
+        }),
+      )
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to apply CRM custom field values', error))
     }
   },
 }

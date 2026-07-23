@@ -56,3 +56,9 @@ export const SetCrmCustomFieldValueSchema = z.object({
 export type SetCrmCustomFieldValueDTO = z.infer<
   typeof SetCrmCustomFieldValueSchema
 >
+
+/** Mapa `definitionId -> valor bruto`, embutido no create/update de
+ * Empresas/Pessoas/Oportunidades para escrever campos customizados. */
+export const CustomFieldsInputSchema = z.record(z.string(), z.unknown())
+
+export type CustomFieldsInputDTO = z.infer<typeof CustomFieldsInputSchema>

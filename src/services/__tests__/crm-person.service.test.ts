@@ -8,14 +8,19 @@ import { err, ok } from '@/src/lib/result'
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-person.repository')
 vi.mock('@/src/repositories/crm-activity.repository')
+vi.mock('@/src/repositories/crm-custom-field.repository')
 
 import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
+import { CrmCustomFieldValueRepository } from '@/src/repositories/crm-custom-field.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmPersonService } from '../crm-person.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedPersonRepo = vi.mocked(CrmPersonRepository)
+const mockedCustomFieldValueRepo = vi.mocked(CrmCustomFieldValueRepository)
+
+mockedCustomFieldValueRepo.listByRecords.mockResolvedValue(ok([]))
 const mockedActivityRepo = vi.mocked(CrmActivityRepository)
 
 describe('CrmPersonService', () => {

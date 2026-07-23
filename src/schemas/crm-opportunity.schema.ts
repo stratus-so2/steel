@@ -1,4 +1,5 @@
 import z from 'zod'
+import { CustomFieldsInputSchema } from '@/src/schemas/crm-custom-field.schema'
 
 export const CreateCrmOpportunitySchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
@@ -14,6 +15,7 @@ export const CreateCrmOpportunitySchema = z.object({
   pointOfContactId: z.string().optional(),
   ownerId: z.string().optional(),
   source: z.string().max(100).optional(),
+  customFields: CustomFieldsInputSchema.optional(),
 })
 
 export type CreateCrmOpportunityDTO = z.infer<typeof CreateCrmOpportunitySchema>
@@ -29,6 +31,7 @@ export const UpdateCrmOpportunitySchema = z.object({
   pointOfContactId: z.string().nullable().optional(),
   ownerId: z.string().nullable().optional(),
   source: z.string().max(100).optional(),
+  customFields: CustomFieldsInputSchema.optional(),
 })
 
 export type UpdateCrmOpportunityDTO = z.infer<typeof UpdateCrmOpportunitySchema>

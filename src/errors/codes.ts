@@ -151,6 +151,10 @@ export const ERROR_CODES = {
     code: 'CRM_CUSTOM_FIELD_CONFLICT',
     status: 409,
   },
+  CRM_CUSTOM_FIELD_INVALID: {
+    code: 'CRM_CUSTOM_FIELD_INVALID',
+    status: 422,
+  },
   CRM_TASK_NOT_FOUND: { code: 'CRM_TASK_NOT_FOUND', status: 404 },
   CRM_NOTE_NOT_FOUND: { code: 'CRM_NOTE_NOT_FOUND', status: 404 },
   CRM_QUOTA_NOT_FOUND: { code: 'CRM_QUOTA_NOT_FOUND', status: 404 },

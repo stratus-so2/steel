@@ -119,4 +119,58 @@ describe('CrmCustomFieldValueRepository', () => {
       expect(list[0].value).toBe('Enterprise')
     })
   })
+
+  describe('listByRecords()', () => {
+    it('should list values across multiple records', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const definition = await seedCrmCustomFieldDefinition(
+        workspace.id,
+        user.id,
+      )
+      await seedCrmCustomFieldValue(definition.id, 'record-1', 'Enterprise')
+      await seedCrmCustomFieldValue(definition.id, 'record-2', 'SMB')
+
+      const list = expectOk(
+        await CrmCustomFieldValueRepository.listByRecords([
+          'record-1',
+          'record-2',
+        ]),
+      )
+      expect(list.map((v) => v.recordId).sort()).toEqual([
+        'record-1',
+        'record-2',
+      ])
+    })
+
+    it('should return an empty list without querying for an empty input', async () => {
+      const list = expectOk(
+        await CrmCustomFieldValueRepository.listByRecords([]),
+      )
+      expect(list).toEqual([])
+    })
+  })
+
+  describe('applyForRecord()', () => {
+    it('should upsert multiple values in one transaction', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const a = await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'a',
+      })
+      const b = await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'b',
+      })
+
+      expectOk(
+        await CrmCustomFieldValueRepository.applyForRecord([
+          { definitionId: a.id, recordId: 'record-1', value: 'x' },
+          { definitionId: b.id, recordId: 'record-1', value: 42 },
+        ]),
+      )
+
+      const list = expectOk(
+        await CrmCustomFieldValueRepository.listByRecord('record-1'),
+      )
+      expect(list).toHaveLength(2)
+    })
+  })
 })

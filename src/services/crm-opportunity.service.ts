@@ -25,6 +25,11 @@ import type {
 } from '@/types/crm-opportunity'
 import { assertMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
+import {
+  applyCustomFieldValues,
+  withCustomFields,
+  withCustomFieldsList,
+} from './crm-custom-field-sync'
 import { CrmPipelineService } from './crm-pipeline.service'
 
 type StageRefs = { pipelineId: string; stageId: string }
@@ -129,7 +134,7 @@ export const CrmOpportunityService = {
     )
     if (!result.ok) return result
 
-    return ok(result.value.map(toCrmOpportunityDTO))
+    return withCustomFieldsList(result.value.map(toCrmOpportunityDTO))
   },
 
   async getById(
@@ -146,7 +151,7 @@ export const CrmOpportunityService = {
     )
     if (!result.ok) return result
 
-    return ok(toCrmOpportunityDTO(result.value))
+    return withCustomFields(toCrmOpportunityDTO(result.value))
   },
 
   async create(
@@ -195,16 +200,28 @@ export const CrmOpportunityService = {
       targetId: result.value.id,
     })
 
-    const createdDto = toCrmOpportunityDTO(result.value)
+    if (dto.customFields) {
+      const applied = await applyCustomFieldValues(
+        workspaceId,
+        'OPPORTUNITY',
+        result.value.id,
+        dto.customFields,
+      )
+      if (!applied.ok) return applied
+    }
+
+    const merged = await withCustomFields(toCrmOpportunityDTO(result.value))
+    if (!merged.ok) return merged
+
     void recordCrmActivity({
       workspaceId,
       actorUserId: actorId,
       entity: 'opportunity',
       event: 'created',
-      record: createdDto,
+      record: merged.value,
     })
 
-    return ok(createdDto)
+    return ok(merged.value)
   },
 
   async update(
@@ -251,16 +268,30 @@ export const CrmOpportunityService = {
       meta: { fields: Object.keys(dto) },
     })
 
-    const updatedDto = toCrmOpportunityDTO(result.value)
+    if (dto.customFields) {
+      const applied = await applyCustomFieldValues(
+        workspaceId,
+        'OPPORTUNITY',
+        opportunityId,
+        dto.customFields,
+      )
+      if (!applied.ok) return applied
+    }
+
+    const updatedMerged = await withCustomFields(
+      toCrmOpportunityDTO(result.value),
+    )
+    if (!updatedMerged.ok) return updatedMerged
+
     void recordCrmActivity({
       workspaceId,
       actorUserId: actorId,
       entity: 'opportunity',
       event: 'updated',
-      record: updatedDto,
+      record: updatedMerged.value,
     })
 
-    return ok(updatedDto)
+    return ok(updatedMerged.value)
   },
 
   async remove(
