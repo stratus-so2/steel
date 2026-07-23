@@ -20,6 +20,7 @@ export interface CrmWorkflowDTO {
   description: string | null
   status: CrmWorkflowStatusDTO
   triggerType: CrmWorkflowTriggerTypeDTO
+  webhookToken: string | null
   definition: CrmWorkflowDefinitionDTO
   workspaceId: string
   createdById: string

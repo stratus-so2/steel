@@ -43,6 +43,30 @@ describe('CrmWorkflowRepository', () => {
       )
 
       expect(workflow.definition).toEqual(FAKE_WORKFLOW_DEFINITION)
+      expect(workflow.webhookToken).toBeNull()
+    })
+
+    it('should generate a webhookToken for WEBHOOK-triggered workflows', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+
+      const workflow = expectOk(
+        await CrmWorkflowRepository.create({
+          workspaceId: workspace.id,
+          createdById: user.id,
+          name: 'Webhook',
+          triggerType: 'WEBHOOK',
+          definition: FAKE_WORKFLOW_DEFINITION_JSON,
+        }),
+      )
+
+      expect(workflow.webhookToken).toMatch(/^wfh_/)
+
+      const found = expectOk(
+        await CrmWorkflowRepository.findByWebhookToken(
+          workflow.webhookToken as string,
+        ),
+      )
+      expect(found.id).toBe(workflow.id)
     })
   })
 

@@ -1901,19 +1901,22 @@ enum CrmWorkflowRunStepStatus {
 /// estritamente sequencial — escopo reduzido deliberado para o módulo CRM
 /// dentro do Steel; ver commit message para detalhes.
 model CrmWorkflow {
-  id          String                 @id @default(cuid())
-  name        String
-  description String?
-  status      CrmWorkflowStatus      @default(DRAFT)
-  triggerType CrmWorkflowTriggerType @map("trigger_type")
-  definition  Json
-  workspaceId String                 @map("workspace_id")
-  createdById String                 @map("created_by_id")
-  updatedById String?                @map("updated_by_id")
-  lastRunAt   DateTime?              @map("last_run_at")
-  createdAt   DateTime               @default(now()) @map("created_at")
-  updatedAt   DateTime               @updatedAt @map("updated_at")
-  deletedAt   DateTime?              @map("deleted_at")
+  id           String                 @id @default(cuid())
+  name         String
+  description  String?
+  status       CrmWorkflowStatus      @default(DRAFT)
+  triggerType  CrmWorkflowTriggerType @map("trigger_type")
+  /// Token opaco usado pela rota pública de disparo (POST /api/crm/workflows/[webhookToken]/trigger).
+  /// Gerado automaticamente na criação — nunca reaproveita o `id` interno para evitar enumeração.
+  webhookToken String?                @unique @map("webhook_token")
+  definition   Json
+  workspaceId  String                 @map("workspace_id")
+  createdById  String                 @map("created_by_id")
+  updatedById  String?                @map("updated_by_id")
+  lastRunAt    DateTime?              @map("last_run_at")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+  deletedAt    DateTime?              @map("deleted_at")
 
   workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User             @relation("CrmWorkflowCreatedBy", fields: [createdById], references: [id])

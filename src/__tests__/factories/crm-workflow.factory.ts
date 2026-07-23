@@ -27,6 +27,7 @@ export function createFakeCrmWorkflow(
     description: null,
     status: 'DRAFT',
     triggerType: 'MANUAL',
+    webhookToken: null,
     definition: FAKE_WORKFLOW_DEFINITION_JSON as CrmWorkflow['definition'],
     workspaceId: createId(),
     createdById: createId(),

@@ -31,23 +31,23 @@ const mockedTaskRepo = vi.mocked(CrmTaskRepository)
 describe('CrmWorkflowService', () => {
   describe('runFromWebhook()', () => {
     it('should return CRM_WORKFLOW_NOT_ACTIVE for a draft workflow', async () => {
-      mockedWorkflowRepo.findById.mockResolvedValue(
+      mockedWorkflowRepo.findByWebhookToken.mockResolvedValue(
         ok(createFakeCrmWorkflow({ triggerType: 'WEBHOOK', status: 'DRAFT' })),
       )
 
       expectErr(
-        await CrmWorkflowService.runFromWebhook('ws1', 'w1', {}),
+        await CrmWorkflowService.runFromWebhook('wfh_token', {}),
         'CRM_WORKFLOW_NOT_ACTIVE',
       )
     })
 
     it('should return CRM_WORKFLOW_NOT_ACTIVE for a MANUAL-only workflow', async () => {
-      mockedWorkflowRepo.findById.mockResolvedValue(
+      mockedWorkflowRepo.findByWebhookToken.mockResolvedValue(
         ok(createFakeCrmWorkflow({ triggerType: 'MANUAL', status: 'ACTIVE' })),
       )
 
       expectErr(
-        await CrmWorkflowService.runFromWebhook('ws1', 'w1', {}),
+        await CrmWorkflowService.runFromWebhook('wfh_token', {}),
         'CRM_WORKFLOW_NOT_ACTIVE',
       )
     })
@@ -63,7 +63,7 @@ describe('CrmWorkflowService', () => {
           ],
         } as never,
       })
-      mockedWorkflowRepo.findById.mockResolvedValue(ok(workflow))
+      mockedWorkflowRepo.findByWebhookToken.mockResolvedValue(ok(workflow))
       mockedRunRepo.create.mockResolvedValue(
         ok(createFakeCrmWorkflowRun({ id: 'r1', workflowId: 'w1' })),
       )
@@ -114,7 +114,7 @@ describe('CrmWorkflowService', () => {
       mockedWorkflowRepo.touchLastRunAt.mockResolvedValue(ok(undefined))
 
       const result = expectOk(
-        await CrmWorkflowService.runFromWebhook('ws1', 'w1', {}),
+        await CrmWorkflowService.runFromWebhook('wfh_token', {}),
       )
       expect(mockedRunRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ workflowId: 'w1', triggerType: 'WEBHOOK' }),

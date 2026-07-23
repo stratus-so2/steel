@@ -1,3 +1,4 @@
+import { createId } from '@paralleldrive/cuid2'
 import type {
   CrmWorkflow,
   CrmWorkflowRun,
@@ -41,6 +42,18 @@ export const CrmWorkflowRepository = {
     }
   },
 
+  async findByWebhookToken(webhookToken: string): Promise<Result<CrmWorkflow>> {
+    try {
+      const workflow = await prisma.crmWorkflow.findFirst({
+        where: { webhookToken, deletedAt: null },
+      })
+      if (!workflow) return err(notFound('CrmWorkflow'))
+      return ok(workflow)
+    } catch (error) {
+      return err(dbError('Failed to find CRM workflow by webhook token', error))
+    }
+  },
+
   async create(data: {
     workspaceId: string
     createdById: string
@@ -50,7 +63,13 @@ export const CrmWorkflowRepository = {
     definition: Prisma.InputJsonValue
   }): Promise<Result<CrmWorkflow>> {
     try {
-      const workflow = await prisma.crmWorkflow.create({ data })
+      const workflow = await prisma.crmWorkflow.create({
+        data: {
+          ...data,
+          webhookToken:
+            data.triggerType === 'WEBHOOK' ? `wfh_${createId()}` : undefined,
+        },
+      })
       return ok(workflow)
     } catch (error) {
       return err(dbError('Failed to create CRM workflow', error))
@@ -68,7 +87,19 @@ export const CrmWorkflowRepository = {
     },
   ): Promise<Result<CrmWorkflow>> {
     try {
-      const workflow = await prisma.crmWorkflow.update({ where: { id }, data })
+      let webhookToken: string | undefined
+      if (data.triggerType === 'WEBHOOK') {
+        const current = await prisma.crmWorkflow.findUnique({
+          where: { id },
+          select: { webhookToken: true },
+        })
+        webhookToken = current?.webhookToken ?? `wfh_${createId()}`
+      }
+
+      const workflow = await prisma.crmWorkflow.update({
+        where: { id },
+        data: { ...data, webhookToken },
+      })
       return ok(workflow)
     } catch (error) {
       return err(dbError('Failed to update CRM workflow', error))

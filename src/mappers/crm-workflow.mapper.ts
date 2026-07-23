@@ -17,6 +17,7 @@ export function toCrmWorkflowDTO(workflow: CrmWorkflow): CrmWorkflowDTO {
     description: workflow.description,
     status: workflow.status,
     triggerType: workflow.triggerType,
+    webhookToken: workflow.webhookToken,
     definition: workflow.definition as unknown as CrmWorkflowDefinitionDTO,
     workspaceId: workflow.workspaceId,
     createdById: workflow.createdById,

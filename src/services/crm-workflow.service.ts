@@ -221,14 +221,11 @@ export const CrmWorkflowService = {
   },
 
   async runFromWebhook(
-    workspaceId: string,
-    workflowId: string,
+    webhookToken: string,
     payload: Record<string, unknown>,
   ): Promise<Result<CrmWorkflowRunDTO>> {
-    const workflow = await CrmWorkflowRepository.findById(
-      workflowId,
-      workspaceId,
-    )
+    const workflow =
+      await CrmWorkflowRepository.findByWebhookToken(webhookToken)
     if (!workflow.ok) return workflow
     if (
       workflow.value.triggerType !== 'WEBHOOK' ||
