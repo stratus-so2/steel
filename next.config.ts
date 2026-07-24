@@ -49,7 +49,12 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   experimental: {
-    webpackMemoryOptimizations: true
+    webpackMemoryOptimizations: true,
+    // O runner de build self-hosted tem ~3.8GB de RAM total; sem um teto o
+    // Turbopack cresce até o OOM killer matar o processo (visto em duas runs
+    // de CD). 2.5GB deixa margem para prisma generate + esbuild do worker
+    // rodando na mesma etapa do Dockerfile.
+    turbopackMemoryLimit: 2684354560,
   },
   typescript: {
     ignoreBuildErrors: true
