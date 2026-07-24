@@ -312,6 +312,8 @@ model Workspace {
   crmEmailMessages          CrmEmailMessage[]
   crmCalendarEvents         CrmCalendarEvent[]
 
+  profiles Profile[]
+
   @@map("workspaces")
 }
 
@@ -320,15 +322,39 @@ model Membership {
   userId      String   @map("user_id")
   workspaceId String   @map("workspace_id")
   role        Role     @default(MEMBER)
+  profileId   String?  @map("profile_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  profile   Profile?  @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@unique([userId, workspaceId])
   @@index([workspaceId])
+  @@index([profileId])
   @@map("memberships")
+}
+
+/// Perfil de acesso (RBAC) — mapa recurso→ações. Perfis de sistema
+/// (OWNER/ADMIN/MEMBER) são semeados por workspace (lazy) e preservam o
+/// comportamento anterior aos perfis customizados.
+model Profile {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  isSystem    Boolean  @default(false) @map("is_system")
+  systemKey   String?  @map("system_key")
+  permissions Json
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("profiles")
 }
 
 model Subscription {

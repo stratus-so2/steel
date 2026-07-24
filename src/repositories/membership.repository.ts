@@ -1,18 +1,20 @@
-import type { Membership, Role, Workspace } from '@prisma/client'
+import type { Membership, Profile, Role, Workspace } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export type MembershipWithWorkspace = Membership & { workspace: Workspace }
+export type MembershipWithProfile = Membership & { profile: Profile | null }
 
 export const MembershipRepository = {
   async findByUserAndWorkspace(
     userId: string,
     workspaceId: string,
-  ): Promise<Result<Membership | null>> {
+  ): Promise<Result<MembershipWithProfile | null>> {
     try {
       const membership = await prisma.membership.findUnique({
         where: { userId_workspaceId: { userId, workspaceId } },
+        include: { profile: true },
       })
       return ok(membership)
     } catch (error) {
@@ -81,6 +83,22 @@ export const MembershipRepository = {
       return ok(memberships.map((m) => m.userId))
     } catch (error) {
       return err(dbError('Failed to list membership user ids', error))
+    }
+  },
+
+  async setProfile(
+    userId: string,
+    workspaceId: string,
+    profileId: string | null,
+  ): Promise<Result<Membership>> {
+    try {
+      const membership = await prisma.membership.update({
+        where: { userId_workspaceId: { userId, workspaceId } },
+        data: { profileId },
+      })
+      return ok(membership)
+    } catch (error) {
+      return err(dbError('Failed to set membership profile', error))
     }
   },
 

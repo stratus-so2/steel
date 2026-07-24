@@ -28,6 +28,7 @@ describe('toUserDTO()', () => {
           userId: 'user-1',
           workspaceId: 'ws-1',
           role: 'ADMIN',
+          profileId: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           workspace: {

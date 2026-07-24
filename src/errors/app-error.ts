@@ -417,3 +417,18 @@ export const crmCalendarEventNotFound = (): AppError =>
 
 export const crmAiAttachmentNotFound = (): AppError =>
   appError('CRM_AI_ATTACHMENT_NOT_FOUND', 'Anexo não encontrado')
+
+export const profileNotFound = (): AppError =>
+  appError('PROFILE_NOT_FOUND', 'Perfil não encontrado')
+
+export const profileNameTaken = (): AppError =>
+  appError('PROFILE_NAME_TAKEN', 'Já existe um perfil com esse nome')
+
+export const profileSystemProtected = (): AppError =>
+  appError(
+    'PROFILE_SYSTEM_PROTECTED',
+    'Perfis de sistema não podem ser alterados',
+  )
+
+export const profileInUse = (): AppError =>
+  appError('PROFILE_IN_USE', 'Perfil em uso por membros do workspace')

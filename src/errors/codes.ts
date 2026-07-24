@@ -273,6 +273,10 @@ export const ERROR_CODES = {
     code: 'CRM_AI_ATTACHMENT_NOT_FOUND',
     status: 404,
   },
+  PROFILE_NOT_FOUND: { code: 'PROFILE_NOT_FOUND', status: 404 },
+  PROFILE_NAME_TAKEN: { code: 'PROFILE_NAME_TAKEN', status: 409 },
+  PROFILE_SYSTEM_PROTECTED: { code: 'PROFILE_SYSTEM_PROTECTED', status: 409 },
+  PROFILE_IN_USE: { code: 'PROFILE_IN_USE', status: 409 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
