@@ -277,6 +277,14 @@ export const ERROR_CODES = {
   PROFILE_NAME_TAKEN: { code: 'PROFILE_NAME_TAKEN', status: 409 },
   PROFILE_SYSTEM_PROTECTED: { code: 'PROFILE_SYSTEM_PROTECTED', status: 409 },
   PROFILE_IN_USE: { code: 'PROFILE_IN_USE', status: 409 },
+  CRM_HOOK_VAULT_ITEM_NOT_FOUND: {
+    code: 'CRM_HOOK_VAULT_ITEM_NOT_FOUND',
+    status: 404,
+  },
+  CRM_TRACKED_COMPETITOR_NOT_FOUND: {
+    code: 'CRM_TRACKED_COMPETITOR_NOT_FOUND',
+    status: 404,
+  },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

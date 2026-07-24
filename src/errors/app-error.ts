@@ -432,3 +432,9 @@ export const profileSystemProtected = (): AppError =>
 
 export const profileInUse = (): AppError =>
   appError('PROFILE_IN_USE', 'Perfil em uso por membros do workspace')
+
+export const crmHookVaultItemNotFound = (): AppError =>
+  appError('CRM_HOOK_VAULT_ITEM_NOT_FOUND', 'Hook não encontrado')
+
+export const crmTrackedCompetitorNotFound = (): AppError =>
+  appError('CRM_TRACKED_COMPETITOR_NOT_FOUND', 'Concorrente não encontrado')

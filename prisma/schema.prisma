@@ -94,6 +94,10 @@ model User {
   crmLandingPagesUpdated       CrmLandingPage[]           @relation("CrmLandingPageUpdatedBy")
   crmSocialConnectionsCreated  CrmSocialConnection[]      @relation("CrmSocialConnectionCreatedBy")
   crmSocialConnectionsUpdated  CrmSocialConnection[]      @relation("CrmSocialConnectionUpdatedBy")
+  crmHookVaultItemsCreated     CrmHookVaultItem[]         @relation("CrmHookVaultItemCreatedBy")
+  crmHookVaultItemsUpdated     CrmHookVaultItem[]         @relation("CrmHookVaultItemUpdatedBy")
+  crmTrackedCompetitorsCreated CrmTrackedCompetitor[]     @relation("CrmTrackedCompetitorCreatedBy")
+  crmTrackedCompetitorsUpdated CrmTrackedCompetitor[]     @relation("CrmTrackedCompetitorUpdatedBy")
   crmScheduledPostsCreated     CrmScheduledPost[]         @relation("CrmScheduledPostCreatedBy")
   crmEmailAccounts             CrmEmailAccount[]          @relation("CrmEmailAccountUser")
   crmEmailMessagesCreated      CrmEmailMessage[]          @relation("CrmEmailMessageCreatedBy")
@@ -311,6 +315,8 @@ model Workspace {
   crmEmailAccounts          CrmEmailAccount[]
   crmEmailMessages          CrmEmailMessage[]
   crmCalendarEvents         CrmCalendarEvent[]
+  crmHookVaultItems         CrmHookVaultItem[]
+  crmTrackedCompetitors     CrmTrackedCompetitor[]
 
   profiles Profile[]
 
@@ -2232,6 +2238,58 @@ model CrmSocialConnection {
   @@unique([workspaceId, platform])
   @@index([workspaceId])
   @@map("crm_social_connections")
+}
+
+/// Biblioteca reordenável de "hooks" (linhas de abertura/copy reaproveitável
+/// para posts sociais).
+model CrmHookVaultItem {
+  id          String            @id @default(cuid())
+  text        String
+  platform    CrmSocialPlatform?
+  usageCount  Int               @default(0) @map("usage_count")
+  notes       String?
+  workspaceId String            @map("workspace_id")
+  createdById String            @map("created_by_id")
+  updatedById String?           @map("updated_by_id")
+  position    Int               @default(0)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmHookVaultItemCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmHookVaultItemUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_hook_vault_items")
+}
+
+/// Perfil social de um concorrente rastreado manualmente.
+model CrmTrackedCompetitor {
+  id              String            @id @default(cuid())
+  platform        CrmSocialPlatform
+  handle          String
+  profileUrl      String?           @map("profile_url")
+  followersCount  Int?              @map("followers_count")
+  notes           String?
+  workspaceId     String            @map("workspace_id")
+  createdById     String            @map("created_by_id")
+  updatedById     String?           @map("updated_by_id")
+  position        Int               @default(0)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmTrackedCompetitorCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?     @relation("CrmTrackedCompetitorUpdatedBy", fields: [updatedById], references: [id])
+
+  @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_tracked_competitors")
 }
 
 enum CrmScheduledPostStatus {
