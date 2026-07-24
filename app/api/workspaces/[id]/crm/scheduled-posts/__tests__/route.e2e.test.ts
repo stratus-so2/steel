@@ -79,7 +79,7 @@ describe('POST /api/workspaces/[id]/crm/scheduled-posts/[postId]/publish', () =>
     const body = await res.json()
     expect(body.data.status).toBe('FAILED')
     expect(body.data.targets[0].status).toBe('FAILED')
-    expect(body.data.targets[0].error).toContain('não está configurada')
+    expect(body.data.targets[0].error).toContain('exige mídia')
 
     const again = await postJson(
       `/api/workspaces/${workspace.id}/crm/scheduled-posts/${created.data.id}/publish`,
