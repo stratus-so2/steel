@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { validationError } from '@/src/errors'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmDashboardDTO,
   toCrmDashboardWidgetDTO,
@@ -12,9 +13,11 @@ import {
 import type {
   CreateCrmDashboardDTO,
   CreateCrmDashboardWidgetDTO,
+  CrmDashboardWidgetLayoutBatchDTO,
   UpdateCrmDashboardDTO,
   UpdateCrmDashboardWidgetDTO,
 } from '@/src/schemas/crm-dashboard.schema'
+import { widgetConfigSchema } from '@/src/schemas/crm-dashboard.schema'
 import type {
   CrmDashboardDTO,
   CrmDashboardWidgetDTO,
@@ -231,12 +234,23 @@ export const CrmDashboardWidgetService = {
     )
     if (!existing.ok) return existing
 
+    let config: Prisma.InputJsonValue | undefined
+    if (dto.config !== undefined) {
+      const parsed = widgetConfigSchema(existing.value.type).safeParse(
+        dto.config,
+      )
+      if (!parsed.success) {
+        return err(validationError('Config inválida para este tipo de widget'))
+      }
+      config = parsed.data as Prisma.InputJsonValue
+    }
+
     const result = await CrmDashboardWidgetRepository.update(widgetId, {
       x: dto.x,
       y: dto.y,
       w: dto.w,
       h: dto.h,
-      config: dto.config as Prisma.InputJsonValue | undefined,
+      config,
     })
     if (!result.ok) return result
 
@@ -283,5 +297,24 @@ export const CrmDashboardWidgetService = {
     })
 
     return ok(undefined)
+  },
+
+  /** Aplica posições/tamanhos em lote (drag/resize do grid). */
+  async applyLayout(
+    actorId: string,
+    workspaceId: string,
+    dashboardId: string,
+    dto: CrmDashboardWidgetLayoutBatchDTO,
+  ): Promise<Result<void>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const dashboard = await CrmDashboardRepository.findById(
+      dashboardId,
+      workspaceId,
+    )
+    if (!dashboard.ok) return dashboard
+
+    return CrmDashboardWidgetRepository.applyLayout(dashboardId, dto.items)
   },
 }

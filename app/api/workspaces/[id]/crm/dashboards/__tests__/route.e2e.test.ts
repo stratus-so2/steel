@@ -21,7 +21,7 @@ describe('CRM dashboards', () => {
 
     const widget = await postJson(
       `/api/workspaces/${workspace.id}/crm/dashboards/${dashboard.data.id}/widgets`,
-      { type: 'CHART' },
+      { type: 'CHART', config: { chartType: 'vertical' } },
       user.cookie,
     )
     expect(widget.status).toBe(201)
@@ -43,6 +43,13 @@ describe('CRM dashboards', () => {
     )
     const listBody = await list.json()
     expect(listBody.data).toHaveLength(1)
+
+    const layout = await postJson(
+      `/api/workspaces/${workspace.id}/crm/dashboards/${dashboard.data.id}/widgets/layout`,
+      { items: [{ id: widgetBody.data.id, x: 2, y: 3, w: 4, h: 5 }] },
+      user.cookie,
+    )
+    expect(layout.status).toBe(202)
 
     const deleted = await deleteJson(
       `/api/workspaces/${workspace.id}/crm/dashboards/${dashboard.data.id}`,

@@ -177,4 +177,24 @@ export const CrmDashboardWidgetRepository = {
       return err(dbError('Failed to delete CRM dashboard widget', error))
     }
   },
+
+  /** Aplica posições/tamanhos em lote (drag/resize do grid). */
+  async applyLayout(
+    dashboardId: string,
+    items: { id: string; x: number; y: number; w: number; h: number }[],
+  ): Promise<Result<void>> {
+    try {
+      await prisma.$transaction(
+        items.map((item) =>
+          prisma.crmDashboardWidget.updateMany({
+            where: { id: item.id, dashboardId },
+            data: { x: item.x, y: item.y, w: item.w, h: item.h },
+          }),
+        ),
+      )
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to apply CRM dashboard widget layout', error))
+    }
+  },
 }
