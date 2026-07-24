@@ -6,20 +6,32 @@ import {
   ChartHistogramIcon,
   CheckListIcon,
   DocumentValidationIcon,
+  Facebook01Icon,
+  FireIcon,
   FormIcon,
   FunnelIcon,
+  GoogleIcon,
+  InstagramIcon,
   Key01Icon,
+  Linkedin01Icon,
   Mail01Icon,
   MailSend01Icon,
+  Megaphone01Icon,
+  MegaphoneIcon,
+  NewTwitterIcon,
   PackageIcon,
+  QuoteUpIcon,
   Share08Icon,
   StickyNote01Icon,
   TargetDollarIcon,
   TaskDone01Icon,
+  TiktokIcon,
   UserGroup02Icon,
   UserMultipleIcon,
   UserSearch01Icon,
+  UserSearch02Icon,
   WorkflowCircle01Icon,
+  YoutubeIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { ReactNode } from 'react'
 import {
@@ -28,6 +40,7 @@ import {
   NavGroup,
   NavItem,
 } from '@/app/_components/navigation/sidebar-context'
+import { NavGroupAccordion } from '@/app/_components/navigation/sidebar-context/navigation-sidebar-context-accordion'
 
 export default async function CrmLayout({
   children,
@@ -81,25 +94,65 @@ export default async function CrmLayout({
           </NavItem>
         </NavGroup>
         <NavGroup>
-          <NavItem href={`${base}/email-templates`} icon={Mail01Icon}>
-            Templates de e-mail
-          </NavItem>
-          <NavItem href={`${base}/email-campaigns`} icon={MailSend01Icon}>
-            Campanhas de e-mail
-          </NavItem>
-          <NavItem href={`${base}/mailing-lists`} icon={UserGroup02Icon}>
-            Listas de e-mail
-          </NavItem>
-          <NavItem href={`${base}/landing-pages`} icon={BrowserIcon}>
-            Landing pages
-          </NavItem>
+          <NavGroupAccordion label='Marketing' icon={MegaphoneIcon}>
+            <NavItem href={`${base}/email-campaigns`} icon={MailSend01Icon}>
+              Campanhas
+            </NavItem>
+            <NavItem href={`${base}/email-templates`} icon={Mail01Icon}>
+              Templates
+            </NavItem>
+            <NavItem href={`${base}/mailing-lists`} icon={UserGroup02Icon}>
+              Listas
+            </NavItem>
+            <NavItem href={`${base}/landing-pages`} icon={BrowserIcon}>
+              Páginas
+            </NavItem>
+          </NavGroupAccordion>
+          <NavGroupAccordion label='Social' icon={Share08Icon}>
+            <NavItem href={`${base}/social`} icon={Calendar01Icon}>
+              Agendar posts
+            </NavItem>
+            <NavItem href={`${base}/social/hook-vault`} icon={QuoteUpIcon}>
+              Hook Vault
+            </NavItem>
+            <NavItem
+              href={`${base}/social/competitors`}
+              icon={UserSearch02Icon}
+            >
+              Concorrentes
+            </NavItem>
+            <NavItem href={`${base}/social/trending`} icon={FireIcon}>
+              Em Alta
+            </NavItem>
+            <NavItem href={`${base}/social/instagram`} icon={InstagramIcon}>
+              Instagram
+            </NavItem>
+            <NavItem href={`${base}/social/facebook`} icon={Facebook01Icon}>
+              Facebook
+            </NavItem>
+            <NavItem href={`${base}/social/tiktok`} icon={TiktokIcon}>
+              TikTok
+            </NavItem>
+            <NavItem href={`${base}/social/youtube`} icon={YoutubeIcon}>
+              YouTube
+            </NavItem>
+            <NavItem href={`${base}/social/google_analytics`} icon={GoogleIcon}>
+              Google Analytics
+            </NavItem>
+            <NavItem href={`${base}/social/twitter`} icon={NewTwitterIcon}>
+              X (Twitter)
+            </NavItem>
+            <NavItem href={`${base}/social/linkedin`} icon={Linkedin01Icon}>
+              LinkedIn
+            </NavItem>
+            <NavItem href={`${base}/social/google_ads`} icon={Megaphone01Icon}>
+              Google Ads
+            </NavItem>
+          </NavGroupAccordion>
         </NavGroup>
         <NavGroup>
           <NavItem href={`${base}/workflows`} icon={WorkflowCircle01Icon}>
             Workflows
-          </NavItem>
-          <NavItem href={`${base}/social`} icon={Share08Icon}>
-            Redes sociais
           </NavItem>
           <NavItem href={`${base}/email-sync`} icon={Calendar01Icon}>
             E-mail e agenda

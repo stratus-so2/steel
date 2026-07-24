@@ -97,8 +97,9 @@ function CrmSocialConnectionsSection({ workspaceId }: { workspaceId: string }) {
         <CreateCrmSocialConnectionDialog workspaceId={workspaceId} />
       </div>
       <p className='text-muted-foreground text-xs'>
-        Não há OAuth real contra Meta/TikTok/YouTube/X/LinkedIn neste módulo —
-        registre aqui os dados de uma conta já autorizada fora do Steel.
+        Conecte via OAuth em cada studio de plataforma (menu Social) — o
+        formulário abaixo é o cadastro manual legado, para contas já autorizadas
+        fora do Steel.
       </p>
       <Table>
         <TableHeader>

@@ -3,20 +3,21 @@ export type CrmSocialPlatformDTO =
   | 'INSTAGRAM'
   | 'TIKTOK'
   | 'YOUTUBE'
+  | 'GOOGLE_ANALYTICS'
   | 'TWITTER'
+  | 'GOOGLE_ADS'
   | 'LINKEDIN'
 
-export type CrmSocialConnectionStatusDTO =
-  | 'CONNECTED'
-  | 'DISCONNECTED'
-  | 'ERROR'
+export type CrmSocialConnectionStatusDTO = 'CONNECTED' | 'EXPIRED' | 'REVOKED'
 
 export interface CrmSocialConnectionDTO {
   id: string
   platform: CrmSocialPlatformDTO
   externalAccountId: string
   accountName: string | null
+  scope: string | null
   status: CrmSocialConnectionStatusDTO
+  expiresAt: string | null
   workspaceId: string
   createdById: string
   updatedById: string | null

@@ -8,9 +8,11 @@ import {
   type LookupKind,
   useCrmWorkspaceLookups,
 } from '@/src/hooks/use-crm-workspace-lookups'
+import { CRM_SOCIAL_PLATFORM_LABELS } from '@/src/schemas/crm-social.schema'
 import type { CrmCompetitorDTO } from '@/types/crm-competitor'
 import type { CrmSocialPlatformDTO } from '@/types/crm-social'
 
+/** Concorrentes só fazem sentido em plataformas de conteúdo (não GA/Ads). */
 const PLATFORMS: CrmSocialPlatformDTO[] = [
   'FACEBOOK',
   'INSTAGRAM',
@@ -20,14 +22,7 @@ const PLATFORMS: CrmSocialPlatformDTO[] = [
   'LINKEDIN',
 ]
 
-const PLATFORM_LABELS: Record<CrmSocialPlatformDTO, string> = {
-  FACEBOOK: 'Facebook',
-  INSTAGRAM: 'Instagram',
-  TIKTOK: 'TikTok',
-  YOUTUBE: 'YouTube',
-  TWITTER: 'X (Twitter)',
-  LINKEDIN: 'LinkedIn',
-}
+const PLATFORM_LABELS = CRM_SOCIAL_PLATFORM_LABELS
 
 const COLUMNS: GridColumn[] = [
   {

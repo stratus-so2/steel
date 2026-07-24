@@ -2203,27 +2203,33 @@ enum CrmSocialPlatform {
   INSTAGRAM
   TIKTOK
   YOUTUBE
+  GOOGLE_ANALYTICS
   TWITTER
+  GOOGLE_ADS
   LINKEDIN
 }
 
 enum CrmSocialConnectionStatus {
   CONNECTED
-  DISCONNECTED
-  ERROR
+  EXPIRED
+  REVOKED
 }
 
-/// Registro de uma conta social vinculada ao workspace. Diferente do CRM
-/// original, este módulo NÃO implementa o handshake OAuth contra as APIs
-/// reais (Meta/TikTok/YouTube/X/LinkedIn) — isso exige credenciais de app
-/// específicas por plataforma que não foram fornecidas. `externalAccountId`
-/// e `accountName` são preenchidos manualmente pelo admin ao registrar uma
-/// conta já autorizada fora do Steel. Ver CrmSocialPublisher no service layer.
+/// Registro de uma conta social vinculada ao workspace via OAuth real
+/// (Fase 13). Tokens ficam cifrados em repouso (AES-256-GCM, ver
+/// src/lib/social/crypto.ts) — nunca expostos em DTO. `externalAccountId`/
+/// `accountName` continuam preenchíveis manualmente para o fluxo legado
+/// (conta já autorizada fora do Steel), mas o fluxo principal agora é o
+/// handshake OAuth completo por plataforma.
 model CrmSocialConnection {
   id                String                    @id @default(cuid())
   platform          CrmSocialPlatform
   externalAccountId String                    @map("external_account_id")
   accountName       String?                   @map("account_name")
+  accessToken       String?                   @map("access_token")
+  refreshToken      String?                   @map("refresh_token")
+  tokenExpiresAt    DateTime?                 @map("token_expires_at")
+  scope             String?
   status            CrmSocialConnectionStatus @default(CONNECTED)
   workspaceId       String                    @map("workspace_id")
   createdById       String                    @map("created_by_id")

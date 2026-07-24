@@ -57,7 +57,10 @@ import {
   type ViewSource,
   type WidgetType,
 } from '@/src/schemas/crm-dashboard.schema'
-import { CRM_SOCIAL_PLATFORMS } from '@/src/schemas/crm-social.schema'
+import {
+  CRM_SOCIAL_PLATFORM_LABELS,
+  CRM_SOCIAL_PLATFORMS,
+} from '@/src/schemas/crm-social.schema'
 import type { CrmDashboardWidgetDTO } from '@/types/crm-dashboard'
 import type { CrmSocialPlatformDTO } from '@/types/crm-social'
 
@@ -73,19 +76,14 @@ const NONE = '__none__'
 
 type ViewFilter = ViewConfig['filters'][number]
 
-const SOCIAL_PLATFORM_LABELS: Record<CrmSocialPlatformDTO, string> = {
-  FACEBOOK: 'Facebook',
-  INSTAGRAM: 'Instagram',
-  TIKTOK: 'TikTok',
-  YOUTUBE: 'YouTube',
-  TWITTER: 'X (Twitter)',
-  LINKEDIN: 'LinkedIn',
-}
+const SOCIAL_PLATFORM_LABELS = CRM_SOCIAL_PLATFORM_LABELS
 
 /**
- * Todas as plataformas do Steel valem para toda métrica social — sem OAuth
- * real ainda (Fase 13 do plano), o Steel não distingue quais plataformas
- * fornecem cada métrica (isso dependeria da API específica de cada rede).
+ * Todas as plataformas do Steel valem para toda métrica social. O widget de
+ * dashboard "socials" ainda não foi rewired para consumir os clientes OAuth
+ * reais da Fase 13 (isso dependeria de mapear cada métrica pra API
+ * específica de cada rede) — segue retornando série vazia como documentado
+ * em widget-data.ts/chart-widget.tsx.
  */
 const PLATFORMS_BY_METRIC: Record<SocialMetric, CrmSocialPlatformDTO[]> =
   Object.fromEntries(

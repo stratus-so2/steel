@@ -21,7 +21,9 @@ const PLATFORM_COLOR: Record<CrmSocialPlatformDTO, string> = {
   INSTAGRAM: 'bg-pink-600',
   TIKTOK: 'bg-black',
   YOUTUBE: 'bg-red-600',
+  GOOGLE_ANALYTICS: 'bg-amber-600',
   TWITTER: 'bg-neutral-800',
+  GOOGLE_ADS: 'bg-emerald-600',
   LINKEDIN: 'bg-sky-700',
 }
 

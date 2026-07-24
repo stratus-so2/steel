@@ -9,6 +9,7 @@ import type {
   CrmSocialConnectionDTO,
 } from '@/types/crm-social'
 
+/** Nunca inclui accessToken/refreshToken — tokens não fazem parte do DTO. */
 export function toCrmSocialConnectionDTO(
   connection: CrmSocialConnection,
 ): CrmSocialConnectionDTO {
@@ -17,7 +18,11 @@ export function toCrmSocialConnectionDTO(
     platform: connection.platform,
     externalAccountId: connection.externalAccountId,
     accountName: connection.accountName,
+    scope: connection.scope,
     status: connection.status,
+    expiresAt: connection.tokenExpiresAt
+      ? connection.tokenExpiresAt.toISOString()
+      : null,
     workspaceId: connection.workspaceId,
     createdById: connection.createdById,
     updatedById: connection.updatedById,

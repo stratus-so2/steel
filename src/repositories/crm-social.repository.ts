@@ -93,6 +93,71 @@ export const CrmSocialConnectionRepository = {
     }
   },
 
+  /**
+   * Cria ou substitui a conexão OAuth da plataforma no workspace (uma por
+   * par workspace/platform — reconectar sobrescreve tokens antigos). Tokens
+   * já chegam cifrados (ver src/lib/social/crypto.ts) — o repositório não
+   * sabe nem precisa saber disso.
+   */
+  async upsertOAuthConnection(data: {
+    workspaceId: string
+    createdById: string
+    platform: CrmSocialPlatform
+    externalAccountId: string
+    accountName?: string | null
+    accessToken: string
+    refreshToken?: string | null
+    tokenExpiresAt?: Date | null
+    scope?: string | null
+  }): Promise<Result<CrmSocialConnection>> {
+    try {
+      const connection = await prisma.crmSocialConnection.upsert({
+        where: {
+          workspaceId_platform: {
+            workspaceId: data.workspaceId,
+            platform: data.platform,
+          },
+        },
+        create: { ...data, status: 'CONNECTED' },
+        update: {
+          externalAccountId: data.externalAccountId,
+          accountName: data.accountName,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken,
+          tokenExpiresAt: data.tokenExpiresAt,
+          scope: data.scope,
+          status: 'CONNECTED',
+        },
+      })
+      return ok(connection)
+    } catch (error) {
+      return err(dbError('Failed to upsert CRM social OAuth connection', error))
+    }
+  },
+
+  /** Atualiza tokens após um refresh (sem tocar em conta/plataforma). */
+  async updateTokens(
+    id: string,
+    data: {
+      accessToken: string
+      refreshToken?: string | null
+      tokenExpiresAt?: Date | null
+      scope?: string | null
+    },
+  ): Promise<Result<CrmSocialConnection>> {
+    try {
+      const connection = await prisma.crmSocialConnection.update({
+        where: { id },
+        data: { ...data, status: 'CONNECTED' },
+      })
+      return ok(connection)
+    } catch (error) {
+      return err(
+        dbError('Failed to update CRM social connection tokens', error),
+      )
+    }
+  },
+
   async remove(id: string): Promise<Result<void>> {
     try {
       await prisma.crmSocialConnection.delete({ where: { id } })

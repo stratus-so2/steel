@@ -35,7 +35,24 @@ const serverEnv = {
   OPENAI_MODEL: process.env.OPENAI_MODEL,
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL,
+  SOCIAL_TOKEN_ENCRYPTION_KEY: process.env.SOCIAL_TOKEN_ENCRYPTION_KEY,
+  FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID,
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET,
+  FACEBOOK_CONFIG_ID: process.env.FACEBOOK_CONFIG_ID,
+  TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY,
+  TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET,
+  TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
+  TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
+  LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
+  LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
+  GOOGLE_ADS_DEVELOPER_TOKEN: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
 }
+
+/** String opcional que trata `""` como ausente (não só `undefined`). */
+const blankOptional = z.preprocess(
+  (v) => (v === '' ? undefined : v),
+  z.string().min(1).optional(),
+)
 
 const serverEnvSchema = z.object({
   POSTGRES_USER: z.string().min(2).max(63),
@@ -98,6 +115,21 @@ const serverEnvSchema = z.object({
   OPENAI_MODEL: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_MODEL: z.string().min(1).optional(),
+  // Cifra tokens OAuth de redes sociais em repouso (AES-256-GCM). Sem ela,
+  // isTokenCryptoConfigured() é false e o handshake OAuth fica indisponível.
+  // `blankOptional`: cada plataforma é opcional e independente — deploys
+  // parciais deixam algumas dessas vars como string vazia em vez de ausentes.
+  SOCIAL_TOKEN_ENCRYPTION_KEY: blankOptional,
+  FACEBOOK_APP_ID: blankOptional,
+  FACEBOOK_APP_SECRET: blankOptional,
+  FACEBOOK_CONFIG_ID: blankOptional,
+  TIKTOK_CLIENT_KEY: blankOptional,
+  TIKTOK_CLIENT_SECRET: blankOptional,
+  TWITTER_CLIENT_ID: blankOptional,
+  TWITTER_CLIENT_SECRET: blankOptional,
+  LINKEDIN_CLIENT_ID: blankOptional,
+  LINKEDIN_CLIENT_SECRET: blankOptional,
+  GOOGLE_ADS_DEVELOPER_TOKEN: blankOptional,
 })
 
 const validatedServerEnv =
@@ -139,4 +171,15 @@ export const {
   OPENAI_MODEL,
   ANTHROPIC_API_KEY,
   ANTHROPIC_MODEL,
+  SOCIAL_TOKEN_ENCRYPTION_KEY,
+  FACEBOOK_APP_ID,
+  FACEBOOK_APP_SECRET,
+  FACEBOOK_CONFIG_ID,
+  TIKTOK_CLIENT_KEY,
+  TIKTOK_CLIENT_SECRET,
+  TWITTER_CLIENT_ID,
+  TWITTER_CLIENT_SECRET,
+  LINKEDIN_CLIENT_ID,
+  LINKEDIN_CLIENT_SECRET,
+  GOOGLE_ADS_DEVELOPER_TOKEN,
 } = validatedServerEnv

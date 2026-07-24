@@ -23,7 +23,7 @@ describe('CreateCrmHookVaultItemSchema', () => {
     expect(
       CreateCrmHookVaultItemSchema.safeParse({
         text: 'Você sabia?',
-        platform: 'GOOGLE_ADS',
+        platform: 'MYSPACE',
       }).success,
     ).toBe(false)
   })

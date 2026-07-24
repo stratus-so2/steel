@@ -394,6 +394,45 @@ export const crmSocialConnectionConflict = (): AppError =>
     'Já existe uma conexão para esta plataforma neste workspace',
   )
 
+export const crmSocialOauthFailed = (): AppError =>
+  appError('CRM_SOCIAL_OAUTH_FAILED', 'Falha ao conectar com a plataforma')
+
+export const crmSocialStateInvalid = (): AppError =>
+  appError(
+    'CRM_SOCIAL_STATE_INVALID',
+    'Solicitação de conexão inválida ou expirada',
+  )
+
+export const crmSocialNotConfigured = (): AppError =>
+  appError(
+    'CRM_SOCIAL_NOT_CONFIGURED',
+    'Plataforma não configurada no servidor',
+  )
+
+export const crmSocialNoPage = (): AppError =>
+  appError(
+    'CRM_SOCIAL_NO_PAGE',
+    'Nenhuma Página do Facebook disponível para esta conta',
+  )
+
+export const crmSocialIgNotLinked = (): AppError =>
+  appError(
+    'CRM_SOCIAL_IG_NOT_LINKED',
+    'Nenhuma conta do Instagram vinculada a uma Página do Facebook',
+  )
+
+export const crmSocialTokenExpired = (): AppError =>
+  appError(
+    'CRM_SOCIAL_TOKEN_EXPIRED',
+    'A conexão expirou — reconecte a conta para continuar',
+  )
+
+export const crmSocialScopeMissing = (): AppError =>
+  appError(
+    'CRM_SOCIAL_SCOPE_MISSING',
+    'A conexão não concedeu a permissão necessária — reconecte a conta',
+  )
+
 export const crmScheduledPostNotFound = (): AppError =>
   appError('CRM_SCHEDULED_POST_NOT_FOUND', 'Post agendado não encontrado')
 
