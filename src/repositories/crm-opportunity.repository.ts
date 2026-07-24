@@ -37,6 +37,25 @@ export const CrmOpportunityRepository = {
     }
   },
 
+  /** Oportunidades vivas com etapa incluída, para o forecast. */
+  async listOpenAndWonWithStage(
+    workspaceId: string,
+  ): Promise<
+    Result<
+      (CrmOpportunity & { stage: { probability: number; category: string } })[]
+    >
+  > {
+    try {
+      const opportunities = await prisma.crmOpportunity.findMany({
+        where: { workspaceId, deletedAt: null, closeDate: { not: null } },
+        include: { stage: { select: { probability: true, category: true } } },
+      })
+      return ok(opportunities)
+    } catch (error) {
+      return err(dbError('Failed to list CRM opportunities with stage', error))
+    }
+  },
+
   async findById(
     id: string,
     workspaceId: string,
