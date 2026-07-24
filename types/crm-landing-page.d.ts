@@ -32,3 +32,12 @@ export interface CrmLandingPageViewDTO {
   createdAt: string
   updatedAt: string
 }
+
+export type CrmLandingPageMessageRoleDTO = 'user' | 'assistant'
+
+export interface CrmLandingPageMessageDTO {
+  id: string
+  role: CrmLandingPageMessageRoleDTO
+  content: string
+  createdAt: string
+}

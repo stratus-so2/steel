@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   seedCrmLandingPage,
+  seedCrmLandingPageMessage,
   seedCrmLandingPageView,
 } from '@/src/__tests__/factories/crm-landing-page.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectOk } from '@/src/__tests__/helpers/result.helpers'
 import {
+  CrmLandingPageMessageRepository,
   CrmLandingPageRepository,
   CrmLandingPageViewRepository,
 } from '../crm-landing-page.repository'
@@ -96,6 +98,33 @@ describe('CrmLandingPageViewRepository', () => {
         await CrmLandingPageViewRepository.listByLandingPage(page.id),
       )
       expect(list).toHaveLength(1)
+    })
+  })
+})
+
+describe('CrmLandingPageMessageRepository', () => {
+  describe('append() and listByLandingPage()', () => {
+    it('should persist messages in creation order', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const page = await seedCrmLandingPage(workspace.id, user.id)
+      await seedCrmLandingPageMessage(page.id, {
+        role: 'USER',
+        content: 'Crie uma página',
+      })
+
+      const appended = expectOk(
+        await CrmLandingPageMessageRepository.append({
+          landingPageId: page.id,
+          role: 'ASSISTANT',
+          content: 'Pronto!',
+        }),
+      )
+      expect(appended.role).toBe('ASSISTANT')
+
+      const list = expectOk(
+        await CrmLandingPageMessageRepository.listByLandingPage(page.id),
+      )
+      expect(list.map((m) => m.role)).toEqual(['USER', 'ASSISTANT'])
     })
   })
 })

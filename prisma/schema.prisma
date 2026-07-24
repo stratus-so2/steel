@@ -2098,6 +2098,11 @@ enum CrmLandingPageStatus {
   PUBLISHED
 }
 
+enum CrmLandingPageMessageRole {
+  USER
+  ASSISTANT
+}
+
 model CrmLandingPage {
   id          String               @id @default(cuid())
   title       String
@@ -2113,16 +2118,33 @@ model CrmLandingPage {
   updatedAt   DateTime             @updatedAt @map("updated_at")
   deletedAt   DateTime?            @map("deleted_at")
 
-  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User                 @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?                @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
+  workspace Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                    @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?                   @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
   views     CrmLandingPageView[]
+  messages  CrmLandingPageMessage[]
 
   @@index([workspaceId])
   @@index([status])
   @@index([deletedAt])
   @@index([workspaceId, position])
   @@map("crm_landing_pages")
+}
+
+/// Turno do chat de IA que gera/edita o HTML da landing page. O HTML em si
+/// vive em `CrmLandingPage.html` (sempre o documento completo mais recente);
+/// aqui só o texto conversacional — resumo do assistente, pedido do usuário.
+model CrmLandingPageMessage {
+  id            String                    @id @default(cuid())
+  landingPageId String                    @map("landing_page_id")
+  role          CrmLandingPageMessageRole
+  content       String                    @db.Text
+  createdAt     DateTime                  @default(now()) @map("created_at")
+
+  landingPage CrmLandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
+
+  @@index([landingPageId])
+  @@map("crm_landing_page_messages")
 }
 
 /// Beacon de visualização anônima de uma landing page pública (LGPD: IP com hash).

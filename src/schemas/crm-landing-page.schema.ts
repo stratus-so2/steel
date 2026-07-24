@@ -36,3 +36,12 @@ export const RecordCrmLandingPageViewSchema = z.object({
 export type RecordCrmLandingPageViewDTO = z.infer<
   typeof RecordCrmLandingPageViewSchema
 >
+
+export const GenerateCrmLandingPageSchema = z.object({
+  message: z.string().min(1, 'Mensagem é obrigatória').max(4000),
+  provider: z.enum(['openai', 'anthropic']).optional(),
+})
+
+export type GenerateCrmLandingPageDTO = z.infer<
+  typeof GenerateCrmLandingPageSchema
+>

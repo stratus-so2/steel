@@ -24,6 +24,7 @@ const COLUMNS: GridColumn[] = [
     header: 'Título',
     kind: 'text',
     primary: true,
+    linkView: true,
     placeholder: 'Landing page',
   },
   {

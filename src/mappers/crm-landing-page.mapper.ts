@@ -1,6 +1,11 @@
-import type { CrmLandingPage, CrmLandingPageView } from '@prisma/client'
+import type {
+  CrmLandingPage,
+  CrmLandingPageMessage,
+  CrmLandingPageView,
+} from '@prisma/client'
 import type {
   CrmLandingPageDTO,
+  CrmLandingPageMessageDTO,
   CrmLandingPagePublicDTO,
   CrmLandingPageViewDTO,
 } from '@/types/crm-landing-page'
@@ -47,5 +52,16 @@ export function toCrmLandingPageViewDTO(
     referrer: view.referrer,
     createdAt: view.createdAt.toISOString(),
     updatedAt: view.updatedAt.toISOString(),
+  }
+}
+
+export function toCrmLandingPageMessageDTO(
+  message: CrmLandingPageMessage,
+): CrmLandingPageMessageDTO {
+  return {
+    id: message.id,
+    role: message.role === 'USER' ? 'user' : 'assistant',
+    content: message.content,
+    createdAt: message.createdAt.toISOString(),
   }
 }

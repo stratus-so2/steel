@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { createFakeCrmLandingPage } from '@/src/__tests__/factories/crm-landing-page.factory'
+import {
+  createFakeCrmLandingPage,
+  createFakeCrmLandingPageMessage,
+} from '@/src/__tests__/factories/crm-landing-page.factory'
 import {
   toCrmLandingPageDTO,
+  toCrmLandingPageMessageDTO,
   toCrmLandingPagePublicDTO,
 } from '../crm-landing-page.mapper'
 
@@ -30,5 +34,30 @@ describe('toCrmLandingPagePublicDTO()', () => {
     const page = createFakeCrmLandingPage({ title: 'Home', html: '<p>Oi</p>' })
     const dto = toCrmLandingPagePublicDTO(page)
     expect(dto).toEqual({ title: 'Home', html: '<p>Oi</p>' })
+  })
+})
+
+describe('toCrmLandingPageMessageDTO()', () => {
+  it('should map USER role to lowercase "user"', () => {
+    const message = createFakeCrmLandingPageMessage({ role: 'USER' })
+    expect(toCrmLandingPageMessageDTO(message).role).toBe('user')
+  })
+
+  it('should map ASSISTANT role to lowercase "assistant"', () => {
+    const message = createFakeCrmLandingPageMessage({ role: 'ASSISTANT' })
+    expect(toCrmLandingPageMessageDTO(message).role).toBe('assistant')
+  })
+
+  it('should map id/content/createdAt', () => {
+    const createdAt = new Date('2026-01-01T00:00:00Z')
+    const message = createFakeCrmLandingPageMessage({
+      id: 'm1',
+      content: 'Olá',
+      createdAt,
+    })
+    const dto = toCrmLandingPageMessageDTO(message)
+    expect(dto.id).toBe('m1')
+    expect(dto.content).toBe('Olá')
+    expect(dto.createdAt).toBe(createdAt.toISOString())
   })
 })

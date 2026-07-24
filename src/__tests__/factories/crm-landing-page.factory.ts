@@ -1,5 +1,9 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { CrmLandingPage, CrmLandingPageView } from '@prisma/client'
+import type {
+  CrmLandingPage,
+  CrmLandingPageMessage,
+  CrmLandingPageView,
+} from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 
 export function createFakeCrmLandingPage(
@@ -56,6 +60,33 @@ export async function seedCrmLandingPageView(
       landingPageId,
       viewId: createId(),
       ipHash: 'hash',
+      ...overrides,
+    },
+  })
+}
+
+export function createFakeCrmLandingPageMessage(
+  overrides?: Partial<CrmLandingPageMessage>,
+): CrmLandingPageMessage {
+  return {
+    id: createId(),
+    landingPageId: createId(),
+    role: 'USER',
+    content: 'Crie uma landing page para o meu SaaS',
+    createdAt: new Date(),
+    ...overrides,
+  }
+}
+
+export async function seedCrmLandingPageMessage(
+  landingPageId: string,
+  overrides?: Partial<Pick<CrmLandingPageMessage, 'role' | 'content'>>,
+) {
+  return prisma.crmLandingPageMessage.create({
+    data: {
+      landingPageId,
+      role: 'USER',
+      content: 'Crie uma landing page para o meu SaaS',
       ...overrides,
     },
   })

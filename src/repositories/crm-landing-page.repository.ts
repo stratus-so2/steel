@@ -1,5 +1,10 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { CrmLandingPage, CrmLandingPageView } from '@prisma/client'
+import type {
+  CrmLandingPage,
+  CrmLandingPageMessage,
+  CrmLandingPageMessageRole,
+  CrmLandingPageView,
+} from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -177,6 +182,35 @@ export const CrmLandingPageViewRepository = {
       return ok(views)
     } catch (error) {
       return err(dbError('Failed to list CRM landing page views', error))
+    }
+  },
+}
+
+export const CrmLandingPageMessageRepository = {
+  async listByLandingPage(
+    landingPageId: string,
+  ): Promise<Result<CrmLandingPageMessage[]>> {
+    try {
+      const messages = await prisma.crmLandingPageMessage.findMany({
+        where: { landingPageId },
+        orderBy: { createdAt: 'asc' },
+      })
+      return ok(messages)
+    } catch (error) {
+      return err(dbError('Failed to list CRM landing page messages', error))
+    }
+  },
+
+  async append(data: {
+    landingPageId: string
+    role: CrmLandingPageMessageRole
+    content: string
+  }): Promise<Result<CrmLandingPageMessage>> {
+    try {
+      const message = await prisma.crmLandingPageMessage.create({ data })
+      return ok(message)
+    } catch (error) {
+      return err(dbError('Failed to append CRM landing page message', error))
     }
   },
 }
