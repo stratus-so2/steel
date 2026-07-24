@@ -8,6 +8,7 @@ export const QueueName = {
   WhatsappBroadcast: 'whatsapp-broadcast',
   WhatsappTemplateSync: 'whatsapp-template-sync',
   CrmScheduledSend: 'crm-scheduled-send',
+  CrmWorkflowSchedule: 'crm-workflow-schedule',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -118,4 +119,15 @@ export type CrmScheduledSendJob =
 
 export type CrmScheduledSendJobPayload = {
   [CrmScheduledSendJob.RunTick]: Record<string, never>
+}
+
+export const CrmWorkflowScheduleJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type CrmWorkflowScheduleJob =
+  (typeof CrmWorkflowScheduleJob)[keyof typeof CrmWorkflowScheduleJob]
+
+export type CrmWorkflowScheduleJobPayload = {
+  [CrmWorkflowScheduleJob.RunTick]: Record<string, never>
 }

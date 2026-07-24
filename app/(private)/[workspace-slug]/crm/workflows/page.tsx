@@ -1,7 +1,7 @@
 import { WorkflowCircle01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmWorkflowsPanel } from '@/app/_components/crm/crm-workflows-panel'
+import { CrmWorkflowsTable } from '@/app/_components/crm/crm-workflows-table'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -46,7 +46,10 @@ export default async function CrmWorkflowsPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='w-full p-6'>
-        <CrmWorkflowsPanel workspaceId={membership.value.workspaceId} />
+        <CrmWorkflowsTable
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
       </div>
     </div>
   )

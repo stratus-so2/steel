@@ -10,6 +10,7 @@ import type {
 import type { CrmTaskDTO } from '@/types/crm-task'
 import { assertMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
+import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 export const CrmTaskService = {
   async list(
@@ -74,6 +75,14 @@ export const CrmTaskService = {
       record: createdDto,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'task',
+      event: 'created',
+      record: createdDto,
+    })
+
     return ok(createdDto)
   },
 
@@ -119,6 +128,14 @@ export const CrmTaskService = {
       record: updatedDto,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'task',
+      event: 'updated',
+      record: updatedDto,
+    })
+
     return ok(updatedDto)
   },
 
@@ -144,6 +161,14 @@ export const CrmTaskService = {
     })
 
     void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'task',
+      event: 'deleted',
+      record: toCrmTaskDTO(existing.value),
+    })
+
+    void dispatchCrmWorkflowRecordEvent({
       workspaceId,
       actorUserId: actorId,
       entity: 'task',

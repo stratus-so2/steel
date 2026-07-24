@@ -17,7 +17,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   const payload =
     body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
 
-  const result = await CrmWorkflowService.runFromWebhook(webhookToken, payload)
+  const result = await CrmWorkflowService.triggerWebhook(webhookToken, payload)
   if (!result.ok) return handleError(result.error)
 
   return successResponse(result.value, 201)

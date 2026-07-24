@@ -2,162 +2,258 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createFakeCrmWorkflow,
   createFakeCrmWorkflowRun,
+  createFakeCrmWorkflowVersion,
 } from '@/src/__tests__/factories/crm-workflow.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { err, ok } from '@/src/lib/result'
+import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-workflow.repository')
-vi.mock('@/src/repositories/crm-person.repository')
-vi.mock('@/src/repositories/crm-task.repository')
-vi.mock('@/src/lib/mail/send')
+vi.mock('@/src/services/crm-workflow-runner')
 
-import { CrmTaskRepository } from '@/src/repositories/crm-task.repository'
 import {
   CrmWorkflowRepository,
   CrmWorkflowRunRepository,
-  CrmWorkflowRunStepRepository,
+  CrmWorkflowVersionRepository,
 } from '@/src/repositories/crm-workflow.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import {
+  resumeCrmWorkflow,
+  runCrmWorkflow,
+} from '@/src/services/crm-workflow-runner'
 import { CrmWorkflowService } from '../crm-workflow.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedWorkflowRepo = vi.mocked(CrmWorkflowRepository)
+const mockedVersionRepo = vi.mocked(CrmWorkflowVersionRepository)
 const mockedRunRepo = vi.mocked(CrmWorkflowRunRepository)
-const mockedStepRepo = vi.mocked(CrmWorkflowRunStepRepository)
-const mockedTaskRepo = vi.mocked(CrmTaskRepository)
+const mockedRunCrmWorkflow = vi.mocked(runCrmWorkflow)
+const mockedResumeCrmWorkflow = vi.mocked(resumeCrmWorkflow)
 
 describe('CrmWorkflowService', () => {
-  describe('runFromWebhook()', () => {
-    it('should return CRM_WORKFLOW_NOT_ACTIVE for a draft workflow', async () => {
-      mockedWorkflowRepo.findByWebhookToken.mockResolvedValue(
-        ok(createFakeCrmWorkflow({ triggerType: 'WEBHOOK', status: 'DRAFT' })),
-      )
-
-      expectErr(
-        await CrmWorkflowService.runFromWebhook('wfh_token', {}),
-        'CRM_WORKFLOW_NOT_ACTIVE',
-      )
-    })
-
-    it('should return CRM_WORKFLOW_NOT_ACTIVE for a MANUAL-only workflow', async () => {
-      mockedWorkflowRepo.findByWebhookToken.mockResolvedValue(
-        ok(createFakeCrmWorkflow({ triggerType: 'MANUAL', status: 'ACTIVE' })),
-      )
-
-      expectErr(
-        await CrmWorkflowService.runFromWebhook('wfh_token', {}),
-        'CRM_WORKFLOW_NOT_ACTIVE',
-      )
-    })
-
-    it('should execute nodes sequentially and mark the run completed', async () => {
-      const workflow = createFakeCrmWorkflow({
-        id: 'w1',
-        triggerType: 'WEBHOOK',
-        status: 'ACTIVE',
-        definition: {
-          nodes: [
-            { id: 'n1', type: 'CREATE_TASK', config: { title: 'Ligar' } },
-          ],
-        } as never,
-      })
-      mockedWorkflowRepo.findByWebhookToken.mockResolvedValue(ok(workflow))
-      mockedRunRepo.create.mockResolvedValue(
-        ok(createFakeCrmWorkflowRun({ id: 'r1', workflowId: 'w1' })),
-      )
-      mockedTaskRepo.create.mockResolvedValue(
-        err({ code: 'DATABASE_ERROR', message: 'boom' } as never),
-      )
-      mockedStepRepo.create.mockResolvedValue(
-        ok({
-          id: 's1',
-          runId: 'r1',
-          nodeId: 'n1',
-          nodeType: 'CREATE_TASK',
-          status: 'RUNNING',
-          input: null,
-          output: null,
-          error: null,
-          startedAt: new Date(),
-          finishedAt: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      )
-      mockedStepRepo.finish.mockResolvedValue(
-        ok({
-          id: 's1',
-          runId: 'r1',
-          nodeId: 'n1',
-          nodeType: 'CREATE_TASK',
-          status: 'FAILED',
-          input: null,
-          output: null,
-          error: 'CRM_TASK_TITLE_MISSING',
-          startedAt: new Date(),
-          finishedAt: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      )
-      mockedRunRepo.finish.mockResolvedValue(
-        ok(
-          createFakeCrmWorkflowRun({
-            id: 'r1',
-            workflowId: 'w1',
-            status: 'FAILED',
-          }),
-        ),
-      )
-      mockedWorkflowRepo.touchLastRunAt.mockResolvedValue(ok(undefined))
-
-      const result = expectOk(
-        await CrmWorkflowService.runFromWebhook('wfh_token', {}),
-      )
-      expect(mockedRunRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ workflowId: 'w1', triggerType: 'WEBHOOK' }),
-      )
-      expect(result.workflowId).toBe('w1')
-    })
-  })
-
-  describe('runManually()', () => {
+  describe('create()', () => {
     it('should require workspace membership', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
-
       expectErr(
-        await CrmWorkflowService.runManually('u1', 'ws1', 'w1'),
+        await CrmWorkflowService.create('u1', 'ws1', { name: 'Boas-vindas' }),
         'FORBIDDEN',
       )
     })
 
-    it('should run regardless of workflow status when triggered manually', async () => {
+    it('should create the workflow with an empty draft', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedWorkflowRepo.create.mockResolvedValue(
+        ok({ ...createFakeCrmWorkflow({ id: 'w1' }), versions: [] } as never),
+      )
+
+      const dto = expectOk(
+        await CrmWorkflowService.create('u1', 'ws1', { name: 'Boas-vindas' }),
+      )
+      expect(dto.id).toBe('w1')
+      expect(mockedWorkflowRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Boas-vindas' }),
+      )
+    })
+  })
+
+  describe('activate()', () => {
+    it('should reject activation without a configured trigger', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedWorkflowRepo.findById.mockResolvedValue(
+        ok(createFakeCrmWorkflow({ id: 'w1', workspaceId: 'ws1' })),
+      )
+      mockedVersionRepo.findDraft.mockResolvedValue(
         ok(
-          createFakeCrmWorkflow({
-            id: 'w1',
-            status: 'DRAFT',
-            definition: { nodes: [] } as never,
+          createFakeCrmWorkflowVersion({
+            definition: {
+              trigger: { id: 'trigger', position: { x: 0, y: 0 }, data: null },
+              nodes: [],
+              edges: [],
+            } as never,
           }),
         ),
       )
-      mockedRunRepo.create.mockResolvedValue(
-        ok(createFakeCrmWorkflowRun({ id: 'r1', workflowId: 'w1' })),
-      )
-      mockedRunRepo.finish.mockResolvedValue(
-        ok(createFakeCrmWorkflowRun({ id: 'r1', workflowId: 'w1' })),
-      )
-      mockedWorkflowRepo.touchLastRunAt.mockResolvedValue(ok(undefined))
 
-      const result = expectOk(
-        await CrmWorkflowService.runManually('u1', 'ws1', 'w1'),
+      expectErr(
+        await CrmWorkflowService.activate('u1', 'ws1', 'w1'),
+        'CRM_WORKFLOW_INVALID_DEFINITION',
       )
-      expect(result.id).toBe('r1')
+    })
+
+    it('should activate the draft when a trigger is configured', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedWorkflowRepo.findById
+        .mockResolvedValueOnce(
+          ok(createFakeCrmWorkflow({ id: 'w1', workspaceId: 'ws1' })),
+        )
+        .mockResolvedValueOnce(
+          ok(
+            createFakeCrmWorkflow({
+              id: 'w1',
+              workspaceId: 'ws1',
+              status: 'ACTIVE',
+            }),
+          ),
+        )
+      const draft = createFakeCrmWorkflowVersion({ id: 'v1' })
+      mockedVersionRepo.findDraft.mockResolvedValue(ok(draft))
+      mockedVersionRepo.activateDraft.mockResolvedValue(
+        ok({
+          activated: draft,
+          newDraft: createFakeCrmWorkflowVersion({ id: 'v2' }),
+        }),
+      )
+
+      const dto = expectOk(await CrmWorkflowService.activate('u1', 'ws1', 'w1'))
+      expect(dto.status).toBe('ACTIVE')
+      expect(mockedVersionRepo.activateDraft).toHaveBeenCalledWith('w1', 'v1')
+    })
+  })
+
+  describe('triggerManual()', () => {
+    it('should require workspace membership', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+      expectErr(
+        await CrmWorkflowService.triggerManual('u1', 'ws1', 'w1', {
+          payload: {},
+          test: false,
+        }),
+        'FORBIDDEN',
+      )
+    })
+
+    it('should run against the ACTIVE version and call the runner', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedWorkflowRepo.findById.mockResolvedValue(
+        ok(createFakeCrmWorkflow({ id: 'w1', workspaceId: 'ws1' })),
+      )
+      const version = createFakeCrmWorkflowVersion({
+        id: 'v1',
+        status: 'ACTIVE',
+      })
+      mockedVersionRepo.findActive.mockResolvedValue(ok(version))
+      mockedRunRepo.create.mockResolvedValue(
+        ok(
+          createFakeCrmWorkflowRun({
+            id: 'r1',
+            workflowId: 'w1',
+            versionId: 'v1',
+          }),
+        ),
+      )
+      mockedRunCrmWorkflow.mockResolvedValue(undefined)
+      mockedRunRepo.findById.mockResolvedValue(
+        ok({
+          ...createFakeCrmWorkflowRun({
+            id: 'r1',
+            workflowId: 'w1',
+            versionId: 'v1',
+          }),
+          steps: [],
+        }),
+      )
+
+      const dto = expectOk(
+        await CrmWorkflowService.triggerManual('u1', 'ws1', 'w1', {
+          payload: {},
+          test: false,
+        }),
+      )
+      expect(dto.id).toBe('r1')
+      expect(mockedRunCrmWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runId: 'r1',
+          workspaceId: 'ws1',
+          testMode: false,
+        }),
+      )
+    })
+  })
+
+  describe('resumeRun()', () => {
+    it('should reject a run that is not WAITING', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedWorkflowRepo.findById.mockResolvedValue(
+        ok(createFakeCrmWorkflow({ id: 'w1', workspaceId: 'ws1' })),
+      )
+      mockedRunRepo.findById.mockResolvedValue(
+        ok({
+          ...createFakeCrmWorkflowRun({
+            id: 'r1',
+            workflowId: 'w1',
+            status: 'RUNNING',
+          }),
+          steps: [],
+        }),
+      )
+
+      expectErr(
+        await CrmWorkflowService.resumeRun('u1', 'ws1', 'w1', 'r1', {
+          payload: {},
+        }),
+        'CRM_WORKFLOW_EXECUTION_FAILED',
+      )
+      expect(mockedResumeCrmWorkflow).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('triggerWebhook()', () => {
+    it('should return CRM_WORKFLOW_WEBHOOK_INVALID when no active workflow matches the token', async () => {
+      mockedWorkflowRepo.findActiveByWebhookToken.mockResolvedValue(ok(null))
+
+      expectErr(
+        await CrmWorkflowService.triggerWebhook('tok_x', {}),
+        'CRM_WORKFLOW_WEBHOOK_INVALID',
+      )
+    })
+
+    it('should create a run and dispatch the runner for a matched webhook', async () => {
+      const version = createFakeCrmWorkflowVersion({ id: 'v1' })
+      mockedWorkflowRepo.findActiveByWebhookToken.mockResolvedValue(
+        ok({
+          ...createFakeCrmWorkflow({ id: 'w1' }),
+          activeVersion: version,
+        } as never),
+      )
+      mockedRunRepo.create.mockResolvedValue(
+        ok(
+          createFakeCrmWorkflowRun({
+            id: 'r1',
+            workflowId: 'w1',
+            versionId: 'v1',
+          }),
+        ),
+      )
+      mockedRunCrmWorkflow.mockResolvedValue(undefined)
+      mockedRunRepo.findById.mockResolvedValue(
+        ok({
+          ...createFakeCrmWorkflowRun({
+            id: 'r1',
+            workflowId: 'w1',
+            versionId: 'v1',
+          }),
+          steps: [],
+        }),
+      )
+
+      const dto = expectOk(
+        await CrmWorkflowService.triggerWebhook('tok_x', { foo: 1 }),
+      )
+      expect(dto.id).toBe('r1')
+      expect(mockedRunCrmWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({ triggerType: 'webhook' }),
+      )
     })
   })
 })

@@ -2,16 +2,19 @@ import { logger } from '@/lib/axiom/logger'
 import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
   CrmScheduledSendJob,
+  CrmWorkflowScheduleJob,
   DataRetentionJob,
   TrialLifecycleJob,
 } from './jobs'
 import {
   getCrmScheduledSendQueue,
+  getCrmWorkflowScheduleQueue,
   getDataRetentionQueue,
   getTrialLifecycleQueue,
 } from './queues'
 import {
   CrmScheduledSendCron,
+  CrmWorkflowScheduleCron,
   RetentionCron,
   RetentionTimezone,
 } from './retention'
@@ -79,6 +82,21 @@ export async function scheduleCrmScheduledSendJobs(): Promise<void> {
   logger.info('queue.scheduler.crm_scheduled_send_registered', {
     component: 'Worker',
     pattern: CrmScheduledSendCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleCrmWorkflowScheduleJobs(): Promise<void> {
+  const queue = getCrmWorkflowScheduleQueue()
+  await queue.upsertJobScheduler(
+    CrmWorkflowScheduleJob.RunTick,
+    { pattern: CrmWorkflowScheduleCron, tz: RetentionTimezone },
+    { name: CrmWorkflowScheduleJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.crm_workflow_schedule_registered', {
+    component: 'Worker',
+    pattern: CrmWorkflowScheduleCron,
     timezone: RetentionTimezone,
   })
 }

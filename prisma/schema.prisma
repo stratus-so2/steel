@@ -1955,16 +1955,29 @@ enum CrmWorkflowStatus {
   DEACTIVATED
 }
 
+enum CrmWorkflowVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 enum CrmWorkflowTriggerType {
-  MANUAL
+  RECORD_IS_CREATED
+  RECORD_IS_UPDATED
+  RECORD_IS_DELETED
+  RECORD_IS_CREATED_OR_UPDATED
+  LAUNCH_MANUALLY
+  ON_A_SCHEDULE
   WEBHOOK
 }
 
 enum CrmWorkflowRunStatus {
   PENDING
   RUNNING
+  WAITING
   COMPLETED
   FAILED
+  CANCELED
 }
 
 enum CrmWorkflowRunStepStatus {
@@ -1975,33 +1988,30 @@ enum CrmWorkflowRunStepStatus {
   SKIPPED
 }
 
-/// `definition` é uma lista sequencial de nodes ({ id, type, config }),
-/// validada pelo Zod schema (CrmWorkflowDefinitionSchema). Diferente do motor
-/// de grafo (nodes/edges/branching) do CRM original, aqui a execução é
-/// estritamente sequencial — escopo reduzido deliberado para o módulo CRM
-/// dentro do Steel; ver commit message para detalhes.
+/// Workflow é o container que agrupa versões e runs. O grafo (nodes/edges +
+/// trigger) vive em CrmWorkflowVersion.definition — edições sempre acontecem
+/// no DRAFT; "Activate" congela o draft (vira ACTIVE) e arquiva o ACTIVE
+/// anterior, criando um novo DRAFT a partir dele.
 model CrmWorkflow {
-  id           String                 @id @default(cuid())
-  name         String
-  description  String?
-  status       CrmWorkflowStatus      @default(DRAFT)
-  triggerType  CrmWorkflowTriggerType @map("trigger_type")
-  /// Token opaco usado pela rota pública de disparo (POST /api/crm/workflows/[webhookToken]/trigger).
-  /// Gerado automaticamente na criação — nunca reaproveita o `id` interno para evitar enumeração.
-  webhookToken String?                @unique @map("webhook_token")
-  definition   Json
-  workspaceId  String                 @map("workspace_id")
-  createdById  String                 @map("created_by_id")
-  updatedById  String?                @map("updated_by_id")
-  lastRunAt    DateTime?              @map("last_run_at")
-  createdAt    DateTime               @default(now()) @map("created_at")
-  updatedAt    DateTime               @updatedAt @map("updated_at")
-  deletedAt    DateTime?              @map("deleted_at")
+  id              String            @id @default(cuid())
+  name            String
+  description     String?
+  status          CrmWorkflowStatus @default(DRAFT)
+  workspaceId     String            @map("workspace_id")
+  createdById     String            @map("created_by_id")
+  updatedById     String?           @map("updated_by_id")
+  activeVersionId String?           @unique @map("active_version_id")
+  lastRunAt       DateTime?         @map("last_run_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
 
-  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User             @relation("CrmWorkflowCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?            @relation("CrmWorkflowUpdatedBy", fields: [updatedById], references: [id])
-  runs      CrmWorkflowRun[]
+  workspace     Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User                   @relation("CrmWorkflowCreatedBy", fields: [createdById], references: [id])
+  updatedBy     User?                  @relation("CrmWorkflowUpdatedBy", fields: [updatedById], references: [id])
+  activeVersion CrmWorkflowVersion?    @relation("CrmWorkflowActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      CrmWorkflowVersion[]   @relation("CrmWorkflowVersions")
+  runs          CrmWorkflowRun[]
 
   @@index([workspaceId])
   @@index([status])
@@ -2009,12 +2019,40 @@ model CrmWorkflow {
   @@map("crm_workflows")
 }
 
+/// Versão imutável de um CrmWorkflow. `definition` é o JSON validado pelo
+/// schema Zod (trigger + nodes + edges). DRAFT é editável; ACTIVE/ARCHIVED
+/// são snapshots — runs antigas referenciam a versão usada no disparo.
+model CrmWorkflowVersion {
+  id         String                   @id @default(cuid())
+  workflowId String                   @map("workflow_id")
+  version    Int                      @default(1)
+  status     CrmWorkflowVersionStatus @default(DRAFT)
+  definition Json
+  createdAt  DateTime                 @default(now()) @map("created_at")
+  updatedAt  DateTime                 @updatedAt @map("updated_at")
+
+  workflow CrmWorkflow      @relation("CrmWorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
+  activeOf CrmWorkflow?     @relation("CrmWorkflowActiveVersion")
+  runs     CrmWorkflowRun[]
+
+  @@unique([workflowId, version])
+  @@index([workflowId])
+  @@index([status])
+  @@map("crm_workflow_versions")
+}
+
 model CrmWorkflowRun {
   id             String                 @id @default(cuid())
   workflowId     String                 @map("workflow_id")
+  versionId      String                 @map("version_id")
   status         CrmWorkflowRunStatus   @default(PENDING)
   triggerType    CrmWorkflowTriggerType @map("trigger_type")
   triggerPayload Json                   @default("{}") @map("trigger_payload")
+  /// Snapshot do scope quando o run pausa em um node `form` — usado para
+  /// retomar a execução exatamente do ponto onde parou. Null fora de WAITING.
+  state          Json?
+  /// Id do step (form) aguardando input humano. Null quando não pausado.
+  waitingStepId  String?                @map("waiting_step_id")
   startedById    String?                @map("started_by_id")
   error          String?
   startedAt      DateTime?              @map("started_at")
@@ -2023,10 +2061,12 @@ model CrmWorkflowRun {
   updatedAt      DateTime               @updatedAt @map("updated_at")
 
   workflow  CrmWorkflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version   CrmWorkflowVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
   startedBy User?                @relation("CrmWorkflowRunStartedBy", fields: [startedById], references: [id], onDelete: SetNull)
   steps     CrmWorkflowRunStep[]
 
   @@index([workflowId])
+  @@index([versionId])
   @@index([status])
   @@index([workflowId, createdAt])
   @@map("crm_workflow_runs")

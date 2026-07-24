@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   FAKE_WORKFLOW_DEFINITION,
-  FAKE_WORKFLOW_DEFINITION_JSON,
   seedCrmWorkflow,
   seedCrmWorkflowRun,
 } from '@/src/__tests__/factories/crm-workflow.factory'
@@ -11,7 +10,7 @@ import { expectOk } from '@/src/__tests__/helpers/result.helpers'
 import {
   CrmWorkflowRepository,
   CrmWorkflowRunRepository,
-  CrmWorkflowRunStepRepository,
+  CrmWorkflowVersionRepository,
 } from '../crm-workflow.repository'
 
 describe('CrmWorkflowRepository', () => {
@@ -29,7 +28,7 @@ describe('CrmWorkflowRepository', () => {
   })
 
   describe('create()', () => {
-    it('should persist the definition as json', async () => {
+    it('should create the workflow with its first DRAFT version', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
 
       const workflow = expectOk(
@@ -37,48 +36,110 @@ describe('CrmWorkflowRepository', () => {
           workspaceId: workspace.id,
           createdById: user.id,
           name: 'Boas-vindas',
-          triggerType: 'MANUAL',
-          definition: FAKE_WORKFLOW_DEFINITION_JSON,
+          description: null,
+          initialDefinition: FAKE_WORKFLOW_DEFINITION,
         }),
       )
 
-      expect(workflow.definition).toEqual(FAKE_WORKFLOW_DEFINITION)
-      expect(workflow.webhookToken).toBeNull()
-    })
-
-    it('should generate a webhookToken for WEBHOOK-triggered workflows', async () => {
-      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
-
-      const workflow = expectOk(
-        await CrmWorkflowRepository.create({
-          workspaceId: workspace.id,
-          createdById: user.id,
-          name: 'Webhook',
-          triggerType: 'WEBHOOK',
-          definition: FAKE_WORKFLOW_DEFINITION_JSON,
-        }),
-      )
-
-      expect(workflow.webhookToken).toMatch(/^wfh_/)
-
-      const found = expectOk(
-        await CrmWorkflowRepository.findByWebhookToken(
-          workflow.webhookToken as string,
-        ),
-      )
-      expect(found.id).toBe(workflow.id)
+      expect(workflow.versions).toHaveLength(1)
+      expect(workflow.versions[0].status).toBe('DRAFT')
+      expect(workflow.versions[0].definition).toEqual(FAKE_WORKFLOW_DEFINITION)
+      expect(workflow.activeVersionId).toBeNull()
     })
   })
 
-  describe('setStatus()', () => {
+  describe('update()', () => {
     it('should update the workflow status', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
       const workflow = await seedCrmWorkflow(workspace.id, user.id)
 
       const updated = expectOk(
-        await CrmWorkflowRepository.setStatus(workflow.id, 'ACTIVE'),
+        await CrmWorkflowRepository.update(workflow.id, {
+          updatedById: user.id,
+          status: 'ACTIVE',
+        }),
       )
       expect(updated.status).toBe('ACTIVE')
+    })
+  })
+
+  describe('findActiveByWebhookToken()', () => {
+    it('should match a workflow whose active version has a webhook trigger with that token', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const definition = {
+        trigger: {
+          id: 'trigger',
+          position: { x: 0, y: 0 },
+          data: { type: 'webhook', token: 'tok_abc123' },
+        },
+        nodes: [],
+        edges: [],
+      }
+      const workflow = await seedCrmWorkflow(workspace.id, user.id, {
+        definition: definition as never,
+      })
+      const activated = expectOk(
+        await CrmWorkflowVersionRepository.activateDraft(
+          workflow.id,
+          workflow.versions[0].id,
+        ),
+      )
+      expect(activated.activated.status).toBe('ACTIVE')
+
+      const found = expectOk(
+        await CrmWorkflowRepository.findActiveByWebhookToken('tok_abc123'),
+      )
+      expect(found?.id).toBe(workflow.id)
+    })
+  })
+})
+
+describe('CrmWorkflowVersionRepository', () => {
+  describe('activateDraft()', () => {
+    it('should promote the draft to ACTIVE and create a new draft', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const workflow = await seedCrmWorkflow(workspace.id, user.id)
+
+      const result = expectOk(
+        await CrmWorkflowVersionRepository.activateDraft(
+          workflow.id,
+          workflow.versions[0].id,
+        ),
+      )
+      expect(result.activated.status).toBe('ACTIVE')
+      expect(result.newDraft.status).toBe('DRAFT')
+      expect(result.newDraft.version).toBe(result.activated.version + 1)
+
+      const wf = expectOk(await CrmWorkflowRepository.findById(workflow.id))
+      expect(wf?.status).toBe('ACTIVE')
+      expect(wf?.activeVersionId).toBe(result.activated.id)
+    })
+  })
+
+  describe('discardDraft()', () => {
+    it('should reset the draft definition back to the active version', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const workflow = await seedCrmWorkflow(workspace.id, user.id)
+      const activated = expectOk(
+        await CrmWorkflowVersionRepository.activateDraft(
+          workflow.id,
+          workflow.versions[0].id,
+        ),
+      )
+
+      await CrmWorkflowVersionRepository.updateDefinition(
+        activated.newDraft.id,
+        {
+          trigger: { id: 'trigger', position: { x: 0, y: 0 }, data: null },
+          nodes: [],
+          edges: [],
+        },
+      )
+
+      const discarded = expectOk(
+        await CrmWorkflowVersionRepository.discardDraft(workflow.id),
+      )
+      expect(discarded.definition).toEqual(activated.activated.definition)
     })
   })
 })
@@ -92,58 +153,87 @@ describe('CrmWorkflowRunRepository', () => {
       const run = expectOk(
         await CrmWorkflowRunRepository.create({
           workflowId: workflow.id,
-          triggerType: 'MANUAL',
+          versionId: workflow.versions[0].id,
+          triggerType: 'LAUNCH_MANUALLY',
           triggerPayload: { foo: 'bar' },
           startedById: user.id,
         }),
       )
-      expect(run.status).toBe('RUNNING')
+      expect(run.status).toBe('PENDING')
 
-      const found = expectOk(
-        await CrmWorkflowRunRepository.findById(run.id, workflow.id),
-      )
-      expect(found.steps).toEqual([])
+      const found = expectOk(await CrmWorkflowRunRepository.findById(run.id))
+      expect(found?.steps).toEqual([])
     })
   })
 
-  describe('finish()', () => {
+  describe('setStatus()', () => {
     it('should mark the run completed', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
       const workflow = await seedCrmWorkflow(workspace.id, user.id)
-      const run = await seedCrmWorkflowRun(workflow.id)
+      const run = await seedCrmWorkflowRun(workflow.id, workflow.versions[0].id)
 
       const finished = expectOk(
-        await CrmWorkflowRunRepository.finish(run.id, 'COMPLETED'),
+        await CrmWorkflowRunRepository.setStatus(run.id, 'COMPLETED', {
+          finishedAt: new Date(),
+        }),
       )
       expect(finished.status).toBe('COMPLETED')
       expect(finished.finishedAt).not.toBeNull()
     })
   })
-})
 
-describe('CrmWorkflowRunStepRepository', () => {
-  describe('create() & finish()', () => {
+  describe('createStep() & updateStep()', () => {
     it('should create and complete a step', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
       const workflow = await seedCrmWorkflow(workspace.id, user.id)
-      const run = await seedCrmWorkflowRun(workflow.id)
+      const run = await seedCrmWorkflowRun(workflow.id, workflow.versions[0].id)
 
       const step = expectOk(
-        await CrmWorkflowRunStepRepository.create({
+        await CrmWorkflowRunRepository.createStep({
           runId: run.id,
           nodeId: 'n1',
-          nodeType: 'CREATE_TASK',
+          nodeType: 'create-record',
         }),
       )
-      expect(step.status).toBe('RUNNING')
+      expect(step.status).toBe('PENDING')
 
       const finished = expectOk(
-        await CrmWorkflowRunStepRepository.finish(step.id, 'COMPLETED', {
+        await CrmWorkflowRunRepository.updateStep(step.id, {
+          status: 'COMPLETED',
           output: { taskId: 'abc' },
         }),
       )
       expect(finished.status).toBe('COMPLETED')
       expect(finished.output).toEqual({ taskId: 'abc' })
+    })
+  })
+
+  describe('pause() & clearPause()', () => {
+    it('should persist and clear the paused state', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const workflow = await seedCrmWorkflow(workspace.id, user.id)
+      const run = await seedCrmWorkflowRun(workflow.id, workflow.versions[0].id)
+      const step = expectOk(
+        await CrmWorkflowRunRepository.createStep({
+          runId: run.id,
+          nodeId: 'form1',
+          nodeType: 'form',
+        }),
+      )
+
+      const paused = expectOk(
+        await CrmWorkflowRunRepository.pause(run.id, {
+          state: { steps: {} },
+          waitingStepId: step.id,
+        }),
+      )
+      expect(paused.waitingStepId).toBe(step.id)
+
+      const cleared = expectOk(
+        await CrmWorkflowRunRepository.clearPause(run.id),
+      )
+      expect(cleared.waitingStepId).toBeNull()
+      expect(cleared.state).toBeNull()
     })
   })
 })

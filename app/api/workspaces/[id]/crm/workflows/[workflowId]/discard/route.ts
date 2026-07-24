@@ -3,17 +3,12 @@ import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { RunCrmWorkflowSchema } from '@/src/schemas/crm-workflow.schema'
 import { CrmWorkflowService } from '@/src/services/crm-workflow.service'
-import {
-  handleError,
-  standardError,
-  successResponse,
-} from '@/utils/http-response'
+import { handleError, successResponse } from '@/utils/http-response'
 
 type Params = { params: Promise<{ id: string; workflowId: string }> }
 
-export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
+export const POST = withAxiom(async (_request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
@@ -22,29 +17,18 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
 
   const consent = await requireConsent(
     auth.value.user.id,
-    'POST /api/workspaces/[id]/crm/workflows/[workflowId]/run',
+    'POST /api/workspaces/[id]/crm/workflows/[workflowId]/discard',
   )
   if (!consent.ok) return handleError(consent.error)
 
   const { id, workflowId } = await ctx.params
-  const body = await request.json().catch(() => ({}))
-  const parsed = RunCrmWorkflowSchema.safeParse(body)
 
-  if (!parsed.success) {
-    return standardError(
-      'VALIDATION_ERROR',
-      'Dados inválidos',
-      parsed.error.issues,
-    )
-  }
-
-  const result = await CrmWorkflowService.runManually(
+  const result = await CrmWorkflowService.discard(
     auth.value.user.id,
     id,
     workflowId,
-    parsed.data.payload,
   )
   if (!result.ok) return handleError(result.error)
 
-  return successResponse(result.value, 201)
+  return successResponse(result.value)
 })

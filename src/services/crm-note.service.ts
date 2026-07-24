@@ -10,6 +10,7 @@ import type {
 import type { CrmNoteDTO } from '@/types/crm-note'
 import { assertMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
+import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 export const CrmNoteService = {
   async list(
@@ -71,6 +72,14 @@ export const CrmNoteService = {
       record: createdDto,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'note',
+      event: 'created',
+      record: createdDto,
+    })
+
     return ok(createdDto)
   },
 
@@ -113,6 +122,14 @@ export const CrmNoteService = {
       record: updatedDto,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'note',
+      event: 'updated',
+      record: updatedDto,
+    })
+
     return ok(updatedDto)
   },
 
@@ -138,6 +155,14 @@ export const CrmNoteService = {
     })
 
     void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'note',
+      event: 'deleted',
+      record: toCrmNoteDTO(existing.value),
+    })
+
+    void dispatchCrmWorkflowRecordEvent({
       workspaceId,
       actorUserId: actorId,
       entity: 'note',

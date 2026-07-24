@@ -13,3 +13,6 @@ export const RetentionTimezone = 'UTC' as const
 
 /** Frequência do tick que dispara campanhas de e-mail agendadas. */
 export const CrmScheduledSendCron = '*/5 * * * *' as const
+
+/** Frequência do tick que dispara workflows com trigger `on-a-schedule`. */
+export const CrmWorkflowScheduleCron = '*/1 * * * *' as const

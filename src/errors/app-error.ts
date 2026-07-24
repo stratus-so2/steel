@@ -354,6 +354,34 @@ export const crmWorkflowNotActive = (): AppError =>
     'Workflow precisa estar ativo para ser disparado por webhook',
   )
 
+export const crmWorkflowVersionNotFound = (): AppError =>
+  appError(
+    'CRM_WORKFLOW_VERSION_NOT_FOUND',
+    'Versão do workflow não encontrada',
+  )
+
+export const crmWorkflowVersionNotDraft = (): AppError =>
+  appError(
+    'CRM_WORKFLOW_VERSION_NOT_DRAFT',
+    'Workflow não tem um draft editável',
+  )
+
+export const crmWorkflowInvalidDefinition = (
+  message = 'Definição de workflow inválida',
+  details?: unknown,
+): AppError => appError('CRM_WORKFLOW_INVALID_DEFINITION', message, details)
+
+export const crmWorkflowExecutionFailed = (
+  message = 'Falha ao executar o workflow',
+  details?: unknown,
+): AppError => appError('CRM_WORKFLOW_EXECUTION_FAILED', message, details)
+
+export const crmWorkflowWebhookInvalid = (): AppError =>
+  appError(
+    'CRM_WORKFLOW_WEBHOOK_INVALID',
+    'Webhook inválido ou workflow inativo',
+  )
+
 export const crmLandingPageNotFound = (): AppError =>
   appError('CRM_LANDING_PAGE_NOT_FOUND', 'Landing page não encontrada')
 

@@ -23,11 +23,10 @@ export const POST = withAxiom(async (_request: NextRequest, ctx: Params) => {
 
   const { id, workflowId } = await ctx.params
 
-  const result = await CrmWorkflowService.setActive(
+  const result = await CrmWorkflowService.activate(
     auth.value.user.id,
     id,
     workflowId,
-    true,
   )
   if (!result.ok) return handleError(result.error)
 

@@ -3,15 +3,30 @@ import type {
   CrmWorkflow,
   CrmWorkflowRun,
   CrmWorkflowRunStep,
+  CrmWorkflowVersion,
   Prisma,
 } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
-import type { CrmWorkflowDefinitionDTO } from '@/src/schemas/crm-workflow.schema'
+import type { CrmWorkflowDefinition } from '@/src/schemas/crm-workflow.schema'
 
-export const FAKE_WORKFLOW_DEFINITION: CrmWorkflowDefinitionDTO = {
+export const FAKE_WORKFLOW_DEFINITION: CrmWorkflowDefinition = {
+  trigger: {
+    id: 'trigger',
+    position: { x: 0, y: 0 },
+    data: { type: 'launch-manually', inputs: [] },
+  },
   nodes: [
-    { id: 'n1', type: 'CREATE_TASK', config: { title: 'Ligar para o lead' } },
+    {
+      id: 'n1',
+      position: { x: 200, y: 0 },
+      data: {
+        type: 'create-record',
+        entity: 'task',
+        fields: { title: 'Ligar para o lead' },
+      },
+    },
   ],
+  edges: [{ id: 'e1', source: 'trigger', target: 'n1' }],
 }
 
 export const FAKE_WORKFLOW_DEFINITION_JSON =
@@ -26,12 +41,10 @@ export function createFakeCrmWorkflow(
     name: 'Boas-vindas',
     description: null,
     status: 'DRAFT',
-    triggerType: 'MANUAL',
-    webhookToken: null,
-    definition: FAKE_WORKFLOW_DEFINITION_JSON as CrmWorkflow['definition'],
     workspaceId: createId(),
     createdById: createId(),
     updatedById: null,
+    activeVersionId: null,
     lastRunAt: null,
     createdAt: now,
     updatedAt: now,
@@ -40,22 +53,46 @@ export function createFakeCrmWorkflow(
   }
 }
 
+export function createFakeCrmWorkflowVersion(
+  overrides?: Partial<CrmWorkflowVersion>,
+): CrmWorkflowVersion {
+  const now = new Date()
+  return {
+    id: createId(),
+    workflowId: createId(),
+    version: 1,
+    status: 'DRAFT',
+    definition:
+      FAKE_WORKFLOW_DEFINITION_JSON as CrmWorkflowVersion['definition'],
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
+
 export async function seedCrmWorkflow(
   workspaceId: string,
   createdById: string,
-  overrides?: Partial<
-    Pick<CrmWorkflow, 'name' | 'status' | 'triggerType' | 'deletedAt'>
-  >,
+  overrides?: Partial<Pick<CrmWorkflow, 'name' | 'status' | 'deletedAt'>> & {
+    definition?: Prisma.InputJsonValue
+  },
 ) {
+  const { definition, ...rest } = overrides ?? {}
   return prisma.crmWorkflow.create({
     data: {
       name: 'Seed Workflow',
-      triggerType: 'MANUAL',
-      definition: FAKE_WORKFLOW_DEFINITION_JSON,
       workspaceId,
       createdById,
-      ...overrides,
+      versions: {
+        create: {
+          version: 1,
+          status: 'DRAFT',
+          definition: definition ?? FAKE_WORKFLOW_DEFINITION_JSON,
+        },
+      },
+      ...rest,
     },
+    include: { versions: true },
   })
 }
 
@@ -66,9 +103,12 @@ export function createFakeCrmWorkflowRun(
   return {
     id: createId(),
     workflowId: createId(),
+    versionId: createId(),
     status: 'PENDING',
-    triggerType: 'MANUAL',
+    triggerType: 'LAUNCH_MANUALLY',
     triggerPayload: {},
+    state: null,
+    waitingStepId: null,
     startedById: null,
     error: null,
     startedAt: null,
@@ -81,10 +121,16 @@ export function createFakeCrmWorkflowRun(
 
 export async function seedCrmWorkflowRun(
   workflowId: string,
+  versionId: string,
   overrides?: Partial<Pick<CrmWorkflowRun, 'status' | 'triggerType'>>,
 ) {
   return prisma.crmWorkflowRun.create({
-    data: { workflowId, triggerType: 'MANUAL', ...overrides },
+    data: {
+      workflowId,
+      versionId,
+      triggerType: 'LAUNCH_MANUALLY',
+      ...overrides,
+    },
   })
 }
 
@@ -96,7 +142,7 @@ export function createFakeCrmWorkflowRunStep(
     id: createId(),
     runId: createId(),
     nodeId: 'n1',
-    nodeType: 'CREATE_TASK',
+    nodeType: 'create-record',
     status: 'PENDING',
     input: null,
     output: null,

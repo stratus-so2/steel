@@ -16,6 +16,7 @@ import {
   withCustomFields,
   withCustomFieldsList,
 } from './crm-custom-field-sync'
+import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 export const CrmCompanyService = {
   async list(
@@ -109,6 +110,14 @@ export const CrmCompanyService = {
       record: merged.value,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'company',
+      event: 'created',
+      record: merged.value,
+    })
+
     return ok(merged.value)
   },
 
@@ -179,6 +188,14 @@ export const CrmCompanyService = {
       record: merged.value,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'company',
+      event: 'updated',
+      record: merged.value,
+    })
+
     return ok(merged.value)
   },
 
@@ -204,6 +221,14 @@ export const CrmCompanyService = {
     })
 
     void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'company',
+      event: 'deleted',
+      record: toCrmCompanyDTO(existing.value),
+    })
+
+    void dispatchCrmWorkflowRecordEvent({
       workspaceId,
       actorUserId: actorId,
       entity: 'company',

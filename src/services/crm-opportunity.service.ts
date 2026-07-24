@@ -31,6 +31,7 @@ import {
   withCustomFieldsList,
 } from './crm-custom-field-sync'
 import { CrmPipelineService } from './crm-pipeline.service'
+import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 type StageRefs = { pipelineId: string; stageId: string }
 
@@ -221,6 +222,14 @@ export const CrmOpportunityService = {
       record: merged.value,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'opportunity',
+      event: 'created',
+      record: merged.value,
+    })
+
     return ok(merged.value)
   },
 
@@ -291,6 +300,14 @@ export const CrmOpportunityService = {
       record: updatedMerged.value,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'opportunity',
+      event: 'updated',
+      record: updatedMerged.value,
+    })
+
     return ok(updatedMerged.value)
   },
 
@@ -319,6 +336,14 @@ export const CrmOpportunityService = {
     })
 
     void recordCrmActivity({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'opportunity',
+      event: 'deleted',
+      record: toCrmOpportunityDTO(existing.value),
+    })
+
+    void dispatchCrmWorkflowRecordEvent({
       workspaceId,
       actorUserId: actorId,
       entity: 'opportunity',
