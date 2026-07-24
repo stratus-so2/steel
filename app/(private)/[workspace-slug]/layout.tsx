@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { CrmAiAssistantWidget } from '@/app/_components/crm/crm-ai-assistant-widget'
 import { UserHeader } from '@/app/_components/header/header-layout-user'
 import { HeaderPromotionBanner } from '@/app/_components/header/header-promotion-banner'
 import { GlobalSidebarNavigation } from '@/app/_components/navigation/sidebar-global'
+import { OPENAI_API_KEY } from '@/lib/env/server'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { MembershipService } from '@/src/services/membership.service'
@@ -91,6 +93,12 @@ export default async function WorkspaceLayout({
           {children}
         </div>
       </div>
+      {OPENAI_API_KEY && userResult.ok ? (
+        <CrmAiAssistantWidget
+          workspaceId={membership.value.workspaceId}
+          userName={userResult.value.name}
+        />
+      ) : null}
     </div>
   )
 }
