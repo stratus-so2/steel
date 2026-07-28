@@ -211,6 +211,48 @@ describe('WhatsAppConversationService', () => {
     })
   })
 
+  describe('resumeAi()', () => {
+    it('should reactivate the AI and clear the handoff flag', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const conversation = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+        aiActive: false,
+        aiHandoff: true,
+      })
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+
+      const result = await WhatsAppConversationService.resumeAi(
+        'u1',
+        'ws1',
+        'conv1',
+      )
+
+      expectOk(result)
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith('conv1', {
+        aiActive: true,
+        aiHandoff: false,
+      })
+    })
+
+    it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedConversationRepo.findById.mockResolvedValue(ok(null))
+
+      const result = await WhatsAppConversationService.resumeAi(
+        'u1',
+        'ws1',
+        'conv1',
+      )
+
+      expectErr(result, 'WHATSAPP_CONVERSATION_NOT_FOUND')
+    })
+  })
+
   describe('assign()', () => {
     it('should assign the conversation to a valid workspace member', async () => {
       mockedMembershipRepo.findByUserAndWorkspace

@@ -203,6 +203,48 @@ export const WhatsAppConversationService = {
     return ok(dto)
   },
 
+  async resumeAi(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+  ): Promise<Result<WhatsAppConversationDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappConversationNotFound())
+
+    const updated = await WhatsAppConversationRepository.update(id, {
+      aiActive: true,
+      aiHandoff: false,
+    })
+    if (!updated.ok) return updated
+
+    const fresh = await WhatsAppConversationRepository.findById(id, workspaceId)
+    if (!fresh.ok) return fresh
+    if (!fresh.value) return err(whatsappConversationNotFound())
+
+    const dto = toWhatsAppConversationDTO(fresh.value)
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'conversation.updated',
+      conversation: dto,
+    })
+
+    auditMutation({
+      entity: 'whatsapp_conversation',
+      action: 'update',
+      actorId,
+      targetId: id,
+      meta: { aiHandoff: false },
+    })
+
+    return ok(dto)
+  },
+
   async setPinned(
     actorId: string,
     workspaceId: string,
