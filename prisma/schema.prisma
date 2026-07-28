@@ -39,6 +39,7 @@ model User {
   projectFavourites        ProjectFavorite[]
   sentInvitations          WorkspaceInvitation[]       @relation("SentInvitations")
   moduleConnectionsCreated WorkspaceModuleConnection[]
+  moduleAccessGranted      WorkspaceModuleAccess[]
 
   whatsappConnectionsCreated    WhatsAppConnection[]    @relation("WhatsAppConnectionCreatedBy")
   whatsappConversationsAssigned WhatsAppConversation[]  @relation("WhatsAppConversationAssignee")
@@ -273,6 +274,7 @@ model Workspace {
 
   invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
+  moduleAccess      WorkspaceModuleAccess[]
 
   whatsappConnections    WhatsAppConnection[]
   whatsappContacts       WhatsAppContact[]
@@ -629,6 +631,26 @@ model WorkspaceModuleConnection {
   @@unique([workspaceId, module])
   @@index([workspaceId])
   @@map("workspace_module_connections")
+}
+
+/// Entitlement de módulo por workspace, controlado pelo painel admin
+/// global. Sem registro para um módulo, ele fica indisponível — é opt-in,
+/// não opt-out (evita expor CRM/WhatsApp/ServiceDesk por omissão).
+model WorkspaceModuleAccess {
+  id          String     @id @default(cuid())
+  workspaceId String     @map("workspace_id")
+  module      ModuleKind
+  enabled     Boolean    @default(true)
+  grantedById String     @map("granted_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  grantedBy User      @relation(fields: [grantedById], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, module])
+  @@index([workspaceId])
+  @@map("workspace_module_access")
 }
 
 // ─── WhatsApp domain ───────────────────────────────────────────────────────
