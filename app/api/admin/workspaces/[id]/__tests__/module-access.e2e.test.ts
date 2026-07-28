@@ -63,6 +63,12 @@ describe('GET /api/admin/workspaces/[id]/module-access', () => {
     const admin = await createPlatformAdmin()
     const other = await createAuthenticatedUser()
     const ws = await createWorkspaceForUser(other.id)
+    // Workspaces de teste nascem com os 3 módulos liberados (default do
+    // helper e2e, espelhando o backfill de produção) — para exercitar o
+    // caso "nunca concedido" aqui, zera o que o helper já criou.
+    await prisma.workspaceModuleAccess.deleteMany({
+      where: { workspaceId: ws.id },
+    })
 
     const res = await getJson(
       `/api/admin/workspaces/${ws.id}/module-access`,
@@ -146,15 +152,8 @@ describe('PATCH /api/admin/workspaces/[id]/module-access', () => {
   it('should revoke a previously granted module', async () => {
     const admin = await createPlatformAdmin()
     const other = await createAuthenticatedUser()
+    // createWorkspaceForUser já concede CRM por padrão (ver comentário acima).
     const ws = await createWorkspaceForUser(other.id)
-    await prisma.workspaceModuleAccess.create({
-      data: {
-        workspaceId: ws.id,
-        module: 'CRM',
-        enabled: true,
-        grantedById: admin.id,
-      },
-    })
 
     const res = await patchJson(
       `/api/admin/workspaces/${ws.id}/module-access`,

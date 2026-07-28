@@ -9,3 +9,11 @@ export interface WorkspaceModuleAccessDTO {
   createdAt: string
   updatedAt: string
 }
+
+/** Visão completa dos 3 módulos para um workspace, incluindo os nunca concedidos. */
+export interface WorkspaceModuleAccessSummaryDTO {
+  module: ModuleKind
+  enabled: boolean
+  grantedById: string | null
+  updatedAt: string | null
+}

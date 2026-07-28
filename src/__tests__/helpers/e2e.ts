@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { Plan, Role } from '@prisma/client'
+import type { ModuleKind, Plan, Role } from '@prisma/client'
 import { BASE_URL } from '@/src/__tests__/setup.e2e'
 import { prisma } from '@/src/lib/prisma'
 
@@ -74,6 +74,8 @@ export async function createAuthenticatedUser(overrides?: {
   return { id: user.id, name, email, cookie }
 }
 
+const ALL_MODULES: ModuleKind[] = ['SERVICE_DESK', 'CRM', 'COMMUNICATION']
+
 export async function createWorkspaceForUser(
   userId: string,
   data?: { name?: string; slug?: string; activePlan?: Plan; role?: Role },
@@ -88,6 +90,17 @@ export async function createWorkspaceForUser(
   })
   await prisma.membership.create({
     data: { userId, workspaceId: ws.id, role: data?.role ?? 'OWNER' },
+  })
+  // Módulos são opt-in (WorkspaceModuleAccessService) — a maioria dos testes
+  // e2e não é sobre esse gate, então workspaces de teste nascem com os 3
+  // módulos liberados, como o backfill faz para workspaces já existentes.
+  await prisma.workspaceModuleAccess.createMany({
+    data: ALL_MODULES.map((module) => ({
+      workspaceId: ws.id,
+      module,
+      enabled: true,
+      grantedById: userId,
+    })),
   })
   return ws
 }

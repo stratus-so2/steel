@@ -7,6 +7,7 @@ import {
   UserGroupIcon,
   UserMultipleIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import {
   ContextHeader,
@@ -14,6 +15,7 @@ import {
   NavGroup,
   NavItem,
 } from '@/app/_components/navigation/sidebar-context'
+import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function ZapLayout({
   children,
@@ -23,6 +25,7 @@ export default async function ZapLayout({
   params: Promise<{ 'workspace-slug': string }>
 }) {
   const { 'workspace-slug': slug } = await params
+  if (!(await hasModuleAccess(slug, 'COMMUNICATION'))) notFound()
   const base = `/${slug}/zap`
 
   return (

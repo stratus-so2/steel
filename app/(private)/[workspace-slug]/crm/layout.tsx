@@ -33,6 +33,7 @@ import {
   WorkflowCircle01Icon,
   YoutubeIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import {
   ContextHeader,
@@ -41,6 +42,7 @@ import {
   NavItem,
 } from '@/app/_components/navigation/sidebar-context'
 import { NavGroupAccordion } from '@/app/_components/navigation/sidebar-context/navigation-sidebar-context-accordion'
+import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function CrmLayout({
   children,
@@ -50,6 +52,7 @@ export default async function CrmLayout({
   params: Promise<{ 'workspace-slug': string }>
 }) {
   const { 'workspace-slug': slug } = await params
+  if (!(await hasModuleAccess(slug, 'CRM'))) notFound()
   const base = `/${slug}/crm`
 
   return (
