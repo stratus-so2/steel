@@ -98,6 +98,24 @@ export function useRemoveWhatsAppConversationFromAi(workspaceId: string) {
   })
 }
 
+export function useResumeWhatsAppConversationAi(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      apiFetch<WhatsAppConversationDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/ai/resume`,
+        { method: 'PATCH' },
+        'Erro ao retomar o atendimento da IA',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-conversations', workspaceId],
+      })
+    },
+  })
+}
+
 function invalidateConversations(
   queryClient: ReturnType<typeof useQueryClient>,
   workspaceId: string,

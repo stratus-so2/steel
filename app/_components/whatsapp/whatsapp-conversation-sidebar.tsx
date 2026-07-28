@@ -7,6 +7,7 @@ import {
   MoreVerticalIcon,
   PinIcon,
   Search01Icon,
+  UserSwitchIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
@@ -296,6 +297,13 @@ export function WhatsappConversationSidebar({
                         icon={PinIcon}
                         size={11}
                         className='shrink-0 text-muted-foreground'
+                      />
+                    )}
+                    {!conversation.aiActive && conversation.aiHandoff && (
+                      <SteelIcon
+                        icon={UserSwitchIcon}
+                        size={11}
+                        className='shrink-0 text-amber-600 dark:text-amber-400'
                       />
                     )}
                     <span className='truncate font-medium text-sm'>

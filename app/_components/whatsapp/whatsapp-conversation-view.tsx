@@ -30,6 +30,7 @@ import {
   useAssignWhatsAppConversation,
   useMarkWhatsAppConversationRead,
   useRemoveWhatsAppConversationFromAi,
+  useResumeWhatsAppConversationAi,
   useStartWhatsAppConversation,
   useWhatsAppAssignableMembers,
 } from '@/src/hooks/use-whatsapp-conversations'
@@ -43,6 +44,7 @@ import type { WhatsAppConversationDTO } from '@/types/whatsapp-conversation'
 import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
 import { WhatsappAiBanner } from './whatsapp-ai-banner'
 import { WhatsappComposer } from './whatsapp-composer'
+import { WhatsappHandoffBanner } from './whatsapp-handoff-banner'
 import { WhatsappVideoCallDialog } from './whatsapp-video-call-dialog'
 
 export function WhatsappConversationView({
@@ -64,6 +66,7 @@ export function WhatsappConversationView({
   const messages = useWhatsAppMessages(workspaceId, conversation.id)
   const markRead = useMarkWhatsAppConversationRead(workspaceId)
   const removeFromAi = useRemoveWhatsAppConversationFromAi(workspaceId)
+  const resumeAi = useResumeWhatsAppConversationAi(workspaceId)
   const assignableMembers = useWhatsAppAssignableMembers(workspaceId)
   const assignConversation = useAssignWhatsAppConversation(
     workspaceId,
@@ -230,6 +233,13 @@ export function WhatsappConversationView({
         <WhatsappAiBanner
           isRemoving={removeFromAi.isPending}
           onRemoveFromAi={() => removeFromAi.mutate(conversation.id)}
+        />
+      )}
+
+      {!conversation.aiActive && conversation.aiHandoff && (
+        <WhatsappHandoffBanner
+          isResuming={resumeAi.isPending}
+          onResumeAi={() => resumeAi.mutate(conversation.id)}
         />
       )}
 
