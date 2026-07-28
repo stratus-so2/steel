@@ -15,6 +15,7 @@ model User {
   image               String?
   coverImage          String?              @map("cover_image")
   twoFactorEnabled    Boolean              @default(false) @map("two_factor_enabled")
+  isPlatformAdmin     Boolean              @default(false) @map("is_platform_admin")
   deletionScheduledAt DateTime?            @map("deletion_scheduled_at")
   acceptedTermsAt     DateTime?            @map("accepted_terms_at")
   acceptedPrivacyAt   DateTime?            @map("accepted_privacy_at")
