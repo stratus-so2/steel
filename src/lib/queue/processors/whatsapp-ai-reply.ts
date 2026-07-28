@@ -5,6 +5,7 @@ import type {
   ChatCompletionContentPart,
   ChatCompletionMessageParam,
 } from 'openai/resources/chat/completions'
+import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { prisma } from '@/src/lib/prisma'
@@ -17,6 +18,16 @@ import { WhatsappAiReplyJob, type WhatsappAiReplyJobPayload } from '../jobs'
 
 const HISTORY_LIMIT = 20
 const TRANSCRIPTION_MODEL = 'whisper-1'
+
+// Convenção de handoff: a IA inclui esse marcador na resposta quando decide
+// transferir para um humano; o processor remove antes de enviar ao cliente.
+// Não depende de tool-calling (o processor usa a Chat Completions API crua,
+// sem streamChat) — é o jeito de menor risco de adicionar handoff decidido
+// pela IA sem reescrever o fluxo de geração já em produção.
+const HANDOFF_MARKER = '[[TRANSFERIR_ATENDENTE]]'
+const HANDOFF_SYSTEM_INSTRUCTION = `\n\nSe o cliente pedir para falar com uma pessoa/atendente, ou se você não conseguir ajudar com o que ele precisa, inclua o marcador exato ${HANDOFF_MARKER} em algum ponto da sua resposta — o sistema o remove automaticamente antes de enviar a mensagem.`
+const HANDOFF_FALLBACK_MESSAGE =
+  'Vou te transferir para um de nossos atendentes, só um momento.'
 
 function previewForNonText(type: string): string {
   switch (type) {
@@ -155,7 +166,10 @@ async function processGenerateAiReply(
     }),
   )
   const messages: ChatCompletionMessageParam[] = [
-    { role: 'system', content: aiConfig.systemPrompt },
+    {
+      role: 'system',
+      content: aiConfig.systemPrompt + HANDOFF_SYSTEM_INSTRUCTION,
+    },
     ...historyMessages,
   ]
 
@@ -185,6 +199,12 @@ async function processGenerateAiReply(
     return
   }
 
+  const shouldHandoff = replyText.includes(HANDOFF_MARKER)
+  const textToSend = shouldHandoff
+    ? replyText.replaceAll(HANDOFF_MARKER, '').trim() ||
+      HANDOFF_FALLBACK_MESSAGE
+    : replyText
+
   const contact = await prisma.whatsAppContact.findUnique({
     where: { id: conversation.contactId },
   })
@@ -192,7 +212,7 @@ async function processGenerateAiReply(
 
   const sendResult = await WhatsAppSend.text(conversation.connection, {
     to: contact.waId,
-    text: replyText,
+    text: textToSend,
   })
   if (!sendResult.ok) {
     logger.error('queue.whatsapp_ai_reply.send_failed', {
@@ -210,7 +230,7 @@ async function processGenerateAiReply(
       conversationId,
       direction: 'OUT',
       type: 'TEXT',
-      text: replyText,
+      text: textToSend,
       providerMessageId: sendResult.value.providerMessageId,
       status: 'SENT',
       sentByAi: true,
@@ -219,8 +239,28 @@ async function processGenerateAiReply(
 
   await prisma.whatsAppConversation.update({
     where: { id: conversationId },
-    data: { lastMessageAt: new Date() },
+    data: {
+      lastMessageAt: new Date(),
+      ...(shouldHandoff
+        ? { aiActive: false, aiHandoff: true, status: 'IN_PROGRESS' as const }
+        : {}),
+    },
   })
+
+  if (shouldHandoff) {
+    auditMutation({
+      entity: 'whatsapp_conversation',
+      action: 'update',
+      actorId: null,
+      targetId: conversationId,
+      meta: { aiHandoff: true, trigger: 'ai' },
+    })
+    logger.info('queue.whatsapp_ai_reply.handoff', {
+      component: 'WhatsappAiReply',
+      jobId: job.id,
+      conversationId,
+    })
+  }
 
   await publishWhatsAppEvent(conversation.workspaceId, {
     type: 'message.created',
