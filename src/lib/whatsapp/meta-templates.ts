@@ -29,3 +29,48 @@ export async function fetchMetaTemplates(input: {
 
   return (body?.data ?? []) as MetaTemplateRaw[]
 }
+
+export interface CreateMetaTemplateInput {
+  wabaId: string
+  accessToken: string
+  name: string
+  language: string
+  category: string
+  components: unknown[]
+}
+
+export async function createMetaTemplate(
+  input: CreateMetaTemplateInput,
+): Promise<MetaTemplateRaw> {
+  const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${input.wabaId}/message_templates`
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${input.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: input.name,
+      language: input.language,
+      category: input.category,
+      components: input.components,
+    }),
+  })
+
+  const body = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(
+      body?.error?.message ?? `Falha ao criar template (${response.status})`,
+    )
+  }
+
+  return {
+    name: input.name,
+    language: input.language,
+    category: input.category,
+    // Meta sempre retorna o template recém-criado como PENDING de revisão.
+    status: body?.status ?? 'PENDING',
+    components: input.components,
+  }
+}
