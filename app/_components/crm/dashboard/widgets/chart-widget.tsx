@@ -16,7 +16,7 @@ import {
 } from '@/app/_components/crm/dashboard/widget-data'
 import { sourceResource } from '@/app/_components/crm/dashboard/widget-meta'
 import { SteelIcon } from '@/components/icon/icon'
-import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
+import { useResourceList } from '@/src/hooks/use-crm-resource-list'
 import type { ChartConfig } from '@/src/schemas/crm-dashboard.schema'
 
 const COLORS = [
@@ -68,10 +68,10 @@ function useChartRows(
   items: Row[]
   isLoading: boolean
 } {
-  const resource = source === 'socials' ? '' : sourceResource(source)
-  const { items, isLoading } = useCrmResourceList<Row>(
+  const path = source === 'socials' ? '' : sourceResource(source)
+  const { items, isLoading } = useResourceList<Row>(
     workspaceId,
-    resource || 'companies',
+    path || 'crm/companies',
   )
   if (source === 'socials') return { items: [], isLoading: false }
   return { items, isLoading }

@@ -42,13 +42,17 @@ function typeLabel(type: CrmDashboardWidgetDTO['type']): string {
 export function DashboardCanvas({
   workspaceId,
   dashboardId,
+  basePath = 'crm',
 }: {
   workspaceId: string
   dashboardId: string
+  /** Segmento de módulo da API (`crm` ou `whatsapp`). */
+  basePath?: string
 }) {
   const { widgets, setWidgets, isLoading } = useCrmDashboardWidgets(
     workspaceId,
     dashboardId,
+    basePath,
   )
   const { width, containerRef, mounted } = useContainerWidth()
 
@@ -105,10 +109,11 @@ export function DashboardCanvas({
             w: item.w,
             h: item.h,
           })),
+          basePath,
         )
       }, 600)
     },
-    [editMode, workspaceId, dashboardId, setWidgets],
+    [editMode, workspaceId, dashboardId, basePath, setWidgets],
   )
 
   const nextY = React.useMemo(
@@ -133,6 +138,7 @@ export function DashboardCanvas({
       workspaceId,
       dashboardId,
       widget.id,
+      basePath,
     )
     if (!res.ok) {
       setWidgets(previous)
@@ -237,6 +243,7 @@ export function DashboardCanvas({
         onOpenChange={setPanelOpen}
         workspaceId={workspaceId}
         dashboardId={dashboardId}
+        basePath={basePath}
         editing={editing}
         nextY={nextY}
         onCreated={(widget) => setWidgets((prev) => [...prev, widget])}

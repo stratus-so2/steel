@@ -145,6 +145,7 @@ export function WidgetPanel({
   onOpenChange,
   workspaceId,
   dashboardId,
+  basePath = 'crm',
   editing,
   nextY,
   onCreated,
@@ -154,6 +155,8 @@ export function WidgetPanel({
   onOpenChange: (open: boolean) => void
   workspaceId: string
   dashboardId: string
+  /** Segmento de módulo da API (`crm` ou `whatsapp`). */
+  basePath?: string
   editing: CrmDashboardWidgetDTO | null
   nextY: number
   onCreated: (widget: CrmDashboardWidgetDTO) => void
@@ -191,6 +194,7 @@ export function WidgetPanel({
           dashboardId,
           editing.id,
           { config },
+          basePath,
         )
         if (!res.ok || !res.data) {
           notify.error(res.message ?? 'Não foi possível salvar o widget.')
@@ -199,14 +203,19 @@ export function WidgetPanel({
         onUpdated(res.data)
       } else {
         const { w, h } = DEFAULT_SIZE[type]
-        const res = await createCrmDashboardWidget(workspaceId, dashboardId, {
-          type,
-          config,
-          x: 0,
-          y: nextY,
-          w,
-          h,
-        } as Parameters<typeof createCrmDashboardWidget>[2])
+        const res = await createCrmDashboardWidget(
+          workspaceId,
+          dashboardId,
+          {
+            type,
+            config,
+            x: 0,
+            y: nextY,
+            w,
+            h,
+          } as Parameters<typeof createCrmDashboardWidget>[2],
+          basePath,
+        )
         if (!res.ok || !res.data) {
           notify.error(res.message ?? 'Não foi possível criar o widget.')
           return

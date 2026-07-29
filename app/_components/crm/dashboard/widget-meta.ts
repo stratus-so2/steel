@@ -129,6 +129,25 @@ export const VIEW_SOURCE_FIELDS: Record<ViewSource, ViewField[]> = {
     { key: 'publishedAt', label: 'Publicado em' },
     { key: 'createdAt', label: 'Criado em' },
   ],
+  'whatsapp-conversations': [
+    { key: 'contactName', label: 'Contato' },
+    { key: 'contactWaId', label: 'Telefone' },
+    { key: 'status', label: 'Status' },
+    { key: 'aiActive', label: 'IA ativa' },
+    { key: 'aiHandoff', label: 'Transferida p/ humano' },
+    { key: 'unreadCount', label: 'Não lidas' },
+    { key: 'lastMessageAt', label: 'Última mensagem' },
+    { key: 'createdAt', label: 'Criado em' },
+  ],
+  'whatsapp-broadcasts': [
+    { key: 'name', label: 'Nome' },
+    { key: 'status', label: 'Status' },
+    { key: 'recipientCount', label: 'Destinatários' },
+    { key: 'sentCount', label: 'Enviados' },
+    { key: 'failedCount', label: 'Falhas' },
+    { key: 'scheduledAt', label: 'Agendado para' },
+    { key: 'createdAt', label: 'Criado em' },
+  ],
 }
 
 export const VIEW_SOURCE_LABELS: Record<ViewSource, string> = {
@@ -140,6 +159,8 @@ export const VIEW_SOURCE_LABELS: Record<ViewSource, string> = {
   notes: 'Notas',
   forms: 'Formulários',
   'landing-pages': 'Landing pages',
+  'whatsapp-conversations': 'Conversas do WhatsApp',
+  'whatsapp-broadcasts': 'Transmissões do WhatsApp',
 }
 
 /** Labels do chart: view sources + "socials". */
@@ -148,9 +169,39 @@ export const CHART_SOURCE_LABELS: Record<ChartSource, string> = {
   socials: 'Redes sociais',
 }
 
-/** Traduz a fonte (valor do enum) para o recurso de API (`/crm/<resource>`). */
+/** Módulo dono de cada fonte — usado pra filtrar o dropdown por contexto
+ * (um dashboard do CRM não deve oferecer fontes do WhatsApp, e vice-versa). */
+export const SOURCE_MODULE: Record<ViewSource, 'CRM' | 'COMMUNICATION'> = {
+  companies: 'CRM',
+  people: 'CRM',
+  opportunities: 'CRM',
+  leads: 'CRM',
+  tasks: 'CRM',
+  notes: 'CRM',
+  forms: 'CRM',
+  'landing-pages': 'CRM',
+  'whatsapp-conversations': 'COMMUNICATION',
+  'whatsapp-broadcasts': 'COMMUNICATION',
+}
+
+/** Caminho de API por fonte (após `/api/workspaces/<id>/`). */
+const SOURCE_PATH: Record<ViewSource, string> = {
+  companies: 'crm/companies',
+  people: 'crm/people',
+  opportunities: 'crm/opportunities',
+  leads: 'crm/leads',
+  tasks: 'crm/tasks',
+  notes: 'crm/notes',
+  forms: 'crm/forms',
+  'landing-pages': 'crm/landing-pages',
+  'whatsapp-conversations': 'whatsapp/conversations',
+  'whatsapp-broadcasts': 'whatsapp/broadcasts',
+}
+
+/** Traduz a fonte (valor do enum) para o caminho de API completo. */
 export function sourceResource(source: ChartSource): string {
-  return source
+  if (source === 'socials') return ''
+  return SOURCE_PATH[source]
 }
 
 export const COMPARE_RANGE_LABELS: Record<CompareRange, string> = {

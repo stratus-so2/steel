@@ -50,6 +50,8 @@ export const VIEW_SOURCES = [
   'notes',
   'forms',
   'landing-pages',
+  'whatsapp-conversations',
+  'whatsapp-broadcasts',
 ] as const
 export type ViewSource = (typeof VIEW_SOURCES)[number]
 

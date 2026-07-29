@@ -9,22 +9,21 @@ type ApiResponse<T> = {
 }
 
 /**
- * Busca a lista de um recurso do CRM
- * (`/api/workspaces/<workspaceId>/crm/<resource>`), com refetch manual.
+ * Busca a lista de um recurso (`/api/workspaces/<workspaceId>/<path>`), com
+ * refetch manual. `path` é o caminho completo após `/api/workspaces/<id>/`
+ * (ex.: `crm/companies`, `whatsapp/conversations`).
  */
-export function useCrmResourceList<T>(workspaceId: string, resource: string) {
+export function useResourceList<T>(workspaceId: string, path: string) {
   const [items, setItems] = useState<T[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refetch = useCallback(async () => {
-    if (!workspaceId) return
+    if (!workspaceId || !path) return
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(
-        `/api/workspaces/${workspaceId}/crm/${resource}`,
-      )
+      const response = await fetch(`/api/workspaces/${workspaceId}/${path}`)
       const json = (await response.json()) as ApiResponse<T[]>
       if (!response.ok || !json.success || !json.data) {
         setError(json?.message ?? 'Não foi possível carregar os dados.')
@@ -36,13 +35,21 @@ export function useCrmResourceList<T>(workspaceId: string, resource: string) {
     } finally {
       setIsLoading(false)
     }
-  }, [workspaceId, resource])
+  }, [workspaceId, path])
 
   useEffect(() => {
     refetch()
   }, [refetch])
 
   return { items, isLoading, error, refetch }
+}
+
+/**
+ * Busca a lista de um recurso do CRM
+ * (`/api/workspaces/<workspaceId>/crm/<resource>`), com refetch manual.
+ */
+export function useCrmResourceList<T>(workspaceId: string, resource: string) {
+  return useResourceList<T>(workspaceId, `crm/${resource}`)
 }
 
 export type MutationResult<T> = {

@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
+import { useResourceList } from '@/src/hooks/use-crm-resource-list'
 import type { ViewConfig } from '@/src/schemas/crm-dashboard.schema'
 
 export function ViewWidget({
@@ -29,7 +29,7 @@ export function ViewWidget({
   workspaceId: string
   config: ViewConfig
 }) {
-  const { items, isLoading } = useCrmResourceList<Row>(
+  const { items, isLoading } = useResourceList<Row>(
     workspaceId,
     sourceResource(config.source),
   )
