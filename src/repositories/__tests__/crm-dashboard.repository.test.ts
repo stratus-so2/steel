@@ -21,6 +21,7 @@ describe('CrmDashboardRepository', () => {
         workspaceId: workspace.id,
         createdById: user.id,
         title: 'Second',
+        module: 'CRM',
       })
 
       const dashboard = expectOk(result)

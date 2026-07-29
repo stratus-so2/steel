@@ -2,6 +2,7 @@ import type {
   CrmDashboard,
   CrmDashboardWidget,
   CrmWidgetType,
+  ModuleKind,
   Prisma,
 } from '@prisma/client'
 import { notFound } from '@/src/errors'
@@ -10,10 +11,13 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export const CrmDashboardRepository = {
-  async listByWorkspace(workspaceId: string): Promise<Result<CrmDashboard[]>> {
+  async listByWorkspace(
+    workspaceId: string,
+    module: ModuleKind,
+  ): Promise<Result<CrmDashboard[]>> {
     try {
       const dashboards = await prisma.crmDashboard.findMany({
-        where: { workspaceId, deletedAt: null },
+        where: { workspaceId, module, deletedAt: null },
         orderBy: { position: 'asc' },
       })
       return ok(dashboards)
@@ -41,6 +45,7 @@ export const CrmDashboardRepository = {
     workspaceId: string
     createdById: string
     title: string
+    module: ModuleKind
   }): Promise<Result<CrmDashboard>> {
     try {
       const position = await prisma.crmDashboard.count({

@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client'
+import type { ModuleKind, Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -28,11 +28,15 @@ export const CrmDashboardService = {
   async list(
     actorId: string,
     workspaceId: string,
+    module: ModuleKind = 'CRM',
   ): Promise<Result<CrmDashboardDTO[]>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
 
-    const result = await CrmDashboardRepository.listByWorkspace(workspaceId)
+    const result = await CrmDashboardRepository.listByWorkspace(
+      workspaceId,
+      module,
+    )
     if (!result.ok) return result
 
     return ok(result.value.map(toCrmDashboardDTO))
@@ -42,6 +46,7 @@ export const CrmDashboardService = {
     actorId: string,
     workspaceId: string,
     dto: CreateCrmDashboardDTO,
+    module: ModuleKind = 'CRM',
   ): Promise<Result<CrmDashboardDTO>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
@@ -50,6 +55,7 @@ export const CrmDashboardService = {
       workspaceId,
       createdById: actorId,
       title: dto.title,
+      module,
     })
 
     if (!result.ok) {

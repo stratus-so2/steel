@@ -1,14 +1,17 @@
-import { type CrmReport, Prisma } from '@prisma/client'
+import { type CrmReport, type ModuleKind, Prisma } from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export const CrmReportRepository = {
-  async listByWorkspace(workspaceId: string): Promise<Result<CrmReport[]>> {
+  async listByWorkspace(
+    workspaceId: string,
+    module: ModuleKind,
+  ): Promise<Result<CrmReport[]>> {
     try {
       const reports = await prisma.crmReport.findMany({
-        where: { workspaceId, deletedAt: null },
+        where: { workspaceId, module, deletedAt: null },
         orderBy: { position: 'asc' },
       })
       return ok(reports)
@@ -32,6 +35,7 @@ export const CrmReportRepository = {
   async create(data: {
     workspaceId: string
     createdById: string
+    module: ModuleKind
     name: string
     source: string
     columns: Prisma.InputJsonValue

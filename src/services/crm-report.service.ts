@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client'
+import type { ModuleKind, Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import type { CrmReportRow } from '@/src/lib/crm-report-runner'
 import { runCrmReportQuery } from '@/src/lib/crm-report-runner'
@@ -18,6 +18,8 @@ import { CrmOpportunityService } from '@/src/services/crm-opportunity.service'
 import { CrmPersonService } from '@/src/services/crm-person.service'
 import { CrmProductService } from '@/src/services/crm-product.service'
 import { CrmTaskService } from '@/src/services/crm-task.service'
+import { WhatsAppBroadcastService } from '@/src/services/whatsapp-broadcast.service'
+import { WhatsAppConversationService } from '@/src/services/whatsapp-conversation.service'
 import type { CrmReportDTO } from '@/types/crm-report'
 import { assertMember } from './authz'
 
@@ -56,6 +58,14 @@ async function fetchSourceRows(
       return CrmProductService.list(actorId, workspaceId, {
         active: undefined,
       }) as Promise<Result<CrmReportRow[]>>
+    case 'whatsapp_conversation':
+      return WhatsAppConversationService.list(actorId, workspaceId) as Promise<
+        Result<CrmReportRow[]>
+      >
+    case 'whatsapp_broadcast':
+      return WhatsAppBroadcastService.list(actorId, workspaceId) as Promise<
+        Result<CrmReportRow[]>
+      >
     default:
       return ok([])
   }
@@ -65,11 +75,15 @@ export const CrmReportService = {
   async list(
     actorId: string,
     workspaceId: string,
+    module: ModuleKind = 'CRM',
   ): Promise<Result<CrmReportDTO[]>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
 
-    const result = await CrmReportRepository.listByWorkspace(workspaceId)
+    const result = await CrmReportRepository.listByWorkspace(
+      workspaceId,
+      module,
+    )
     if (!result.ok) return result
 
     return ok(result.value.map(toCrmReportDTO))
@@ -93,6 +107,7 @@ export const CrmReportService = {
     actorId: string,
     workspaceId: string,
     dto: CreateCrmReportDTO,
+    module: ModuleKind = 'CRM',
   ): Promise<Result<CrmReportDTO>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
@@ -100,6 +115,7 @@ export const CrmReportService = {
     const result = await CrmReportRepository.create({
       workspaceId,
       createdById: actorId,
+      module,
       name: dto.name,
       source: dto.source,
       columns: dto.columns as Prisma.InputJsonValue,

@@ -14,6 +14,7 @@ describe('CrmReportRepository', () => {
       const result = await CrmReportRepository.create({
         workspaceId: workspace.id,
         createdById: user.id,
+        module: 'CRM',
         name: 'Second',
         source: 'company',
         columns: ['name'],
@@ -35,6 +36,7 @@ describe('CrmReportRepository', () => {
       const result = await CrmReportRepository.create({
         workspaceId: workspace.id,
         createdById: user.id,
+        module: 'CRM',
         name: 'With query',
         source: 'company',
         columns: ['name'],
@@ -54,7 +56,7 @@ describe('CrmReportRepository', () => {
       await seedCrmReport(workspace.id, user.id, { deletedAt: new Date() })
 
       const list = expectOk(
-        await CrmReportRepository.listByWorkspace(workspace.id),
+        await CrmReportRepository.listByWorkspace(workspace.id, 'CRM'),
       )
       expect(list.map((r) => r.id)).toEqual([kept.id])
     })

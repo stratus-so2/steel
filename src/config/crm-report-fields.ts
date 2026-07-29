@@ -65,6 +65,26 @@ export const CRM_REPORT_FIELDS: Record<CrmReportSource, CrmReportFieldDef[]> = {
     { key: 'billingType', label: 'Cobrança', type: 'text' },
     { key: 'active', label: 'Ativo', type: 'text' },
   ],
+  whatsapp_conversation: [
+    { key: 'contactName', label: 'Contato', type: 'text' },
+    { key: 'contactWaId', label: 'Telefone', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+    { key: 'assignedUserId', label: 'Atendente', type: 'text' },
+    { key: 'aiActive', label: 'IA ativa', type: 'text' },
+    { key: 'aiHandoff', label: 'Transferida p/ humano', type: 'text' },
+    { key: 'unreadCount', label: 'Não lidas', type: 'number' },
+    { key: 'lastMessageAt', label: 'Última mensagem', type: 'date' },
+    { key: 'createdAt', label: 'Criado em', type: 'date' },
+  ],
+  whatsapp_broadcast: [
+    { key: 'name', label: 'Nome', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+    { key: 'recipientCount', label: 'Destinatários', type: 'number' },
+    { key: 'sentCount', label: 'Enviados', type: 'number' },
+    { key: 'failedCount', label: 'Falhas', type: 'number' },
+    { key: 'scheduledAt', label: 'Agendado para', type: 'date' },
+    { key: 'createdAt', label: 'Criado em', type: 'date' },
+  ],
 }
 
 export const CRM_REPORT_SOURCE_LABELS: Record<CrmReportSource, string> = {
@@ -75,6 +95,8 @@ export const CRM_REPORT_SOURCE_LABELS: Record<CrmReportSource, string> = {
   task: 'Tarefas',
   note: 'Anotações',
   product: 'Produtos',
+  whatsapp_conversation: 'Conversas do WhatsApp',
+  whatsapp_broadcast: 'Transmissões do WhatsApp',
 }
 
 /**
@@ -127,6 +149,8 @@ export const CRM_REPORT_RELATIONS: Record<
     },
   ],
   product: [],
+  whatsapp_conversation: [],
+  whatsapp_broadcast: [],
 }
 
 /** Rótulo amigável de um campo (com fallback para a própria chave). */

@@ -14,6 +14,8 @@ export const CRM_REPORT_SOURCES = [
   'task',
   'note',
   'product',
+  'whatsapp_conversation',
+  'whatsapp_broadcast',
 ] as const
 export type CrmReportSource = (typeof CRM_REPORT_SOURCES)[number]
 

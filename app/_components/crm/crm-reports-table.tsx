@@ -51,6 +51,8 @@ const SOURCE_STYLES: Record<CrmReportSource, string> = {
   task: 'bg-sky-500/15 text-sky-600',
   note: 'bg-rose-500/15 text-rose-600',
   product: 'bg-teal-500/15 text-teal-600',
+  whatsapp_conversation: 'bg-green-500/15 text-green-600',
+  whatsapp_broadcast: 'bg-lime-500/15 text-lime-600',
 }
 
 const COLUMNS: GridColumn[] = [
