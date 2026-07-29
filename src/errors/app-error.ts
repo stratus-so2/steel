@@ -210,6 +210,17 @@ export const whatsappContactPhotoUnavailable = (
   message = 'Buscar foto de perfil exige uma conexão Z-API — a API oficial da Meta não expõe fotos de contato',
 ): AppError => appError('WHATSAPP_CONTACT_PHOTO_UNAVAILABLE', message)
 
+export const whatsappAiKnowledgeDocumentNotFound = (): AppError =>
+  appError(
+    'WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND',
+    'Documento não encontrado',
+  )
+
+export const whatsappAiKnowledgeDocumentUnsupportedType = (
+  message = 'Formato não suportado. Use PDF, DOCX ou TXT',
+): AppError =>
+  appError('WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE', message)
+
 export const crmCompanyNotFound = (): AppError =>
   appError('CRM_COMPANY_NOT_FOUND', 'Empresa não encontrada')
 

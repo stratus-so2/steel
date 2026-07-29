@@ -98,6 +98,8 @@ export {
   usernameConflict,
   validationError,
   whatsappAiConfigNotFound,
+  whatsappAiKnowledgeDocumentNotFound,
+  whatsappAiKnowledgeDocumentUnsupportedType,
   whatsappBroadcastLocked,
   whatsappBroadcastNotFound,
   whatsappConnectionConflict,
