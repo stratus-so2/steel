@@ -847,6 +847,7 @@ model WhatsAppBroadcastList {
   id           String                  @id @default(cuid())
   workspaceId  String                  @map("workspace_id")
   connectionId String                  @map("connection_id")
+  templateId   String?                 @map("template_id")
   name         String
   messageBody  String                  @map("message_body")
   mediaUrl     String?                 @map("media_url")
@@ -858,10 +859,12 @@ model WhatsAppBroadcastList {
 
   workspace  Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   connection WhatsAppConnection           @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  template   WhatsAppTemplate?            @relation(fields: [templateId], references: [id], onDelete: SetNull)
   createdBy  User                         @relation("WhatsAppBroadcastCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
   recipients WhatsAppBroadcastRecipient[]
 
   @@index([workspaceId])
+  @@index([templateId])
   @@map("whatsapp_broadcast_lists")
 }
 
@@ -876,6 +879,14 @@ model WhatsAppBroadcastRecipient {
   broadcastListId   String                           @map("broadcast_list_id")
   contactId         String                           @map("contact_id")
   status            WhatsAppBroadcastRecipientStatus @default(PENDING)
+  // Valores para preencher as variáveis do template Meta, na forma
+  // TemplateFillValues (header/body/buttons) de template-variables.ts.
+  // Nulo para broadcasts de texto simples (sem template).
+  variableValues    Json?                            @map("variable_values")
+  // Horário de disparo individual — cada linha da planilha importada tem
+  // sua própria data de referência (ex: consulta agendada), então o
+  // agendamento é por destinatário, não pela lista inteira.
+  scheduledAt       DateTime?                        @map("scheduled_at")
   providerMessageId String?                          @map("provider_message_id")
   errorMessage      String?                          @map("error_message")
   sentAt            DateTime?                        @map("sent_at")
@@ -886,6 +897,7 @@ model WhatsAppBroadcastRecipient {
 
   @@unique([broadcastListId, contactId])
   @@index([broadcastListId, status])
+  @@index([status, scheduledAt])
   @@map("whatsapp_broadcast_recipients")
 }
 
@@ -907,8 +919,9 @@ model WhatsAppTemplate {
   createdAt    DateTime               @default(now()) @map("created_at")
   updatedAt    DateTime               @updatedAt @map("updated_at")
 
-  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  connection WhatsAppConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  workspace      Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection     WhatsAppConnection      @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  broadcastLists WhatsAppBroadcastList[]
 
   @@unique([connectionId, name, language])
   @@index([workspaceId])
@@ -2061,11 +2074,11 @@ model CrmWorkflow {
   updatedAt       DateTime          @updatedAt @map("updated_at")
   deletedAt       DateTime?         @map("deleted_at")
 
-  workspace     Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy     User                   @relation("CrmWorkflowCreatedBy", fields: [createdById], references: [id])
-  updatedBy     User?                  @relation("CrmWorkflowUpdatedBy", fields: [updatedById], references: [id])
-  activeVersion CrmWorkflowVersion?    @relation("CrmWorkflowActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
-  versions      CrmWorkflowVersion[]   @relation("CrmWorkflowVersions")
+  workspace     Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User                 @relation("CrmWorkflowCreatedBy", fields: [createdById], references: [id])
+  updatedBy     User?                @relation("CrmWorkflowUpdatedBy", fields: [updatedById], references: [id])
+  activeVersion CrmWorkflowVersion?  @relation("CrmWorkflowActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      CrmWorkflowVersion[] @relation("CrmWorkflowVersions")
   runs          CrmWorkflowRun[]
 
   @@index([workspaceId])
@@ -2272,18 +2285,18 @@ model CrmSocialConnection {
 /// Biblioteca reordenável de "hooks" (linhas de abertura/copy reaproveitável
 /// para posts sociais).
 model CrmHookVaultItem {
-  id          String            @id @default(cuid())
+  id          String             @id @default(cuid())
   text        String
   platform    CrmSocialPlatform?
-  usageCount  Int               @default(0) @map("usage_count")
+  usageCount  Int                @default(0) @map("usage_count")
   notes       String?
-  workspaceId String            @map("workspace_id")
-  createdById String            @map("created_by_id")
-  updatedById String?           @map("updated_by_id")
-  position    Int               @default(0)
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
-  deletedAt   DateTime?         @map("deleted_at")
+  workspaceId String             @map("workspace_id")
+  createdById String             @map("created_by_id")
+  updatedById String?            @map("updated_by_id")
+  position    Int                @default(0)
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  deletedAt   DateTime?          @map("deleted_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation("CrmHookVaultItemCreatedBy", fields: [createdById], references: [id])
@@ -2297,19 +2310,19 @@ model CrmHookVaultItem {
 
 /// Perfil social de um concorrente rastreado manualmente.
 model CrmTrackedCompetitor {
-  id              String            @id @default(cuid())
-  platform        CrmSocialPlatform
-  handle          String
-  profileUrl      String?           @map("profile_url")
-  followersCount  Int?              @map("followers_count")
-  notes           String?
-  workspaceId     String            @map("workspace_id")
-  createdById     String            @map("created_by_id")
-  updatedById     String?           @map("updated_by_id")
-  position        Int               @default(0)
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
-  deletedAt       DateTime?         @map("deleted_at")
+  id             String            @id @default(cuid())
+  platform       CrmSocialPlatform
+  handle         String
+  profileUrl     String?           @map("profile_url")
+  followersCount Int?              @map("followers_count")
+  notes          String?
+  workspaceId    String            @map("workspace_id")
+  createdById    String            @map("created_by_id")
+  updatedById    String?           @map("updated_by_id")
+  position       Int               @default(0)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  deletedAt      DateTime?         @map("deleted_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation("CrmTrackedCompetitorCreatedBy", fields: [createdById], references: [id])
