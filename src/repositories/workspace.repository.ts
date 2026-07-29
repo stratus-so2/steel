@@ -28,6 +28,26 @@ export const WorkspaceRepository = {
     }
   },
 
+  /** Todos os workspaces com contagem de membros, para o painel admin global. */
+  async listAllWithCounts(): Promise<
+    Result<(Workspace & { memberCount: number })[]>
+  > {
+    try {
+      const workspaces = await prisma.workspace.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { memberships: true } } },
+      })
+      return ok(
+        workspaces.map(({ _count, ...workspace }) => ({
+          ...workspace,
+          memberCount: _count.memberships,
+        })),
+      )
+    } catch (error) {
+      return err(dbError('Failed to list workspaces', error))
+    }
+  },
+
   async create(data: {
     name: string
     slug: string

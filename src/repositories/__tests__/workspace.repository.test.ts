@@ -43,6 +43,35 @@ describe('WorkspaceRepository', () => {
     })
   })
 
+  describe('listAllWithCounts()', () => {
+    it('should list workspaces with their member count', async () => {
+      const ws = await seedWorkspace({ name: 'Counted' })
+      const owner = await seedUser({ email: 'counted-owner@example.com' })
+      const member = await seedUser({ email: 'counted-member@example.com' })
+      await prisma.membership.createMany({
+        data: [
+          { userId: owner.id, workspaceId: ws.id, role: 'OWNER' },
+          { userId: member.id, workspaceId: ws.id, role: 'MEMBER' },
+        ],
+      })
+
+      const result = await WorkspaceRepository.listAllWithCounts()
+
+      const list = expectOk(result)
+      const found = list.find((w) => w.id === ws.id)
+      expect(found?.memberCount).toBe(2)
+    })
+
+    it('should return memberCount 0 for a workspace with no members', async () => {
+      const ws = await seedWorkspace({ name: 'Empty' })
+
+      const list = expectOk(await WorkspaceRepository.listAllWithCounts())
+
+      const found = list.find((w) => w.id === ws.id)
+      expect(found?.memberCount).toBe(0)
+    })
+  })
+
   describe('create()', () => {
     it('should persist workspace with default plan FREE', async () => {
       const result = await WorkspaceRepository.create({
