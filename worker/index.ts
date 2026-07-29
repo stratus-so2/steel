@@ -20,6 +20,7 @@ import {
   scheduleCrmWorkflowScheduleJobs,
   scheduleDataRetentionJobs,
   scheduleTrialLifecycleJobs,
+  scheduleWhatsappBroadcastJobs,
 } from '../src/lib/queue/scheduler'
 
 const workers: Worker[] = []
@@ -118,6 +119,7 @@ async function main(): Promise<void> {
   await scheduleTrialLifecycleJobs()
   await scheduleCrmScheduledSendJobs()
   await scheduleCrmWorkflowScheduleJobs()
+  await scheduleWhatsappBroadcastJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

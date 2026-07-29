@@ -87,6 +87,7 @@ export type WhatsappAiReplyJobPayload = {
 
 export const WhatsappBroadcastJob = {
   SendBroadcastMessage: 'send-broadcast-message',
+  RunScheduleTick: 'run-schedule-tick',
 } as const
 
 export type WhatsappBroadcastJob =
@@ -97,6 +98,7 @@ export type WhatsappBroadcastJobPayload = {
     broadcastListId: string
     recipientId: string
   }
+  [WhatsappBroadcastJob.RunScheduleTick]: Record<string, never>
 }
 
 export const WhatsappTemplateSyncJob = {

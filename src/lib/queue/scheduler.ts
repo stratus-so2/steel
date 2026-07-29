@@ -5,18 +5,21 @@ import {
   CrmWorkflowScheduleJob,
   DataRetentionJob,
   TrialLifecycleJob,
+  WhatsappBroadcastJob,
 } from './jobs'
 import {
   getCrmScheduledSendQueue,
   getCrmWorkflowScheduleQueue,
   getDataRetentionQueue,
   getTrialLifecycleQueue,
+  getWhatsappBroadcastQueue,
 } from './queues'
 import {
   CrmScheduledSendCron,
   CrmWorkflowScheduleCron,
   RetentionCron,
   RetentionTimezone,
+  WhatsappBroadcastScheduleCron,
 } from './retention'
 
 export async function scheduleDataRetentionJobs(): Promise<void> {
@@ -97,6 +100,21 @@ export async function scheduleCrmWorkflowScheduleJobs(): Promise<void> {
   logger.info('queue.scheduler.crm_workflow_schedule_registered', {
     component: 'Worker',
     pattern: CrmWorkflowScheduleCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleWhatsappBroadcastJobs(): Promise<void> {
+  const queue = getWhatsappBroadcastQueue()
+  await queue.upsertJobScheduler(
+    WhatsappBroadcastJob.RunScheduleTick,
+    { pattern: WhatsappBroadcastScheduleCron, tz: RetentionTimezone },
+    { name: WhatsappBroadcastJob.RunScheduleTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.whatsapp_broadcast_schedule_registered', {
+    component: 'Worker',
+    pattern: WhatsappBroadcastScheduleCron,
     timezone: RetentionTimezone,
   })
 }

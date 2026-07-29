@@ -11,6 +11,7 @@ import {
 import type { WhatsAppSendResult } from '@/src/lib/whatsapp/types'
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsappBroadcastJob, type WhatsappBroadcastJobPayload } from '../jobs'
+import { getWhatsappBroadcastQueue } from '../queues'
 
 interface TemplateVariableValues {
   header?: Record<number, string>
@@ -118,12 +119,46 @@ async function processSendBroadcastMessage(
   })
 }
 
+async function processRunScheduleTick(job: Job): Promise<void> {
+  const due = await WhatsAppBroadcastRepository.listDueScheduledRecipients(
+    new Date(),
+  )
+  if (!due.ok) {
+    throw new Error(
+      `Failed to list due scheduled broadcast recipients: ${due.error.code}`,
+    )
+  }
+
+  const queue = getWhatsappBroadcastQueue()
+  await queue.addBulk(
+    due.value.map((recipient) => ({
+      name: WhatsappBroadcastJob.SendBroadcastMessage,
+      data: {
+        broadcastListId: recipient.broadcastListId,
+        recipientId: recipient.id,
+      },
+      // jobId determinístico: evita reenfileirar o mesmo destinatário se o
+      // tick rodar de novo antes do job anterior sair de PENDING (BullMQ
+      // recusa duplicar um jobId ainda ativo/esperando na fila).
+      opts: { jobId: `broadcast-recipient-${recipient.id}` },
+    })),
+  )
+
+  logger.info('queue.whatsapp_broadcast.tick_completed', {
+    component: 'WhatsappBroadcast',
+    jobId: job.id,
+    due: due.value.length,
+  })
+}
+
 export async function processWhatsappBroadcast(job: Job): Promise<void> {
   switch (job.name) {
     case WhatsappBroadcastJob.SendBroadcastMessage:
       return processSendBroadcastMessage(
         job as Job<WhatsappBroadcastJobPayload['send-broadcast-message']>,
       )
+    case WhatsappBroadcastJob.RunScheduleTick:
+      return processRunScheduleTick(job)
     default:
       throw new Error(
         `Unknown whatsapp-broadcast job: ${job.name} (id=${job.id ?? 'unknown'})`,
