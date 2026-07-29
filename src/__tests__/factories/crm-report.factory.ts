@@ -9,6 +9,7 @@ export function createFakeCrmReport(overrides?: Partial<CrmReport>): CrmReport {
   return {
     id: createId(),
     workspaceId: createId(),
+    module: 'CRM',
     name: 'Pipeline por etapa',
     source: 'opportunity',
     columns: ['name', 'amount'],
@@ -41,6 +42,7 @@ export function createFakeCrmReportDTO(
   return {
     id: createId(),
     workspaceId: createId(),
+    module: 'CRM',
     name: 'Pipeline por etapa',
     source: 'opportunity',
     columns: ['name', 'amount'],

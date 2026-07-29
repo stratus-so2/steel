@@ -9,6 +9,7 @@ export function toCrmDashboardDTO(dashboard: CrmDashboard): CrmDashboardDTO {
     id: dashboard.id,
     title: dashboard.title,
     workspaceId: dashboard.workspaceId,
+    module: dashboard.module,
     createdById: dashboard.createdById,
     updatedById: dashboard.updatedById,
     position: dashboard.position,

@@ -3,12 +3,14 @@ import type {
   CrmReportQuery,
   CrmReportSort,
 } from '@/src/schemas/crm-report.schema'
+import type { ModuleKind } from './workspace-connection'
 
 export type { CrmReportFilter, CrmReportSort }
 
 export interface CrmReportDTO {
   id: string
   workspaceId: string
+  module: ModuleKind
   name: string
   source: string
   columns: string[]

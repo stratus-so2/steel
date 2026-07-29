@@ -1,7 +1,10 @@
+import type { ModuleKind } from './workspace-connection'
+
 export interface CrmDashboardDTO {
   id: string
   title: string
   workspaceId: string
+  module: ModuleKind
   createdById: string
   updatedById: string | null
   position: number

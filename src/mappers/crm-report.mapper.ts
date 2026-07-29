@@ -49,6 +49,7 @@ export function toCrmReportDTO(report: CrmReport): CrmReportDTO {
   return {
     id: report.id,
     workspaceId: report.workspaceId,
+    module: report.module,
     name: report.name,
     source: report.source,
     columns: (report.columns as string[]) ?? [],

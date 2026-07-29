@@ -1591,24 +1591,27 @@ model CrmQuota {
 
 /// Relatório tabular salvo: fonte + colunas/filtros/agrupamento/ordenação (Json).
 model CrmReport {
-  id          String    @id @default(cuid())
-  workspaceId String    @map("workspace_id")
+  id          String     @id @default(cuid())
+  workspaceId String     @map("workspace_id")
+  /// Módulo dono do relatório (CRM ou COMMUNICATION/WhatsApp) — o motor é
+  /// compartilhado, isto só filtra a listagem por área do produto.
+  module      ModuleKind @default(CRM)
   name        String
   source      String
   columns     Json
   filters     Json
-  groupBy     String?   @map("group_by")
+  groupBy     String?    @map("group_by")
   sort        Json?
   /// Mega-relatório: query normalizada (múltiplas fontes + JOIN/UNION +
   /// agregação). Quando nulo, os campos legados acima (source/columns/
   /// filters/groupBy/sort) sintetizam uma query de fonte única.
   query       Json?
-  position    Int       @default(0)
-  createdById String    @map("created_by_id")
-  updatedById String?   @map("updated_by_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  position    Int        @default(0)
+  createdById String     @map("created_by_id")
+  updatedById String?    @map("updated_by_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation("CrmReportCreatedBy", fields: [createdById], references: [id])
@@ -1617,6 +1620,7 @@ model CrmReport {
   @@index([workspaceId])
   @@index([deletedAt])
   @@index([workspaceId, position])
+  @@index([workspaceId, module])
   @@map("crm_reports")
 }
 
@@ -1629,15 +1633,18 @@ enum CrmWidgetType {
 
 /// Dashboard customizável por workspace (grade de widgets).
 model CrmDashboard {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String
-  workspaceId String    @map("workspace_id")
-  createdById String    @map("created_by_id")
-  updatedById String?   @map("updated_by_id")
-  position    Int       @default(0)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  workspaceId String     @map("workspace_id")
+  /// Módulo dono do dashboard (CRM ou COMMUNICATION/WhatsApp) — o motor é
+  /// compartilhado, isto só filtra a listagem por área do produto.
+  module      ModuleKind @default(CRM)
+  createdById String     @map("created_by_id")
+  updatedById String?    @map("updated_by_id")
+  position    Int        @default(0)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  deletedAt   DateTime?  @map("deleted_at")
 
   workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User                 @relation("CrmDashboardCreatedBy", fields: [createdById], references: [id])
@@ -1647,6 +1654,7 @@ model CrmDashboard {
   @@index([workspaceId])
   @@index([deletedAt])
   @@index([workspaceId, position])
+  @@index([workspaceId, module])
   @@map("crm_dashboards")
 }
 
