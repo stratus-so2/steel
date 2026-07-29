@@ -183,6 +183,9 @@ jobs:
       # its own auth rate limiting; disable only better-auth's here.
       DISABLE_AUTH_RATE_LIMIT: 'true'
       MAIL_DRY_RUN: 'true'
+      MINIO_ENDPOINT: http://localhost:9000
+      MINIO_USER: ci-minio-user
+      MINIO_PASSWORD: ci-minio-password-not-real
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -209,6 +212,29 @@ jobs:
 
       - name: Push database schema
         run: pnpm prisma db push
+
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=$MINIO_USER \
+            -e MINIO_ROOT_PASSWORD=$MINIO_PASSWORD \
+            minio/minio:RELEASE.2025-02-28T09-55-16Z \
+            server /data
+
+      - name: Wait for MinIO to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9000/minio/health/live > /dev/null 2>&1; then
+              echo "MinIO is ready"
+              exit 0
+            fi
+            echo "Waiting for MinIO... ($i/30)"
+            sleep 1
+          done
+          echo "MinIO failed to become ready"
+          docker logs minio
+          exit 1
 
       - name: Build application
         run: pnpm build
