@@ -13,11 +13,37 @@ import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
 import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
+import { WhatsAppAiKnowledgeDocumentRepository } from '@/src/repositories/whatsapp-ai-knowledge-document.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsappAiReplyJob, type WhatsappAiReplyJobPayload } from '../jobs'
 
 const HISTORY_LIMIT = 20
 const TRANSCRIPTION_MODEL = 'whisper-1'
+
+// Injeção direta no prompt (sem embeddings/busca — decisão registrada no
+// plano: poucos documentos por workspace no caso de uso real). Limite de
+// caracteres pra não estourar o contexto do modelo com muitos documentos.
+const KNOWLEDGE_BASE_CHAR_BUDGET = 20_000
+
+async function buildKnowledgeBaseSection(workspaceId: string): Promise<string> {
+  const documents =
+    await WhatsAppAiKnowledgeDocumentRepository.listReadyTextsByWorkspace(
+      workspaceId,
+    )
+  if (!documents.ok || documents.value.length === 0) return ''
+
+  let remaining = KNOWLEDGE_BASE_CHAR_BUDGET
+  const sections: string[] = []
+  for (const doc of documents.value) {
+    if (remaining <= 0) break
+    const text = doc.extractedText.slice(0, remaining)
+    sections.push(`### ${doc.filename}\n${text}`)
+    remaining -= text.length
+  }
+  if (sections.length === 0) return ''
+
+  return `\n\nBase de conhecimento (use como referência para responder; não mencione que são "documentos anexados"):\n${sections.join('\n\n')}`
+}
 
 // Convenção de handoff: a IA inclui esse marcador na resposta quando decide
 // transferir para um humano; o processor remove antes de enviar ao cliente.
@@ -165,10 +191,16 @@ async function processGenerateAiReply(
           } as ChatCompletionMessageParam)
     }),
   )
+  const knowledgeBaseSection = await buildKnowledgeBaseSection(
+    conversation.workspaceId,
+  )
   const messages: ChatCompletionMessageParam[] = [
     {
       role: 'system',
-      content: aiConfig.systemPrompt + HANDOFF_SYSTEM_INSTRUCTION,
+      content:
+        aiConfig.systemPrompt +
+        HANDOFF_SYSTEM_INSTRUCTION +
+        knowledgeBaseSection,
     },
     ...historyMessages,
   ]
