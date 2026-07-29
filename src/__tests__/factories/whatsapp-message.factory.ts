@@ -21,6 +21,8 @@ export function createFakeWhatsAppMessage(
     reactionEmoji: null,
     reactedByContact: null,
     contactPayload: null,
+    sentiment: null,
+    sentimentScore: null,
     deletedAt: null,
     createdAt: now,
     updatedAt: now,

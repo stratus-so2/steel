@@ -18,6 +18,7 @@ export function createFakeWhatsAppConversation(
     aiActive: false,
     aiHandoff: false,
     unreadCount: 0,
+    avgSentimentScore: null,
     lastMessageAt: now,
     pinnedAt: null,
     archivedAt: null,
