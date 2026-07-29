@@ -25,6 +25,7 @@ type AuditEntity =
   | 'whatsapp_broadcast_list'
   | 'whatsapp_template'
   | 'whatsapp_ai_config'
+  | 'whatsapp_ai_knowledge_document'
   | 'whatsapp_group'
   | 'whatsapp_group_message'
   | 'crm_company'

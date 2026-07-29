@@ -1,5 +1,6 @@
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
   PutBucketPolicyCommand,
@@ -76,6 +77,18 @@ export async function putObject(input: PutObjectInput): Promise<void> {
       Body: input.body,
       ContentType: input.contentType,
     }),
+  )
+}
+
+export interface DeleteObjectInput {
+  bucket: string
+  key: string
+}
+
+export async function deleteObject(input: DeleteObjectInput): Promise<void> {
+  const s3 = getS3Client()
+  await s3.send(
+    new DeleteObjectCommand({ Bucket: input.bucket, Key: input.key }),
   )
 }
 
