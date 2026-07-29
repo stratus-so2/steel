@@ -85,6 +85,56 @@ export const WhatsAppBroadcastRepository = {
     }
   },
 
+  async createScheduled(
+    data: Prisma.WhatsAppBroadcastListUncheckedCreateInput,
+    recipients: {
+      contactId: string
+      variableValues: Prisma.InputJsonValue
+      scheduledAt: Date
+    }[],
+  ): Promise<Result<WhatsAppBroadcastListWithRecipients>> {
+    try {
+      const list = await prisma.whatsAppBroadcastList.create({
+        data: {
+          ...data,
+          status: 'QUEUED',
+          recipients: { create: recipients },
+        },
+        include: detailInclude,
+      })
+      return ok(list)
+    } catch (error) {
+      return err(
+        dbError('Failed to create scheduled whatsapp broadcast', error),
+      )
+    }
+  },
+
+  async listDueScheduledRecipients(now: Date): Promise<
+    Result<
+      (WhatsAppBroadcastRecipient & {
+        contact: { waId: string }
+        broadcastList: WhatsAppBroadcastList
+      })[]
+    >
+  > {
+    try {
+      const recipients = await prisma.whatsAppBroadcastRecipient.findMany({
+        where: {
+          status: 'PENDING',
+          scheduledAt: { lte: now },
+          broadcastList: { status: 'QUEUED' },
+        },
+        include: { contact: true, broadcastList: true },
+      })
+      return ok(recipients)
+    } catch (error) {
+      return err(
+        dbError('Failed to list due scheduled broadcast recipients', error),
+      )
+    }
+  },
+
   async updateStatus(
     id: string,
     status: WhatsAppBroadcastStatus,
