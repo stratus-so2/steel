@@ -3,6 +3,7 @@ import type {
   WhatsAppBroadcastListDetailDTO,
   WhatsAppBroadcastListDTO,
 } from '@/types/whatsapp-broadcast'
+import type { WhatsAppBroadcastImportResultDTO } from '@/types/whatsapp-broadcast-import'
 import { apiFetch } from './_fetch'
 
 const BROADCASTS_KEY = (workspaceId: string) =>
@@ -14,6 +15,14 @@ interface CreateBroadcastInput {
   messageBody: string
   mediaUrl?: string
   contactIds: string[]
+}
+
+interface ImportBroadcastInput {
+  name: string
+  connectionId: string
+  templateId: string
+  sendOffsetHours: number
+  csv: string
 }
 
 export function useWhatsAppBroadcasts(workspaceId: string) {
@@ -60,6 +69,26 @@ export function useCreateWhatsAppBroadcast(workspaceId: string) {
           body: JSON.stringify(data),
         },
         'Erro ao criar lista de transmissão',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: BROADCASTS_KEY(workspaceId) })
+    },
+  })
+}
+
+export function useImportWhatsAppBroadcast(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: ImportBroadcastInput) =>
+      apiFetch<WhatsAppBroadcastImportResultDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/broadcasts/import`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        },
+        'Erro ao importar planilha',
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: BROADCASTS_KEY(workspaceId) })

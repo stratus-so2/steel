@@ -34,11 +34,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import {
   useCreateWhatsAppBroadcast,
+  useImportWhatsAppBroadcast,
   useStartWhatsAppBroadcast,
   useWhatsAppBroadcasts,
 } from '@/src/hooks/use-whatsapp-broadcasts'
 import { useWhatsAppConnections } from '@/src/hooks/use-whatsapp-connections'
 import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
+import { useWhatsAppTemplates } from '@/src/hooks/use-whatsapp-templates'
+import type { WhatsAppBroadcastImportResultDTO } from '@/types/whatsapp-broadcast-import'
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: 'Rascunho',
@@ -183,6 +186,191 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
   )
 }
 
+function ImportBroadcastDialog({ workspaceId }: { workspaceId: string }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [connectionId, setConnectionId] = useState<string>()
+  const [templateId, setTemplateId] = useState<string>()
+  const [sendOffsetHours, setSendOffsetHours] = useState(24)
+  const [file, setFile] = useState<File | null>(null)
+  const [result, setResult] = useState<WhatsAppBroadcastImportResultDTO | null>(
+    null,
+  )
+
+  const connections = useWhatsAppConnections(workspaceId)
+  const templates = useWhatsAppTemplates(workspaceId)
+  const approvedTemplates = (templates.data ?? []).filter(
+    (t) => t.status === 'APPROVED',
+  )
+  const importBroadcast = useImportWhatsAppBroadcast(workspaceId)
+
+  function resetAndClose() {
+    setName('')
+    setConnectionId(undefined)
+    setTemplateId(undefined)
+    setSendOffsetHours(24)
+    setFile(null)
+    setResult(null)
+    setOpen(false)
+  }
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!connectionId || !templateId || !file) {
+      notify.error('Selecione a conexão, o template e o arquivo CSV')
+      return
+    }
+
+    const csv = await file.text()
+    importBroadcast.mutate(
+      { name, connectionId, templateId, sendOffsetHours, csv },
+      {
+        onSuccess: (data) => setResult(data),
+        onError: (error) => notify.error(error, 'Não foi possível importar'),
+      },
+    )
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => (next ? setOpen(true) : resetAndClose())}
+    >
+      <DialogTrigger
+        render={
+          <Button size='sm' variant='outline'>
+            Importar planilha
+          </Button>
+        }
+      />
+      <DialogContent className='max-w-lg'>
+        <DialogHeader>
+          <DialogTitle>Importar planilha (CSV)</DialogTitle>
+        </DialogHeader>
+
+        {result ? (
+          <div className='space-y-3'>
+            <p className='text-sm'>
+              {result.createdCount} destinatário(s) agendado(s) com sucesso.
+            </p>
+            {result.rejectedRows.length > 0 && (
+              <div className='max-h-48 space-y-1 overflow-y-auto rounded-md border p-2 text-xs'>
+                {result.rejectedRows.map((row) => (
+                  <p key={row.rowNumber} className='text-destructive'>
+                    Linha {row.rowNumber}: {row.reason}
+                  </p>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={resetAndClose}>Fechar</Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className='space-y-3'>
+            <p className='text-muted-foreground text-xs'>
+              Colunas obrigatórias: <code>telefone</code>,{' '}
+              <code>data_referencia</code> e uma coluna <code>var_1</code>,{' '}
+              <code>var_2</code>... para cada variável do BODY do template.
+              Coluna <code>nome</code> é opcional.
+            </p>
+
+            <div className='space-y-1.5'>
+              <Label htmlFor='importName'>Nome</Label>
+              <Input
+                id='importName'
+                required
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+
+            <div className='space-y-1.5'>
+              <Label htmlFor='importConnection'>Conexão</Label>
+              <Select
+                value={connectionId}
+                onValueChange={(value) => setConnectionId(value ?? undefined)}
+              >
+                <SelectTrigger id='importConnection' className='w-full'>
+                  <SelectValue placeholder='Selecione a conexão' />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                    {(connections.data ?? []).map((connection) => (
+                      <SelectItem key={connection.id} value={connection.id}>
+                        {connection.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className='space-y-1.5'>
+              <Label htmlFor='importTemplate'>Template (aprovado)</Label>
+              <Select
+                value={templateId}
+                onValueChange={(value) => setTemplateId(value ?? undefined)}
+              >
+                <SelectTrigger id='importTemplate' className='w-full'>
+                  <SelectValue placeholder='Selecione o template' />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                    {approvedTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {approvedTemplates.length === 0 && (
+                <p className='text-muted-foreground text-xs'>
+                  Nenhum template aprovado neste workspace ainda.
+                </p>
+              )}
+            </div>
+
+            <div className='space-y-1.5'>
+              <Label htmlFor='importOffset'>
+                Enviar quantas horas antes da data de referência
+              </Label>
+              <Input
+                id='importOffset'
+                type='number'
+                min={0}
+                required
+                value={sendOffsetHours}
+                onChange={(event) =>
+                  setSendOffsetHours(Number(event.target.value))
+                }
+              />
+            </div>
+
+            <div className='space-y-1.5'>
+              <Label htmlFor='importFile'>Arquivo CSV</Label>
+              <Input
+                id='importFile'
+                type='file'
+                accept='.csv,text/csv'
+                required
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type='submit' disabled={importBroadcast.isPending}>
+                {importBroadcast.isPending ? 'Importando...' : 'Importar'}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function WhatsappSettingsBroadcasts({
   workspaceId,
 }: {
@@ -201,7 +389,10 @@ export function WhatsappSettingsBroadcasts({
             automático entre os envios
           </p>
         </div>
-        <CreateBroadcastDialog workspaceId={workspaceId} />
+        <div className='flex items-center gap-2'>
+          <ImportBroadcastDialog workspaceId={workspaceId} />
+          <CreateBroadcastDialog workspaceId={workspaceId} />
+        </div>
       </div>
 
       <Table>
