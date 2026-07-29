@@ -124,9 +124,11 @@ function PermissionMatrix({
 
 function CreateProfileDialog({
   workspaceId,
+  basePath,
   onCreated,
 }: {
   workspaceId: string
+  basePath?: string
   onCreated: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -137,10 +139,11 @@ function CreateProfileDialog({
   async function handleCreate() {
     if (!name.trim()) return
     setSaving(true)
-    const result = await createProfile(workspaceId, {
-      name: name.trim(),
-      permissions,
-    })
+    const result = await createProfile(
+      workspaceId,
+      { name: name.trim(), permissions },
+      basePath,
+    )
     setSaving(false)
     if (!result.ok) {
       notify.error(result.message ?? 'Não foi possível criar o perfil.')
@@ -191,10 +194,12 @@ function CreateProfileDialog({
 
 function EditProfileDialog({
   workspaceId,
+  basePath,
   profile,
   onUpdated,
 }: {
   workspaceId: string
+  basePath?: string
   profile: ProfileDTO
   onUpdated: () => void
 }) {
@@ -206,7 +211,12 @@ function EditProfileDialog({
 
   async function handleSave() {
     setSaving(true)
-    const result = await updateProfile(workspaceId, profile.id, { permissions })
+    const result = await updateProfile(
+      workspaceId,
+      profile.id,
+      { permissions },
+      basePath,
+    )
     setSaving(false)
     if (!result.ok) {
       notify.error(result.message ?? 'Não foi possível salvar o perfil.')
@@ -240,11 +250,17 @@ function EditProfileDialog({
   )
 }
 
-export function CrmProfilesSection({ workspaceId }: { workspaceId: string }) {
-  const { profiles, isLoading, refetch } = useProfiles(workspaceId)
+export function CrmProfilesSection({
+  workspaceId,
+  basePath,
+}: {
+  workspaceId: string
+  basePath?: string
+}) {
+  const { profiles, isLoading, refetch } = useProfiles(workspaceId, basePath)
 
   async function handleDelete(profile: ProfileDTO) {
-    const result = await deleteProfile(workspaceId, profile.id)
+    const result = await deleteProfile(workspaceId, profile.id, basePath)
     if (!result.ok) {
       notify.error(result.message ?? 'Não foi possível excluir o perfil.')
       return
@@ -257,7 +273,11 @@ export function CrmProfilesSection({ workspaceId }: { workspaceId: string }) {
     <Card>
       <CardHeader className='flex flex-row items-center justify-between'>
         <CardTitle>Perfis de acesso</CardTitle>
-        <CreateProfileDialog workspaceId={workspaceId} onCreated={refetch} />
+        <CreateProfileDialog
+          workspaceId={workspaceId}
+          basePath={basePath}
+          onCreated={refetch}
+        />
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -280,6 +300,7 @@ export function CrmProfilesSection({ workspaceId }: { workspaceId: string }) {
                     <>
                       <EditProfileDialog
                         workspaceId={workspaceId}
+                        basePath={basePath}
                         profile={profile}
                         onUpdated={refetch}
                       />

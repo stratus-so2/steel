@@ -31,21 +31,27 @@ const ROLE_LABEL: Record<string, string> = {
   MEMBER: 'Membro',
 }
 
-export function CrmMembersSection({ workspaceId }: { workspaceId: string }) {
+export function CrmMembersSection({
+  workspaceId,
+  basePath = '/api/workspaces',
+}: {
+  workspaceId: string
+  basePath?: string
+}) {
   const [members, setMembers] = useState<WorkspaceMemberDTO[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { profiles } = useProfiles(workspaceId)
+  const { profiles } = useProfiles(workspaceId, basePath)
 
   const refetch = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch(`/api/workspaces/${workspaceId}/members`)
+      const res = await fetch(`${basePath}/${workspaceId}/members`)
       const json: ApiResponse<WorkspaceMemberDTO[]> = await res.json()
       if (json.success && json.data) setMembers(json.data)
     } finally {
       setIsLoading(false)
     }
-  }, [workspaceId])
+  }, [workspaceId, basePath])
 
   useEffect(() => {
     refetch()
@@ -53,7 +59,7 @@ export function CrmMembersSection({ workspaceId }: { workspaceId: string }) {
 
   async function handleProfileChange(userId: string, profileId: string) {
     const nextId = profileId === '__none__' ? null : profileId
-    const result = await setMemberProfile(workspaceId, userId, nextId)
+    const result = await setMemberProfile(workspaceId, userId, nextId, basePath)
     if (!result.ok) {
       notify.error(result.message ?? 'Não foi possível atualizar o perfil.')
       return
