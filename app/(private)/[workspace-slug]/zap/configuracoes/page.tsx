@@ -7,6 +7,7 @@ import {
 } from '@/app/_components/header/breadcrumb-page'
 import HeaderInternalNavigation from '@/app/_components/header/header-internal-navigation'
 import { WhatsappSettingsAi } from '@/app/_components/whatsapp/settings/whatsapp-settings-ai'
+import { WhatsappSettingsAiKnowledge } from '@/app/_components/whatsapp/settings/whatsapp-settings-ai-knowledge'
 import { WhatsappSettingsConnections } from '@/app/_components/whatsapp/settings/whatsapp-settings-connections'
 import { SteelIcon } from '@/components/icon/icon'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -58,8 +59,9 @@ export default async function ZapSettingsPage({
           <TabsContent value='connections' className='pt-4'>
             <WhatsappSettingsConnections workspaceId={workspaceId} />
           </TabsContent>
-          <TabsContent value='ai' className='pt-4'>
+          <TabsContent value='ai' className='space-y-6 pt-4'>
             <WhatsappSettingsAi workspaceId={workspaceId} />
+            <WhatsappSettingsAiKnowledge workspaceId={workspaceId} />
           </TabsContent>
         </Tabs>
       </div>
