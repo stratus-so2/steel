@@ -1,9 +1,22 @@
 import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
 import { prisma } from '@/src/lib/prisma'
+import type { Result } from '@/src/lib/result'
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
+import {
+  buildMetaSendComponents,
+  extractTemplateFillableFields,
+  parseMetaTemplateComponents,
+} from '@/src/lib/whatsapp/template-variables'
+import type { WhatsAppSendResult } from '@/src/lib/whatsapp/types'
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsappBroadcastJob, type WhatsappBroadcastJobPayload } from '../jobs'
+
+interface TemplateVariableValues {
+  header?: Record<number, string>
+  body?: Record<number, string>
+  buttons?: Record<number, string>
+}
 
 async function processSendBroadcastMessage(
   job: Job<WhatsappBroadcastJobPayload['send-broadcast-message']>,
@@ -35,17 +48,48 @@ async function processSendBroadcastMessage(
     return
   }
 
-  const sendResult = recipient.broadcastList.mediaUrl
-    ? await WhatsAppSend.media(connection, {
-        to: recipient.contact.waId,
-        mediaUrl: recipient.broadcastList.mediaUrl,
-        type: 'image',
-        caption: recipient.broadcastList.messageBody,
+  let sendResult: Result<WhatsAppSendResult>
+  if (recipient.broadcastList.templateId) {
+    const template = await prisma.whatsAppTemplate.findUnique({
+      where: { id: recipient.broadcastList.templateId },
+    })
+    if (!template) {
+      await WhatsAppBroadcastRepository.updateRecipientStatus(recipientId, {
+        status: 'FAILED',
+        errorMessage: 'Template não encontrado',
       })
-    : await WhatsAppSend.text(connection, {
-        to: recipient.contact.waId,
-        text: recipient.broadcastList.messageBody,
-      })
+      return
+    }
+
+    const fields = extractTemplateFillableFields(
+      parseMetaTemplateComponents(template.components as unknown[]),
+    )
+    const values = (recipient.variableValues ?? {}) as TemplateVariableValues
+    const components = buildMetaSendComponents(fields, {
+      header: values.header ?? {},
+      body: values.body ?? {},
+      buttons: values.buttons ?? {},
+    })
+
+    sendResult = await WhatsAppSend.template(connection, {
+      to: recipient.contact.waId,
+      templateName: template.name,
+      language: template.language,
+      components,
+    })
+  } else {
+    sendResult = recipient.broadcastList.mediaUrl
+      ? await WhatsAppSend.media(connection, {
+          to: recipient.contact.waId,
+          mediaUrl: recipient.broadcastList.mediaUrl,
+          type: 'image',
+          caption: recipient.broadcastList.messageBody,
+        })
+      : await WhatsAppSend.text(connection, {
+          to: recipient.contact.waId,
+          text: recipient.broadcastList.messageBody,
+        })
+  }
 
   if (!sendResult.ok) {
     await WhatsAppBroadcastRepository.updateRecipientStatus(recipientId, {
