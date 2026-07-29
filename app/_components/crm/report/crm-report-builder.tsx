@@ -63,12 +63,22 @@ export function CrmReportBuilder({
   workspaceId,
   slug,
   reportId,
+  basePath = 'crm',
+  listHref,
 }: {
   workspaceId: string
   slug: string
   reportId: string
+  /** Segmento de módulo da API (`crm` ou `whatsapp`). */
+  basePath?: string
+  /** Rota de navegação da listagem (default `/{slug}/crm/reports`). */
+  listHref?: string
 }) {
-  const { data: report, isLoading, error } = useCrmReport(workspaceId, reportId)
+  const {
+    data: report,
+    isLoading,
+    error,
+  } = useCrmReport(workspaceId, reportId, basePath)
 
   if (isLoading) {
     return (
@@ -88,7 +98,8 @@ export function CrmReportBuilder({
   return (
     <CrmReportBuilderInner
       workspaceId={workspaceId}
-      slug={slug}
+      basePath={basePath}
+      listHref={listHref ?? `/${slug}/crm/reports`}
       initial={report}
     />
   )
@@ -96,11 +107,13 @@ export function CrmReportBuilder({
 
 function CrmReportBuilderInner({
   workspaceId,
-  slug,
+  basePath,
+  listHref,
   initial,
 }: {
   workspaceId: string
-  slug: string
+  basePath: string
+  listHref: string
   initial: { id: string; name: string; query: CrmReportQuery }
 }) {
   const router = useRouter()
@@ -110,13 +123,13 @@ function CrmReportBuilderInner({
     'idle',
   )
 
-  const updateReport = useUpdateCrmReport(workspaceId)
-  const deleteReport = useDeleteCrmReport(workspaceId)
+  const updateReport = useUpdateCrmReport(workspaceId, basePath)
+  const deleteReport = useDeleteCrmReport(workspaceId, basePath)
   const {
     data,
     isFetching: loadingData,
     refetch,
-  } = useCrmReportData(workspaceId, initial.id)
+  } = useCrmReportData(workspaceId, initial.id, basePath)
 
   const setQuery = React.useCallback(
     (next: CrmReportQuery | ((q: CrmReportQuery) => CrmReportQuery)) =>
@@ -155,7 +168,7 @@ function CrmReportBuilderInner({
     try {
       await deleteReport.mutateAsync(initial.id)
       notify.success('Relatório excluído.')
-      router.push(`/${slug}/crm/reports`)
+      router.push(listHref)
     } catch (err) {
       notify.error(err, 'Não foi possível excluir o relatório.')
     }
@@ -168,7 +181,7 @@ function CrmReportBuilderInner({
           variant='ghost'
           size='icon-sm'
           aria-label='Voltar'
-          onClick={() => router.push(`/${slug}/crm/reports`)}
+          onClick={() => router.push(listHref)}
         >
           <SteelIcon icon={ArrowLeft02Icon} strokeWidth={2} />
         </Button>
@@ -192,7 +205,12 @@ function CrmReportBuilderInner({
           nativeButton={false}
           render={
             <a
-              href={crmReportExportUrl(workspaceId, initial.id, 'csv')}
+              href={crmReportExportUrl(
+                workspaceId,
+                initial.id,
+                'csv',
+                basePath,
+              )}
               download
             >
               <SteelIcon icon={Download04Icon} strokeWidth={2} />
@@ -206,7 +224,12 @@ function CrmReportBuilderInner({
           nativeButton={false}
           render={
             <a
-              href={crmReportExportUrl(workspaceId, initial.id, 'xlsx')}
+              href={crmReportExportUrl(
+                workspaceId,
+                initial.id,
+                'xlsx',
+                basePath,
+              )}
               download
             >
               <SteelIcon icon={Download04Icon} strokeWidth={2} />

@@ -7,24 +7,28 @@ import type {
 import type { CrmReportDTO } from '@/types/crm-report'
 import { apiFetch, apiSend } from './_fetch'
 
-function reportsKey(workspaceId: string) {
-  return ['crm-reports', workspaceId] as const
+function reportsKey(workspaceId: string, basePath: string) {
+  return ['crm-reports', basePath, workspaceId] as const
 }
 
-function reportKey(workspaceId: string, reportId: string) {
-  return ['crm-report', workspaceId, reportId] as const
+function reportKey(workspaceId: string, reportId: string, basePath: string) {
+  return ['crm-report', basePath, workspaceId, reportId] as const
 }
 
-function reportDataKey(workspaceId: string, reportId: string) {
-  return ['crm-report-data', workspaceId, reportId] as const
+function reportDataKey(
+  workspaceId: string,
+  reportId: string,
+  basePath: string,
+) {
+  return ['crm-report-data', basePath, workspaceId, reportId] as const
 }
 
-export function useCrmReports(workspaceId: string) {
+export function useCrmReports(workspaceId: string, basePath = 'crm') {
   return useQuery({
-    queryKey: reportsKey(workspaceId),
+    queryKey: reportsKey(workspaceId, basePath),
     queryFn: () =>
       apiFetch<CrmReportDTO[]>(
-        `/api/workspaces/${workspaceId}/crm/reports`,
+        `/api/workspaces/${workspaceId}/${basePath}/reports`,
         undefined,
         'Erro ao buscar relatórios',
       ),
@@ -33,12 +37,16 @@ export function useCrmReports(workspaceId: string) {
   })
 }
 
-export function useCrmReport(workspaceId: string, reportId: string | null) {
+export function useCrmReport(
+  workspaceId: string,
+  reportId: string | null,
+  basePath = 'crm',
+) {
   return useQuery({
-    queryKey: reportKey(workspaceId, reportId ?? ''),
+    queryKey: reportKey(workspaceId, reportId ?? '', basePath),
     queryFn: () =>
       apiFetch<CrmReportDTO>(
-        `/api/workspaces/${workspaceId}/crm/reports/${reportId}`,
+        `/api/workspaces/${workspaceId}/${basePath}/reports/${reportId}`,
         undefined,
         'Relatório não encontrado.',
       ),
@@ -46,7 +54,7 @@ export function useCrmReport(workspaceId: string, reportId: string | null) {
   })
 }
 
-export function useCreateCrmReport(workspaceId: string) {
+export function useCreateCrmReport(workspaceId: string, basePath = 'crm') {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -56,7 +64,7 @@ export function useCreateCrmReport(workspaceId: string) {
       columns: string[]
     }) =>
       apiFetch<CrmReportDTO>(
-        `/api/workspaces/${workspaceId}/crm/reports`,
+        `/api/workspaces/${workspaceId}/${basePath}/reports`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -65,12 +73,14 @@ export function useCreateCrmReport(workspaceId: string) {
         'Erro ao criar relatório',
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportsKey(workspaceId) })
+      queryClient.invalidateQueries({
+        queryKey: reportsKey(workspaceId, basePath),
+      })
     },
   })
 }
 
-export function useUpdateCrmReport(workspaceId: string) {
+export function useUpdateCrmReport(workspaceId: string, basePath = 'crm') {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -82,7 +92,7 @@ export function useUpdateCrmReport(workspaceId: string) {
       patch: { name?: string; query?: CrmReportQuery }
     }) =>
       apiFetch<CrmReportDTO>(
-        `/api/workspaces/${workspaceId}/crm/reports/${reportId}`,
+        `/api/workspaces/${workspaceId}/${basePath}/reports/${reportId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -91,37 +101,45 @@ export function useUpdateCrmReport(workspaceId: string) {
         'Erro ao salvar relatório',
       ),
     onSuccess: (_data, { reportId }) => {
-      queryClient.invalidateQueries({ queryKey: reportsKey(workspaceId) })
       queryClient.invalidateQueries({
-        queryKey: reportKey(workspaceId, reportId),
+        queryKey: reportsKey(workspaceId, basePath),
+      })
+      queryClient.invalidateQueries({
+        queryKey: reportKey(workspaceId, reportId, basePath),
       })
     },
   })
 }
 
-export function useDeleteCrmReport(workspaceId: string) {
+export function useDeleteCrmReport(workspaceId: string, basePath = 'crm') {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (reportId: string) =>
       apiSend(
-        `/api/workspaces/${workspaceId}/crm/reports/${reportId}`,
+        `/api/workspaces/${workspaceId}/${basePath}/reports/${reportId}`,
         { method: 'DELETE' },
         'Erro ao remover relatório',
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reportsKey(workspaceId) })
+      queryClient.invalidateQueries({
+        queryKey: reportsKey(workspaceId, basePath),
+      })
     },
   })
 }
 
 /** Dados processados do relatório (join/union + agrupamento), para o preview. */
-export function useCrmReportData(workspaceId: string, reportId: string | null) {
+export function useCrmReportData(
+  workspaceId: string,
+  reportId: string | null,
+  basePath = 'crm',
+) {
   return useQuery({
-    queryKey: reportDataKey(workspaceId, reportId ?? ''),
+    queryKey: reportDataKey(workspaceId, reportId ?? '', basePath),
     queryFn: () =>
       apiFetch<CrmReportData>(
-        `/api/workspaces/${workspaceId}/crm/reports/${reportId}/data`,
+        `/api/workspaces/${workspaceId}/${basePath}/reports/${reportId}/data`,
         undefined,
         'Erro ao carregar dados do relatório',
       ),
@@ -134,6 +152,7 @@ export function crmReportExportUrl(
   workspaceId: string,
   reportId: string,
   format: 'csv' | 'xlsx',
+  basePath = 'crm',
 ): string {
-  return `/api/workspaces/${workspaceId}/crm/reports/${reportId}/export?format=${format}`
+  return `/api/workspaces/${workspaceId}/${basePath}/reports/${reportId}/export?format=${format}`
 }
