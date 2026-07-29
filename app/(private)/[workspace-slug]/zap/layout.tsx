@@ -1,5 +1,7 @@
 import {
+  ChartHistogramIcon,
   Chatting01Icon,
+  DashboardSquare01Icon,
   FlashIcon,
   Megaphone01Icon,
   Settings02Icon,
@@ -52,6 +54,14 @@ export default async function ZapLayout({
           </NavItem>
           <NavItem href={`${base}/transmissoes`} icon={Megaphone01Icon}>
             Transmissões
+          </NavItem>
+        </NavGroup>
+        <NavGroup>
+          <NavItem href={`${base}/dashboards`} icon={DashboardSquare01Icon}>
+            Painéis
+          </NavItem>
+          <NavItem href={`${base}/reports`} icon={ChartHistogramIcon}>
+            Relatórios
           </NavItem>
         </NavGroup>
         <NavGroup>
