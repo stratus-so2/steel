@@ -58,4 +58,18 @@ describe('toWhatsAppConversationDTO()', () => {
 
     expect(dto.lastMessageAt).toBeNull()
   })
+
+  it('should map avgSentimentScore through, null by default', () => {
+    const withoutSentiment = createFakeWhatsAppConversationWithPreview()
+    expect(
+      toWhatsAppConversationDTO(withoutSentiment).avgSentimentScore,
+    ).toBeNull()
+
+    const withSentiment = createFakeWhatsAppConversationWithPreview({
+      avgSentimentScore: 0.42,
+    })
+    expect(toWhatsAppConversationDTO(withSentiment).avgSentimentScore).toBe(
+      0.42,
+    )
+  })
 })

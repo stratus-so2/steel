@@ -42,6 +42,7 @@ export function toWhatsAppConversationDTO(
     aiActive: conversation.aiActive,
     aiHandoff: conversation.aiHandoff,
     unreadCount: conversation.unreadCount,
+    avgSentimentScore: conversation.avgSentimentScore,
     lastMessageAt: conversation.lastMessageAt
       ? conversation.lastMessageAt.toISOString()
       : null,

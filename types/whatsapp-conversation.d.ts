@@ -13,6 +13,7 @@ export interface WhatsAppConversationDTO {
   aiActive: boolean
   aiHandoff: boolean
   unreadCount: number
+  avgSentimentScore: number | null
   lastMessageAt: string | null
   lastMessagePreview: string | null
   pinned: boolean

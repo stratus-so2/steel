@@ -73,6 +73,7 @@ export const CRM_REPORT_FIELDS: Record<CrmReportSource, CrmReportFieldDef[]> = {
     { key: 'aiActive', label: 'IA ativa', type: 'text' },
     { key: 'aiHandoff', label: 'Transferida p/ humano', type: 'text' },
     { key: 'unreadCount', label: 'Não lidas', type: 'number' },
+    { key: 'avgSentimentScore', label: 'Sentimento médio', type: 'number' },
     { key: 'lastMessageAt', label: 'Última mensagem', type: 'date' },
     { key: 'createdAt', label: 'Criado em', type: 'date' },
   ],

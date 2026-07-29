@@ -136,6 +136,7 @@ export const VIEW_SOURCE_FIELDS: Record<ViewSource, ViewField[]> = {
     { key: 'aiActive', label: 'IA ativa' },
     { key: 'aiHandoff', label: 'Transferida p/ humano' },
     { key: 'unreadCount', label: 'Não lidas' },
+    { key: 'avgSentimentScore', label: 'Sentimento médio' },
     { key: 'lastMessageAt', label: 'Última mensagem' },
     { key: 'createdAt', label: 'Criado em' },
   ],
