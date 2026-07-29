@@ -25,6 +25,7 @@ import {
   useSyncWhatsAppTemplates,
   useWhatsAppTemplates,
 } from '@/src/hooks/use-whatsapp-templates'
+import { CreateTemplateDialog } from '../create-template-dialog'
 
 export function WhatsappSettingsTemplates({
   workspaceId,
@@ -71,6 +72,7 @@ export function WhatsappSettingsTemplates({
           </Select>
           <Button
             size='sm'
+            variant='outline'
             disabled={!selectedConnectionId || syncTemplates.isPending}
             onClick={() => {
               if (!selectedConnectionId) return
@@ -82,6 +84,7 @@ export function WhatsappSettingsTemplates({
           >
             {syncTemplates.isPending ? 'Sincronizando...' : 'Sincronizar agora'}
           </Button>
+          <CreateTemplateDialog workspaceId={workspaceId} />
         </div>
       </div>
 

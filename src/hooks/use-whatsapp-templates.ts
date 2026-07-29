@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { CreateWhatsAppTemplateInput } from '@/src/schemas/whatsapp-template.schema'
 import type { WhatsAppTemplateDTO } from '@/types/whatsapp-template'
 import { apiFetch } from './_fetch'
 
@@ -31,6 +32,26 @@ export function useSyncWhatsAppTemplates(workspaceId: string) {
           body: JSON.stringify({ connectionId }),
         },
         'Erro ao sincronizar templates',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY(workspaceId) })
+    },
+  })
+}
+
+export function useCreateWhatsAppTemplate(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: CreateWhatsAppTemplateInput) =>
+      apiFetch<WhatsAppTemplateDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/templates`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        },
+        'Erro ao criar template',
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: TEMPLATES_KEY(workspaceId) })
