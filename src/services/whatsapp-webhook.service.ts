@@ -1,9 +1,14 @@
 import type { WhatsAppConnection, WhatsAppMessageStatus } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
-import { WhatsappAiReplyJob, WhatsappMediaJob } from '@/src/lib/queue/jobs'
+import {
+  WhatsappAiReplyJob,
+  WhatsappMediaJob,
+  WhatsappSentimentJob,
+} from '@/src/lib/queue/jobs'
 import {
   getWhatsappAiReplyQueue,
   getWhatsappMediaQueue,
+  getWhatsappSentimentQueue,
 } from '@/src/lib/queue/queues'
 import { ok, type Result } from '@/src/lib/result'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
@@ -161,6 +166,15 @@ export const WhatsAppWebhookService = {
         conversationId,
         messageId: message.value.id,
       })
+    }
+
+    // Independente da IA estar respondendo — alimenta dashboards/relatórios
+    // de humor mesmo em conversas atendidas só por humanos.
+    if (input.text?.trim()) {
+      await getWhatsappSentimentQueue().add(
+        WhatsappSentimentJob.AnalyzeMessage,
+        { messageId: message.value.id },
+      )
     }
 
     return ok(undefined)

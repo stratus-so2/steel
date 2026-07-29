@@ -14,6 +14,7 @@ import { processDataRetention } from '../src/lib/queue/processors/data-retention
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
 import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-broadcast'
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
+import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-sentiment'
 import { closeQueues } from '../src/lib/queue/queues'
 import {
   scheduleCrmScheduledSendJobs,
@@ -104,6 +105,9 @@ async function main(): Promise<void> {
   workers.push(registerWorker(QueueName.WhatsappMedia, processWhatsappMedia))
   workers.push(
     registerWorker(QueueName.WhatsappAiReply, processWhatsappAiReply),
+  )
+  workers.push(
+    registerWorker(QueueName.WhatsappSentiment, processWhatsappSentiment),
   )
   workers.push(
     registerWorker(QueueName.WhatsappBroadcast, processWhatsappBroadcast),

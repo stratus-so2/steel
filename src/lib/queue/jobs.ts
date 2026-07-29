@@ -5,6 +5,7 @@ export const QueueName = {
   TrialLifecycle: 'trial-lifecycle',
   WhatsappMedia: 'whatsapp-media',
   WhatsappAiReply: 'whatsapp-ai-reply',
+  WhatsappSentiment: 'whatsapp-sentiment',
   WhatsappBroadcast: 'whatsapp-broadcast',
   WhatsappTemplateSync: 'whatsapp-template-sync',
   CrmScheduledSend: 'crm-scheduled-send',
@@ -83,6 +84,17 @@ export type WhatsappAiReplyJobPayload = {
     conversationId: string
     messageId: string
   }
+}
+
+export const WhatsappSentimentJob = {
+  AnalyzeMessage: 'analyze-message',
+} as const
+
+export type WhatsappSentimentJob =
+  (typeof WhatsappSentimentJob)[keyof typeof WhatsappSentimentJob]
+
+export type WhatsappSentimentJobPayload = {
+  [WhatsappSentimentJob.AnalyzeMessage]: { messageId: string }
 }
 
 export const WhatsappBroadcastJob = {

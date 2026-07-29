@@ -22,13 +22,15 @@ vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
 }))
 
-const { mediaAdd, aiReplyAdd } = vi.hoisted(() => ({
+const { mediaAdd, aiReplyAdd, sentimentAdd } = vi.hoisted(() => ({
   mediaAdd: vi.fn(async () => undefined),
   aiReplyAdd: vi.fn(async () => undefined),
+  sentimentAdd: vi.fn(async () => undefined),
 }))
 vi.mock('@/src/lib/queue/queues', () => ({
   getWhatsappMediaQueue: vi.fn(() => ({ add: mediaAdd })),
   getWhatsappAiReplyQueue: vi.fn(() => ({ add: aiReplyAdd })),
+  getWhatsappSentimentQueue: vi.fn(() => ({ add: sentimentAdd })),
 }))
 
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
@@ -116,6 +118,34 @@ describe('WhatsAppWebhookService', () => {
         'generate-ai-reply',
         expect.objectContaining({ conversationId: 'conv1' }),
       )
+      expect(sentimentAdd).toHaveBeenCalledWith(
+        'analyze-message',
+        expect.objectContaining({ messageId: expect.any(String) }),
+      )
+    })
+
+    it('should not enqueue sentiment analysis for a text-less message', async () => {
+      mockedMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+      mockedContactRepo.upsertByWaId.mockResolvedValue(
+        ok(createFakeWhatsAppContact({ id: 'contact1' })),
+      )
+      mockedAiConfigRepo.findByWorkspace.mockResolvedValue(ok(null))
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(ok(null))
+      const created = createFakeWhatsAppConversationWithPreview({
+        id: 'conv1',
+        contactId: 'contact1',
+      })
+      mockedConversationRepo.create.mockResolvedValue(ok(created))
+      mockedConversationRepo.findById.mockResolvedValue(ok(created))
+      mockedMessageRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppMessage({ conversationId: 'conv1', text: null })),
+      )
+
+      await WhatsAppWebhookService.ingestInboundMessage(
+        baseInbound({ text: undefined, type: 'IMAGE', rawMediaUrl: 'x' }),
+      )
+
+      expect(sentimentAdd).not.toHaveBeenCalled()
     })
 
     it('should not enqueue an AI reply when the workspace has no AI config', async () => {

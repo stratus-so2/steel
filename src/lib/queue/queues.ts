@@ -20,6 +20,8 @@ import {
   type WhatsappBroadcastJobPayload,
   type WhatsappMediaJob,
   type WhatsappMediaJobPayload,
+  type WhatsappSentimentJob,
+  type WhatsappSentimentJobPayload,
   type WhatsappTemplateSyncJob,
   type WhatsappTemplateSyncJobPayload,
 } from './jobs'
@@ -37,6 +39,7 @@ let dataExportQueue: Queue | null = null
 let trialLifecycleQueue: Queue | null = null
 let whatsappMediaQueue: Queue | null = null
 let whatsappAiReplyQueue: Queue | null = null
+let whatsappSentimentQueue: Queue | null = null
 let whatsappBroadcastQueue: Queue | null = null
 let whatsappTemplateSyncQueue: Queue | null = null
 let crmScheduledSendQueue: Queue | null = null
@@ -150,6 +153,24 @@ export function getWhatsappAiReplyQueue(): Queue<
   >
 }
 
+export function getWhatsappSentimentQueue(): Queue<
+  WhatsappSentimentJobPayload[WhatsappSentimentJob],
+  unknown,
+  WhatsappSentimentJob
+> {
+  if (!whatsappSentimentQueue) {
+    whatsappSentimentQueue = new Queue(QueueName.WhatsappSentiment, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return whatsappSentimentQueue as Queue<
+    WhatsappSentimentJobPayload[WhatsappSentimentJob],
+    unknown,
+    WhatsappSentimentJob
+  >
+}
+
 export function getWhatsappBroadcastQueue(): Queue<
   WhatsappBroadcastJobPayload[WhatsappBroadcastJob],
   unknown,
@@ -230,6 +251,7 @@ export async function closeQueues(): Promise<void> {
     trialLifecycleQueue?.close(),
     whatsappMediaQueue?.close(),
     whatsappAiReplyQueue?.close(),
+    whatsappSentimentQueue?.close(),
     whatsappBroadcastQueue?.close(),
     whatsappTemplateSyncQueue?.close(),
     crmScheduledSendQueue?.close(),
@@ -241,6 +263,7 @@ export async function closeQueues(): Promise<void> {
   trialLifecycleQueue = null
   whatsappMediaQueue = null
   whatsappAiReplyQueue = null
+  whatsappSentimentQueue = null
   whatsappBroadcastQueue = null
   whatsappTemplateSyncQueue = null
   crmScheduledSendQueue = null
