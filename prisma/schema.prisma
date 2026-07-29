@@ -41,11 +41,12 @@ model User {
   moduleConnectionsCreated WorkspaceModuleConnection[]
   moduleAccessGranted      WorkspaceModuleAccess[]
 
-  whatsappConnectionsCreated    WhatsAppConnection[]    @relation("WhatsAppConnectionCreatedBy")
-  whatsappConversationsAssigned WhatsAppConversation[]  @relation("WhatsAppConversationAssignee")
-  whatsappMessagesSent          WhatsAppMessage[]       @relation("WhatsAppMessageSender")
-  whatsappBroadcastsCreated     WhatsAppBroadcastList[] @relation("WhatsAppBroadcastCreatedBy")
-  whatsappGroupMessagesSent     WhatsAppGroupMessage[]  @relation("WhatsAppGroupMessageSender")
+  whatsappConnectionsCreated          WhatsAppConnection[]          @relation("WhatsAppConnectionCreatedBy")
+  whatsappConversationsAssigned       WhatsAppConversation[]        @relation("WhatsAppConversationAssignee")
+  whatsappMessagesSent                WhatsAppMessage[]             @relation("WhatsAppMessageSender")
+  whatsappBroadcastsCreated           WhatsAppBroadcastList[]       @relation("WhatsAppBroadcastCreatedBy")
+  whatsappGroupMessagesSent           WhatsAppGroupMessage[]        @relation("WhatsAppGroupMessageSender")
+  whatsappAiKnowledgeDocumentsCreated WhatsAppAiKnowledgeDocument[] @relation("WhatsAppAiKnowledgeDocumentCreatedBy")
 
   crmCompaniesCreated          CrmCompany[]               @relation("CrmCompanyCreatedBy")
   crmCompaniesOwned            CrmCompany[]               @relation("CrmCompanyAccountOwner")
@@ -276,16 +277,17 @@ model Workspace {
   moduleConnections WorkspaceModuleConnection[]
   moduleAccess      WorkspaceModuleAccess[]
 
-  whatsappConnections    WhatsAppConnection[]
-  whatsappContacts       WhatsAppContact[]
-  whatsappConversations  WhatsAppConversation[]
-  whatsappMessages       WhatsAppMessage[]
-  whatsappQuickReplies   WhatsAppQuickReply[]
-  whatsappBroadcastLists WhatsAppBroadcastList[]
-  whatsappTemplates      WhatsAppTemplate[]
-  whatsappAiConfig       WhatsAppAiConfig?
-  whatsappGroups         WhatsAppGroup[]
-  whatsappGroupMessages  WhatsAppGroupMessage[]
+  whatsappConnections          WhatsAppConnection[]
+  whatsappContacts             WhatsAppContact[]
+  whatsappConversations        WhatsAppConversation[]
+  whatsappMessages             WhatsAppMessage[]
+  whatsappQuickReplies         WhatsAppQuickReply[]
+  whatsappBroadcastLists       WhatsAppBroadcastList[]
+  whatsappTemplates            WhatsAppTemplate[]
+  whatsappAiConfig             WhatsAppAiConfig?
+  whatsappGroups               WhatsAppGroup[]
+  whatsappGroupMessages        WhatsAppGroupMessage[]
+  whatsappAiKnowledgeDocuments WhatsAppAiKnowledgeDocument[]
 
   crmCompanies              CrmCompany[]
   crmPeople                 CrmPerson[]
@@ -945,6 +947,37 @@ model WhatsAppAiConfig {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("whatsapp_ai_configs")
+}
+
+enum WhatsAppAiKnowledgeDocumentStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+/// Base de conhecimento da IA do WhatsApp. O arquivo original fica no MinIO
+/// (storageKey); o texto extraído é injetado direto no systemPrompt do
+/// processor de resposta (sem embeddings/busca — poucos documentos por
+/// workspace no caso de uso real, não uma base grande).
+model WhatsAppAiKnowledgeDocument {
+  id            String                            @id @default(cuid())
+  workspaceId   String                            @map("workspace_id")
+  filename      String
+  contentType   String                            @map("content_type")
+  sizeBytes     Int                               @map("size_bytes")
+  storageKey    String                            @map("storage_key")
+  status        WhatsAppAiKnowledgeDocumentStatus @default(PROCESSING)
+  extractedText String?                           @map("extracted_text")
+  errorMessage  String?                           @map("error_message")
+  createdById   String                            @map("created_by_id")
+  createdAt     DateTime                          @default(now()) @map("created_at")
+  updatedAt     DateTime                          @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("WhatsAppAiKnowledgeDocumentCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@map("whatsapp_ai_knowledge_documents")
 }
 
 // ─── WhatsApp groups (Z-API only — the Meta Cloud API has no group endpoints) ──
