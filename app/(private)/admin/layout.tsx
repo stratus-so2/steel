@@ -1,4 +1,7 @@
-import { Building03Icon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  Building03Icon,
+  MailAtSign01Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -29,6 +32,9 @@ export default async function AdminLayout({
         <NavGroup>
           <NavItem href='/admin/workspaces' icon={Building03Icon}>
             Workspaces
+          </NavItem>
+          <NavItem href='/admin/changelog' icon={MailAtSign01Icon}>
+            Changelog
           </NavItem>
         </NavGroup>
       </ContextSidebar>

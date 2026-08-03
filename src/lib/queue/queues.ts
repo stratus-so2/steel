@@ -3,6 +3,8 @@ import { getQueueConnection } from './connection'
 import {
   type AccountLifecycleJob,
   type AccountLifecycleJobPayload,
+  type ChangelogJob,
+  type ChangelogJobPayload,
   type CrmScheduledSendJob,
   type CrmScheduledSendJobPayload,
   type CrmWorkflowScheduleJob,
@@ -44,6 +46,7 @@ let whatsappBroadcastQueue: Queue | null = null
 let whatsappTemplateSyncQueue: Queue | null = null
 let crmScheduledSendQueue: Queue | null = null
 let crmWorkflowScheduleQueue: Queue | null = null
+let changelogQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -189,6 +192,24 @@ export function getWhatsappBroadcastQueue(): Queue<
   >
 }
 
+export function getChangelogQueue(): Queue<
+  ChangelogJobPayload[ChangelogJob],
+  unknown,
+  ChangelogJob
+> {
+  if (!changelogQueue) {
+    changelogQueue = new Queue(QueueName.Changelog, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return changelogQueue as Queue<
+    ChangelogJobPayload[ChangelogJob],
+    unknown,
+    ChangelogJob
+  >
+}
+
 export function getWhatsappTemplateSyncQueue(): Queue<
   WhatsappTemplateSyncJobPayload[WhatsappTemplateSyncJob],
   unknown,
@@ -256,6 +277,7 @@ export async function closeQueues(): Promise<void> {
     whatsappTemplateSyncQueue?.close(),
     crmScheduledSendQueue?.close(),
     crmWorkflowScheduleQueue?.close(),
+    changelogQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -267,4 +289,5 @@ export async function closeQueues(): Promise<void> {
   whatsappBroadcastQueue = null
   whatsappTemplateSyncQueue = null
   crmScheduledSendQueue = null
+  changelogQueue = null
 }

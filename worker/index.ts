@@ -7,6 +7,7 @@ import {
 } from '../src/lib/queue/connection'
 import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
+import { processChangelog } from '../src/lib/queue/processors/changelog'
 import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
 import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-workflow-schedule'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
@@ -118,6 +119,7 @@ async function main(): Promise<void> {
   workers.push(
     registerWorker(QueueName.CrmWorkflowSchedule, processCrmWorkflowSchedule),
   )
+  workers.push(registerWorker(QueueName.Changelog, processChangelog))
 
   await scheduleDataRetentionJobs()
   await scheduleTrialLifecycleJobs()

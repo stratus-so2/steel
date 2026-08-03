@@ -41,6 +41,9 @@ model User {
   moduleConnectionsCreated WorkspaceModuleConnection[]
   moduleAccessGranted      WorkspaceModuleAccess[]
 
+  changelogsCreated  Changelog[]
+  changelogRecipient ChangelogRecipient[]
+
   whatsappConnectionsCreated          WhatsAppConnection[]          @relation("WhatsAppConnectionCreatedBy")
   whatsappConversationsAssigned       WhatsAppConversation[]        @relation("WhatsAppConversationAssignee")
   whatsappMessagesSent                WhatsAppMessage[]             @relation("WhatsAppMessageSender")
@@ -2540,4 +2543,75 @@ model CrmCalendarEvent {
   @@index([personId, startsAt])
   @@index([opportunityId, startsAt])
   @@map("crm_calendar_events")
+}
+
+// ─── Changelog (admin, cross-workspace) ───────────────────────────────────
+
+enum ChangelogStatus {
+  DRAFT
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum ChangelogRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+/// E-mail de novidades disparado pelo admin global da plataforma (não é
+/// por workspace) — cobre tanto avisos jurídicos (ex: mudança nos Termos)
+/// quanto changelog de produto, através de uma lista de itens livre.
+model Changelog {
+  id          String          @id @default(cuid())
+  subject     String
+  status      ChangelogStatus @default(DRAFT)
+  createdById String          @map("created_by_id")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  createdBy  User                  @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  items      ChangelogItem[]
+  recipients ChangelogRecipient[]
+
+  @@index([status])
+  @@map("changelogs")
+}
+
+/// Um bloco de conteúdo dentro do e-mail (título + texto + imagem opcional
+/// embutida no corpo, não anexo). Posição controla a ordem de exibição.
+model ChangelogItem {
+  id          String  @id @default(cuid())
+  changelogId String  @map("changelog_id")
+  title       String
+  body        String
+  imageUrl    String? @map("image_url")
+  position    Int     @default(0)
+
+  changelog Changelog @relation(fields: [changelogId], references: [id], onDelete: Cascade)
+
+  @@index([changelogId, position])
+  @@map("changelog_items")
+}
+
+/// Destinatário de um envio — `userId` nulo quando o e-mail foi colado
+/// manualmente pelo admin em vez de selecionado de um usuário existente.
+model ChangelogRecipient {
+  id           String                    @id @default(cuid())
+  changelogId  String                    @map("changelog_id")
+  email        String
+  userId       String?                   @map("user_id")
+  status       ChangelogRecipientStatus  @default(PENDING)
+  errorMessage String?                   @map("error_message")
+  sentAt       DateTime?                 @map("sent_at")
+  createdAt    DateTime                  @default(now()) @map("created_at")
+
+  changelog Changelog @relation(fields: [changelogId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([changelogId, email])
+  @@index([changelogId, status])
+  @@map("changelog_recipients")
 }

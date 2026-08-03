@@ -184,6 +184,13 @@ export const whatsappAiConfigNotFound = (): AppError =>
     'Configuração de IA não encontrada para este workspace',
   )
 
+export const changelogNotFound = (): AppError =>
+  appError('CHANGELOG_NOT_FOUND', 'Changelog não encontrado')
+
+export const changelogLocked = (
+  message = 'Este changelog já foi enviado e não pode ser editado',
+): AppError => appError('CHANGELOG_LOCKED', message)
+
 export const whatsappProviderError = (
   message = 'Falha ao comunicar com o provedor do WhatsApp',
 ): AppError => appError('WHATSAPP_PROVIDER_ERROR', message)

@@ -10,6 +10,7 @@ export const QueueName = {
   WhatsappTemplateSync: 'whatsapp-template-sync',
   CrmScheduledSend: 'crm-scheduled-send',
   CrmWorkflowSchedule: 'crm-workflow-schedule',
+  Changelog: 'changelog',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -144,4 +145,17 @@ export type CrmWorkflowScheduleJob =
 
 export type CrmWorkflowScheduleJobPayload = {
   [CrmWorkflowScheduleJob.RunTick]: Record<string, never>
+}
+
+export const ChangelogJob = {
+  SendChangelogEmail: 'send-changelog-email',
+} as const
+
+export type ChangelogJob = (typeof ChangelogJob)[keyof typeof ChangelogJob]
+
+export type ChangelogJobPayload = {
+  [ChangelogJob.SendChangelogEmail]: {
+    changelogId: string
+    recipientId: string
+  }
 }

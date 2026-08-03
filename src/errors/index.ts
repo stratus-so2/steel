@@ -1,5 +1,7 @@
 export {
   badRequest,
+  changelogLocked,
+  changelogNotFound,
   conflict,
   connectionForbidden,
   connectionNotFound,

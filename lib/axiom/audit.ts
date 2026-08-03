@@ -17,6 +17,7 @@ type AuditEntity =
   | 'invitation'
   | 'workspace_module_connection'
   | 'workspace_module_access'
+  | 'changelog'
   | 'whatsapp_connection'
   | 'whatsapp_contact'
   | 'whatsapp_conversation'

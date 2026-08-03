@@ -300,6 +300,8 @@ export const ERROR_CODES = {
     code: 'CRM_TRACKED_COMPETITOR_NOT_FOUND',
     status: 404,
   },
+  CHANGELOG_NOT_FOUND: { code: 'CHANGELOG_NOT_FOUND', status: 404 },
+  CHANGELOG_LOCKED: { code: 'CHANGELOG_LOCKED', status: 409 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

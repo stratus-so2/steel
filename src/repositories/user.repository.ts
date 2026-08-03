@@ -63,6 +63,34 @@ export const UserRepository = {
     }
   },
 
+  async findManyByIds(ids: string[]): Promise<Result<User[]>> {
+    try {
+      const users = await prisma.user.findMany({ where: { id: { in: ids } } })
+      return ok(users)
+    } catch (error) {
+      return err(dbError('Failed to find users by ids', error))
+    }
+  },
+
+  /** Busca global (não escopada a workspace) por nome/e-mail — uso admin. */
+  async search(query: string, limit = 20): Promise<Result<User[]>> {
+    try {
+      const users = await prisma.user.findMany({
+        where: {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { email: { contains: query, mode: 'insensitive' } },
+          ],
+        },
+        take: limit,
+        orderBy: { name: 'asc' },
+      })
+      return ok(users)
+    } catch (error) {
+      return err(dbError('Failed to search users', error))
+    }
+  },
+
   async findByUsername(username: string): Promise<Result<User | null>> {
     try {
       const user = await prisma.user.findUnique({ where: { username } })
