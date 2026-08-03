@@ -17,4 +17,4 @@ export const resend = new Proxy({} as Resend, {
   },
 }) as Resend
 
-export const defaultFrom = 'steel <suporte@steel.stratustelecom.com.br>'
+export const defaultFrom = 'steel <suporte@stratustelecom.com.br>'
