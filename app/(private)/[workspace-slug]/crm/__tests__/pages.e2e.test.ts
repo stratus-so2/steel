@@ -13,7 +13,9 @@ const SEGMENTS = [
   'people',
   'pipelines',
   'products',
+  'forecast',
   'tasks',
+  'tasks/calendar',
   'notes',
   'proposals',
   'forms',
@@ -26,7 +28,8 @@ const SEGMENTS = [
   'social',
   'email-sync',
   'reports',
-  'ai',
+  'dashboards',
+  'settings',
   'integration-keys',
 ]
 
