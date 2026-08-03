@@ -29,7 +29,7 @@ export const InviteUserToWorkspace = ({
     <Head />
     <Tailwind>
       <Body className='bg-[#f4f5f5] font-sans py-6'>
-        <Preview>Steel | Junte-se à {inviterName}.</Preview>
+        <Preview>Steel | Junte-se ao workspace {workspaceName}.</Preview>
         <Container className='bg-white mx-auto py-10 px-6 max-w-140'>
           <Img
             width={120}
@@ -40,7 +40,7 @@ export const InviteUserToWorkspace = ({
           />
           <Section>
             <Text className='text-2xl leading-6.5'>
-              <strong>Junte-se à {workspaceName} no Steel.</strong>
+              <strong>Junte-se ao workspace {workspaceName} no Steel.</strong>
             </Text>
             <Text className='text-[14px] leading-6.5 font-light'>
               {inviterName} (
