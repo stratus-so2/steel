@@ -11,6 +11,7 @@
 			"app/**/*",
 			"src/**/*",
 			"worker/**/*",
+			"scripts/**/*",
 			"!!**/.next",
 			"!!**/node_modules",
 			"!!**/app/globals.css"
