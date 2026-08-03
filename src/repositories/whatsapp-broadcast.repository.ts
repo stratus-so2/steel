@@ -91,6 +91,7 @@ export const WhatsAppBroadcastRepository = {
       contactId: string
       variableValues: Prisma.InputJsonValue
       scheduledAt: Date
+      appointmentAt: Date
     }[],
   ): Promise<Result<WhatsAppBroadcastListWithRecipients>> {
     try {
@@ -224,6 +225,27 @@ export const WhatsAppBroadcastRepository = {
       return ok(count)
     } catch (error) {
       return err(dbError('Failed to count failed recipients', error))
+    }
+  },
+
+  /** Próximo compromisso (ex: exame) do contato — usado pela IA via tool calling. */
+  async findUpcomingAppointmentByContact(
+    contactId: string,
+    now: Date = new Date(),
+  ): Promise<
+    Result<
+      (WhatsAppBroadcastRecipient & { broadcastList: { name: string } }) | null
+    >
+  > {
+    try {
+      const recipient = await prisma.whatsAppBroadcastRecipient.findFirst({
+        where: { contactId, appointmentAt: { gte: now } },
+        orderBy: { appointmentAt: 'asc' },
+        include: { broadcastList: { select: { name: true } } },
+      })
+      return ok(recipient)
+    } catch (error) {
+      return err(dbError('Failed to find upcoming appointment', error))
     }
   },
 }
