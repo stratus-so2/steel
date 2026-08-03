@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 
 export function ContextSidebar({ children }: { children: ReactNode }) {
   return (
-    <aside className='p-3 border-r border-border h-full w-62.5'>
-      <div className='space-y-4'>{children}</div>
+    <aside className='flex h-full w-62.5 flex-col border-r border-border p-3'>
+      <div className='flex-1 space-y-4 overflow-y-auto'>{children}</div>
     </aside>
   )
 }
