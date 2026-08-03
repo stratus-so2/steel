@@ -102,12 +102,13 @@ async function getFullDate(timezone: string) {
   cacheLife('hours')
   cacheTag('full-date')
 
+  // Sem hour/minute de propósito: isso é cacheado por até 1h (cacheLife
+  // 'hours'), então uma hora exata aqui ficaria visivelmente desatualizada
+  // dentro dessa janela — só o dia/mês/semana, que não muda por horas.
   return new Intl.DateTimeFormat('pt-BR', {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
     timeZone: timezone,
   })
     .formatToParts(new Date())
