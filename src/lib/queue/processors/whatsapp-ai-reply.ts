@@ -4,6 +4,7 @@ import OpenAI, { toFile } from 'openai'
 import type {
   ChatCompletionContentPart,
   ChatCompletionMessageParam,
+  ChatCompletionTool,
 } from 'openai/resources/chat/completions'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
@@ -14,6 +15,7 @@ import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
 import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppAiKnowledgeDocumentRepository } from '@/src/repositories/whatsapp-ai-knowledge-document.repository'
+import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsappAiReplyJob, type WhatsappAiReplyJobPayload } from '../jobs'
 
@@ -47,13 +49,49 @@ async function buildKnowledgeBaseSection(workspaceId: string): Promise<string> {
 
 // Convenção de handoff: a IA inclui esse marcador na resposta quando decide
 // transferir para um humano; o processor remove antes de enviar ao cliente.
-// Não depende de tool-calling (o processor usa a Chat Completions API crua,
-// sem streamChat) — é o jeito de menor risco de adicionar handoff decidido
-// pela IA sem reescrever o fluxo de geração já em produção.
+// Continua marcador de texto (não tool call) — é o jeito de menor risco de
+// handoff decidido pela IA sem reescrever esse fluxo já em produção. A
+// consulta de agendamento abaixo, por outro lado, usa tool calling de
+// verdade: o dado não cabe no prompt estático (é por contato, não por
+// workspace) e precisa ser buscado sob demanda.
 const HANDOFF_MARKER = '[[TRANSFERIR_ATENDENTE]]'
 const HANDOFF_SYSTEM_INSTRUCTION = `\n\nSe o cliente pedir para falar com uma pessoa/atendente, ou se você não conseguir ajudar com o que ele precisa, inclua o marcador exato ${HANDOFF_MARKER} em algum ponto da sua resposta — o sistema o remove automaticamente antes de enviar a mensagem.`
 const HANDOFF_FALLBACK_MESSAGE =
   'Vou te transferir para um de nossos atendentes, só um momento.'
+
+const CHECK_APPOINTMENT_TOOL_NAME = 'consultar_exame_agendado'
+const CHECK_APPOINTMENT_TOOL: ChatCompletionTool = {
+  type: 'function',
+  function: {
+    name: CHECK_APPOINTMENT_TOOL_NAME,
+    description:
+      'Consulta se o cliente atual tem algum exame ou compromisso agendado, incluindo data e hora. Use sempre que o cliente perguntar se tem algo marcado, quando é o próximo exame, ou pedir para confirmar/saber o horário — não invente ou assuma uma data sem chamar essa ferramenta primeiro.',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+  },
+}
+
+interface AppointmentToolResult {
+  hasAppointment: boolean
+  appointmentAt?: string
+  description?: string
+}
+
+async function lookupUpcomingAppointment(
+  contactId: string,
+): Promise<AppointmentToolResult> {
+  const result =
+    await WhatsAppBroadcastRepository.findUpcomingAppointmentByContact(
+      contactId,
+    )
+  if (!result.ok || !result.value?.appointmentAt) {
+    return { hasAppointment: false }
+  }
+  return {
+    hasAppointment: true,
+    appointmentAt: result.value.appointmentAt.toISOString(),
+    description: result.value.broadcastList.name,
+  }
+}
 
 function previewForNonText(type: string): string {
   switch (type) {
@@ -207,11 +245,38 @@ async function processGenerateAiReply(
 
   let replyText: string
   try {
-    const completion = await client.chat.completions.create({
+    let completion = await client.chat.completions.create({
       model: aiConfig.model,
       messages,
+      tools: [CHECK_APPOINTMENT_TOOL],
     })
-    replyText = completion.choices[0]?.message?.content?.trim() ?? ''
+    let responseMessage = completion.choices[0]?.message
+
+    if (responseMessage?.tool_calls?.length) {
+      messages.push(responseMessage)
+      for (const toolCall of responseMessage.tool_calls) {
+        if (toolCall.type !== 'function') continue
+        const toolResult =
+          toolCall.function.name === CHECK_APPOINTMENT_TOOL_NAME
+            ? await lookupUpcomingAppointment(conversation.contactId)
+            : { error: `Ferramenta desconhecida: ${toolCall.function.name}` }
+        messages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: JSON.stringify(toolResult),
+        })
+      }
+
+      // Segunda chamada sem `tools`: força uma resposta final em texto em
+      // vez de permitir outra rodada de tool calls (evita loop).
+      completion = await client.chat.completions.create({
+        model: aiConfig.model,
+        messages,
+      })
+      responseMessage = completion.choices[0]?.message
+    }
+
+    replyText = responseMessage?.content?.trim() ?? ''
   } catch (error) {
     logger.error('queue.whatsapp_ai_reply.openai_failed', {
       component: 'WhatsappAiReply',
