@@ -867,7 +867,7 @@ function defaultTriggerData(
     case 'launch-manually':
       return { type, inputs: [] }
     case 'on-a-schedule':
-      return { type, cron: '0 9 * * *', timezone: 'UTC' }
+      return { type, cron: '0 9 * * *', timezone: 'America/Sao_Paulo' }
     case 'webhook':
       return { type, token: makeWebhookToken() }
   }

@@ -182,7 +182,7 @@ const TriggerScheduleSchema = z.object({
   type: z.literal('on-a-schedule'),
   /** Cron 5-campos. Resolver/scheduler valida sintaxe. */
   cron: z.string().trim().min(1).max(120),
-  timezone: z.string().trim().max(64).default('UTC'),
+  timezone: z.string().trim().max(64).default('America/Sao_Paulo'),
 })
 
 const TriggerWebhookSchema = z.object({

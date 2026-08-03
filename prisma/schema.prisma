@@ -163,7 +163,7 @@ model UserPreference {
   theme             Theme             @default(SYSTEM)
   smoothCursor      Boolean           @default(false) @map("smooth_cursor")
   quickSendShortcut QuickSendShortcut @default(ENTER) @map("quick_send_shortcut")
-  timezone          String            @default("UTC")
+  timezone          String            @default("America/Sao_Paulo")
   weekStartsOn      Int               @default(1) @map("week_starts_on")
   weekendDays       Int[]             @default([0, 6]) @map("weekend_days")
   createdAt         DateTime          @default(now()) @map("created_at")
