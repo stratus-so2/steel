@@ -45,50 +45,54 @@ export function CrmIntegrationKeysPanel({
   }
 
   return (
-    <div className='flex flex-col gap-3'>
+    <div className='flex h-full min-h-0 flex-col gap-3'>
       <div className='flex justify-end'>
         <CreateCrmIntegrationKeyDialog workspaceId={workspaceId} />
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Prefixo</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && keys?.length === 0 && (
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhuma chave criada
-              </TableCell>
+              <TableHead>Nome</TableHead>
+              <TableHead>Prefixo</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className='w-10' />
             </TableRow>
-          )}
-          {keys?.map((key) => (
-            <TableRow key={key.id}>
-              <TableCell>{key.name}</TableCell>
-              <TableCell className='font-mono text-xs'>{key.prefix}…</TableCell>
-              <TableCell>{key.revokedAt ? 'Revogada' : 'Ativa'}</TableCell>
-              <TableCell>
-                {!key.revokedAt && (
-                  <Button
-                    variant='ghost'
-                    size='icon-xs'
-                    onClick={() => handleRevoke(key.id)}
-                  >
-                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {!isLoading && keys?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-center text-muted-foreground'
+                >
+                  Nenhuma chave criada
+                </TableCell>
+              </TableRow>
+            )}
+            {keys?.map((key) => (
+              <TableRow key={key.id}>
+                <TableCell>{key.name}</TableCell>
+                <TableCell className='font-mono text-xs'>
+                  {key.prefix}…
+                </TableCell>
+                <TableCell>{key.revokedAt ? 'Revogada' : 'Ativa'}</TableCell>
+                <TableCell>
+                  {!key.revokedAt && (
+                    <Button
+                      variant='ghost'
+                      size='icon-xs'
+                      onClick={() => handleRevoke(key.id)}
+                    >
+                      <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

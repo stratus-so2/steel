@@ -33,7 +33,7 @@ export default async function CrmSocialPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Redes sociais'>
@@ -45,7 +45,7 @@ export default async function CrmSocialPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
+      <div className='min-h-0 flex-1 p-6'>
         <CrmSocialPanel workspaceId={membership.value.workspaceId} />
       </div>
     </div>

@@ -63,7 +63,7 @@ export function CrmCustomFieldsPanel({ workspaceId }: { workspaceId: string }) {
   }
 
   return (
-    <div className='flex flex-col gap-3'>
+    <div className='flex h-full min-h-0 flex-col gap-3'>
       <div className='flex items-center justify-between'>
         <Select
           items={ENTITIES.map((e) => ({ value: e, label: e }))}
@@ -85,44 +85,46 @@ export function CrmCustomFieldsPanel({ workspaceId }: { workspaceId: string }) {
         </Select>
         <CreateCrmCustomFieldDialog workspaceId={workspaceId} entity={entity} />
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Chave</TableHead>
-            <TableHead>Rótulo</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && fields?.length === 0 && (
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhum campo customizado para {entity}
-              </TableCell>
+              <TableHead>Chave</TableHead>
+              <TableHead>Rótulo</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead className='w-10' />
             </TableRow>
-          )}
-          {fields?.map((field) => (
-            <TableRow key={field.id}>
-              <TableCell>{field.key}</TableCell>
-              <TableCell>{field.label}</TableCell>
-              <TableCell>{field.type}</TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(field.id)}
+          </TableHeader>
+          <TableBody>
+            {!isLoading && fields?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-center text-muted-foreground'
                 >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  Nenhum campo customizado para {entity}
+                </TableCell>
+              </TableRow>
+            )}
+            {fields?.map((field) => (
+              <TableRow key={field.id}>
+                <TableCell>{field.key}</TableCell>
+                <TableCell>{field.label}</TableCell>
+                <TableCell>{field.type}</TableCell>
+                <TableCell>
+                  <Button
+                    variant='ghost'
+                    size='icon-xs'
+                    onClick={() => handleDelete(field.id)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

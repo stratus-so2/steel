@@ -53,7 +53,7 @@ export default async function CrmSocialPlatformPage({
   const workspaceId = membership.value.workspaceId
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title={meta.label}>
@@ -65,7 +65,7 @@ export default async function CrmSocialPlatformPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
+      <div className='min-h-0 flex-1 p-6'>
         {meta.platform === 'FACEBOOK' && (
           <CrmFacebookStudio workspaceId={workspaceId} />
         )}

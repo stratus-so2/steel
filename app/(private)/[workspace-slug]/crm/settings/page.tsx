@@ -44,7 +44,7 @@ export default async function CrmSettingsPage({
   const workspaceId = membership.value.workspaceId
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Configurações do CRM'>
@@ -56,7 +56,7 @@ export default async function CrmSettingsPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full space-y-6 p-6'>
+      <div className='min-h-0 flex-1 space-y-6 p-6'>
         <Card>
           <CardHeader>
             <CardTitle>Membros</CardTitle>

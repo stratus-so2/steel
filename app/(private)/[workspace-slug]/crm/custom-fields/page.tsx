@@ -33,7 +33,7 @@ export default async function CrmCustomFieldsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Campos customizados'>
@@ -45,7 +45,7 @@ export default async function CrmCustomFieldsPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
+      <div className='min-h-0 flex-1 p-6'>
         <CrmCustomFieldsPanel workspaceId={membership.value.workspaceId} />
       </div>
     </div>
