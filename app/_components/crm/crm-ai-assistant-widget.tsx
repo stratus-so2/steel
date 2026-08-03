@@ -40,9 +40,9 @@ const SUGGESTIONS = [
 
 /**
  * Balão flutuante do assistente de IA, disponível em todo o workspace
- * (montado no layout privado, não só na rota dedicada `crm/ai`). Adaptação
- * do original: usa o backend não-streaming já existente do Steel
- * (`crm-ai.service.ts`, OpenAI direto), então mostra um indicador de
+ * (montado no layout privado) — substitui a antiga página dedicada de chat
+ * do CRM. Adaptação do original: usa o backend não-streaming já existente
+ * do Steel (`crm-ai.service.ts`, OpenAI direto), então mostra um indicador de
  * "digitando" em vez do cursor de streaming token-a-token do original —
  * a UI/UX (histórico, anexos, markdown, sugestões) replica o original.
  */
