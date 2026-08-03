@@ -6,7 +6,11 @@ import {
   createMetaTemplate,
   fetchMetaTemplates,
 } from '@/src/lib/whatsapp/meta-templates'
-import type { MetaTemplateComponent } from '@/src/lib/whatsapp/template-variables'
+import {
+  countPlaceholders,
+  type MetaTemplateBodyComponent,
+  type MetaTemplateComponent,
+} from '@/src/lib/whatsapp/template-variables'
 import { toWhatsAppTemplateDTO } from '@/src/mappers/whatsapp-template.mapper'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
@@ -27,7 +31,24 @@ function buildComponents(
   if (input.headerText) {
     components.push({ type: 'HEADER', format: 'TEXT', text: input.headerText })
   }
-  components.push({ type: 'BODY', text: input.body })
+
+  const variableCount = countPlaceholders(input.body)
+  const bodyComponent: MetaTemplateBodyComponent = {
+    type: 'BODY',
+    text: input.body,
+  }
+  if (variableCount > 0) {
+    bodyComponent.example = {
+      body_text: [
+        Array.from(
+          { length: variableCount },
+          (_, i) => input.bodyExample?.[i] || `exemplo${i + 1}`,
+        ),
+      ],
+    }
+  }
+  components.push(bodyComponent)
+
   if (input.footer) {
     components.push({ type: 'FOOTER', text: input.footer })
   }

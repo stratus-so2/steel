@@ -49,6 +49,9 @@ export interface MetaTemplateHeaderComponent {
 export interface MetaTemplateBodyComponent {
   type: 'BODY'
   text: string
+  // Meta exige um valor de exemplo por variável {{n}} — sem isso a
+  // submissão de um novo template é rejeitada com INVALID_FORMAT.
+  example?: { body_text: string[][] }
 }
 
 export interface MetaTemplateFooterComponent {
@@ -81,7 +84,7 @@ export function parseMetaTemplateComponents(
 
 const PLACEHOLDER_PATTERN = /\{\{(\d+)\}\}/g
 
-function countPlaceholders(text: string | undefined): number {
+export function countPlaceholders(text: string | undefined): number {
   if (!text) return 0
   const indexes = new Set<number>()
   for (const match of text.matchAll(PLACEHOLDER_PATTERN)) {

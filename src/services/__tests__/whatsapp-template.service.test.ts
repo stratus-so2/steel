@@ -148,6 +148,94 @@ describe('WhatsAppTemplateService', () => {
       )
     })
 
+    it('should attach a body example (required by Meta, or INVALID_FORMAT)', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const connection = createFakeWhatsAppConnection({
+        id: 'conn1',
+        provider: 'META',
+        metaWabaId: 'waba-1',
+        encryptedMetaAccessToken: 'enc:access-token',
+      })
+      mockedConnectionRepo.findById.mockResolvedValue(ok(connection))
+      mockedTemplateRepo.upsertSynced.mockResolvedValue(
+        ok(createFakeWhatsAppTemplate()),
+      )
+
+      await WhatsAppTemplateService.create('u1', 'ws1', {
+        ...input,
+        bodyExample: ['Maria', 'Hemograma completo'],
+      })
+
+      expect(mockedCreateMetaTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'BODY',
+              example: { body_text: [['Maria', 'Hemograma completo']] },
+            }),
+          ]),
+        }),
+      )
+    })
+
+    it('should fall back to a placeholder example when none is provided', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const connection = createFakeWhatsAppConnection({
+        id: 'conn1',
+        provider: 'META',
+        metaWabaId: 'waba-1',
+        encryptedMetaAccessToken: 'enc:access-token',
+      })
+      mockedConnectionRepo.findById.mockResolvedValue(ok(connection))
+      mockedTemplateRepo.upsertSynced.mockResolvedValue(
+        ok(createFakeWhatsAppTemplate()),
+      )
+
+      await WhatsAppTemplateService.create('u1', 'ws1', input)
+
+      expect(mockedCreateMetaTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          components: expect.arrayContaining([
+            expect.objectContaining({
+              type: 'BODY',
+              example: { body_text: [['exemplo1', 'exemplo2']] },
+            }),
+          ]),
+        }),
+      )
+    })
+
+    it('should not attach an example when the body has no variables', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const connection = createFakeWhatsAppConnection({
+        id: 'conn1',
+        provider: 'META',
+        metaWabaId: 'waba-1',
+        encryptedMetaAccessToken: 'enc:access-token',
+      })
+      mockedConnectionRepo.findById.mockResolvedValue(ok(connection))
+      mockedTemplateRepo.upsertSynced.mockResolvedValue(
+        ok(createFakeWhatsAppTemplate()),
+      )
+
+      await WhatsAppTemplateService.create('u1', 'ws1', {
+        ...input,
+        body: 'Mensagem sem variáveis.',
+      })
+
+      const call = mockedCreateMetaTemplate.mock.calls.at(-1)?.[0]
+      const bodyComponent = (
+        call?.components as Array<{ type: string; example?: unknown }>
+      ).find((c) => c.type === 'BODY')
+      expect(bodyComponent?.example).toBeUndefined()
+    })
+
     it('should reject creating on a Z-API connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),

@@ -28,6 +28,7 @@ import { notify } from '@/lib/notify'
 import { useWhatsAppConnections } from '@/src/hooks/use-whatsapp-connections'
 import { useCreateWhatsAppTemplate } from '@/src/hooks/use-whatsapp-templates'
 import {
+  countPlaceholders,
   extractTemplateFillableFields,
   type MetaTemplateButton,
 } from '@/src/lib/whatsapp/template-variables'
@@ -80,8 +81,11 @@ export function CreateTemplateDialog({ workspaceId }: { workspaceId: string }) {
   const [category, setCategory] = useState<WhatsAppTemplateCategory>('UTILITY')
   const [headerText, setHeaderText] = useState('')
   const [body, setBody] = useState('')
+  const [bodyExample, setBodyExample] = useState<Record<number, string>>({})
   const [footer, setFooter] = useState('')
   const [buttons, setButtons] = useState<ButtonDraft[]>([])
+
+  const bodyVariableCount = countPlaceholders(body)
 
   const connections = useWhatsAppConnections(workspaceId)
   const metaConnections = (connections.data ?? []).filter(
@@ -117,6 +121,7 @@ export function CreateTemplateDialog({ workspaceId }: { workspaceId: string }) {
     setCategory('UTILITY')
     setHeaderText('')
     setBody('')
+    setBodyExample({})
     setFooter('')
     setButtons([])
   }
@@ -136,6 +141,14 @@ export function CreateTemplateDialog({ workspaceId }: { workspaceId: string }) {
       notify.error('Informe o nome e o corpo da mensagem.')
       return
     }
+    const missingExample = Array.from(
+      { length: bodyVariableCount },
+      (_, i) => i + 1,
+    ).some((i) => !bodyExample[i]?.trim())
+    if (missingExample) {
+      notify.error('Preencha um valor de exemplo para cada variável do corpo.')
+      return
+    }
 
     try {
       await createTemplate.mutateAsync({
@@ -145,6 +158,13 @@ export function CreateTemplateDialog({ workspaceId }: { workspaceId: string }) {
         category,
         headerText: headerText.trim() || undefined,
         body: body.trim(),
+        bodyExample:
+          bodyVariableCount > 0
+            ? Array.from(
+                { length: bodyVariableCount },
+                (_, i) => bodyExample[i + 1]?.trim() ?? '',
+              )
+            : undefined,
         footer: footer.trim() || undefined,
         buttons: buttons.length > 0 ? buttons.map(toMetaButton) : undefined,
       })
@@ -268,6 +288,30 @@ export function CreateTemplateDialog({ workspaceId }: { workspaceId: string }) {
                 Use {'{{1}}'}, {'{{2}}'}... para variáveis preenchidas no envio
               </p>
             </div>
+
+            {bodyVariableCount > 0 && (
+              <div className='space-y-2 rounded-md border p-2'>
+                <p className='text-muted-foreground text-xs'>
+                  A Meta exige um valor de exemplo por variável para aprovar o
+                  template
+                </p>
+                {Array.from({ length: bodyVariableCount }, (_, i) => (
+                  <div key={`body-example-${i + 1}`} className='space-y-1'>
+                    <Label>Exemplo de {`{{${i + 1}}}`}</Label>
+                    <Input
+                      value={bodyExample[i + 1] ?? ''}
+                      onChange={(e) =>
+                        setBodyExample((prev) => ({
+                          ...prev,
+                          [i + 1]: e.target.value,
+                        }))
+                      }
+                      placeholder={i === 0 ? 'Maria' : 'Hemograma completo'}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className='space-y-1.5'>
               <Label>Rodapé (opcional)</Label>

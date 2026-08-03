@@ -43,6 +43,10 @@ export const CreateWhatsAppTemplateSchema = z.object({
   category: z.enum(WHATSAPP_TEMPLATE_CATEGORIES),
   headerText: z.string().trim().max(60).optional(),
   body: z.string().trim().min(1).max(1024),
+  // Meta exige um valor de exemplo por variável {{n}} do corpo — sem isso a
+  // submissão é rejeitada com INVALID_FORMAT. Índice do array = posição da
+  // variável (bodyExample[0] preenche {{1}}, etc.).
+  bodyExample: z.array(z.string().trim().min(1)).max(10).optional(),
   footer: z.string().trim().max(60).optional(),
   buttons: z.array(CreateWhatsAppTemplateButtonSchema).max(3).optional(),
 })
