@@ -2,13 +2,18 @@ import type { Job } from 'bullmq'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { encryptConnectionSecret } from '@/src/lib/crypto'
 import { prisma } from '@/src/lib/prisma'
 import { ok } from '@/src/lib/result'
 import { WhatsappAiReplyJob } from '../../jobs'
 
 vi.mock('@/src/lib/whatsapp/send', () => ({
   WhatsAppSend: { text: vi.fn() },
+}))
+
+vi.mock('@/src/lib/crypto', () => ({
+  decryptConnectionSecret: vi.fn(async (envelope: string) =>
+    envelope.replace(/^enc:/, ''),
+  ),
 }))
 
 const mockCreate = vi.fn()
@@ -57,11 +62,10 @@ async function seedFixtures(overrides?: { systemPrompt?: string }) {
       aiActive: true,
     },
   })
-  const encryptedOpenaiApiKey = await encryptConnectionSecret('fake-api-key')
   await prisma.whatsAppAiConfig.create({
     data: {
       workspaceId: workspace.id,
-      encryptedOpenaiApiKey,
+      encryptedOpenaiApiKey: 'enc:fake-api-key',
       systemPrompt:
         overrides?.systemPrompt ?? 'Você é o assistente da clínica.',
       active: true,
