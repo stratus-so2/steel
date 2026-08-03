@@ -8,6 +8,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { cacheLife, cacheTag } from 'next/cache'
+import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
@@ -31,6 +32,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { getAuthSession } from '@/src/lib/auth-session'
+import { PREFERENCE_COOKIES } from '@/src/lib/preference-cookies'
 import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
@@ -38,20 +40,39 @@ export const metadata: Metadata = {
   description: 'Seu painel inicial com links rápidos e anotações.',
 }
 
-const fullDateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  weekday: 'long',
-  day: '2-digit',
-  month: 'long',
-  hour: '2-digit',
-  minute: '2-digit',
-})
+// A maioria dos usuários nunca configurou um fuso em Preferências (a
+// coluna nasce com "UTC" por padrão) — cair pra "UTC" faz o servidor
+// (que roda em UTC) achar que é noite às 15h de Brasília. São Paulo é
+// uma aposta muito melhor que UTC pro público do produto.
+const DEFAULT_TIMEZONE = 'America/Sao_Paulo'
 
-async function getGreeting() {
+/** Fuso pra formatação SSR: cookie espelhado da preferência, com fallback seguro. */
+async function resolveTimezone() {
+  const cookieStore = await cookies()
+  const tz = cookieStore.get(PREFERENCE_COOKIES.timezone)?.value
+
+  if (!tz) return DEFAULT_TIMEZONE
+
+  try {
+    new Intl.DateTimeFormat('pt-BR', { timeZone: tz })
+    return tz
+  } catch {
+    return DEFAULT_TIMEZONE
+  }
+}
+
+async function getGreeting(timezone: string) {
   'use cache'
   cacheLife('hours')
   cacheTag('greeting')
 
-  const hour = new Date().getHours()
+  const hour = Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hourCycle: 'h23',
+    }).format(new Date()),
+  )
 
   if (hour < 12) return 'Bom dia'
   if (hour < 18) return 'Boa tarde'
@@ -76,12 +97,19 @@ const WORKSPACE_QUICK_LINKS = [
   { label: 'IA', href: 'ai', icon: SparklesIcon },
 ] as const
 
-async function getFullDate() {
+async function getFullDate(timezone: string) {
   'use cache'
   cacheLife('hours')
   cacheTag('full-date')
 
-  return fullDateFormatter
+  return new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: timezone,
+  })
     .formatToParts(new Date())
     .map((part) =>
       part.type === 'weekday' || part.type === 'month'
@@ -109,9 +137,10 @@ export default async function Page({
   )
   if (!membership.ok || !membership.value) redirect('/create-workspace')
 
+  const timezone = await resolveTimezone()
   const [greeting, fullDate, members] = await Promise.all([
-    getGreeting(),
-    getFullDate(),
+    getGreeting(timezone),
+    getFullDate(timezone),
     MembershipService.listWithUserByWorkspace(membership.value.workspaceId),
   ])
   const workspaceMembers = members.ok ? members.value : []
