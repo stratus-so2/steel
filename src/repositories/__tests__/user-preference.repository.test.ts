@@ -57,7 +57,7 @@ describe('UserPreferenceRepository', () => {
       )
 
       expect(preference.theme).toBe('SYSTEM')
-      expect(preference.timezone).toBe('UTC')
+      expect(preference.timezone).toBe('America/Sao_Paulo')
       expect(preference.weekStartsOn).toBe(1)
       expect(preference.weekendDays).toEqual([0, 6])
     })

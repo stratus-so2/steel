@@ -29,7 +29,7 @@ describe('GET /api/users/me/preferences (e2e)', () => {
     const body = await res.json()
     expect(body.success).toBe(true)
     expect(body.data.theme).toBe('SYSTEM')
-    expect(body.data.timezone).toBe('UTC')
+    expect(body.data.timezone).toBe('America/Sao_Paulo')
     expect(body.data.weekStartsOn).toBe(1)
     expect(body.data.weekendDays).toEqual([0, 6])
   })
