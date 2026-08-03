@@ -98,6 +98,10 @@ export interface ValidatedBroadcastImportRow {
   phone: string
   contactName?: string
   scheduledAt: Date
+  // Data/hora real do compromisso (ex: exame) — distinta de `scheduledAt`
+  // (horário de disparo do lembrete). Persistida pra a IA poder consultar
+  // via tool calling quando o cliente pergunta sobre agendamentos.
+  appointmentAt: Date
   variableValues: { body: Record<string, string> }
 }
 
@@ -175,6 +179,7 @@ export function validateBroadcastImportRows(
       phone,
       contactName: row.contactName || undefined,
       scheduledAt,
+      appointmentAt: referenceDate,
       variableValues: { body },
     })
   })

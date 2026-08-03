@@ -40,6 +40,7 @@ export function createFakeWhatsAppBroadcastRecipient(
     status: 'PENDING',
     variableValues: null,
     scheduledAt: null,
+    appointmentAt: null,
     providerMessageId: null,
     errorMessage: null,
     sentAt: null,

@@ -83,6 +83,7 @@ export const WhatsAppBroadcastImportService = {
         contactId: contact.value.id,
         variableValues: row.variableValues,
         scheduledAt: row.scheduledAt,
+        appointmentAt: row.appointmentAt,
       })
     }
 

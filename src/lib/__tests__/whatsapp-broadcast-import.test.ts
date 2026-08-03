@@ -86,6 +86,9 @@ describe('validateBroadcastImportRows()', () => {
       body: { '1': 'Maria', '2': 'amanhã' },
     })
     expect(valid[0].scheduledAt.toISOString()).toBe('2026-08-14T09:00:00.000Z')
+    expect(valid[0].appointmentAt.toISOString()).toBe(
+      '2026-08-15T09:00:00.000Z',
+    )
   })
 
   it('should reject an invalid phone number', () => {

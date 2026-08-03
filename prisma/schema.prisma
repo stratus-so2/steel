@@ -902,6 +902,11 @@ model WhatsAppBroadcastRecipient {
   // sua própria data de referência (ex: consulta agendada), então o
   // agendamento é por destinatário, não pela lista inteira.
   scheduledAt       DateTime?                        @map("scheduled_at")
+  // Data/hora real do compromisso (ex: exame), distinta de `scheduledAt`
+  // (horário de disparo do lembrete = appointmentAt - sendOffsetHours).
+  // Consultada pela IA via tool calling quando o cliente pergunta sobre
+  // agendamentos.
+  appointmentAt     DateTime?                        @map("appointment_at")
   providerMessageId String?                          @map("provider_message_id")
   errorMessage      String?                          @map("error_message")
   sentAt            DateTime?                        @map("sent_at")
@@ -913,6 +918,7 @@ model WhatsAppBroadcastRecipient {
   @@unique([broadcastListId, contactId])
   @@index([broadcastListId, status])
   @@index([status, scheduledAt])
+  @@index([contactId, appointmentAt])
   @@map("whatsapp_broadcast_recipients")
 }
 
