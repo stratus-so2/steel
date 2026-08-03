@@ -53,6 +53,11 @@ export async function createMetaTemplate(
       name: input.name,
       language: input.language,
       category: input.category,
+      // Graph API v23.0 passou a exigir isso explicitamente — sem o campo,
+      // templates com variáveis {{n}} no corpo são rejeitados com
+      // INVALID_FORMAT mesmo com o `example` correto (confirmado contra
+      // uma WABA real). Só usamos {{n}} posicional, nunca nomeado.
+      parameter_format: 'POSITIONAL',
       components: input.components,
     }),
   })
