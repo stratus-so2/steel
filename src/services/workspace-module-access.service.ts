@@ -1,8 +1,11 @@
 import type { ModuleKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import { ok, type Result } from '@/src/lib/result'
 import { toWorkspaceModuleAccessDTO } from '@/src/mappers/workspace-module-access.mapper'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { CrmPipelineSeedService } from '@/src/services/crm-pipeline-seed.service'
+import { WhatsAppDashboardSeedService } from '@/src/services/whatsapp-dashboard-seed.service'
 import type {
   WorkspaceModuleAccessDTO,
   WorkspaceModuleAccessSummaryDTO,
@@ -77,6 +80,37 @@ export const WorkspaceModuleAccessService = {
       targetId: workspaceId,
       meta: { module, enabled },
     })
+
+    // Dashboards/relatórios padrão do zap e pipeline padrão do CRM — não
+    // bloqueiam a concessão do módulo se o seed falhar, só registram pra
+    // investigação.
+    if (module === 'COMMUNICATION' && enabled) {
+      const seed = await WhatsAppDashboardSeedService.seedDefaults(
+        workspaceId,
+        actorId,
+      )
+      if (!seed.ok) {
+        logger.error('workspace_module_access.seed_defaults_failed', {
+          workspaceId,
+          actorId,
+          error: seed.error,
+        })
+      }
+    }
+
+    if (module === 'CRM' && enabled) {
+      const seed = await CrmPipelineSeedService.seedDefaultPipeline(
+        workspaceId,
+        actorId,
+      )
+      if (!seed.ok) {
+        logger.error('workspace_module_access.seed_default_pipeline_failed', {
+          workspaceId,
+          actorId,
+          error: seed.error,
+        })
+      }
+    }
 
     return ok(toWorkspaceModuleAccessDTO(result.value))
   },

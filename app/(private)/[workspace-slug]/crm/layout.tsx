@@ -1,10 +1,10 @@
 import {
-  AiChat01Icon,
   BrowserIcon,
   Building03Icon,
   Calendar01Icon,
   ChartHistogramIcon,
-  CheckListIcon,
+  ChartLineData01Icon,
+  DashboardSquare01Icon,
   DocumentValidationIcon,
   Facebook01Icon,
   FireIcon,
@@ -12,7 +12,6 @@ import {
   FunnelIcon,
   GoogleIcon,
   InstagramIcon,
-  Key01Icon,
   Linkedin01Icon,
   Mail01Icon,
   MailSend01Icon,
@@ -21,6 +20,7 @@ import {
   NewTwitterIcon,
   PackageIcon,
   QuoteUpIcon,
+  Settings02Icon,
   Share08Icon,
   StickyNote01Icon,
   TargetDollarIcon,
@@ -78,10 +78,16 @@ export default async function CrmLayout({
           <NavItem href={`${base}/products`} icon={PackageIcon}>
             Produtos
           </NavItem>
+          <NavItem href={`${base}/forecast`} icon={ChartLineData01Icon}>
+            Previsão
+          </NavItem>
         </NavGroup>
         <NavGroup>
           <NavItem href={`${base}/tasks`} icon={TaskDone01Icon}>
             Tarefas
+          </NavItem>
+          <NavItem href={`${base}/tasks/calendar`} icon={Calendar01Icon}>
+            Calendário
           </NavItem>
           <NavItem href={`${base}/notes`} icon={StickyNote01Icon}>
             Notas
@@ -91,9 +97,6 @@ export default async function CrmLayout({
           </NavItem>
           <NavItem href={`${base}/forms`} icon={FormIcon}>
             Formulários
-          </NavItem>
-          <NavItem href={`${base}/custom-fields`} icon={CheckListIcon}>
-            Campos customizados
           </NavItem>
         </NavGroup>
         <NavGroup>
@@ -157,21 +160,16 @@ export default async function CrmLayout({
           <NavItem href={`${base}/workflows`} icon={WorkflowCircle01Icon}>
             Workflows
           </NavItem>
-          <NavItem href={`${base}/email-sync`} icon={Calendar01Icon}>
-            E-mail e agenda
+          <NavItem href={`${base}/dashboards`} icon={DashboardSquare01Icon}>
+            Painéis
           </NavItem>
-        </NavGroup>
-        <NavGroup>
           <NavItem href={`${base}/reports`} icon={ChartHistogramIcon}>
             Relatórios
           </NavItem>
-          <NavItem href={`${base}/ai`} icon={AiChat01Icon}>
-            Assistente IA
-          </NavItem>
         </NavGroup>
         <NavGroup>
-          <NavItem href={`${base}/integration-keys`} icon={Key01Icon}>
-            Chaves de API
+          <NavItem href={`${base}/settings`} icon={Settings02Icon}>
+            Configurações
           </NavItem>
         </NavGroup>
       </ContextSidebar>
