@@ -1,6 +1,8 @@
 import type {
   ChartConfig,
+  ChartSource,
   ViewConfig,
+  ViewSource,
 } from '@/src/schemas/crm-dashboard.schema'
 
 export type Row = Record<string, unknown>
@@ -69,6 +71,35 @@ function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null
   const n = Number(value)
   return Number.isFinite(n) ? n : null
+}
+
+const SENTIMENT_POSITIVE_THRESHOLD = 0.2
+const SENTIMENT_NEGATIVE_THRESHOLD = -0.2
+
+function sentimentLabelFor(score: unknown): string {
+  const n = toNumber(score)
+  if (n === null) return 'Sem classificação'
+  if (n >= SENTIMENT_POSITIVE_THRESHOLD) return 'Positivo'
+  if (n <= SENTIMENT_NEGATIVE_THRESHOLD) return 'Negativo'
+  return 'Neutro'
+}
+
+/**
+ * Enriquece as linhas com campos calculados no cliente (não vêm do DTO da
+ * API). Hoje só a faixa de sentimento das conversas de WhatsApp, derivada de
+ * `avgSentimentScore` — que já é calculado pelo job de análise de sentimento
+ * (src/lib/queue/processors/whatsapp-sentiment.ts), aqui só é bucketizado
+ * para virar categoria de gráfico/tabela.
+ */
+export function withDerivedFields(
+  source: ChartSource | ViewSource,
+  rows: Row[],
+): Row[] {
+  if (source !== 'whatsapp-conversations') return rows
+  return rows.map((row) => ({
+    ...row,
+    sentimentLabel: sentimentLabelFor(row.avgSentimentScore),
+  }))
 }
 
 const SINGLE_SERIES = 'Total'

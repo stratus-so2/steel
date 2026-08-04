@@ -6,6 +6,7 @@ import {
   passesFilters,
   type Row,
   sortRows,
+  withDerivedFields,
 } from '@/app/_components/crm/dashboard/widget-data'
 import {
   sourceResource,
@@ -41,7 +42,10 @@ export function ViewWidget({
   }, [config.source, config.fields])
 
   const rows = React.useMemo(() => {
-    const filtered = items.filter((row) => passesFilters(row, config.filters))
+    const enriched = withDerivedFields(config.source, items)
+    const filtered = enriched.filter((row) =>
+      passesFilters(row, config.filters),
+    )
     return sortRows(filtered, config)
   }, [items, config])
 
