@@ -13,6 +13,7 @@ import {
   aggregateCompare,
   aggregateTotal,
   type Row,
+  withDerivedFields,
 } from '@/app/_components/crm/dashboard/widget-data'
 import { sourceResource } from '@/app/_components/crm/dashboard/widget-meta'
 import { SteelIcon } from '@/components/icon/icon'
@@ -73,8 +74,12 @@ function useChartRows(
     workspaceId,
     path || 'crm/companies',
   )
+  const derived = React.useMemo(
+    () => withDerivedFields(source, items),
+    [source, items],
+  )
   if (source === 'socials') return { items: [], isLoading: false }
-  return { items, isLoading }
+  return { items: derived, isLoading }
 }
 
 export function ChartWidget({
@@ -160,20 +165,52 @@ export function ChartWidget({
     return <Empty message='Sem dados para os filtros atuais.' />
   }
 
+  const isHorizontal = config.chartType === 'horizontal'
+  const categoryLegend = config.xAxisName || undefined
+  const valueLegend = config.yAxisName || undefined
+  /** Nome do eixo que fica embaixo/à esquerda (barra horizontal inverte os dois). */
+  const bottomAxisName = isHorizontal ? valueLegend : categoryLegend
+  const leftAxisName = isHorizontal ? categoryLegend : valueLegend
+
+  /*
+   * O espaço embaixo do gráfico é compartilhado por até três elementos
+   * empilhados: tick labels do eixo X, o nome do eixo (axisBottom.legend) e
+   * a legenda de série (chart legend). O espaço à esquerda é compartilhado
+   * por tick labels do eixo Y e o nome do eixo (axisLeft.legend). Cada faixa
+   * reserva sua própria altura/largura e os offsets abaixo são derivados
+   * dela, para nunca ultrapassar a margem reservada (o que antes causava
+   * sobreposição/corte de texto).
+   */
+  const TICK_SPACE_X = 24
+  const AXIS_NAME_SPACE_X = 20
+  const SERIES_LEGEND_SPACE = 24
+  const TICK_SPACE_Y = 32
+  const AXIS_NAME_SPACE_Y = 20
+
+  const bottomMargin =
+    TICK_SPACE_X +
+    (bottomAxisName ? AXIS_NAME_SPACE_X : 0) +
+    (config.legend ? SERIES_LEGEND_SPACE : 0)
+  const axisBottomLegendOffset = TICK_SPACE_X + AXIS_NAME_SPACE_X / 2 + 4
+  const seriesLegendTranslateY =
+    TICK_SPACE_X + (bottomAxisName ? AXIS_NAME_SPACE_X : 0) + 6
+
+  const leftMargin = TICK_SPACE_Y + (leftAxisName ? AXIS_NAME_SPACE_Y : 0)
+  const axisLeftLegendOffset = -(TICK_SPACE_Y + AXIS_NAME_SPACE_Y / 2 + 4)
+
   const legends = config.legend
     ? [
         {
           dataFrom: 'keys' as const,
           anchor: 'bottom' as const,
           direction: 'row' as const,
-          translateY: 46,
+          translateY: seriesLegendTranslateY,
           itemWidth: 80,
           itemHeight: 16,
           symbolSize: 10,
         },
       ]
     : []
-  const bottomMargin = config.legend ? 56 : 36
 
   /* ---------------------------------- pie ---------------------------------- */
   if (config.chartType === 'pie') {
@@ -181,6 +218,11 @@ export function ChartWidget({
       id: category,
       value: data.totalOf(category),
     }))
+    const PIE_LEGEND_TRANSLATE_Y = 32
+    const PIE_LEGEND_HEIGHT = 16
+    const pieBottomMargin = config.legend
+      ? PIE_LEGEND_TRANSLATE_Y + PIE_LEGEND_HEIGHT + 8
+      : 12
     return (
       <div className='h-full w-full text-muted-foreground'>
         <ResponsivePie
@@ -188,7 +230,7 @@ export function ChartWidget({
           margin={{
             top: 12,
             right: 12,
-            bottom: config.legend ? 40 : 12,
+            bottom: pieBottomMargin,
             left: 12,
           }}
           innerRadius={0.5}
@@ -206,9 +248,9 @@ export function ChartWidget({
                   {
                     anchor: 'bottom',
                     direction: 'row',
-                    translateY: 36,
+                    translateY: PIE_LEGEND_TRANSLATE_Y,
                     itemWidth: 70,
-                    itemHeight: 16,
+                    itemHeight: PIE_LEGEND_HEIGHT,
                     symbolSize: 10,
                   },
                 ]
@@ -232,7 +274,12 @@ export function ChartWidget({
       <div className='h-full w-full text-muted-foreground'>
         <ResponsiveLine
           data={lineData}
-          margin={{ top: 12, right: 16, bottom: bottomMargin, left: 48 }}
+          margin={{
+            top: 12,
+            right: 16,
+            bottom: bottomMargin,
+            left: leftMargin,
+          }}
           colors={COLORS}
           curve='monotoneX'
           enableArea={config.stacked}
@@ -249,16 +296,16 @@ export function ChartWidget({
           axisBottom={{
             tickSize: 0,
             tickPadding: 8,
-            legend: config.xAxisName || undefined,
+            legend: bottomAxisName,
             legendPosition: 'middle',
-            legendOffset: 40,
+            legendOffset: axisBottomLegendOffset,
           }}
           axisLeft={{
             tickSize: 0,
             tickPadding: 8,
-            legend: config.yAxisName || undefined,
+            legend: leftAxisName,
             legendPosition: 'middle',
-            legendOffset: -42,
+            legendOffset: axisLeftLegendOffset,
           }}
           theme={THEME}
           legends={legends}
@@ -268,7 +315,6 @@ export function ChartWidget({
   }
 
   /* ------------------------------- bar (v / h) ----------------------------- */
-  const isHorizontal = config.chartType === 'horizontal'
   const barData = data.categories.map((category) => {
     const entry: Record<string, string | number> = { category }
     for (const series of data.seriesKeys) {
@@ -276,9 +322,6 @@ export function ChartWidget({
     }
     return entry
   })
-
-  const categoryLegend = config.xAxisName || undefined
-  const valueLegend = config.yAxisName || undefined
 
   return (
     <div className='h-full w-full text-muted-foreground'>
@@ -288,7 +331,7 @@ export function ChartWidget({
         indexBy='category'
         layout={isHorizontal ? 'horizontal' : 'vertical'}
         groupMode={config.stacked ? 'stacked' : 'grouped'}
-        margin={{ top: 12, right: 16, bottom: bottomMargin, left: 48 }}
+        margin={{ top: 12, right: 16, bottom: bottomMargin, left: leftMargin }}
         padding={0.3}
         colors={COLORS}
         borderRadius={3}
@@ -301,16 +344,16 @@ export function ChartWidget({
         axisBottom={{
           tickSize: 0,
           tickPadding: 8,
-          legend: isHorizontal ? valueLegend : categoryLegend,
+          legend: bottomAxisName,
           legendPosition: 'middle',
-          legendOffset: 40,
+          legendOffset: axisBottomLegendOffset,
         }}
         axisLeft={{
           tickSize: 0,
           tickPadding: 8,
-          legend: isHorizontal ? categoryLegend : valueLegend,
+          legend: leftAxisName,
           legendPosition: 'middle',
-          legendOffset: -42,
+          legendOffset: axisLeftLegendOffset,
         }}
         theme={THEME}
         legends={legends}

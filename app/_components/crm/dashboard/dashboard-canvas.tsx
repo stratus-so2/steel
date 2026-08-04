@@ -71,7 +71,9 @@ export function DashboardCanvas({
         w: w.w,
         h: w.h,
         minW: 2,
-        minH: 3,
+        // CHART precisa de altura mínima maior: com menos espaço, eixo/legenda
+        // dos gráficos nivo se sobrepõem aos tick labels.
+        minH: w.type === 'CHART' ? 5 : 3,
       })),
     [widgets],
   )
