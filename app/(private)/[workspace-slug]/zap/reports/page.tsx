@@ -26,11 +26,13 @@ export default async function WhatsappReportsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
-      <WhatsappReportsList
-        workspaceId={membership.value.workspaceId}
-        slug={slug}
-      />
+    <div className='flex h-full w-full min-h-0 flex-col'>
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        <WhatsappReportsList
+          workspaceId={membership.value.workspaceId}
+          slug={slug}
+        />
+      </div>
     </div>
   )
 }
