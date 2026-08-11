@@ -76,6 +76,13 @@ const SUBPROCESSORS = [
     location: 'Estados Unidos',
   },
   {
+    name: 'Anthropic, PBC',
+    purpose:
+      'Recursos de inteligência artificial (assistente de IA, resposta automática, análise de sentimento)',
+    data: 'Conteúdo de conversas e prompts submetidos pelo usuário',
+    location: 'Estados Unidos',
+  },
+  {
     name: 'AbacatePay',
     purpose: 'Processamento de pagamentos e cobrança de assinaturas',
     data: 'Nome, endereço de cobrança, dados de cartão',
@@ -94,11 +101,11 @@ const SUBPROCESSORS = [
     location: 'Estados Unidos',
   },
   {
-    name: '[PROVEDOR DE HOSPEDAGEM/INFRAESTRUTURA]',
+    name: 'Open Datacenter Brasil Ltda',
     purpose:
       'Hospedagem da aplicação, banco de dados e armazenamento de arquivos',
     data: 'Todos os dados processados pela plataforma',
-    location: '[CONFIRMAR REGIÃO]',
+    location: 'Brasil',
   },
 ] as const
 
@@ -109,14 +116,6 @@ export default function SubprocessorsPage() {
         <H1 className='text-left'>Subprocessadores</H1>
         <Muted>Versão {PRIVACY_VERSION}</Muted>
       </header>
-
-      <div className='rounded-md border border-dashed border-muted-foreground/40 bg-muted/30 p-4'>
-        <P className='mt-0 text-sm'>
-          Este documento está em rascunho e pendente de revisão jurídica. O
-          trecho entre colchetes ([ ]) marca um dado que ainda precisa ser
-          confirmado.
-        </P>
-      </div>
 
       <P>
         Esta página lista os terceiros ("subprocessadores") que processam dados

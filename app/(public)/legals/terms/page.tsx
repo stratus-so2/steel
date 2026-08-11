@@ -18,504 +18,379 @@ export default function ServiceTermPage() {
         <Muted>Versão {TERMS_VERSION}</Muted>
       </header>
 
-      <div className='rounded-md border border-dashed border-muted-foreground/40 bg-muted/30 p-4'>
-        <P className='mt-0 text-sm'>
-          Este documento está em rascunho e pendente de revisão jurídica —
-          nenhuma versão gerada automaticamente deve ser publicada como final
-          sem validação de um advogado.
-        </P>
-      </div>
-
       <P>
-        Estes Termos de Serviço ("Termos") regem o acesso e uso da plataforma
-        Steel, incluindo seus módulos de Service Desk, CRM e Comunicação
-        (WhatsApp), disponibilizada por{' '}
-        <strong>Alexandre de Carvalho ME</strong> (nome fantasia{' '}
-        <strong>Stratus Telecom</strong>), inscrita no CNPJ sob o nº{' '}
-        <strong>04.554.476/0001-25</strong>, com sede na{' '}
-        <strong>
-          Av. Senador Feijó, 686, Sala 1402, Vila Matias, Santos - SP, CEP
-          11015-504
-        </strong>{' '}
-        ("Steel", "nós", "nossa"), pela pessoa física ou jurídica que acessa ou
-        utiliza o serviço ("Cliente", "você"). Ao criar uma conta, marcar a
-        caixa de aceite na interface do produto ou simplesmente usar o Steel,
-        você concorda em se vincular a estes Termos. Se você está aceitando em
-        nome de uma empresa, declara ter poderes para vinculá-la.
+        Estes Termos de Serviço ("Termos") regulam o acesso e uso da plataforma{' '}
+        <strong>Steel</strong> ("Plataforma"), incluindo os módulos de Service
+        Desk, CRM e Comunicação, disponibilizada por{' '}
+        <strong>Alexandre de Carvalho ME</strong>, nome fantasia{' '}
+        <strong>Stratus Telecom</strong>, CNPJ nº 04.554.476/0001-25, com sede
+        na Av. Senador Feijó, 686, Sala 1402, Vila Matias, Santos/SP, CEP
+        11015-504 ("Stratus Telecom", "Contratada" ou "nós"). A pessoa física ou
+        jurídica que contrata ou utiliza o Serviço é denominada "Cliente".
       </P>
       <P>
-        A "Data de Vigência" é a data do seu primeiro acesso ao Steel ou a data
-        de assinatura de uma proposta comercial que referencie estes Termos, o
-        que ocorrer primeiro.
+        Ao criar uma conta, aceitar estes Termos ou utilizar o Serviço, o
+        Cliente concorda com este contrato. Quem o aceita em nome de pessoa
+        jurídica declara possuir poderes suficientes para vinculá-la. A
+        contratação somente é permitida a maiores de 18 anos e pessoas capazes.
       </P>
 
       <section className='flex flex-col gap-4'>
         <div>
-          <H2>1. Definições</H2>
+          <H2>1. Serviço e licença</H2>
           <P>
-            <strong>"Conta"</strong> é o cadastro individual de um usuário no
-            Steel. <strong>"Workspace"</strong> é o ambiente isolado de um
-            Cliente dentro da plataforma, ao qual usuários autorizados têm
-            acesso. <strong>"Usuário Autorizado"</strong> é qualquer pessoa que
-            o Cliente permite acessar seu workspace, incluindo funcionários,
-            contratados e agentes.
+            A Contratada disponibiliza, por assinatura, a Plataforma como
+            software como serviço (SaaS). Recursos, limites, integrações, preços
+            e módulos habilitados são os previstos no plano, proposta comercial
+            ou interface aplicável.
           </P>
           <P>
-            <strong>"Dados do Cliente"</strong> são quaisquer dados, conteúdos,
-            arquivos ou mensagens inseridos, enviados ou recebidos por ou em
-            nome do Cliente através do Steel — incluindo registros de CRM,
-            tickets de Service Desk, e conversas, contatos e mensagens de
-            WhatsApp processadas via Meta (WhatsApp Business Platform) ou Z-API.
-            Dados do Cliente não incluem Dados de Uso.
+            Sujeito a estes Termos e ao pagamento devido, a Contratada concede
+            ao Cliente licença limitada, revogável, não exclusiva,
+            intransferível e não sublicenciável para uso interno da Plataforma
+            por seus usuários autorizados durante a vigência da contratação. O
+            Serviço é fornecido como ferramenta de apoio; o Cliente permanece
+            integralmente responsável por suas decisões, atendimentos,
+            comunicações, cadastros, campanhas e resultados comerciais.
           </P>
           <P>
-            <strong>"Dados de Uso"</strong> são informações técnicas,
-            diagnósticas e de uso sobre a utilização do Steel pelo Cliente e por
-            Usuários Autorizados, incluindo padrões de uso de funcionalidades,
-            métricas de desempenho e logs de sistema. Dados de Uso não incluem
-            Dados do Cliente.
-          </P>
-          <P>
-            <strong>"Provedores Integrados"</strong> são os terceiros cujos
-            serviços o Steel utiliza ou conecta para operar, incluindo, sem
-            limitação, Meta Platforms, Inc. (WhatsApp Business Platform), Z-API,
-            provedores de redes sociais (Instagram, Facebook, TikTok, YouTube,
-            LinkedIn, X/Twitter, Google Ads/Analytics), provedores de
-            inteligência artificial, processador de pagamentos e provedor de
-            e-mail transacional.
+            A Contratada poderá corrigir erros, atualizar, alterar, limitar,
+            substituir ou descontinuar recursos, inclusive por razões técnicas,
+            de segurança, legais ou decorrentes de terceiros. Sempre que
+            razoavelmente possível, buscará comunicar alterações materiais que
+            afetem substancialmente o uso contratado.
           </P>
         </div>
 
         <div>
-          <H2>2. Aceite e elegibilidade</H2>
+          <H2>2. Conta, usuários e segurança</H2>
           <P>
-            Você precisa ter pelo menos 18 anos e capacidade legal para celebrar
-            contratos para usar o Steel. Ao se cadastrar, você confirma que as
-            informações fornecidas são verdadeiras e completas, e se compromete
-            a mantê-las atualizadas.
+            O Cliente é responsável: (i) pela veracidade e atualização dos dados
+            cadastrais; (ii) por definir e administrar os acessos de seus
+            usuários; (iii) por guardar senhas, tokens, chaves de API e demais
+            credenciais; e (iv) por toda atividade realizada em sua conta,
+            inclusive por empregados, contratados e terceiros autorizados.
           </P>
           <P>
-            O Steel é uma plataforma multi-tenant: cada workspace é logicamente
-            isolado dos demais clientes. O aceite destes Termos é individual por
-            usuário e fica registrado com data, hora, versão do documento e IP
-            de origem, para fins de comprovação de consentimento.
-          </P>
-          <P>
-            O Steel reúne módulos opcionais — Service Desk, CRM e Comunicação —
-            habilitáveis por workspace conforme o plano contratado. Estes Termos
-            se aplicam a todos os módulos habilitados para sua conta, ainda que
-            módulos específicos possam estar sujeitos a condições adicionais
-            informadas na interface do produto.
+            O Cliente deverá comunicar imediatamente qualquer suspeita de acesso
+            indevido. A Stratus poderá suspender, redefinir credenciais ou
+            restringir acessos quando necessário para proteger a conta, a
+            Plataforma, terceiros ou cumprir obrigação legal, sem que isso gere
+            direito a indenização.
           </P>
         </div>
 
         <div>
-          <H2>3. Acesso, conta e segurança</H2>
+          <H2>3. Dados do Cliente e privacidade</H2>
           <P>
-            Você é responsável por manter a confidencialidade das credenciais de
-            acesso à sua conta (senha, chaves de API, tokens de sessão) e por
-            toda atividade realizada sob sua conta. Recomendamos fortemente a
-            ativação da autenticação de dois fatores, disponível na plataforma.
+            "Dados do Cliente" são dados, conteúdos, arquivos, contatos,
+            registros, mensagens e demais informações inseridos, enviados,
+            recebidos ou disponibilizados pelo Cliente no Serviço. Entre as
+            partes, o Cliente conserva os direitos sobre esses dados.
           </P>
           <P>
-            Você deve nos notificar imediatamente em caso de uso não autorizado
-            da sua conta ou qualquer outra violação de segurança. O Steel não
-            será responsável por perdas decorrentes do uso não autorizado de
-            credenciais que não foram devidamente protegidas por você.
+            Quando a Stratus tratar dados pessoais inseridos pelo Cliente para
+            prestar o Serviço, o Cliente será, em regra, o{' '}
+            <strong>controlador</strong> e a Stratus atuará como{' '}
+            <strong>operadora</strong>, tratando-os conforme as instruções
+            documentadas do Cliente e a legislação aplicável. Isso não se aplica
+            aos dados que a Stratus tratar como controladora para administrar
+            sua própria relação com o Cliente, tais como dados de cadastro,
+            cobrança, segurança, suporte e uso do Serviço, conforme a{' '}
+            <a href='/legals/privacy' className='underline'>
+              Política de Privacidade
+            </a>
+            .
           </P>
           <P>
-            Você pode permitir que colaboradores e contratados de sua empresa
-            atuem como Usuários Autorizados, desde que permaneça responsável
-            pelo cumprimento destes Termos por parte deles e que o uso seja
-            exclusivamente em benefício do seu workspace.
-          </P>
-        </div>
-
-        <div>
-          <H2>4. Módulos do serviço e provedores integrados</H2>
-          <P>
-            <strong>4.1 Comunicação (WhatsApp).</strong> O módulo de Comunicação
-            permite conectar números de WhatsApp através da{' '}
-            <strong>Meta (WhatsApp Business Platform, API oficial)</strong> ou
-            da <strong>Z-API (integração não oficial via WhatsApp Web)</strong>.
-            Ao conectar um número, você declara ter autorização para fazê-lo e é
-            responsável por manter essa conexão em conformidade com os termos
-            comerciais da Meta e/ou do Z-API. O uso da Z-API está sujeito a
-            limitações inerentes a integrações não oficiais (incluindo risco de
-            bloqueio do número pelo WhatsApp), sobre as quais o Steel não tem
-            controle e não presta garantias.
+            O Cliente declara e garante que possui base legal, avisos,
+            autorizações e direitos necessários para coletar, usar, inserir,
+            compartilhar e tratar os Dados do Cliente no Serviço; que atenderá
+            solicitações dos titulares; e que observará a LGPD, normas de defesa
+            do consumidor, regras de marketing e demais leis aplicáveis. A
+            Stratus não revisa nem valida previamente a licitude dos Dados do
+            Cliente ou das instruções do Cliente.
           </P>
           <P>
-            <strong>4.2 Redes sociais e marketing.</strong> O módulo de CRM
-            permite conectar contas de redes sociais (Instagram, Facebook,
-            TikTok, YouTube, LinkedIn, X, Google Ads/Analytics) via OAuth, e
-            enviar campanhas de e-mail marketing. Você é responsável por cumprir
-            os termos de uso de cada plataforma conectada e a legislação
-            aplicável ao envio de comunicações de marketing (incluindo LGPD e
-            leis anti-spam), inclusive garantindo base legal e, quando exigido,
-            consentimento dos destinatários.
+            O Cliente não deverá inserir dados pessoais sensíveis, dados de
+            crianças e adolescentes ou dados sujeitos a regime especial, salvo
+            se tiver base legal, medidas adequadas e autorização prévia e
+            expressa da Stratus quando necessária. O Cliente também deverá
+            manter cópia própria dos Dados do Cliente e realizar exportações
+            antes do encerramento da conta.
           </P>
           <P>
-            <strong>4.3 Integrações via API.</strong> O módulo de "Chaves de
-            API" permite gerar credenciais para integrar sistemas externos ao
-            seu workspace. Você é responsável por proteger essas chaves e por
-            toda atividade realizada através delas.
+            O Cliente concede à Stratus a autorização necessária para hospedar,
+            copiar, transmitir, exibir e processar os Dados do Cliente
+            exclusivamente para prestar, proteger, manter e dar suporte ao
+            Serviço, cumprir obrigações legais, prevenir fraude ou incidente de
+            segurança e executar instruções documentadas do Cliente. A Stratus
+            poderá usar dados de uso, telemetria e métricas agregadas ou
+            anonimizadas para operar, proteger e aprimorar o Serviço, desde que
+            não identifiquem o Cliente ou titulares.
           </P>
           <P>
-            <strong>4.4 Disponibilidade de terceiros.</strong> A revogação de
-            uma autorização em um Provedor Integrado, mudanças em suas políticas
-            ou APIs, ou indisponibilidade desses provedores pode interromper
-            funcionalidades correspondentes no Steel, sem que isso configure
-            falha do serviço por parte do Steel.
-          </P>
-        </div>
-
-        <div>
-          <H2>5. Dados do Cliente</H2>
-          <P>
-            <strong>5.1 Propriedade.</strong> Entre as partes, o Cliente mantém
-            todos os direitos sobre os Dados do Cliente. O Cliente concede ao
-            Steel uma licença não exclusiva, mundial e gratuita para acessar,
-            usar, processar, copiar e exibir os Dados do Cliente exclusivamente
-            para: (a) prestar, manter e melhorar o serviço; (b) prevenir ou
-            resolver problemas técnicos, de segurança ou fraude; (c) responder a
-            solicitações de suporte; (d) cumprir obrigações legais; e (e)
-            conforme autorizado pelo Cliente por escrito.
-          </P>
-          <P>
-            <strong>5.2 Responsabilidades do Cliente.</strong> Você declara que:
-            (a) obteve todos os direitos, consentimentos e permissões
-            necessários para inserir Dados do Cliente no Steel — incluindo, no
-            caso de conversas de WhatsApp, o cumprimento das exigências legais
-            aplicáveis ao tratamento de dados de terceiros (contatos, leads);
-            (b) os Dados do Cliente não violam direitos de terceiros nem a
-            legislação aplicável; e (c) seu uso do Steel cumpre a LGPD, o Marco
-            Civil da Internet e demais Leis aplicáveis.
-          </P>
-          <P>
-            <strong>5.3 Dados sensíveis.</strong> Você não deve inserir no Steel
-            dados classificados como sensíveis pelo art. 5º, II, da LGPD (origem
-            racial ou étnica, convicção religiosa, opinião política, dado de
-            saúde ou vida sexual, dado genético ou biométrico) ou categorias
-            especiais equivalentes sob outras leis, salvo se o Steel tiver
-            expressamente concordado em tratá-los mediante acordo específico e
-            as salvaguardas adicionais aplicáveis.
+            O tratamento de dados pessoais é complementado pela Política de
+            Privacidade e pela{' '}
+            <a href='/legals/subprocessors' className='underline'>
+              Lista de Subprocessadores
+            </a>{' '}
+            vigentes, que integram estes Termos. O Cliente autoriza o uso dos
+            subprocessadores ali listados e daqueles necessários para recursos
+            opcionais que solicitar ou habilitar, observadas as condições
+            divulgadas. Detalhes adicionais sobre nossas práticas técnicas e
+            organizacionais de segurança estão disponíveis na página de{' '}
+            <a href='/legals/security' className='underline'>
+              Segurança
+            </a>
+            , incluindo controles inspirados nos critérios do SOC 2 (Trust
+            Services Criteria) como referência de boas práticas — o que não
+            representa certificação SOC 2 (Type I ou Type II) vigente, emitida
+            por auditor independente.
           </P>
         </div>
 
         <div>
-          <H2>6. Recursos de Inteligência Artificial</H2>
+          <H2>4. Comunicação, WhatsApp e integrações</H2>
           <P>
-            O Steel oferece recursos assistidos por IA, incluindo um assistente
-            de IA no CRM, resposta automática e análise de sentimento de
-            mensagens de WhatsApp ("Recursos de IA"). Esses recursos são
-            fornecidos para auxiliar, e não substituir, a tomada de decisão
-            humana.
+            O Serviço pode permitir a conexão com serviços de terceiros,
+            inclusive Meta/WhatsApp Business Platform, Z-API, redes sociais,
+            plataformas de anúncios, e-mail, IA e pagamentos ("Provedores
+            Integrados"). Esses serviços possuem termos, políticas, limites,
+            cobranças, disponibilidade e decisões próprios, que o Cliente deverá
+            aceitar e cumprir.
           </P>
           <P>
-            O Steel não utiliza Dados do Cliente para treinar modelos de IA de
-            uso geral, próprios ou de terceiros. Dados do Cliente processados
-            pelos Recursos de IA são usados exclusivamente para gerar a resposta
-            solicitada pelo próprio Cliente e não são compartilhados com ou
-            usados em benefício de outros clientes. O Steel pode utilizar
-            provedores terceirizados de IA para viabilizar esses recursos,
-            conforme detalhado na Política de Privacidade.
+            O Cliente declara que é titular ou possui autorização válida para
+            conectar cada conta, número, canal ou integração; que possui base
+            legal e, quando exigido, consentimento/opt-in dos destinatários; e
+            que respeitará solicitações de descadastramento, bloqueio e
+            oposição. O Cliente é o único responsável pelo conteúdo, frequência,
+            segmentação, destinatários, templates, campanhas e mensagens
+            enviadas por seus usuários ou automações.
           </P>
           <P>
-            Você é responsável por revisar e avaliar qualquer saída gerada pelos
-            Recursos de IA antes de utilizá-la ou de tomar decisões com base
-            nela. Saídas de IA podem ser imprecisas, incompletas ou inadequadas
-            ao seu propósito. O Steel não garante a exatidão, integridade ou
-            adequação de qualquer saída gerada por IA.
-          </P>
-        </div>
-
-        <div>
-          <H2>7. Planos, cobrança e cancelamento</H2>
-          <P>
-            O Steel é oferecido por assinatura, com planos e preços descritos na
-            página de planos do produto. Novas contas podem ter direito a um
-            período de teste gratuito, sem necessidade de cartão de crédito e
-            sem cobrança automática ao final do trial — o acesso aos recursos
-            pagos é encerrado ou reduzido ao plano gratuito se nenhuma
-            assinatura for contratada.
+            É proibido usar o Serviço para spam, phishing, fraude, assédio,
+            conteúdo ilícito, coleta irregular de dados, violação de direitos de
+            terceiros ou infração às regras de qualquer Provedor Integrado. A
+            utilização de integrações não oficiais, incluindo eventual conexão
+            via WhatsApp Web/Z-API, ocorre por conta e risco do Cliente.
+            Bloqueios de números, contas, templates ou canais, bem como mudanças
+            de API, política, preço ou disponibilidade de terceiros, não
+            constituem falha do Steel nem geram reembolso, indenização ou
+            crédito.
           </P>
           <P>
-            Assinaturas pagas são processadas por um provedor de pagamentos
-            terceirizado (AbacatePay ou outro que venha a substituí-lo). O Steel
-            não armazena dados completos de cartão de crédito — apenas o
-            provedor de pagamento tem acesso a essas informações, conforme suas
-            próprias políticas de segurança.
-          </P>
-          <P>
-            Assinaturas renovam automaticamente ao final de cada período de
-            cobrança, salvo cancelamento prévio pelo Cliente através das
-            configurações da conta. O cancelamento interrompe a renovação
-            futura, mas o acesso pago permanece ativo até o fim do período já
-            pago. Salvo disposição legal em contrário, direito de arrependimento
-            aplicável (art. 49 do CDC, quando cabível) ou erro de cobrança
-            comprovado, valores pagos não são reembolsáveis na proporção do
-            período já utilizado.
-          </P>
-          <P>
-            Reajustes de preço em renovações serão comunicados com antecedência
-            mínima de <strong>60 dias</strong>. O não pagamento de valores
-            devidos pode resultar em suspensão do acesso aos recursos pagos após
-            aviso prévio, sem prejuízo da cobrança dos valores em aberto.
+            O Steel não controla os Provedores Integrados e não garante a
+            continuidade, o resultado ou a disponibilidade de suas integrações.
+            O Cliente deverá manter relação, permissões, pagamentos e
+            credenciais exigidos pelo respectivo provedor.
           </P>
         </div>
 
         <div>
-          <H2>8. Uso aceitável</H2>
-          <P>Ao usar o Steel, você concorda em não:</P>
+          <H2>5. Recursos de IA</H2>
           <P>
-            (a) usar a plataforma para fins ilegais, fraudulentos ou que violem
-            direitos de terceiros; (b) enviar mensagens via WhatsApp que
-            configurem spam, phishing ou violem as políticas comerciais da Meta
-            ou os termos do provedor de conectividade utilizado; (c) tentar
-            acessar dados de outros workspaces sem autorização; (d) fazer
-            engenharia reversa, copiar ou tentar extrair o código-fonte da
-            plataforma; (e) sublicenciar, revender ou disponibilizar o Steel a
-            terceiros fora do contexto de Usuários Autorizados; (f)
-            sobrecarregar a infraestrutura do Steel com uso automatizado fora
-            dos limites da API pública; (g) usar o Steel para desenvolver um
-            produto concorrente ou para análise competitiva; ou (h) transmitir
-            vírus, malware ou qualquer código malicioso através do serviço.
+            Recursos de inteligência artificial são auxiliares e podem gerar
+            respostas imprecisas, incompletas, inadequadas ou indisponíveis. O
+            Cliente deve revisar toda saída antes de usá-la, especialmente antes
+            de enviar comunicações, tomar decisões ou utilizá-la em contextos
+            que produzam efeito relevante sobre pessoas.
           </P>
           <P>
-            O uso dos canais de WhatsApp integrados ao Steel está adicionalmente
-            sujeito às Políticas Comerciais e de Uso da Meta e aos termos de uso
-            do Z-API. Violações dessas políticas podem levar ao bloqueio do
-            número pelo próprio provedor, independentemente de ação do Steel.
+            O Cliente é responsável pela licitude dos dados, comandos e
+            conteúdos submetidos aos Recursos de IA e por validar se seu uso é
+            apropriado. O Steel não garante exatidão, originalidade, adequação,
+            disponibilidade ou resultado de saídas de IA. Provedores de IA
+            poderão processar dados estritamente para viabilizar o recurso
+            solicitado, conforme a documentação e políticas aplicáveis.
           </P>
         </div>
 
         <div>
-          <H2>9. Propriedade intelectual</H2>
+          <H2>6. Uso aceitável</H2>
           <P>
-            O Steel, sua marca, design, código-fonte e toda a tecnologia
-            subjacente são de propriedade exclusiva de Alexandre de Carvalho ME
-            ou de seus licenciadores. Estes Termos concedem apenas uma licença
-            limitada, não exclusiva e intransferível de uso durante a vigência
-            da sua assinatura — nenhum outro direito de propriedade intelectual
-            é transferido.
+            O Cliente não poderá, nem permitirá que terceiros: (a) usar o
+            Serviço de modo ilegal ou em violação destes Termos; (b) acessar
+            workspaces ou dados de terceiros sem autorização; (c) interferir no
+            Serviço, contornar limites técnicos ou testar sua vulnerabilidade
+            sem autorização; (d) copiar, modificar, fazer engenharia reversa,
+            descompilar ou tentar extrair código-fonte, salvo na medida em que a
+            lei expressamente não permita restrição; (e) revender, locar,
+            sublicenciar ou disponibilizar o Serviço a terceiros, exceto a
+            usuários autorizados; (f) transmitir malware, código malicioso ou
+            conteúdo que viole direitos; ou (g) usar o Serviço para desenvolver
+            produto concorrente ou realizar análise competitiva.
           </P>
           <P>
-            <strong>Feedback.</strong> Se você nos enviar sugestões ou
-            comentários sobre o Steel, poderemos usá-los livremente para
-            melhorar o produto, sem obrigação de compensação ou atribuição a
-            você.
-          </P>
-          <P>
-            <strong>Dados de Uso.</strong> O Steel pode coletar, usar e analisar
-            Dados de Uso para prestar, manter, melhorar e desenvolver o serviço.
-            Dados de Uso só são compartilhados com terceiros de forma agregada
-            ou anonimizada, sem possibilidade de identificação do Cliente ou de
-            indivíduos.
+            O Steel poderá investigar violações, remover ou restringir conteúdo
+            quando necessário, suspender acessos e cooperar com autoridades
+            competentes, sem assumir obrigação de monitoramento geral do uso
+            pelo Cliente.
           </P>
         </div>
 
         <div>
-          <H2>10. Confidencialidade</H2>
+          <H2>7. Preços, cobrança e cancelamento</H2>
           <P>
-            Cada parte se compromete a proteger as informações confidenciais da
-            outra com o mesmo cuidado que emprega para suas próprias informações
-            confidenciais, e a usá-las exclusivamente para cumprir estes Termos.
-            Dados do Cliente são considerados informação confidencial do
-            Cliente; a plataforma, sua tecnologia subjacente e dados de
-            desempenho são informação confidencial do Steel.
+            Os valores, periodicidade, impostos e limites aplicáveis são os
+            informados no plano, proposta ou checkout. Salvo indicação expressa
+            em contrário, valores são cobrados antecipadamente, não são
+            reembolsáveis e não incluem tributos eventualmente incidentes. O
+            Cliente é responsável pelos tributos, encargos e custos relacionados
+            ao seu uso, exceto tributos incidentes sobre a renda do Steel.
           </P>
           <P>
-            Não constitui informação confidencial aquela que: (a) já era de
-            conhecimento público sem violação destes Termos; (b) já era
-            conhecida pela parte receptora antes da divulgação; (c) foi recebida
-            de terceiro sem violação de obrigação de sigilo; ou (d) foi
-            desenvolvida independentemente, sem referência à informação
-            confidencial da outra parte. A divulgação exigida por lei, ordem
-            judicial ou autoridade competente não viola esta cláusula, desde que
-            a parte notificada seja avisada previamente, quando legalmente
-            permitido.
-          </P>
-        </div>
-
-        <div>
-          <H2>11. Vigência e rescisão</H2>
-          <P>
-            Estes Termos vigoram a partir da Data de Vigência e permanecem em
-            vigor enquanto sua conta estiver ativa. Qualquer parte pode
-            rescindir mediante violação material não sanada em até 30 dias após
-            notificação por escrito.
+            Assinaturas poderão ser renovadas automaticamente por períodos
+            sucessivos iguais ao contratado, salvo cancelamento antes da
+            renovação pelos meios disponibilizados. O cancelamento impede
+            cobranças futuras, mas não gera devolução de valores relativos ao
+            período já contratado ou disponibilizado, ressalvadas as hipóteses
+            obrigatórias previstas em lei.
           </P>
           <P>
-            Você pode encerrar sua conta a qualquer momento pelas configurações
-            do workspace. Após o encerramento, expiração ou cancelamento: (a)
-            sua licença de acesso ao Steel termina imediatamente; (b) os Dados
-            do Cliente ficam disponíveis para exportação por um período
-            razoável, conforme detalhado na Política de Privacidade, após o qual
-            poderão ser excluídos definitivamente dos nossos sistemas, salvo
-            obrigação legal de retenção; e (c) taxas devidas e não pagas até a
-            data efetiva permanecem exigíveis.
-          </P>
-          <P>
-            O Steel pode suspender ou encerrar seu acesso imediatamente,
-            mediante aviso, em caso de violação material não sanável, exigência
-            legal, ou inadimplência não resolvida após o prazo informado nas
-            configurações de cobrança.
+            O atraso ou não pagamento autoriza o Steel, após aviso razoável, a
+            suspender o Serviço, limitar recursos, impedir novas integrações
+            e/ou encerrar a conta, sem prejuízo da cobrança de valores devidos,
+            encargos legalmente permitidos e despesas de cobrança. Reajustes e
+            alterações de preço poderão ser comunicados antes da próxima
+            renovação.
           </P>
         </div>
 
         <div>
-          <H2>12. Garantias e isenção de responsabilidade</H2>
+          <H2>8. Propriedade intelectual e feedback</H2>
           <P>
-            Salvo o expressamente previsto nestes Termos, o Steel é fornecido
-            "como está" e "conforme disponível", sem garantias de qualquer
-            natureza, incluindo garantias implícitas de adequação a um propósito
-            específico. O Steel não garante que o serviço será ininterrupto,
-            livre de erros, ou que resultados gerados por Recursos de IA serão
-            precisos, completos ou adequados ao seu propósito. Nada nesta
-            cláusula exclui garantias que não podem ser legalmente excluídas,
-            incluindo aquelas previstas no Código de Defesa do Consumidor quando
+            O Serviço, marca Steel, documentação, interface, código, tecnologia,
+            melhorias e demais direitos de propriedade intelectual pertencem ao
+            Steel ou a seus licenciadores. Nenhum direito é transferido ao
+            Cliente além da licença expressa nestes Termos.
+          </P>
+          <P>
+            O Cliente poderá enviar sugestões ou feedback. O Steel poderá
+            usá-los livremente, sem obrigação de pagamento, atribuição ou
+            confidencialidade, desde que não divulgue Dados do Cliente em
+            desacordo com estes Termos.
+          </P>
+        </div>
+
+        <div>
+          <H2>9. Confidencialidade</H2>
+          <P>
+            Cada parte protegerá as informações confidenciais da outra com
+            cuidado razoável e somente as usará para executar estes Termos.
+            Dados do Cliente são informações confidenciais do Cliente; o
+            Serviço, a documentação não pública, os preços não públicos, a
+            tecnologia e informações de segurança são informações confidenciais
+            do Steel.
+          </P>
+          <P>
+            Não são confidenciais informações que sejam públicas sem violação
+            destes Termos, já fossem conhecidas legitimamente, tenham sido
+            recebidas de terceiro sem dever de sigilo ou tenham sido
+            desenvolvidas de forma independente. A divulgação exigida por lei ou
+            autoridade competente será permitida, quando possível com aviso
+            prévio à outra parte.
+          </P>
+        </div>
+
+        <div>
+          <H2>10. Suspensão, vigência e dados após o término</H2>
+          <P>
+            Estes Termos vigoram enquanto a conta ou assinatura permanecer
+            ativa. O Steel poderá, a seu critério razoável e sem
+            responsabilidade, suspender ou encerrar o acesso em caso de
+            inadimplência, risco de segurança, uso proibido, violação destes
+            Termos, exigência legal, ordem de autoridade ou risco a terceiros, à
+            plataforma ou aos Provedores Integrados.
+          </P>
+          <P>
+            Após encerramento ou expiração, a licença de uso termina. O Cliente
+            poderá solicitar exportação dos Dados do Cliente durante o prazo
+            indicado na Política de Privacidade ou na interface, sujeito à
+            adimplência. Depois desse prazo, o Steel poderá excluir os Dados do
+            Cliente, salvo retenção necessária para cumprir obrigação legal,
+            resolver disputa, prevenir fraude ou manter cópias de segurança pelo
+            ciclo técnico normal. O Cliente é responsável por exportar seus
+            dados em tempo hábil.
+          </P>
+        </div>
+
+        <div>
+          <H2>11. Garantias e limitação de responsabilidade</H2>
+          <P>
+            Na máxima extensão permitida pela legislação aplicável, o Serviço é
+            fornecido "como está" e "conforme disponível". O Steel não garante
+            que o Serviço será ininterrupto, livre de erros, compatível com
+            qualquer sistema, adequado a finalidade específica ou que produzirá
+            resultados comerciais, operacionais ou regulatórios desejados.
+          </P>
+          <P>
+            O Steel não responde por: (i) Dados do Cliente e atos ou omissões do
+            Cliente, seus usuários, destinatários ou Provedores Integrados; (ii)
+            bloqueios, penalidades, indisponibilidades, alterações ou decisões
+            de terceiros; (iii) perda decorrente de credenciais comprometidas
+            sob responsabilidade do Cliente; (iv) falhas de internet,
+            equipamentos, sistemas ou serviços fora do controle razoável do
+            Steel; ou (v) decisões tomadas com base em recursos de IA.
+          </P>
+          <P>
+            Na máxima extensão permitida por lei, o Steel não será responsável
+            por lucros cessantes, perda de receita, perda de oportunidade, perda
+            de dados, dano indireto, incidental, especial, punitivo ou
+            consequencial. A responsabilidade total agregada do Steel por
+            qualquer reclamação relacionada ao Serviço ficará limitada ao total
+            efetivamente pago pelo Cliente ao Steel nos 3 (três) meses
+            anteriores ao fato que gerou a reclamação. Esta cláusula não limita
+            responsabilidade que não possa ser excluída ou limitada por lei.
+          </P>
+          <P>
+            Nada nestes Termos afasta direitos inderrogáveis aplicáveis a
+            consumidores. Nas relações sujeitas ao Código de Defesa do
+            Consumidor, as disposições serão interpretadas e aplicadas conforme
+            a legislação obrigatória.
+          </P>
+        </div>
+
+        <div>
+          <H2>12. Alterações, comunicações e disposições gerais</H2>
+          <P>
+            O Steel poderá atualizar estes Termos. Alterações materiais serão
+            comunicadas por e-mail, interface ou outro meio razoável antes de
+            vigorarem, quando aplicável. A continuidade de uso após a data de
+            vigência representa aceite; se o Cliente não concordar, deverá
+            encerrar a assinatura antes da próxima renovação.
+          </P>
+          <P>
+            Nenhuma parte poderá ceder estes Termos sem consentimento da outra,
+            exceto o Steel em reorganização societária, fusão, aquisição ou
+            transferência de ativos relacionados ao Serviço. O Steel poderá
+            utilizar afiliadas e fornecedores para executar o Serviço.
+          </P>
+          <P>
+            Nenhuma parte será responsável por atraso ou falha causada por
+            evento fora de seu controle razoável, inclusive falhas de
+            provedores, ataques cibernéticos generalizados, desastres naturais,
+            atos governamentais e interrupções de telecomunicações. Estes
+            Termos, a Política de Privacidade, a Lista de Subprocessadores e a
+            proposta/plano aplicável constituem o acordo integral entre as
+            partes. Se uma cláusula for inválida, as demais continuam válidas.
+          </P>
+          <P>
+            Estes Termos são regidos pelas leis brasileiras. Para disputas
+            empresariais, fica eleito o foro da Comarca de Santos/SP, com
+            renúncia a outro, quando juridicamente permitido. Para consumidores,
+            será observado o foro e a competência definidos pela legislação
             aplicável.
           </P>
         </div>
 
         <div>
-          <H2>13. Limitação de responsabilidade</H2>
+          <H2>13. Contato</H2>
           <P>
-            Na máxima extensão permitida pela lei brasileira, nenhuma das partes
-            será responsável perante a outra por danos indiretos, incidentais,
-            especiais, consequenciais ou lucros cessantes decorrentes destes
-            Termos, ainda que avisada da possibilidade de tais danos.
-          </P>
-          <P>
-            A responsabilidade total agregada de cada parte decorrente destes
-            Termos está limitada ao valor efetivamente pago pelo Cliente ao
-            Steel nos doze (12) meses imediatamente anteriores ao evento que
-            originou a reclamação. Essa limitação não se aplica a: (a) violação
-            das obrigações de confidencialidade envolvendo dados sensíveis; (b)
-            obrigações de indenização previstas na Seção 14; (c) inadimplemento
-            de obrigações de pagamento; (d) dolo ou culpa grave; ou (e)
-            hipóteses em que a limitação seja vedada por lei.
-          </P>
-          <P>
-            O Steel integra Provedores Integrados para funcionar e não é
-            responsável por indisponibilidades, alterações de política ou falhas
-            desses provedores que estejam fora do seu controle razoável.
-          </P>
-        </div>
-
-        <div>
-          <H2>14. Indenização</H2>
-          <P>
-            <strong>14.1 Pelo Steel.</strong> O Steel defenderá e indenizará o
-            Cliente contra reclamações de terceiros alegando que o uso
-            autorizado do Steel infringe patente, direito autoral ou marca
-            registrada de terceiro, exceto quando a suposta infração decorrer
-            de: (a) modificação do serviço pelo Cliente; (b) uso combinado com
-            produtos não fornecidos pelo Steel; (c) Dados do Cliente; ou (d) uso
-            do serviço em violação a estes Termos.
-          </P>
-          <P>
-            <strong>14.2 Pelo Cliente.</strong> Você defenderá e indenizará o
-            Steel contra reclamações de terceiros decorrentes de: (a) Dados do
-            Cliente, incluindo alegação de que violam direitos de terceiros; (b)
-            violação destes Termos ou de Leis aplicáveis pelo Cliente ou por
-            Usuários Autorizados; ou (c) uso do Steel em combinação com produtos
-            de terceiros não fornecidos por nós.
-          </P>
-        </div>
-
-        <div>
-          <H2>15. Privacidade e segurança</H2>
-          <P>
-            O tratamento de dados pessoais no contexto do Steel é regido pela
-            nossa <strong>Política de Privacidade</strong>, incorporada a estes
-            Termos por referência. Detalhes das nossas práticas de segurança
-            estão disponíveis na página de <strong>Segurança</strong>. O Steel
-            adota controles técnicos e organizacionais alinhados aos critérios
-            do SOC 2 (Trust Services Criteria) para segurança, disponibilidade e
-            confidencialidade. Essa é uma referência de boas práticas — o Steel
-            não possui, até o momento, certificação SOC 2 (Type I ou Type II)
-            emitida por auditor independente.
-          </P>
-        </div>
-
-        <div>
-          <H2>16. Lei aplicável e resolução de disputas</H2>
-          <P>
-            Estes Termos são regidos pelas leis da República Federativa do
-            Brasil. Fica eleito o foro da comarca de{' '}
-            <strong>Santos - SP</strong>, com renúncia a qualquer outro, por
-            mais privilegiado que seja, para dirimir controvérsias decorrentes
-            destes Termos, ressalvada a competência dos Juizados Especiais ou do
-            foro de domicílio do consumidor quando aplicável por lei. As partes
-            buscarão resolver disputas por negociação de boa-fé antes de
-            recorrer ao Judiciário.
-          </P>
-        </div>
-
-        <div>
-          <H2>17. Disposições gerais</H2>
-          <P>
-            <strong>Força maior.</strong> Nenhuma parte será responsável por
-            atraso ou falha decorrente de causas fora de seu controle razoável
-            (desastres naturais, falhas de infraestrutura de terceiros, ataques
-            cibernéticos em larga escala, atos governamentais).
-          </P>
-          <P>
-            <strong>Cessão.</strong> Nenhuma parte pode ceder estes Termos sem
-            consentimento prévio da outra, exceto em caso de fusão, aquisição ou
-            venda da totalidade de seus ativos.
-          </P>
-          <P>
-            <strong>Comunicações.</strong> Avisos sob estes Termos devem ser
-            feitos por escrito, via e-mail ou pela própria plataforma. Avisos ao
-            Steel devem ser enviados para{' '}
-            <strong>juridico@stratustelecom.com.br</strong>.
-          </P>
-          <P>
-            <strong>Acordo integral.</strong> Estes Termos, junto com a Política
-            de Privacidade e demais documentos referenciados, constituem o
-            acordo integral entre as partes sobre seu objeto, substituindo
-            entendimentos anteriores.
-          </P>
-          <P>
-            <strong>Independência das cláusulas.</strong> Se qualquer disposição
-            destes Termos for considerada inválida, as demais permanecem em
-            pleno vigor, e a disposição inválida será adaptada ao mínimo
-            necessário para se tornar válida.
-          </P>
-          <P>
-            <strong>Renúncia.</strong> O atraso ou a falha de qualquer parte em
-            exercer um direito não constitui renúncia a esse direito.
-          </P>
-          <P>
-            <strong>Relação entre as partes.</strong> Estes Termos não criam
-            relação de sociedade, parceria, representação ou vínculo
-            empregatício entre as partes.
-          </P>
-        </div>
-
-        <div>
-          <H2>18. Alterações destes termos</H2>
-          <P>
-            Podemos atualizar estes Termos periodicamente para refletir mudanças
-            no produto, na legislação ou nas nossas práticas. Alterações
-            materiais serão comunicadas por e-mail e/ou aviso no produto com
-            antecedência razoável, e a versão vigente é sempre identificada pela
-            data no topo desta página. O uso continuado do Steel após a
-            alteração entrar em vigor constitui aceite dos novos Termos; se você
-            não concordar, deve interromper o uso da plataforma e pode solicitar
-            o encerramento da sua conta.
-          </P>
-        </div>
-
-        <div>
-          <H2>19. Contato</H2>
-          <P>
-            Dúvidas sobre estes Termos podem ser enviadas para{' '}
-            <strong>juridico@stratustelecom.com.br</strong> ou pelos telefones{' '}
-            <strong>+55 11 5196-1069</strong> /{' '}
+            Dúvidas e comunicações ao Steel:{' '}
+            <strong>juridico@stratustelecom.com.br</strong>,{' '}
+            <strong>+55 11 5196-1069</strong> ou{' '}
             <strong>+55 13 3467-3304</strong>.
           </P>
         </div>

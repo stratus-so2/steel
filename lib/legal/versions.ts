@@ -5,9 +5,9 @@
 //
 // Format: YYYY-MM-DD of the publication date. Keep it sortable.
 
-export const TERMS_VERSION = '2026-05-18'
-export const PRIVACY_VERSION = '2026-05-18'
-export const COOKIES_VERSION = '2026-05-18'
+export const TERMS_VERSION = '2026-08-11'
+export const PRIVACY_VERSION = '2026-08-11'
+export const COOKIES_VERSION = '2026-08-11'
 
 export const LEGAL_VERSIONS = {
   TERMS: TERMS_VERSION,
