@@ -275,6 +275,7 @@ model Workspace {
   memberships   Membership[]
   subscriptions Subscription[]
   projects      Project[]
+  backups       Backup[]
 
   invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
@@ -656,6 +657,44 @@ model WorkspaceModuleAccess {
   @@unique([workspaceId, module])
   @@index([workspaceId])
   @@map("workspace_module_access")
+}
+
+// ─── Backups ────────────────────────────────────────────────────────────────
+
+enum BackupScope {
+  FULL
+  WORKSPACE
+
+  @@map("backup_scope")
+}
+
+enum BackupStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("backup_status")
+}
+
+model Backup {
+  id           String       @id @default(cuid())
+  scope        BackupScope
+  workspaceId  String?      @map("workspace_id")
+  status       BackupStatus @default(RUNNING)
+  storageKey   String?      @map("storage_key")
+  sizeBytes    Int?         @map("size_bytes")
+  checksum     String?
+  errorMessage String?      @map("error_message")
+  startedAt    DateTime     @default(now()) @map("started_at")
+  completedAt  DateTime?    @map("completed_at")
+  expiresAt    DateTime?    @map("expires_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([scope, startedAt])
+  @@index([workspaceId])
+  @@index([expiresAt])
+  @@map("backups")
 }
 
 // ─── WhatsApp domain ───────────────────────────────────────────────────────
