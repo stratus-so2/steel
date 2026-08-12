@@ -64,6 +64,10 @@ RUN rm -rf /usr/local/lib/node_modules/npm \
     /usr/local/bin/npx \
     /usr/local/bin/corepack
 
+# pg_dump/pg_restore usados pelo worker para backup/restore do banco —
+# versão do pacote tem que casar com o major do postgres:17-alpine usado em produção.
+RUN apk add --no-cache postgresql17-client
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
