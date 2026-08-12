@@ -11,6 +11,7 @@ export const QueueName = {
   CrmScheduledSend: 'crm-scheduled-send',
   CrmWorkflowSchedule: 'crm-workflow-schedule',
   Changelog: 'changelog',
+  DatabaseBackup: 'database-backup',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -158,4 +159,19 @@ export type ChangelogJobPayload = {
     changelogId: string
     recipientId: string
   }
+}
+
+export const DatabaseBackupJob = {
+  RunFullBackup: 'run-full-backup',
+  RunWorkspaceBackup: 'run-workspace-backup',
+  PruneExpiredBackups: 'prune-expired-backups',
+} as const
+
+export type DatabaseBackupJob =
+  (typeof DatabaseBackupJob)[keyof typeof DatabaseBackupJob]
+
+export type DatabaseBackupJobPayload = {
+  [DatabaseBackupJob.RunFullBackup]: Record<string, never>
+  [DatabaseBackupJob.RunWorkspaceBackup]: { workspaceId: string }
+  [DatabaseBackupJob.PruneExpiredBackups]: Record<string, never>
 }

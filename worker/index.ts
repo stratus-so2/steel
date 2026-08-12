@@ -12,6 +12,7 @@ import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-schedul
 import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-workflow-schedule'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
+import { processDatabaseBackup } from '../src/lib/queue/processors/database-backup'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
 import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-broadcast'
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
@@ -20,6 +21,7 @@ import { closeQueues } from '../src/lib/queue/queues'
 import {
   scheduleCrmScheduledSendJobs,
   scheduleCrmWorkflowScheduleJobs,
+  scheduleDatabaseBackupJobs,
   scheduleDataRetentionJobs,
   scheduleTrialLifecycleJobs,
   scheduleWhatsappBroadcastJobs,
@@ -120,12 +122,14 @@ async function main(): Promise<void> {
     registerWorker(QueueName.CrmWorkflowSchedule, processCrmWorkflowSchedule),
   )
   workers.push(registerWorker(QueueName.Changelog, processChangelog))
+  workers.push(registerWorker(QueueName.DatabaseBackup, processDatabaseBackup))
 
   await scheduleDataRetentionJobs()
   await scheduleTrialLifecycleJobs()
   await scheduleCrmScheduledSendJobs()
   await scheduleCrmWorkflowScheduleJobs()
   await scheduleWhatsappBroadcastJobs()
+  await scheduleDatabaseBackupJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

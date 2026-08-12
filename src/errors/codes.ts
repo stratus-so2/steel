@@ -302,6 +302,7 @@ export const ERROR_CODES = {
   },
   CHANGELOG_NOT_FOUND: { code: 'CHANGELOG_NOT_FOUND', status: 404 },
   CHANGELOG_LOCKED: { code: 'CHANGELOG_LOCKED', status: 409 },
+  BACKUP_NOT_FOUND: { code: 'BACKUP_NOT_FOUND', status: 404 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
@@ -310,6 +311,7 @@ export const ERROR_CODES = {
   PAYMENT_ERROR: { code: 'PAYMENT_ERROR', status: 502 },
   MAIL_ERROR: { code: 'MAIL_ERROR', status: 502 },
   CONNECTION_TEST_FAILED: { code: 'CONNECTION_TEST_FAILED', status: 502 },
+  BACKUP_FAILED: { code: 'BACKUP_FAILED', status: 500 },
 } as const
 
 export type ErrorCode = keyof typeof ERROR_CODES

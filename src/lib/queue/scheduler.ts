@@ -3,6 +3,7 @@ import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
   CrmScheduledSendJob,
   CrmWorkflowScheduleJob,
+  DatabaseBackupJob,
   DataRetentionJob,
   TrialLifecycleJob,
   WhatsappBroadcastJob,
@@ -10,6 +11,7 @@ import {
 import {
   getCrmScheduledSendQueue,
   getCrmWorkflowScheduleQueue,
+  getDatabaseBackupQueue,
   getDataRetentionQueue,
   getTrialLifecycleQueue,
   getWhatsappBroadcastQueue,
@@ -17,6 +19,7 @@ import {
 import {
   CrmScheduledSendCron,
   CrmWorkflowScheduleCron,
+  DatabaseBackupCron,
   RetentionCron,
   RetentionTimezone,
   WhatsappBroadcastScheduleCron,
@@ -115,6 +118,29 @@ export async function scheduleWhatsappBroadcastJobs(): Promise<void> {
   logger.info('queue.scheduler.whatsapp_broadcast_schedule_registered', {
     component: 'Worker',
     pattern: WhatsappBroadcastScheduleCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleDatabaseBackupJobs(): Promise<void> {
+  const queue = getDatabaseBackupQueue()
+
+  await queue.upsertJobScheduler(
+    DatabaseBackupJob.RunFullBackup,
+    { pattern: DatabaseBackupCron.fullBackup, tz: RetentionTimezone },
+    { name: DatabaseBackupJob.RunFullBackup, data: {} },
+  )
+
+  await queue.upsertJobScheduler(
+    DatabaseBackupJob.PruneExpiredBackups,
+    { pattern: DatabaseBackupCron.pruneExpired, tz: RetentionTimezone },
+    { name: DatabaseBackupJob.PruneExpiredBackups, data: {} },
+  )
+
+  logger.info('queue.scheduler.database_backup_registered', {
+    component: 'Worker',
+    fullBackupPattern: DatabaseBackupCron.fullBackup,
+    prunePattern: DatabaseBackupCron.pruneExpired,
     timezone: RetentionTimezone,
   })
 }

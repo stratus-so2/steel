@@ -64,6 +64,7 @@ type AuditEntity =
   | 'crm_ai_attachment'
   | 'crm_hook_vault_item'
   | 'crm_tracked_competitor'
+  | 'backup'
 
 type AuditAction =
   | 'create'

@@ -19,3 +19,10 @@ export const CrmWorkflowScheduleCron = '*/1 * * * *' as const
 
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
+
+export const BackupRetentionDays = 90
+
+export const DatabaseBackupCron = {
+  fullBackup: '15 3 * * *',
+  pruneExpired: '30 3 * * *',
+} as const
