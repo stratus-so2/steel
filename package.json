@@ -39,6 +39,8 @@
     "seed:user-timezone": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-user-timezone.ts",
     "backup:workspace": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/trigger-workspace-backup.ts",
     "backup:full": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/trigger-full-backup.ts",
+    "restore:full": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/restore-full-backup.ts",
+    "restore:workspace": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/restore-workspace-backup.ts",
     "prepare": "husky",
     "email": "ESBUILD_BINARY_PATH=node_modules/.pnpm/@esbuild+linux-x64@0.28.0/node_modules/@esbuild/linux-x64/bin/esbuild npx email dev --dir components/emails --port 3001"
   },

@@ -80,6 +80,24 @@ export async function putObject(input: PutObjectInput): Promise<void> {
   )
 }
 
+export interface GetObjectInput {
+  bucket: string
+  key: string
+}
+
+export async function getObject(input: GetObjectInput): Promise<Buffer> {
+  const s3 = getS3Client()
+  const result = await s3.send(
+    new GetObjectCommand({ Bucket: input.bucket, Key: input.key }),
+  )
+  const stream = result.Body as AsyncIterable<Uint8Array>
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk))
+  }
+  return Buffer.concat(chunks)
+}
+
 export interface DeleteObjectInput {
   bucket: string
   key: string
