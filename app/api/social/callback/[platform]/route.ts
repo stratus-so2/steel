@@ -1,4 +1,4 @@
-import type { NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { BETTER_AUTH_URL } from '@/lib/env/server'
 import { getAuthSession } from '@/src/lib/auth-session'
@@ -17,7 +17,7 @@ function redirectToSettings(
     : new URL('/', BETTER_AUTH_URL)
   url.searchParams.set('social', status)
   if (reason) url.searchParams.set('reason', reason)
-  const response = Response.redirect(url.toString(), 302)
+  const response = NextResponse.redirect(url, 302)
   response.headers.append(
     'Set-Cookie',
     `${PKCE_COOKIE}=; Path=/api/social/callback; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
