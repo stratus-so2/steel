@@ -103,7 +103,7 @@ describe('processWhatsappAiReply() — tool calling', () => {
         createdById: user.id,
       },
     })
-    const appointmentAt = new Date('2026-08-15T09:00:00.000Z')
+    const appointmentAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     await prisma.whatsAppBroadcastRecipient.create({
       data: {
         broadcastListId: broadcastList.id,
