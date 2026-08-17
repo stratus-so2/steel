@@ -26,7 +26,7 @@ export default async function WhatsappDashboardsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='h-full w-full overflow-y-auto'>
       <WhatsappDashboardsList
         workspaceId={membership.value.workspaceId}
         slug={slug}

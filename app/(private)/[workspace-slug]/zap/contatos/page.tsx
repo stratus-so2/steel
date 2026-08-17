@@ -33,7 +33,7 @@ export default async function ZapContactsPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='h-full w-full overflow-y-auto'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Contatos'>

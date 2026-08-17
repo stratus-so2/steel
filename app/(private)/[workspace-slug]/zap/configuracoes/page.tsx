@@ -38,7 +38,7 @@ export default async function ZapSettingsPage({
   const workspaceId = membership.value.workspaceId
 
   return (
-    <div className='w-full overflow-y-auto'>
+    <div className='h-full w-full overflow-y-auto'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Configurações do WhatsApp'>
