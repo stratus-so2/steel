@@ -45,7 +45,7 @@ export default async function CrmSocialPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='min-h-0 flex-1 p-6'>
+      <div className='h-full min-h-0 flex-1 overflow-y-scroll p-6'>
         <CrmSocialPanel workspaceId={membership.value.workspaceId} />
       </div>
     </div>

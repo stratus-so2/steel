@@ -65,7 +65,7 @@ export default async function CrmSocialPlatformPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='min-h-0 flex-1 p-6'>
+      <div className='h-full min-h-0 flex-1 overflow-y-scroll p-6'>
         {meta.platform === 'FACEBOOK' && (
           <CrmFacebookStudio workspaceId={workspaceId} />
         )}
