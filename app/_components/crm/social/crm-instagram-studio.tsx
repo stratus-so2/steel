@@ -286,7 +286,7 @@ function InstagramMediaModal({
     : null
 
   return (
-    <div className='flex flex-col overflow-hidden rounded-xl md:flex-row'>
+    <div className='flex h-full flex-col overflow-hidden rounded-xl md:flex-row'>
       <div className='relative flex min-h-[260px] items-center justify-center bg-black md:min-h-0 md:w-[58%]'>
         {imgSrc ? (
           <img
@@ -308,7 +308,7 @@ function InstagramMediaModal({
         )}
       </div>
 
-      <div className='flex flex-col md:w-[42%]'>
+      <div className='flex min-h-0 flex-col md:w-[42%]'>
         <div className='flex shrink-0 items-center gap-2.5 border-b border-border/60 px-4 py-3'>
           <div className='rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5'>
             {avatarUrl ? (
@@ -866,7 +866,7 @@ export function CrmInstagramStudio({ workspaceId }: { workspaceId: string }) {
           if (!open) setSelectedMedia(null)
         }}
       >
-        <DialogContent className='gap-0 overflow-hidden p-0 sm:max-w-3xl'>
+        <DialogContent className='max-h-[85vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'>
           {selectedMedia && (
             <InstagramMediaModal
               item={selectedMedia}

@@ -220,7 +220,7 @@ function ChatPanel({
       </header>
 
       {showHistory ? (
-        <div className='flex-1 overflow-y-auto px-2 py-2'>
+        <div className='min-h-0 flex-1 overflow-y-auto px-2 py-2'>
           {!conversations || conversations.length === 0 ? (
             <p className='px-2 py-6 text-center text-muted-foreground text-xs'>
               Nenhuma conversa ainda.
@@ -259,7 +259,7 @@ function ChatPanel({
       ) : (
         <div
           ref={scrollRef}
-          className='flex-1 space-y-4 overflow-y-auto px-3 py-4'
+          className='min-h-0 flex-1 space-y-4 overflow-y-auto px-3 py-4'
         >
           {activeId && isLoadingMessages ? (
             <p className='text-center text-muted-foreground text-sm'>

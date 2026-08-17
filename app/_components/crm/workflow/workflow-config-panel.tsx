@@ -99,7 +99,9 @@ function PanelShell({
           onClick={onClose}
         />
       </div>
-      <div className='flex-1 space-y-4 overflow-auto p-4'>{children}</div>
+      <div className='min-h-0 flex-1 space-y-4 overflow-auto p-4'>
+        {children}
+      </div>
       {onDelete && (
         <div className='border-t p-3'>
           <Button

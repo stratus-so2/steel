@@ -407,7 +407,7 @@ function WeekColumn({
         ) : null}
       </div>
 
-      <div className='flex flex-1 flex-col gap-1 overflow-y-auto p-1.5'>
+      <div className='flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-1.5'>
         {tasks.map((task) => (
           <TaskChip key={task.id} task={task} />
         ))}

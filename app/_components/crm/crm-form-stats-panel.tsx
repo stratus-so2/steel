@@ -152,7 +152,7 @@ export function CrmFormStatsPanel({
           </SheetDescription>
         </SheetHeader>
 
-        <div className='flex-1 overflow-y-auto'>
+        <div className='min-h-0 flex-1 overflow-y-auto'>
           {isLoading ? (
             <div className='flex flex-col gap-3 p-4'>
               <Skeleton className='h-20 w-full' />

@@ -811,7 +811,7 @@ function PreviewSection({
   loading: boolean
 }) {
   return (
-    <div className='min-w-0 flex-1 overflow-auto bg-muted/30'>
+    <div className='min-h-0 min-w-0 flex-1 overflow-auto bg-muted/30'>
       <div className='flex flex-col gap-3 p-6'>
         <div className='flex items-center justify-between'>
           <p className='text-muted-foreground text-xs uppercase tracking-wide'>
