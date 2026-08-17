@@ -2,10 +2,10 @@ import { baseEmailUrl } from './base-email-url'
 
 /** Brand identity shared across transactional emails and public surfaces. */
 export const brand = {
-  legalName: 'Steel software, Inc.',
+  legalName: 'Stratus Telecom.',
   displayName: 'Steel',
   url: baseEmailUrl,
-  contactEmail: 'contato@steel.stratustelecom.com.br',
+  contactEmail: 'suporte@stratustelecom.com.br',
 } as const
 
 /**
