@@ -19,6 +19,7 @@ export function toCrmSocialConnectionDTO(
     externalAccountId: connection.externalAccountId,
     accountName: connection.accountName,
     scope: connection.scope,
+    isPrimary: connection.isPrimary,
     status: connection.status,
     expiresAt: connection.tokenExpiresAt
       ? connection.tokenExpiresAt.toISOString()

@@ -64,7 +64,7 @@ export const youtubeProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
     const result = await getJson<{
       items?: { id: string; snippet?: { title?: string } }[]
     }>(
@@ -73,10 +73,12 @@ export const youtubeProvider: SocialProvider = {
     )
     if (!result.ok) return result
     const channel = result.value.items?.[0]
-    return ok({
-      externalId: channel?.id ?? 'unknown',
-      name: channel?.snippet?.title ?? null,
-    })
+    return ok([
+      {
+        externalId: channel?.id ?? 'unknown',
+        name: channel?.snippet?.title ?? null,
+      },
+    ])
   },
 
   async refreshAccessToken(refreshToken): Promise<Result<TokenSet>> {

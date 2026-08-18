@@ -67,6 +67,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
     )
   }
 
+  const rawConnectionId = form.get('connectionId')
+  const connectionId =
+    typeof rawConnectionId === 'string' && rawConnectionId
+      ? rawConnectionId
+      : undefined
+
   if (platform === 'YOUTUBE') {
     const file = form.get('file')
     if (!(file instanceof File) || file.size === 0) {
@@ -267,6 +273,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
       id,
       parsed.data,
       media,
+      connectionId,
     )
     if (!result.ok) return handleError(result.error)
     return successResponse(result.value, 201)
@@ -301,6 +308,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
     id,
     parsed.data,
     image,
+    connectionId,
   )
   if (!result.ok) return handleError(result.error)
   return successResponse(result.value, 201)

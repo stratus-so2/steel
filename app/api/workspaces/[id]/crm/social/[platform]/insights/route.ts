@@ -38,6 +38,8 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
 
   const actorId = auth.value.user.id
   const rawRange = request.nextUrl.searchParams.get('range') ?? undefined
+  const connectionId =
+    request.nextUrl.searchParams.get('connectionId') ?? undefined
 
   switch (platform) {
     case 'FACEBOOK': {
@@ -49,6 +51,7 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
         actorId,
         id,
         range.data,
+        connectionId,
       )
       if (!result.ok) return handleError(result.error)
       return successResponse(result.value)
@@ -62,6 +65,7 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
         actorId,
         id,
         range.data,
+        connectionId,
       )
       if (!result.ok) return handleError(result.error)
       return successResponse(result.value)

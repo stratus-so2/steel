@@ -233,11 +233,12 @@ async function fetchRecentPosts(
 export async function getOverview(
   actorId: string,
   workspaceId: string,
+  connectionId?: string,
 ): Promise<Result<CrmFacebookPageOverview>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK')
+  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.read)) {
     return err(crmSocialScopeMissing())
@@ -253,11 +254,12 @@ export async function getInsights(
   actorId: string,
   workspaceId: string,
   range: CrmFacebookInsightsRange,
+  connectionId?: string,
 ): Promise<Result<CrmFacebookInsights>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK')
+  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.insights)) {
     return err(crmSocialScopeMissing())
@@ -277,11 +279,12 @@ export async function getInsights(
 export async function getRecentPosts(
   actorId: string,
   workspaceId: string,
+  connectionId?: string,
 ): Promise<Result<CrmFacebookPosts>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK')
+  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.read)) {
     return err(crmSocialScopeMissing())
@@ -298,11 +301,12 @@ export async function publishPost(
   workspaceId: string,
   input: CrmPublishFacebookPostInput,
   image: { bytes: ArrayBuffer; contentType: string } | null,
+  connectionId?: string,
 ): Promise<Result<CrmPublishFacebookPostResult>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK')
+  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.publish)) {
     return err(crmSocialScopeMissing())

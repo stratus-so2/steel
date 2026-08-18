@@ -85,7 +85,7 @@ export const twitterProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
     const result = await getJson<{
       data?: { id?: string; name?: string; username?: string }
     }>(
@@ -94,12 +94,14 @@ export const twitterProvider: SocialProvider = {
     )
     if (!result.ok) return result
     const user = result.value.data
-    return ok({
-      externalId: user?.id ?? 'unknown',
-      // O @handle é mais útil que o nome de exibição para identificar a
-      // conta.
-      name: user?.username ?? user?.name ?? null,
-    })
+    return ok([
+      {
+        externalId: user?.id ?? 'unknown',
+        // O @handle é mais útil que o nome de exibição para identificar a
+        // conta.
+        name: user?.username ?? user?.name ?? null,
+      },
+    ])
   },
 
   async refreshAccessToken(refreshToken): Promise<Result<TokenSet>> {

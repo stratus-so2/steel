@@ -22,15 +22,18 @@ const REFRESH_MARGIN_MS = 5 * 60 * 1000
 export async function getFreshAccessToken(
   workspaceId: string,
   platform: (typeof CRM_SOCIAL_PLATFORMS)[number],
+  connectionId?: string,
 ): Promise<Result<{ accessToken: string; connection: CrmSocialConnection }>> {
   if (!isTokenCryptoConfigured()) {
     return err(crmSocialConnectionNotFound())
   }
 
-  const found = await CrmSocialConnectionRepository.findByPlatform(
-    workspaceId,
-    platform,
-  )
+  const found = connectionId
+    ? await CrmSocialConnectionRepository.findById(connectionId, workspaceId)
+    : await CrmSocialConnectionRepository.findPrimaryByPlatform(
+        workspaceId,
+        platform,
+      )
   if (!found.ok) return found
   const connection = found.value
   if (!connection?.accessToken) {

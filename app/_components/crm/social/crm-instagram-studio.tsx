@@ -31,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
+import { useCrmSocialConnections } from '@/src/hooks/use-crm-social'
 import {
   CrmSocialApiError,
   isCrmSocialReconnectError,
@@ -367,6 +368,7 @@ function InstagramMediaModal({
 
 function PostComposer({
   workspaceId,
+  connectionId,
   caption,
   onCaptionChange,
   postType,
@@ -374,13 +376,14 @@ function PostComposer({
   onMediaChange,
 }: {
   workspaceId: string
+  connectionId?: string
   caption: string
   onCaptionChange: (v: string) => void
   postType: CrmInstagramPostType
   onPostTypeChange: (v: CrmInstagramPostType) => void
   onMediaChange: (f: File | undefined) => void
 }) {
-  const publish = usePublishCrmInstagramPost(workspaceId)
+  const publish = usePublishCrmInstagramPost(workspaceId, connectionId)
 
   const mediaAccept =
     postType === 'REELS'
@@ -408,6 +411,7 @@ function PostComposer({
     }
     if (postType !== 'REELS') form.delete('video')
     if (postType === 'REELS') form.delete('image')
+    if (connectionId) form.set('connectionId', connectionId)
 
     try {
       await publish.mutateAsync(form)
@@ -498,11 +502,27 @@ export function CrmInstagramStudio({ workspaceId }: { workspaceId: string }) {
   const [selectedMedia, setSelectedMedia] = useState<CrmInstagramMedia | null>(
     null,
   )
+  const [connectionId, setConnectionId] = useState<string | undefined>(
+    undefined,
+  )
 
-  const overviewQuery = useCrmInstagramOverview(workspaceId)
-  const mediaQuery = useCrmInstagramMedia(workspaceId)
-  const insightsQuery = useCrmInstagramInsights(workspaceId, range)
-  const engagementQuery = useCrmInstagramEngagement(workspaceId)
+  const connectionsQuery = useCrmSocialConnections(workspaceId, 'INSTAGRAM')
+  const connections = connectionsQuery.data ?? []
+
+  useEffect(() => {
+    if (connectionId || connections.length === 0) return
+    const primary = connections.find((c) => c.isPrimary) ?? connections[0]
+    setConnectionId(primary.id)
+  }, [connections, connectionId])
+
+  const overviewQuery = useCrmInstagramOverview(workspaceId, connectionId)
+  const mediaQuery = useCrmInstagramMedia(workspaceId, connectionId)
+  const insightsQuery = useCrmInstagramInsights(
+    workspaceId,
+    range,
+    connectionId,
+  )
+  const engagementQuery = useCrmInstagramEngagement(workspaceId, connectionId)
 
   const overview = overviewQuery.data
   const media = mediaQuery.data
@@ -558,6 +578,25 @@ export function CrmInstagramStudio({ workspaceId }: { workspaceId: string }) {
   return (
     <div className='mx-auto w-full max-w-5xl py-6'>
       <header className='mb-6 flex items-center gap-4'>
+        {connections.length > 1 && (
+          <Select
+            value={connectionId}
+            onValueChange={(value) => setConnectionId(value ?? undefined)}
+          >
+            <SelectTrigger className='w-56 shrink-0'>
+              <SelectValue placeholder='Selecione a conta' />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {connections.map((connection) => (
+                  <SelectItem key={connection.id} value={connection.id}>
+                    {connection.accountName ?? connection.externalAccountId}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
         {overview.profilePictureUrl ? (
           <img
             src={overview.profilePictureUrl}
@@ -684,6 +723,7 @@ export function CrmInstagramStudio({ workspaceId }: { workspaceId: string }) {
               </h3>
               <PostComposer
                 workspaceId={workspaceId}
+                connectionId={connectionId}
                 caption={caption}
                 onCaptionChange={setCaption}
                 postType={postType}

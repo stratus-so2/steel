@@ -56,32 +56,65 @@ async function fetchCrmSocial<T>(
   return json.data
 }
 
-function overviewKey(workspaceId: string) {
-  return ['crm-social-instagram-overview', workspaceId] as const
+function overviewKey(workspaceId: string, connectionId?: string) {
+  return [
+    'crm-social-instagram-overview',
+    workspaceId,
+    connectionId ?? '',
+  ] as const
 }
 
-function insightsKey(workspaceId: string, range: CrmInstagramInsightsRange) {
-  return ['crm-social-instagram-insights', workspaceId, range] as const
+function insightsKey(
+  workspaceId: string,
+  range: CrmInstagramInsightsRange,
+  connectionId?: string,
+) {
+  return [
+    'crm-social-instagram-insights',
+    workspaceId,
+    range,
+    connectionId ?? '',
+  ] as const
 }
 
-function mediaKey(workspaceId: string) {
-  return ['crm-social-instagram-media', workspaceId] as const
+function mediaKey(workspaceId: string, connectionId?: string) {
+  return [
+    'crm-social-instagram-media',
+    workspaceId,
+    connectionId ?? '',
+  ] as const
 }
 
-function engagementKey(workspaceId: string) {
-  return ['crm-social-instagram-engagement', workspaceId] as const
+function engagementKey(workspaceId: string, connectionId?: string) {
+  return [
+    'crm-social-instagram-engagement',
+    workspaceId,
+    connectionId ?? '',
+  ] as const
+}
+
+function withConnectionId(url: string, connectionId?: string) {
+  if (!connectionId) return url
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}connectionId=${encodeURIComponent(connectionId)}`
 }
 
 function shouldRetry(failureCount: number, error: unknown) {
   return !isCrmSocialReconnectError(error) && failureCount < 2
 }
 
-export function useCrmInstagramOverview(workspaceId: string) {
+export function useCrmInstagramOverview(
+  workspaceId: string,
+  connectionId?: string,
+) {
   return useQuery({
-    queryKey: overviewKey(workspaceId),
+    queryKey: overviewKey(workspaceId, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmInstagramProfileOverview>(
-        `/api/workspaces/${workspaceId}/crm/social/instagram/overview`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/instagram/overview`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar o perfil do Instagram',
       ),
@@ -94,12 +127,16 @@ export function useCrmInstagramOverview(workspaceId: string) {
 export function useCrmInstagramInsights(
   workspaceId: string,
   range: CrmInstagramInsightsRange,
+  connectionId?: string,
 ) {
   return useQuery({
-    queryKey: insightsKey(workspaceId, range),
+    queryKey: insightsKey(workspaceId, range, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmInstagramInsights>(
-        `/api/workspaces/${workspaceId}/crm/social/instagram/insights?range=${range}`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/instagram/insights?range=${range}`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar insights do Instagram',
       ),
@@ -109,12 +146,18 @@ export function useCrmInstagramInsights(
   })
 }
 
-export function useCrmInstagramMedia(workspaceId: string) {
+export function useCrmInstagramMedia(
+  workspaceId: string,
+  connectionId?: string,
+) {
   return useQuery({
-    queryKey: mediaKey(workspaceId),
+    queryKey: mediaKey(workspaceId, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmInstagramMediaList>(
-        `/api/workspaces/${workspaceId}/crm/social/instagram/videos`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/instagram/videos`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar publicações do Instagram',
       ),
@@ -124,12 +167,18 @@ export function useCrmInstagramMedia(workspaceId: string) {
   })
 }
 
-export function useCrmInstagramEngagement(workspaceId: string) {
+export function useCrmInstagramEngagement(
+  workspaceId: string,
+  connectionId?: string,
+) {
   return useQuery({
-    queryKey: engagementKey(workspaceId),
+    queryKey: engagementKey(workspaceId, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmInstagramWeeklyEngagement>(
-        `/api/workspaces/${workspaceId}/crm/social/instagram/engagement`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/instagram/engagement`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar engajamento do Instagram',
       ),
@@ -139,7 +188,10 @@ export function useCrmInstagramEngagement(workspaceId: string) {
   })
 }
 
-export function usePublishCrmInstagramPost(workspaceId: string) {
+export function usePublishCrmInstagramPost(
+  workspaceId: string,
+  connectionId?: string,
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -150,8 +202,12 @@ export function usePublishCrmInstagramPost(workspaceId: string) {
         'Falha ao publicar no Instagram',
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mediaKey(workspaceId) })
-      queryClient.invalidateQueries({ queryKey: engagementKey(workspaceId) })
+      queryClient.invalidateQueries({
+        queryKey: mediaKey(workspaceId, connectionId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: engagementKey(workspaceId, connectionId),
+      })
     },
   })
 }

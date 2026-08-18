@@ -60,7 +60,7 @@ export const tiktokProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
     const result = await getJson<{
       data?: { user?: { open_id?: string; display_name?: string } }
     }>(
@@ -69,10 +69,12 @@ export const tiktokProvider: SocialProvider = {
     )
     if (!result.ok) return result
     const user = result.value.data?.user
-    return ok({
-      externalId: user?.open_id ?? 'unknown',
-      name: user?.display_name ?? null,
-    })
+    return ok([
+      {
+        externalId: user?.open_id ?? 'unknown',
+        name: user?.display_name ?? null,
+      },
+    ])
   },
 
   async refreshAccessToken(refreshToken): Promise<Result<TokenSet>> {

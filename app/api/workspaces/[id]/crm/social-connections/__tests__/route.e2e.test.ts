@@ -5,6 +5,7 @@ import {
   defaultHeaders,
   deleteJson,
   getJson,
+  patchJson,
   postJson,
 } from '@/src/__tests__/helpers/e2e'
 import { BASE_URL } from '@/src/__tests__/setup.e2e'
@@ -45,7 +46,7 @@ describe('POST & DELETE /api/workspaces/[id]/crm/social-connections', () => {
 
     const dup = await postJson(
       `/api/workspaces/${workspace.id}/crm/social-connections`,
-      { platform: 'INSTAGRAM', externalAccountId: 'acc-2' },
+      { platform: 'INSTAGRAM', externalAccountId: 'acc-1' },
       user.cookie,
     )
     expect(dup.status).toBe(409)
@@ -55,5 +56,73 @@ describe('POST & DELETE /api/workspaces/[id]/crm/social-connections', () => {
       user.cookie,
     )
     expect(deleted.status).toBe(200)
+  })
+
+  it('should allow connecting a second account of the same platform (multi-account)', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const first = await postJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections`,
+      { platform: 'FACEBOOK', externalAccountId: 'page-1' },
+      user.cookie,
+    )
+    expect(first.status).toBe(201)
+
+    const second = await postJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections`,
+      { platform: 'FACEBOOK', externalAccountId: 'page-2' },
+      user.cookie,
+    )
+    expect(second.status).toBe(201)
+
+    const list = await getJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections`,
+      user.cookie,
+    )
+    const listBody = await list.json()
+    const facebookConnections = listBody.data.filter(
+      (c: { platform: string }) => c.platform === 'FACEBOOK',
+    )
+    expect(facebookConnections).toHaveLength(2)
+  })
+})
+
+describe('PATCH /api/workspaces/[id]/crm/social-connections/[connectionId]/primary', () => {
+  it('should switch the primary connection within a platform group', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const first = await postJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections`,
+      { platform: 'FACEBOOK', externalAccountId: 'page-1' },
+      user.cookie,
+    )
+    const firstId = (await first.json()).data.id
+
+    const second = await postJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections`,
+      { platform: 'FACEBOOK', externalAccountId: 'page-2' },
+      user.cookie,
+    )
+    const secondId = (await second.json()).data.id
+
+    const promoted = await patchJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections/${secondId}/primary`,
+      {},
+      user.cookie,
+    )
+    expect(promoted.status).toBe(200)
+    const promotedBody = await promoted.json()
+    expect(promotedBody.data.isPrimary).toBe(true)
+
+    const list = await getJson(
+      `/api/workspaces/${workspace.id}/crm/social-connections`,
+      user.cookie,
+    )
+    const listBody = await list.json()
+    const primaries = listBody.data.filter(
+      (c: { id: string; isPrimary: boolean }) =>
+        [firstId, secondId].includes(c.id) && c.isPrimary,
+    )
+    expect(primaries.map((c: { id: string }) => c.id)).toEqual([secondId])
   })
 })

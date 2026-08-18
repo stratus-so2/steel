@@ -42,19 +42,34 @@ export const CrmSocialConnectionRepository = {
     }
   },
 
-  async findByPlatform(
+  async listByPlatform(
+    workspaceId: string,
+    platform: CrmSocialPlatform,
+  ): Promise<Result<CrmSocialConnection[]>> {
+    try {
+      const connections = await prisma.crmSocialConnection.findMany({
+        where: { workspaceId, platform },
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'desc' }],
+      })
+      return ok(connections)
+    } catch (error) {
+      return err(
+        dbError('Failed to list CRM social connections by platform', error),
+      )
+    }
+  },
+
+  async findPrimaryByPlatform(
     workspaceId: string,
     platform: CrmSocialPlatform,
   ): Promise<Result<CrmSocialConnection | null>> {
     try {
-      const connection = await prisma.crmSocialConnection.findUnique({
-        where: { workspaceId_platform: { workspaceId, platform } },
+      const connection = await prisma.crmSocialConnection.findFirst({
+        where: { workspaceId, platform, isPrimary: true },
       })
       return ok(connection)
     } catch (error) {
-      return err(
-        dbError('Failed to find CRM social connection by platform', error),
-      )
+      return err(dbError('Failed to find primary CRM social connection', error))
     }
   },
 
@@ -94,10 +109,11 @@ export const CrmSocialConnectionRepository = {
   },
 
   /**
-   * Cria ou substitui a conexão OAuth da plataforma no workspace (uma por
-   * par workspace/platform — reconectar sobrescreve tokens antigos). Tokens
-   * já chegam cifrados (ver src/lib/social/crypto.ts) — o repositório não
-   * sabe nem precisa saber disso.
+   * Cria ou substitui a conexão OAuth de UMA conta (chave workspace/platform/
+   * externalAccountId — várias contas coexistem por plataforma; reconectar a
+   * mesma conta sobrescreve só os tokens dela). Tokens já chegam cifrados
+   * (ver src/lib/social/crypto.ts) — o repositório não sabe nem precisa
+   * saber disso.
    */
   async upsertOAuthConnection(data: {
     workspaceId: string
@@ -109,18 +125,19 @@ export const CrmSocialConnectionRepository = {
     refreshToken?: string | null
     tokenExpiresAt?: Date | null
     scope?: string | null
+    isPrimary: boolean
   }): Promise<Result<CrmSocialConnection>> {
     try {
       const connection = await prisma.crmSocialConnection.upsert({
         where: {
-          workspaceId_platform: {
+          workspaceId_platform_externalAccountId: {
             workspaceId: data.workspaceId,
             platform: data.platform,
+            externalAccountId: data.externalAccountId,
           },
         },
         create: { ...data, status: 'CONNECTED' },
         update: {
-          externalAccountId: data.externalAccountId,
           accountName: data.accountName,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
@@ -132,6 +149,29 @@ export const CrmSocialConnectionRepository = {
       return ok(connection)
     } catch (error) {
       return err(dbError('Failed to upsert CRM social OAuth connection', error))
+    }
+  },
+
+  /** Torna esta conexão a primary da plataforma; desmarca as demais do grupo. */
+  async setPrimary(
+    workspaceId: string,
+    platform: CrmSocialPlatform,
+    connectionId: string,
+  ): Promise<Result<CrmSocialConnection>> {
+    try {
+      const [, connection] = await prisma.$transaction([
+        prisma.crmSocialConnection.updateMany({
+          where: { workspaceId, platform, NOT: { id: connectionId } },
+          data: { isPrimary: false },
+        }),
+        prisma.crmSocialConnection.update({
+          where: { id: connectionId },
+          data: { isPrimary: true },
+        }),
+      ])
+      return ok(connection)
+    } catch (error) {
+      return err(dbError('Failed to set primary CRM social connection', error))
     }
   },
 

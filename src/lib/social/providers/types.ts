@@ -52,7 +52,8 @@ export type SocialProvider = {
     /** `code_verifier` PKCE, presente só quando `usesPkce`. */
     codeVerifier?: string
   }): Promise<Result<TokenSet>>
-  fetchAccount(tokens: TokenSet): Promise<Result<SocialAccount>>
+  /** Lista todas as contas/subcontas que o usuário concedeu (ex.: Páginas do FB). */
+  fetchAccounts(tokens: TokenSet): Promise<Result<SocialAccount[]>>
   /**
    * Troca o refresh token por um novo access token. Opcional: nem todo
    * provedor emite refresh token (ex.: Instagram/Facebook usam long-lived

@@ -19,7 +19,7 @@ type Params = { params: Promise<{ id: string; platform: string }> }
  * mais quentes dos últimos 7 dias). Só Instagram e TikTok por ora — as demais
  * plataformas não têm um "feed de posts" equivalente na aba Analytics.
  */
-export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
+export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
@@ -33,11 +33,14 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   }
 
   const actorId = auth.value.user.id
+  const connectionId =
+    request.nextUrl.searchParams.get('connectionId') ?? undefined
 
   if (platform === 'INSTAGRAM') {
     const result = await CrmSocialInstagramService.getWeeklyEngagement(
       actorId,
       id,
+      connectionId,
     )
     if (!result.ok) return handleError(result.error)
     return successResponse(result.value)

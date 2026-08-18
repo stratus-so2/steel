@@ -56,7 +56,7 @@ export const linkedinProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
     // OpenID Connect userinfo retorna sub (memberId), name e email.
     const result = await getJson<{
       sub?: string
@@ -66,10 +66,12 @@ export const linkedinProvider: SocialProvider = {
     }>('https://api.linkedin.com/v2/userinfo', tokens.accessToken)
     if (!result.ok) return result
 
-    return ok({
-      externalId: result.value.sub ?? 'unknown',
-      name: result.value.name ?? null,
-    })
+    return ok([
+      {
+        externalId: result.value.sub ?? 'unknown',
+        name: result.value.name ?? null,
+      },
+    ])
   },
 
   async refreshAccessToken(refreshToken): Promise<Result<TokenSet>> {

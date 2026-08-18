@@ -16,6 +16,7 @@ export interface CrmSocialConnectionDTO {
   externalAccountId: string
   accountName: string | null
   scope: string | null
+  isPrimary: boolean
   status: CrmSocialConnectionStatusDTO
   expiresAt: string | null
   workspaceId: string

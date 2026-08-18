@@ -16,10 +16,19 @@ import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
+import { useCrmSocialConnections } from '@/src/hooks/use-crm-social'
 import {
   CrmSocialApiError,
   isCrmSocialReconnectError,
@@ -291,16 +300,18 @@ function FacebookPostModal({
 
 function PostComposer({
   workspaceId,
+  connectionId,
   message,
   onMessageChange,
   onImageChange,
 }: {
   workspaceId: string
+  connectionId?: string
   message: string
   onMessageChange: (v: string) => void
   onImageChange: (f: File | undefined) => void
 }) {
-  const publish = usePublishCrmFacebookPost(workspaceId)
+  const publish = usePublishCrmFacebookPost(workspaceId, connectionId)
 
   async function handleSubmit(event: React.SyntheticEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -317,6 +328,7 @@ function PostComposer({
     }
     if (!link) form.delete('link')
     if (!hasImage) form.delete('image')
+    if (connectionId) form.set('connectionId', connectionId)
 
     try {
       await publish.mutateAsync(form)
@@ -390,10 +402,22 @@ export function CrmFacebookStudio({ workspaceId }: { workspaceId: string }) {
   const [message, setMessage] = useState('')
   const [imageFile, setImageFile] = useState<File | undefined>()
   const [selectedPost, setSelectedPost] = useState<CrmFacebookPost | null>(null)
+  const [connectionId, setConnectionId] = useState<string | undefined>(
+    undefined,
+  )
 
-  const overviewQuery = useCrmFacebookOverview(workspaceId)
-  const postsQuery = useCrmFacebookPosts(workspaceId)
-  const insightsQuery = useCrmFacebookInsights(workspaceId, range)
+  const connectionsQuery = useCrmSocialConnections(workspaceId, 'FACEBOOK')
+  const connections = connectionsQuery.data ?? []
+
+  useEffect(() => {
+    if (connectionId || connections.length === 0) return
+    const primary = connections.find((c) => c.isPrimary) ?? connections[0]
+    setConnectionId(primary.id)
+  }, [connections, connectionId])
+
+  const overviewQuery = useCrmFacebookOverview(workspaceId, connectionId)
+  const postsQuery = useCrmFacebookPosts(workspaceId, connectionId)
+  const insightsQuery = useCrmFacebookInsights(workspaceId, range, connectionId)
 
   const overview = overviewQuery.data
   const posts = postsQuery.data
@@ -447,6 +471,25 @@ export function CrmFacebookStudio({ workspaceId }: { workspaceId: string }) {
   return (
     <div className='mx-auto w-full max-w-5xl py-6'>
       <header className='mb-6 flex items-center gap-4'>
+        {connections.length > 1 && (
+          <Select
+            value={connectionId}
+            onValueChange={(value) => setConnectionId(value ?? undefined)}
+          >
+            <SelectTrigger className='w-56 shrink-0'>
+              <SelectValue placeholder='Selecione a Página' />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                {connections.map((connection) => (
+                  <SelectItem key={connection.id} value={connection.id}>
+                    {connection.accountName ?? connection.externalAccountId}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
         {overview.pictureUrl ? (
           <img
             src={overview.pictureUrl}
@@ -562,6 +605,7 @@ export function CrmFacebookStudio({ workspaceId }: { workspaceId: string }) {
               </h3>
               <PostComposer
                 workspaceId={workspaceId}
+                connectionId={connectionId}
                 message={message}
                 onMessageChange={setMessage}
                 onImageChange={setImageFile}

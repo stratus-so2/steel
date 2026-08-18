@@ -149,7 +149,7 @@ export const CrmSocialConnectionService = {
     return ok({ authorizeUrl, pkceVerifier: pkce?.verifier ?? null })
   },
 
-  /** Troca o code por tokens, resolve a conta e persiste a conexão. */
+  /** Troca o code por tokens, resolve as contas concedidas e persiste uma conexão por conta. */
   async completeConnect(
     actorId: string,
     state: string,
@@ -159,6 +159,7 @@ export const CrmSocialConnectionService = {
     Result<{
       workspaceSlug: string
       platform: (typeof CRM_SOCIAL_PLATFORMS)[number]
+      connected: number
     }>
   > {
     const verified = verifyOauthState(state)
@@ -180,41 +181,86 @@ export const CrmSocialConnectionService = {
     })
     if (!tokens.ok) return tokens
 
-    const account = await provider.fetchAccount(tokens.value)
-    if (!account.ok) return account
+    const accounts = await provider.fetchAccounts(tokens.value)
+    if (!accounts.ok) return accounts
 
     const workspace = await WorkspaceRepository.findById(workspaceId)
     if (!workspace.ok) return workspace
     if (!workspace.value) return err(crmSocialOauthFailed())
 
-    const override = account.value.accessTokenOverride
-
-    const result = await CrmSocialConnectionRepository.upsertOAuthConnection({
+    const existing = await CrmSocialConnectionRepository.listByPlatform(
       workspaceId,
-      createdById: actorId,
       platform,
-      externalAccountId: account.value.externalId,
-      accountName: account.value.name,
-      accessToken: encryptToken(
-        override ? override.accessToken : tokens.value.accessToken,
-      ),
-      refreshToken: tokens.value.refreshToken
-        ? encryptToken(tokens.value.refreshToken)
-        : null,
-      tokenExpiresAt: override ? override.expiresAt : tokens.value.expiresAt,
-      scope: tokens.value.scope,
-    })
+    )
+    if (!existing.ok) return existing
+    const hasPrimaryAlready = existing.value.some((c) => c.isPrimary)
+
+    let connected = 0
+    for (const [index, account] of accounts.value.entries()) {
+      const override = account.accessTokenOverride
+
+      const result = await CrmSocialConnectionRepository.upsertOAuthConnection({
+        workspaceId,
+        createdById: actorId,
+        platform,
+        externalAccountId: account.externalId,
+        accountName: account.name,
+        accessToken: encryptToken(
+          override ? override.accessToken : tokens.value.accessToken,
+        ),
+        refreshToken: tokens.value.refreshToken
+          ? encryptToken(tokens.value.refreshToken)
+          : null,
+        tokenExpiresAt: override ? override.expiresAt : tokens.value.expiresAt,
+        scope: tokens.value.scope,
+        isPrimary: !hasPrimaryAlready && index === 0,
+      })
+      if (!result.ok) return result
+      connected += 1
+
+      auditMutation({
+        entity: 'crm_social_connection',
+        action: 'update',
+        actorId,
+        targetId: result.value.id,
+        meta: { platform, via: 'oauth', externalAccountId: account.externalId },
+      })
+    }
+
+    return ok({ workspaceSlug: slug, platform, connected })
+  },
+
+  /** Define qual conta conectada de uma plataforma é usada por padrão (agendamentos, leituras sem connectionId explícito). */
+  async setPrimary(
+    actorId: string,
+    workspaceId: string,
+    connectionId: string,
+  ): Promise<Result<CrmSocialConnectionDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmSocialConnectionRepository.findById(
+      connectionId,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+
+    const result = await CrmSocialConnectionRepository.setPrimary(
+      workspaceId,
+      existing.value.platform,
+      connectionId,
+    )
     if (!result.ok) return result
 
     auditMutation({
       entity: 'crm_social_connection',
       action: 'update',
       actorId,
-      targetId: result.value.id,
-      meta: { platform, via: 'oauth' },
+      targetId: connectionId,
+      meta: { isPrimary: true },
     })
 
-    return ok({ workspaceSlug: slug, platform })
+    return ok(toCrmSocialConnectionDTO(result.value))
   },
 }
 

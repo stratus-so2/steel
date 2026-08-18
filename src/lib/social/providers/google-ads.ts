@@ -61,7 +61,7 @@ export const googleAdsProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
     const devToken = GOOGLE_ADS_DEVELOPER_TOKEN ?? ''
     const bearer = `Bearer ${tokens.accessToken}`
     const base = 'https://googleads.googleapis.com/v23'
@@ -77,7 +77,7 @@ export const googleAdsProvider: SocialProvider = {
     const rootIds = (listResult.value.resourceNames ?? []).map((r) =>
       r.replace('customers/', ''),
     )
-    if (rootIds.length === 0) return ok({ externalId: 'unknown', name: null })
+    if (rootIds.length === 0) return ok([{ externalId: 'unknown', name: null }])
 
     type CustomerRow = {
       results?: {
@@ -111,10 +111,12 @@ export const googleAdsProvider: SocialProvider = {
 
       if (customer && !isManager) {
         // Conta anunciante direta — uso imediato, sem login-customer-id.
-        return ok({
-          externalId: rootId,
-          name: customer.descriptiveName ?? null,
-        })
+        return ok([
+          {
+            externalId: rootId,
+            name: customer.descriptiveName ?? null,
+          },
+        ])
       }
       managers.push({ id: rootId, name: customer?.descriptiveName ?? null })
     }
@@ -161,15 +163,17 @@ export const googleAdsProvider: SocialProvider = {
       const chosen = (enabled ?? clients[0])?.customerClient
 
       if (chosen?.id) {
-        return ok({
-          externalId: `${manager.id}|${chosen.id}`,
-          name: chosen.descriptiveName ?? manager.name,
-        })
+        return ok([
+          {
+            externalId: `${manager.id}|${chosen.id}`,
+            name: chosen.descriptiveName ?? manager.name,
+          },
+        ])
       }
     }
 
     // Só MCCs sem sub-conta anunciante ativa — conexão inútil para métricas.
-    return ok({ externalId: 'unknown', name: managers[0]?.name ?? null })
+    return ok([{ externalId: 'unknown', name: managers[0]?.name ?? null }])
   },
 
   async refreshAccessToken(refreshToken): Promise<Result<TokenSet>> {

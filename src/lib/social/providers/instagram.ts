@@ -76,11 +76,12 @@ export const instagramProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
-    // Para chegar ao IG: pegar as Páginas administradas, descobrir aquela
-    // que tem uma conta IG Business/Creator vinculada e usar o **Page
-    // token** para todas as chamadas do IG (Graph API delega o auth via
-    // Page). Sem IG vinculado, falha claramente em vez de salvar uma
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
+    // Para chegar ao IG: pegar as Páginas administradas, listar todas as
+    // que têm uma conta IG Business/Creator vinculada e usar o **Page
+    // token** de cada uma para as chamadas do IG (Graph API delega o auth
+    // via Page). Cada Página com IG vinculado vira uma conexão própria.
+    // Sem nenhum IG vinculado, falha claramente em vez de salvar uma
     // conexão quebrada.
     const params = new URLSearchParams({
       fields:
@@ -101,26 +102,30 @@ export const instagramProvider: SocialProvider = {
     }>(`${GRAPH}/me/accounts?${params.toString()}`)
     if (!result.ok) return result
 
-    const pageWithIg = (result.value.data ?? []).find(
+    const pagesWithIg = (result.value.data ?? []).filter(
       (page) => page.instagram_business_account?.id && page.access_token,
     )
-    if (!pageWithIg) return err(crmSocialIgNotLinked())
+    if (pagesWithIg.length === 0) return err(crmSocialIgNotLinked())
 
-    const ig = pageWithIg.instagram_business_account
-    if (!ig) return err(crmSocialIgNotLinked())
+    return ok(
+      pagesWithIg.map((page) => {
+        const ig = page.instagram_business_account as NonNullable<
+          typeof page.instagram_business_account
+        >
+        const displayName = ig.username
+          ? `@${ig.username}`
+          : (ig.name ?? page.name ?? null)
 
-    const displayName = ig.username
-      ? `@${ig.username}`
-      : (ig.name ?? pageWithIg.name ?? null)
-
-    return ok({
-      externalId: ig.id,
-      name: displayName,
-      // Page token derivado de token longo não expira.
-      accessTokenOverride: {
-        accessToken: pageWithIg.access_token as string,
-        expiresAt: null,
-      },
-    })
+        return {
+          externalId: ig.id,
+          name: displayName,
+          // Page token derivado de token longo não expira.
+          accessTokenOverride: {
+            accessToken: page.access_token as string,
+            expiresAt: null,
+          },
+        }
+      }),
+    )
   },
 }

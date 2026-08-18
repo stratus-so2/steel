@@ -21,7 +21,7 @@ import {
 type Params = { params: Promise<{ id: string; platform: string }> }
 
 /** Visão da conta conectada (formato específico por plataforma). */
-export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
+export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
@@ -35,15 +35,25 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   }
 
   const actorId = auth.value.user.id
+  const connectionId =
+    request.nextUrl.searchParams.get('connectionId') ?? undefined
 
   switch (platform) {
     case 'FACEBOOK': {
-      const result = await CrmSocialFacebookService.getOverview(actorId, id)
+      const result = await CrmSocialFacebookService.getOverview(
+        actorId,
+        id,
+        connectionId,
+      )
       if (!result.ok) return handleError(result.error)
       return successResponse(result.value)
     }
     case 'INSTAGRAM': {
-      const result = await CrmSocialInstagramService.getOverview(actorId, id)
+      const result = await CrmSocialInstagramService.getOverview(
+        actorId,
+        id,
+        connectionId,
+      )
       if (!result.ok) return handleError(result.error)
       return successResponse(result.value)
     }

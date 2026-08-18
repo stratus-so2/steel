@@ -6,25 +6,48 @@ import type {
 } from '@/types/crm-social'
 import { apiFetch, apiSend } from './_fetch'
 
-function socialConnectionsKey(workspaceId: string) {
-  return ['crm-social-connections', workspaceId] as const
+function socialConnectionsKey(workspaceId: string, platform?: string) {
+  return ['crm-social-connections', workspaceId, platform ?? ''] as const
 }
 
 function scheduledPostsKey(workspaceId: string) {
   return ['crm-scheduled-posts', workspaceId] as const
 }
 
-export function useCrmSocialConnections(workspaceId: string) {
+export function useCrmSocialConnections(
+  workspaceId: string,
+  platform?: CrmSocialPlatformDTO,
+) {
   return useQuery({
-    queryKey: socialConnectionsKey(workspaceId),
-    queryFn: () =>
-      apiFetch<CrmSocialConnectionDTO[]>(
+    queryKey: socialConnectionsKey(workspaceId, platform),
+    queryFn: async () => {
+      const all = await apiFetch<CrmSocialConnectionDTO[]>(
         `/api/workspaces/${workspaceId}/crm/social-connections`,
         undefined,
         'Erro ao buscar conexões sociais',
-      ),
+      )
+      return platform ? all.filter((c) => c.platform === platform) : all
+    },
     enabled: !!workspaceId,
     staleTime: 30 * 1000,
+  })
+}
+
+export function useSetCrmSocialConnectionPrimary(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (connectionId: string) =>
+      apiFetch<CrmSocialConnectionDTO>(
+        `/api/workspaces/${workspaceId}/crm/social-connections/${connectionId}/primary`,
+        { method: 'PATCH' },
+        'Erro ao definir conexão padrão',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['crm-social-connections', workspaceId],
+      })
+    },
   })
 }
 

@@ -55,28 +55,53 @@ async function fetchCrmSocial<T>(
   return json.data
 }
 
-function overviewKey(workspaceId: string) {
-  return ['crm-social-facebook-overview', workspaceId] as const
+function overviewKey(workspaceId: string, connectionId?: string) {
+  return [
+    'crm-social-facebook-overview',
+    workspaceId,
+    connectionId ?? '',
+  ] as const
 }
 
-function insightsKey(workspaceId: string, range: CrmFacebookInsightsRange) {
-  return ['crm-social-facebook-insights', workspaceId, range] as const
+function insightsKey(
+  workspaceId: string,
+  range: CrmFacebookInsightsRange,
+  connectionId?: string,
+) {
+  return [
+    'crm-social-facebook-insights',
+    workspaceId,
+    range,
+    connectionId ?? '',
+  ] as const
 }
 
-function postsKey(workspaceId: string) {
-  return ['crm-social-facebook-posts', workspaceId] as const
+function postsKey(workspaceId: string, connectionId?: string) {
+  return ['crm-social-facebook-posts', workspaceId, connectionId ?? ''] as const
+}
+
+function withConnectionId(url: string, connectionId?: string) {
+  if (!connectionId) return url
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}connectionId=${encodeURIComponent(connectionId)}`
 }
 
 function shouldRetry(failureCount: number, error: unknown) {
   return !isCrmSocialReconnectError(error) && failureCount < 2
 }
 
-export function useCrmFacebookOverview(workspaceId: string) {
+export function useCrmFacebookOverview(
+  workspaceId: string,
+  connectionId?: string,
+) {
   return useQuery({
-    queryKey: overviewKey(workspaceId),
+    queryKey: overviewKey(workspaceId, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmFacebookPageOverview>(
-        `/api/workspaces/${workspaceId}/crm/social/facebook/overview`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/facebook/overview`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar a Página do Facebook',
       ),
@@ -89,12 +114,16 @@ export function useCrmFacebookOverview(workspaceId: string) {
 export function useCrmFacebookInsights(
   workspaceId: string,
   range: CrmFacebookInsightsRange,
+  connectionId?: string,
 ) {
   return useQuery({
-    queryKey: insightsKey(workspaceId, range),
+    queryKey: insightsKey(workspaceId, range, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmFacebookInsights>(
-        `/api/workspaces/${workspaceId}/crm/social/facebook/insights?range=${range}`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/facebook/insights?range=${range}`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar insights do Facebook',
       ),
@@ -104,12 +133,18 @@ export function useCrmFacebookInsights(
   })
 }
 
-export function useCrmFacebookPosts(workspaceId: string) {
+export function useCrmFacebookPosts(
+  workspaceId: string,
+  connectionId?: string,
+) {
   return useQuery({
-    queryKey: postsKey(workspaceId),
+    queryKey: postsKey(workspaceId, connectionId),
     queryFn: () =>
       fetchCrmSocial<CrmFacebookPosts>(
-        `/api/workspaces/${workspaceId}/crm/social/facebook/videos`,
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/facebook/videos`,
+          connectionId,
+        ),
         undefined,
         'Erro ao buscar publicações do Facebook',
       ),
@@ -119,7 +154,10 @@ export function useCrmFacebookPosts(workspaceId: string) {
   })
 }
 
-export function usePublishCrmFacebookPost(workspaceId: string) {
+export function usePublishCrmFacebookPost(
+  workspaceId: string,
+  connectionId?: string,
+) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -130,7 +168,9 @@ export function usePublishCrmFacebookPost(workspaceId: string) {
         'Falha ao publicar no Facebook',
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: postsKey(workspaceId) })
+      queryClient.invalidateQueries({
+        queryKey: postsKey(workspaceId, connectionId),
+      })
     },
   })
 }

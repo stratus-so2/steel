@@ -359,11 +359,16 @@ async function publishToInstagram(
 export async function getOverview(
   actorId: string,
   workspaceId: string,
+  connectionId?: string,
 ): Promise<Result<CrmInstagramProfileOverview>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'INSTAGRAM')
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.read)) {
     return err(crmSocialScopeMissing())
@@ -379,11 +384,16 @@ export async function getInsights(
   actorId: string,
   workspaceId: string,
   range: CrmInstagramInsightsRange,
+  connectionId?: string,
 ): Promise<Result<CrmInstagramInsights>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'INSTAGRAM')
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.insights)) {
     return err(crmSocialScopeMissing())
@@ -403,11 +413,16 @@ export async function getInsights(
 export async function getRecentMedia(
   actorId: string,
   workspaceId: string,
+  connectionId?: string,
 ): Promise<Result<CrmInstagramMediaList>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'INSTAGRAM')
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.read)) {
     return err(crmSocialScopeMissing())
@@ -426,11 +441,16 @@ export async function getRecentMedia(
 export async function getWeeklyEngagement(
   actorId: string,
   workspaceId: string,
+  connectionId?: string,
 ): Promise<Result<CrmInstagramWeeklyEngagement>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'INSTAGRAM')
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.insights)) {
     return err(crmSocialScopeMissing())
@@ -477,11 +497,16 @@ export async function publishPost(
   workspaceId: string,
   input: CrmPublishInstagramPostInput,
   media: { bytes: ArrayBuffer; contentType: string; kind: 'IMAGE' | 'VIDEO' },
+  connectionId?: string,
 ): Promise<Result<CrmPublishInstagramPostResult>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
 
-  const fresh = await getFreshAccessToken(workspaceId, 'INSTAGRAM')
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
   if (!fresh.ok) return fresh
   if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.publish)) {
     return err(crmSocialScopeMissing())

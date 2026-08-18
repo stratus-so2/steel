@@ -61,7 +61,7 @@ export const googleAnalyticsProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
     // Admin API account summaries — lista todas as contas + propriedades
     // GA4 (web/app) que o usuário tem acesso, sem precisar de um property ID.
     const result = await getJson<{
@@ -92,10 +92,12 @@ export const googleAnalyticsProvider: SocialProvider = {
       )
       .find((p) => p.property)
 
-    return ok({
-      externalId: firstProperty?.property ?? 'unknown',
-      name: firstProperty?.propertyName ?? firstProperty?.accountName ?? null,
-    })
+    return ok([
+      {
+        externalId: firstProperty?.property ?? 'unknown',
+        name: firstProperty?.propertyName ?? firstProperty?.accountName ?? null,
+      },
+    ])
   },
 
   async refreshAccessToken(refreshToken): Promise<Result<TokenSet>> {

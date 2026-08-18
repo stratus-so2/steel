@@ -25,7 +25,7 @@ type Params = { params: Promise<{ id: string; platform: string }> }
  * - TIKTOK     → Display API (video/list)
  * - TWITTER    → API v2 (GET /users/:id/tweets)
  */
-export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
+export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
@@ -39,15 +39,25 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   }
 
   const actorId = auth.value.user.id
+  const connectionId =
+    request.nextUrl.searchParams.get('connectionId') ?? undefined
 
   switch (platform) {
     case 'FACEBOOK': {
-      const result = await CrmSocialFacebookService.getRecentPosts(actorId, id)
+      const result = await CrmSocialFacebookService.getRecentPosts(
+        actorId,
+        id,
+        connectionId,
+      )
       if (!result.ok) return handleError(result.error)
       return successResponse(result.value)
     }
     case 'INSTAGRAM': {
-      const result = await CrmSocialInstagramService.getRecentMedia(actorId, id)
+      const result = await CrmSocialInstagramService.getRecentMedia(
+        actorId,
+        id,
+        connectionId,
+      )
       if (!result.ok) return handleError(result.error)
       return successResponse(result.value)
     }

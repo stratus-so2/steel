@@ -16,7 +16,7 @@ const GRAPH = 'https://graph.facebook.com/v21.0'
  * engajamento (`pages_read_engagement`), publicar (`pages_manage_posts`) e
  * ler métricas (`read_insights`). Postagens e insights são da **Página**,
  * não do perfil — por isso trocamos o token do usuário pelo Page token no
- * fetchAccount. Ao mudar esta lista, contas conectadas antes precisam
+ * fetchAccounts. Ao mudar esta lista, contas conectadas antes precisam
  * reconectar.
  */
 const SCOPES = [
@@ -86,10 +86,11 @@ export const facebookProvider: SocialProvider = {
     })
   },
 
-  async fetchAccount(tokens): Promise<Result<SocialAccount>> {
-    // Lista as Páginas administradas; cada uma traz seu próprio Page token.
-    // No v1 conectamos a primeira Página (o nome fica visível na UI).
-    // Selecionar entre várias é uma evolução futura.
+  async fetchAccounts(tokens): Promise<Result<SocialAccount[]>> {
+    // Lista todas as Páginas administradas concedidas no consentimento;
+    // cada uma traz seu próprio Page token e vira uma conexão própria
+    // (multi-conta) — quem escolhe quais conceder é o próprio usuário na
+    // tela de login do Facebook.
     const params = new URLSearchParams({
       fields: 'id,name,access_token',
       access_token: tokens.accessToken,
@@ -99,19 +100,24 @@ export const facebookProvider: SocialProvider = {
     }>(`${GRAPH}/me/accounts?${params.toString()}`)
     if (!result.ok) return result
 
-    const page = result.value.data?.[0]
-    if (!page?.access_token) {
+    const pages = (result.value.data ?? []).filter((page) => page.access_token)
+    if (pages.length === 0) {
       // Sem Página concedida não há onde postar/ler insights — falha
       // claramente para o usuário reconectar e SELECIONAR uma Página (em
       // vez de salvar uma conexão quebrada com o token de usuário).
       return err(crmSocialNoPage())
     }
 
-    return ok({
-      externalId: page.id,
-      name: page.name ?? null,
-      // Page tokens vindos de um token de usuário longo não expiram.
-      accessTokenOverride: { accessToken: page.access_token, expiresAt: null },
-    })
+    return ok(
+      pages.map((page) => ({
+        externalId: page.id,
+        name: page.name ?? null,
+        // Page tokens vindos de um token de usuário longo não expiram.
+        accessTokenOverride: {
+          accessToken: page.access_token as string,
+          expiresAt: null,
+        },
+      })),
+    )
   },
 }

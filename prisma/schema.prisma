@@ -2368,6 +2368,7 @@ model CrmSocialConnection {
   refreshToken      String?                   @map("refresh_token")
   tokenExpiresAt    DateTime?                 @map("token_expires_at")
   scope             String?
+  isPrimary         Boolean                   @default(false) @map("is_primary")
   status            CrmSocialConnectionStatus @default(CONNECTED)
   workspaceId       String                    @map("workspace_id")
   createdById       String                    @map("created_by_id")
@@ -2379,8 +2380,8 @@ model CrmSocialConnection {
   createdBy User      @relation("CrmSocialConnectionCreatedBy", fields: [createdById], references: [id])
   updatedBy User?     @relation("CrmSocialConnectionUpdatedBy", fields: [updatedById], references: [id])
 
-  @@unique([workspaceId, platform])
-  @@index([workspaceId])
+  @@unique([workspaceId, platform, externalAccountId])
+  @@index([workspaceId, platform])
   @@map("crm_social_connections")
 }
 

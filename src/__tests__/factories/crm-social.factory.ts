@@ -19,6 +19,7 @@ export function createFakeCrmSocialConnection(
     refreshToken: null,
     tokenExpiresAt: null,
     scope: null,
+    isPrimary: false,
     status: 'CONNECTED',
     workspaceId: createId(),
     createdById: createId(),
