@@ -178,6 +178,49 @@ describe('WhatsAppConversationRepository', () => {
       expect(archivedList.map((c) => c.id)).toEqual([archived.id])
     })
 
+    it('should filter by connectionId', async () => {
+      const { workspace, connection, contact, user } = await seedFixtures()
+      const secondConnection = await prisma.whatsAppConnection.create({
+        data: {
+          workspaceId: workspace.id,
+          provider: 'ZAPI',
+          label: 'Vendas',
+          phoneNumber: '5511988880000',
+          zapiInstanceId: `instance-${connectionSuffix()}`,
+          encryptedZapiToken: 'enc:token',
+          createdById: user.id,
+        },
+      })
+      const fromFirst = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      const fromSecond = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: secondConnection.id,
+          contactId: contact.id,
+        }),
+      )
+
+      const filtered = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id, {
+          connectionId: secondConnection.id,
+        }),
+      )
+      expect(filtered.map((c) => c.id)).toEqual([fromSecond.id])
+
+      const unfiltered = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id),
+      )
+      expect(unfiltered.map((c) => c.id).sort()).toEqual(
+        [fromFirst.id, fromSecond.id].sort(),
+      )
+    })
+
     it('should sort pinned conversations first', async () => {
       const { workspace, connection, contact } = await seedFixtures()
       const unpinned = expectOk(

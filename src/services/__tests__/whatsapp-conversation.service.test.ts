@@ -26,6 +26,39 @@ const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
 const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
 
 describe('WhatsAppConversationService', () => {
+  describe('list()', () => {
+    it('should forward connectionId to the repository filter', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedConversationRepo.listByWorkspace.mockResolvedValue(ok([]))
+
+      await WhatsAppConversationService.list('u1', 'ws1', {
+        connectionId: 'conn1',
+      })
+
+      expect(mockedConversationRepo.listByWorkspace).toHaveBeenCalledWith(
+        'ws1',
+        { connectionId: 'conn1' },
+      )
+    })
+
+    it('should still work when connectionId is omitted', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedConversationRepo.listByWorkspace.mockResolvedValue(ok([]))
+
+      const result = await WhatsAppConversationService.list('u1', 'ws1')
+
+      expectOk(result)
+      expect(mockedConversationRepo.listByWorkspace).toHaveBeenCalledWith(
+        'ws1',
+        {},
+      )
+    })
+  })
+
   describe('start()', () => {
     it('should create a new conversation when the contact has none active', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(

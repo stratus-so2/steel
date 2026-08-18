@@ -20,6 +20,7 @@ export const WhatsAppConversationRepository = {
       status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED'
       assignedUserId?: string
       archived?: boolean
+      connectionId?: string
     } = {},
   ): Promise<Result<WhatsAppConversationWithPreview[]>> {
     try {
@@ -31,6 +32,9 @@ export const WhatsAppConversationRepository = {
           ...(filters.status ? { status: filters.status } : {}),
           ...(filters.assignedUserId
             ? { assignedUserId: filters.assignedUserId }
+            : {}),
+          ...(filters.connectionId
+            ? { connectionId: filters.connectionId }
             : {}),
         },
         include: conversationListInclude,

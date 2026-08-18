@@ -10,25 +10,29 @@ const CONVERSATIONS_KEY = (
   workspaceId: string,
   status?: string,
   archived?: boolean,
+  connectionId?: string,
 ) =>
   [
     'whatsapp-conversations',
     workspaceId,
     status ?? '',
     archived ?? false,
+    connectionId ?? '',
   ] as const
 
 export function useWhatsAppConversations(
   workspaceId: string,
   status?: WhatsAppConversationStatusDTO,
   archived?: boolean,
+  connectionId?: string,
 ) {
   return useQuery({
-    queryKey: CONVERSATIONS_KEY(workspaceId, status, archived),
+    queryKey: CONVERSATIONS_KEY(workspaceId, status, archived, connectionId),
     queryFn: () => {
       const params = new URLSearchParams()
       if (status) params.set('status', status)
       if (archived) params.set('archived', 'true')
+      if (connectionId) params.set('connectionId', connectionId)
       const qs = params.toString()
       return apiFetch<WhatsAppConversationDTO[]>(
         `/api/workspaces/${workspaceId}/whatsapp/conversations${qs ? `?${qs}` : ''}`,

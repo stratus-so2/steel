@@ -26,6 +26,7 @@ export const WhatsAppConversationService = {
     filters: {
       status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED'
       archived?: boolean
+      connectionId?: string
     } = {},
   ): Promise<Result<WhatsAppConversationDTO[]>> {
     const membership = await assertMember(actorId, workspaceId)

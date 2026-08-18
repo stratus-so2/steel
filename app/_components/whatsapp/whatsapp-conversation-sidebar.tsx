@@ -62,6 +62,7 @@ import {
   useStartWhatsAppConversation,
   useWhatsAppConversations,
 } from '@/src/hooks/use-whatsapp-conversations'
+import type { WhatsAppConnectionDTO } from '@/types/whatsapp-connection'
 import type { WhatsAppConversationDTO } from '@/types/whatsapp-conversation'
 
 function NewConversationDialog({
@@ -199,10 +200,16 @@ function formatRelativeTime(iso: string | null): string {
 
 export function WhatsappConversationSidebar({
   workspaceId,
+  connections,
+  connectionId,
+  onConnectionChange,
   selectedConversationId,
   onSelect,
 }: {
   workspaceId: string
+  connections: WhatsAppConnectionDTO[]
+  connectionId: string | undefined
+  onConnectionChange: (connectionId: string | undefined) => void
   selectedConversationId: string | null
   onSelect: (conversation: WhatsAppConversationDTO) => void
 }) {
@@ -214,6 +221,7 @@ export function WhatsappConversationSidebar({
     workspaceId,
     undefined,
     tab === 'archived',
+    connectionId,
   )
   const pinConversation = usePinWhatsAppConversation(workspaceId)
   const archiveConversation = useArchiveWhatsAppConversation(workspaceId)
@@ -231,6 +239,32 @@ export function WhatsappConversationSidebar({
 
   return (
     <div className='flex h-full w-80 shrink-0 flex-col border-r'>
+      {connections.length > 1 && (
+        <div className='px-3 pt-3'>
+          <Select
+            value={connectionId ?? 'all'}
+            onValueChange={(value) =>
+              onConnectionChange(
+                value === 'all' ? undefined : (value ?? undefined),
+              )
+            }
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue placeholder='Todas as conexões' />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                <SelectItem value='all'>Todas as conexões</SelectItem>
+                {connections.map((connection) => (
+                  <SelectItem key={connection.id} value={connection.id}>
+                    {connection.label} · {connection.phoneNumber}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className='flex items-center gap-2 p-3'>
         <div className='relative flex-1'>
           <SteelIcon

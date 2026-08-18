@@ -25,6 +25,7 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const archived = searchParams.get('archived') === 'true'
+  const connectionId = searchParams.get('connectionId') ?? undefined
 
   const result = await WhatsAppConversationService.list(
     auth.value.user.id,
@@ -35,6 +36,7 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
           ? (status as 'NEW' | 'IN_PROGRESS' | 'CLOSED')
           : undefined,
       archived,
+      connectionId,
     },
   )
   if (!result.ok) return handleError(result.error)
