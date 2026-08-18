@@ -16,19 +16,10 @@ import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
-import { useCrmSocialConnections } from '@/src/hooks/use-crm-social'
 import {
   CrmSocialApiError,
   isCrmSocialReconnectError,
@@ -397,23 +388,17 @@ function PostComposer({
   )
 }
 
-export function CrmFacebookStudio({ workspaceId }: { workspaceId: string }) {
+export function CrmFacebookStudio({
+  workspaceId,
+  connectionId,
+}: {
+  workspaceId: string
+  connectionId?: string
+}) {
   const [range, setRange] = useState<CrmFacebookInsightsRange>('28d')
   const [message, setMessage] = useState('')
   const [imageFile, setImageFile] = useState<File | undefined>()
   const [selectedPost, setSelectedPost] = useState<CrmFacebookPost | null>(null)
-  const [connectionId, setConnectionId] = useState<string | undefined>(
-    undefined,
-  )
-
-  const connectionsQuery = useCrmSocialConnections(workspaceId, 'FACEBOOK')
-  const connections = connectionsQuery.data ?? []
-
-  useEffect(() => {
-    if (connectionId || connections.length === 0) return
-    const primary = connections.find((c) => c.isPrimary) ?? connections[0]
-    setConnectionId(primary.id)
-  }, [connections, connectionId])
 
   const overviewQuery = useCrmFacebookOverview(workspaceId, connectionId)
   const postsQuery = useCrmFacebookPosts(workspaceId, connectionId)
@@ -471,25 +456,6 @@ export function CrmFacebookStudio({ workspaceId }: { workspaceId: string }) {
   return (
     <div className='mx-auto w-full max-w-5xl py-6'>
       <header className='mb-6 flex items-center gap-4'>
-        {connections.length > 1 && (
-          <Select
-            value={connectionId}
-            onValueChange={(value) => setConnectionId(value ?? undefined)}
-          >
-            <SelectTrigger className='w-56 shrink-0'>
-              <SelectValue placeholder='Selecione a Página' />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              <SelectGroup>
-                {connections.map((connection) => (
-                  <SelectItem key={connection.id} value={connection.id}>
-                    {connection.accountName ?? connection.externalAccountId}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        )}
         {overview.pictureUrl ? (
           <img
             src={overview.pictureUrl}
