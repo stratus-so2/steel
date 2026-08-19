@@ -6,7 +6,10 @@ import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-ai.repository')
-vi.mock('@/lib/env/server', () => ({ OPENAI_API_KEY: undefined }))
+vi.mock('@/lib/env/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/env/server')>()
+  return { ...actual, OPENAI_API_KEY: undefined }
+})
 
 import { CrmAiConversationRepository } from '@/src/repositories/crm-ai.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
