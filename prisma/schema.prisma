@@ -84,13 +84,15 @@ model User {
   crmDashboardsUpdated         CrmDashboard[]             @relation("CrmDashboardUpdatedBy")
   crmProposalsCreated          CrmProposal[]              @relation("CrmProposalCreatedBy")
   crmProposalsUpdated          CrmProposal[]              @relation("CrmProposalUpdatedBy")
+  crmProposalsResponsible      CrmProposal[]              @relation("CrmProposalResponsible")
+  crmProposalTemplatesCreated  CrmProposalTemplate[]      @relation("CrmProposalTemplateCreatedBy")
+  crmProposalTemplatesUpdated  CrmProposalTemplate[]      @relation("CrmProposalTemplateUpdatedBy")
   crmFormsCreated              CrmForm[]                  @relation("CrmFormCreatedBy")
   crmFormsUpdated              CrmForm[]                  @relation("CrmFormUpdatedBy")
   crmAiConversationsOwned      CrmAiConversation[]        @relation("CrmAiConversationUser")
   crmIntegrationApiKeysCreated CrmIntegrationApiKey[]     @relation("CrmIntegrationApiKeyCreatedBy")
   crmEmailTemplatesCreated     CrmEmailTemplate[]         @relation("CrmEmailTemplateCreatedBy")
   crmEmailTemplatesUpdated     CrmEmailTemplate[]         @relation("CrmEmailTemplateUpdatedBy")
-  crmDocumentTemplatesCreated  CrmDocumentTemplate[]      @relation("CrmDocumentTemplateCreatedBy")
   crmEmailCampaignsCreated     CrmEmailCampaign[]         @relation("CrmEmailCampaignCreatedBy")
   crmMailingListsCreated       CrmMailingList[]           @relation("CrmMailingListCreatedBy")
   crmWorkflowsCreated          CrmWorkflow[]              @relation("CrmWorkflowCreatedBy")
@@ -309,12 +311,12 @@ model Workspace {
   crmReports                CrmReport[]
   crmDashboards             CrmDashboard[]
   crmProposals              CrmProposal[]
+  crmProposalTemplates      CrmProposalTemplate[]
   crmForms                  CrmForm[]
   crmAiConversations        CrmAiConversation[]
   crmAiUsage                CrmAiUsage[]
   crmIntegrationApiKeys     CrmIntegrationApiKey[]
   crmEmailTemplates         CrmEmailTemplate[]
-  crmDocumentTemplates      CrmDocumentTemplate[]
   crmEmailCampaigns         CrmEmailCampaign[]
   crmMailingLists           CrmMailingList[]
   crmWorkflows              CrmWorkflow[]
@@ -1155,6 +1157,7 @@ model CrmCompany {
   opportunities CrmOpportunity[]
   tasks         CrmTask[]
   notes         CrmNote[]
+  proposals     CrmProposal[]
 
   @@unique([workspaceId, domain])
   @@unique([workspaceId, cnpj])
@@ -1195,6 +1198,7 @@ model CrmPerson {
   notes                         CrmNote[]
   emailMessages                 CrmEmailMessage[]
   calendarEvents                CrmCalendarEvent[]
+  proposalsAsContact            CrmProposal[]      @relation("CrmProposalContact")
 
   @@index([workspaceId])
   @@index([companyId])
@@ -1326,6 +1330,7 @@ model CrmOpportunity {
   notes          CrmNote[]
   emailMessages  CrmEmailMessage[]
   calendarEvents CrmCalendarEvent[]
+  proposals      CrmProposal[]
 
   @@index([workspaceId])
   @@index([pipelineId])
@@ -1738,47 +1743,134 @@ model CrmDashboardWidget {
   @@map("crm_dashboard_widgets")
 }
 
-enum CrmDocumentType {
-  PREMISES
-  PORTFOLIO
-  PROPOSAL
-  CONTRACT
+enum CrmProposalSectionType {
+  COVER
+  COMPANY_PRESENTATION
+  CLIENT_NEEDS
+  SOLUTION
+  SCOPE
+  PRODUCTS_PRICING
+  COMMERCIAL_TERMS
+  TERMS_CONDITIONS
+  SIGNATURE
 }
 
 enum CrmProposalStatus {
   DRAFT
-  PUBLISHED
+  SENT
+  VIEWED
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
-/// Documento rico (HTML do TipTap), escopado por workspace. `status` PUBLISHED
-/// = online: o `shareToken` opaco serve a página pública sem autenticação.
-model CrmProposal {
-  id          String            @id @default(cuid())
-  title       String
-  content     String            @default("") @db.Text
-  contentJson String?           @map("content_json") @db.Text
-  type        CrmDocumentType   @default(PROPOSAL)
-  status      CrmProposalStatus @default(DRAFT)
-  shareToken  String            @unique @map("share_token")
-  publishedAt DateTime?         @map("published_at")
-  workspaceId String            @map("workspace_id")
-  createdById String            @map("created_by_id")
-  updatedById String?           @map("updated_by_id")
-  position    Int               @default(0)
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
-  deletedAt   DateTime?         @map("deleted_at")
+/// Template reutilizável de proposta: define quais das 9 seções de layout fixo
+/// vêm habilitadas por padrão e o conteúdo boilerplate de cada uma. Uma
+/// proposta pode ser gerada a partir de um template ou do zero.
+model CrmProposalTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  logoUrl     String?   @map("logo_url")
+  workspaceId String    @map("workspace_id")
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
-  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User              @relation("CrmProposalCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?             @relation("CrmProposalUpdatedBy", fields: [updatedById], references: [id])
-  views     CrmProposalView[]
+  workspace Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                         @relation("CrmProposalTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?                        @relation("CrmProposalTemplateUpdatedBy", fields: [updatedById], references: [id])
+  sections  CrmProposalTemplateSection[]
+  proposals CrmProposal[]
 
   @@index([workspaceId])
+  @@index([deletedAt])
+  @@index([workspaceId, position])
+  @@map("crm_proposal_templates")
+}
+
+/// Uma das 9 seções de layout fixo dentro de um template. `defaultContent`
+/// segue o mesmo shape (discriminado por `type`) validado por Zod na service.
+model CrmProposalTemplateSection {
+  id             String                 @id @default(cuid())
+  templateId     String                 @map("template_id")
+  type           CrmProposalSectionType
+  order          Int                    @default(0)
+  enabled        Boolean                @default(true)
+  defaultContent Json?                  @map("default_content")
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+
+  template CrmProposalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, type])
+  @@index([templateId])
+  @@map("crm_proposal_template_sections")
+}
+
+/// Documento de proposta com layout fixo (seções travadas), escopado por
+/// workspace e opcionalmente vinculado a cliente/contato/oportunidade.
+/// `shareToken` opaco serve a página pública sem autenticação.
+model CrmProposal {
+  id            String            @id @default(cuid())
+  name          String
+  templateId    String?           @map("template_id")
+  companyId     String?           @map("company_id")
+  contactId     String?           @map("contact_id")
+  opportunityId String?           @map("opportunity_id")
+  responsibleId String            @map("responsible_id")
+  validUntil    DateTime?         @map("valid_until")
+  status        CrmProposalStatus @default(DRAFT)
+  shareToken    String            @unique @map("share_token")
+  workspaceId   String            @map("workspace_id")
+  createdById   String            @map("created_by_id")
+  updatedById   String?           @map("updated_by_id")
+  position      Int               @default(0)
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  deletedAt     DateTime?         @map("deleted_at")
+
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template    CrmProposalTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  company     CrmCompany?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact     CrmPerson?           @relation("CrmProposalContact", fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity CrmOpportunity?      @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  responsible User                 @relation("CrmProposalResponsible", fields: [responsibleId], references: [id])
+  createdBy   User                 @relation("CrmProposalCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?                @relation("CrmProposalUpdatedBy", fields: [updatedById], references: [id])
+  sections    CrmProposalSection[]
+  views       CrmProposalView[]
+
+  @@index([workspaceId])
+  @@index([templateId])
+  @@index([companyId])
+  @@index([opportunityId])
   @@index([status])
   @@index([deletedAt])
   @@index([workspaceId, position])
   @@map("crm_proposals")
+}
+
+/// Uma das 9 seções de layout fixo dentro de uma proposta. `content` segue um
+/// shape estruturado por `type` (discriminated union no Zod), nunca HTML livre.
+model CrmProposalSection {
+  id         String                 @id @default(cuid())
+  proposalId String                 @map("proposal_id")
+  type       CrmProposalSectionType
+  order      Int                    @default(0)
+  enabled    Boolean                @default(true)
+  content    Json
+  createdAt  DateTime               @default(now()) @map("created_at")
+  updatedAt  DateTime               @updatedAt @map("updated_at")
+
+  proposal CrmProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, type])
+  @@index([proposalId])
+  @@map("crm_proposal_sections")
 }
 
 /// Beacon de visualização anônima de uma proposta pública (LGPD: IP com hash).
@@ -1994,29 +2086,6 @@ model CrmEmailTemplate {
   @@index([workspaceId])
   @@index([deletedAt])
   @@map("crm_email_templates")
-}
-
-/// Snapshot reutilizável (título + doc do TipTap) escopado por workspace e
-/// `type`, criado a partir de uma proposta via "Salvar como template".
-model CrmDocumentTemplate {
-  id          String          @id @default(cuid())
-  title       String
-  content     String          @default("") @db.Text
-  contentJson String?         @map("content_json") @db.Text
-  type        CrmDocumentType @default(PROPOSAL)
-  workspaceId String          @map("workspace_id")
-  createdById String          @map("created_by_id")
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
-  deletedAt   DateTime?       @map("deleted_at")
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User      @relation("CrmDocumentTemplateCreatedBy", fields: [createdById], references: [id])
-
-  @@index([workspaceId])
-  @@index([type])
-  @@index([deletedAt])
-  @@map("crm_document_templates")
 }
 
 enum CrmCampaignStatus {
@@ -2376,13 +2445,31 @@ model CrmSocialConnection {
   createdAt         DateTime                  @default(now()) @map("created_at")
   updatedAt         DateTime                  @updatedAt @map("updated_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User      @relation("CrmSocialConnectionCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?     @relation("CrmSocialConnectionUpdatedBy", fields: [updatedById], references: [id])
+  workspace       Workspace                           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy       User                                @relation("CrmSocialConnectionCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?                               @relation("CrmSocialConnectionUpdatedBy", fields: [updatedById], references: [id])
+  metricSnapshots CrmSocialConnectionMetricSnapshot[]
 
   @@unique([workspaceId, platform, externalAccountId])
   @@index([workspaceId, platform])
   @@map("crm_social_connections")
+}
+
+/// Snapshot diário de métricas da própria conta conectada — contraparte de
+/// `CrmCompetitorMetricSnapshot`, necessário para comparar "nós vs.
+/// concorrente" na mesma escala de tempo. Gravado pelo mesmo job
+/// `CrmCompetitorSync`.
+model CrmSocialConnectionMetricSnapshot {
+  id             String   @id @default(cuid())
+  connectionId   String   @map("connection_id")
+  followersCount Int      @map("followers_count")
+  postsCount     Int?     @map("posts_count")
+  capturedAt     DateTime @default(now()) @map("captured_at")
+
+  connection CrmSocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, capturedAt])
+  @@map("crm_social_connection_metric_snapshots")
 }
 
 /// Biblioteca reordenável de "hooks" (linhas de abertura/copy reaproveitável
@@ -2411,30 +2498,65 @@ model CrmHookVaultItem {
   @@map("crm_hook_vault_items")
 }
 
-/// Perfil social de um concorrente rastreado manualmente.
+/// Status de sincronização automática de métricas de um concorrente.
+/// `MANUAL`: cadastrado à mão, sem sync (plataforma não suportada ou nunca
+/// sincronizado). `SYNCED`: último sync OK. `SYNC_FAILED`: última tentativa
+/// falhou (perfil privado/inexistente ou sem conta conectada na plataforma).
+enum CrmCompetitorSyncStatus {
+  MANUAL
+  SYNCED
+  SYNC_FAILED
+}
+
+/// Perfil social de um concorrente rastreado. Pode ser cadastrado manualmente
+/// ou via autofill (Instagram/YouTube), e sincronizado diariamente pelo job
+/// `CrmCompetitorSync` — ver `CrmCompetitorMetricSnapshot` para o histórico.
 model CrmTrackedCompetitor {
-  id             String            @id @default(cuid())
+  id             String                  @id @default(cuid())
   platform       CrmSocialPlatform
   handle         String
-  profileUrl     String?           @map("profile_url")
-  followersCount Int?              @map("followers_count")
+  profileUrl     String?                 @map("profile_url")
+  followersCount Int?                    @map("followers_count")
+  avatarUrl      String?                 @map("avatar_url")
+  displayName    String?                 @map("display_name")
+  bio            String?
+  syncStatus     CrmCompetitorSyncStatus @default(MANUAL) @map("sync_status")
+  lastSyncedAt   DateTime?               @map("last_synced_at")
   notes          String?
-  workspaceId    String            @map("workspace_id")
-  createdById    String            @map("created_by_id")
-  updatedById    String?           @map("updated_by_id")
-  position       Int               @default(0)
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
-  deletedAt      DateTime?         @map("deleted_at")
+  workspaceId    String                  @map("workspace_id")
+  createdById    String                  @map("created_by_id")
+  updatedById    String?                 @map("updated_by_id")
+  position       Int                     @default(0)
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  deletedAt      DateTime?               @map("deleted_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User      @relation("CrmTrackedCompetitorCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?     @relation("CrmTrackedCompetitorUpdatedBy", fields: [updatedById], references: [id])
+  workspace       Workspace                      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy       User                           @relation("CrmTrackedCompetitorCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?                          @relation("CrmTrackedCompetitorUpdatedBy", fields: [updatedById], references: [id])
+  metricSnapshots CrmCompetitorMetricSnapshot[]
 
   @@index([workspaceId])
   @@index([deletedAt])
   @@index([workspaceId, position])
   @@map("crm_tracked_competitors")
+}
+
+/// Snapshot diário de métricas públicas de um concorrente (série histórica
+/// usada para calcular taxa de crescimento e variação de seguidores).
+/// Gravado pelo job `CrmCompetitorSync`; sem `createdBy` porque é
+/// system-generated, não uma ação de usuário.
+model CrmCompetitorMetricSnapshot {
+  id             String   @id @default(cuid())
+  competitorId   String   @map("competitor_id")
+  followersCount Int      @map("followers_count")
+  postsCount     Int?     @map("posts_count")
+  capturedAt     DateTime @default(now()) @map("captured_at")
+
+  competitor CrmTrackedCompetitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId, capturedAt])
+  @@map("crm_competitor_metric_snapshots")
 }
 
 enum CrmScheduledPostStatus {
@@ -2612,7 +2734,7 @@ model Changelog {
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
-  createdBy  User                  @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy  User                 @relation(fields: [createdById], references: [id], onDelete: Cascade)
   items      ChangelogItem[]
   recipients ChangelogRecipient[]
 
@@ -2639,14 +2761,14 @@ model ChangelogItem {
 /// Destinatário de um envio — `userId` nulo quando o e-mail foi colado
 /// manualmente pelo admin em vez de selecionado de um usuário existente.
 model ChangelogRecipient {
-  id           String                    @id @default(cuid())
-  changelogId  String                    @map("changelog_id")
+  id           String                   @id @default(cuid())
+  changelogId  String                   @map("changelog_id")
   email        String
-  userId       String?                   @map("user_id")
-  status       ChangelogRecipientStatus  @default(PENDING)
-  errorMessage String?                   @map("error_message")
-  sentAt       DateTime?                 @map("sent_at")
-  createdAt    DateTime                  @default(now()) @map("created_at")
+  userId       String?                  @map("user_id")
+  status       ChangelogRecipientStatus @default(PENDING)
+  errorMessage String?                  @map("error_message")
+  sentAt       DateTime?                @map("sent_at")
+  createdAt    DateTime                 @default(now()) @map("created_at")
 
   changelog Changelog @relation(fields: [changelogId], references: [id], onDelete: Cascade)
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)

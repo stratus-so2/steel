@@ -12,8 +12,8 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
-  title: 'Documentos | CRM | Steel',
-  description: 'Documentos e propostas do workspace',
+  title: 'Propostas | CRM | Steel',
+  description: 'Propostas comerciais de layout fixo do workspace',
 }
 
 export default async function CrmProposalsPage({
@@ -36,7 +36,7 @@ export default async function CrmProposalsPage({
     <div className='flex h-full w-full min-h-0 flex-col'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
-          <HeaderBreadcrumbCrumb title='Documentos'>
+          <HeaderBreadcrumbCrumb title='Propostas'>
             <SteelIcon
               icon={DocumentValidationIcon}
               strokeWidth={2}

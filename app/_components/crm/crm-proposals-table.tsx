@@ -1,8 +1,13 @@
 'use client'
 
-import { Add01Icon, FileEmpty02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  Add01Icon,
+  Album02Icon,
+  FileEmpty02Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
 import { SteelIcon } from '@/components/icon/icon'
@@ -12,90 +17,90 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { notify } from '@/lib/notify'
-import { useCrmDocumentTemplates } from '@/src/hooks/use-crm-document-template'
-import {
-  createCrmResource,
-  useCrmResourceList,
-} from '@/src/hooks/use-crm-resource-list'
+import { useCrmProposalTemplates } from '@/src/hooks/use-crm-proposal-template'
+import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import {
   type LookupKind,
   useCrmWorkspaceLookups,
 } from '@/src/hooks/use-crm-workspace-lookups'
-import type { CrmDocumentTypeDTO, CrmProposalDTO } from '@/types/crm-proposal'
+import type { CrmProposalDTO, CrmProposalStatusDTO } from '@/types/crm-proposal'
 
-const LOOKUP_KINDS: LookupKind[] = ['users']
-
-const DOCUMENT_TYPES: CrmDocumentTypeDTO[] = [
-  'PROPOSAL',
-  'PREMISES',
-  'PORTFOLIO',
-  'CONTRACT',
+const LOOKUP_KINDS: LookupKind[] = [
+  'companies',
+  'people',
+  'opportunities',
+  'users',
 ]
 
-const TYPE_LABEL: Record<CrmDocumentTypeDTO, string> = {
-  PROPOSAL: 'Proposta',
-  PREMISES: 'Escopo',
-  PORTFOLIO: 'Portfólio',
-  CONTRACT: 'Contrato',
-}
+const STATUS_OPTIONS: { value: CrmProposalStatusDTO; label: string }[] = [
+  { value: 'DRAFT', label: 'Rascunho' },
+  { value: 'SENT', label: 'Enviada' },
+  { value: 'VIEWED', label: 'Visualizada' },
+  { value: 'ACCEPTED', label: 'Aceita' },
+  { value: 'REJECTED', label: 'Recusada' },
+  { value: 'EXPIRED', label: 'Expirada' },
+]
 
-const TYPE_STYLES: Record<CrmDocumentTypeDTO, string> = {
-  PREMISES: 'bg-amber-500/15 text-amber-600',
-  PORTFOLIO: 'bg-violet-500/15 text-violet-600',
-  PROPOSAL: 'bg-teal-500/15 text-teal-600',
-  CONTRACT: 'bg-blue-500/15 text-blue-600',
-}
-
-const STATUS_STYLES: Record<string, string> = {
+const STATUS_STYLES: Record<CrmProposalStatusDTO, string> = {
   DRAFT: 'bg-muted text-muted-foreground',
-  PUBLISHED: 'bg-emerald-500/15 text-emerald-600',
+  SENT: 'bg-blue-500/15 text-blue-600',
+  VIEWED: 'bg-violet-500/15 text-violet-600',
+  ACCEPTED: 'bg-emerald-500/15 text-emerald-600',
+  REJECTED: 'bg-red-500/15 text-red-600',
+  EXPIRED: 'bg-amber-500/15 text-amber-600',
 }
 
 const COLUMNS: GridColumn[] = [
   {
-    key: 'title',
-    header: 'Título',
+    key: 'name',
+    header: 'Nome',
     kind: 'text',
     primary: true,
     linkView: true,
-    placeholder: 'Documento sem título',
-  },
-  {
-    key: 'type',
-    header: 'Tipo',
-    kind: 'select',
-    defaultValue: 'PROPOSAL',
-    options: DOCUMENT_TYPES.map((t) => ({ value: t, label: TYPE_LABEL[t] })),
-    optionStyles: TYPE_STYLES,
+    placeholder: 'Proposta sem título',
   },
   {
     key: 'status',
     header: 'Status',
     kind: 'select',
     defaultValue: 'DRAFT',
-    options: [
-      { value: 'DRAFT', label: 'Offline' },
-      { value: 'PUBLISHED', label: 'Online' },
-    ],
+    options: STATUS_OPTIONS,
     optionStyles: STATUS_STYLES,
   },
+  {
+    key: 'companyId',
+    header: 'Cliente',
+    kind: 'relation',
+    relationKind: 'companies',
+    clearable: true,
+  },
+  {
+    key: 'contactId',
+    header: 'Contato',
+    kind: 'relation',
+    relationKind: 'people',
+    clearable: true,
+  },
+  {
+    key: 'opportunityId',
+    header: 'Oportunidade',
+    kind: 'relation',
+    relationKind: 'opportunities',
+    clearable: true,
+  },
+  {
+    key: 'responsibleId',
+    header: 'Responsável',
+    kind: 'relation',
+    relationKind: 'users',
+  },
+  { key: 'validUntil', header: 'Validade', kind: 'date', clearable: true },
   {
     key: 'viewsCount',
     header: 'Visualizações',
     kind: 'number',
-    readonly: true,
-  },
-  {
-    key: 'createdById',
-    header: 'Criado por',
-    kind: 'relation',
-    relationKind: 'users',
     readonly: true,
   },
   { key: 'createdAt', header: 'Data de criação', kind: 'readonly-date' },
@@ -115,28 +120,12 @@ export function CrmProposalsTable({
     'proposals',
   )
   const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
-  const { templates } = useCrmDocumentTemplates(workspaceId)
+  const { templates } = useCrmProposalTemplates(workspaceId)
   const columns = useMemo(() => COLUMNS, [])
-  const [creating, setCreating] = useState(false)
 
-  /** Cria o documento (em branco ou a partir de um template) e abre o editor. */
-  async function onCreate(type: CrmDocumentTypeDTO, templateId?: string) {
-    if (creating) return
-    setCreating(true)
-    const res = await createCrmResource<CrmProposalDTO>(
-      workspaceId,
-      'proposals',
-      {
-        type,
-        ...(templateId ? { templateId } : {}),
-      },
-    )
-    setCreating(false)
-    if (res.ok && res.data) {
-      router.push(`/${slug}/crm/proposals/${res.data.id}`)
-    } else {
-      notify.error(res.message ?? 'Não foi possível criar o documento.')
-    }
+  function openNew(templateId?: string) {
+    const query = templateId ? `?templateId=${templateId}` : ''
+    router.push(`/${slug}/crm/proposals/new${query}`)
   }
 
   return (
@@ -146,55 +135,53 @@ export function CrmProposalsTable({
       workspaceId={workspaceId}
       slug={slug}
       resource='proposals'
-      createTitle='documento'
+      createTitle='proposta'
       lookups={lookups}
       isLoading={isLoading}
-      searchPlaceholder='Buscar documentos…'
+      searchPlaceholder='Buscar propostas…'
       refetch={refetch}
       disableInlineCreate
       headerAction={
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            nativeButton={true}
-            render={
-              <Button size='sm' disabled={creating}>
-                <SteelIcon icon={Add01Icon} strokeWidth={2} />
-                Novo documento
-              </Button>
-            }
-          />
-          <DropdownMenuContent align='end' className='w-52'>
-            {DOCUMENT_TYPES.map((type) => {
-              const ofType = templates.filter((t) => t.type === type)
-              return (
-                <DropdownMenuSub key={type}>
-                  <DropdownMenuSubTrigger>
-                    {TYPE_LABEL[type]}
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className='w-52'>
-                    <DropdownMenuItem onClick={() => onCreate(type)}>
-                      <SteelIcon
-                        icon={FileEmpty02Icon}
-                        strokeWidth={2}
-                        className='size-4 shrink-0'
-                      />
-                      Em branco
-                    </DropdownMenuItem>
-                    {ofType.length ? <DropdownMenuSeparator /> : null}
-                    {ofType.map((t) => (
-                      <DropdownMenuItem
-                        key={t.id}
-                        onClick={() => onCreate(type, t.id)}
-                      >
-                        <span className='truncate'>{t.title}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            render={<Link href={`/${slug}/crm/proposal-templates`} />}
+          >
+            <SteelIcon icon={Album02Icon} strokeWidth={2} />
+            Templates
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              nativeButton={true}
+              render={
+                <Button size='sm'>
+                  <SteelIcon icon={Add01Icon} strokeWidth={2} />
+                  Nova proposta
+                </Button>
+              }
+            />
+            <DropdownMenuContent align='end' className='w-56'>
+              <DropdownMenuItem onClick={() => openNew()}>
+                <SteelIcon
+                  icon={FileEmpty02Icon}
+                  strokeWidth={2}
+                  className='size-4 shrink-0'
+                />
+                Em branco
+              </DropdownMenuItem>
+              {templates.length ? <DropdownMenuSeparator /> : null}
+              {templates.map((template) => (
+                <DropdownMenuItem
+                  key={template.id}
+                  onClick={() => openNew(template.id)}
+                >
+                  <span className='truncate'>{template.name}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       }
     />
   )

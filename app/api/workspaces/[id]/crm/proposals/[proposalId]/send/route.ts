@@ -3,12 +3,12 @@ import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { CrmDocumentTemplateService } from '@/src/services/crm-document-template.service'
+import { CrmProposalService } from '@/src/services/crm-proposal.service'
 import { handleError, successResponse } from '@/utils/http-response'
 
-type Params = { params: Promise<{ id: string; templateId: string }> }
+type Params = { params: Promise<{ id: string; proposalId: string }> }
 
-export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
+export const POST = withAxiom(async (_request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
@@ -17,18 +17,18 @@ export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
 
   const consent = await requireConsent(
     auth.value.user.id,
-    'DELETE /api/workspaces/[id]/crm/document-templates/[templateId]',
+    'POST /api/workspaces/[id]/crm/proposals/[proposalId]/send',
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const { id, templateId } = await ctx.params
+  const { id, proposalId } = await ctx.params
 
-  const result = await CrmDocumentTemplateService.remove(
+  const result = await CrmProposalService.send(
     auth.value.user.id,
     id,
-    templateId,
+    proposalId,
   )
   if (!result.ok) return handleError(result.error)
 
-  return successResponse(null, 200)
+  return successResponse(result.value)
 })

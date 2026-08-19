@@ -1,24 +1,32 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeCrmProposal } from '@/src/__tests__/factories/crm-proposal.factory'
+import { createFakeCrmProposalTemplate } from '@/src/__tests__/factories/crm-proposal-template.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-proposal.repository')
-vi.mock('@/src/repositories/crm-document-template.repository')
+vi.mock('@/src/repositories/crm-proposal-template.repository')
 
-import { CrmDocumentTemplateRepository } from '@/src/repositories/crm-document-template.repository'
 import {
   CrmProposalRepository,
   CrmProposalViewRepository,
 } from '@/src/repositories/crm-proposal.repository'
+import { CrmProposalTemplateRepository } from '@/src/repositories/crm-proposal-template.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmProposalService } from '../crm-proposal.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedProposalRepo = vi.mocked(CrmProposalRepository)
 const mockedViewRepo = vi.mocked(CrmProposalViewRepository)
-const mockedDocumentTemplateRepo = vi.mocked(CrmDocumentTemplateRepository)
+const mockedTemplateRepo = vi.mocked(CrmProposalTemplateRepository)
+
+const fakeProposalWithSections = (
+  overrides?: Parameters<typeof createFakeCrmProposal>[0],
+) => ({
+  ...createFakeCrmProposal(overrides),
+  sections: [],
+})
 
 describe('CrmProposalService', () => {
   describe('list()', () => {
@@ -29,146 +37,142 @@ describe('CrmProposalService', () => {
   })
 
   describe('create()', () => {
-    it('should default the title when none is given', async () => {
+    it('should create a proposal with the given sections', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok({ id: 'm1' } as never),
       )
       mockedProposalRepo.create.mockResolvedValue(
-        ok(createFakeCrmProposal({ id: 'p1', title: 'Documento sem título' })),
-      )
-
-      expectOk(
-        await CrmProposalService.create('u1', 'ws1', { type: 'PROPOSAL' }),
-      )
-      expect(mockedProposalRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Documento sem título', content: '' }),
-      )
-    })
-
-    it('should copy content/contentJson from the template of the same type', async () => {
-      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
-      )
-      mockedDocumentTemplateRepo.findById.mockResolvedValue(
-        ok({
-          id: 't1',
-          title: 'Template X',
-          content: '<p>modelo</p>',
-          contentJson: '{"type":"doc"}',
-          type: 'PROPOSAL',
-          workspaceId: 'ws1',
-          createdById: 'u1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null,
-        }),
-      )
-      mockedProposalRepo.create.mockResolvedValue(
-        ok(createFakeCrmProposal({ id: 'p1', title: 'Template X' })),
+        ok(fakeProposalWithSections({ id: 'p1', name: 'Proposta X' })),
       )
 
       expectOk(
         await CrmProposalService.create('u1', 'ws1', {
-          type: 'PROPOSAL',
+          name: 'Proposta X',
+          responsibleId: 'u1',
+          sections: [
+            {
+              type: 'COVER',
+              order: 0,
+              enabled: true,
+              content: { type: 'COVER', title: 'Proposta X' },
+            },
+          ],
+        }),
+      )
+      expect(mockedProposalRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Proposta X' }),
+      )
+    })
+
+    it('should copy enabled template sections when no sections are given', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      mockedTemplateRepo.findById.mockResolvedValue(
+        ok({
+          ...createFakeCrmProposalTemplate({ id: 't1', workspaceId: 'ws1' }),
+          sections: [
+            {
+              id: 'ts1',
+              templateId: 't1',
+              type: 'TERMS_CONDITIONS' as const,
+              order: 0,
+              enabled: true,
+              defaultContent: {
+                type: 'TERMS_CONDITIONS',
+                text: 'Termos padrão',
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ],
+        }),
+      )
+      mockedProposalRepo.create.mockResolvedValue(
+        ok(fakeProposalWithSections({ id: 'p1', name: 'Proposta X' })),
+      )
+
+      expectOk(
+        await CrmProposalService.create('u1', 'ws1', {
+          name: 'Proposta X',
+          responsibleId: 'u1',
           templateId: 't1',
+          sections: [],
         }),
       )
       expect(mockedProposalRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Template X',
-          content: '<p>modelo</p>',
-          contentJson: '{"type":"doc"}',
+          sections: [
+            expect.objectContaining({
+              type: 'TERMS_CONDITIONS',
+              content: { type: 'TERMS_CONDITIONS', text: 'Termos padrão' },
+            }),
+          ],
         }),
-      )
-    })
-
-    it('should reject a template of a different type', async () => {
-      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
-      )
-      mockedDocumentTemplateRepo.findById.mockResolvedValue(
-        ok({
-          id: 't1',
-          title: 'Template X',
-          content: '',
-          contentJson: null,
-          type: 'CONTRACT',
-          workspaceId: 'ws1',
-          createdById: 'u1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null,
-        }),
-      )
-
-      expectErr(
-        await CrmProposalService.create('u1', 'ws1', {
-          type: 'PROPOSAL',
-          templateId: 't1',
-        }),
-        'RESOURCE_NOT_FOUND',
       )
     })
   })
 
   describe('update()', () => {
-    it('should stamp publishedAt on the first publish', async () => {
+    it('should replace sections when provided', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok({ id: 'm1' } as never),
       )
-      const existing = createFakeCrmProposal({
-        id: 'p1',
-        status: 'DRAFT',
-        publishedAt: null,
-      })
-      mockedProposalRepo.findById.mockResolvedValue(ok(existing))
-      mockedProposalRepo.update.mockResolvedValue(
-        ok({ ...existing, status: 'PUBLISHED', publishedAt: new Date() }),
-      )
-
-      expectOk(
-        await CrmProposalService.update('u1', 'ws1', 'p1', {
-          status: 'PUBLISHED',
-        }),
-      )
-      expect(mockedProposalRepo.update).toHaveBeenCalledWith(
-        'p1',
-        expect.objectContaining({
-          status: 'PUBLISHED',
-          publishedAt: expect.any(Date),
-        }),
-      )
-    })
-
-    it('should not overwrite publishedAt when re-publishing', async () => {
-      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
-      )
-      const originalPublishedAt = new Date('2026-01-01T00:00:00Z')
-      const existing = createFakeCrmProposal({
-        id: 'p1',
-        status: 'DRAFT',
-        publishedAt: originalPublishedAt,
-      })
+      const existing = fakeProposalWithSections({ id: 'p1' })
       mockedProposalRepo.findById.mockResolvedValue(ok(existing))
       mockedProposalRepo.update.mockResolvedValue(ok(existing))
 
       expectOk(
         await CrmProposalService.update('u1', 'ws1', 'p1', {
-          status: 'PUBLISHED',
+          sections: [
+            {
+              type: 'COVER',
+              order: 0,
+              enabled: true,
+              content: { type: 'COVER', title: 'V2' },
+            },
+          ],
         }),
       )
       expect(mockedProposalRepo.update).toHaveBeenCalledWith(
         'p1',
-        expect.objectContaining({ publishedAt: undefined }),
+        expect.objectContaining({
+          sections: [expect.objectContaining({ type: 'COVER' })],
+        }),
       )
+    })
+  })
+
+  describe('send()', () => {
+    it('should transition status to SENT', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1' } as never),
+      )
+      const existing = fakeProposalWithSections({ id: 'p1', status: 'DRAFT' })
+      mockedProposalRepo.findById.mockResolvedValue(ok(existing))
+      mockedProposalRepo.setStatus.mockResolvedValue(
+        ok({ ...existing, status: 'SENT' }),
+      )
+
+      const dto = expectOk(await CrmProposalService.send('u1', 'ws1', 'p1'))
+      expect(dto.status).toBe('SENT')
+      expect(mockedProposalRepo.setStatus).toHaveBeenCalledWith('p1', 'SENT')
     })
   })
 
   describe('getPublicByShareToken()', () => {
     it('should return the public shape without auth', async () => {
       mockedProposalRepo.findByShareToken.mockResolvedValue(
-        ok(createFakeCrmProposal({ id: 'p1', shareToken: 'tok' })),
+        ok(
+          fakeProposalWithSections({
+            id: 'p1',
+            shareToken: 'tok',
+            status: 'SENT',
+          }),
+        ),
+      )
+      mockedProposalRepo.setStatus.mockResolvedValue(
+        ok(fakeProposalWithSections({ id: 'p1', status: 'VIEWED' })),
       )
 
       const dto = expectOk(
@@ -177,12 +181,24 @@ describe('CrmProposalService', () => {
       expect(dto.id).toBe('p1')
       expect(dto).not.toHaveProperty('shareToken')
     })
+
+    it('should mark a SENT proposal as VIEWED on first public view', async () => {
+      mockedProposalRepo.findByShareToken.mockResolvedValue(
+        ok(fakeProposalWithSections({ id: 'p1', status: 'SENT' })),
+      )
+      mockedProposalRepo.setStatus.mockResolvedValue(
+        ok(fakeProposalWithSections({ id: 'p1', status: 'VIEWED' })),
+      )
+
+      await CrmProposalService.getPublicByShareToken('tok')
+      expect(mockedProposalRepo.setStatus).toHaveBeenCalledWith('p1', 'VIEWED')
+    })
   })
 
   describe('recordView()', () => {
     it('should hash the ip before recording', async () => {
       mockedProposalRepo.findByShareToken.mockResolvedValue(
-        ok(createFakeCrmProposal({ id: 'p1', shareToken: 'tok' })),
+        ok(fakeProposalWithSections({ id: 'p1', shareToken: 'tok' })),
       )
       mockedViewRepo.record.mockResolvedValue(
         ok({

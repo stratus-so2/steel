@@ -322,6 +322,12 @@ export const crmDashboardWidgetNotFound = (): AppError =>
 export const crmProposalNotFound = (): AppError =>
   appError('CRM_PROPOSAL_NOT_FOUND', 'Proposta não encontrada')
 
+export const crmProposalTemplateNotFound = (): AppError =>
+  appError(
+    'CRM_PROPOSAL_TEMPLATE_NOT_FOUND',
+    'Template de proposta não encontrado',
+  )
+
 export const crmFormNotFound = (): AppError =>
   appError('CRM_FORM_NOT_FOUND', 'Formulário não encontrado')
 
@@ -449,6 +455,12 @@ export const crmSocialScopeMissing = (): AppError =>
   appError(
     'CRM_SOCIAL_SCOPE_MISSING',
     'A conexão não concedeu a permissão necessária — reconecte a conta',
+  )
+
+export const crmCompetitorProfileNotFound = (): AppError =>
+  appError(
+    'CRM_COMPETITOR_PROFILE_NOT_FOUND',
+    'Perfil não encontrado ou privado — não é possível buscar os dados automaticamente',
   )
 
 export const crmScheduledPostNotFound = (): AppError =>

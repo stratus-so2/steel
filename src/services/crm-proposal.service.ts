@@ -1,17 +1,19 @@
 import { createHash } from 'node:crypto'
 import { auditMutation } from '@/lib/axiom/audit'
-import { notFound } from '@/src/errors'
-import { err, ok, type Result } from '@/src/lib/result'
+import { ok, type Result } from '@/src/lib/result'
 import {
   toCrmProposalDTO,
   toCrmProposalMetricsDTO,
   toCrmProposalPublicDTO,
 } from '@/src/mappers/crm-proposal.mapper'
-import { CrmDocumentTemplateRepository } from '@/src/repositories/crm-document-template.repository'
+import { CrmCompanyRepository } from '@/src/repositories/crm-company.repository'
+import { CrmOpportunityRepository } from '@/src/repositories/crm-opportunity.repository'
+import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import {
   CrmProposalRepository,
   CrmProposalViewRepository,
 } from '@/src/repositories/crm-proposal.repository'
+import { CrmProposalTemplateRepository } from '@/src/repositories/crm-proposal-template.repository'
 import type {
   CreateCrmProposalDTO,
   RecordCrmProposalViewDTO,
@@ -26,6 +28,44 @@ import { assertMember } from './authz'
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
+}
+
+/** Confere que company/contact/opportunity (quando informados) pertencem à workspace. */
+async function assertRelatedEntities(
+  workspaceId: string,
+  refs: {
+    companyId?: string | null
+    contactId?: string | null
+    opportunityId?: string | null
+    responsibleId?: string
+  },
+): Promise<Result<true>> {
+  if (refs.companyId) {
+    const company = await CrmCompanyRepository.findById(
+      refs.companyId,
+      workspaceId,
+    )
+    if (!company.ok) return company
+  }
+  if (refs.contactId) {
+    const contact = await CrmPersonRepository.findById(
+      refs.contactId,
+      workspaceId,
+    )
+    if (!contact.ok) return contact
+  }
+  if (refs.opportunityId) {
+    const opportunity = await CrmOpportunityRepository.findById(
+      refs.opportunityId,
+      workspaceId,
+    )
+    if (!opportunity.ok) return opportunity
+  }
+  if (refs.responsibleId) {
+    const membership = await assertMember(refs.responsibleId, workspaceId)
+    if (!membership.ok) return membership
+  }
+  return ok(true)
 }
 
 export const CrmProposalService = {
@@ -64,33 +104,45 @@ export const CrmProposalService = {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
 
-    let title = dto.title ?? 'Documento sem título'
-    let content = dto.content ?? ''
-    let contentJson = dto.contentJson
+    const related = await assertRelatedEntities(workspaceId, dto)
+    if (!related.ok) return related
 
-    // Criação a partir de um template: copia o conteúdo (mesmo workspace/tipo).
-    if (dto.templateId) {
-      const template = await CrmDocumentTemplateRepository.findById(
+    let sections = dto.sections
+
+    // Criação a partir de um template: copia as seções habilitadas por padrão
+    // quando o payload não trouxe seções próprias.
+    if (dto.templateId && sections.length === 0) {
+      const template = await CrmProposalTemplateRepository.findById(
         dto.templateId,
         workspaceId,
       )
       if (!template.ok) return template
-      if (template.value.type !== dto.type) {
-        return err(notFound('CrmDocumentTemplate'))
-      }
 
-      content = template.value.content
-      contentJson = template.value.contentJson ?? undefined
-      if (!dto.title) title = template.value.title
+      sections = template.value.sections
+        .filter(
+          (section): section is typeof section & { defaultContent: object } =>
+            section.enabled && section.defaultContent !== null,
+        )
+        .map((section) => ({
+          type: section.type,
+          order: section.order,
+          enabled: true,
+          content:
+            section.defaultContent as CreateCrmProposalDTO['sections'][number]['content'],
+        }))
     }
 
     const result = await CrmProposalRepository.create({
       workspaceId,
       createdById: actorId,
-      title,
-      content,
-      contentJson,
-      type: dto.type,
+      name: dto.name,
+      templateId: dto.templateId,
+      companyId: dto.companyId,
+      contactId: dto.contactId,
+      opportunityId: dto.opportunityId,
+      responsibleId: dto.responsibleId,
+      validUntil: dto.validUntil,
+      sections,
     })
 
     if (!result.ok) {
@@ -129,19 +181,23 @@ export const CrmProposalService = {
     )
     if (!existing.ok) return existing
 
-    // Carimba o 1º publish; despublicar não apaga o timestamp original.
-    const publishedAt =
-      dto.status === 'PUBLISHED' && !existing.value.publishedAt
-        ? new Date()
-        : undefined
+    const related = await assertRelatedEntities(workspaceId, {
+      companyId: dto.companyId ?? undefined,
+      contactId: dto.contactId ?? undefined,
+      opportunityId: dto.opportunityId ?? undefined,
+      responsibleId: dto.responsibleId,
+    })
+    if (!related.ok) return related
 
     const result = await CrmProposalRepository.update(proposalId, {
-      title: dto.title,
-      content: dto.content,
-      contentJson: dto.contentJson,
-      type: dto.type,
+      name: dto.name,
+      companyId: dto.companyId,
+      contactId: dto.contactId,
+      opportunityId: dto.opportunityId,
+      responsibleId: dto.responsibleId,
+      validUntil: dto.validUntil,
       status: dto.status,
-      publishedAt,
+      sections: dto.sections,
       updatedById: actorId,
     })
     if (!result.ok) return result
@@ -152,38 +208,6 @@ export const CrmProposalService = {
       actorId,
       targetId: proposalId,
       meta: { fields: Object.keys(dto) },
-    })
-
-    return ok(toCrmProposalDTO(result.value))
-  },
-
-  async setPublished(
-    actorId: string,
-    workspaceId: string,
-    proposalId: string,
-    published: boolean,
-  ): Promise<Result<CrmProposalDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
-
-    const existing = await CrmProposalRepository.findById(
-      proposalId,
-      workspaceId,
-    )
-    if (!existing.ok) return existing
-
-    const result = await CrmProposalRepository.setPublished(
-      proposalId,
-      published,
-    )
-    if (!result.ok) return result
-
-    auditMutation({
-      entity: 'crm_proposal',
-      action: 'update',
-      actorId,
-      targetId: proposalId,
-      meta: { published },
     })
 
     return ok(toCrmProposalDTO(result.value))
@@ -253,6 +277,11 @@ export const CrmProposalService = {
     const result = await CrmProposalRepository.findByShareToken(shareToken)
     if (!result.ok) return result
 
+    // A 1ª visualização pública marca a proposta como vista.
+    if (result.value.status === 'SENT') {
+      await CrmProposalRepository.setStatus(result.value.id, 'VIEWED')
+    }
+
     return ok(toCrmProposalPublicDTO(result.value))
   },
 
@@ -276,5 +305,33 @@ export const CrmProposalService = {
     if (!result.ok) return result
 
     return ok(undefined)
+  },
+
+  async send(
+    actorId: string,
+    workspaceId: string,
+    proposalId: string,
+  ): Promise<Result<CrmProposalDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmProposalRepository.findById(
+      proposalId,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+
+    const result = await CrmProposalRepository.setStatus(proposalId, 'SENT')
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_proposal',
+      action: 'update',
+      actorId,
+      targetId: proposalId,
+      meta: { status: 'SENT' },
+    })
+
+    return ok(toCrmProposalDTO(result.value))
   },
 }

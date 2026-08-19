@@ -1,13 +1,19 @@
 import { createId } from '@paralleldrive/cuid2'
 import type {
-  CrmDocumentType,
   CrmProposal,
+  CrmProposalSection,
   CrmProposalView,
+  Prisma,
 } from '@prisma/client'
-import { notFound } from '@/src/errors'
+import { crmProposalNotFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
+import type { CrmProposalSectionInputDTO } from '@/src/schemas/crm-proposal.schema'
 import { dbError } from './db-error'
+
+export type CrmProposalWithSections = CrmProposal & {
+  sections: CrmProposalSection[]
+}
 
 /** Agregados crus de leitura; o mapper compõe o DTO (completionRate etc.). */
 export type CrmProposalMetricsRaw = {
@@ -16,6 +22,17 @@ export type CrmProposalMetricsRaw = {
   completed: number
   avgDurationMs: number
   views: CrmProposalView[]
+}
+
+function toSectionCreateInput(
+  sections: CrmProposalSectionInputDTO[],
+): Prisma.CrmProposalSectionCreateManyProposalInput[] {
+  return sections.map((section) => ({
+    type: section.type,
+    order: section.order,
+    enabled: section.enabled,
+    content: section.content as unknown as Prisma.InputJsonValue,
+  }))
 }
 
 export const CrmProposalRepository = {
@@ -37,24 +54,28 @@ export const CrmProposalRepository = {
   async findById(
     id: string,
     workspaceId: string,
-  ): Promise<Result<CrmProposal>> {
+  ): Promise<Result<CrmProposalWithSections>> {
     try {
       const proposal = await prisma.crmProposal.findFirst({
         where: { id, workspaceId, deletedAt: null },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
-      if (!proposal) return err(notFound('CrmProposal'))
+      if (!proposal) return err(crmProposalNotFound())
       return ok(proposal)
     } catch (error) {
       return err(dbError('Failed to find CRM proposal by id', error))
     }
   },
 
-  async findByShareToken(shareToken: string): Promise<Result<CrmProposal>> {
+  async findByShareToken(
+    shareToken: string,
+  ): Promise<Result<CrmProposalWithSections>> {
     try {
       const proposal = await prisma.crmProposal.findFirst({
-        where: { shareToken, status: 'PUBLISHED', deletedAt: null },
+        where: { shareToken, deletedAt: null, status: { not: 'DRAFT' } },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
-      if (!proposal) return err(notFound('CrmProposal'))
+      if (!proposal) return err(crmProposalNotFound())
       return ok(proposal)
     } catch (error) {
       return err(dbError('Failed to find CRM proposal by share token', error))
@@ -64,17 +85,37 @@ export const CrmProposalRepository = {
   async create(data: {
     workspaceId: string
     createdById: string
-    title: string
-    content?: string
-    contentJson?: string
-    type?: CrmDocumentType
-  }): Promise<Result<CrmProposal>> {
+    name: string
+    templateId?: string
+    companyId?: string
+    contactId?: string
+    opportunityId?: string
+    responsibleId: string
+    validUntil?: Date
+    sections: CrmProposalSectionInputDTO[]
+  }): Promise<Result<CrmProposalWithSections>> {
     try {
       const position = await prisma.crmProposal.count({
         where: { workspaceId: data.workspaceId, deletedAt: null },
       })
       const proposal = await prisma.crmProposal.create({
-        data: { ...data, shareToken: createId(), position },
+        data: {
+          workspaceId: data.workspaceId,
+          createdById: data.createdById,
+          name: data.name,
+          templateId: data.templateId,
+          companyId: data.companyId,
+          contactId: data.contactId,
+          opportunityId: data.opportunityId,
+          responsibleId: data.responsibleId,
+          validUntil: data.validUntil,
+          shareToken: createId(),
+          position,
+          sections: {
+            createMany: { data: toSectionCreateInput(data.sections) },
+          },
+        },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
       return ok(proposal)
     } catch (error) {
@@ -85,19 +126,35 @@ export const CrmProposalRepository = {
   async update(
     id: string,
     data: {
-      title?: string
-      content?: string
-      contentJson?: string
-      type?: CrmDocumentType
-      status?: 'DRAFT' | 'PUBLISHED'
-      publishedAt?: Date
+      name?: string
+      companyId?: string | null
+      contactId?: string | null
+      opportunityId?: string | null
+      responsibleId?: string
+      validUntil?: Date | null
+      status?: CrmProposal['status']
       updatedById?: string
+      sections?: CrmProposalSectionInputDTO[]
     },
-  ): Promise<Result<CrmProposal>> {
+  ): Promise<Result<CrmProposalWithSections>> {
     try {
-      const proposal = await prisma.crmProposal.update({
-        where: { id },
-        data,
+      const { sections, ...rest } = data
+      const proposal = await prisma.$transaction(async (tx) => {
+        if (sections) {
+          await tx.crmProposalSection.deleteMany({ where: { proposalId: id } })
+        }
+        return tx.crmProposal.update({
+          where: { id },
+          data: {
+            ...rest,
+            ...(sections && {
+              sections: {
+                createMany: { data: toSectionCreateInput(sections) },
+              },
+            }),
+          },
+          include: { sections: { orderBy: { order: 'asc' } } },
+        })
       })
       return ok(proposal)
     } catch (error) {
@@ -105,21 +162,19 @@ export const CrmProposalRepository = {
     }
   },
 
-  async setPublished(
+  async setStatus(
     id: string,
-    published: boolean,
-  ): Promise<Result<CrmProposal>> {
+    status: CrmProposal['status'],
+  ): Promise<Result<CrmProposalWithSections>> {
     try {
       const proposal = await prisma.crmProposal.update({
         where: { id },
-        data: {
-          status: published ? 'PUBLISHED' : 'DRAFT',
-          publishedAt: published ? new Date() : null,
-        },
+        data: { status },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
       return ok(proposal)
     } catch (error) {
-      return err(dbError('Failed to publish CRM proposal', error))
+      return err(dbError('Failed to update CRM proposal status', error))
     }
   },
 

@@ -1,21 +1,37 @@
-export type CrmDocumentTypeDTO =
-  | 'PREMISES'
-  | 'PORTFOLIO'
-  | 'PROPOSAL'
-  | 'CONTRACT'
+import type {
+  CrmProposalSectionContent,
+  CrmProposalSectionType,
+} from '@/src/schemas/crm-proposal.schema'
 
-export type CrmProposalStatusDTO = 'DRAFT' | 'PUBLISHED'
+export type CrmProposalStatusDTO =
+  | 'DRAFT'
+  | 'SENT'
+  | 'VIEWED'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'EXPIRED'
+
+export interface CrmProposalSectionDTO {
+  id: string
+  type: CrmProposalSectionType
+  order: number
+  enabled: boolean
+  content: CrmProposalSectionContent
+}
 
 export interface CrmProposalDTO {
   id: string
-  title: string
-  content: string
-  contentJson: string | null
-  type: CrmDocumentTypeDTO
+  name: string
+  templateId: string | null
+  companyId: string | null
+  contactId: string | null
+  opportunityId: string | null
+  responsibleId: string
+  validUntil: string | null
   status: CrmProposalStatusDTO
   shareToken: string
-  publishedAt: string | null
   viewsCount: number
+  sections: CrmProposalSectionDTO[]
   workspaceId: string
   createdById: string
   updatedById: string | null
@@ -26,9 +42,10 @@ export interface CrmProposalDTO {
 
 export interface CrmProposalPublicDTO {
   id: string
-  title: string
-  content: string
-  type: CrmDocumentTypeDTO
+  name: string
+  status: CrmProposalStatusDTO
+  validUntil: string | null
+  sections: CrmProposalSectionDTO[]
 }
 
 export interface CrmProposalViewDTO {

@@ -14,7 +14,7 @@ describe('POST, PATCH & DELETE /api/workspaces/[id]/crm/proposals', () => {
 
     const created = await postJson(
       `/api/workspaces/${workspace.id}/crm/proposals`,
-      { title: 'Proposta X' },
+      { name: 'Proposta X', responsibleId: user.id },
       user.cookie,
     )
     expect(created.status).toBe(201)
@@ -24,7 +24,7 @@ describe('POST, PATCH & DELETE /api/workspaces/[id]/crm/proposals', () => {
 
     const updated = await patchJson(
       `/api/workspaces/${workspace.id}/crm/proposals/${createdBody.data.id}`,
-      { title: 'Proposta Y' },
+      { name: 'Proposta Y' },
       user.cookie,
     )
     expect(updated.status).toBe(200)
@@ -37,31 +37,31 @@ describe('POST, PATCH & DELETE /api/workspaces/[id]/crm/proposals', () => {
   })
 })
 
-describe('CRM proposal publish and public access', () => {
-  it('should publish a proposal and serve it publicly with view tracking', async () => {
+describe('CRM proposal send and public access', () => {
+  it('should send a proposal and serve it publicly with view tracking', async () => {
     const { user, workspace } = await authenticatedOwner()
     const created = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/proposals`,
-        { title: 'Proposta Pública', content: '<p>Olá</p>' },
+        { name: 'Proposta Pública', responsibleId: user.id },
         user.cookie,
       )
     ).json()
 
-    const beforePublish = await fetch(
+    const beforeSend = await fetch(
       `${BASE_URL}/api/crm/proposals/${created.data.shareToken}`,
       { headers: defaultHeaders },
     )
-    expect(beforePublish.status).toBe(404)
+    expect(beforeSend.status).toBe(404)
 
-    const published = await postJson(
-      `/api/workspaces/${workspace.id}/crm/proposals/${created.data.id}/publish`,
+    const sent = await postJson(
+      `/api/workspaces/${workspace.id}/crm/proposals/${created.data.id}/send`,
       {},
       user.cookie,
     )
-    expect(published.status).toBe(200)
-    const publishedBody = await published.json()
-    expect(publishedBody.data.status).toBe('PUBLISHED')
+    expect(sent.status).toBe(200)
+    const sentBody = await sent.json()
+    expect(sentBody.data.status).toBe('SENT')
 
     const publicRes = await fetch(
       `${BASE_URL}/api/crm/proposals/${created.data.shareToken}`,
@@ -69,7 +69,7 @@ describe('CRM proposal publish and public access', () => {
     )
     expect(publicRes.status).toBe(200)
     const publicBody = await publicRes.json()
-    expect(publicBody.data.title).toBe('Proposta Pública')
+    expect(publicBody.data.name).toBe('Proposta Pública')
     expect(publicBody.data).not.toHaveProperty('shareToken')
 
     const viewRes = await fetch(

@@ -1,27 +1,49 @@
-import type { CrmProposal, CrmProposalView } from '@prisma/client'
+import type {
+  CrmProposal,
+  CrmProposalSection,
+  CrmProposalView,
+} from '@prisma/client'
 import type { CrmProposalMetricsRaw } from '@/src/repositories/crm-proposal.repository'
+import type { CrmProposalSectionContent } from '@/src/schemas/crm-proposal.schema'
 import type {
   CrmProposalDTO,
   CrmProposalMetricsDTO,
   CrmProposalPublicDTO,
+  CrmProposalSectionDTO,
   CrmProposalViewDTO,
 } from '@/types/crm-proposal'
 
+export function toCrmProposalSectionDTO(
+  section: CrmProposalSection,
+): CrmProposalSectionDTO {
+  return {
+    id: section.id,
+    type: section.type,
+    order: section.order,
+    enabled: section.enabled,
+    content: section.content as unknown as CrmProposalSectionContent,
+  }
+}
+
 export function toCrmProposalDTO(
-  proposal: CrmProposal & { _count?: { views: number } },
+  proposal: CrmProposal & {
+    sections?: CrmProposalSection[]
+    _count?: { views: number }
+  },
 ): CrmProposalDTO {
   return {
     id: proposal.id,
-    title: proposal.title,
-    content: proposal.content,
-    contentJson: proposal.contentJson,
-    type: proposal.type,
+    name: proposal.name,
+    templateId: proposal.templateId,
+    companyId: proposal.companyId,
+    contactId: proposal.contactId,
+    opportunityId: proposal.opportunityId,
+    responsibleId: proposal.responsibleId,
+    validUntil: proposal.validUntil ? proposal.validUntil.toISOString() : null,
     status: proposal.status,
     shareToken: proposal.shareToken,
-    publishedAt: proposal.publishedAt
-      ? proposal.publishedAt.toISOString()
-      : null,
     viewsCount: proposal._count?.views ?? 0,
+    sections: (proposal.sections ?? []).map(toCrmProposalSectionDTO),
     workspaceId: proposal.workspaceId,
     createdById: proposal.createdById,
     updatedById: proposal.updatedById,
@@ -32,13 +54,16 @@ export function toCrmProposalDTO(
 }
 
 export function toCrmProposalPublicDTO(
-  proposal: CrmProposal,
+  proposal: CrmProposal & { sections: CrmProposalSection[] },
 ): CrmProposalPublicDTO {
   return {
     id: proposal.id,
-    title: proposal.title,
-    content: proposal.content,
-    type: proposal.type,
+    name: proposal.name,
+    status: proposal.status,
+    validUntil: proposal.validUntil ? proposal.validUntil.toISOString() : null,
+    sections: proposal.sections
+      .filter((section) => section.enabled)
+      .map(toCrmProposalSectionDTO),
   }
 }
 
