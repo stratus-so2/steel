@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeCrmCompetitor } from '@/src/__tests__/factories/crm-competitor.factory'
 import { createFakeCrmSocialConnection } from '@/src/__tests__/factories/crm-social.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
@@ -9,13 +9,17 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-competitor.repository')
 vi.mock('@/src/repositories/crm-social.repository')
 vi.mock('@/src/lib/social/discovery')
+vi.mock('@/src/lib/social/discovery/instagram')
+vi.mock('@/src/services/crm-social-instagram.service')
 vi.mock('../crm-social-token')
 
 import { fetchOwnMetrics, fetchPublicProfile } from '@/src/lib/social/discovery'
+import { fetchCompetitorTodayEngagement } from '@/src/lib/social/discovery/instagram'
 import { CrmCompetitorRepository } from '@/src/repositories/crm-competitor.repository'
 import { CrmSocialConnectionRepository } from '@/src/repositories/crm-social.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmCompetitorService } from '../crm-competitor.service'
+import { fetchEnrichedMediaSince } from '../crm-social-instagram.service'
 import { getFreshAccessToken } from '../crm-social-token'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -24,6 +28,23 @@ const mockedSocialRepo = vi.mocked(CrmSocialConnectionRepository)
 const mockedGetFreshAccessToken = vi.mocked(getFreshAccessToken)
 const mockedFetchPublicProfile = vi.mocked(fetchPublicProfile)
 const mockedFetchOwnMetrics = vi.mocked(fetchOwnMetrics)
+const mockedFetchCompetitorTodayEngagement = vi.mocked(
+  fetchCompetitorTodayEngagement,
+)
+const mockedFetchEnrichedMediaSince = vi.mocked(fetchEnrichedMediaSince)
+
+// `getMetrics()` sempre tenta buscar "hoje" quando a plataforma é Instagram
+// e há conexão — sem isso, testes que não mockam `getFreshAccessToken`
+// explicitamente herdariam estado de um teste anterior (mocks não são
+// limpos entre testes neste arquivo) e cairiam numa chamada de rede real.
+beforeEach(() => {
+  mockedFetchCompetitorTodayEngagement.mockResolvedValue(
+    err({ code: 'CRM_COMPETITOR_PROFILE_NOT_FOUND', message: 'not found' }),
+  )
+  mockedFetchEnrichedMediaSince.mockResolvedValue(
+    err({ code: 'CRM_SOCIAL_OAUTH_FAILED', message: 'failed' }),
+  )
+})
 
 describe('CrmCompetitorService', () => {
   describe('list()', () => {
@@ -262,6 +283,102 @@ describe('CrmCompetitorService', () => {
       expect(dto.ownAccount?.accountName).toBe('@nossaconta')
       expect(dto.ownAccount?.followersCount).toBe(1900)
       expect(dto.ownAccount?.growth).toEqual({ absolute: -100, percent: -5 })
+    })
+
+    it("should include today's posts count and engagement rate for Instagram", async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedCompetitorRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmCompetitor({
+            id: 'c1',
+            platform: 'INSTAGRAM',
+            handle: '@rival',
+            followersCount: 1000,
+          }),
+        ),
+      )
+      mockedCompetitorRepo.listSnapshotsSince.mockResolvedValue(ok([]))
+
+      const connection = createFakeCrmSocialConnection({
+        id: 'conn-1',
+        externalAccountId: 'ig-own-1',
+      })
+      mockedSocialRepo.findPrimaryByPlatform.mockResolvedValue(ok(connection))
+      mockedSocialRepo.listMetricSnapshotsSince.mockResolvedValue(
+        ok([
+          {
+            id: 'os1',
+            connectionId: 'conn-1',
+            followersCount: 2000,
+            postsCount: 30,
+            capturedAt: new Date(),
+          },
+        ]),
+      )
+
+      mockedGetFreshAccessToken.mockResolvedValue(
+        ok({ accessToken: 'token-1', connection }),
+      )
+      mockedFetchCompetitorTodayEngagement.mockResolvedValue(
+        ok({ postsCount: 2, totalLikes: 80, totalComments: 20 }),
+      )
+      const now = new Date().toISOString()
+      mockedFetchEnrichedMediaSince.mockResolvedValue(
+        ok([
+          {
+            id: 'm1',
+            mediaType: 'IMAGE',
+            mediaUrl: null,
+            thumbnailUrl: null,
+            caption: null,
+            timestamp: now,
+            permalink: null,
+            likeCount: 40,
+            commentsCount: 10,
+            saved: 0,
+            engagementScore: 50,
+          },
+        ]),
+      )
+
+      const dto = expectOk(
+        await CrmCompetitorService.getMetrics('u1', 'ws1', 'c1', '30d'),
+      )
+
+      // (80 + 20) / 1000 followers = 10%
+      expect(dto.competitor.todayStats).toEqual({
+        postsCount: 2,
+        engagementRate: 10,
+      })
+      // (40 + 10) / 2000 followers = 2.5%
+      expect(dto.ownAccount?.todayStats).toEqual({
+        postsCount: 1,
+        engagementRate: 2.5,
+      })
+      expect(mockedFetchCompetitorTodayEngagement).toHaveBeenCalledWith(
+        'token-1',
+        'ig-own-1',
+        '@rival',
+      )
+    })
+
+    it('should leave todayStats null for a platform without today-stats support', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedCompetitorRepo.findById.mockResolvedValue(
+        ok(createFakeCrmCompetitor({ id: 'c1', platform: 'YOUTUBE' })),
+      )
+      mockedCompetitorRepo.listSnapshotsSince.mockResolvedValue(ok([]))
+      mockedSocialRepo.findPrimaryByPlatform.mockResolvedValue(ok(null))
+
+      const dto = expectOk(
+        await CrmCompetitorService.getMetrics('u1', 'ws1', 'c1', '30d'),
+      )
+      expect(dto.competitor.todayStats).toBeNull()
+      expect(mockedFetchCompetitorTodayEngagement).not.toHaveBeenCalled()
     })
   })
 

@@ -99,3 +99,85 @@ export async function fetchInstagramPublicProfile(
     profileUrl: bd.username ? `https://www.instagram.com/${bd.username}` : null,
   })
 }
+
+export type TodayEngagementStats = {
+  postsCount: number
+  totalLikes: number
+  totalComments: number
+}
+
+function isToday(iso: string): boolean {
+  const t = new Date(iso)
+  if (Number.isNaN(t.getTime())) return false
+  const now = new Date()
+  return (
+    t.getFullYear() === now.getFullYear() &&
+    t.getMonth() === now.getMonth() &&
+    t.getDate() === now.getDate()
+  )
+}
+
+type BusinessDiscoveryMediaResponse = {
+  business_discovery?: {
+    media?: {
+      data?: {
+        media_type?: string
+        timestamp?: string
+        like_count?: number
+        comments_count?: number
+      }[]
+    }
+  }
+}
+
+/**
+ * Posts (feed/reels/carrossel — sem stories) publicados hoje por OUTRA conta
+ * Business/Creator, via o campo aninhado `media` do Business Discovery.
+ * Mesma limitação de `fetchInstagramPublicProfile` (só contas Business/
+ * Creator públicas); stories de terceiros não têm API pública nenhuma, então
+ * ficam de fora — só o feed entra na contagem, pros dois lados da comparação
+ * (concorrente e conta própria) ficarem no mesmo critério.
+ */
+export async function fetchCompetitorTodayEngagement(
+  pageToken: string,
+  ownIgAccountId: string,
+  handle: string,
+): Promise<Result<TodayEngagementStats>> {
+  const username = handle.trim().replace(/^@/, '')
+  const params = new URLSearchParams({
+    fields: `business_discovery.username(${username}){media.limit(50){media_type,timestamp,like_count,comments_count}}`,
+  })
+  const url = `${GRAPH}/${ownIgAccountId}?${params.toString()}`
+
+  let response: Response
+  try {
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${pageToken}` },
+    })
+  } catch (error) {
+    console.error('[social] GET erro de rede', url, error)
+    return err(crmSocialOauthFailed())
+  }
+
+  if (!response.ok) {
+    if (response.status === 400) return err(crmCompetitorProfileNotFound())
+    console.error(
+      '[social] GET falhou',
+      url,
+      response.status,
+      (await response.text().catch(() => '')).slice(0, 500),
+    )
+    return err(crmSocialOauthFailed())
+  }
+
+  const data = (await response.json()) as BusinessDiscoveryMediaResponse
+  const media = data.business_discovery?.media?.data
+  if (!media) return err(crmCompetitorProfileNotFound())
+
+  const today = media.filter((m) => m.timestamp && isToday(m.timestamp))
+  return ok({
+    postsCount: today.length,
+    totalLikes: today.reduce((sum, m) => sum + toInt(m.like_count), 0),
+    totalComments: today.reduce((sum, m) => sum + toInt(m.comments_count), 0),
+  })
+}

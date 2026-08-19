@@ -119,6 +119,20 @@ function StatBlock({
         <GrowthBadge growth={series.growth} />
       </div>
       <Sparkline snapshots={series.snapshots} />
+      {series.todayStats && (
+        <div className='flex items-center justify-between border-t pt-2 text-xs'>
+          <span className='text-muted-foreground'>
+            {series.todayStats.postsCount === 1
+              ? '1 post hoje'
+              : `${series.todayStats.postsCount} posts hoje`}
+          </span>
+          <span className='font-medium tabular-nums'>
+            {series.todayStats.engagementRate !== null
+              ? `${series.todayStats.engagementRate.toFixed(1)}% engajamento`
+              : '—'}
+          </span>
+        </div>
+      )}
     </Card>
   )
 }

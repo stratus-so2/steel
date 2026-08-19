@@ -45,10 +45,22 @@ export interface CrmCompetitorMetricGrowthDTO {
   percent: number | null
 }
 
+/**
+ * Posts de hoje (feed/reels/carrossel — sem stories, que não têm API pública
+ * pra terceiros) e taxa de engajamento do dia. `null` quando a plataforma não
+ * suporta essa busca (hoje: só Instagram) ou a busca falhou.
+ */
+export interface CrmCompetitorTodayStatsDTO {
+  postsCount: number
+  /** (curtidas + comentários) ÷ seguidores, dos posts de hoje. `null` sem seguidores. */
+  engagementRate: number | null
+}
+
 export interface CrmCompetitorMetricsSeriesDTO {
   followersCount: number | null
   growth: CrmCompetitorMetricGrowthDTO | null
   snapshots: CrmCompetitorMetricSnapshotDTO[]
+  todayStats: CrmCompetitorTodayStatsDTO | null
 }
 
 /** Concorrente vs. conta conectada da mesma plataforma no workspace (se houver). */

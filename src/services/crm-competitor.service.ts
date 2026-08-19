@@ -4,6 +4,7 @@ import { logger } from '@/lib/axiom/logger'
 import { ok, type Result } from '@/src/lib/result'
 import type { SyncablePlatform } from '@/src/lib/social/discovery'
 import { fetchOwnMetrics, fetchPublicProfile } from '@/src/lib/social/discovery'
+import { fetchCompetitorTodayEngagement } from '@/src/lib/social/discovery/instagram'
 import { toCrmCompetitorDTO } from '@/src/mappers/crm-competitor.mapper'
 import { CrmCompetitorRepository } from '@/src/repositories/crm-competitor.repository'
 import { CrmSocialConnectionRepository } from '@/src/repositories/crm-social.repository'
@@ -13,11 +14,13 @@ import type {
   PreviewCrmCompetitorDTO,
   UpdateCrmCompetitorDTO,
 } from '@/src/schemas/crm-competitor.schema'
+import { fetchEnrichedMediaSince } from '@/src/services/crm-social-instagram.service'
 import type {
   CrmCompetitorDTO,
   CrmCompetitorMetricsDTO,
   CrmCompetitorMetricsSeriesDTO,
   CrmCompetitorPreviewDTO,
+  CrmCompetitorTodayStatsDTO,
 } from '@/types/crm-competitor'
 import { assertMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
@@ -28,6 +31,27 @@ const RANGE_DAYS: Record<CrmCompetitorMetricsRange, number> = {
   '90d': 90,
 }
 
+function startOfTodayMs(): number {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  return now.getTime()
+}
+
+function toTodayStats(
+  postsCount: number,
+  totalLikes: number,
+  totalComments: number,
+  followersCount: number | null | undefined,
+): CrmCompetitorTodayStatsDTO {
+  return {
+    postsCount,
+    engagementRate:
+      followersCount && followersCount > 0
+        ? ((totalLikes + totalComments) / followersCount) * 100
+        : null,
+  }
+}
+
 /** Variação absoluta/percentual entre o primeiro e o último snapshot da janela. */
 function buildMetricsSeries(
   snapshots: {
@@ -36,6 +60,7 @@ function buildMetricsSeries(
     postsCount: number | null
     capturedAt: Date
   }[],
+  todayStats: CrmCompetitorTodayStatsDTO | null = null,
 ): CrmCompetitorMetricsSeriesDTO {
   const first = snapshots[0]
   const last = snapshots[snapshots.length - 1]
@@ -60,6 +85,7 @@ function buildMetricsSeries(
       postsCount: s.postsCount,
       capturedAt: s.capturedAt.toISOString(),
     })),
+    todayStats,
   }
 }
 
@@ -359,11 +385,70 @@ export const CrmCompetitorService = {
     if (!snapshots.ok) return snapshots
 
     let ownAccount: CrmCompetitorMetricsDTO['ownAccount'] = null
+    let competitorTodayStats: CrmCompetitorTodayStatsDTO | null = null
+    // Totais brutos de hoje da própria conta — a taxa de engajamento só dá
+    // pra calcular depois de saber os seguidores (do snapshot mais recente),
+    // buscado junto logo abaixo.
+    let ownTodayRaw: {
+      postsCount: number
+      totalLikes: number
+      totalComments: number
+    } | null = null
+
     const connection =
       await CrmSocialConnectionRepository.findPrimaryByPlatform(
         workspaceId,
         competitor.value.platform,
       )
+
+    // Posts de hoje + engajamento: só Instagram (Business Discovery expõe o
+    // feed público de terceiros; YouTube exigiria uma cadeia de chamadas bem
+    // maior — fica pra depois). Busca ao vivo, não vem de snapshot salvo.
+    if (
+      connection.ok &&
+      connection.value &&
+      competitor.value.platform === 'INSTAGRAM'
+    ) {
+      const fresh = await getFreshAccessToken(workspaceId, 'INSTAGRAM')
+      if (fresh.ok) {
+        const [competitorToday, ownToday] = await Promise.all([
+          fetchCompetitorTodayEngagement(
+            fresh.value.accessToken,
+            fresh.value.connection.externalAccountId,
+            competitor.value.handle,
+          ),
+          fetchEnrichedMediaSince(
+            fresh.value.accessToken,
+            fresh.value.connection.externalAccountId,
+            startOfTodayMs(),
+          ),
+        ])
+
+        if (competitorToday.ok) {
+          const latestFollowers =
+            snapshots.value.at(-1)?.followersCount ??
+            competitor.value.followersCount
+          competitorTodayStats = toTodayStats(
+            competitorToday.value.postsCount,
+            competitorToday.value.totalLikes,
+            competitorToday.value.totalComments,
+            latestFollowers,
+          )
+        }
+
+        if (ownToday.ok) {
+          ownTodayRaw = {
+            postsCount: ownToday.value.length,
+            totalLikes: ownToday.value.reduce((sum, m) => sum + m.likeCount, 0),
+            totalComments: ownToday.value.reduce(
+              (sum, m) => sum + m.commentsCount,
+              0,
+            ),
+          }
+        }
+      }
+    }
+
     if (connection.ok && connection.value) {
       const ownSnapshots =
         await CrmSocialConnectionRepository.listMetricSnapshotsSince(
@@ -371,17 +456,25 @@ export const CrmCompetitorService = {
           since,
         )
       if (ownSnapshots.ok) {
+        const ownTodayStats = ownTodayRaw
+          ? toTodayStats(
+              ownTodayRaw.postsCount,
+              ownTodayRaw.totalLikes,
+              ownTodayRaw.totalComments,
+              ownSnapshots.value.at(-1)?.followersCount,
+            )
+          : null
         ownAccount = {
           connectionId: connection.value.id,
           accountName: connection.value.accountName,
-          ...buildMetricsSeries(ownSnapshots.value),
+          ...buildMetricsSeries(ownSnapshots.value, ownTodayStats),
         }
       }
     }
 
     return ok({
       range,
-      competitor: buildMetricsSeries(snapshots.value),
+      competitor: buildMetricsSeries(snapshots.value, competitorTodayStats),
       ownAccount,
     })
   },
