@@ -218,12 +218,73 @@ async function fetchMediaSaved(
   return toInt(result.value.data?.[0]?.values?.[0]?.value)
 }
 
+/** Story ainda ativa — a API só devolve o que não expirou (sem histórico após 24h). */
+export type CrmInstagramActiveStory = {
+  id: string
+  mediaUrl: string | null
+  timestamp: string
+  permalink: string | null
+  /** Alcance (contas únicas que viram) — proxy de engajamento pra Stories, que não têm like/comment público. */
+  reach: number
+}
+
+/**
+ * `reach` de uma story específica (insight por mídia). Best-effort: falha
+ * vira `0`, igual `fetchMediaSaved`.
+ */
+async function fetchStoryReach(
+  pageToken: string,
+  storyId: string,
+): Promise<number> {
+  const params = new URLSearchParams({ metric: 'reach' })
+  const result = await getJson<{ data?: { values?: { value?: number }[] }[] }>(
+    `${GRAPH}/${storyId}/insights?${params.toString()}`,
+    pageToken,
+  )
+  if (!result.ok) return 0
+  return toInt(result.value.data?.[0]?.values?.[0]?.value)
+}
+
+/**
+ * Stories ativas agora (postadas nas últimas 24h e ainda não expiradas).
+ * Diferente do feed: sem `caption`, `like_count` ou `comments_count` — a
+ * Graph API não expõe esses campos pra stories.
+ */
+export async function fetchActiveStories(
+  pageToken: string,
+  igAccountId: string,
+): Promise<Result<CrmInstagramActiveStory[]>> {
+  const params = new URLSearchParams({
+    fields: 'id,media_url,timestamp,permalink',
+  })
+  const result = await getJson<{
+    data?: {
+      id?: string
+      media_url?: string
+      timestamp?: string
+      permalink?: string
+    }[]
+  }>(`${GRAPH}/${igAccountId}/stories?${params.toString()}`, pageToken)
+  if (!result.ok) return result
+
+  const withReach = await Promise.all(
+    (result.value.data ?? []).map(async (s) => ({
+      id: s.id ?? '',
+      mediaUrl: s.media_url ?? null,
+      timestamp: s.timestamp ?? '',
+      permalink: s.permalink ?? null,
+      reach: await fetchStoryReach(pageToken, s.id ?? ''),
+    })),
+  )
+  return ok(withReach)
+}
+
 /**
  * Mídias recentes publicadas desde `cutoffMs`, enriquecidas com `saved`
  * (insight por post, best-effort) + `engagementScore`. Base compartilhada por
  * `getWeeklyEngagement` (cutoff = 7d) e por rankings de engajamento diário.
  */
-async function fetchEnrichedMediaSince(
+export async function fetchEnrichedMediaSince(
   accessToken: string,
   igAccountId: string,
   cutoffMs: number,

@@ -103,10 +103,11 @@ export function CrmTrendingFeed({ workspaceId }: { workspaceId: string }) {
   return (
     <div className='mx-auto w-full max-w-5xl space-y-4'>
       <p className='text-muted-foreground text-sm'>
-        Posts publicados hoje nas suas contas conectadas, ranqueados por
-        velocidade de engajamento: quanto mais views/interações em menos tempo,
-        mais em alta. Requer conexão via OAuth com Instagram/TikTok (ainda não
-        configurada neste workspace) para trazer dado real.
+        Posts, reels e stories publicados hoje na sua conta do Instagram
+        conectada (por este workspace ou não), ranqueados por velocidade de
+        engajamento: quanto mais views/interações em menos tempo, mais em alta.
+        TikTok ainda não tem integração — só Instagram traz dado real por
+        enquanto.
       </p>
 
       {isLoading ? (
