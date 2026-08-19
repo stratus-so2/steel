@@ -12,6 +12,11 @@ export function createFakeCrmCompetitor(
     handle: '@concorrente',
     profileUrl: null,
     followersCount: null,
+    avatarUrl: null,
+    displayName: null,
+    bio: null,
+    syncStatus: 'MANUAL',
+    lastSyncedAt: null,
     notes: null,
     workspaceId: createId(),
     createdById: createId(),
@@ -34,6 +39,11 @@ export async function seedCrmCompetitor(
       | 'handle'
       | 'profileUrl'
       | 'followersCount'
+      | 'avatarUrl'
+      | 'displayName'
+      | 'bio'
+      | 'syncStatus'
+      | 'lastSyncedAt'
       | 'notes'
       | 'deletedAt'
     >

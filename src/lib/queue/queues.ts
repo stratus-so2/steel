@@ -5,6 +5,8 @@ import {
   type AccountLifecycleJobPayload,
   type ChangelogJob,
   type ChangelogJobPayload,
+  type CrmCompetitorSyncJob,
+  type CrmCompetitorSyncJobPayload,
   type CrmScheduledSendJob,
   type CrmScheduledSendJobPayload,
   type CrmWorkflowScheduleJob,
@@ -48,6 +50,7 @@ let whatsappBroadcastQueue: Queue | null = null
 let whatsappTemplateSyncQueue: Queue | null = null
 let crmScheduledSendQueue: Queue | null = null
 let crmWorkflowScheduleQueue: Queue | null = null
+let crmCompetitorSyncQueue: Queue | null = null
 let changelogQueue: Queue | null = null
 let databaseBackupQueue: Queue | null = null
 
@@ -267,6 +270,24 @@ export function getCrmWorkflowScheduleQueue(): Queue<
   >
 }
 
+export function getCrmCompetitorSyncQueue(): Queue<
+  CrmCompetitorSyncJobPayload[CrmCompetitorSyncJob],
+  unknown,
+  CrmCompetitorSyncJob
+> {
+  if (!crmCompetitorSyncQueue) {
+    crmCompetitorSyncQueue = new Queue(QueueName.CrmCompetitorSync, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return crmCompetitorSyncQueue as Queue<
+    CrmCompetitorSyncJobPayload[CrmCompetitorSyncJob],
+    unknown,
+    CrmCompetitorSyncJob
+  >
+}
+
 export function getDatabaseBackupQueue(): Queue<
   DatabaseBackupJobPayload[DatabaseBackupJob],
   unknown,
@@ -298,6 +319,7 @@ export async function closeQueues(): Promise<void> {
     whatsappTemplateSyncQueue?.close(),
     crmScheduledSendQueue?.close(),
     crmWorkflowScheduleQueue?.close(),
+    crmCompetitorSyncQueue?.close(),
     changelogQueue?.close(),
     databaseBackupQueue?.close(),
   ])
@@ -311,6 +333,7 @@ export async function closeQueues(): Promise<void> {
   whatsappBroadcastQueue = null
   whatsappTemplateSyncQueue = null
   crmScheduledSendQueue = null
+  crmCompetitorSyncQueue = null
   changelogQueue = null
   databaseBackupQueue = null
 }

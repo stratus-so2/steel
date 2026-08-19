@@ -50,4 +50,68 @@ describe('CrmCompetitorRepository', () => {
       expect(found.ok).toBe(false)
     })
   })
+
+  describe('listSyncable()', () => {
+    it('should only include Instagram/YouTube competitors, excluding soft-deleted ones', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const ig = await seedCrmCompetitor(workspace.id, user.id, {
+        platform: 'INSTAGRAM',
+      })
+      await seedCrmCompetitor(workspace.id, user.id, {
+        platform: 'FACEBOOK',
+      })
+      await seedCrmCompetitor(workspace.id, user.id, {
+        platform: 'YOUTUBE',
+        deletedAt: new Date(),
+      })
+
+      const list = expectOk(await CrmCompetitorRepository.listSyncable())
+      const ids = list.map((c) => c.id)
+      expect(ids).toContain(ig.id)
+      expect(ids).toHaveLength(1)
+    })
+  })
+
+  describe('recordSyncResult()', () => {
+    it('should persist the synced fields and status', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const competitor = await seedCrmCompetitor(workspace.id, user.id)
+      const lastSyncedAt = new Date()
+
+      const updated = expectOk(
+        await CrmCompetitorRepository.recordSyncResult(competitor.id, {
+          syncStatus: 'SYNCED',
+          lastSyncedAt,
+          followersCount: 5000,
+          displayName: 'Rival Inc.',
+        }),
+      )
+      expect(updated.syncStatus).toBe('SYNCED')
+      expect(updated.followersCount).toBe(5000)
+      expect(updated.displayName).toBe('Rival Inc.')
+    })
+  })
+
+  describe('createSnapshot() / listSnapshotsSince()', () => {
+    it('should record and list snapshots in chronological order', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const competitor = await seedCrmCompetitor(workspace.id, user.id)
+
+      await CrmCompetitorRepository.createSnapshot(competitor.id, {
+        followersCount: 1000,
+      })
+      await CrmCompetitorRepository.createSnapshot(competitor.id, {
+        followersCount: 1050,
+        postsCount: 12,
+      })
+
+      const snapshots = expectOk(
+        await CrmCompetitorRepository.listSnapshotsSince(
+          competitor.id,
+          new Date(Date.now() - 60_000),
+        ),
+      )
+      expect(snapshots.map((s) => s.followersCount)).toEqual([1000, 1050])
+    })
+  })
 })

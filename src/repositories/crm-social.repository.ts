@@ -4,6 +4,7 @@ import type {
   CrmScheduledPostTarget,
   CrmScheduledPostTargetStatus,
   CrmSocialConnection,
+  CrmSocialConnectionMetricSnapshot,
   CrmSocialConnectionStatus,
   CrmSocialPlatform,
 } from '@prisma/client'
@@ -204,6 +205,50 @@ export const CrmSocialConnectionRepository = {
       return ok(undefined)
     } catch (error) {
       return err(dbError('Failed to remove CRM social connection', error))
+    }
+  },
+
+  /**
+   * Novo ponto na série histórica de seguidores/posts da PRÓPRIA conta
+   * conectada — contraparte de `CrmCompetitorRepository.createSnapshot`,
+   * usada para comparar "nós vs. concorrente" na mesma escala de tempo.
+   */
+  async createMetricSnapshot(
+    connectionId: string,
+    data: { followersCount: number; postsCount?: number | null },
+  ): Promise<Result<CrmSocialConnectionMetricSnapshot>> {
+    try {
+      const snapshot = await prisma.crmSocialConnectionMetricSnapshot.create({
+        data: { connectionId, ...data },
+      })
+      return ok(snapshot)
+    } catch (error) {
+      return err(
+        dbError(
+          'Failed to create CRM social connection metric snapshot',
+          error,
+        ),
+      )
+    }
+  },
+
+  /** Série histórica da conexão a partir de `since`, mais antigo primeiro. */
+  async listMetricSnapshotsSince(
+    connectionId: string,
+    since: Date,
+  ): Promise<Result<CrmSocialConnectionMetricSnapshot[]>> {
+    try {
+      const snapshots = await prisma.crmSocialConnectionMetricSnapshot.findMany(
+        {
+          where: { connectionId, capturedAt: { gte: since } },
+          orderBy: { capturedAt: 'asc' },
+        },
+      )
+      return ok(snapshots)
+    } catch (error) {
+      return err(
+        dbError('Failed to list CRM social connection metric snapshots', error),
+      )
     }
   },
 }

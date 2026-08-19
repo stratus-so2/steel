@@ -1,6 +1,7 @@
 import { logger } from '@/lib/axiom/logger'
 import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
+  CrmCompetitorSyncJob,
   CrmScheduledSendJob,
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
@@ -9,6 +10,7 @@ import {
   WhatsappBroadcastJob,
 } from './jobs'
 import {
+  getCrmCompetitorSyncQueue,
   getCrmScheduledSendQueue,
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
@@ -17,6 +19,7 @@ import {
   getWhatsappBroadcastQueue,
 } from './queues'
 import {
+  CrmCompetitorSyncCron,
   CrmScheduledSendCron,
   CrmWorkflowScheduleCron,
   DatabaseBackupCron,
@@ -118,6 +121,21 @@ export async function scheduleWhatsappBroadcastJobs(): Promise<void> {
   logger.info('queue.scheduler.whatsapp_broadcast_schedule_registered', {
     component: 'Worker',
     pattern: WhatsappBroadcastScheduleCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleCrmCompetitorSyncJobs(): Promise<void> {
+  const queue = getCrmCompetitorSyncQueue()
+  await queue.upsertJobScheduler(
+    CrmCompetitorSyncJob.RunTick,
+    { pattern: CrmCompetitorSyncCron, tz: RetentionTimezone },
+    { name: CrmCompetitorSyncJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.crm_competitor_sync_registered', {
+    component: 'Worker',
+    pattern: CrmCompetitorSyncCron,
     timezone: RetentionTimezone,
   })
 }

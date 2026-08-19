@@ -13,7 +13,8 @@ import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
   title: 'Concorrentes | CRM | Steel',
-  description: 'Perfis sociais de concorrentes rastreados manualmente',
+  description:
+    'Perfis sociais de concorrentes com métricas e comparação automáticas',
 }
 
 export default async function CrmCompetitorsPage({
