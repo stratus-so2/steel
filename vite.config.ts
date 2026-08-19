@@ -61,6 +61,10 @@ export default defineConfig({
             './src/__tests__/setup.e2e.ts',
           ],
           testTimeout: 30000,
+          // `afterEach` faz TRUNCATE CASCADE em várias tabelas — o padrão do
+          // Vitest (10s) já estourou em CI numa suíte longa, mesmo com o
+          // `testTimeout` acima já alargado por ser mais lenta.
+          hookTimeout: 30000,
           pool: 'forks',
           maxWorkers: 1,
         },
