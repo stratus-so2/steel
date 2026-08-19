@@ -108,8 +108,8 @@ function ChatPanel({
     workspaceId,
     activeId,
   )
-  const sendMessage = useSendCrmAiMessage(workspaceId, activeId)
-  const uploadAttachment = useUploadCrmAiAttachment(workspaceId, activeId)
+  const sendMessage = useSendCrmAiMessage(workspaceId)
+  const uploadAttachment = useUploadCrmAiAttachment(workspaceId)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -145,7 +145,10 @@ function ChatPanel({
     e.target.value = ''
     if (!file || !activeId) return
     try {
-      const attachment = await uploadAttachment.mutateAsync(file)
+      const attachment = await uploadAttachment.mutateAsync({
+        conversationId: activeId,
+        file,
+      })
       setPendingAttachments((current) => [...current, attachment])
     } catch (err) {
       notify.error(err)
@@ -172,7 +175,7 @@ function ChatPanel({
     const attachmentIds = pendingAttachments.map((a) => a.id)
     setPendingAttachments([])
     try {
-      await sendMessage.mutateAsync({ content, attachmentIds })
+      await sendMessage.mutateAsync({ conversationId, content, attachmentIds })
     } catch (err) {
       notify.error(err)
     }

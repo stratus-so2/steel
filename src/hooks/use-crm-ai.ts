@@ -79,17 +79,23 @@ export function useCrmAiMessages(
   })
 }
 
-export function useSendCrmAiMessage(
-  workspaceId: string,
-  conversationId: string | null,
-) {
+/**
+ * `conversationId` vem por chamada (não por parâmetro do hook): quando o
+ * widget cria a conversa e manda a primeira mensagem na mesma ação, o
+ * `mutate` acontece antes do React re-renderizar com o novo id — um
+ * `conversationId` fixado no fechamento no momento do hook ficaria preso no
+ * valor antigo (`null`), virando um `POST .../conversations/null/messages`.
+ */
+export function useSendCrmAiMessage(workspaceId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({
+      conversationId,
       content,
       attachmentIds,
     }: {
+      conversationId: string
       content: string
       attachmentIds?: string[]
     }) =>
@@ -102,20 +108,24 @@ export function useSendCrmAiMessage(
         },
         'Erro ao enviar mensagem',
       ),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: messagesKey(workspaceId, conversationId),
+        queryKey: messagesKey(workspaceId, variables.conversationId),
       })
     },
   })
 }
 
-export function useUploadCrmAiAttachment(
-  workspaceId: string,
-  conversationId: string | null,
-) {
+/** Mesmo motivo de `useSendCrmAiMessage`: `conversationId` por chamada. */
+export function useUploadCrmAiAttachment(workspaceId: string) {
   return useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({
+      conversationId,
+      file,
+    }: {
+      conversationId: string
+      file: File
+    }) => {
       const form = new FormData()
       form.append('file', file)
       const res = await fetch(
