@@ -104,6 +104,7 @@ export function CrmCompetitorQuickAdd({
             avatarUrl: preview.avatarUrl,
             bio: preview.bio,
             followersCount: preview.followersCount,
+            profileUrl: preview.profileUrl,
           }),
         },
         'Não foi possível adicionar o concorrente.',

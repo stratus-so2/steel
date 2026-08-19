@@ -1,4 +1,7 @@
-import { crmCompetitorProfileNotFound } from '@/src/errors'
+import {
+  crmCompetitorProfileNotFound,
+  crmSocialOauthFailed,
+} from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { getJson } from '../providers/http'
 import type { DiscoveredProfile, OwnMetrics } from './types'
@@ -30,13 +33,26 @@ export async function fetchInstagramOwnMetrics(
   })
 }
 
+type BusinessDiscoveryResponse = {
+  business_discovery?: {
+    followers_count?: number
+    media_count?: number
+    biography?: string
+    profile_picture_url?: string
+    name?: string
+    username?: string
+  }
+}
+
 /**
  * Métricas públicas de OUTRA conta IG Business/Creator via Business
  * Discovery — usa o token da nossa própria conta conectada para ler dados
- * públicos de um concorrente, sem ele precisar autorizar nada. Perfis
- * privados ou pessoais (não Business/Creator) simplesmente não retornam o
- * campo `business_discovery` (não é um erro HTTP), então a ausência vira
- * `crmCompetitorProfileNotFound`.
+ * públicos de um concorrente, sem ele precisar autorizar nada. Só funciona
+ * para contas Business/Creator: contas pessoais, privadas ou inexistentes
+ * fazem a Graph API devolver HTTP 400 (`"Invalid user id"`, code 110), não
+ * um 200 sem o campo — por isso o 400 aqui vira `crmCompetitorProfileNotFound`
+ * em vez do erro genérico de OAuth. Outros status (401/403/5xx) continuam
+ * como falha real de conexão.
  */
 export async function fetchInstagramPublicProfile(
   pageToken: string,
@@ -47,19 +63,31 @@ export async function fetchInstagramPublicProfile(
   const params = new URLSearchParams({
     fields: `business_discovery.username(${username}){followers_count,media_count,biography,profile_picture_url,name,username}`,
   })
-  const result = await getJson<{
-    business_discovery?: {
-      followers_count?: number
-      media_count?: number
-      biography?: string
-      profile_picture_url?: string
-      name?: string
-      username?: string
-    }
-  }>(`${GRAPH}/${ownIgAccountId}?${params.toString()}`, pageToken)
-  if (!result.ok) return result
+  const url = `${GRAPH}/${ownIgAccountId}?${params.toString()}`
 
-  const bd = result.value.business_discovery
+  let response: Response
+  try {
+    response = await fetch(url, {
+      headers: { Authorization: `Bearer ${pageToken}` },
+    })
+  } catch (error) {
+    console.error('[social] GET erro de rede', url, error)
+    return err(crmSocialOauthFailed())
+  }
+
+  if (!response.ok) {
+    if (response.status === 400) return err(crmCompetitorProfileNotFound())
+    console.error(
+      '[social] GET falhou',
+      url,
+      response.status,
+      (await response.text().catch(() => '')).slice(0, 500),
+    )
+    return err(crmSocialOauthFailed())
+  }
+
+  const data = (await response.json()) as BusinessDiscoveryResponse
+  const bd = data.business_discovery
   if (!bd) return err(crmCompetitorProfileNotFound())
 
   return ok({
@@ -68,5 +96,6 @@ export async function fetchInstagramPublicProfile(
     bio: bd.biography ?? null,
     followersCount: toInt(bd.followers_count),
     postsCount: bd.media_count != null ? toInt(bd.media_count) : null,
+    profileUrl: bd.username ? `https://www.instagram.com/${bd.username}` : null,
   })
 }

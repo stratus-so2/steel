@@ -131,16 +131,20 @@ export const CrmCompetitorRepository = {
   },
 
   /**
-   * Todos os concorrentes ativos em plataformas com sync automático
-   * (Instagram/YouTube), de todos os workspaces — usado pelo job diário
-   * `CrmCompetitorSync`, que roda fora do contexto de um único workspace.
+   * Concorrentes ativos em plataformas com sync automático
+   * (Instagram/YouTube). Sem `workspaceId`, roda contra todos os workspaces
+   * — usado pelo job diário `CrmCompetitorSync`. Com `workspaceId`, escopo
+   * único — usado pelo "sincronizar agora" manual de um workspace.
    */
-  async listSyncable(): Promise<Result<CrmTrackedCompetitor[]>> {
+  async listSyncable(
+    workspaceId?: string,
+  ): Promise<Result<CrmTrackedCompetitor[]>> {
     try {
       const items = await prisma.crmTrackedCompetitor.findMany({
         where: {
           deletedAt: null,
           platform: { in: ['INSTAGRAM', 'YOUTUBE'] },
+          ...(workspaceId ? { workspaceId } : {}),
         },
       })
       return ok(items)

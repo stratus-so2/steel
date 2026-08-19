@@ -102,5 +102,6 @@ export async function fetchYoutubePublicProfile(
       channel.statistics?.videoCount != null
         ? toInt(channel.statistics.videoCount)
         : null,
+    profileUrl: `https://www.youtube.com/${forHandle}`,
   })
 }

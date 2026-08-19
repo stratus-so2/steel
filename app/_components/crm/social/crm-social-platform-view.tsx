@@ -28,9 +28,20 @@ export function CrmSocialPlatformView({
   workspaceId: string
   meta: CrmSocialPlatformMeta
 }) {
-  const [connectionId, setConnectionId] = useState<string | undefined>(
-    undefined,
-  )
+  // Persiste a conta escolhida por workspace+plataforma — sem isso, trocar
+  // de página reseta a seleção pra "primária" a cada visita.
+  const storageKey = `steel:crm-social-connection:${workspaceId}:${meta.platform}`
+  const [connectionId, setConnectionId] = useState<string | undefined>(() => {
+    if (typeof window === 'undefined') return undefined
+    return window.localStorage.getItem(storageKey) ?? undefined
+  })
+
+  function handleConnectionChange(next: string | undefined) {
+    setConnectionId(next)
+    if (next) window.localStorage.setItem(storageKey, next)
+    else window.localStorage.removeItem(storageKey)
+  }
+
   const supportsMultiAccount = MULTI_ACCOUNT_PLATFORMS.has(meta.platform)
 
   return (
@@ -51,7 +62,7 @@ export function CrmSocialPlatformView({
             platform={meta.platform}
             platformSlug={meta.slug}
             connectionId={connectionId}
-            onConnectionChange={setConnectionId}
+            onConnectionChange={handleConnectionChange}
           />
         )}
       </HeaderInternalNavigation>

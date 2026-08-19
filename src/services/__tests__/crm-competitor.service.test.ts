@@ -132,6 +132,7 @@ describe('CrmCompetitorService', () => {
           bio: 'Somos rivais',
           followersCount: 5000,
           postsCount: 120,
+          profileUrl: 'https://www.instagram.com/rival',
         }),
       )
 
@@ -147,6 +148,7 @@ describe('CrmCompetitorService', () => {
         bio: 'Somos rivais',
         followersCount: 5000,
         postsCount: 120,
+        profileUrl: 'https://www.instagram.com/rival',
       })
       expect(mockedFetchPublicProfile).toHaveBeenCalledWith(
         'INSTAGRAM',
@@ -339,6 +341,7 @@ describe('CrmCompetitorService', () => {
           bio: null,
           followersCount: 900,
           postsCount: 9,
+          profileUrl: null,
         }),
       )
       mockedCompetitorRepo.recordSyncResult.mockResolvedValue(
@@ -411,6 +414,76 @@ describe('CrmCompetitorService', () => {
         'c1',
         expect.objectContaining({ syncStatus: 'SYNC_FAILED' }),
       )
+    })
+  })
+
+  describe('syncWorkspace()', () => {
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+      expectErr(
+        await CrmCompetitorService.syncWorkspace('u1', 'ws1'),
+        'FORBIDDEN',
+      )
+    })
+
+    it('should only sync competitors from the given workspace', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedCompetitorRepo.listSyncable.mockResolvedValue(
+        ok([
+          createFakeCrmCompetitor({
+            id: 'c1',
+            workspaceId: 'ws1',
+            platform: 'INSTAGRAM',
+          }),
+        ]),
+      )
+      const connection = createFakeCrmSocialConnection({ id: 'conn-1' })
+      mockedGetFreshAccessToken.mockResolvedValue(
+        ok({ accessToken: 'token-1', connection }),
+      )
+      mockedFetchOwnMetrics.mockResolvedValue(
+        ok({ followersCount: 1000, postsCount: 10 }),
+      )
+      mockedSocialRepo.createMetricSnapshot.mockResolvedValue(
+        ok({
+          id: 'os1',
+          connectionId: 'conn-1',
+          followersCount: 1000,
+          postsCount: 10,
+          capturedAt: new Date(),
+        }),
+      )
+      mockedFetchPublicProfile.mockResolvedValue(
+        ok({
+          externalName: 'Rival',
+          avatarUrl: null,
+          bio: null,
+          followersCount: 500,
+          postsCount: 5,
+          profileUrl: null,
+        }),
+      )
+      mockedCompetitorRepo.recordSyncResult.mockResolvedValue(
+        ok(createFakeCrmCompetitor()),
+      )
+      mockedCompetitorRepo.createSnapshot.mockResolvedValue(
+        ok({
+          id: 's1',
+          competitorId: 'c1',
+          followersCount: 500,
+          postsCount: 5,
+          capturedAt: new Date(),
+        }),
+      )
+
+      const result = expectOk(
+        await CrmCompetitorService.syncWorkspace('u1', 'ws1'),
+      )
+
+      expect(result).toEqual({ processed: 1, synced: 1, failed: 0 })
+      expect(mockedCompetitorRepo.listSyncable).toHaveBeenCalledWith('ws1')
     })
   })
 })

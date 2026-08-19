@@ -5,6 +5,7 @@ export type DiscoveredProfile = {
   bio: string | null
   followersCount: number
   postsCount: number | null
+  profileUrl: string | null
 }
 
 /** Métricas da própria conta conectada (contraparte de `DiscoveredProfile`). */

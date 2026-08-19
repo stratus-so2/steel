@@ -63,6 +63,103 @@ function buildMetricsSeries(
   }
 }
 
+type SyncResult = { processed: number; synced: number; failed: number }
+
+/**
+ * Agrupa por workspace+plataforma pra reaproveitar o token e gravar um
+ * único snapshot da própria conta conectada por grupo, em vez de um por
+ * concorrente. Compartilhado por `syncAll()` (todos os workspaces, job
+ * diário) e `syncWorkspace()` (um workspace, disparo manual).
+ */
+async function syncCompetitorGroups(
+  competitors: CrmTrackedCompetitor[],
+): Promise<SyncResult> {
+  const groups = new Map<string, CrmTrackedCompetitor[]>()
+  for (const competitor of competitors) {
+    const key = `${competitor.workspaceId}:${competitor.platform}`
+    const group = groups.get(key) ?? []
+    group.push(competitor)
+    groups.set(key, group)
+  }
+
+  const now = new Date()
+  let synced = 0
+  let failed = 0
+
+  for (const group of groups.values()) {
+    const { workspaceId, platform } = group[0]
+    // Seguro: `listSyncable()` já filtra por plataformas com discovery.
+    const syncablePlatform = platform as SyncablePlatform
+
+    const fresh = await getFreshAccessToken(workspaceId, syncablePlatform)
+    if (!fresh.ok) {
+      for (const competitor of group) {
+        await CrmCompetitorRepository.recordSyncResult(competitor.id, {
+          syncStatus: 'SYNC_FAILED',
+          lastSyncedAt: now,
+        })
+        failed += 1
+      }
+      continue
+    }
+
+    const ownMetrics = await fetchOwnMetrics(
+      syncablePlatform,
+      fresh.value.accessToken,
+      fresh.value.connection.externalAccountId,
+    )
+    if (ownMetrics.ok) {
+      await CrmSocialConnectionRepository.createMetricSnapshot(
+        fresh.value.connection.id,
+        {
+          followersCount: ownMetrics.value.followersCount,
+          postsCount: ownMetrics.value.postsCount,
+        },
+      )
+    } else {
+      logger.error('crm_competitor_sync.own_metrics_failed', {
+        component: 'CrmCompetitorService',
+        workspaceId,
+        platform: syncablePlatform,
+        reason: ownMetrics.error.code,
+      })
+    }
+
+    for (const competitor of group) {
+      const profile = await fetchPublicProfile(
+        syncablePlatform,
+        fresh.value.accessToken,
+        fresh.value.connection.externalAccountId,
+        competitor.handle,
+      )
+      if (!profile.ok) {
+        await CrmCompetitorRepository.recordSyncResult(competitor.id, {
+          syncStatus: 'SYNC_FAILED',
+          lastSyncedAt: now,
+        })
+        failed += 1
+        continue
+      }
+
+      await CrmCompetitorRepository.recordSyncResult(competitor.id, {
+        syncStatus: 'SYNCED',
+        lastSyncedAt: now,
+        followersCount: profile.value.followersCount,
+        avatarUrl: profile.value.avatarUrl,
+        displayName: profile.value.externalName,
+        bio: profile.value.bio,
+      })
+      await CrmCompetitorRepository.createSnapshot(competitor.id, {
+        followersCount: profile.value.followersCount,
+        postsCount: profile.value.postsCount,
+      })
+      synced += 1
+    }
+  }
+
+  return { processed: competitors.length, synced, failed }
+}
+
 export const CrmCompetitorService = {
   async list(
     actorId: string,
@@ -230,6 +327,7 @@ export const CrmCompetitorService = {
       bio: profile.value.bio,
       followersCount: profile.value.followersCount,
       postsCount: profile.value.postsCount,
+      profileUrl: profile.value.profileUrl,
     })
   },
 
@@ -296,99 +394,30 @@ export const CrmCompetitorService = {
    * snapshot da própria conta conectada por grupo, em vez de um por
    * concorrente.
    */
-  async syncAll(): Promise<{
-    processed: number
-    synced: number
-    failed: number
-  }> {
+  async syncAll(): Promise<SyncResult> {
     const due = await CrmCompetitorRepository.listSyncable()
     if (!due.ok) {
       throw new Error(`Failed to list syncable competitors: ${due.error.code}`)
     }
 
-    const groups = new Map<string, CrmTrackedCompetitor[]>()
-    for (const competitor of due.value) {
-      const key = `${competitor.workspaceId}:${competitor.platform}`
-      const group = groups.get(key) ?? []
-      group.push(competitor)
-      groups.set(key, group)
-    }
+    return syncCompetitorGroups(due.value)
+  },
 
-    const now = new Date()
-    let synced = 0
-    let failed = 0
+  /**
+   * Mesma sincronização de `syncAll()`, mas escopada a UM workspace — usada
+   * pelo botão "sincronizar agora" (`POST .../competitors/sync`) pra não
+   * esperar o job diário quando o usuário quer os dados na hora.
+   */
+  async syncWorkspace(
+    actorId: string,
+    workspaceId: string,
+  ): Promise<Result<SyncResult>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
 
-    for (const group of groups.values()) {
-      const { workspaceId, platform } = group[0]
-      // Seguro: `listSyncable()` já filtra por plataformas com discovery.
-      const syncablePlatform = platform as SyncablePlatform
+    const due = await CrmCompetitorRepository.listSyncable(workspaceId)
+    if (!due.ok) return due
 
-      const fresh = await getFreshAccessToken(workspaceId, syncablePlatform)
-      if (!fresh.ok) {
-        for (const competitor of group) {
-          await CrmCompetitorRepository.recordSyncResult(competitor.id, {
-            syncStatus: 'SYNC_FAILED',
-            lastSyncedAt: now,
-          })
-          failed += 1
-        }
-        continue
-      }
-
-      const ownMetrics = await fetchOwnMetrics(
-        syncablePlatform,
-        fresh.value.accessToken,
-        fresh.value.connection.externalAccountId,
-      )
-      if (ownMetrics.ok) {
-        await CrmSocialConnectionRepository.createMetricSnapshot(
-          fresh.value.connection.id,
-          {
-            followersCount: ownMetrics.value.followersCount,
-            postsCount: ownMetrics.value.postsCount,
-          },
-        )
-      } else {
-        logger.error('crm_competitor_sync.own_metrics_failed', {
-          component: 'CrmCompetitorService',
-          workspaceId,
-          platform: syncablePlatform,
-          reason: ownMetrics.error.code,
-        })
-      }
-
-      for (const competitor of group) {
-        const profile = await fetchPublicProfile(
-          syncablePlatform,
-          fresh.value.accessToken,
-          fresh.value.connection.externalAccountId,
-          competitor.handle,
-        )
-        if (!profile.ok) {
-          await CrmCompetitorRepository.recordSyncResult(competitor.id, {
-            syncStatus: 'SYNC_FAILED',
-            lastSyncedAt: now,
-          })
-          failed += 1
-          continue
-        }
-
-        await CrmCompetitorRepository.recordSyncResult(competitor.id, {
-          syncStatus: 'SYNCED',
-          lastSyncedAt: now,
-          followersCount: profile.value.followersCount,
-          avatarUrl: profile.value.avatarUrl,
-          displayName: profile.value.externalName,
-          bio: profile.value.bio,
-        })
-        await CrmCompetitorRepository.createSnapshot(competitor.id, {
-          followersCount: profile.value.followersCount,
-          postsCount: profile.value.postsCount,
-        })
-        synced += 1
-      }
-    }
-
-    return { processed: due.value.length, synced, failed }
+    return ok(await syncCompetitorGroups(due.value))
   },
 }

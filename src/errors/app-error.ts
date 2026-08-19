@@ -460,7 +460,7 @@ export const crmSocialScopeMissing = (): AppError =>
 export const crmCompetitorProfileNotFound = (): AppError =>
   appError(
     'CRM_COMPETITOR_PROFILE_NOT_FOUND',
-    'Perfil não encontrado ou privado — não é possível buscar os dados automaticamente',
+    'Perfil não encontrado, privado ou pessoal (no Instagram, só contas Business/Creator públicas podem ser buscadas automaticamente) — cadastre os dados manualmente',
   )
 
 export const crmScheduledPostNotFound = (): AppError =>

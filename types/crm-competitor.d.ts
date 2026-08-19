@@ -29,6 +29,7 @@ export interface CrmCompetitorPreviewDTO {
   bio: string | null
   followersCount: number
   postsCount: number | null
+  profileUrl: string | null
 }
 
 export interface CrmCompetitorMetricSnapshotDTO {

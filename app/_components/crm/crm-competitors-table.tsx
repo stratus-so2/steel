@@ -1,10 +1,15 @@
 'use client'
 
-import { useMemo } from 'react'
+import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { CrmCompetitorMetricsPanel } from '@/app/_components/crm/crm-competitor-metrics-panel'
 import { CrmCompetitorQuickAdd } from '@/app/_components/crm/crm-competitor-quick-add'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
+import { SteelIcon } from '@/components/icon/icon'
+import { Button } from '@/components/ui/button'
+import { apiFetch } from '@/src/hooks/_fetch'
 import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import {
   type LookupKind,
@@ -13,6 +18,8 @@ import {
 import { CRM_COMPETITOR_SYNCABLE_PLATFORMS } from '@/src/schemas/crm-competitor.schema'
 import { CRM_SOCIAL_PLATFORM_LABELS } from '@/src/schemas/crm-social.schema'
 import type { CrmCompetitorDTO } from '@/types/crm-competitor'
+
+type SyncResult = { processed: number; synced: number; failed: number }
 
 /**
  * Só Instagram/YouTube: são as únicas plataformas com autofill/sync
@@ -66,11 +73,54 @@ export function CrmCompetitorsTable({
   )
   const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
   const columns = useMemo(() => COLUMNS, [])
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  async function handleSyncNow() {
+    setIsSyncing(true)
+    try {
+      const result = await apiFetch<SyncResult>(
+        `/api/workspaces/${workspaceId}/crm/competitors/sync`,
+        { method: 'POST' },
+        'Não foi possível sincronizar agora.',
+      )
+      if (result.processed === 0) {
+        toast.info('Nenhum concorrente do Instagram/YouTube para sincronizar.')
+      } else {
+        toast.success(
+          `Sincronizado: ${result.synced} de ${result.processed} concorrente(s)${result.failed > 0 ? ` (${result.failed} falharam)` : ''}.`,
+        )
+      }
+      refetch()
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível sincronizar agora.',
+      )
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
-      <div className='flex justify-end'>
-        <CrmCompetitorQuickAdd workspaceId={workspaceId} onAdded={refetch} />
+      <div className='flex items-center justify-between'>
+        <p className='text-muted-foreground text-xs'>
+          Clique em um concorrente na lista para ver o comparativo de
+          crescimento com a sua conta.
+        </p>
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={isSyncing}
+            onClick={handleSyncNow}
+          >
+            <SteelIcon icon={RefreshIcon} size={14} />
+            {isSyncing ? 'Sincronizando…' : 'Sincronizar agora'}
+          </Button>
+          <CrmCompetitorQuickAdd workspaceId={workspaceId} onAdded={refetch} />
+        </div>
       </div>
       <DataTable
         columns={columns}
