@@ -129,6 +129,7 @@ async function fetchVideos(
     'duration',
     'cover_image_url',
     'share_url',
+    'embed_link',
     'view_count',
     'like_count',
     'comment_count',
@@ -154,6 +155,7 @@ async function fetchVideos(
         duration?: number
         cover_image_url?: string
         share_url?: string
+        embed_link?: string
         view_count?: number
         like_count?: number
         comment_count?: number
@@ -171,6 +173,7 @@ async function fetchVideos(
       title: v.title || v.video_description || 'Sem título',
       coverImageUrl: v.cover_image_url || null,
       shareUrl: v.share_url || null,
+      embedLink: v.embed_link || null,
       duration: toInt(v.duration),
       createdAt: v.create_time
         ? new Date(v.create_time * 1000).toISOString()

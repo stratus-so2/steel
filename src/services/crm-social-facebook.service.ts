@@ -202,7 +202,8 @@ async function fetchRecentPosts(
   pageId: string,
 ): Promise<Result<CrmFacebookPosts>> {
   const params = new URLSearchParams({
-    fields: 'id,message,story,full_picture,permalink_url,created_time',
+    fields:
+      'id,message,story,full_picture,permalink_url,created_time,attachments{media_type}',
     limit: '20',
   })
   const result = await getJson<{
@@ -213,6 +214,7 @@ async function fetchRecentPosts(
       full_picture?: string
       permalink_url?: string
       created_time?: string
+      attachments?: { data?: { media_type?: string }[] }
     }[]
   }>(`${GRAPH}/${pageId}/posts?${params.toString()}`, pageToken)
   if (!result.ok) return result
@@ -224,6 +226,7 @@ async function fetchRecentPosts(
     fullPicture: item.full_picture ?? null,
     permalinkUrl: item.permalink_url ?? null,
     createdTime: item.created_time ?? '',
+    isVideo: item.attachments?.data?.[0]?.media_type === 'video',
   }))
 
   return ok({ posts })

@@ -27,6 +27,7 @@ export const CrmTiktokVideoSchema = z.object({
   title: z.string(),
   coverImageUrl: z.string().nullable(),
   shareUrl: z.string().nullable(),
+  embedLink: z.string().nullable(),
   duration: z.number().int().nonnegative(),
   createdAt: z.string(),
   viewCount: z.number().int().nonnegative(),

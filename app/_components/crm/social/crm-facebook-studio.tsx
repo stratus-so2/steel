@@ -5,6 +5,7 @@ import {
   Comment01Icon,
   Facebook01Icon,
   FavouriteIcon,
+  PlayIcon,
   Share08Icon,
   UserMultipleIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
@@ -215,14 +216,26 @@ function FacebookPostModal({
 
   return (
     <div className='overflow-hidden rounded-xl'>
-      {post.fullPicture && (
-        <div className='max-h-[55vh] overflow-hidden bg-black'>
-          <img
-            src={post.fullPicture}
-            alt=''
-            className='max-h-[55vh] w-full object-contain'
+      {post.isVideo && post.permalinkUrl ? (
+        <div className='aspect-video w-full bg-black'>
+          <iframe
+            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(post.permalinkUrl)}&show_text=false`}
+            title={text ?? 'Vídeo do Facebook'}
+            allow='autoplay; encrypted-media; picture-in-picture'
+            allowFullScreen
+            className='size-full border-0'
           />
         </div>
+      ) : (
+        post.fullPicture && (
+          <div className='max-h-[55vh] overflow-hidden bg-black'>
+            <img
+              src={post.fullPicture}
+              alt=''
+              className='max-h-[55vh] w-full object-contain'
+            />
+          </div>
+        )
       )}
 
       <div className='space-y-4 p-5'>
@@ -508,7 +521,7 @@ export function CrmFacebookStudio({
           </div>
 
           {posts && posts.posts.length > 0 ? (
-            <div className='space-y-3'>
+            <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
               {posts.posts.map((post) => {
                 const text = post.message ?? post.story
                 const date = post.createdTime
@@ -523,26 +536,33 @@ export function CrmFacebookStudio({
                     key={post.id}
                     type='button'
                     onClick={() => setSelectedPost(post)}
-                    className='block w-full cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                    className='block cursor-pointer rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-ring'
                   >
-                    <Card className='overflow-hidden p-0'>
+                    <Card size='sm' className='overflow-hidden p-0'>
                       {post.fullPicture && (
-                        <div className='aspect-video w-full bg-muted'>
+                        <div className='relative aspect-square w-full bg-muted'>
                           <img
                             src={post.fullPicture}
                             alt=''
                             className='size-full object-cover'
                           />
+                          {post.isVideo && (
+                            <div className='absolute inset-0 flex items-center justify-center'>
+                              <div className='flex size-8 items-center justify-center rounded-full bg-black/50 text-white'>
+                                <SteelIcon icon={PlayIcon} className='size-4' />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
-                      <div className='space-y-2 p-3'>
+                      <div className='space-y-1 p-2.5'>
                         {text && (
-                          <p className='line-clamp-3 text-sm leading-relaxed'>
+                          <p className='line-clamp-2 text-xs leading-relaxed'>
                             {text}
                           </p>
                         )}
                         {date && (
-                          <p className='text-muted-foreground text-xs'>
+                          <p className='text-muted-foreground text-[11px]'>
                             {date}
                           </p>
                         )}

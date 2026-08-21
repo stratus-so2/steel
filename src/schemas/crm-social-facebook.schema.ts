@@ -100,6 +100,7 @@ export const CrmFacebookPostSchema = z.object({
   fullPicture: z.string().nullable(),
   permalinkUrl: z.string().nullable(),
   createdTime: z.string(),
+  isVideo: z.boolean(),
 })
 
 export type CrmFacebookPost = z.infer<typeof CrmFacebookPostSchema>

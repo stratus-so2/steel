@@ -276,7 +276,6 @@ function InstagramMediaModal({
   username: string
   avatarUrl?: string | null
 }) {
-  const imgSrc = item.mediaType === 'VIDEO' ? item.thumbnailUrl : item.mediaUrl
   const date = item.timestamp
     ? new Date(item.timestamp).toLocaleDateString('pt-BR', {
         day: 'numeric',
@@ -288,22 +287,24 @@ function InstagramMediaModal({
   return (
     <div className='flex h-full flex-col overflow-hidden rounded-xl md:flex-row'>
       <div className='relative flex min-h-[260px] items-center justify-center bg-black md:min-h-0 md:w-[58%]'>
-        {imgSrc ? (
+        {item.mediaType === 'VIDEO' && item.mediaUrl ? (
+          // biome-ignore lint/a11y/useMediaCaption: mídia do Instagram não fornece faixas de legenda
+          <video
+            src={item.mediaUrl}
+            poster={item.thumbnailUrl ?? undefined}
+            controls
+            autoPlay
+            className='max-h-[65vh] w-full'
+          />
+        ) : item.mediaUrl ? (
           <img
-            src={imgSrc}
+            src={item.mediaUrl}
             alt={item.caption ?? ''}
             className='max-h-[65vh] w-full object-contain'
           />
         ) : (
           <div className='flex flex-col items-center justify-center gap-2 text-white/20'>
             <SteelIcon icon={InstagramIcon} className='size-14' />
-          </div>
-        )}
-        {item.mediaType === 'VIDEO' && (
-          <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
-            <div className='flex size-14 items-center justify-center rounded-full bg-black/50'>
-              <SteelIcon icon={PlayIcon} className='size-7 text-white' />
-            </div>
           </div>
         )}
       </div>

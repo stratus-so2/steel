@@ -301,7 +301,15 @@ function TiktokVideoModal({
       <div className='flex items-center justify-center bg-neutral-950 py-6 md:w-[40%] md:py-8'>
         <div className='relative w-[140px] overflow-hidden rounded-2xl border border-white/10'>
           <div className='aspect-[9/16] w-full'>
-            {video.coverImageUrl ? (
+            {video.embedLink ? (
+              <iframe
+                src={video.embedLink}
+                title={video.title}
+                allow='autoplay; encrypted-media; picture-in-picture'
+                allowFullScreen
+                className='size-full border-0'
+              />
+            ) : video.coverImageUrl ? (
               <img
                 src={video.coverImageUrl}
                 alt={video.title}
@@ -312,18 +320,20 @@ function TiktokVideoModal({
                 <SteelIcon icon={TiktokIcon} className='size-10' />
               </div>
             )}
-            <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-6 pb-2'>
-              <div className='flex items-center gap-3 text-[11px] text-white/80 tabular-nums'>
-                <span className='flex items-center gap-0.5'>
-                  <SteelIcon icon={EyeIcon} className='size-3' />
-                  {nf.format(video.viewCount)}
-                </span>
-                <span className='flex items-center gap-0.5'>
-                  <SteelIcon icon={FavouriteIcon} className='size-3' />
-                  {nf.format(video.likeCount)}
-                </span>
+            {!video.embedLink && (
+              <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pt-6 pb-2'>
+                <div className='flex items-center gap-3 text-[11px] text-white/80 tabular-nums'>
+                  <span className='flex items-center gap-0.5'>
+                    <SteelIcon icon={EyeIcon} className='size-3' />
+                    {nf.format(video.viewCount)}
+                  </span>
+                  <span className='flex items-center gap-0.5'>
+                    <SteelIcon icon={FavouriteIcon} className='size-3' />
+                    {nf.format(video.likeCount)}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
