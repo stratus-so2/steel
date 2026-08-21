@@ -25,7 +25,13 @@ const COLUMNS: GridColumn[] = [
     primary: true,
     placeholder: '00.000.000/0000-00',
   },
-  { key: 'name', header: 'Nome', kind: 'text', placeholder: 'Acme Inc' },
+  {
+    key: 'name',
+    header: 'Nome',
+    kind: 'text',
+    required: true,
+    placeholder: 'Acme Inc',
+  },
   { key: 'domain', header: 'Domínio', kind: 'link', placeholder: 'acme.com' },
   {
     key: 'employees',

@@ -25,12 +25,14 @@ const COLUMNS: GridColumn[] = [
     key: 'subject',
     header: 'Assunto',
     kind: 'text',
+    required: true,
     placeholder: 'Seja bem-vindo ao nosso CRM',
   },
   {
     key: 'contentHtml',
     header: 'Conteúdo',
     kind: 'emailhtml',
+    required: true,
     placeholder: 'Escrever email…',
   },
   {

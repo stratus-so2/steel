@@ -746,11 +746,20 @@ export function DataTable<TData extends WithId>({
    */
   const addRow = React.useCallback(() => {
     const payload = draftPayload(columns, draftInitialValues(columns))
-    const primary = columns.find((c) => c.primary)
-    // Primário textual exige um valor para passar na validação; o usuário
-    // renomeia inline em seguida. Outros tipos (ex.: CNPJ) nascem vazios.
-    if (primary && primary.kind === 'text' && !payload[primary.key]) {
-      payload[primary.key] = 'Sem título'
+    // Toda coluna obrigatória exige um valor para passar na validação; o
+    // usuário edita inline em seguida (auto-save). Outros tipos de coluna
+    // (ex.: CNPJ, não-obrigatórias) nascem vazios.
+    for (const column of columns) {
+      if (!column.required || payload[column.key]) continue
+      if (
+        column.kind === 'text' ||
+        column.kind === 'emailhtml' ||
+        column.kind === 'richtext'
+      ) {
+        payload[column.key] = column.primary
+          ? 'Sem título'
+          : (column.placeholder ?? 'Sem título')
+      }
     }
     void createCrmResource<TData>(workspaceId, resource, payload).then(
       (res) => {
