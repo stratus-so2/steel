@@ -1,7 +1,7 @@
 import { Share08Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmSocialPanel } from '@/app/_components/crm/crm-social-panel'
+import { CrmSocialScheduleStudio } from '@/app/_components/crm/crm-social-schedule-studio'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -46,7 +46,7 @@ export default async function CrmSocialPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='h-full min-h-0 flex-1 overflow-y-scroll p-6'>
-        <CrmSocialPanel workspaceId={membership.value.workspaceId} />
+        <CrmSocialScheduleStudio workspaceId={membership.value.workspaceId} />
       </div>
     </div>
   )

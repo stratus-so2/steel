@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { CrmCustomFieldsPanel } from '@/app/_components/crm/crm-custom-fields-panel'
 import { CrmPipelinesPanel } from '@/app/_components/crm/crm-pipelines-panel'
-import { CrmSocialPanel } from '@/app/_components/crm/crm-social-panel'
+import { CrmSocialConnectionsSection } from '@/app/_components/crm/crm-social-panel'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -97,7 +97,7 @@ export default async function CrmSettingsPage({
             <CardTitle>Conexões sociais</CardTitle>
           </CardHeader>
           <CardContent>
-            <CrmSocialPanel workspaceId={workspaceId} />
+            <CrmSocialConnectionsSection workspaceId={workspaceId} />
           </CardContent>
         </Card>
       </div>
