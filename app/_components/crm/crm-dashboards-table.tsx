@@ -17,6 +17,7 @@ const COLUMNS: GridColumn[] = [
     key: 'title',
     header: 'Título',
     kind: 'text',
+    required: true,
     primary: true,
     linkView: true,
     placeholder: 'Painel sem título',
