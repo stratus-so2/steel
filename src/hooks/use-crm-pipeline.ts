@@ -107,6 +107,38 @@ export function useCreateCrmPipelineStage(
   })
 }
 
+export function useUpdateCrmPipelineStage(
+  workspaceId: string,
+  pipelineId: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      stageId,
+      ...data
+    }: {
+      stageId: string
+      name?: string
+      probability?: number
+    }) =>
+      apiFetch<CrmPipelineStageDTO>(
+        `/api/workspaces/${workspaceId}/crm/pipelines/${pipelineId}/stages/${stageId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        },
+        'Erro ao atualizar etapa',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: stagesKey(workspaceId, pipelineId),
+      })
+    },
+  })
+}
+
 export function useDeleteCrmPipelineStage(
   workspaceId: string,
   pipelineId: string,

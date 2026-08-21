@@ -21,7 +21,9 @@ import {
   useCrmPipelines,
   useDeleteCrmPipeline,
   useDeleteCrmPipelineStage,
+  useUpdateCrmPipelineStage,
 } from '@/src/hooks/use-crm-pipeline'
+import type { CrmPipelineStageDTO } from '@/types/crm-pipeline'
 
 export function CrmPipelinesPanel({ workspaceId }: { workspaceId: string }) {
   const { data: pipelines, isLoading } = useCrmPipelines(workspaceId)
@@ -183,6 +185,7 @@ function CrmPipelineStagesList({
     pipelineId,
   )
   const createStage = useCreateCrmPipelineStage(workspaceId, pipelineId)
+  const updateStage = useUpdateCrmPipelineStage(workspaceId, pipelineId)
   const deleteStage = useDeleteCrmPipelineStage(workspaceId, pipelineId)
   const [stageName, setStageName] = useState('')
 
@@ -228,25 +231,107 @@ function CrmPipelineStagesList({
           </p>
         )}
         {stages?.map((stage) => (
-          <div
+          <CrmPipelineStageRow
             key={stage.id}
-            className='flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm'
-          >
-            <span>{stage.name}</span>
-            <div className='flex items-center gap-2'>
-              <span className='text-xs text-muted-foreground'>
-                {stage.probability}%
-              </span>
-              <Button
-                variant='ghost'
-                size='icon-xs'
-                onClick={() => handleDeleteStage(stage.id)}
-              >
-                <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-              </Button>
-            </div>
-          </div>
+            stage={stage}
+            onUpdate={updateStage}
+            onDelete={() => handleDeleteStage(stage.id)}
+          />
         ))}
+      </div>
+    </div>
+  )
+}
+
+function CrmPipelineStageRow({
+  stage,
+  onUpdate,
+  onDelete,
+}: {
+  stage: CrmPipelineStageDTO
+  onUpdate: ReturnType<typeof useUpdateCrmPipelineStage>
+  onDelete: () => void
+}) {
+  const [editingField, setEditingField] = useState<
+    'name' | 'probability' | null
+  >(null)
+  const [draft, setDraft] = useState('')
+
+  function startEdit(field: 'name' | 'probability') {
+    setDraft(field === 'name' ? stage.name : String(stage.probability))
+    setEditingField(field)
+  }
+
+  async function save() {
+    const field = editingField
+    setEditingField(null)
+    if (!field) return
+    try {
+      if (field === 'name') {
+        const value = draft.trim()
+        if (!value || value === stage.name) return
+        await onUpdate.mutateAsync({ stageId: stage.id, name: value })
+      } else {
+        const value = Math.max(0, Math.min(100, Math.round(Number(draft)) || 0))
+        if (value === stage.probability) return
+        await onUpdate.mutateAsync({ stageId: stage.id, probability: value })
+      }
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  return (
+    <div className='flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm'>
+      {editingField === 'name' ? (
+        <Input
+          autoFocus
+          value={draft}
+          className='h-7'
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') save()
+            if (e.key === 'Escape') setEditingField(null)
+          }}
+        />
+      ) : (
+        <button
+          type='button'
+          onClick={() => startEdit('name')}
+          className='rounded px-1.5 py-0.5 text-left hover:bg-muted/50'
+        >
+          {stage.name}
+        </button>
+      )}
+      <div className='flex items-center gap-2'>
+        {editingField === 'probability' ? (
+          <Input
+            autoFocus
+            type='number'
+            min={0}
+            max={100}
+            value={draft}
+            className='h-7 w-16 text-right'
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={save}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') save()
+              if (e.key === 'Escape') setEditingField(null)
+            }}
+          />
+        ) : (
+          <button
+            type='button'
+            onClick={() => startEdit('probability')}
+            className='rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted/50'
+          >
+            {stage.probability}%
+          </button>
+        )}
+        <Button variant='ghost' size='icon-xs' onClick={onDelete}>
+          <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+        </Button>
       </div>
     </div>
   )
