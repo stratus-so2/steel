@@ -10,6 +10,7 @@ import { processAccountLifecycle } from '../src/lib/queue/processors/account-lif
 import { processChangelog } from '../src/lib/queue/processors/changelog'
 import { processCrmCompetitorSync } from '../src/lib/queue/processors/crm-competitor-sync'
 import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
+import { processCrmSocialPostsTick } from '../src/lib/queue/processors/crm-social-posts-tick'
 import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-workflow-schedule'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
@@ -22,6 +23,7 @@ import { closeQueues } from '../src/lib/queue/queues'
 import {
   scheduleCrmCompetitorSyncJobs,
   scheduleCrmScheduledSendJobs,
+  scheduleCrmSocialPostsTickJobs,
   scheduleCrmWorkflowScheduleJobs,
   scheduleDatabaseBackupJobs,
   scheduleDataRetentionJobs,
@@ -126,6 +128,9 @@ async function main(): Promise<void> {
   workers.push(
     registerWorker(QueueName.CrmCompetitorSync, processCrmCompetitorSync),
   )
+  workers.push(
+    registerWorker(QueueName.CrmSocialPostsTick, processCrmSocialPostsTick),
+  )
   workers.push(registerWorker(QueueName.Changelog, processChangelog))
   workers.push(registerWorker(QueueName.DatabaseBackup, processDatabaseBackup))
 
@@ -134,6 +139,7 @@ async function main(): Promise<void> {
   await scheduleCrmScheduledSendJobs()
   await scheduleCrmWorkflowScheduleJobs()
   await scheduleCrmCompetitorSyncJobs()
+  await scheduleCrmSocialPostsTickJobs()
   await scheduleWhatsappBroadcastJobs()
   await scheduleDatabaseBackupJobs()
 

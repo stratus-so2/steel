@@ -20,6 +20,9 @@ export const CrmWorkflowScheduleCron = '*/1 * * * *' as const
 /** Frequência do sync de métricas de concorrentes (Instagram/YouTube). */
 export const CrmCompetitorSyncCron = '0 4 * * *' as const
 
+/** Frequência do tick que publica posts sociais agendados vencidos. */
+export const CrmSocialPostsTickCron = '* * * * *' as const
+
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 

@@ -276,6 +276,10 @@ export const ERROR_CODES = {
     code: 'CRM_SCHEDULED_POST_ALREADY_PUBLISHED',
     status: 409,
   },
+  CRM_SCHEDULED_POST_INVALID: {
+    code: 'CRM_SCHEDULED_POST_INVALID',
+    status: 400,
+  },
   CRM_EMAIL_ACCOUNT_NOT_FOUND: {
     code: 'CRM_EMAIL_ACCOUNT_NOT_FOUND',
     status: 404,

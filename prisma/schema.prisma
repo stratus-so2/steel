@@ -2559,35 +2559,53 @@ model CrmCompetitorMetricSnapshot {
   @@map("crm_competitor_metric_snapshots")
 }
 
+/// PARTIALLY_FAILED = ao menos um alvo publicou e ao menos um falhou (vide
+/// CrmScheduledPostTarget para o detalhe). DRAFT é reservado para posts
+/// legados criados sem `scheduledFor`.
 enum CrmScheduledPostStatus {
   DRAFT
   SCHEDULED
+  PUBLISHING
   PUBLISHED
+  PARTIALLY_FAILED
   FAILED
+  CANCELED
 }
 
 enum CrmScheduledPostTargetStatus {
   PENDING
+  PUBLISHING
   PUBLISHED
   FAILED
+  CANCELED
+}
+
+/// Tipo de mídia anexada a um CrmScheduledPost — determina para quais
+/// plataformas o post é elegível (ex.: VIDEO habilita YouTube/TikTok).
+enum CrmScheduledMediaKind {
+  IMAGE
+  VIDEO
 }
 
 model CrmScheduledPost {
   id           String                 @id @default(cuid())
   content      String                 @default("") @db.Text
   title        String?
+  options      Json?
   status       CrmScheduledPostStatus @default(DRAFT)
   scheduledFor DateTime?              @map("scheduled_for")
   publishedAt  DateTime?              @map("published_at")
+  lastError    String?                @map("last_error")
   workspaceId  String                 @map("workspace_id")
   createdById  String                 @map("created_by_id")
   createdAt    DateTime               @default(now()) @map("created_at")
   updatedAt    DateTime               @updatedAt @map("updated_at")
   deletedAt    DateTime?              @map("deleted_at")
 
-  workspace Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User                     @relation("CrmScheduledPostCreatedBy", fields: [createdById], references: [id])
+  workspace Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                      @relation("CrmScheduledPostCreatedBy", fields: [createdById], references: [id])
   targets   CrmScheduledPostTarget[]
+  media     CrmScheduledPostMedia[]
 
   @@index([workspaceId])
   @@index([status, scheduledFor])
@@ -2595,23 +2613,44 @@ model CrmScheduledPost {
   @@map("crm_scheduled_posts")
 }
 
-/// `error` explica por que o alvo não foi publicado — hoje sempre
-/// CRM_SOCIAL_PUBLISHING_NOT_CONFIGURED, já que não há client OAuth real.
+/// `error` explica por que o alvo não foi publicado. `externalPostId` guarda
+/// o id retornado pela rede após publicar; `attempts` conta tentativas do
+/// cron/publish manual (idempotência/observabilidade).
 model CrmScheduledPostTarget {
-  id          String                       @id @default(cuid())
-  postId      String                       @map("post_id")
-  platform    CrmSocialPlatform
-  status      CrmScheduledPostTargetStatus @default(PENDING)
-  error       String?
-  publishedAt DateTime?                    @map("published_at")
-  createdAt   DateTime                     @default(now()) @map("created_at")
-  updatedAt   DateTime                     @updatedAt @map("updated_at")
+  id             String                       @id @default(cuid())
+  postId         String                       @map("post_id")
+  platform       CrmSocialPlatform
+  status         CrmScheduledPostTargetStatus @default(PENDING)
+  externalPostId String?                      @map("external_post_id")
+  error          String?
+  attempts       Int                          @default(0)
+  publishedAt    DateTime?                    @map("published_at")
+  createdAt      DateTime                     @default(now()) @map("created_at")
+  updatedAt      DateTime                     @updatedAt @map("updated_at")
 
   post CrmScheduledPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, platform])
   @@index([postId])
   @@map("crm_scheduled_post_targets")
+}
+
+/// Mídia anexada a um CrmScheduledPost. Os bytes vivem no MinIO sob
+/// `storageKey`; aqui só os metadados. `order` mantém a sequência.
+model CrmScheduledPostMedia {
+  id          String                @id @default(cuid())
+  postId      String                @map("post_id")
+  kind        CrmScheduledMediaKind
+  storageKey  String                @map("storage_key")
+  contentType String                @map("content_type")
+  sizeBytes   Int                   @map("size_bytes")
+  order       Int                   @default(0)
+  createdAt   DateTime              @default(now()) @map("created_at")
+
+  post CrmScheduledPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("crm_scheduled_post_media")
 }
 
 enum CrmEmailProvider {

@@ -1,61 +1,153 @@
+import { CrmScheduledPostOptionsSchema } from '@/src/schemas/crm-social.schema'
 import type { CrmSocialPlatformDTO } from '@/types/crm-social'
 import * as CrmSocialFacebookService from './crm-social-facebook.service'
+import * as CrmSocialInstagramService from './crm-social-instagram.service'
 import * as CrmSocialLinkedinService from './crm-social-linkedin.service'
+import * as CrmSocialTiktokService from './crm-social-tiktok.service'
 import { publishTweetPost } from './crm-social-twitter.service'
+import * as CrmSocialYoutubeService from './crm-social-youtube.service'
 
 export type CrmSocialPublishResult =
   | { ok: true; externalPostId: string }
   | { ok: false; error: string }
 
+export type CrmSocialPublishMedia = {
+  bytes: ArrayBuffer
+  contentType: string
+}
+
+/** Contexto de UM alvo — mídia já carregada do storage pelo scheduler. */
+export type CrmSocialPublishContext = {
+  actorId: string
+  workspaceId: string
+  content: string
+  title: string | null
+  options: unknown
+  image: CrmSocialPublishMedia | null
+  video: CrmSocialPublishMedia | null
+}
+
 /**
- * Publica um post agendado na plataforma. Só plataformas cujo publish não
- * exige mídia (Facebook, X, LinkedIn) são suportadas aqui — o agendador do
- * Steel (`CrmScheduledPost`) guarda só texto/título, sem upload de arquivo,
- * então Instagram/TikTok/YouTube (que exigem imagem/vídeo para publicar)
- * ficam de fora até o composer ganhar suporte a mídia. Publicar com mídia já
- * funciona nos studios dedicados de cada plataforma, que fazem upload direto.
+ * Publica UM alvo na plataforma, escolhendo o service certo. Facebook/X/
+ * LinkedIn aceitam mídia opcional (imagem); Instagram/TikTok/YouTube exigem
+ * mídia (imagem ou vídeo conforme o caso) — retornam erro com "exige mídia"
+ * quando ausente, sem sequer tentar a chamada real à plataforma.
  */
 export async function publishToSocialPlatform(
-  actorId: string,
-  workspaceId: string,
   platform: CrmSocialPlatformDTO,
-  content: string,
+  ctx: CrmSocialPublishContext,
 ): Promise<CrmSocialPublishResult> {
+  const parsedOptions = CrmScheduledPostOptionsSchema.safeParse(
+    ctx.options ?? {},
+  )
+  const options = parsedOptions.success ? parsedOptions.data : undefined
+
   switch (platform) {
     case 'FACEBOOK': {
       const result = await CrmSocialFacebookService.publishPost(
-        actorId,
-        workspaceId,
-        { message: content, link: null },
-        null,
+        ctx.actorId,
+        ctx.workspaceId,
+        { message: ctx.content, link: options?.facebook?.link ?? null },
+        ctx.image,
       )
       if (!result.ok) return { ok: false, error: result.error.message }
       return { ok: true, externalPostId: result.value.postId }
     }
     case 'TWITTER': {
       const result = await publishTweetPost(
-        actorId,
-        workspaceId,
-        { text: content },
-        null,
+        ctx.actorId,
+        ctx.workspaceId,
+        { text: ctx.content },
+        ctx.image,
       )
       if (!result.ok) return { ok: false, error: result.error.message }
       return { ok: true, externalPostId: result.value.tweetId }
     }
     case 'LINKEDIN': {
       const result = await CrmSocialLinkedinService.publishPost(
-        actorId,
-        workspaceId,
-        { text: content },
-        null,
+        ctx.actorId,
+        ctx.workspaceId,
+        { text: ctx.content },
+        ctx.image,
       )
       if (!result.ok) return { ok: false, error: result.error.message }
       return { ok: true, externalPostId: result.value.postUrn }
     }
+    case 'INSTAGRAM': {
+      const postType = options?.instagram?.postType ?? 'FEED'
+      const media =
+        postType === 'REELS'
+          ? ctx.video
+            ? { ...ctx.video, kind: 'VIDEO' as const }
+            : null
+          : postType === 'STORIES'
+            ? ctx.image
+              ? { ...ctx.image, kind: 'IMAGE' as const }
+              : ctx.video
+                ? { ...ctx.video, kind: 'VIDEO' as const }
+                : null
+            : ctx.image
+              ? { ...ctx.image, kind: 'IMAGE' as const }
+              : null
+      if (!media) {
+        return {
+          ok: false,
+          error: `INSTAGRAM exige mídia (${postType === 'REELS' ? 'vídeo' : postType === 'STORIES' ? 'imagem ou vídeo' : 'imagem'}) para publicar.`,
+        }
+      }
+      const result = await CrmSocialInstagramService.publishPost(
+        ctx.actorId,
+        ctx.workspaceId,
+        { caption: ctx.content, postType },
+        media,
+      )
+      if (!result.ok) return { ok: false, error: result.error.message }
+      return { ok: true, externalPostId: result.value.postId }
+    }
+    case 'TIKTOK': {
+      if (!ctx.video) {
+        return { ok: false, error: 'TIKTOK exige mídia (vídeo) para publicar.' }
+      }
+      const result = await CrmSocialTiktokService.publishVideo(
+        ctx.actorId,
+        ctx.workspaceId,
+        {
+          title: ctx.title ?? ctx.content,
+          privacyLevel: options?.tiktok?.privacy ?? 'SELF_ONLY',
+          disableComment: options?.tiktok?.disableComment ?? false,
+          disableDuet: options?.tiktok?.disableDuet ?? false,
+          disableStitch: options?.tiktok?.disableStitch ?? false,
+        },
+        ctx.video,
+      )
+      if (!result.ok) return { ok: false, error: result.error.message }
+      return { ok: true, externalPostId: result.value.publishId }
+    }
+    case 'YOUTUBE': {
+      if (!ctx.video) {
+        return {
+          ok: false,
+          error: 'YOUTUBE exige mídia (vídeo) para publicar.',
+        }
+      }
+      const result = await CrmSocialYoutubeService.publishVideo(
+        ctx.actorId,
+        ctx.workspaceId,
+        {
+          title: ctx.title ?? (ctx.content.slice(0, 100) || 'Sem título'),
+          description: ctx.content,
+          privacyStatus: options?.youtube?.privacy ?? 'public',
+          tags: options?.youtube?.tags ?? [],
+        },
+        ctx.video,
+      )
+      if (!result.ok) return { ok: false, error: result.error.message }
+      return { ok: true, externalPostId: result.value.videoId }
+    }
     default:
       return {
         ok: false,
-        error: `Publicação agendada em ${platform} exige mídia (imagem/vídeo) — use o studio dedicado da plataforma para publicar diretamente.`,
+        error: `Publicação agendada não suportada para ${platform}.`,
       }
   }
 }

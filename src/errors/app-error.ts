@@ -469,6 +469,11 @@ export const crmScheduledPostNotFound = (): AppError =>
 export const crmScheduledPostAlreadyPublished = (): AppError =>
   appError('CRM_SCHEDULED_POST_ALREADY_PUBLISHED', 'Este post já foi publicado')
 
+export const crmScheduledPostInvalid = (
+  message: string,
+  details?: unknown,
+): AppError => appError('CRM_SCHEDULED_POST_INVALID', message, details)
+
 export const crmEmailAccountNotFound = (): AppError =>
   appError('CRM_EMAIL_ACCOUNT_NOT_FOUND', 'Conta de e-mail não encontrada')
 

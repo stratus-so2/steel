@@ -1,6 +1,7 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import {
   crmScheduledPostAlreadyPublished,
+  crmScheduledPostInvalid,
   crmSocialNotConfigured,
   crmSocialOauthFailed,
   crmSocialStateInvalid,
@@ -14,28 +15,143 @@ import {
 import { createPkcePair } from '@/src/lib/social/pkce'
 import { getProvider } from '@/src/lib/social/providers'
 import { socialCallbackUrl } from '@/src/lib/social/redirect'
+import { ensureBucket, putObject } from '@/src/lib/storage/s3'
 import {
   toCrmScheduledPostDTO,
   toCrmSocialConnectionDTO,
 } from '@/src/mappers/crm-social.mapper'
 import {
+  type CrmScheduledMediaSeed,
+  CrmScheduledPostMediaRepository,
   CrmScheduledPostRepository,
   CrmScheduledPostTargetRepository,
   CrmSocialConnectionRepository,
 } from '@/src/repositories/crm-social.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
-import type {
-  CRM_SOCIAL_PLATFORMS,
-  CreateCrmScheduledPostDTO,
-  CreateCrmSocialConnectionDTO,
-  UpdateCrmScheduledPostDTO,
+import {
+  CRM_INSTAGRAM_POST_TYPE_MEDIA,
+  CRM_PLATFORM_MEDIA_REQUIREMENT,
+  CRM_PLATFORM_TEXT_LIMIT,
+  type CRM_SOCIAL_PLATFORMS,
+  type CreateCrmScheduledPostDTO,
+  type CreateCrmSocialConnectionDTO,
+  type CrmPublishablePlatform,
+  type UpdateCrmScheduledPostDTO,
 } from '@/src/schemas/crm-social.schema'
 import type {
   CrmScheduledPostDTO,
   CrmSocialConnectionDTO,
 } from '@/types/crm-social'
 import { assertMember } from './authz'
-import { publishToSocialPlatform } from './crm-social-publisher'
+import {
+  CRM_SCHEDULED_POST_BUCKET,
+  publishScheduledPost,
+} from './crm-social-scheduler'
+
+/** Mídia recebida na criação (já lida como bytes, antes de ir ao MinIO). */
+export type CrmScheduledUploadMedia = {
+  kind: 'IMAGE' | 'VIDEO'
+  bytes: ArrayBuffer
+  contentType: string
+}
+
+/**
+ * Valida que cada plataforma escolhida tem o que precisa (mídia + texto).
+ * Roda antes de persistir: erra cedo com mensagem clara em vez de falhar no
+ * publish.
+ */
+function validateScheduledPostRequirements(
+  platforms: CrmPublishablePlatform[],
+  content: string,
+  title: string | null,
+  media: { kind: 'IMAGE' | 'VIDEO' }[],
+  igPostType: 'FEED' | 'REELS' | 'STORIES',
+): Result<true> {
+  const hasImage = media.some((m) => m.kind === 'IMAGE')
+  const hasVideo = media.some((m) => m.kind === 'VIDEO')
+
+  for (const platform of platforms) {
+    if (platform === 'INSTAGRAM') {
+      const igReq = CRM_INSTAGRAM_POST_TYPE_MEDIA[igPostType]
+      if (igReq === 'image' && !hasImage) {
+        return err(
+          crmScheduledPostInvalid('Publicação no Instagram exige uma imagem.', {
+            platform,
+          }),
+        )
+      }
+      if (igReq === 'video' && !hasVideo) {
+        return err(
+          crmScheduledPostInvalid('Reels do Instagram exige um vídeo.', {
+            platform,
+          }),
+        )
+      }
+      if (igReq === 'either' && !hasImage && !hasVideo) {
+        return err(
+          crmScheduledPostInvalid(
+            'Stories do Instagram exige uma imagem ou vídeo.',
+            { platform },
+          ),
+        )
+      }
+      if (content.length > CRM_PLATFORM_TEXT_LIMIT.INSTAGRAM) {
+        return err(
+          crmScheduledPostInvalid(
+            `O texto excede o limite de ${CRM_PLATFORM_TEXT_LIMIT.INSTAGRAM} caracteres do INSTAGRAM.`,
+            { platform },
+          ),
+        )
+      }
+      continue
+    }
+
+    const requirement = CRM_PLATFORM_MEDIA_REQUIREMENT[platform]
+    if (requirement === 'image' && !hasImage) {
+      return err(
+        crmScheduledPostInvalid(`${platform} exige ao menos uma imagem.`, {
+          platform,
+        }),
+      )
+    }
+    if (requirement === 'video' && !hasVideo) {
+      return err(
+        crmScheduledPostInvalid(`${platform} exige um vídeo.`, { platform }),
+      )
+    }
+    if (content.length > CRM_PLATFORM_TEXT_LIMIT[platform]) {
+      return err(
+        crmScheduledPostInvalid(
+          `O texto excede o limite de ${CRM_PLATFORM_TEXT_LIMIT[platform]} caracteres do ${platform}.`,
+          { platform },
+        ),
+      )
+    }
+
+    const needsText = platform === 'TWITTER' || platform === 'LINKEDIN'
+    if (needsText && content.trim().length === 0) {
+      return err(
+        crmScheduledPostInvalid(`${platform} exige um texto.`, { platform }),
+      )
+    }
+    if (platform === 'FACEBOOK' && content.trim().length === 0 && !hasImage) {
+      return err(
+        crmScheduledPostInvalid('Facebook exige um texto ou uma imagem.', {
+          platform,
+        }),
+      )
+    }
+    if (platform === 'YOUTUBE' && !title && content.trim().length === 0) {
+      return err(
+        crmScheduledPostInvalid(
+          'YouTube exige um título (ou ao menos um texto para usar como título).',
+          { platform },
+        ),
+      )
+    }
+  }
+  return ok(true)
+}
 
 export const CrmSocialConnectionService = {
   async list(
@@ -299,16 +415,57 @@ export const CrmScheduledPostService = {
     actorId: string,
     workspaceId: string,
     dto: CreateCrmScheduledPostDTO,
+    media: CrmScheduledUploadMedia[] = [],
   ): Promise<Result<CrmScheduledPostDTO>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
+
+    const title = dto.title?.trim() ? dto.title.trim() : undefined
+
+    const valid = validateScheduledPostRequirements(
+      dto.platforms,
+      dto.content,
+      title ?? null,
+      media,
+      dto.options.instagram?.postType ?? 'FEED',
+    )
+    if (!valid.ok) return valid
+
+    const seeds: CrmScheduledMediaSeed[] = []
+    if (media.length > 0) {
+      await ensureBucket(CRM_SCHEDULED_POST_BUCKET)
+      const { randomBytes } = await import('node:crypto')
+      for (let i = 0; i < media.length; i++) {
+        const item = media[i]
+        const ext = item.contentType.split('/')[1] ?? 'bin'
+        const key = `${workspaceId}/scheduled/${randomBytes(16).toString('hex')}.${ext}`
+        await putObject({
+          bucket: CRM_SCHEDULED_POST_BUCKET,
+          key,
+          body: Buffer.from(item.bytes),
+          contentType: item.contentType,
+        })
+        seeds.push({
+          kind: item.kind,
+          storageKey: key,
+          contentType: item.contentType,
+          sizeBytes: item.bytes.byteLength,
+          order: i,
+        })
+      }
+    }
+
+    const isNow = dto.mode === 'now'
+    const scheduledFor = isNow ? new Date() : dto.scheduledFor
 
     const result = await CrmScheduledPostRepository.create({
       workspaceId,
       createdById: actorId,
       content: dto.content,
-      title: dto.title,
-      scheduledFor: dto.scheduledFor,
+      title,
+      options: dto.options,
+      status: isNow ? 'PUBLISHING' : 'SCHEDULED',
+      scheduledFor,
     })
     if (!result.ok) return result
 
@@ -318,21 +475,38 @@ export const CrmScheduledPostService = {
     )
     if (!targets.ok) return targets
 
+    if (seeds.length > 0) {
+      const mediaResult = await CrmScheduledPostMediaRepository.createMany(
+        result.value.id,
+        seeds,
+      )
+      if (!mediaResult.ok) return mediaResult
+    }
+
     auditMutation({
       entity: 'crm_scheduled_post',
       action: 'create',
       actorId,
       targetId: result.value.id,
-      meta: { platforms: dto.platforms },
+      meta: { platforms: dto.platforms, mode: dto.mode },
     })
 
-    const withTargets = await CrmScheduledPostRepository.findById(
+    if (isNow) {
+      const reloaded = await CrmScheduledPostRepository.findById(
+        result.value.id,
+        workspaceId,
+      )
+      if (!reloaded.ok) return reloaded
+      await publishScheduledPost(reloaded.value)
+    }
+
+    const withRelations = await CrmScheduledPostRepository.findById(
       result.value.id,
       workspaceId,
     )
-    if (!withTargets.ok) return withTargets
+    if (!withRelations.ok) return withRelations
 
-    return ok(toCrmScheduledPostDTO(withTargets.value))
+    return ok(toCrmScheduledPostDTO(withRelations.value))
   },
 
   async update(
@@ -349,7 +523,10 @@ export const CrmScheduledPostService = {
       workspaceId,
     )
     if (!existing.ok) return existing
-    if (existing.value.status === 'PUBLISHED') {
+    if (
+      existing.value.status === 'PUBLISHED' ||
+      existing.value.status === 'PUBLISHING'
+    ) {
       return err(crmScheduledPostAlreadyPublished())
     }
 
@@ -398,6 +575,99 @@ export const CrmScheduledPostService = {
     return ok(undefined)
   },
 
+  /** Cancela um agendamento pendente ou que falhou — não desfaz publicações. */
+  async cancel(
+    actorId: string,
+    workspaceId: string,
+    postId: string,
+  ): Promise<Result<CrmScheduledPostDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmScheduledPostRepository.findById(
+      postId,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (
+      existing.value.status !== 'SCHEDULED' &&
+      existing.value.status !== 'FAILED' &&
+      existing.value.status !== 'PARTIALLY_FAILED'
+    ) {
+      return err(
+        crmScheduledPostInvalid(
+          'Só é possível cancelar posts agendados ou que falharam.',
+        ),
+      )
+    }
+
+    const result = await CrmScheduledPostRepository.cancel(postId)
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_scheduled_post',
+      action: 'update',
+      actorId,
+      targetId: postId,
+      meta: { canceled: true },
+    })
+
+    const withRelations = await CrmScheduledPostRepository.findById(
+      postId,
+      workspaceId,
+    )
+    if (!withRelations.ok) return withRelations
+    return ok(toCrmScheduledPostDTO(withRelations.value))
+  },
+
+  /** Reagenda um post ainda não publicado para uma nova data/hora futura. */
+  async reschedule(
+    actorId: string,
+    workspaceId: string,
+    postId: string,
+    scheduledFor: Date,
+  ): Promise<Result<CrmScheduledPostDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const existing = await CrmScheduledPostRepository.findById(
+      postId,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (
+      existing.value.status === 'PUBLISHED' ||
+      existing.value.status === 'PUBLISHING'
+    ) {
+      return err(
+        crmScheduledPostInvalid(
+          'Não é possível reagendar um post já publicado.',
+        ),
+      )
+    }
+
+    const result = await CrmScheduledPostRepository.reschedule(
+      postId,
+      scheduledFor,
+    )
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_scheduled_post',
+      action: 'update',
+      actorId,
+      targetId: postId,
+      meta: { rescheduled: true },
+    })
+
+    const withRelations = await CrmScheduledPostRepository.findById(
+      postId,
+      workspaceId,
+    )
+    if (!withRelations.ok) return withRelations
+    return ok(toCrmScheduledPostDTO(withRelations.value))
+  },
+
   async publish(
     actorId: string,
     workspaceId: string,
@@ -415,49 +685,22 @@ export const CrmScheduledPostService = {
       return err(crmScheduledPostAlreadyPublished())
     }
 
-    let allSucceeded = true
-    for (const target of existing.value.targets) {
-      const publication = await publishToSocialPlatform(
-        actorId,
-        workspaceId,
-        target.platform,
-        existing.value.content,
-      )
-      if (publication.ok) {
-        await CrmScheduledPostTargetRepository.setStatus(
-          target.id,
-          'PUBLISHED',
-          { publishedAt: new Date() },
-        )
-      } else {
-        allSucceeded = false
-        await CrmScheduledPostTargetRepository.setStatus(target.id, 'FAILED', {
-          error: publication.error,
-        })
-      }
-    }
-
-    const result = await CrmScheduledPostRepository.setStatus(
-      postId,
-      allSucceeded ? 'PUBLISHED' : 'FAILED',
-      allSucceeded ? new Date() : undefined,
-    )
-    if (!result.ok) return result
+    await publishScheduledPost(existing.value)
 
     auditMutation({
       entity: 'crm_scheduled_post',
       action: 'update',
       actorId,
       targetId: postId,
-      meta: { published: allSucceeded },
+      meta: { publishTriggeredManually: true },
     })
 
-    const withTargets = await CrmScheduledPostRepository.findById(
+    const withRelations = await CrmScheduledPostRepository.findById(
       postId,
       workspaceId,
     )
-    if (!withTargets.ok) return withTargets
+    if (!withRelations.ok) return withRelations
 
-    return ok(toCrmScheduledPostDTO(withTargets.value))
+    return ok(toCrmScheduledPostDTO(withRelations.value))
   },
 }

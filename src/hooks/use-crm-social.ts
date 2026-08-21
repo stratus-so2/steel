@@ -109,25 +109,36 @@ export function useCrmScheduledPosts(workspaceId: string) {
   })
 }
 
+export type CreateCrmScheduledPostInput = {
+  content: string
+  title?: string
+  mode: 'now' | 'schedule'
+  scheduledFor?: string
+  platforms: CrmSocialPlatformDTO[]
+  options?: Record<string, unknown>
+  media?: File[]
+}
+
 export function useCreateCrmScheduledPost(workspaceId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: {
-      content: string
-      title?: string
-      scheduledFor?: string
-      platforms: CrmSocialPlatformDTO[]
-    }) =>
-      apiFetch<CrmScheduledPostDTO>(
+    mutationFn: (data: CreateCrmScheduledPostInput) => {
+      const form = new FormData()
+      form.set('content', data.content)
+      if (data.title) form.set('title', data.title)
+      form.set('mode', data.mode)
+      if (data.scheduledFor) form.set('scheduledFor', data.scheduledFor)
+      for (const platform of data.platforms) form.append('platforms', platform)
+      if (data.options) form.set('options', JSON.stringify(data.options))
+      for (const file of data.media ?? []) form.append('media', file)
+
+      return apiFetch<CrmScheduledPostDTO>(
         `/api/workspaces/${workspaceId}/crm/scheduled-posts`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        },
+        { method: 'POST', body: form },
         'Erro ao criar post agendado',
-      ),
+      )
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: scheduledPostsKey(workspaceId),
@@ -163,6 +174,52 @@ export function usePublishCrmScheduledPost(workspaceId: string) {
         `/api/workspaces/${workspaceId}/crm/scheduled-posts/${postId}/publish`,
         { method: 'POST' },
         'Erro ao publicar post',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: scheduledPostsKey(workspaceId),
+      })
+    },
+  })
+}
+
+export function useCancelCrmScheduledPost(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (postId: string) =>
+      apiFetch<CrmScheduledPostDTO>(
+        `/api/workspaces/${workspaceId}/crm/scheduled-posts/${postId}/cancel`,
+        { method: 'POST' },
+        'Erro ao cancelar post',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: scheduledPostsKey(workspaceId),
+      })
+    },
+  })
+}
+
+export function useRescheduleCrmScheduledPost(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      postId,
+      scheduledFor,
+    }: {
+      postId: string
+      scheduledFor: string
+    }) =>
+      apiFetch<CrmScheduledPostDTO>(
+        `/api/workspaces/${workspaceId}/crm/scheduled-posts/${postId}/reschedule`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scheduledFor }),
+        },
+        'Erro ao reagendar post',
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({

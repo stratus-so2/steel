@@ -1,5 +1,7 @@
 import type {
+  CrmScheduledMediaKind,
   CrmScheduledPost,
+  CrmScheduledPostMedia,
   CrmScheduledPostStatus,
   CrmScheduledPostTarget,
   CrmScheduledPostTargetStatus,
@@ -7,6 +9,7 @@ import type {
   CrmSocialConnectionMetricSnapshot,
   CrmSocialConnectionStatus,
   CrmSocialPlatform,
+  Prisma,
 } from '@prisma/client'
 import { crmSocialConnectionConflict, notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
@@ -253,13 +256,28 @@ export const CrmSocialConnectionRepository = {
   },
 }
 
+/** Mídia a persistir junto do post — já enviada ao MinIO pelo service. */
+export type CrmScheduledMediaSeed = {
+  kind: CrmScheduledMediaKind
+  storageKey: string
+  contentType: string
+  sizeBytes: number
+  order: number
+}
+
+export type CrmScheduledPostWithRelations = CrmScheduledPost & {
+  targets: CrmScheduledPostTarget[]
+  media: CrmScheduledPostMedia[]
+}
+
 export const CrmScheduledPostRepository = {
   async listByWorkspace(
     workspaceId: string,
-  ): Promise<Result<CrmScheduledPost[]>> {
+  ): Promise<Result<CrmScheduledPostWithRelations[]>> {
     try {
       const posts = await prisma.crmScheduledPost.findMany({
         where: { workspaceId, deletedAt: null },
+        include: { targets: true, media: true },
         orderBy: { createdAt: 'desc' },
       })
       return ok(posts)
@@ -271,11 +289,11 @@ export const CrmScheduledPostRepository = {
   async findById(
     id: string,
     workspaceId: string,
-  ): Promise<Result<CrmScheduledPost & { targets: CrmScheduledPostTarget[] }>> {
+  ): Promise<Result<CrmScheduledPostWithRelations>> {
     try {
       const post = await prisma.crmScheduledPost.findFirst({
         where: { id, workspaceId, deletedAt: null },
-        include: { targets: true },
+        include: { targets: true, media: true },
       })
       if (!post) return err(notFound('CrmScheduledPost'))
       return ok(post)
@@ -284,20 +302,50 @@ export const CrmScheduledPostRepository = {
     }
   },
 
+  /** Posts SCHEDULED já vencidos — consumido pelo cron tick. */
+  async findDue(now: Date): Promise<Result<CrmScheduledPostWithRelations[]>> {
+    try {
+      const posts = await prisma.crmScheduledPost.findMany({
+        where: {
+          status: 'SCHEDULED',
+          scheduledFor: { lte: now },
+          deletedAt: null,
+        },
+        include: { targets: true, media: true },
+      })
+      return ok(posts)
+    } catch (error) {
+      return err(dbError('Failed to list due CRM scheduled posts', error))
+    }
+  },
+
+  /**
+   * Reivindica um post atomicamente (SCHEDULED→PUBLISHING). Retorna `false`
+   * quando outro tick concorrente já assumiu — garante que só um publica.
+   */
+  async claim(id: string): Promise<Result<boolean>> {
+    try {
+      const result = await prisma.crmScheduledPost.updateMany({
+        where: { id, status: 'SCHEDULED' },
+        data: { status: 'PUBLISHING' },
+      })
+      return ok(result.count > 0)
+    } catch (error) {
+      return err(dbError('Failed to claim CRM scheduled post', error))
+    }
+  },
+
   async create(data: {
     workspaceId: string
     createdById: string
     content?: string
     title?: string
+    options?: Prisma.InputJsonValue
+    status: CrmScheduledPostStatus
     scheduledFor?: Date
   }): Promise<Result<CrmScheduledPost>> {
     try {
-      const post = await prisma.crmScheduledPost.create({
-        data: {
-          ...data,
-          status: data.scheduledFor ? 'SCHEDULED' : 'DRAFT',
-        },
-      })
+      const post = await prisma.crmScheduledPost.create({ data })
       return ok(post)
     } catch (error) {
       return err(dbError('Failed to create CRM scheduled post', error))
@@ -322,16 +370,43 @@ export const CrmScheduledPostRepository = {
   async setStatus(
     id: string,
     status: CrmScheduledPostStatus,
-    publishedAt?: Date,
+    data?: { publishedAt?: Date | null; lastError?: string | null },
   ): Promise<Result<CrmScheduledPost>> {
     try {
       const post = await prisma.crmScheduledPost.update({
         where: { id },
-        data: { status, publishedAt },
+        data: { status, ...data },
       })
       return ok(post)
     } catch (error) {
       return err(dbError('Failed to update CRM scheduled post status', error))
+    }
+  },
+
+  async cancel(id: string): Promise<Result<CrmScheduledPost>> {
+    try {
+      const post = await prisma.crmScheduledPost.update({
+        where: { id },
+        data: { status: 'CANCELED' },
+      })
+      return ok(post)
+    } catch (error) {
+      return err(dbError('Failed to cancel CRM scheduled post', error))
+    }
+  },
+
+  async reschedule(
+    id: string,
+    scheduledFor: Date,
+  ): Promise<Result<CrmScheduledPost>> {
+    try {
+      const post = await prisma.crmScheduledPost.update({
+        where: { id },
+        data: { scheduledFor, status: 'SCHEDULED' },
+      })
+      return ok(post)
+    } catch (error) {
+      return err(dbError('Failed to reschedule CRM scheduled post', error))
     }
   },
 
@@ -377,7 +452,12 @@ export const CrmScheduledPostTargetRepository = {
   async setStatus(
     id: string,
     status: CrmScheduledPostTargetStatus,
-    data: { error?: string; publishedAt?: Date },
+    data?: {
+      externalPostId?: string | null
+      error?: string | null
+      attempts?: number
+      publishedAt?: Date | null
+    },
   ): Promise<Result<CrmScheduledPostTarget>> {
     try {
       const target = await prisma.crmScheduledPostTarget.update({
@@ -389,6 +469,35 @@ export const CrmScheduledPostTargetRepository = {
       return err(
         dbError('Failed to update CRM scheduled post target status', error),
       )
+    }
+  },
+}
+
+export const CrmScheduledPostMediaRepository = {
+  async createMany(
+    postId: string,
+    seeds: CrmScheduledMediaSeed[],
+  ): Promise<Result<number>> {
+    if (seeds.length === 0) return ok(0)
+    try {
+      const result = await prisma.crmScheduledPostMedia.createMany({
+        data: seeds.map((seed) => ({ postId, ...seed })),
+      })
+      return ok(result.count)
+    } catch (error) {
+      return err(dbError('Failed to create CRM scheduled post media', error))
+    }
+  },
+
+  async listByPost(postId: string): Promise<Result<CrmScheduledPostMedia[]>> {
+    try {
+      const media = await prisma.crmScheduledPostMedia.findMany({
+        where: { postId },
+        orderBy: { order: 'asc' },
+      })
+      return ok(media)
+    } catch (error) {
+      return err(dbError('Failed to list CRM scheduled post media', error))
     }
   },
 }

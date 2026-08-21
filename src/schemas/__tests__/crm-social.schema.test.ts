@@ -39,9 +39,29 @@ describe('CreateCrmScheduledPostSchema', () => {
   it('should default content to empty string', () => {
     const result = CreateCrmScheduledPostSchema.safeParse({
       platforms: ['FACEBOOK'],
+      mode: 'now',
     })
     expect(result.success).toBe(true)
     expect(result.data?.content).toBe('')
+  })
+
+  it('should require scheduledFor when mode is "schedule"', () => {
+    expect(
+      CreateCrmScheduledPostSchema.safeParse({
+        platforms: ['FACEBOOK'],
+        mode: 'schedule',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('should accept a future scheduledFor when mode is "schedule"', () => {
+    expect(
+      CreateCrmScheduledPostSchema.safeParse({
+        platforms: ['FACEBOOK'],
+        mode: 'schedule',
+        scheduledFor: new Date(Date.now() + 60_000).toISOString(),
+      }).success,
+    ).toBe(true)
   })
 })
 

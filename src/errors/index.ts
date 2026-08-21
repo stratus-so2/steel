@@ -53,6 +53,7 @@ export {
   crmReportInvalidSource,
   crmReportNotFound,
   crmScheduledPostAlreadyPublished,
+  crmScheduledPostInvalid,
   crmScheduledPostNotFound,
   crmSocialConnectionConflict,
   crmSocialConnectionNotFound,

@@ -180,6 +180,7 @@ describe('CrmScheduledPostRepository', () => {
           workspaceId: workspace.id,
           createdById: user.id,
           content: 'Olá',
+          status: 'SCHEDULED',
           scheduledFor: new Date(Date.now() + 60_000),
         }),
       )

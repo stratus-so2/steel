@@ -1,10 +1,12 @@
 import type {
   CrmScheduledPost,
+  CrmScheduledPostMedia,
   CrmScheduledPostTarget,
   CrmSocialConnection,
 } from '@prisma/client'
 import type {
   CrmScheduledPostDTO,
+  CrmScheduledPostMediaDTO,
   CrmScheduledPostTargetDTO,
   CrmSocialConnectionDTO,
 } from '@/types/crm-social'
@@ -40,15 +42,32 @@ export function toCrmScheduledPostTargetDTO(
     postId: target.postId,
     platform: target.platform,
     status: target.status,
+    externalPostId: target.externalPostId,
     error: target.error,
+    attempts: target.attempts,
     publishedAt: target.publishedAt ? target.publishedAt.toISOString() : null,
     createdAt: target.createdAt.toISOString(),
     updatedAt: target.updatedAt.toISOString(),
   }
 }
 
+export function toCrmScheduledPostMediaDTO(
+  media: CrmScheduledPostMedia,
+): CrmScheduledPostMediaDTO {
+  return {
+    id: media.id,
+    kind: media.kind,
+    contentType: media.contentType,
+    sizeBytes: media.sizeBytes,
+    order: media.order,
+  }
+}
+
 export function toCrmScheduledPostDTO(
-  post: CrmScheduledPost & { targets?: CrmScheduledPostTarget[] },
+  post: CrmScheduledPost & {
+    targets?: CrmScheduledPostTarget[]
+    media?: CrmScheduledPostMedia[]
+  },
 ): CrmScheduledPostDTO {
   return {
     id: post.id,
@@ -57,10 +76,12 @@ export function toCrmScheduledPostDTO(
     status: post.status,
     scheduledFor: post.scheduledFor ? post.scheduledFor.toISOString() : null,
     publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null,
+    lastError: post.lastError,
     workspaceId: post.workspaceId,
     createdById: post.createdById,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     targets: post.targets?.map(toCrmScheduledPostTargetDTO),
+    media: post.media?.map(toCrmScheduledPostMediaDTO),
   }
 }

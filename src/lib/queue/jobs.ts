@@ -11,6 +11,7 @@ export const QueueName = {
   CrmScheduledSend: 'crm-scheduled-send',
   CrmWorkflowSchedule: 'crm-workflow-schedule',
   CrmCompetitorSync: 'crm-competitor-sync',
+  CrmSocialPostsTick: 'crm-social-posts-tick',
   Changelog: 'changelog',
   DatabaseBackup: 'database-backup',
 } as const
@@ -147,6 +148,17 @@ export type CrmWorkflowScheduleJob =
 
 export type CrmWorkflowScheduleJobPayload = {
   [CrmWorkflowScheduleJob.RunTick]: Record<string, never>
+}
+
+export const CrmSocialPostsTickJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type CrmSocialPostsTickJob =
+  (typeof CrmSocialPostsTickJob)[keyof typeof CrmSocialPostsTickJob]
+
+export type CrmSocialPostsTickJobPayload = {
+  [CrmSocialPostsTickJob.RunTick]: Record<string, never>
 }
 
 export const CrmCompetitorSyncJob = {

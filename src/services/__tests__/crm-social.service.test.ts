@@ -70,12 +70,14 @@ describe('CrmScheduledPostService', () => {
           ok({
             ...createFakeCrmScheduledPost({ id: 'p1', status: 'SCHEDULED' }),
             targets: [target],
+            media: [],
           }),
         )
         .mockResolvedValueOnce(
           ok({
             ...createFakeCrmScheduledPost({ id: 'p1', status: 'FAILED' }),
             targets: [{ ...target, status: 'FAILED' }],
+            media: [],
           }),
         )
       mockedTargetRepo.setStatus.mockResolvedValue(ok(target))
@@ -94,7 +96,7 @@ describe('CrmScheduledPostService', () => {
       expect(mockedPostRepo.setStatus).toHaveBeenCalledWith(
         'p1',
         'FAILED',
-        undefined,
+        expect.objectContaining({ lastError: expect.any(String) }),
       )
       expect(result.status).toBe('FAILED')
     })
@@ -107,6 +109,7 @@ describe('CrmScheduledPostService', () => {
         ok({
           ...createFakeCrmScheduledPost({ id: 'p1', status: 'PUBLISHED' }),
           targets: [],
+          media: [],
         }),
       )
 

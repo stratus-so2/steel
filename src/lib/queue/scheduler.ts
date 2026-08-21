@@ -3,6 +3,7 @@ import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
   CrmCompetitorSyncJob,
   CrmScheduledSendJob,
+  CrmSocialPostsTickJob,
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
   DataRetentionJob,
@@ -12,6 +13,7 @@ import {
 import {
   getCrmCompetitorSyncQueue,
   getCrmScheduledSendQueue,
+  getCrmSocialPostsTickQueue,
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
   getDataRetentionQueue,
@@ -21,6 +23,7 @@ import {
 import {
   CrmCompetitorSyncCron,
   CrmScheduledSendCron,
+  CrmSocialPostsTickCron,
   CrmWorkflowScheduleCron,
   DatabaseBackupCron,
   RetentionCron,
@@ -136,6 +139,21 @@ export async function scheduleCrmCompetitorSyncJobs(): Promise<void> {
   logger.info('queue.scheduler.crm_competitor_sync_registered', {
     component: 'Worker',
     pattern: CrmCompetitorSyncCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleCrmSocialPostsTickJobs(): Promise<void> {
+  const queue = getCrmSocialPostsTickQueue()
+  await queue.upsertJobScheduler(
+    CrmSocialPostsTickJob.RunTick,
+    { pattern: CrmSocialPostsTickCron, tz: RetentionTimezone },
+    { name: CrmSocialPostsTickJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.crm_social_posts_tick_registered', {
+    component: 'Worker',
+    pattern: CrmSocialPostsTickCron,
     timezone: RetentionTimezone,
   })
 }
