@@ -573,7 +573,7 @@ export async function publishPost(
     return err(crmSocialScopeMissing())
   }
 
-  const token = putBlob(media.bytes, media.contentType)
+  const token = await putBlob(media.bytes, media.contentType)
   const url = `${BETTER_AUTH_URL.replace(/\/$/, '')}/api/social/blob/${token}`
   try {
     return await publishToInstagram(
@@ -587,6 +587,6 @@ export async function publishPost(
       },
     )
   } finally {
-    removeBlob(token)
+    await removeBlob(token)
   }
 }

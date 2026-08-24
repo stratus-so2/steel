@@ -12,7 +12,7 @@ type Params = { params: Promise<{ token: string }> }
  */
 export async function GET(_request: NextRequest, { params }: Params) {
   const { token } = await params
-  const entry = readBlob(token)
+  const entry = await readBlob(token)
   if (!entry) {
     return new NextResponse('Blob não encontrado ou expirado', { status: 404 })
   }
