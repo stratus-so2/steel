@@ -1,9 +1,14 @@
+import { randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { withAxiom } from '@/lib/axiom/server'
 import { badRequest, crmSocialNotConfigured } from '@/src/errors'
 import { getAuthSession } from '@/src/lib/auth-session'
+import { CrmSocialPublishJob } from '@/src/lib/queue/jobs'
+import { CRM_SOCIAL_PUBLISH_TMP_BUCKET } from '@/src/lib/queue/processors/crm-social-publish'
+import { getCrmSocialPublishQueue } from '@/src/lib/queue/queues'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
+import { ensureBucket, putObject } from '@/src/lib/storage/s3'
 import { parseCrmPlatformSlug } from '@/src/schemas/crm-social.schema'
 import { CrmPublishFacebookPostSchema } from '@/src/schemas/crm-social-facebook.schema'
 import { CrmPublishInstagramPostSchema } from '@/src/schemas/crm-social-instagram.schema'
@@ -12,14 +17,12 @@ import { CrmPublishTiktokVideoSchema } from '@/src/schemas/crm-social-tiktok.sch
 import { CrmPublishTweetSchema } from '@/src/schemas/crm-social-twitter.schema'
 import { CrmSocialYoutubePublishVideoSchema } from '@/src/schemas/crm-social-youtube.schema'
 import * as CrmSocialFacebookService from '@/src/services/crm-social-facebook.service'
-import * as CrmSocialInstagramService from '@/src/services/crm-social-instagram.service'
 import * as CrmSocialLinkedinService from '@/src/services/crm-social-linkedin.service'
 import {
   publishVideo as publishTiktokVideo,
   TIKTOK_SINGLE_CHUNK_MAX_BYTES,
 } from '@/src/services/crm-social-tiktok.service'
 import { publishTweetPost } from '@/src/services/crm-social-twitter.service'
-import * as CrmSocialYoutubeService from '@/src/services/crm-social-youtube.service'
 import {
   handleError,
   standardError,
@@ -30,6 +33,24 @@ type Params = { params: Promise<{ id: string; platform: string }> }
 
 const MAX_VIDEO_BYTES = 256 * 1024 * 1024 // 256 MB
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024 // 10 MB
+
+/**
+ * Grava os bytes recebidos num bucket privado temporário e devolve a key —
+ * usado só pra atravessar o request/job boundary (a rota recebe o upload,
+ * o worker consome de lá) sem colocar o arquivo inteiro no payload do job
+ * do BullMQ. O próprio worker apaga o objeto depois de publicar.
+ */
+async function storeTmpMedia(workspaceId: string, file: File): Promise<string> {
+  const key = `${workspaceId}/${randomUUID()}`
+  await ensureBucket(CRM_SOCIAL_PUBLISH_TMP_BUCKET)
+  await putObject({
+    bucket: CRM_SOCIAL_PUBLISH_TMP_BUCKET,
+    key,
+    body: Buffer.from(await file.arrayBuffer()),
+    contentType: file.type || 'application/octet-stream',
+  })
+  return key
+}
 
 /** Publica conteúdo na conta. Corpo: `multipart/form-data` (varia por plataforma). */
 export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
@@ -105,14 +126,19 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
       )
     }
 
-    const result = await CrmSocialYoutubeService.publishVideo(
-      actorId,
-      id,
-      parsed.data,
-      { bytes: await file.arrayBuffer(), contentType: file.type || 'video/*' },
+    const objectKey = await storeTmpMedia(id, file)
+    const job = await getCrmSocialPublishQueue().add(
+      CrmSocialPublishJob.PublishYoutubeVideo,
+      {
+        actorId,
+        workspaceId: id,
+        objectKey,
+        contentType: file.type || 'video/*',
+        ...parsed.data,
+      },
+      { attempts: 1 },
     )
-    if (!result.ok) return handleError(result.error)
-    return successResponse(result.value, 201)
+    return successResponse({ jobId: job.id }, 202)
   }
 
   if (platform === 'TIKTOK') {
@@ -230,53 +256,52 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
     // chega no campo `image` (imagem) ou `video` (vídeo).
     const imageField = form.get('image')
     const videoField = form.get('video')
-    let media: {
-      bytes: ArrayBuffer
-      contentType: string
-      kind: 'IMAGE' | 'VIDEO'
-    } | null = null
+    let mediaFile: File | null = null
+    let kind: 'IMAGE' | 'VIDEO' | null = null
 
     if (videoField instanceof File && videoField.size > 0) {
       if (videoField.size > MAX_VIDEO_BYTES) {
         return handleError(badRequest('Vídeo excede o tamanho máximo (256 MB)'))
       }
-      media = {
-        bytes: await videoField.arrayBuffer(),
-        contentType: videoField.type || 'video/mp4',
-        kind: 'VIDEO',
-      }
+      mediaFile = videoField
+      kind = 'VIDEO'
     } else if (imageField instanceof File && imageField.size > 0) {
       if (imageField.size > MAX_IMAGE_BYTES) {
         return handleError(badRequest('Imagem excede o tamanho máximo (10 MB)'))
       }
-      media = {
-        bytes: await imageField.arrayBuffer(),
-        contentType: imageField.type || 'image/jpeg',
-        kind: 'IMAGE',
-      }
+      mediaFile = imageField
+      kind = 'IMAGE'
     }
 
-    if (!media) {
+    if (!mediaFile || !kind) {
       return handleError(
         badRequest('Mídia obrigatória — o Instagram exige mídia para publicar'),
       )
     }
-    if (parsed.data.postType === 'REELS' && media.kind !== 'VIDEO') {
+    if (parsed.data.postType === 'REELS' && kind !== 'VIDEO') {
       return handleError(badRequest('Reels exige um arquivo de vídeo'))
     }
-    if (parsed.data.postType === 'FEED' && media.kind !== 'IMAGE') {
+    if (parsed.data.postType === 'FEED' && kind !== 'IMAGE') {
       return handleError(badRequest('Publicação no feed exige uma imagem'))
     }
 
-    const result = await CrmSocialInstagramService.publishPost(
-      actorId,
-      id,
-      parsed.data,
-      media,
-      connectionId,
+    const objectKey = await storeTmpMedia(id, mediaFile)
+    const job = await getCrmSocialPublishQueue().add(
+      CrmSocialPublishJob.PublishInstagramMedia,
+      {
+        actorId,
+        workspaceId: id,
+        connectionId,
+        objectKey,
+        contentType:
+          mediaFile.type || (kind === 'VIDEO' ? 'video/mp4' : 'image/jpeg'),
+        kind,
+        caption: parsed.data.caption,
+        postType: parsed.data.postType,
+      },
+      { attempts: 1 },
     )
-    if (!result.ok) return handleError(result.error)
-    return successResponse(result.value, 201)
+    return successResponse({ jobId: job.id }, 202)
   }
 
   const parsed = CrmPublishFacebookPostSchema.safeParse({

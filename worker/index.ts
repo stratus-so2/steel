@@ -11,6 +11,7 @@ import { processChangelog } from '../src/lib/queue/processors/changelog'
 import { processCrmCompetitorSync } from '../src/lib/queue/processors/crm-competitor-sync'
 import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
 import { processCrmSocialPostsTick } from '../src/lib/queue/processors/crm-social-posts-tick'
+import { processCrmSocialPublish } from '../src/lib/queue/processors/crm-social-publish'
 import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-workflow-schedule'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
@@ -130,6 +131,9 @@ async function main(): Promise<void> {
   )
   workers.push(
     registerWorker(QueueName.CrmSocialPostsTick, processCrmSocialPostsTick),
+  )
+  workers.push(
+    registerWorker(QueueName.CrmSocialPublish, processCrmSocialPublish),
   )
   workers.push(registerWorker(QueueName.Changelog, processChangelog))
   workers.push(registerWorker(QueueName.DatabaseBackup, processDatabaseBackup))

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { pollCrmSocialPublishJob } from '@/src/hooks/crm-social-job-poll'
 import type {
   CrmSocialYoutubeInsightsDTO,
   CrmSocialYoutubeInsightsRange,
@@ -124,12 +125,17 @@ export function usePublishCrmYoutubeVideo(workspaceId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (form: FormData) =>
-      postCrmSocialForm<CrmSocialYoutubePublishVideoResultDTO>(
+    mutationFn: async (form: FormData) => {
+      const { jobId } = await postCrmSocialForm<{ jobId: string }>(
         `/api/workspaces/${workspaceId}/crm/social/youtube/publish`,
         form,
-        'Erro ao publicar vídeo no YouTube',
-      ),
+        'Erro ao enviar vídeo para o YouTube',
+      )
+      return pollCrmSocialPublishJob<CrmSocialYoutubePublishVideoResultDTO>(
+        `/api/workspaces/${workspaceId}/crm/social/youtube/publish/${jobId}`,
+        (message, code) => new CrmSocialApiError(message, code ?? undefined),
+      )
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: youtubeOverviewKey(workspaceId),

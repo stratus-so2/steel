@@ -12,6 +12,7 @@ export const QueueName = {
   CrmWorkflowSchedule: 'crm-workflow-schedule',
   CrmCompetitorSync: 'crm-competitor-sync',
   CrmSocialPostsTick: 'crm-social-posts-tick',
+  CrmSocialPublish: 'crm-social-publish',
   Changelog: 'changelog',
   DatabaseBackup: 'database-backup',
 } as const
@@ -170,6 +171,46 @@ export type CrmCompetitorSyncJob =
 
 export type CrmCompetitorSyncJobPayload = {
   [CrmCompetitorSyncJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Publish interativo (disparado pela UI, não pelo agendador) de mídia grande
+ * demais pra caber num único request síncrono sem esbarrar em timeout de
+ * proxy — a rota grava os bytes num bucket temporário e enfileira aqui; o
+ * worker chama o mesmo `publishVideo`/`publishPost` que o `crm-social-posts-tick`
+ * já usa pros posts agendados. Sem retry automático (`attempts: 1` na
+ * chamada de `add`) — publicar não é idempotente, então uma falha após o
+ * post já ter ido ao ar não deve tentar de novo.
+ */
+export const CrmSocialPublishJob = {
+  PublishYoutubeVideo: 'publish-youtube-video',
+  PublishInstagramMedia: 'publish-instagram-media',
+} as const
+
+export type CrmSocialPublishJob =
+  (typeof CrmSocialPublishJob)[keyof typeof CrmSocialPublishJob]
+
+export type CrmSocialPublishJobPayload = {
+  [CrmSocialPublishJob.PublishYoutubeVideo]: {
+    actorId: string
+    workspaceId: string
+    objectKey: string
+    contentType: string
+    title: string
+    description: string
+    tags: string[]
+    privacyStatus: 'private' | 'unlisted' | 'public'
+  }
+  [CrmSocialPublishJob.PublishInstagramMedia]: {
+    actorId: string
+    workspaceId: string
+    connectionId?: string
+    objectKey: string
+    contentType: string
+    kind: 'IMAGE' | 'VIDEO'
+    caption: string
+    postType: 'FEED' | 'REELS' | 'STORIES'
+  }
 }
 
 export const ChangelogJob = {

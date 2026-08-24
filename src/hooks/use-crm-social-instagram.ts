@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { pollCrmSocialPublishJob } from '@/src/hooks/crm-social-job-poll'
 import type {
   CrmDeleteInstagramMediaResult,
   CrmInstagramInsights,
@@ -226,12 +227,17 @@ export function usePublishCrmInstagramPost(
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (form: FormData) =>
-      fetchCrmSocial<CrmPublishInstagramPostResult>(
+    mutationFn: async (form: FormData) => {
+      const { jobId } = await fetchCrmSocial<{ jobId: string }>(
         `/api/workspaces/${workspaceId}/crm/social/instagram/publish`,
         { method: 'POST', body: form },
-        'Falha ao publicar no Instagram',
-      ),
+        'Falha ao enviar mídia para o Instagram',
+      )
+      return pollCrmSocialPublishJob<CrmPublishInstagramPostResult>(
+        `/api/workspaces/${workspaceId}/crm/social/instagram/publish/${jobId}`,
+        (message, code) => new CrmSocialApiError(code ?? 'UNKNOWN', message),
+      )
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: mediaKey(workspaceId, connectionId),

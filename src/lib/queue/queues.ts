@@ -11,6 +11,8 @@ import {
   type CrmScheduledSendJobPayload,
   type CrmSocialPostsTickJob,
   type CrmSocialPostsTickJobPayload,
+  type CrmSocialPublishJob,
+  type CrmSocialPublishJobPayload,
   type CrmWorkflowScheduleJob,
   type CrmWorkflowScheduleJobPayload,
   type DatabaseBackupJob,
@@ -54,6 +56,7 @@ let crmScheduledSendQueue: Queue | null = null
 let crmWorkflowScheduleQueue: Queue | null = null
 let crmCompetitorSyncQueue: Queue | null = null
 let crmSocialPostsTickQueue: Queue | null = null
+let crmSocialPublishQueue: Queue | null = null
 let changelogQueue: Queue | null = null
 let databaseBackupQueue: Queue | null = null
 
@@ -309,6 +312,24 @@ export function getCrmSocialPostsTickQueue(): Queue<
   >
 }
 
+export function getCrmSocialPublishQueue(): Queue<
+  CrmSocialPublishJobPayload[CrmSocialPublishJob],
+  unknown,
+  CrmSocialPublishJob
+> {
+  if (!crmSocialPublishQueue) {
+    crmSocialPublishQueue = new Queue(QueueName.CrmSocialPublish, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return crmSocialPublishQueue as Queue<
+    CrmSocialPublishJobPayload[CrmSocialPublishJob],
+    unknown,
+    CrmSocialPublishJob
+  >
+}
+
 export function getDatabaseBackupQueue(): Queue<
   DatabaseBackupJobPayload[DatabaseBackupJob],
   unknown,
@@ -342,6 +363,7 @@ export async function closeQueues(): Promise<void> {
     crmWorkflowScheduleQueue?.close(),
     crmCompetitorSyncQueue?.close(),
     crmSocialPostsTickQueue?.close(),
+    crmSocialPublishQueue?.close(),
     changelogQueue?.close(),
     databaseBackupQueue?.close(),
   ])
@@ -357,6 +379,7 @@ export async function closeQueues(): Promise<void> {
   crmScheduledSendQueue = null
   crmCompetitorSyncQueue = null
   crmSocialPostsTickQueue = null
+  crmSocialPublishQueue = null
   changelogQueue = null
   databaseBackupQueue = null
 }
