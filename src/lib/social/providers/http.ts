@@ -1,6 +1,23 @@
 import { crmSocialOauthFailed } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 
+/**
+ * Extrai uma mensagem exibível do corpo de erro da Graph API (Meta). Prefere
+ * `error_user_msg` — já vem localizado (pt-BR) e escrito para o usuário final
+ * (ex.: "taxa de proporção inválida", "mídia não está pronta") — em vez do
+ * `crmSocialOauthFailed()` genérico, que não diz o motivo real da falha.
+ */
+function graphErrorMessage(bodyText: string): string | undefined {
+  try {
+    const parsed = JSON.parse(bodyText) as {
+      error?: { error_user_msg?: string; message?: string }
+    }
+    return parsed.error?.error_user_msg ?? parsed.error?.message
+  } catch {
+    return undefined
+  }
+}
+
 /** POST `application/x-www-form-urlencoded` e devolve o JSON, ou `crmSocialOauthFailed`. */
 export async function postForm<T>(
   url: string,
@@ -18,13 +35,14 @@ export async function postForm<T>(
       body: new URLSearchParams(body).toString(),
     })
     if (!response.ok) {
+      const bodyText = await response.text().catch(() => '')
       console.error(
         '[social] POST falhou',
         url,
         response.status,
-        (await response.text().catch(() => '')).slice(0, 500),
+        bodyText.slice(0, 500),
       )
-      return err(crmSocialOauthFailed())
+      return err(crmSocialOauthFailed(graphErrorMessage(bodyText)))
     }
     return ok((await response.json()) as T)
   } catch (error) {
@@ -52,13 +70,14 @@ export async function postJson<T>(
       body: JSON.stringify(body),
     })
     if (!response.ok) {
+      const bodyText = await response.text().catch(() => '')
       console.error(
         '[social] POST json falhou',
         url,
         response.status,
-        (await response.text().catch(() => '')).slice(0, 500),
+        bodyText.slice(0, 500),
       )
-      return err(crmSocialOauthFailed())
+      return err(crmSocialOauthFailed(graphErrorMessage(bodyText)))
     }
     return ok((await response.json()) as T)
   } catch (error) {
@@ -82,13 +101,14 @@ export async function getJson<T>(
       },
     })
     if (!response.ok) {
+      const bodyText = await response.text().catch(() => '')
       console.error(
         '[social] GET falhou',
         url,
         response.status,
-        (await response.text().catch(() => '')).slice(0, 500),
+        bodyText.slice(0, 500),
       )
-      return err(crmSocialOauthFailed())
+      return err(crmSocialOauthFailed(graphErrorMessage(bodyText)))
     }
     return ok((await response.json()) as T)
   } catch (error) {
@@ -105,13 +125,14 @@ export async function postMultipart<T>(
   try {
     const response = await fetch(url, { method: 'POST', body: form })
     if (!response.ok) {
+      const bodyText = await response.text().catch(() => '')
       console.error(
         '[social] POST multipart falhou',
         url,
         response.status,
-        (await response.text().catch(() => '')).slice(0, 500),
+        bodyText.slice(0, 500),
       )
-      return err(crmSocialOauthFailed())
+      return err(crmSocialOauthFailed(graphErrorMessage(bodyText)))
     }
     return ok((await response.json()) as T)
   } catch (error) {

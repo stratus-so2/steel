@@ -358,7 +358,6 @@ async function publishToInstagram(
   },
 ): Promise<Result<CrmPublishInstagramPostResult>> {
   const containerBody: Record<string, string> = {}
-  let isVideoContainer = false
 
   if (args.postType === 'REELS') {
     if (!args.videoUrl) return err(crmSocialOauthFailed())
@@ -366,12 +365,10 @@ async function publishToInstagram(
     containerBody.video_url = args.videoUrl
     containerBody.share_to_feed = 'true'
     if (args.caption) containerBody.caption = args.caption
-    isVideoContainer = true
   } else if (args.postType === 'STORIES') {
     containerBody.media_type = 'STORIES'
     if (args.videoUrl) {
       containerBody.video_url = args.videoUrl
-      isVideoContainer = true
     } else if (args.imageUrl) {
       containerBody.image_url = args.imageUrl
     } else {
@@ -391,10 +388,11 @@ async function publishToInstagram(
   const containerId = containerResult.value.id
   if (!containerId) return err(crmSocialOauthFailed())
 
-  if (isVideoContainer) {
-    const ready = await waitForContainerReady(pageToken, containerId)
-    if (!ready.ok) return ready
-  }
+  // Mesmo containers de imagem processam de forma assíncrona (a Meta baixa e
+  // valida a mídia antes de liberar) — sem esperar, `/media_publish` pode
+  // chegar cedo demais e voltar "Media ID is not available" (code 9007).
+  const ready = await waitForContainerReady(pageToken, containerId)
+  if (!ready.ok) return ready
 
   const publishResult = await postForm<{ id?: string }>(
     `${GRAPH}/${igAccountId}/media_publish`,

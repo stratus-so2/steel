@@ -418,8 +418,11 @@ export const crmSocialConnectionConflict = (): AppError =>
     'Já existe uma conexão para esta plataforma neste workspace',
   )
 
-export const crmSocialOauthFailed = (): AppError =>
-  appError('CRM_SOCIAL_OAUTH_FAILED', 'Falha ao conectar com a plataforma')
+export const crmSocialOauthFailed = (message?: string): AppError =>
+  appError(
+    'CRM_SOCIAL_OAUTH_FAILED',
+    message ?? 'Falha ao conectar com a plataforma',
+  )
 
 export const crmSocialStateInvalid = (): AppError =>
   appError(
