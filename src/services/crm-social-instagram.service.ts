@@ -316,25 +316,38 @@ async function waitForContainerReady(
   pageToken: string,
   containerId: string,
 ): Promise<Result<true>> {
-  const MAX_ATTEMPTS = 50 // ~2,5 min (dentro do TTL do blob-store de 10 min)
+  const MAX_ATTEMPTS = 100 // ~5 min — teto recomendado pela Meta para o polling
   const INTERVAL_MS = 3000
-  const params = new URLSearchParams({ fields: 'status_code' })
+  const params = new URLSearchParams({ fields: 'status_code,status' })
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const result = await getJson<{ status_code?: string }>(
+    const result = await getJson<{ status_code?: string; status?: string }>(
       `${GRAPH}/${containerId}?${params.toString()}`,
       pageToken,
     )
     if (!result.ok) return result
 
-    const status = result.value.status_code
-    if (status === 'FINISHED') return ok(true)
-    if (status === 'ERROR' || status === 'EXPIRED') {
-      return err(crmSocialOauthFailed())
+    const { status_code, status } = result.value
+    if (status_code === 'FINISHED') return ok(true)
+    if (status_code === 'ERROR' || status_code === 'EXPIRED') {
+      console.error('[social][instagram] container falhou', {
+        containerId,
+        status_code,
+        status,
+        attempt,
+      })
+      return err(crmSocialOauthFailed(status ?? undefined))
     }
     await sleep(INTERVAL_MS)
   }
-  return err(crmSocialOauthFailed())
+
+  console.error('[social][instagram] container excedeu o tempo de polling', {
+    containerId,
+    attempts: MAX_ATTEMPTS,
+  })
+  return err(
+    crmSocialOauthFailed('A Instagram demorou demais para processar a mídia'),
+  )
 }
 
 /**
