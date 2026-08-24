@@ -403,14 +403,24 @@ function PostComposer({
     const formEl = event.currentTarget
     const form = new FormData(formEl)
 
-    const media = form.get(postType === 'REELS' ? 'video' : 'image')
+    const media = form.get('media')
     const hasMedia = media instanceof File && media.size > 0
     if (!hasMedia) {
       notify.error('Anexe uma mídia — o Instagram exige mídia para publicar.')
       return
     }
-    if (postType !== 'REELS') form.delete('video')
-    if (postType === 'REELS') form.delete('image')
+    const file = media as File
+    const isVideo = file.type.startsWith('video/')
+    if (postType === 'REELS' && !isVideo) {
+      notify.error('Reels exige um arquivo de vídeo.')
+      return
+    }
+    if (postType === 'FEED' && isVideo) {
+      notify.error('Publicação no feed exige uma imagem.')
+      return
+    }
+    form.delete('media')
+    form.set(isVideo ? 'video' : 'image', file)
     if (connectionId) form.set('connectionId', connectionId)
 
     try {
@@ -431,6 +441,7 @@ function PostComposer({
   return (
     <Card className='p-4 sm:p-6'>
       <form className='space-y-4' onSubmit={handleSubmit}>
+        <input type='hidden' name='postType' value={postType} />
         <div className='space-y-1.5'>
           <Label htmlFor='ig-post-type'>Tipo de publicação</Label>
           <Select
@@ -471,11 +482,15 @@ function PostComposer({
 
         <div className='space-y-1.5'>
           <Label htmlFor='ig-media'>
-            {postType === 'REELS' ? 'Vídeo' : 'Imagem'}
+            {postType === 'REELS'
+              ? 'Vídeo'
+              : postType === 'STORIES'
+                ? 'Mídia'
+                : 'Imagem'}
           </Label>
           <Input
             id='ig-media'
-            name={postType === 'REELS' ? 'video' : 'image'}
+            name='media'
             type='file'
             accept={mediaAccept}
             required
