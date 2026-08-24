@@ -10,6 +10,17 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -22,6 +33,7 @@ import {
   isCrmSocialReconnectError,
   useCrmTwitterOverview,
   useCrmTwitterRecentTweets,
+  useDeleteCrmTweet,
   usePublishCrmTweet,
 } from '@/src/hooks/use-crm-social-twitter'
 import type { CrmTweet } from '@/src/schemas/crm-social-twitter.schema'
@@ -154,11 +166,15 @@ function TweetDetail({
   name,
   username,
   avatarUrl,
+  deleting,
+  onDelete,
 }: {
   tweet: CrmTweet
   name?: string | null
   username: string
   avatarUrl?: string | null
+  deleting: boolean
+  onDelete: () => void
 }) {
   const date = tweet.createdAt
     ? new Date(tweet.createdAt).toLocaleDateString('pt-BR', {
@@ -258,6 +274,39 @@ function TweetDetail({
       >
         Abrir no X
       </a>
+
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              className='w-full text-destructive hover:text-destructive'
+            >
+              Excluir tweet
+            </Button>
+          }
+        />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir tweet</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita — o tweet será removido do X.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleting}
+              onClick={onDelete}
+            >
+              {deleting ? 'Excluindo…' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -361,6 +410,7 @@ function TweetComposer({
 export function CrmTwitterStudio({ workspaceId }: { workspaceId: string }) {
   const overviewQuery = useCrmTwitterOverview(workspaceId)
   const tweetsQuery = useCrmTwitterRecentTweets(workspaceId)
+  const deleteTweet = useDeleteCrmTweet(workspaceId)
 
   const overview = overviewQuery.data
   const tweets = tweetsQuery.data
@@ -568,6 +618,24 @@ export function CrmTwitterStudio({ workspaceId }: { workspaceId: string }) {
               name={overview.name}
               username={overview.username}
               avatarUrl={overview.profileImageUrl}
+              deleting={
+                deleteTweet.isPending &&
+                deleteTweet.variables === selectedTweet.id
+              }
+              onDelete={() => {
+                deleteTweet.mutate(selectedTweet.id, {
+                  onSuccess: () => {
+                    toast.success('Tweet excluído.')
+                    setSelectedTweet(null)
+                  },
+                  onError: (error) =>
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : 'Falha ao excluir o tweet',
+                    ),
+                })
+              }}
             />
           )}
         </DialogContent>

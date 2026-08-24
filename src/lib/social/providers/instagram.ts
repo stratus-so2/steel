@@ -14,6 +14,9 @@ import type { SocialAccount, SocialProvider, TokenSet } from './types'
  */
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
+// `instagram_manage_contents` habilita excluir mídia via API. Ao adicionar
+// este escopo, contas já conectadas precisam reconectar para reconsentir —
+// o service detecta escopo ausente.
 const SCOPES = [
   'public_profile',
   'pages_show_list',
@@ -21,6 +24,7 @@ const SCOPES = [
   'instagram_basic',
   'instagram_content_publish',
   'instagram_manage_insights',
+  'instagram_manage_contents',
 ]
 const SCOPE = SCOPES.join(',')
 

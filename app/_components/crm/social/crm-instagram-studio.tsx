@@ -14,6 +14,17 @@ import {
 import { ResponsiveLine } from '@nivo/line'
 import { useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -38,10 +49,13 @@ import {
   useCrmInstagramInsights,
   useCrmInstagramMedia,
   useCrmInstagramOverview,
+  useCrmInstagramStories,
+  useDeleteCrmInstagramMedia,
   usePublishCrmInstagramPost,
 } from '@/src/hooks/use-crm-social-instagram'
 import {
   CRM_INSTAGRAM_POST_TYPE_LABELS,
+  type CrmInstagramActiveStory,
   type CrmInstagramInsightsRange,
   type CrmInstagramMedia,
   type CrmInstagramMediaEngagement,
@@ -267,14 +281,88 @@ function InstagramPostPreview({
   )
 }
 
+function StoryCard({
+  story,
+  deleting,
+  onDelete,
+}: {
+  story: CrmInstagramActiveStory
+  deleting: boolean
+  onDelete: () => void
+}) {
+  const date = story.timestamp
+    ? new Date(story.timestamp).toLocaleDateString('pt-BR', {
+        day: 'numeric',
+        month: 'short',
+      })
+    : null
+
+  return (
+    <Card className='group relative shrink-0 overflow-hidden p-0'>
+      <div className='aspect-[9/16] w-28 bg-muted'>
+        {story.mediaUrl ? (
+          <img src={story.mediaUrl} alt='' className='size-full object-cover' />
+        ) : (
+          <div className='flex size-full items-center justify-center text-muted-foreground/30'>
+            <SteelIcon icon={InstagramIcon} className='size-6' />
+          </div>
+        )}
+      </div>
+      <div className='absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-4 pb-1 text-[10px] text-white'>
+        {date && <span>{date}</span>}
+        <span className='flex items-center gap-0.5 tabular-nums'>
+          <SteelIcon icon={EyeIcon} className='size-2.5' />
+          {story.reach}
+        </span>
+      </div>
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <button
+              type='button'
+              className='absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100'
+              aria-label='Excluir story'
+            >
+              ×
+            </button>
+          }
+        />
+        <AlertDialogContent size='sm'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir story</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita — a story será removida do
+              Instagram.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleting}
+              onClick={onDelete}
+            >
+              {deleting ? 'Excluindo…' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  )
+}
+
 function InstagramMediaModal({
   item,
   username,
   avatarUrl,
+  deleting,
+  onDelete,
 }: {
   item: CrmInstagramMedia
   username: string
   avatarUrl?: string | null
+  deleting: boolean
+  onDelete: () => void
 }) {
   const date = item.timestamp
     ? new Date(item.timestamp).toLocaleDateString('pt-BR', {
@@ -360,6 +448,44 @@ function InstagramMediaModal({
               Abrir no Instagram
             </a>
           )}
+
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  className='w-full text-destructive hover:text-destructive'
+                >
+                  Excluir publicação
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir publicação</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita — a publicação será removida
+                  do Instagram.
+                  {item.mediaType === 'CAROUSEL_ALBUM' &&
+                    ' O álbum inteiro será excluído (não é possível remover apenas um item do carrossel).'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleting}>
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  variant='destructive'
+                  disabled={deleting}
+                  onClick={onDelete}
+                >
+                  {deleting ? 'Excluindo…' : 'Excluir'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
@@ -526,15 +652,18 @@ export function CrmInstagramStudio({
 
   const overviewQuery = useCrmInstagramOverview(workspaceId, connectionId)
   const mediaQuery = useCrmInstagramMedia(workspaceId, connectionId)
+  const storiesQuery = useCrmInstagramStories(workspaceId, connectionId)
   const insightsQuery = useCrmInstagramInsights(
     workspaceId,
     range,
     connectionId,
   )
   const engagementQuery = useCrmInstagramEngagement(workspaceId, connectionId)
+  const deleteMedia = useDeleteCrmInstagramMedia(workspaceId, connectionId)
 
   const overview = overviewQuery.data
   const media = mediaQuery.data
+  const stories = storiesQuery.data
   const insights = insightsQuery.data
   const engagement = engagementQuery.data
 
@@ -703,6 +832,33 @@ export function CrmInstagramStudio({
               Nenhuma publicação recente.
             </Card>
           ) : null}
+
+          {stories && stories.stories.length > 0 && (
+            <div className='space-y-2 border-t border-border/60 pt-4'>
+              <h3 className='font-heading font-semibold text-base tracking-tight'>
+                Stories ativas
+              </h3>
+              <div className='flex gap-2 overflow-x-auto pb-1'>
+                {stories.stories.map((story) => (
+                  <StoryCard
+                    key={story.id}
+                    story={story}
+                    deleting={
+                      deleteMedia.isPending &&
+                      deleteMedia.variables === story.id
+                    }
+                    onDelete={() => {
+                      deleteMedia.mutate(story.id, {
+                        onSuccess: () => notify.success('Story excluída.'),
+                        onError: (error) =>
+                          notify.error(error, 'Falha ao excluir a story'),
+                      })
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value='post'>
@@ -902,6 +1058,20 @@ export function CrmInstagramStudio({
               item={selectedMedia}
               username={overview.username}
               avatarUrl={overview.profilePictureUrl}
+              deleting={
+                deleteMedia.isPending &&
+                deleteMedia.variables === selectedMedia.id
+              }
+              onDelete={() => {
+                deleteMedia.mutate(selectedMedia.id, {
+                  onSuccess: () => {
+                    notify.success('Publicação excluída.')
+                    setSelectedMedia(null)
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Falha ao excluir a publicação'),
+                })
+              }}
             />
           )}
         </DialogContent>

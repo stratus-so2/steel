@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  CrmDeleteInstagramMediaResult,
   CrmInstagramInsights,
   CrmInstagramInsightsRange,
   CrmInstagramMediaList,
   CrmInstagramProfileOverview,
+  CrmInstagramStoriesList,
   CrmInstagramWeeklyEngagement,
   CrmPublishInstagramPostResult,
 } from '@/src/schemas/crm-social-instagram.schema'
@@ -80,6 +82,14 @@ function insightsKey(
 function mediaKey(workspaceId: string, connectionId?: string) {
   return [
     'crm-social-instagram-media',
+    workspaceId,
+    connectionId ?? '',
+  ] as const
+}
+
+function storiesKey(workspaceId: string, connectionId?: string) {
+  return [
+    'crm-social-instagram-stories',
     workspaceId,
     connectionId ?? '',
   ] as const
@@ -167,6 +177,27 @@ export function useCrmInstagramMedia(
   })
 }
 
+export function useCrmInstagramStories(
+  workspaceId: string,
+  connectionId?: string,
+) {
+  return useQuery({
+    queryKey: storiesKey(workspaceId, connectionId),
+    queryFn: () =>
+      fetchCrmSocial<CrmInstagramStoriesList>(
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/instagram/stories`,
+          connectionId,
+        ),
+        undefined,
+        'Erro ao buscar stories do Instagram',
+      ),
+    enabled: !!workspaceId,
+    staleTime: 30 * 1000,
+    retry: shouldRetry,
+  })
+}
+
 export function useCrmInstagramEngagement(
   workspaceId: string,
   connectionId?: string,
@@ -204,6 +235,39 @@ export function usePublishCrmInstagramPost(
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: mediaKey(workspaceId, connectionId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: storiesKey(workspaceId, connectionId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: engagementKey(workspaceId, connectionId),
+      })
+    },
+  })
+}
+
+export function useDeleteCrmInstagramMedia(
+  workspaceId: string,
+  connectionId?: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (mediaId: string) =>
+      fetchCrmSocial<CrmDeleteInstagramMediaResult>(
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/instagram/posts/${mediaId}`,
+          connectionId,
+        ),
+        { method: 'DELETE' },
+        'Falha ao excluir a publicação',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: mediaKey(workspaceId, connectionId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: storiesKey(workspaceId, connectionId),
       })
       queryClient.invalidateQueries({
         queryKey: engagementKey(workspaceId, connectionId),

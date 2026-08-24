@@ -13,6 +13,17 @@ import {
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -23,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   isCrmSocialReconnectError,
   useCrmLinkedinOverview,
+  useDeleteCrmLinkedinPost,
   usePublishCrmLinkedinPost,
 } from '@/src/hooks/use-crm-social-linkedin'
 import type { CrmLinkedinOverview } from '@/src/schemas/crm-social-linkedin.schema'
@@ -153,8 +165,10 @@ function PostComposer({
   overview: CrmLinkedinOverview
 }) {
   const publish = usePublishCrmLinkedinPost(workspaceId)
+  const deletePost = useDeleteCrmLinkedinPost(workspaceId)
   const [text, setText] = useState('')
   const [image, setImage] = useState<File | null>(null)
+  const [lastPostUrn, setLastPostUrn] = useState<string | null>(null)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -163,10 +177,13 @@ function PostComposer({
     if (image) form.set('image', image)
 
     try {
-      await publish.mutateAsync(form)
+      const result = await publish.mutateAsync(form)
       toast.success('Post publicado no LinkedIn.')
       setText('')
       setImage(null)
+      setLastPostUrn(
+        result.postUrn && result.postUrn !== 'unknown' ? result.postUrn : null,
+      )
     } catch (error) {
       if (isCrmSocialReconnectError(error)) {
         toast.error(`${error.message} Reconecte a conta nas configurações.`)
@@ -221,6 +238,63 @@ function PostComposer({
             </div>
           </form>
         </Card>
+
+        {lastPostUrn && (
+          <Card className='flex items-center justify-between gap-3 p-3'>
+            <p className='text-muted-foreground text-xs'>
+              Publicado. O LinkedIn não lista posts antigos via API, então só é
+              possível excluir o que acabou de ser publicado.
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger
+                render={
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    className='shrink-0 text-destructive hover:text-destructive'
+                  >
+                    Excluir
+                  </Button>
+                }
+              />
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir publicação</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita — a publicação será removida
+                    do LinkedIn.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deletePost.isPending}>
+                    Cancelar
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    variant='destructive'
+                    disabled={deletePost.isPending}
+                    onClick={() => {
+                      deletePost.mutate(lastPostUrn, {
+                        onSuccess: () => {
+                          toast.success('Publicação excluída.')
+                          setLastPostUrn(null)
+                        },
+                        onError: (error) =>
+                          toast.error(
+                            error instanceof Error
+                              ? error.message
+                              : 'Falha ao excluir a publicação',
+                          ),
+                      })
+                    }}
+                  >
+                    {deletePost.isPending ? 'Excluindo…' : 'Excluir'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </Card>
+        )}
       </div>
       <div className='space-y-3'>
         <h3 className='font-heading font-semibold text-base text-muted-foreground tracking-tight'>

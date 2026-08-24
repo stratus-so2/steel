@@ -9,14 +9,16 @@ import type { SocialAccount, SocialProvider, TokenSet } from './types'
  * better-auth.
  *
  * Escopos: ver canal/vídeos (`youtube.readonly`), métricas
- * (`yt-analytics.readonly`) e upload de vídeo (`youtube.upload`). Ao mudar
- * esta lista, contas já conectadas precisam reconectar para reconsentir —
- * o service detecta scope ausente.
+ * (`yt-analytics.readonly`), upload de vídeo (`youtube.upload`) e gerenciar
+ * vídeos — inclui excluir (`youtube.force-ssl`; `videos.delete` não aceita
+ * `youtube.upload`). Ao mudar esta lista, contas já conectadas precisam
+ * reconectar para reconsentir — o service detecta scope ausente.
  */
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
   'https://www.googleapis.com/auth/yt-analytics.readonly',
   'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
 ]
 const SCOPE = SCOPES.join(' ')
 

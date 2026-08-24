@@ -1,6 +1,7 @@
 import { crmSocialOauthFailed, crmSocialScopeMissing } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
+  deleteRequest,
   getJson,
   postForm,
   postMultipart,
@@ -26,6 +27,7 @@ const REQUIRED_SCOPES = {
   read: 'pages_read_engagement',
   insights: 'read_insights',
   publish: 'pages_manage_posts',
+  delete: 'pages_manage_posts',
 } as const
 
 /**
@@ -323,4 +325,29 @@ export async function publishPost(
       image,
     },
   )
+}
+
+/** Exclui um post da Página. */
+export async function deletePost(
+  actorId: string,
+  workspaceId: string,
+  postId: string,
+  connectionId?: string,
+): Promise<Result<{ deletedId: string }>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
+  if (!fresh.ok) return fresh
+  if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.delete)) {
+    return err(crmSocialScopeMissing())
+  }
+
+  const result = await deleteRequest<{ success?: boolean }>(
+    `${GRAPH}/${postId}`,
+    fresh.value.accessToken,
+  )
+  if (!result.ok) return result
+  if (!result.value.success) return err(crmSocialOauthFailed())
+  return ok({ deletedId: postId })
 }

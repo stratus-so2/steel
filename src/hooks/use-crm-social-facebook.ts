@@ -174,3 +174,27 @@ export function usePublishCrmFacebookPost(
     },
   })
 }
+
+export function useDeleteCrmFacebookPost(
+  workspaceId: string,
+  connectionId?: string,
+) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (postId: string) =>
+      fetchCrmSocial<{ deletedId: string }>(
+        withConnectionId(
+          `/api/workspaces/${workspaceId}/crm/social/facebook/posts/${postId}`,
+          connectionId,
+        ),
+        { method: 'DELETE' },
+        'Falha ao excluir a publicação',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: postsKey(workspaceId, connectionId),
+      })
+    },
+  })
+}

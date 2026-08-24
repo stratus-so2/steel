@@ -2,9 +2,14 @@ import { BETTER_AUTH_URL } from '@/lib/env/server'
 import { crmSocialOauthFailed, crmSocialScopeMissing } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { putBlob, removeBlob } from '@/src/lib/social/blob-store'
-import { getJson, postForm } from '@/src/lib/social/providers/http'
+import {
+  deleteRequest,
+  getJson,
+  postForm,
+} from '@/src/lib/social/providers/http'
 import {
   CRM_IG_INSIGHTS_RANGE_DAYS,
+  type CrmInstagramActiveStory,
   type CrmInstagramInsights,
   type CrmInstagramInsightsPoint,
   type CrmInstagramInsightsRange,
@@ -27,6 +32,7 @@ const REQUIRED_SCOPES = {
   read: 'instagram_basic',
   insights: 'instagram_manage_insights',
   publish: 'instagram_content_publish',
+  delete: 'instagram_manage_contents',
 } as const
 
 /**
@@ -216,16 +222,6 @@ async function fetchMediaSaved(
   )
   if (!result.ok) return 0
   return toInt(result.value.data?.[0]?.values?.[0]?.value)
-}
-
-/** Story ainda ativa — a API só devolve o que não expirou (sem histórico após 24h). */
-export type CrmInstagramActiveStory = {
-  id: string
-  mediaUrl: string | null
-  timestamp: string
-  permalink: string | null
-  /** Alcance (contas únicas que viram) — proxy de engajamento pra Stories, que não têm like/comment público. */
-  reach: number
 }
 
 /**
@@ -587,4 +583,63 @@ export async function publishPost(
   } finally {
     await removeBlob(token)
   }
+}
+
+/** Stories ativas (últimas 24h). */
+export async function getStories(
+  actorId: string,
+  workspaceId: string,
+  connectionId?: string,
+): Promise<Result<{ stories: CrmInstagramActiveStory[] }>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
+  if (!fresh.ok) return fresh
+  if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.read)) {
+    return err(crmSocialScopeMissing())
+  }
+  const result = await fetchActiveStories(
+    fresh.value.accessToken,
+    fresh.value.connection.externalAccountId,
+  )
+  if (!result.ok) return result
+  return ok({ stories: result.value })
+}
+
+/**
+ * Exclui uma mídia (post, reel ou story). Não suportado para mídia
+ * individual dentro de um álbum carrossel — a Meta exige excluir o álbum
+ * inteiro pelo id do container.
+ */
+export async function deleteMedia(
+  actorId: string,
+  workspaceId: string,
+  mediaId: string,
+  connectionId?: string,
+): Promise<Result<{ deletedId: string }>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const fresh = await getFreshAccessToken(
+    workspaceId,
+    'INSTAGRAM',
+    connectionId,
+  )
+  if (!fresh.ok) return fresh
+  if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.delete)) {
+    return err(crmSocialScopeMissing())
+  }
+
+  const result = await deleteRequest<{ success?: boolean }>(
+    `${GRAPH}/${mediaId}`,
+    fresh.value.accessToken,
+  )
+  if (!result.ok) return result
+  if (!result.value.success) return err(crmSocialOauthFailed())
+  return ok({ deletedId: mediaId })
 }

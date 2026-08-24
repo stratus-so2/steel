@@ -152,3 +152,37 @@ export const CrmInstagramWeeklyEngagementSchema = z.object({
 export type CrmInstagramWeeklyEngagement = z.infer<
   typeof CrmInstagramWeeklyEngagementSchema
 >
+
+/**
+ * Story ativa (últimas 24h) — a Graph API só devolve o que ainda não
+ * expirou, sem histórico. Sem `caption`/`like_count`/`comments_count`: a
+ * API não expõe esses campos pra stories. `reach` é o único proxy de
+ * engajamento disponível.
+ */
+export const CrmInstagramActiveStorySchema = z.object({
+  id: z.string(),
+  mediaUrl: z.string().nullable(),
+  timestamp: z.string(),
+  permalink: z.string().nullable(),
+  reach: z.number().int().nonnegative(),
+})
+
+export type CrmInstagramActiveStory = z.infer<
+  typeof CrmInstagramActiveStorySchema
+>
+
+export const CrmInstagramStoriesListSchema = z.object({
+  stories: z.array(CrmInstagramActiveStorySchema),
+})
+
+export type CrmInstagramStoriesList = z.infer<
+  typeof CrmInstagramStoriesListSchema
+>
+
+export const CrmDeleteInstagramMediaResultSchema = z.object({
+  deletedId: z.string(),
+})
+
+export type CrmDeleteInstagramMediaResult = z.infer<
+  typeof CrmDeleteInstagramMediaResultSchema
+>

@@ -48,6 +48,18 @@ async function postCrmSocialForm<T>(
   return json.data
 }
 
+async function deleteCrmSocial<T>(url: string, fallback: string): Promise<T> {
+  const res = await fetch(url, { method: 'DELETE' })
+  const json: HttpResponse<T> = await res.json().catch(() => ({
+    success: false,
+    statusCode: res.status,
+  }))
+  if (!res.ok || !json.success || json.data === undefined) {
+    throw new CrmSocialApiError(json.message ?? fallback, json.error?.code)
+  }
+  return json.data
+}
+
 function youtubeOverviewKey(workspaceId: string) {
   return ['crm-youtube-overview', workspaceId] as const
 }
@@ -126,6 +138,24 @@ export function usePublishCrmYoutubeVideo(workspaceId: string) {
       queryClient.invalidateQueries({
         queryKey: ['crm-youtube-insights', workspaceId],
       })
+    },
+  })
+}
+
+export function useDeleteCrmYoutubeVideo(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (videoId: string) =>
+      deleteCrmSocial<{ deletedId: string }>(
+        `/api/workspaces/${workspaceId}/crm/social/youtube/posts/${videoId}`,
+        'Falha ao excluir o vídeo',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: youtubeOverviewKey(workspaceId),
+      })
+      queryClient.invalidateQueries({ queryKey: youtubeVideosKey(workspaceId) })
     },
   })
 }

@@ -141,6 +141,42 @@ export async function postMultipart<T>(
   }
 }
 
+/**
+ * DELETE autenticado por Bearer (ou sem) e devolve o JSON, ou `crmSocialOauthFailed`.
+ * Algumas APIs (ex.: YouTube) respondem `204 No Content` num delete bem-sucedido
+ * — corpo vazio vira `{}` em vez de tentar parsear JSON inexistente.
+ */
+export async function deleteRequest<T>(
+  url: string,
+  accessToken?: string,
+  extraHeaders: Record<string, string> = {},
+): Promise<Result<T>> {
+  try {
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        Accept: 'application/json',
+        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+        ...extraHeaders,
+      },
+    })
+    const bodyText = await response.text().catch(() => '')
+    if (!response.ok) {
+      console.error(
+        '[social] DELETE falhou',
+        url,
+        response.status,
+        bodyText.slice(0, 500),
+      )
+      return err(crmSocialOauthFailed(graphErrorMessage(bodyText)))
+    }
+    return ok((bodyText ? JSON.parse(bodyText) : {}) as T)
+  } catch (error) {
+    console.error('[social] DELETE erro de rede', url, error)
+    return err(crmSocialOauthFailed())
+  }
+}
+
 /** `expires_in` (segundos) → `Date` absoluta, ou `null` quando ausente. */
 export function expiresInToDate(expiresIn: unknown): Date | null {
   return typeof expiresIn === 'number' && expiresIn > 0

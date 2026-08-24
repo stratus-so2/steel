@@ -12,6 +12,17 @@ import {
 import { ResponsiveLine } from '@nivo/line'
 import { useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -27,6 +38,7 @@ import {
   useCrmFacebookInsights,
   useCrmFacebookOverview,
   useCrmFacebookPosts,
+  useDeleteCrmFacebookPost,
   usePublishCrmFacebookPost,
 } from '@/src/hooks/use-crm-social-facebook'
 import type {
@@ -198,10 +210,14 @@ function FacebookPostModal({
   post,
   pageName,
   avatarUrl,
+  deleting,
+  onDelete,
 }: {
   post: CrmFacebookPost
   pageName: string
   avatarUrl?: string | null
+  deleting: boolean
+  onDelete: () => void
 }) {
   const date = post.createdTime
     ? new Date(post.createdTime).toLocaleDateString('pt-BR', {
@@ -297,6 +313,42 @@ function FacebookPostModal({
             Abrir no Facebook
           </a>
         )}
+
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='w-full text-destructive hover:text-destructive'
+              >
+                Excluir publicação
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir publicação</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita — a publicação será removida do
+                Facebook.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant='destructive'
+                disabled={deleting}
+                onClick={onDelete}
+              >
+                {deleting ? 'Excluindo…' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )
@@ -416,6 +468,7 @@ export function CrmFacebookStudio({
   const overviewQuery = useCrmFacebookOverview(workspaceId, connectionId)
   const postsQuery = useCrmFacebookPosts(workspaceId, connectionId)
   const insightsQuery = useCrmFacebookInsights(workspaceId, range, connectionId)
+  const deletePost = useDeleteCrmFacebookPost(workspaceId, connectionId)
 
   const overview = overviewQuery.data
   const posts = postsQuery.data
@@ -731,6 +784,17 @@ export function CrmFacebookStudio({
               post={selectedPost}
               pageName={overview.name}
               avatarUrl={overview.pictureUrl}
+              deleting={deletePost.isPending}
+              onDelete={() => {
+                deletePost.mutate(selectedPost.id, {
+                  onSuccess: () => {
+                    notify.success('Publicação excluída.')
+                    setSelectedPost(null)
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Falha ao excluir a publicação'),
+                })
+              }}
             />
           )}
         </DialogContent>

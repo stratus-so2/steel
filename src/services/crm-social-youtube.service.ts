@@ -1,6 +1,6 @@
 import { crmSocialOauthFailed, crmSocialScopeMissing } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
-import { getJson } from '@/src/lib/social/providers/http'
+import { deleteRequest, getJson } from '@/src/lib/social/providers/http'
 import type {
   CrmSocialYoutubeInsightsDTO,
   CrmSocialYoutubeInsightsPointDTO,
@@ -25,6 +25,7 @@ const REQUIRED_SCOPES = {
   read: 'youtube.readonly',
   analytics: 'yt-analytics.readonly',
   upload: 'youtube.upload',
+  delete: 'youtube.force-ssl',
 } as const
 
 function hasScope(scope: string | null, needle: string): boolean {
@@ -404,4 +405,27 @@ export async function publishVideo(
     tags: input.tags,
     privacyStatus: input.privacyStatus,
   })
+}
+
+/** Exclui um vídeo do canal. */
+export async function deleteVideo(
+  actorId: string,
+  workspaceId: string,
+  videoId: string,
+): Promise<Result<{ deletedId: string }>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const fresh = await getFreshAccessToken(workspaceId, 'YOUTUBE')
+  if (!fresh.ok) return fresh
+  if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.delete)) {
+    return err(crmSocialScopeMissing())
+  }
+
+  const result = await deleteRequest<Record<string, never>>(
+    `${DATA_API}/videos?id=${encodeURIComponent(videoId)}`,
+    fresh.value.accessToken,
+  )
+  if (!result.ok) return result
+  return ok({ deletedId: videoId })
 }

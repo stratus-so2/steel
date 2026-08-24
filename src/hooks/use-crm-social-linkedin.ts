@@ -84,3 +84,19 @@ export function usePublishCrmLinkedinPost(workspaceId: string) {
       ),
   })
 }
+
+/**
+ * Exclui um post pelo URN (`urn:li:share:…`). O LinkedIn não expõe listagem
+ * de posts do membro, então isso só se aplica ao URN de um post recém
+ * publicado nesta sessão — não há um histórico para navegar e excluir.
+ */
+export function useDeleteCrmLinkedinPost(workspaceId: string) {
+  return useMutation({
+    mutationFn: (postUrn: string) =>
+      fetchCrmSocial<{ deletedId: string }>(
+        `/api/workspaces/${workspaceId}/crm/social/linkedin/posts/${encodeURIComponent(postUrn)}`,
+        { method: 'DELETE' },
+        'Falha ao excluir a publicação',
+      ),
+  })
+}

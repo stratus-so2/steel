@@ -18,6 +18,7 @@ const REQUIRED_SCOPES = {
   overview: 'users.read',
   read: 'tweet.read',
   publish: 'tweet.write',
+  delete: 'tweet.write',
 } as const
 
 function hasScope(scope: string | null, needle: string): boolean {
@@ -136,6 +137,30 @@ async function publishTweet(
   }
 }
 
+async function deleteTweetById(
+  accessToken: string,
+  tweetId: string,
+): Promise<Result<{ deletedId: string }>> {
+  try {
+    const response = await fetch(`${API}/tweets/${tweetId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!response.ok) {
+      await logFailure('tweets delete', response)
+      return err(crmSocialOauthFailed())
+    }
+    const json = (await response.json().catch(() => ({}))) as {
+      data?: { deleted?: boolean }
+    }
+    if (!json.data?.deleted) return err(crmSocialOauthFailed())
+    return ok({ deletedId: tweetId })
+  } catch (error) {
+    console.error('[twitter] tweets delete erro de rede', error)
+    return err(crmSocialOauthFailed())
+  }
+}
+
 async function fetchRecentTweets(
   accessToken: string,
   userId: string,
@@ -229,4 +254,21 @@ export async function publishTweetPost(
     return err(crmSocialScopeMissing())
   }
   return publishTweet(fresh.value.accessToken, { text: input.text, image })
+}
+
+/** Exclui um tweet. */
+export async function deleteTweet(
+  actorId: string,
+  workspaceId: string,
+  tweetId: string,
+): Promise<Result<{ deletedId: string }>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const fresh = await getFreshAccessToken(workspaceId, 'TWITTER')
+  if (!fresh.ok) return fresh
+  if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.delete)) {
+    return err(crmSocialScopeMissing())
+  }
+  return deleteTweetById(fresh.value.accessToken, tweetId)
 }

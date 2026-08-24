@@ -109,3 +109,19 @@ export function usePublishCrmTweet(workspaceId: string) {
     },
   })
 }
+
+export function useDeleteCrmTweet(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (tweetId: string) =>
+      fetchCrmSocial<{ deletedId: string }>(
+        `/api/workspaces/${workspaceId}/crm/social/twitter/posts/${tweetId}`,
+        { method: 'DELETE' },
+        'Falha ao excluir o tweet',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tweetsKey(workspaceId) })
+    },
+  })
+}

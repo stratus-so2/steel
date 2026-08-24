@@ -187,6 +187,26 @@ async function publishPostToLinkedin(
   return ok({ postUrn })
 }
 
+async function deletePostByUrn(
+  accessToken: string,
+  postUrn: string,
+): Promise<Result<{ deletedId: string }>> {
+  const response = await fetch(`${REST}/posts/${encodeURIComponent(postUrn)}`, {
+    method: 'DELETE',
+    headers: headers(accessToken),
+  }).catch((e) => {
+    console.error('[linkedin] deletePost erro de rede', e)
+    return null
+  })
+
+  if (!response) return err(crmSocialOauthFailed())
+  if (!response.ok) {
+    await logFailure('deletePost', response)
+    return err(crmSocialOauthFailed())
+  }
+  return ok({ deletedId: postUrn })
+}
+
 export async function getOverview(
   actorId: string,
   workspaceId: string,
@@ -229,4 +249,25 @@ export async function publishPost(
     input.text,
     image,
   )
+}
+
+/**
+ * Exclui um post pelo URN retornado na publicação (`urn:li:share:…`). Sem
+ * listagem — a Posts API não expõe um endpoint de "meus posts recentes"
+ * para perfis pessoais, então isso só funciona com um URN já conhecido.
+ */
+export async function deletePost(
+  actorId: string,
+  workspaceId: string,
+  postUrn: string,
+): Promise<Result<{ deletedId: string }>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const fresh = await getFreshAccessToken(workspaceId, 'LINKEDIN')
+  if (!fresh.ok) return fresh
+  if (!hasScope(fresh.value.connection.scope, REQUIRED_SCOPES.write)) {
+    return err(crmSocialScopeMissing())
+  }
+  return deletePostByUrn(fresh.value.accessToken, postUrn)
 }

@@ -14,6 +14,17 @@ import { ResponsiveLine } from '@nivo/line'
 import type { ChangeEvent, SyntheticEvent } from 'react'
 import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -35,6 +46,7 @@ import {
   useCrmYoutubeInsights,
   useCrmYoutubeOverview,
   useCrmYoutubeVideos,
+  useDeleteCrmYoutubeVideo,
   usePublishCrmYoutubeVideo,
 } from '@/src/hooks/use-crm-social-youtube'
 import type {
@@ -235,10 +247,14 @@ function YoutubeVideoModal({
   video,
   channelTitle,
   channelThumbnailUrl,
+  deleting,
+  onDelete,
 }: {
   video: CrmSocialYoutubeVideoDTO
   channelTitle: string
   channelThumbnailUrl?: string | null
+  deleting: boolean
+  onDelete: () => void
 }) {
   const date = video.publishedAt
     ? new Date(video.publishedAt).toLocaleDateString('pt-BR', {
@@ -329,6 +345,42 @@ function YoutubeVideoModal({
             </div>
           ))}
         </div>
+
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='w-full text-destructive hover:text-destructive'
+              >
+                Excluir vídeo
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir vídeo</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita — o vídeo será removido do
+                YouTube.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                variant='destructive'
+                disabled={deleting}
+                onClick={onDelete}
+              >
+                {deleting ? 'Excluindo…' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )
@@ -531,6 +583,7 @@ export function CrmYoutubeStudio({ workspaceId }: { workspaceId: string }) {
   const videosQuery = useCrmYoutubeVideos(workspaceId)
   const [range, setRange] = useState<CrmSocialYoutubeInsightsRange>('28d')
   const insightsQuery = useCrmYoutubeInsights(workspaceId, range)
+  const deleteVideo = useDeleteCrmYoutubeVideo(workspaceId)
 
   const overview = overviewQuery.data
   const videos = videosQuery.data
@@ -834,6 +887,20 @@ export function CrmYoutubeStudio({ workspaceId }: { workspaceId: string }) {
               video={selectedVideo}
               channelTitle={overview.title}
               channelThumbnailUrl={overview.thumbnailUrl}
+              deleting={
+                deleteVideo.isPending &&
+                deleteVideo.variables === selectedVideo.videoId
+              }
+              onDelete={() => {
+                deleteVideo.mutate(selectedVideo.videoId, {
+                  onSuccess: () => {
+                    notify.success('Vídeo excluído.')
+                    setSelectedVideo(null)
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Falha ao excluir o vídeo'),
+                })
+              }}
             />
           )}
         </DialogContent>
