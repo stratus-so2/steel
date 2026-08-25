@@ -211,6 +211,9 @@ export type CrmSocialPublishJobPayload = {
     kind: 'IMAGE' | 'VIDEO'
     caption: string
     postType: 'FEED' | 'REELS' | 'STORIES'
+    /** Capa opcional (só Reels) — mesmo bucket temporário da mídia principal. */
+    coverObjectKey?: string
+    coverContentType?: string
   }
   [CrmSocialPublishJob.PublishFacebookVideo]: {
     actorId: string

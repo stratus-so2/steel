@@ -364,6 +364,7 @@ async function publishToInstagram(
     postType: CrmInstagramPostType
     imageUrl?: string | null
     videoUrl?: string | null
+    coverUrl?: string | null
   },
 ): Promise<Result<CrmPublishInstagramPostResult>> {
   const containerBody: Record<string, string> = {}
@@ -374,6 +375,7 @@ async function publishToInstagram(
     containerBody.video_url = args.videoUrl
     containerBody.share_to_feed = 'true'
     if (args.caption) containerBody.caption = args.caption
+    if (args.coverUrl) containerBody.cover_url = args.coverUrl
   } else if (args.postType === 'STORIES') {
     containerBody.media_type = 'STORIES'
     if (args.videoUrl) {
@@ -558,7 +560,8 @@ export async function getWeeklyEngagement(
  * Graph IG não aceita upload direto — exige uma URL pública. Hospedamos os
  * bytes no `blob-store`, geramos uma URL pública sob
  * `${BETTER_AUTH_URL}/api/social/blob/<token>` e a passamos ao Graph; após o
- * publish, o blob é removido.
+ * publish, o blob é removido. `cover` (opcional, só usado em Reels) segue o
+ * mesmo caminho — vira um segundo blob/URL pública para `cover_url`.
  */
 export async function publishPost(
   actorId: string,
@@ -566,6 +569,7 @@ export async function publishPost(
   input: CrmPublishInstagramPostInput,
   media: { bytes: ArrayBuffer; contentType: string; kind: 'IMAGE' | 'VIDEO' },
   connectionId?: string,
+  cover?: { bytes: ArrayBuffer; contentType: string } | null,
 ): Promise<Result<CrmPublishInstagramPostResult>> {
   const membership = await assertMember(actorId, workspaceId)
   if (!membership.ok) return membership
@@ -582,6 +586,12 @@ export async function publishPost(
 
   const token = await putBlob(media.bytes, media.contentType)
   const url = `${BETTER_AUTH_URL.replace(/\/$/, '')}/api/social/blob/${token}`
+  const coverToken = cover
+    ? await putBlob(cover.bytes, cover.contentType)
+    : null
+  const coverUrl = coverToken
+    ? `${BETTER_AUTH_URL.replace(/\/$/, '')}/api/social/blob/${coverToken}`
+    : null
   try {
     return await publishToInstagram(
       fresh.value.accessToken,
@@ -591,10 +601,12 @@ export async function publishPost(
         postType: input.postType,
         imageUrl: media.kind === 'IMAGE' ? url : null,
         videoUrl: media.kind === 'VIDEO' ? url : null,
+        coverUrl,
       },
     )
   } finally {
     await removeBlob(token)
+    if (coverToken) await removeBlob(coverToken)
   }
 }
 

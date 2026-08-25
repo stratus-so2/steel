@@ -84,6 +84,8 @@ async function processPublishInstagramMedia(
     kind,
     caption,
     postType,
+    coverObjectKey,
+    coverContentType,
   } = job.data
   try {
     let bytes = toArrayBuffer(
@@ -105,6 +107,18 @@ async function processPublishInstagramMedia(
       bytes = normalized.value
     }
 
+    const cover = coverObjectKey
+      ? {
+          bytes: toArrayBuffer(
+            await getObject({
+              bucket: CRM_SOCIAL_PUBLISH_TMP_BUCKET,
+              key: coverObjectKey,
+            }),
+          ),
+          contentType: coverContentType || 'image/jpeg',
+        }
+      : null
+
     const result = await CrmSocialInstagramService.publishPost(
       actorId,
       workspaceId,
@@ -115,6 +129,7 @@ async function processPublishInstagramMedia(
         kind,
       },
       connectionId,
+      cover,
     )
     if (!result.ok) {
       return {
@@ -136,6 +151,19 @@ async function processPublishInstagramMedia(
         message: error instanceof Error ? error.message : String(error),
       })
     })
+    if (coverObjectKey) {
+      await deleteObject({
+        bucket: CRM_SOCIAL_PUBLISH_TMP_BUCKET,
+        key: coverObjectKey,
+      }).catch((error) => {
+        logger.error('queue.crm_social_publish.tmp_cleanup_failed', {
+          component: 'CrmSocialPublish',
+          jobId: job.id,
+          objectKey: coverObjectKey,
+          message: error instanceof Error ? error.message : String(error),
+        })
+      })
+    }
   }
 }
 

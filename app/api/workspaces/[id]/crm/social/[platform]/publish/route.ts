@@ -285,6 +285,21 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
       return handleError(badRequest('Publicação no feed exige uma imagem'))
     }
 
+    // Capa (opcional) — só faz sentido em Reels, a Meta aceita `cover_url`
+    // como imagem de thumbnail alternativa ao frame padrão do vídeo.
+    let coverObjectKey: string | undefined
+    let coverContentType: string | undefined
+    if (parsed.data.postType === 'REELS') {
+      const coverField = form.get('cover')
+      if (coverField instanceof File && coverField.size > 0) {
+        if (coverField.size > MAX_IMAGE_BYTES) {
+          return handleError(badRequest('Capa excede o tamanho máximo (10 MB)'))
+        }
+        coverObjectKey = await storeTmpMedia(id, coverField)
+        coverContentType = coverField.type || 'image/jpeg'
+      }
+    }
+
     const objectKey = await storeTmpMedia(id, mediaFile)
     const job = await getCrmSocialPublishQueue().add(
       CrmSocialPublishJob.PublishInstagramMedia,
@@ -298,6 +313,8 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
         kind,
         caption: parsed.data.caption,
         postType: parsed.data.postType,
+        coverObjectKey,
+        coverContentType,
       },
       { attempts: 1 },
     )

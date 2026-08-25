@@ -500,6 +500,7 @@ function PostComposer({
   postType,
   onPostTypeChange,
   onMediaChange,
+  onCoverChange,
 }: {
   workspaceId: string
   connectionId?: string
@@ -508,6 +509,7 @@ function PostComposer({
   postType: CrmInstagramPostType
   onPostTypeChange: (v: CrmInstagramPostType) => void
   onMediaChange: (f: File | undefined) => void
+  onCoverChange: (f: File | undefined) => void
 }) {
   const publish = usePublishCrmInstagramPost(workspaceId, connectionId)
 
@@ -547,6 +549,10 @@ function PostComposer({
     }
     form.delete('media')
     form.set(isVideo ? 'video' : 'image', file)
+    const cover = form.get('cover')
+    const hasCover =
+      postType === 'REELS' && cover instanceof File && cover.size > 0
+    if (!hasCover) form.delete('cover')
     if (connectionId) form.set('connectionId', connectionId)
 
     try {
@@ -555,6 +561,7 @@ function PostComposer({
       formEl.reset()
       onCaptionChange('')
       onMediaChange(undefined)
+      onCoverChange(undefined)
     } catch (err) {
       if (err instanceof CrmSocialApiError && isCrmSocialReconnectError(err)) {
         notify.error(`${err.message} Reconecte a conta nas configurações.`)
@@ -625,6 +632,23 @@ function PostComposer({
           <p className='text-muted-foreground text-xs'>{mediaHint}</p>
         </div>
 
+        {postType === 'REELS' && (
+          <div className='space-y-1.5'>
+            <Label htmlFor='ig-cover'>Capa (opcional)</Label>
+            <Input
+              id='ig-cover'
+              name='cover'
+              type='file'
+              accept='image/*'
+              onChange={(e) => onCoverChange(e.target.files?.[0])}
+            />
+            <p className='text-muted-foreground text-xs'>
+              Imagem de capa do Reels (JPEG, até 10 MB). Sem ela, a Meta usa um
+              frame do próprio vídeo.
+            </p>
+          </div>
+        )}
+
         <div className='flex justify-end'>
           <Button type='submit' disabled={publish.isPending}>
             {publish.isPending ? 'Publicando…' : 'Publicar'}
@@ -646,6 +670,7 @@ export function CrmInstagramStudio({
   const [caption, setCaption] = useState('')
   const [postType, setPostType] = useState<CrmInstagramPostType>('FEED')
   const [mediaFile, setMediaFile] = useState<File | undefined>()
+  const [, setCoverFile] = useState<File | undefined>()
   const [selectedMedia, setSelectedMedia] = useState<CrmInstagramMedia | null>(
     null,
   )
@@ -875,6 +900,7 @@ export function CrmInstagramStudio({
                 postType={postType}
                 onPostTypeChange={setPostType}
                 onMediaChange={setMediaFile}
+                onCoverChange={setCoverFile}
               />
             </div>
             <div className='space-y-3'>
