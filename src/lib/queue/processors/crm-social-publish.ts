@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
+import { normalizeInstagramVideo } from '@/src/lib/social/video-normalize'
 import { deleteObject, getObject } from '@/src/lib/storage/s3'
 import * as CrmSocialInstagramService from '@/src/services/crm-social-instagram.service'
 import * as CrmSocialYoutubeService from '@/src/services/crm-social-youtube.service'
@@ -81,18 +82,34 @@ async function processPublishInstagramMedia(
     postType,
   } = job.data
   try {
-    const bytes = toArrayBuffer(
+    let bytes = toArrayBuffer(
       await getObject({
         bucket: CRM_SOCIAL_PUBLISH_TMP_BUCKET,
         key: objectKey,
       }),
     )
 
+    if (kind === 'VIDEO') {
+      const normalized = await normalizeInstagramVideo(bytes, postType)
+      if (!normalized.ok) {
+        return {
+          ok: false,
+          code: normalized.error.code,
+          message: normalized.error.message,
+        }
+      }
+      bytes = normalized.value
+    }
+
     const result = await CrmSocialInstagramService.publishPost(
       actorId,
       workspaceId,
       { caption, postType },
-      { bytes, contentType, kind },
+      {
+        bytes,
+        contentType: kind === 'VIDEO' ? 'video/mp4' : contentType,
+        kind,
+      },
       connectionId,
     )
     if (!result.ok) {

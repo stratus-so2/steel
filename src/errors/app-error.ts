@@ -460,6 +460,9 @@ export const crmSocialScopeMissing = (): AppError =>
     'A conexão não concedeu a permissão necessária — reconecte a conta',
   )
 
+export const crmSocialVideoInvalid = (message: string): AppError =>
+  appError('CRM_SOCIAL_VIDEO_INVALID', message)
+
 export const crmCompetitorProfileNotFound = (): AppError =>
   appError(
     'CRM_COMPETITOR_PROFILE_NOT_FOUND',

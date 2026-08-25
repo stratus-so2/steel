@@ -66,7 +66,9 @@ RUN rm -rf /usr/local/lib/node_modules/npm \
 
 # pg_dump/pg_restore usados pelo worker para backup/restore do banco —
 # versão do pacote tem que casar com o major do postgres:17-alpine usado em produção.
-RUN apk add --no-cache postgresql17-client
+# ffmpeg/ffprobe usados pelo worker para normalizar vídeo antes do publish no
+# Instagram (remove edit list e garante moov no início — exigência da Meta).
+RUN apk add --no-cache postgresql17-client ffmpeg
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

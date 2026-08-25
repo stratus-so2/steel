@@ -64,6 +64,7 @@ export {
   crmSocialScopeMissing,
   crmSocialStateInvalid,
   crmSocialTokenExpired,
+  crmSocialVideoInvalid,
   crmTaskNotFound,
   crmTrackedCompetitorNotFound,
   crmWorkflowExecutionFailed,
