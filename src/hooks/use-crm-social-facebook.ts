@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { pollCrmSocialPublishJob } from '@/src/hooks/crm-social-job-poll'
 import type {
   CrmFacebookInsights,
   CrmFacebookInsightsRange,
@@ -161,12 +162,24 @@ export function usePublishCrmFacebookPost(
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (form: FormData) =>
-      fetchCrmSocial<CrmPublishFacebookPostResult>(
+    mutationFn: async (form: FormData) => {
+      const data = await fetchCrmSocial<
+        CrmPublishFacebookPostResult | { jobId: string }
+      >(
         `/api/workspaces/${workspaceId}/crm/social/facebook/publish`,
         { method: 'POST', body: form },
         'Falha ao publicar no Facebook',
-      ),
+      )
+      // Vídeo devolve `{ jobId }` (202) e vai pra fila — texto/imagem
+      // continuam devolvendo o post publicado direto (201).
+      if ('jobId' in data) {
+        return pollCrmSocialPublishJob<CrmPublishFacebookPostResult>(
+          `/api/workspaces/${workspaceId}/crm/social/facebook/publish/${data.jobId}`,
+          (message, code) => new CrmSocialApiError(code ?? 'UNKNOWN', message),
+        )
+      }
+      return data
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: postsKey(workspaceId, connectionId),

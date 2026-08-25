@@ -150,8 +150,9 @@ async function fetchInsights(
 }
 
 /**
- * Publica na Página. Com imagem → `/photos` (a imagem vira o post, com a
- * mensagem como legenda); sem imagem → `/feed` (mensagem + link opcional).
+ * Publica na Página. Com vídeo → `/videos` (vira um post de vídeo, com a
+ * mensagem como descrição); com imagem → `/photos` (a imagem vira o post,
+ * com a mensagem como legenda); sem mídia → `/feed` (mensagem + link opcional).
  */
 async function publishToFacebook(
   pageToken: string,
@@ -159,16 +160,39 @@ async function publishToFacebook(
   args: {
     message: string
     link: string | null
-    image: { bytes: ArrayBuffer; contentType: string } | null
+    media: {
+      bytes: ArrayBuffer
+      contentType: string
+      kind: 'IMAGE' | 'VIDEO'
+    } | null
   },
 ): Promise<Result<CrmPublishFacebookPostResult>> {
-  if (args.image) {
+  if (args.media?.kind === 'VIDEO') {
+    const form = new FormData()
+    form.set('access_token', pageToken)
+    if (args.message) form.set('description', args.message)
+    form.set(
+      'source',
+      new Blob([args.media.bytes], { type: args.media.contentType }),
+      'upload',
+    )
+    const result = await postMultipart<{ id?: string }>(
+      `${GRAPH}/${pageId}/videos`,
+      form,
+    )
+    if (!result.ok) return result
+    const postId = result.value.id
+    if (!postId) return err(crmSocialOauthFailed())
+    return ok({ postId, url: `https://www.facebook.com/${postId}` })
+  }
+
+  if (args.media?.kind === 'IMAGE') {
     const form = new FormData()
     form.set('access_token', pageToken)
     if (args.message) form.set('message', args.message)
     form.set(
       'source',
-      new Blob([args.image.bytes], { type: args.image.contentType }),
+      new Blob([args.media.bytes], { type: args.media.contentType }),
       'upload',
     )
     const result = await postMultipart<{ id?: string; post_id?: string }>(
@@ -300,12 +324,16 @@ export async function getRecentPosts(
   )
 }
 
-/** Publica um post (texto/link, ou imagem com legenda) na Página. */
+/** Publica um post (texto/link, imagem ou vídeo com legenda) na Página. */
 export async function publishPost(
   actorId: string,
   workspaceId: string,
   input: CrmPublishFacebookPostInput,
-  image: { bytes: ArrayBuffer; contentType: string } | null,
+  media: {
+    bytes: ArrayBuffer
+    contentType: string
+    kind: 'IMAGE' | 'VIDEO'
+  } | null,
   connectionId?: string,
 ): Promise<Result<CrmPublishFacebookPostResult>> {
   const membership = await assertMember(actorId, workspaceId)
@@ -322,7 +350,7 @@ export async function publishPost(
     {
       message: input.message,
       link: input.link,
-      image,
+      media,
     },
   )
 }

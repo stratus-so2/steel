@@ -115,23 +115,26 @@ function FacebookPostPreview({
   avatarUrl,
   message,
   imageFile,
+  videoFile,
 }: {
   pageName: string
   avatarUrl?: string | null
   message: string
   imageFile?: File
+  videoFile?: File
 }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const mediaFile = videoFile ?? imageFile
 
   useEffect(() => {
-    if (!imageFile) {
+    if (!mediaFile) {
       setPreviewUrl(null)
       return
     }
-    const url = URL.createObjectURL(imageFile)
+    const url = URL.createObjectURL(mediaFile)
     setPreviewUrl(url)
     return () => URL.revokeObjectURL(url)
-  }, [imageFile])
+  }, [mediaFile])
 
   return (
     <div className='mx-auto max-w-[380px] overflow-hidden rounded-xl border border-border/70 bg-background shadow-sm'>
@@ -167,7 +170,17 @@ function FacebookPostPreview({
         </p>
       )}
 
-      {previewUrl && (
+      {previewUrl && videoFile && (
+        <div className='aspect-[4/3] w-full bg-black'>
+          <video
+            src={previewUrl}
+            controls
+            muted
+            className='size-full object-contain'
+          />
+        </div>
+      )}
+      {previewUrl && !videoFile && (
         <div className='aspect-[4/3] w-full bg-muted'>
           <img
             src={previewUrl}
@@ -360,12 +373,14 @@ function PostComposer({
   message,
   onMessageChange,
   onImageChange,
+  onVideoChange,
 }: {
   workspaceId: string
   connectionId?: string
   message: string
   onMessageChange: (v: string) => void
   onImageChange: (f: File | undefined) => void
+  onVideoChange: (f: File | undefined) => void
 }) {
   const publish = usePublishCrmFacebookPost(workspaceId, connectionId)
 
@@ -377,12 +392,21 @@ function PostComposer({
     const msg = (form.get('message') as string | null)?.trim() ?? ''
     const link = (form.get('link') as string | null)?.trim() ?? ''
     const image = form.get('image')
+    const video = form.get('video')
     const hasImage = image instanceof File && image.size > 0
-    if (!msg && !link && !hasImage) {
-      notify.error('Escreva uma mensagem, um link ou anexe uma imagem.')
+    const hasVideo = video instanceof File && video.size > 0
+    if (!msg && !link && !hasImage && !hasVideo) {
+      notify.error('Escreva uma mensagem, um link ou anexe uma imagem/vídeo.')
       return
     }
     if (!link) form.delete('link')
+    // Imagem e vídeo usam endpoints diferentes na Meta — só um por post.
+    // Vídeo tem prioridade se os dois forem selecionados.
+    if (hasVideo) {
+      form.delete('image')
+    } else {
+      form.delete('video')
+    }
     if (!hasImage) form.delete('image')
     if (connectionId) form.set('connectionId', connectionId)
 
@@ -392,6 +416,7 @@ function PostComposer({
       formEl.reset()
       onMessageChange('')
       onImageChange(undefined)
+      onVideoChange(undefined)
     } catch (err) {
       if (err instanceof CrmSocialApiError && isCrmSocialReconnectError(err)) {
         notify.error(`${err.message} Reconecte a conta nas configurações.`)
@@ -417,16 +442,12 @@ function PostComposer({
           />
         </div>
 
+        <div className='space-y-1.5'>
+          <Label htmlFor='fb-link'>Link (opcional)</Label>
+          <Input id='fb-link' name='link' type='url' placeholder='https://…' />
+        </div>
+
         <div className='grid gap-4 sm:grid-cols-2'>
-          <div className='space-y-1.5'>
-            <Label htmlFor='fb-link'>Link (opcional)</Label>
-            <Input
-              id='fb-link'
-              name='link'
-              type='url'
-              placeholder='https://…'
-            />
-          </div>
           <div className='space-y-1.5'>
             <Label htmlFor='fb-image'>Imagem (opcional)</Label>
             <Input
@@ -434,13 +455,30 @@ function PostComposer({
               name='image'
               type='file'
               accept='image/*'
-              onChange={(e) => onImageChange(e.target.files?.[0])}
+              onChange={(e) => {
+                onImageChange(e.target.files?.[0])
+                if (e.target.files?.[0]) onVideoChange(undefined)
+              }}
+            />
+          </div>
+          <div className='space-y-1.5'>
+            <Label htmlFor='fb-video'>Vídeo (opcional)</Label>
+            <Input
+              id='fb-video'
+              name='video'
+              type='file'
+              accept='video/*'
+              onChange={(e) => {
+                onVideoChange(e.target.files?.[0])
+                if (e.target.files?.[0]) onImageChange(undefined)
+              }}
             />
           </div>
         </div>
         <p className='text-muted-foreground text-xs'>
-          Com imagem, a publicação vira uma foto com a mensagem como legenda.
-          Máximo 10 MB.
+          Imagem ou vídeo — não os dois. Imagem vira uma foto com a mensagem
+          como legenda (máx. 10 MB); vídeo vira uma publicação de vídeo na
+          Página (máx. 256 MB, pode levar alguns minutos para publicar).
         </p>
 
         <div className='flex justify-end'>
@@ -463,6 +501,7 @@ export function CrmFacebookStudio({
   const [range, setRange] = useState<CrmFacebookInsightsRange>('28d')
   const [message, setMessage] = useState('')
   const [imageFile, setImageFile] = useState<File | undefined>()
+  const [videoFile, setVideoFile] = useState<File | undefined>()
   const [selectedPost, setSelectedPost] = useState<CrmFacebookPost | null>(null)
 
   const overviewQuery = useCrmFacebookOverview(workspaceId, connectionId)
@@ -648,6 +687,7 @@ export function CrmFacebookStudio({
                 message={message}
                 onMessageChange={setMessage}
                 onImageChange={setImageFile}
+                onVideoChange={setVideoFile}
               />
             </div>
             <div className='space-y-3'>
@@ -659,6 +699,7 @@ export function CrmFacebookStudio({
                 avatarUrl={overview.pictureUrl}
                 message={message}
                 imageFile={imageFile}
+                videoFile={videoFile}
               />
             </div>
           </div>

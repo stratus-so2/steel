@@ -1,7 +1,11 @@
 import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
-import { normalizeInstagramVideo } from '@/src/lib/social/video-normalize'
+import {
+  normalizeFacebookVideo,
+  normalizeInstagramVideo,
+} from '@/src/lib/social/video-normalize'
 import { deleteObject, getObject } from '@/src/lib/storage/s3'
+import * as CrmSocialFacebookService from '@/src/services/crm-social-facebook.service'
 import * as CrmSocialInstagramService from '@/src/services/crm-social-instagram.service'
 import * as CrmSocialYoutubeService from '@/src/services/crm-social-youtube.service'
 import { CrmSocialPublishJob, type CrmSocialPublishJobPayload } from '../jobs'
@@ -135,6 +139,58 @@ async function processPublishInstagramMedia(
   }
 }
 
+async function processPublishFacebookVideo(
+  job: Job<CrmSocialPublishJobPayload['publish-facebook-video']>,
+): Promise<PublishJobResult> {
+  const { actorId, workspaceId, connectionId, objectKey, message, link } =
+    job.data
+  try {
+    const bytes = toArrayBuffer(
+      await getObject({
+        bucket: CRM_SOCIAL_PUBLISH_TMP_BUCKET,
+        key: objectKey,
+      }),
+    )
+
+    const normalized = await normalizeFacebookVideo(bytes)
+    if (!normalized.ok) {
+      return {
+        ok: false,
+        code: normalized.error.code,
+        message: normalized.error.message,
+      }
+    }
+
+    const result = await CrmSocialFacebookService.publishPost(
+      actorId,
+      workspaceId,
+      { message, link },
+      { bytes: normalized.value, contentType: 'video/mp4', kind: 'VIDEO' },
+      connectionId,
+    )
+    if (!result.ok) {
+      return {
+        ok: false,
+        code: result.error.code,
+        message: result.error.message,
+      }
+    }
+    return { ok: true, value: result.value }
+  } finally {
+    await deleteObject({
+      bucket: CRM_SOCIAL_PUBLISH_TMP_BUCKET,
+      key: objectKey,
+    }).catch((error) => {
+      logger.error('queue.crm_social_publish.tmp_cleanup_failed', {
+        component: 'CrmSocialPublish',
+        jobId: job.id,
+        objectKey,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    })
+  }
+}
+
 export async function processCrmSocialPublish(
   job: Job,
 ): Promise<PublishJobResult> {
@@ -146,6 +202,10 @@ export async function processCrmSocialPublish(
     case CrmSocialPublishJob.PublishInstagramMedia:
       return processPublishInstagramMedia(
         job as Job<CrmSocialPublishJobPayload['publish-instagram-media']>,
+      )
+    case CrmSocialPublishJob.PublishFacebookVideo:
+      return processPublishFacebookVideo(
+        job as Job<CrmSocialPublishJobPayload['publish-facebook-video']>,
       )
     default:
       throw new Error(

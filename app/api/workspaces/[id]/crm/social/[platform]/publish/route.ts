@@ -316,15 +316,45 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
     )
   }
 
+  // Vídeo é grande e pode demorar pra publicar (reencode + upload) — vai pra
+  // fila, igual Instagram/YouTube. Imagem/texto continuam síncronos.
+  const videoField = form.get('video')
+  if (videoField instanceof File && videoField.size > 0) {
+    if (videoField.size > MAX_VIDEO_BYTES) {
+      return handleError(badRequest('Vídeo excede o tamanho máximo (256 MB)'))
+    }
+
+    const objectKey = await storeTmpMedia(id, videoField)
+    const job = await getCrmSocialPublishQueue().add(
+      CrmSocialPublishJob.PublishFacebookVideo,
+      {
+        actorId,
+        workspaceId: id,
+        connectionId,
+        objectKey,
+        contentType: videoField.type || 'video/mp4',
+        message: parsed.data.message,
+        link: parsed.data.link,
+      },
+      { attempts: 1 },
+    )
+    return successResponse({ jobId: job.id }, 202)
+  }
+
   const imageField = form.get('image')
-  let image: { bytes: ArrayBuffer; contentType: string } | null = null
+  let media: {
+    bytes: ArrayBuffer
+    contentType: string
+    kind: 'IMAGE' | 'VIDEO'
+  } | null = null
   if (imageField instanceof File && imageField.size > 0) {
     if (imageField.size > MAX_IMAGE_BYTES) {
       return handleError(badRequest('Imagem excede o tamanho máximo (10 MB)'))
     }
-    image = {
+    media = {
       bytes: await imageField.arrayBuffer(),
       contentType: imageField.type || 'image/*',
+      kind: 'IMAGE',
     }
   }
 
@@ -332,7 +362,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
     actorId,
     id,
     parsed.data,
-    image,
+    media,
     connectionId,
   )
   if (!result.ok) return handleError(result.error)

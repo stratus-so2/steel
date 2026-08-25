@@ -44,11 +44,16 @@ export async function publishToSocialPlatform(
 
   switch (platform) {
     case 'FACEBOOK': {
+      const media = ctx.video
+        ? { ...ctx.video, kind: 'VIDEO' as const }
+        : ctx.image
+          ? { ...ctx.image, kind: 'IMAGE' as const }
+          : null
       const result = await CrmSocialFacebookService.publishPost(
         ctx.actorId,
         ctx.workspaceId,
         { message: ctx.content, link: options?.facebook?.link ?? null },
-        ctx.image,
+        media,
       )
       if (!result.ok) return { ok: false, error: result.error.message }
       return { ok: true, externalPostId: result.value.postId }

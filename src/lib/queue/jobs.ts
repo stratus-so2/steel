@@ -185,6 +185,7 @@ export type CrmCompetitorSyncJobPayload = {
 export const CrmSocialPublishJob = {
   PublishYoutubeVideo: 'publish-youtube-video',
   PublishInstagramMedia: 'publish-instagram-media',
+  PublishFacebookVideo: 'publish-facebook-video',
 } as const
 
 export type CrmSocialPublishJob =
@@ -210,6 +211,15 @@ export type CrmSocialPublishJobPayload = {
     kind: 'IMAGE' | 'VIDEO'
     caption: string
     postType: 'FEED' | 'REELS' | 'STORIES'
+  }
+  [CrmSocialPublishJob.PublishFacebookVideo]: {
+    actorId: string
+    workspaceId: string
+    connectionId?: string
+    objectKey: string
+    contentType: string
+    message: string
+    link: string | null
   }
 }
 

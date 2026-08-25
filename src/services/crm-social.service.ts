@@ -134,11 +134,17 @@ function validateScheduledPostRequirements(
         crmScheduledPostInvalid(`${platform} exige um texto.`, { platform }),
       )
     }
-    if (platform === 'FACEBOOK' && content.trim().length === 0 && !hasImage) {
+    if (
+      platform === 'FACEBOOK' &&
+      content.trim().length === 0 &&
+      !hasImage &&
+      !hasVideo
+    ) {
       return err(
-        crmScheduledPostInvalid('Facebook exige um texto ou uma imagem.', {
-          platform,
-        }),
+        crmScheduledPostInvalid(
+          'Facebook exige um texto, uma imagem ou um vídeo.',
+          { platform },
+        ),
       )
     }
     if (platform === 'YOUTUBE' && !title && content.trim().length === 0) {

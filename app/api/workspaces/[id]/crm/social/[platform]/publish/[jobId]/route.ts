@@ -12,8 +12,8 @@ type Params = {
 }
 
 /**
- * Status de um publish assíncrono (YOUTUBE/INSTAGRAM — ver `publish/route.ts`).
- * A UI faz polling aqui até `state` virar `completed`/`failed`.
+ * Status de um publish assíncrono (YOUTUBE/INSTAGRAM/FACEBOOK com vídeo — ver
+ * `publish/route.ts`). A UI faz polling aqui até `state` virar `completed`/`failed`.
  */
 export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
@@ -24,7 +24,11 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
 
   const { id, platform: platformSlug, jobId } = await ctx.params
   const platform = parseCrmPlatformSlug(platformSlug)
-  if (platform !== 'YOUTUBE' && platform !== 'INSTAGRAM') {
+  if (
+    platform !== 'YOUTUBE' &&
+    platform !== 'INSTAGRAM' &&
+    platform !== 'FACEBOOK'
+  ) {
     return handleError(badRequest('Plataforma inválida para este endpoint'))
   }
 

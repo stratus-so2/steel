@@ -13,7 +13,9 @@ import type { CrmInstagramPostType } from '@/src/schemas/crm-social-instagram.sc
  * explicitamente para Reels/Stories ("no edit lists"), o que causa o erro
  * "Media upload has failed" (2207077) mesmo com um MP4 H.264/AAC válido.
  * Reencodar com `-use_editlist 0` remove essa caixa; `+faststart` garante
- * o `moov` no início, também exigido pela Meta.
+ * o `moov` no início — o mesmo tipo de arquivo pode disparar rejeições
+ * equivalentes em outras plataformas, então o reencode é genérico e cada
+ * plataforma só adiciona suas próprias regras (ex.: limite de duração).
  */
 const STORIES_MAX_DURATION_S = 60
 const REELS_MAX_DURATION_S = 15 * 60
@@ -72,32 +74,14 @@ function maxDurationFor(postType: CrmInstagramPostType): number | null {
   return null
 }
 
-/**
- * Reencoda o vídeo (H.264/AAC, sem edit list, moov no início) e valida a
- * duração contra o limite da Meta para o `postType`. Só se aplica a vídeo —
- * imagem passa direto sem nenhum processamento.
- */
-export async function normalizeInstagramVideo(
-  bytes: ArrayBuffer,
-  postType: CrmInstagramPostType,
-): Promise<Result<ArrayBuffer>> {
-  const dir = await mkdtemp(join(tmpdir(), 'ig-video-'))
+/** Reencoda para H.264/AAC, sem edit list e com moov no início. */
+async function reencode(bytes: ArrayBuffer): Promise<ArrayBuffer> {
+  const dir = await mkdtemp(join(tmpdir(), 'social-video-'))
   const input = join(dir, `${randomBytes(8).toString('hex')}-in.mp4`)
   const output = join(dir, `${randomBytes(8).toString('hex')}-out.mp4`)
 
   try {
     await writeFile(input, Buffer.from(bytes))
-
-    const duration = await probeDurationSeconds(input)
-    const maxDuration = maxDurationFor(postType)
-    if (maxDuration !== null && duration > maxDuration) {
-      return err(
-        crmSocialVideoInvalid(
-          `O vídeo tem ${Math.round(duration)}s, acima do limite de ${maxDuration}s para ${postType === 'STORIES' ? 'Stories' : 'Reels'} no Instagram`,
-        ),
-      )
-    }
-
     await runFfmpeg([
       '-y',
       '-i',
@@ -122,9 +106,36 @@ export async function normalizeInstagramVideo(
       '+faststart',
       output,
     ])
-
     const normalized = await readFile(output)
-    return ok(new Uint8Array(normalized).buffer)
+    return new Uint8Array(normalized).buffer
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+
+/**
+ * Reencoda o vídeo (H.264/AAC, sem edit list, moov no início) e valida a
+ * duração contra o limite da Meta para o `postType`. Só se aplica a vídeo —
+ * imagem passa direto sem nenhum processamento.
+ */
+export async function normalizeInstagramVideo(
+  bytes: ArrayBuffer,
+  postType: CrmInstagramPostType,
+): Promise<Result<ArrayBuffer>> {
+  const dir = await mkdtemp(join(tmpdir(), 'ig-video-probe-'))
+  const input = join(dir, `${randomBytes(8).toString('hex')}-in.mp4`)
+
+  try {
+    await writeFile(input, Buffer.from(bytes))
+    const duration = await probeDurationSeconds(input)
+    const maxDuration = maxDurationFor(postType)
+    if (maxDuration !== null && duration > maxDuration) {
+      return err(
+        crmSocialVideoInvalid(
+          `O vídeo tem ${Math.round(duration)}s, acima do limite de ${maxDuration}s para ${postType === 'STORIES' ? 'Stories' : 'Reels'} no Instagram`,
+        ),
+      )
+    }
   } catch (error) {
     return err(
       crmSocialVideoInvalid(
@@ -135,5 +146,37 @@ export async function normalizeInstagramVideo(
     )
   } finally {
     await rm(dir, { recursive: true, force: true })
+  }
+
+  try {
+    return ok(await reencode(bytes))
+  } catch (error) {
+    return err(
+      crmSocialVideoInvalid(
+        error instanceof Error
+          ? `Não foi possível processar o vídeo: ${error.message}`
+          : 'Não foi possível processar o vídeo',
+      ),
+    )
+  }
+}
+
+/**
+ * Mesmo reencode acima, sem limite de duração — a Página do Facebook aceita
+ * vídeos bem mais longos que Reels/Stories do Instagram.
+ */
+export async function normalizeFacebookVideo(
+  bytes: ArrayBuffer,
+): Promise<Result<ArrayBuffer>> {
+  try {
+    return ok(await reencode(bytes))
+  } catch (error) {
+    return err(
+      crmSocialVideoInvalid(
+        error instanceof Error
+          ? `Não foi possível processar o vídeo: ${error.message}`
+          : 'Não foi possível processar o vídeo',
+      ),
+    )
   }
 }
