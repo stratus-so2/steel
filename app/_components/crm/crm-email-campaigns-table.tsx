@@ -14,6 +14,14 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { notify } from '@/lib/notify'
 import {
@@ -30,6 +38,7 @@ import type {
   CrmCampaignRecipientStatusDTO,
   CrmCampaignStatusDTO,
   CrmEmailCampaignDTO,
+  CrmEmailTemplateDTO,
 } from '@/types/crm-email-marketing'
 
 type EditorRef = {
@@ -255,9 +264,23 @@ function CampaignComposer({
   const [recipients, setRecipients] = useState<RecipientSelection>(
     crmDefaultRecipientSelection(),
   )
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
+  const [editorSeed, setEditorSeed] = useState<string | undefined>(undefined)
+  const { items: templates } = useCrmResourceList<CrmEmailTemplateDTO>(
+    workspaceId,
+    'email-templates',
+  )
   const createCampaign = useCreateCrmEmailCampaign(workspaceId)
   const sendCampaign = useSendCrmEmailCampaign(workspaceId)
   const [submitting, setSubmitting] = useState(false)
+
+  function handlePickTemplate(templateId: string) {
+    setSelectedTemplateId(templateId)
+    const template = templates.find((t) => t.id === templateId)
+    if (!template) return
+    if (!subject.trim()) setSubject(template.subject)
+    setEditorSeed(template.contentHtml)
+  }
 
   async function onSubmit() {
     if (!subject.trim()) {
@@ -352,9 +375,33 @@ function CampaignComposer({
             />
           </Field>
 
+          {templates.length > 0 ? (
+            <Field label='Começar a partir de um modelo (opcional)'>
+              <Select
+                value={selectedTemplateId || undefined}
+                onValueChange={(v) => v && handlePickTemplate(v)}
+              >
+                <SelectTrigger className='w-full'>
+                  <SelectValue placeholder='Editor em branco' />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectGroup>
+                    {templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : null}
+
           <Field label='Conteúdo'>
             <div className='min-h-[420px]'>
               <EmailEditorShell
+                key={selectedTemplateId || 'blank'}
+                initialContent={editorSeed}
                 ref={(r) => {
                   editorRef.current = r as unknown as EditorRef | null
                 }}
