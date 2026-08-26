@@ -67,6 +67,13 @@ export default defineConfig({
           hookTimeout: 30000,
           pool: 'forks',
           maxWorkers: 1,
+          // Serviços fazem escritas fire-and-forget (`void recordCrmActivity`,
+          // `void dispatchCrmWorkflowRecordEvent`) que não são aguardadas pela
+          // resposta HTTP; se ainda estiverem em voo quando o próximo teste
+          // roda o TRUNCATE CASCADE do afterEach, o Postgres pode reportar
+          // deadlock (40P01) entre o TRUNCATE e a escrita em background.
+          // Retry absorve essa corrida rara sem mascarar falha real de asserção.
+          retry: 2,
         },
       },
       {
