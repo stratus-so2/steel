@@ -96,9 +96,14 @@ export const CrmCompanyRepository = {
 
   async softDelete(id: string): Promise<Result<void>> {
     try {
+      // Zera cnpj/domain junto com o soft delete: como são únicos por
+      // workspace e o soft delete não é filtrado pela constraint do banco,
+      // uma empresa apagada continuaria bloqueando esses valores para
+      // sempre. O snapshot com os valores originais já fica no audit log
+      // (recordCrmActivity captura o DTO antes de chamar softDelete).
       await prisma.crmCompany.update({
         where: { id },
-        data: { deletedAt: new Date() },
+        data: { deletedAt: new Date(), cnpj: null, domain: null },
       })
       return ok(undefined)
     } catch (error) {
