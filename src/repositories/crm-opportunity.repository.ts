@@ -76,6 +76,7 @@ export const CrmOpportunityRepository = {
     createdById: string
     name: string
     amount?: number
+    probability?: number
     closeDate?: Date
     pipelineId: string
     stageId: string
@@ -102,6 +103,7 @@ export const CrmOpportunityRepository = {
     data: {
       name?: string
       amount?: number | null
+      probability?: number | null
       closeDate?: Date | null
       pipelineId?: string
       stageId?: string

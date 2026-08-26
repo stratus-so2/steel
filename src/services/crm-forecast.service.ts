@@ -79,7 +79,8 @@ export const CrmForecastService = {
         row.wonAmount += amount
         row.wonCount += 1
       } else {
-        row.weightedOpenAmount += (amount * opp.stage.probability) / 100
+        row.weightedOpenAmount +=
+          (amount * (opp.probability ?? opp.stage.probability)) / 100
         row.openCount += 1
       }
     }

@@ -1301,6 +1301,9 @@ model CrmOpportunity {
   id               String    @id @default(cuid())
   name             String
   amount           Decimal?  @db.Decimal(14, 2)
+  /// Override de probabilidade (0-100) por negócio; quando nulo, o forecast
+  /// usa o padrão da etapa (CrmPipelineStage.probability).
+  probability      Int?
   closeDate        DateTime? @map("close_date")
   pipelineId       String    @map("pipeline_id")
   stageId          String    @map("stage_id")

@@ -4,6 +4,7 @@ export interface CrmOpportunityDTO {
   id: string
   name: string
   amount: number | null
+  probability: number | null
   closeDate: string | null
   pipelineId: string
   stageId: string

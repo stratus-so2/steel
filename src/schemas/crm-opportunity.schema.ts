@@ -4,6 +4,7 @@ import { CustomFieldsInputSchema } from '@/src/schemas/crm-custom-field.schema'
 export const CreateCrmOpportunitySchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
   amount: z.number().min(0).optional(),
+  probability: z.number().int().min(0).max(100).optional(),
   closeDate: z.coerce.date().optional(),
   // Pipeline/etapa são opcionais: quando omitidos, o service resolve o
   // pipeline padrão da workspace e sua primeira etapa. Se stageId é
@@ -23,6 +24,7 @@ export type CreateCrmOpportunityDTO = z.infer<typeof CreateCrmOpportunitySchema>
 export const UpdateCrmOpportunitySchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
   amount: z.number().min(0).optional(),
+  probability: z.number().int().min(0).max(100).nullable().optional(),
   closeDate: z.coerce.date().optional(),
   pipelineId: z.string().min(1).optional(),
   stageId: z.string().min(1).optional(),

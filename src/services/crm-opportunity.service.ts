@@ -174,6 +174,7 @@ export const CrmOpportunityService = {
       createdById: actorId,
       name: dto.name,
       amount: dto.amount,
+      probability: dto.probability,
       closeDate: dto.closeDate,
       pipelineId: stageRefs.value.pipelineId,
       stageId: stageRefs.value.stageId,
@@ -258,6 +259,7 @@ export const CrmOpportunityService = {
     const result = await CrmOpportunityRepository.update(opportunityId, {
       name: dto.name,
       amount: dto.amount,
+      probability: dto.probability,
       closeDate: dto.closeDate,
       pipelineId: stageRefs.value?.pipelineId,
       stageId: stageRefs.value?.stageId,

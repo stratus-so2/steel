@@ -11,6 +11,7 @@ export function toCrmOpportunityDTO(
     id: opportunity.id,
     name: opportunity.name,
     amount: opportunity.amount ? Number(opportunity.amount) : null,
+    probability: opportunity.probability ?? null,
     closeDate: opportunity.closeDate
       ? opportunity.closeDate.toISOString()
       : null,

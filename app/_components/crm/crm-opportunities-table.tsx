@@ -47,6 +47,12 @@ const COLUMNS: GridColumn[] = [
     kind: 'relation',
     relationKind: 'stages',
   },
+  {
+    key: 'probability',
+    header: '% de fechamento',
+    kind: 'number',
+    placeholder: '20',
+  },
   { key: 'closeDate', header: 'Data de fechamento', kind: 'date' },
   {
     key: 'companyId',
