@@ -394,45 +394,47 @@ export function CrmLeadRulesSection({ workspaceId }: { workspaceId: string }) {
           ) : scoringRules.length === 0 ? (
             <Muted>Nenhuma regra de pontuação ainda.</Muted>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Condição</TableHead>
-                  <TableHead>Pontos</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className='text-right'>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {scoringRules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell>
-                      <ConditionSummary
-                        field={rule.field}
-                        operator={rule.operator}
-                        value={rule.value}
-                      />
-                    </TableCell>
-                    <TableCell>{rule.points}</TableCell>
-                    <TableCell>
-                      <Badge variant={rule.active ? 'default' : 'secondary'}>
-                        {rule.active ? 'Ativa' : 'Inativa'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label='Excluir regra'
-                        onClick={() => handleDeleteScoring(rule.id)}
-                      >
-                        <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                      </Button>
-                    </TableCell>
+            <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+              <Table>
+                <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
+                  <TableRow>
+                    <TableHead>Condição</TableHead>
+                    <TableHead>Pontos</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className='text-right'>Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {scoringRules.map((rule) => (
+                    <TableRow key={rule.id}>
+                      <TableCell>
+                        <ConditionSummary
+                          field={rule.field}
+                          operator={rule.operator}
+                          value={rule.value}
+                        />
+                      </TableCell>
+                      <TableCell>{rule.points}</TableCell>
+                      <TableCell>
+                        <Badge variant={rule.active ? 'default' : 'secondary'}>
+                          {rule.active ? 'Ativa' : 'Inativa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <Button
+                          variant='ghost'
+                          size='icon-sm'
+                          aria-label='Excluir regra'
+                          onClick={() => handleDeleteScoring(rule.id)}
+                        >
+                          <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -451,47 +453,49 @@ export function CrmLeadRulesSection({ workspaceId }: { workspaceId: string }) {
           ) : routingRules.length === 0 ? (
             <Muted>Nenhuma regra de roteamento ainda.</Muted>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Condição</TableHead>
-                  <TableHead>Responsável</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className='text-right'>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {routingRules.map((rule) => (
-                  <TableRow key={rule.id}>
-                    <TableCell>
-                      <ConditionSummary
-                        field={rule.field}
-                        operator={rule.operator}
-                        value={rule.value}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {usersById.get(rule.ownerId) ?? rule.ownerId}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={rule.active ? 'default' : 'secondary'}>
-                        {rule.active ? 'Ativa' : 'Inativa'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      <Button
-                        variant='ghost'
-                        size='icon-sm'
-                        aria-label='Excluir regra'
-                        onClick={() => handleDeleteRouting(rule.id)}
-                      >
-                        <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                      </Button>
-                    </TableCell>
+            <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+              <Table>
+                <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
+                  <TableRow>
+                    <TableHead>Condição</TableHead>
+                    <TableHead>Responsável</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className='text-right'>Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {routingRules.map((rule) => (
+                    <TableRow key={rule.id}>
+                      <TableCell>
+                        <ConditionSummary
+                          field={rule.field}
+                          operator={rule.operator}
+                          value={rule.value}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {usersById.get(rule.ownerId) ?? rule.ownerId}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={rule.active ? 'default' : 'secondary'}>
+                          {rule.active ? 'Ativa' : 'Inativa'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <Button
+                          variant='ghost'
+                          size='icon-sm'
+                          aria-label='Excluir regra'
+                          onClick={() => handleDeleteRouting(rule.id)}
+                        >
+                          <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

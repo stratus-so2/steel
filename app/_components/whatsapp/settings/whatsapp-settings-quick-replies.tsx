@@ -163,43 +163,48 @@ export function WhatsappSettingsQuickReplies({
         <CreateQuickReplyDialog workspaceId={workspaceId} />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Atalho</TableHead>
-            <TableHead>Título</TableHead>
-            <TableHead>Mensagem</TableHead>
-            <TableHead className='w-24' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(quickReplies.data ?? []).map((quickReply) => (
-            <TableRow key={quickReply.id}>
-              <TableCell>/{quickReply.shortcut}</TableCell>
-              <TableCell>{quickReply.title}</TableCell>
-              <TableCell className='max-w-64 truncate'>
-                {quickReply.body}
-              </TableCell>
-              <TableCell>
-                <Button
-                  size='xs'
-                  variant='destructive'
-                  onClick={() => setDeletingQuickReply(quickReply)}
-                >
-                  Remover
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {quickReplies.data?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell colSpan={4} className='text-muted-foreground text-sm'>
-                Nenhuma mensagem rápida cadastrada.
-              </TableCell>
+              <TableHead>Atalho</TableHead>
+              <TableHead>Título</TableHead>
+              <TableHead>Mensagem</TableHead>
+              <TableHead className='w-24' />
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {(quickReplies.data ?? []).map((quickReply) => (
+              <TableRow key={quickReply.id}>
+                <TableCell>/{quickReply.shortcut}</TableCell>
+                <TableCell>{quickReply.title}</TableCell>
+                <TableCell className='max-w-64 truncate'>
+                  {quickReply.body}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    size='xs'
+                    variant='destructive'
+                    onClick={() => setDeletingQuickReply(quickReply)}
+                  >
+                    Remover
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {quickReplies.data?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-muted-foreground text-sm'
+                >
+                  Nenhuma mensagem rápida cadastrada.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       <AlertDialog
         open={deletingQuickReply !== null}

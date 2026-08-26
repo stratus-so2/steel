@@ -72,53 +72,57 @@ export function CrmMembersSection({
   if (isLoading) return <Muted>Carregando membros...</Muted>
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Membro</TableHead>
-          <TableHead>Papel</TableHead>
-          <TableHead>Perfil de acesso</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {members.map((member) => (
-          <TableRow key={member.userId}>
-            <TableCell>
-              <div>
-                <p className='font-medium text-sm'>{member.name}</p>
-                <p className='text-muted-foreground text-xs'>{member.email}</p>
-              </div>
-            </TableCell>
-            <TableCell>
-              <Badge variant='secondary'>
-                {ROLE_LABEL[member.role] ?? member.role}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <Select
-                value={member.profileId ?? '__none__'}
-                onValueChange={(value) =>
-                  value && handleProfileChange(member.userId, value)
-                }
-              >
-                <SelectTrigger className='w-48'>
-                  <SelectValue placeholder='Padrão do papel' />
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  <SelectGroup>
-                    <SelectItem value='__none__'>Padrão do papel</SelectItem>
-                    {profiles.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        {profile.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </TableCell>
+    <div className='max-h-[28rem] overflow-auto rounded-lg border border-border'>
+      <Table>
+        <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
+          <TableRow>
+            <TableHead>Membro</TableHead>
+            <TableHead>Papel</TableHead>
+            <TableHead>Perfil de acesso</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {members.map((member) => (
+            <TableRow key={member.userId}>
+              <TableCell>
+                <div>
+                  <p className='font-medium text-sm'>{member.name}</p>
+                  <p className='text-muted-foreground text-xs'>
+                    {member.email}
+                  </p>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant='secondary'>
+                  {ROLE_LABEL[member.role] ?? member.role}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Select
+                  value={member.profileId ?? '__none__'}
+                  onValueChange={(value) =>
+                    value && handleProfileChange(member.userId, value)
+                  }
+                >
+                  <SelectTrigger className='w-48'>
+                    <SelectValue placeholder='Padrão do papel' />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    <SelectGroup>
+                      <SelectItem value='__none__'>Padrão do papel</SelectItem>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

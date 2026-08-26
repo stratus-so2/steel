@@ -87,7 +87,7 @@ export function CrmCustomFieldsPanel({ workspaceId }: { workspaceId: string }) {
       </div>
       <div className='min-h-0 flex-1 overflow-y-auto'>
         <Table>
-          <TableHeader>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
               <TableHead>Chave</TableHead>
               <TableHead>Rótulo</TableHead>

@@ -79,54 +79,56 @@ export function CrmSocialConnectionsSection({
         formulário abaixo é o cadastro manual legado, para contas já autorizadas
         fora do Steel.
       </p>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Plataforma</TableHead>
-            <TableHead>Conta</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && connections?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhuma conexão
-              </TableCell>
+              <TableHead>Plataforma</TableHead>
+              <TableHead>Conta</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className='w-10' />
             </TableRow>
-          )}
-          {connections?.map((connection) => (
-            <TableRow key={connection.id}>
-              <TableCell>{connection.platform}</TableCell>
-              <TableCell>
-                {connection.accountName ?? connection.externalAccountId}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    connection.status === 'CONNECTED' ? 'default' : 'outline'
-                  }
+          </TableHeader>
+          <TableBody>
+            {!isLoading && connections?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-center text-muted-foreground'
                 >
-                  {connection.status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(connection.id)}
-                >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  Nenhuma conexão
+                </TableCell>
+              </TableRow>
+            )}
+            {connections?.map((connection) => (
+              <TableRow key={connection.id}>
+                <TableCell>{connection.platform}</TableCell>
+                <TableCell>
+                  {connection.accountName ?? connection.externalAccountId}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      connection.status === 'CONNECTED' ? 'default' : 'outline'
+                    }
+                  >
+                    {connection.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant='ghost'
+                    size='icon-xs'
+                    onClick={() => handleDelete(connection.id)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

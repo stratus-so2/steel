@@ -241,98 +241,105 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
         <CreateContactDialog workspaceId={workspaceId} />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className='w-10' />
-            <TableHead>Nome</TableHead>
-            <TableHead>Número</TableHead>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Conversas</TableHead>
-            <TableHead>Cadastrado em</TableHead>
-            <TableHead className='w-32' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(contacts.data ?? []).map((contact) => (
-            <TableRow key={contact.id}>
-              <TableCell>
-                <div className='group relative w-fit'>
-                  <Avatar className='size-8'>
-                    <AvatarImage src={contact.avatarUrl ?? undefined} />
-                    <AvatarFallback className='text-xs'>
-                      {(contact.name ?? contact.waId).slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <button
-                    type='button'
-                    aria-label='Buscar foto de perfil'
-                    disabled={syncAvatar.isPending}
-                    className='absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100'
-                    onClick={() =>
-                      syncAvatar.mutate(contact.id, {
-                        onSuccess: () => notify.success('Foto atualizada'),
-                        onError: (error) =>
-                          notify.error(
-                            error,
-                            'Não foi possível buscar a foto (exige conexão Z-API)',
-                          ),
-                      })
-                    }
-                  >
-                    <SteelIcon
-                      icon={RefreshIcon}
-                      size={14}
-                      className='text-white'
-                    />
-                  </button>
-                </div>
-              </TableCell>
-              <TableCell>{contact.name ?? '—'}</TableCell>
-              <TableCell>{contact.waId}</TableCell>
-              <TableCell
-                className='max-w-56 truncate text-muted-foreground'
-                title={contact.description ?? undefined}
-              >
-                {contact.description ?? '—'}
-              </TableCell>
-              <TableCell>
-                <Badge variant='secondary'>{contact.conversationCount}</Badge>
-              </TableCell>
-              <TableCell className='text-muted-foreground text-xs'>
-                {format(new Date(contact.createdAt), 'dd/MM/yyyy', {
-                  locale: ptBR,
-                })}
-              </TableCell>
-              <TableCell>
-                <div className='flex justify-end gap-1.5'>
-                  <Button
-                    size='xs'
-                    variant='outline'
-                    onClick={() => setEditingContact(contact)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    size='xs'
-                    variant='destructive'
-                    onClick={() => setDeletingContact(contact)}
-                  >
-                    Remover
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {contacts.data?.length === 0 && (
+      <div className='max-h-[calc(100vh-16rem)] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell colSpan={7} className='text-muted-foreground text-sm'>
-                Nenhum contato cadastrado.
-              </TableCell>
+              <TableHead className='w-10' />
+              <TableHead>Nome</TableHead>
+              <TableHead>Número</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Conversas</TableHead>
+              <TableHead>Cadastrado em</TableHead>
+              <TableHead className='w-32' />
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {(contacts.data ?? []).map((contact) => (
+              <TableRow key={contact.id}>
+                <TableCell>
+                  <div className='group relative w-fit'>
+                    <Avatar className='size-8'>
+                      <AvatarImage src={contact.avatarUrl ?? undefined} />
+                      <AvatarFallback className='text-xs'>
+                        {(contact.name ?? contact.waId)
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <button
+                      type='button'
+                      aria-label='Buscar foto de perfil'
+                      disabled={syncAvatar.isPending}
+                      className='absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100'
+                      onClick={() =>
+                        syncAvatar.mutate(contact.id, {
+                          onSuccess: () => notify.success('Foto atualizada'),
+                          onError: (error) =>
+                            notify.error(
+                              error,
+                              'Não foi possível buscar a foto (exige conexão Z-API)',
+                            ),
+                        })
+                      }
+                    >
+                      <SteelIcon
+                        icon={RefreshIcon}
+                        size={14}
+                        className='text-white'
+                      />
+                    </button>
+                  </div>
+                </TableCell>
+                <TableCell>{contact.name ?? '—'}</TableCell>
+                <TableCell>{contact.waId}</TableCell>
+                <TableCell
+                  className='max-w-56 truncate text-muted-foreground'
+                  title={contact.description ?? undefined}
+                >
+                  {contact.description ?? '—'}
+                </TableCell>
+                <TableCell>
+                  <Badge variant='secondary'>{contact.conversationCount}</Badge>
+                </TableCell>
+                <TableCell className='text-muted-foreground text-xs'>
+                  {format(new Date(contact.createdAt), 'dd/MM/yyyy', {
+                    locale: ptBR,
+                  })}
+                </TableCell>
+                <TableCell>
+                  <div className='flex justify-end gap-1.5'>
+                    <Button
+                      size='xs'
+                      variant='outline'
+                      onClick={() => setEditingContact(contact)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      size='xs'
+                      variant='destructive'
+                      onClick={() => setDeletingContact(contact)}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {contacts.data?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={7}
+                  className='text-muted-foreground text-sm'
+                >
+                  Nenhum contato cadastrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {editingContact && (
         <EditContactDialog

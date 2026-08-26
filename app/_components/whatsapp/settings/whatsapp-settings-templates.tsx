@@ -88,41 +88,46 @@ export function WhatsappSettingsTemplates({
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Idioma</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(templates.data ?? []).map((template) => (
-            <TableRow key={template.id}>
-              <TableCell>{template.name}</TableCell>
-              <TableCell>{template.language}</TableCell>
-              <TableCell>{template.category}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    template.status === 'APPROVED' ? 'default' : 'secondary'
-                  }
-                >
-                  {template.status}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-          {templates.data?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell colSpan={4} className='text-muted-foreground text-sm'>
-                Nenhum template sincronizado ainda.
-              </TableCell>
+              <TableHead>Nome</TableHead>
+              <TableHead>Idioma</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {(templates.data ?? []).map((template) => (
+              <TableRow key={template.id}>
+                <TableCell>{template.name}</TableCell>
+                <TableCell>{template.language}</TableCell>
+                <TableCell>{template.category}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      template.status === 'APPROVED' ? 'default' : 'secondary'
+                    }
+                  >
+                    {template.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+            {templates.data?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-muted-foreground text-sm'
+                >
+                  Nenhum template sincronizado ainda.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

@@ -170,42 +170,44 @@ function CrmEmailAccountsSection({ workspaceId }: { workspaceId: string }) {
         Não há sincronização real com Gmail/Outlook — registre a conta para
         agrupar e-mails e eventos lançados manualmente.
       </p>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Provedor</TableHead>
-            <TableHead>E-mail</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && accounts?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell
-                colSpan={3}
-                className='text-center text-muted-foreground'
-              >
-                Nenhuma conta registrada
-              </TableCell>
+              <TableHead>Provedor</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead className='w-10' />
             </TableRow>
-          )}
-          {accounts?.map((account) => (
-            <TableRow key={account.id}>
-              <TableCell>{account.provider}</TableCell>
-              <TableCell>{account.email}</TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(account.id)}
+          </TableHeader>
+          <TableBody>
+            {!isLoading && accounts?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={3}
+                  className='text-center text-muted-foreground'
                 >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  Nenhuma conta registrada
+                </TableCell>
+              </TableRow>
+            )}
+            {accounts?.map((account) => (
+              <TableRow key={account.id}>
+                <TableCell>{account.provider}</TableCell>
+                <TableCell>{account.email}</TableCell>
+                <TableCell>
+                  <Button
+                    variant='ghost'
+                    size='icon-xs'
+                    onClick={() => handleDelete(account.id)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
@@ -335,52 +337,54 @@ function CrmEmailMessagesSection({ workspaceId }: { workspaceId: string }) {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Direção</TableHead>
-            <TableHead>De</TableHead>
-            <TableHead>Para</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && messages?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhum e-mail registrado
-              </TableCell>
+              <TableHead>Direção</TableHead>
+              <TableHead>De</TableHead>
+              <TableHead>Para</TableHead>
+              <TableHead className='w-10' />
             </TableRow>
-          )}
-          {messages?.map((message) => (
-            <TableRow key={message.id}>
-              <TableCell>
-                <Badge
-                  variant={
-                    message.direction === 'OUTBOUND' ? 'default' : 'outline'
-                  }
+          </TableHeader>
+          <TableBody>
+            {!isLoading && messages?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-center text-muted-foreground'
                 >
-                  {message.direction}
-                </Badge>
-              </TableCell>
-              <TableCell>{message.fromEmail}</TableCell>
-              <TableCell>{message.toEmails.join(', ') || '-'}</TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(message.id)}
-                >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  Nenhum e-mail registrado
+                </TableCell>
+              </TableRow>
+            )}
+            {messages?.map((message) => (
+              <TableRow key={message.id}>
+                <TableCell>
+                  <Badge
+                    variant={
+                      message.direction === 'OUTBOUND' ? 'default' : 'outline'
+                    }
+                  >
+                    {message.direction}
+                  </Badge>
+                </TableCell>
+                <TableCell>{message.fromEmail}</TableCell>
+                <TableCell>{message.toEmails.join(', ') || '-'}</TableCell>
+                <TableCell>
+                  <Button
+                    variant='ghost'
+                    size='icon-xs'
+                    onClick={() => handleDelete(message.id)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
@@ -497,44 +501,48 @@ function CrmCalendarEventsSection({ workspaceId }: { workspaceId: string }) {
           </DialogContent>
         </Dialog>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Título</TableHead>
-            <TableHead>Início</TableHead>
-            <TableHead>Fim</TableHead>
-            <TableHead className='w-10' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {!isLoading && events?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell
-                colSpan={4}
-                className='text-center text-muted-foreground'
-              >
-                Nenhum evento
-              </TableCell>
+              <TableHead>Título</TableHead>
+              <TableHead>Início</TableHead>
+              <TableHead>Fim</TableHead>
+              <TableHead className='w-10' />
             </TableRow>
-          )}
-          {events?.map((event) => (
-            <TableRow key={event.id}>
-              <TableCell>{event.title}</TableCell>
-              <TableCell>{new Date(event.startsAt).toLocaleString()}</TableCell>
-              <TableCell>{new Date(event.endsAt).toLocaleString()}</TableCell>
-              <TableCell>
-                <Button
-                  variant='ghost'
-                  size='icon-xs'
-                  onClick={() => handleDelete(event.id)}
+          </TableHeader>
+          <TableBody>
+            {!isLoading && events?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-center text-muted-foreground'
                 >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  Nenhum evento
+                </TableCell>
+              </TableRow>
+            )}
+            {events?.map((event) => (
+              <TableRow key={event.id}>
+                <TableCell>{event.title}</TableCell>
+                <TableCell>
+                  {new Date(event.startsAt).toLocaleString()}
+                </TableCell>
+                <TableCell>{new Date(event.endsAt).toLocaleString()}</TableCell>
+                <TableCell>
+                  <Button
+                    variant='ghost'
+                    size='icon-xs'
+                    onClick={() => handleDelete(event.id)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

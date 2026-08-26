@@ -44,38 +44,42 @@ export function CrmAuditLogSection({ workspaceId }: { workspaceId: string }) {
         ) : items.length === 0 ? (
           <Muted>Nenhuma atividade registrada ainda.</Muted>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Quando</TableHead>
-                <TableHead>Entidade</TableHead>
-                <TableHead>Ação</TableHead>
-                <TableHead>Resumo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items
-                .slice()
-                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-                .slice(0, 100)
-                .map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className='whitespace-nowrap text-muted-foreground text-xs'>
-                      {dateFmt.format(new Date(item.createdAt))}
-                    </TableCell>
-                    <TableCell className='capitalize'>{item.entity}</TableCell>
-                    <TableCell>
-                      <Badge variant='secondary'>
-                        {ACTION_LABEL[item.action] ?? item.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className='text-muted-foreground text-sm'>
-                      {item.summary ?? '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <div className='max-h-[32rem] overflow-auto rounded-lg border border-border'>
+            <Table>
+              <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
+                <TableRow>
+                  <TableHead>Quando</TableHead>
+                  <TableHead>Entidade</TableHead>
+                  <TableHead>Ação</TableHead>
+                  <TableHead>Resumo</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items
+                  .slice()
+                  .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                  .slice(0, 100)
+                  .map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className='whitespace-nowrap text-muted-foreground text-xs'>
+                        {dateFmt.format(new Date(item.createdAt))}
+                      </TableCell>
+                      <TableCell className='capitalize'>
+                        {item.entity}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant='secondary'>
+                          {ACTION_LABEL[item.action] ?? item.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='text-muted-foreground text-sm'>
+                        {item.summary ?? '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

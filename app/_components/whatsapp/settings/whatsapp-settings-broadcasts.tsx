@@ -395,58 +395,63 @@ export function WhatsappSettingsBroadcasts({
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Progresso</TableHead>
-            <TableHead className='w-28' />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {(broadcasts.data ?? []).map((broadcast) => (
-            <TableRow key={broadcast.id}>
-              <TableCell>{broadcast.name}</TableCell>
-              <TableCell>
-                <Badge variant='outline'>
-                  {STATUS_LABEL[broadcast.status] ?? broadcast.status}
-                </Badge>
-              </TableCell>
-              <TableCell className='text-muted-foreground text-xs'>
-                {broadcast.sentCount}/{broadcast.recipientCount} enviados
-                {broadcast.failedCount > 0
-                  ? ` · ${broadcast.failedCount} falhas`
-                  : ''}
-              </TableCell>
-              <TableCell>
-                {broadcast.status === 'DRAFT' && (
-                  <Button
-                    size='xs'
-                    disabled={startBroadcast.isPending}
-                    onClick={() =>
-                      startBroadcast.mutate(broadcast.id, {
-                        onSuccess: () => notify.success('Envio iniciado'),
-                        onError: (error) =>
-                          notify.error(error, 'Não foi possível iniciar'),
-                      })
-                    }
-                  >
-                    Iniciar
-                  </Button>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
-          {broadcasts.data?.length === 0 && (
+      <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
+        <Table>
+          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
-              <TableCell colSpan={4} className='text-muted-foreground text-sm'>
-                Nenhuma lista de transmissão criada ainda.
-              </TableCell>
+              <TableHead>Nome</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Progresso</TableHead>
+              <TableHead className='w-28' />
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {(broadcasts.data ?? []).map((broadcast) => (
+              <TableRow key={broadcast.id}>
+                <TableCell>{broadcast.name}</TableCell>
+                <TableCell>
+                  <Badge variant='outline'>
+                    {STATUS_LABEL[broadcast.status] ?? broadcast.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className='text-muted-foreground text-xs'>
+                  {broadcast.sentCount}/{broadcast.recipientCount} enviados
+                  {broadcast.failedCount > 0
+                    ? ` · ${broadcast.failedCount} falhas`
+                    : ''}
+                </TableCell>
+                <TableCell>
+                  {broadcast.status === 'DRAFT' && (
+                    <Button
+                      size='xs'
+                      disabled={startBroadcast.isPending}
+                      onClick={() =>
+                        startBroadcast.mutate(broadcast.id, {
+                          onSuccess: () => notify.success('Envio iniciado'),
+                          onError: (error) =>
+                            notify.error(error, 'Não foi possível iniciar'),
+                        })
+                      }
+                    >
+                      Iniciar
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {broadcasts.data?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className='text-muted-foreground text-sm'
+                >
+                  Nenhuma lista de transmissão criada ainda.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
