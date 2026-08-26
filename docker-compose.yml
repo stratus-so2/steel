@@ -1,6 +1,6 @@
 services:
   steel-app:
-    image: ghcr.io/stratus-so/steel:latest
+    image: ghcr.io/stratus-so2/steel:latest
     container_name: nextjs-app
     restart: unless-stopped
     ports:
@@ -16,7 +16,7 @@ services:
       - app-network
 
   steel-worker:
-    image: ghcr.io/stratus-so/steel:latest
+    image: ghcr.io/stratus-so2/steel:latest
     container_name: steel-worker
     restart: unless-stopped
     command: ["node", "dist/worker.cjs"]

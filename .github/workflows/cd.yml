@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: stratus-so/steel
+  IMAGE_NAME: stratus-so2/steel
 
 jobs:
   migrate:
