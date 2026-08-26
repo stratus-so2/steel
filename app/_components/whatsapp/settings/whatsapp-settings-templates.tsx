@@ -89,7 +89,7 @@ export function WhatsappSettingsTemplates({
       </div>
 
       <div className='max-h-[26rem] overflow-auto rounded-lg border border-border'>
-        <Table>
+        <Table containerClassName='overflow-x-visible'>
           <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
               <TableHead>Nome</TableHead>

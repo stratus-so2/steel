@@ -242,7 +242,7 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
       </div>
 
       <div className='max-h-[calc(100vh-16rem)] overflow-auto rounded-lg border border-border'>
-        <Table>
+        <Table containerClassName='overflow-x-visible'>
           <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
               <TableHead className='w-10' />

@@ -45,7 +45,7 @@ export function CrmAuditLogSection({ workspaceId }: { workspaceId: string }) {
           <Muted>Nenhuma atividade registrada ainda.</Muted>
         ) : (
           <div className='max-h-[32rem] overflow-auto rounded-lg border border-border'>
-            <Table>
+            <Table containerClassName='overflow-x-visible'>
               <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
                 <TableRow>
                   <TableHead>Quando</TableHead>

@@ -67,7 +67,7 @@ export function ViewWidget({
 
   return (
     <div className='h-full overflow-auto'>
-      <Table>
+      <Table containerClassName='overflow-x-visible'>
         <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
           <TableRow>
             {fields.map((field) => (

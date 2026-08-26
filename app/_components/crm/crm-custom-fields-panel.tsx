@@ -86,7 +86,7 @@ export function CrmCustomFieldsPanel({ workspaceId }: { workspaceId: string }) {
         <CreateCrmCustomFieldDialog workspaceId={workspaceId} entity={entity} />
       </div>
       <div className='min-h-0 flex-1 overflow-y-auto'>
-        <Table>
+        <Table containerClassName='overflow-x-visible'>
           <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
             <TableRow>
               <TableHead>Chave</TableHead>

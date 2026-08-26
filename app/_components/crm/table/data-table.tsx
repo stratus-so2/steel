@@ -1121,8 +1121,16 @@ export function DataTable<TData extends WithId>({
         </div>
       ) : null}
 
-      {/* Table */}
-      <div className='@container no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border bg-card/40 shadow-xs'>
+      {/* Table
+          Um único container rola nos dois eixos (ref abaixo) — o wrapper
+          interno do <Table> teria seu próprio overflow-x-auto, e dois
+          containers de scroll aninhados quebram o cálculo de position:sticky
+          do TableHeader (ele gruda no ancestral errado e "solta" a cabeçalho
+          durante o scroll horizontal). */}
+      <div
+        ref={tableScrollRef}
+        className='@container no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border bg-card/40 shadow-xs'
+      >
         <DndContext
           id={sortableId}
           sensors={sensors}
@@ -1131,8 +1139,7 @@ export function DataTable<TData extends WithId>({
           onDragEnd={handleDragEnd}
         >
           <Table
-            containerRef={tableScrollRef}
-            containerClassName={cn('no-scrollbar', isEmpty && 'h-full')}
+            containerClassName={cn('overflow-x-visible', isEmpty && 'h-full')}
             className={cn('min-w-full', isEmpty && 'h-full')}
             style={{ width: table.getTotalSize() }}
           >
