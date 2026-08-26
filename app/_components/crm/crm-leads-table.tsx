@@ -15,7 +15,7 @@ import type { CrmLeadDTO, CrmLeadStatusDTO } from '@/types/crm-lead'
 
 const LOOKUP_KINDS: LookupKind[] = ['users']
 
-const LEAD_STATUSES: CrmLeadStatusDTO[] = [
+export const LEAD_STATUSES: CrmLeadStatusDTO[] = [
   'NEW',
   'WORKING',
   'QUALIFIED',
@@ -23,7 +23,7 @@ const LEAD_STATUSES: CrmLeadStatusDTO[] = [
   'CONVERTED',
 ]
 
-const STATUS_STYLES: Record<CrmLeadStatusDTO, string> = {
+export const STATUS_STYLES: Record<CrmLeadStatusDTO, string> = {
   NEW: 'bg-slate-500/15 text-slate-600',
   WORKING: 'bg-blue-500/15 text-blue-600',
   QUALIFIED: 'bg-emerald-500/15 text-emerald-600',
@@ -31,7 +31,7 @@ const STATUS_STYLES: Record<CrmLeadStatusDTO, string> = {
   CONVERTED: 'bg-violet-500/15 text-violet-600',
 }
 
-const STATUS_LABELS: Record<CrmLeadStatusDTO, string> = {
+export const STATUS_LABELS: Record<CrmLeadStatusDTO, string> = {
   NEW: 'Novo',
   WORKING: 'Em contato',
   QUALIFIED: 'Qualificado',
