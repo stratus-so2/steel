@@ -711,6 +711,7 @@ export function DataTable<TData extends WithId>({
 
   const patch = React.useCallback(
     (id: string, fields: Record<string, unknown>) => {
+      const wasNewRow = newRowId === id
       setNewRowId((cur) => (cur === id ? null : cur))
       setRows((cur) =>
         cur.map((row) => (row.id === id ? { ...row, ...fields } : row)),
@@ -718,11 +719,19 @@ export function DataTable<TData extends WithId>({
       void updateCrmResource(workspaceId, resource, id, fields).then((res) => {
         if (!res.ok) {
           notify.error(res.message ?? 'Não foi possível salvar.')
-          refetch()
+          if (wasNewRow) {
+            // Linha criada em branco por addRow(); se o campo primário (ex.:
+            // CNPJ duplicado) falha logo na primeira edição, não faz sentido
+            // manter o registro fantasma — remove em vez de só reverter o campo.
+            setRows((cur) => cur.filter((row) => row.id !== id))
+            void deleteCrmResource(workspaceId, resource, id)
+          } else {
+            refetch()
+          }
         }
       })
     },
-    [workspaceId, resource, refetch],
+    [workspaceId, resource, refetch, newRowId],
   )
 
   const removeRow = React.useCallback(
