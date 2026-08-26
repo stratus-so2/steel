@@ -102,6 +102,9 @@ importers:
       '@react-email/editor':
         specifier: 1.5.3
         version: 1.5.3(@floating-ui/dom@1.7.6)(@tiptap/extension-list@3.28.0(@tiptap/core@3.28.0(@tiptap/pm@3.28.0))(@tiptap/pm@3.28.0))(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(happy-dom@20.10.6)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@react-email/render':
+        specifier: 2.1.0
+        version: 2.1.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       '@react-pdf/renderer':
         specifier: ^4.6.0
         version: 4.6.0(react@19.2.5)
@@ -2384,13 +2387,6 @@ packages:
 
   '@react-email/editor@1.5.3':
     resolution: {integrity: sha512-JxIWooOCPiTuVjNSRL5O+fPmNoN2zIQ/scf25sSazxCxRbzntql8RZbXx0/iqJFk6bH1R79IoRIVjvg5K6A7qg==}
-    engines: {node: '>=20.0.0'}
-    peerDependencies:
-      react: ^18.0 || ^19.0 || ^19.0.0-rc
-      react-dom: ^18.0 || ^19.0 || ^19.0.0-rc
-
-  '@react-email/render@2.0.9':
-    resolution: {integrity: sha512-M89LiXy2q+9tmQ4VMR0rYGuEe6NJ6HhZsSxBMoLwIia5fVOLcZQcZe2GEO0nAkLZspDjEhn7mtMRPmeMKECEdQ==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
@@ -4688,6 +4684,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -9760,13 +9757,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@react-email/render@2.0.9(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
-    dependencies:
-      html-to-text: 9.0.5
-      prettier: 3.9.4
-      react: 19.2.5
-      react-dom: 19.2.5(react@19.2.5)
-
   '@react-email/render@2.1.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:
       entities: 4.5.0
@@ -14292,7 +14282,7 @@ snapshots:
     dependencies:
       '@babel/parser': 7.27.0
       '@babel/traverse': 7.27.0
-      '@react-email/render': 2.0.9(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      '@react-email/render': 2.1.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       chokidar: 4.0.1
       commander: 13.1.0
       conf: 15.1.0

@@ -41,6 +41,8 @@ export const CrmEmailTemplateRepository = {
     subject: string
     contentHtml: string
     contentJson?: string
+    templateId?: string
+    templateProps?: Record<string, string>
   }): Promise<Result<CrmEmailTemplate>> {
     try {
       const template = await prisma.crmEmailTemplate.create({ data })
@@ -57,6 +59,8 @@ export const CrmEmailTemplateRepository = {
       subject?: string
       contentHtml?: string
       contentJson?: string
+      templateId?: string
+      templateProps?: Record<string, string>
       updatedById?: string
     },
   ): Promise<Result<CrmEmailTemplate>> {

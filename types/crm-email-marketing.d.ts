@@ -4,6 +4,8 @@ export interface CrmEmailTemplateDTO {
   subject: string
   contentHtml: string
   contentJson: string | null
+  templateId: string | null
+  templateProps: Record<string, string> | null
   workspaceId: string
   createdById: string
   updatedById: string | null

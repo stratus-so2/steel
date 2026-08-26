@@ -2075,6 +2075,11 @@ model CrmEmailTemplate {
   subject     String
   contentHtml String    @map("content_html") @db.Text
   contentJson String?   @map("content_json") @db.Text
+  /// Layout fixo de origem (ex.: "promo-announcement"), quando o template foi
+  /// criado a partir de um modelo pronto em vez do editor de blocos livre.
+  templateId     String?                @map("template_id")
+  /// Valores dos campos editáveis (texto/imagem) desse layout fixo.
+  templateProps  Json?                  @map("template_props")
   workspaceId String    @map("workspace_id")
   createdById String    @map("created_by_id")
   updatedById String?   @map("updated_by_id")

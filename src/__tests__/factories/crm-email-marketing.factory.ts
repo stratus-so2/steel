@@ -18,6 +18,8 @@ export function createFakeCrmEmailTemplate(
     subject: 'Bem-vindo!',
     contentHtml: '<p>Oi</p>',
     contentJson: null,
+    templateId: null,
+    templateProps: null,
     workspaceId: createId(),
     createdById: createId(),
     updatedById: null,

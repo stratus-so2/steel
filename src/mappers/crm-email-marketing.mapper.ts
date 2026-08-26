@@ -22,6 +22,8 @@ export function toCrmEmailTemplateDTO(
     subject: template.subject,
     contentHtml: template.contentHtml,
     contentJson: template.contentJson,
+    templateId: template.templateId,
+    templateProps: template.templateProps as Record<string, string> | null,
     workspaceId: template.workspaceId,
     createdById: template.createdById,
     updatedById: template.updatedById,
