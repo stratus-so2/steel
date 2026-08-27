@@ -101,7 +101,12 @@ describe('executeAiTool()', () => {
 
       const result = await executeAiTool(
         'create_lead',
-        { name: 'Rival Co', userConfirmed: true },
+        {
+          name: 'Rival Co',
+          emails: ['contact@rival.co'],
+          source: 'ads',
+          userConfirmed: true,
+        },
         ctx,
       )
       expect(JSON.parse(result)).toEqual({ created: true, id: 'lead-1' })
