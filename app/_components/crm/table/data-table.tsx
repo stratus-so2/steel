@@ -834,10 +834,16 @@ export function DataTable<TData extends WithId>({
         setRows((cur) => [created, ...cur])
         setSorting([])
         setPagination((cur) => ({ ...cur, pageIndex: 0 }))
-        setNewRowId(created.id)
+        if (viewMode === 'kanban') {
+          // Kanban não tem célula pra editar inline — abre o painel lateral
+          // direto, igual ao clique num card.
+          openRecordById(created.id)
+        } else {
+          setNewRowId(created.id)
+        }
       },
     )
-  }, [columns, workspaceId, resource])
+  }, [columns, workspaceId, resource, viewMode, openRecordById])
 
   const tableColumns = React.useMemo<ColumnDef<TData>[]>(() => {
     const drag: ColumnDef<TData> = {
