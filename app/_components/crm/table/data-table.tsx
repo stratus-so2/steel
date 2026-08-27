@@ -1194,15 +1194,17 @@ export function DataTable<TData extends WithId>({
           do TableHeader (ele gruda no ancestral errado e "solta" a cabeçalho
           durante o scroll horizontal). */}
       {viewMode === 'kanban' && kanban ? (
-        <CrmKanbanView
-          items={table.getFilteredRowModel().rows.map((r) => r.original)}
-          groupByKey={kanban.groupByKey}
-          columns={kanban.columns}
-          renderCard={kanban.renderCard}
-          onMove={(itemId, toColumn) =>
-            patch(itemId, { [kanban.groupByKey]: toColumn })
-          }
-        />
+        <div className='min-h-0 flex-1 overflow-hidden'>
+          <CrmKanbanView
+            items={table.getFilteredRowModel().rows.map((r) => r.original)}
+            groupByKey={kanban.groupByKey}
+            columns={kanban.columns}
+            renderCard={kanban.renderCard}
+            onMove={(itemId, toColumn) =>
+              patch(itemId, { [kanban.groupByKey]: toColumn })
+            }
+          />
+        </div>
       ) : (
         <div
           ref={tableScrollRef}

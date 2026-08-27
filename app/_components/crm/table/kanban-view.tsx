@@ -7,6 +7,7 @@ import {
   KanbanColumn,
   KanbanColumnContent,
   KanbanItem,
+  KanbanItemHandle,
   KanbanOverlay,
 } from '@/components/ui/kanban'
 import { cn } from '@/lib/utils'
@@ -69,15 +70,16 @@ export function CrmKanbanView<TData extends { id: string }>({
         if (meta.activeContainer === meta.overContainer) return
         onMove(String(meta.event.active.id), meta.overContainer)
       }}
+      className='flex h-full min-h-0 flex-col'
     >
-      <KanbanBoard className='flex flex-1 items-start gap-3 overflow-x-auto pb-2 sm:grid-cols-none'>
+      <KanbanBoard className='flex min-h-0 flex-1 items-stretch gap-3 overflow-x-auto pb-2'>
         {columns.map((col) => {
           const colItems = value[col.value] ?? []
           return (
             <KanbanColumn
               key={col.value}
               value={col.value}
-              className='flex h-full w-72 shrink-0 flex-col rounded-xl border bg-card/40'
+              className='flex h-full min-h-0 w-72 shrink-0 flex-col rounded-xl border bg-card/40'
             >
               <div className='flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5'>
                 <span
@@ -94,15 +96,17 @@ export function CrmKanbanView<TData extends { id: string }>({
               </div>
               <KanbanColumnContent
                 value={col.value}
-                className='min-h-16 flex-1 gap-2 overflow-y-auto p-2'
+                className='min-h-0 flex-1 gap-2 overflow-y-auto p-2'
               >
                 {colItems.map((item) => (
                   <KanbanItem
                     key={item.id}
                     value={item.id}
-                    className='cursor-grab rounded-lg border bg-card p-3 text-sm shadow-xs active:cursor-grabbing'
+                    className='rounded-lg border bg-card text-sm shadow-xs'
                   >
-                    {renderCard(item)}
+                    <KanbanItemHandle className='block cursor-grab p-3 active:cursor-grabbing'>
+                      {renderCard(item)}
+                    </KanbanItemHandle>
                   </KanbanItem>
                 ))}
                 {colItems.length === 0 ? (
