@@ -6,6 +6,7 @@ import {
   Loading02Icon,
   MapsLocation01Icon,
   PencilEdit02Icon,
+  PlusSignIcon,
   SidebarRightIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { ColumnDef, Row, Table } from '@tanstack/react-table'
@@ -35,6 +36,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { createCrmResource } from '@/src/hooks/use-crm-resource-list'
 import type { Lookups, Option } from '@/src/hooks/use-crm-workspace-lookups'
 import {
   CnpjNotFoundError,
@@ -77,6 +79,7 @@ export type GridColumn = {
     | 'link'
     | 'address'
     | 'readonly-date'
+    | 'company-name-picker'
   /** Campo obrigatório (não pode ser limpo; usado para criar a linha vazia). */
   required?: boolean
   /** Coluna nome/título: dispara a criação do rascunho ao confirmar. */
@@ -886,6 +889,227 @@ function CnpjEditor({
   )
 }
 
+/**
+ * Empresa do Lead: `CrmLead.company` é texto livre (não uma relação), então
+ * este editor só grava o nome — mas oferece um dropdown com as empresas já
+ * cadastradas (igual ao RelationEditor de Pessoas/Oportunidades) e, além
+ * disso, uma opção de criar a empresa na hora a partir do CNPJ. Usado
+ * apenas na coluna "Empresa" do Lead — em nenhum outro lugar.
+ */
+function CompanyNamePickerEditor({
+  value,
+  commit,
+  workspaceId,
+  lookups,
+  placeholder,
+}: {
+  value: unknown
+  commit: (next: unknown) => void
+  workspaceId: string
+  lookups: Lookups
+  placeholder?: string
+}) {
+  const name = value == null ? '' : String(value)
+  const [open, setOpen] = React.useState(false)
+  const [search, setSearch] = React.useState('')
+  const [creating, setCreating] = React.useState(false)
+  const [cnpjDraft, setCnpjDraft] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  const [localOptions, setLocalOptions] = React.useState<Option[]>([])
+
+  const options = React.useMemo(() => {
+    const seen = new Set(lookups.options.companies.map((o) => o.value))
+    return [
+      ...lookups.options.companies,
+      ...localOptions.filter((o) => !seen.has(o.value)),
+    ]
+  }, [lookups.options.companies, localOptions])
+
+  const filtered = React.useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return options
+    return options.filter((o) => o.label.toLowerCase().includes(q))
+  }, [options, search])
+
+  function reset() {
+    setSearch('')
+    setCreating(false)
+    setCnpjDraft('')
+  }
+
+  function pick(companyName: string) {
+    commit(companyName)
+    setOpen(false)
+    reset()
+  }
+
+  async function handleCreate() {
+    const digits = normalizeCnpj(cnpjDraft)
+    if (!isValidCnpj(digits)) {
+      notify.error('CNPJ inválido')
+      return
+    }
+    setLoading(true)
+    try {
+      const lookup = await lookupCnpj(digits).catch((error) => {
+        if (!(error instanceof CnpjNotFoundError)) {
+          notify.error('Não foi possível consultar o CNPJ')
+        }
+        return null
+      })
+      const companyName = lookup?.name ?? `Empresa ${formatCnpj(digits)}`
+      const res = await createCrmResource<{ id: string; name: string }>(
+        workspaceId,
+        'companies',
+        {
+          name: companyName,
+          cnpj: digits,
+          ...(lookup?.address ? { address: lookup.address } : {}),
+        },
+      )
+      if (!res.ok || !res.data) {
+        notify.error(res.message ?? 'Não foi possível criar a empresa.')
+        return
+      }
+      const createdCompany = res.data
+      notify.success('Empresa criada')
+      setLocalOptions((cur) => [
+        ...cur,
+        { value: createdCompany.id, label: createdCompany.name },
+      ])
+      pick(createdCompany.name)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) reset()
+      }}
+    >
+      <PopoverTrigger
+        render={
+          <button
+            type='button'
+            className='flex h-7 w-full items-center rounded px-1.5 text-left hover:bg-muted/50'
+          />
+        }
+      >
+        {name ? (
+          <span className='truncate'>{name}</span>
+        ) : (
+          <span className='text-muted-foreground/60'>
+            {placeholder ?? 'Selecionar empresa'}
+          </span>
+        )}
+      </PopoverTrigger>
+      <PopoverContent className='w-72 p-2' align='start'>
+        {!creating ? (
+          <div className='flex flex-col gap-2'>
+            <Input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder='Buscar empresa…'
+              className='h-8'
+            />
+            <div className='max-h-56 overflow-auto rounded-md border border-border'>
+              {filtered.length === 0 ? (
+                <div className='p-3 text-muted-foreground text-xs'>
+                  Nenhuma empresa encontrada.
+                </div>
+              ) : (
+                <ul className='divide-y divide-border'>
+                  {filtered.map((opt) => (
+                    <li key={opt.value}>
+                      <button
+                        type='button'
+                        onClick={() => pick(opt.label)}
+                        className='block w-full truncate px-2.5 py-1.5 text-left text-sm hover:bg-muted/50'
+                      >
+                        {opt.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {name ? (
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                className='justify-start text-muted-foreground'
+                onClick={() => pick('')}
+              >
+                Limpar
+              </Button>
+            ) : null}
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => setCreating(true)}
+            >
+              <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+              Criar empresa por CNPJ
+            </Button>
+          </div>
+        ) : (
+          <div className='flex flex-col gap-2'>
+            <label
+              htmlFor='lead-company-cnpj'
+              className='text-muted-foreground text-xs'
+            >
+              CNPJ da nova empresa
+            </label>
+            <Input
+              id='lead-company-cnpj'
+              autoFocus
+              value={cnpjDraft}
+              onChange={(e) => setCnpjDraft(formatCnpj(e.target.value))}
+              placeholder='00.000.000/0000-00'
+              inputMode='numeric'
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void handleCreate()
+                }
+              }}
+            />
+            <p className='text-muted-foreground text-xs'>
+              O nome e endereço são preenchidos automaticamente pela Receita.
+            </p>
+            <div className='flex justify-end gap-2'>
+              <Button
+                type='button'
+                variant='ghost'
+                size='sm'
+                onClick={() => setCreating(false)}
+                disabled={loading}
+              >
+                Voltar
+              </Button>
+              <Button
+                type='button'
+                size='sm'
+                onClick={() => void handleCreate()}
+                disabled={loading || normalizeCnpj(cnpjDraft).length === 0}
+              >
+                {loading ? 'Criando…' : 'Criar e usar'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 /** Renderiza o editor correto para uma célula (linha existente ou rascunho). */
 export function CellEditor({
   col,
@@ -894,6 +1118,7 @@ export function CellEditor({
   autofill,
   slug,
   lookups,
+  workspaceId,
   startEditing = false,
   onPrimaryEnter,
 }: {
@@ -904,6 +1129,7 @@ export function CellEditor({
   autofill?: (fields: Record<string, unknown>) => void
   slug: string
   lookups: Lookups
+  workspaceId: string
   startEditing?: boolean
   onPrimaryEnter?: () => void
 }) {
@@ -958,6 +1184,16 @@ export function CellEditor({
           lookups={lookups}
         />
       )
+    case 'company-name-picker':
+      return (
+        <CompanyNamePickerEditor
+          value={value}
+          commit={commit}
+          workspaceId={workspaceId}
+          lookups={lookups}
+          placeholder={col.placeholder}
+        />
+      )
     default:
       return (
         <TextLikeEditor
@@ -1002,6 +1238,7 @@ function EditableCell<T extends WithId>({
       autofill={autofill}
       slug={grid.slug}
       lookups={grid.lookups}
+      workspaceId={grid.workspaceId}
       startEditing={Boolean(col.primary) && grid.newRowId === row.original.id}
     />
   )

@@ -158,6 +158,7 @@ export function RecordPanel<T extends WithId>({
                     }
                     slug={slug}
                     lookups={lookups}
+                    workspaceId={workspaceId}
                   />
                 </div>
               </div>

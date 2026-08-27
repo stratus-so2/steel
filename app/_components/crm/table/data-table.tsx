@@ -32,8 +32,10 @@ import {
   Drag01Icon,
   FilterIcon,
   InboxIcon,
+  KanbanIcon,
   PlusSignIcon,
   Search01Icon,
+  Table01Icon,
   ViewOffIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import {
@@ -60,6 +62,10 @@ import {
   type GridColumn,
   type WithId,
 } from '@/app/_components/crm/table/grid'
+import {
+  type CrmKanbanColumnDef,
+  CrmKanbanView,
+} from '@/app/_components/crm/table/kanban-view'
 import { RecordPanel } from '@/app/_components/crm/table/record-panel'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
@@ -606,6 +612,7 @@ export function DataTable<TData extends WithId>({
   headerAction,
   onOpenRecord,
   renderRecordExtra,
+  kanban,
 }: {
   columns: GridColumn[]
   data: TData[]
@@ -639,6 +646,17 @@ export function DataTable<TData extends WithId>({
    * items de uma oportunidade). Recebe o registro aberto.
    */
   renderRecordExtra?: (record: TData) => React.ReactNode
+  /**
+   * Habilita a opção de visualização em Kanban (além da tabela) — colunas
+   * fixas de um campo categórico (ex.: status). Arrastar um card entre
+   * colunas grava o novo valor via PATCH. Escolha de visão persiste em
+   * localStorage por workspace+recurso.
+   */
+  kanban?: {
+    groupByKey: string
+    columns: CrmKanbanColumnDef[]
+    renderCard: (record: TData) => React.ReactNode
+  }
 }) {
   const [rows, setRows] = React.useState(() => data)
   React.useEffect(() => setRows(data), [data])
@@ -680,6 +698,26 @@ export function DataTable<TData extends WithId>({
       // Ignora cota cheia / modo privado.
     }
   }, [calc, calcStorageKey])
+
+  /** Tabela ou Kanban — persistida por workspace + recurso. */
+  const viewStorageKey = `steel:crm-table-view:${workspaceId}:${resource}`
+  const [viewMode, setViewMode] = React.useState<'table' | 'kanban'>(() => {
+    if (!kanban || typeof window === 'undefined') return 'table'
+    try {
+      const raw = window.localStorage.getItem(viewStorageKey)
+      return raw === 'kanban' ? 'kanban' : 'table'
+    } catch {
+      return 'table'
+    }
+  })
+  React.useEffect(() => {
+    if (!kanban || typeof window === 'undefined') return
+    try {
+      window.localStorage.setItem(viewStorageKey, viewMode)
+    } catch {
+      // Ignora cota cheia / modo privado.
+    }
+  }, [viewMode, viewStorageKey, kanban])
 
   /** Roda do mouse vertical → rolagem horizontal da tabela (sem segurar Shift). */
   const tableScrollRef = React.useRef<HTMLDivElement>(null)
@@ -777,7 +815,11 @@ export function DataTable<TData extends WithId>({
           return
         }
         const created = res.data
-        setRows((cur) => [...cur, created])
+        // Item recém-criado entra como o mais recente: no topo da lista e
+        // na primeira página, independente de ordenação/paginação atuais.
+        setRows((cur) => [created, ...cur])
+        setSorting([])
+        setPagination((cur) => ({ ...cur, pageIndex: 0 }))
         setNewRowId(created.id)
       },
     )
@@ -851,6 +893,7 @@ export function DataTable<TData extends WithId>({
     meta: {
       grid: {
         slug,
+        workspaceId,
         resource,
         lookups,
         patch,
@@ -1061,6 +1104,29 @@ export function DataTable<TData extends WithId>({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {kanban ? (
+          <div className='flex items-center gap-0.5 rounded-md border p-0.5'>
+            <Button
+              type='button'
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+              size='icon-sm'
+              onClick={() => setViewMode('table')}
+              aria-label='Visualizar em tabela'
+            >
+              <SteelIcon icon={Table01Icon} strokeWidth={2} />
+            </Button>
+            <Button
+              type='button'
+              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
+              size='icon-sm'
+              onClick={() => setViewMode('kanban')}
+              aria-label='Visualizar em kanban'
+            >
+              <SteelIcon icon={KanbanIcon} strokeWidth={2} />
+            </Button>
+          </div>
+        ) : null}
+
         {headerAction ??
           (disableInlineCreate ? null : (
             <Button size='sm' onClick={addRow}>
@@ -1127,254 +1193,273 @@ export function DataTable<TData extends WithId>({
           containers de scroll aninhados quebram o cálculo de position:sticky
           do TableHeader (ele gruda no ancestral errado e "solta" a cabeçalho
           durante o scroll horizontal). */}
-      <div
-        ref={tableScrollRef}
-        className='@container no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border bg-card/40 shadow-xs'
-      >
-        <DndContext
-          id={sortableId}
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          modifiers={[restrictToVerticalAxis]}
-          onDragEnd={handleDragEnd}
+      {viewMode === 'kanban' && kanban ? (
+        <CrmKanbanView
+          items={table.getFilteredRowModel().rows.map((r) => r.original)}
+          groupByKey={kanban.groupByKey}
+          columns={kanban.columns}
+          renderCard={kanban.renderCard}
+          onMove={(itemId, toColumn) =>
+            patch(itemId, { [kanban.groupByKey]: toColumn })
+          }
+        />
+      ) : (
+        <div
+          ref={tableScrollRef}
+          className='@container no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border bg-card/40 shadow-xs'
         >
-          <Table
-            containerClassName={cn('overflow-x-visible', isEmpty && 'h-full')}
-            className={cn('min-w-full', isEmpty && 'h-full')}
-            style={{ width: table.getTotalSize() }}
+          <DndContext
+            id={sortableId}
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
           >
-            <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md [&_th]:h-11 [&_th]:font-medium [&_th]:text-muted-foreground [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider'>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const id = header.column.id
-                    const left = stickyLeftFor(id, primaryKey)
-                    const isData = !['drag', 'select', 'actions'].includes(id)
-                    return (
-                      <TableHead
-                        key={header.id}
-                        colSpan={header.colSpan}
-                        style={cellStyle(header.getSize(), left)}
-                        className={cn(left != null && 'bg-card')}
-                      >
-                        {header.isPlaceholder ? null : isData ? (
-                          <HeaderMenu column={header.column} />
-                        ) : (
-                          flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )
-                        )}
-                      </TableHead>
-                    )
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, rowIndex) => (
-                  <TableRow
-                    key={`skeleton-${rowIndex}`}
-                    className='hover:bg-transparent'
-                  >
-                    {visibleLeafColumns.map((column) => {
-                      const left = stickyLeftFor(column.id, primaryKey)
+            <Table
+              containerClassName={cn('overflow-x-visible', isEmpty && 'h-full')}
+              className={cn('min-w-full', isEmpty && 'h-full')}
+              style={{ width: table.getTotalSize() }}
+            >
+              <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md [&_th]:h-11 [&_th]:font-medium [&_th]:text-muted-foreground [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider'>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      const id = header.column.id
+                      const left = stickyLeftFor(id, primaryKey)
+                      const isData = !['drag', 'select', 'actions'].includes(id)
                       return (
-                        <TableCell
-                          key={column.id}
-                          style={cellStyle(column.getSize(), left)}
+                        <TableHead
+                          key={header.id}
+                          colSpan={header.colSpan}
+                          style={cellStyle(header.getSize(), left)}
                           className={cn(left != null && 'bg-card')}
                         >
-                          <Skeleton
-                            className='h-4 rounded'
-                            style={{ width: `${45 + ((rowIndex * 13) % 45)}%` }}
-                          />
-                        </TableCell>
+                          {header.isPlaceholder ? null : isData ? (
+                            <HeaderMenu column={header.column} />
+                          ) : (
+                            flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )
+                          )}
+                        </TableHead>
                       )
                     })}
                   </TableRow>
-                ))
-              ) : table.getRowModel().rows.length ? (
-                <>
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow
-                        key={row.id}
-                        row={row}
-                        onDelete={removeRow}
-                        primaryKey={primaryKey}
-                      />
-                    ))}
-                  </SortableContext>
-                  {disableInlineCreate ? null : (
-                    <TableRow className='hover:bg-transparent'>
-                      <TableCell
-                        colSpan={visibleLeafColumns.length}
-                        className='p-0'
-                      >
-                        <div className='sticky left-0 w-fit'>
-                          <Button
-                            variant='ghost'
-                            size='sm'
-                            className='m-1 text-muted-foreground'
-                            onClick={addRow}
+                ))}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, rowIndex) => (
+                    <TableRow
+                      key={`skeleton-${rowIndex}`}
+                      className='hover:bg-transparent'
+                    >
+                      {visibleLeafColumns.map((column) => {
+                        const left = stickyLeftFor(column.id, primaryKey)
+                        return (
+                          <TableCell
+                            key={column.id}
+                            style={cellStyle(column.getSize(), left)}
+                            className={cn(left != null && 'bg-card')}
                           >
-                            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-                            Adicionar novo
-                          </Button>
-                        </div>
-                      </TableCell>
+                            <Skeleton
+                              className='h-4 rounded'
+                              style={{
+                                width: `${45 + ((rowIndex * 13) % 45)}%`,
+                              }}
+                            />
+                          </TableCell>
+                        )
+                      })}
                     </TableRow>
-                  )}
-                </>
-              ) : (
-                <TableRow className='hover:bg-transparent'>
-                  <TableCell
-                    colSpan={visibleLeafColumns.length}
-                    className='h-full p-0'
-                  >
-                    <div className='sticky left-0 flex h-full min-h-48 w-[100cqw] flex-col items-center justify-center gap-3 py-16 text-center'>
-                      <div className='flex size-12 items-center justify-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground'>
-                        <SteelIcon
-                          icon={InboxIcon}
-                          strokeWidth={1.8}
-                          className='size-5'
+                  ))
+                ) : table.getRowModel().rows.length ? (
+                  <>
+                    <SortableContext
+                      items={dataIds}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {table.getRowModel().rows.map((row) => (
+                        <DraggableRow
+                          key={row.id}
+                          row={row}
+                          onDelete={removeRow}
+                          primaryKey={primaryKey}
                         />
+                      ))}
+                    </SortableContext>
+                    {disableInlineCreate ? null : (
+                      <TableRow className='hover:bg-transparent'>
+                        <TableCell
+                          colSpan={visibleLeafColumns.length}
+                          className='p-0'
+                        >
+                          <div className='sticky left-0 w-fit'>
+                            <Button
+                              variant='ghost'
+                              size='sm'
+                              className='m-1 text-muted-foreground'
+                              onClick={addRow}
+                            >
+                              <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+                              Adicionar novo
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                ) : (
+                  <TableRow className='hover:bg-transparent'>
+                    <TableCell
+                      colSpan={visibleLeafColumns.length}
+                      className='h-full p-0'
+                    >
+                      <div className='sticky left-0 flex h-full min-h-48 w-[100cqw] flex-col items-center justify-center gap-3 py-16 text-center'>
+                        <div className='flex size-12 items-center justify-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground'>
+                          <SteelIcon
+                            icon={InboxIcon}
+                            strokeWidth={1.8}
+                            className='size-5'
+                          />
+                        </div>
+                        <div className='space-y-0.5'>
+                          <p className='font-medium text-sm'>
+                            Nada por aqui ainda
+                          </p>
+                          <p className='text-muted-foreground text-xs'>
+                            Crie o primeiro registro ou ajuste os filtros.
+                          </p>
+                        </div>
+                        {disableInlineCreate ? null : (
+                          <Button size='sm' className='mt-1' onClick={addRow}>
+                            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+                            Novo {createTitle}
+                          </Button>
+                        )}
                       </div>
-                      <div className='space-y-0.5'>
-                        <p className='font-medium text-sm'>
-                          Nada por aqui ainda
-                        </p>
-                        <p className='text-muted-foreground text-xs'>
-                          Crie o primeiro registro ou ajuste os filtros.
-                        </p>
-                      </div>
-                      {disableInlineCreate ? null : (
-                        <Button size='sm' className='mt-1' onClick={addRow}>
-                          <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-                          Novo {createTitle}
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-            {!isLoading && table.getRowModel().rows.length ? (
-              <TableFooter className='sticky bottom-0 z-10 border-t bg-card/85 backdrop-blur-md'>
-                <TableRow className='hover:bg-transparent'>
-                  {visibleLeafColumns.map((column) => {
-                    const left = stickyLeftFor(column.id, primaryKey)
-                    const style = cellStyle(column.getSize(), left)
-                    return typeof column.accessorFn !== 'undefined' ? (
-                      <TableCell
-                        key={column.id}
-                        className={cn('p-0', left != null && 'bg-card')}
-                        style={style}
-                      >
-                        <CalcFooterCell
-                          column={column}
-                          rows={filteredRows}
-                          value={calc[column.id] ?? 'none'}
-                          onChange={(next) =>
-                            setCalc((prev) => ({ ...prev, [column.id]: next }))
-                          }
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              {!isLoading && table.getRowModel().rows.length ? (
+                <TableFooter className='sticky bottom-0 z-10 border-t bg-card/85 backdrop-blur-md'>
+                  <TableRow className='hover:bg-transparent'>
+                    {visibleLeafColumns.map((column) => {
+                      const left = stickyLeftFor(column.id, primaryKey)
+                      const style = cellStyle(column.getSize(), left)
+                      return typeof column.accessorFn !== 'undefined' ? (
+                        <TableCell
+                          key={column.id}
+                          className={cn('p-0', left != null && 'bg-card')}
+                          style={style}
+                        >
+                          <CalcFooterCell
+                            column={column}
+                            rows={filteredRows}
+                            value={calc[column.id] ?? 'none'}
+                            onChange={(next) =>
+                              setCalc((prev) => ({
+                                ...prev,
+                                [column.id]: next,
+                              }))
+                            }
+                          />
+                        </TableCell>
+                      ) : (
+                        <TableCell
+                          key={column.id}
+                          style={style}
+                          className={cn(left != null && 'bg-card')}
                         />
-                      </TableCell>
-                    ) : (
-                      <TableCell
-                        key={column.id}
-                        style={style}
-                        className={cn(left != null && 'bg-card')}
-                      />
-                    )
-                  })}
-                </TableRow>
-              </TableFooter>
-            ) : null}
-          </Table>
-        </DndContext>
-      </div>
+                      )
+                    })}
+                  </TableRow>
+                </TableFooter>
+              ) : null}
+            </Table>
+          </DndContext>
+        </div>
+      )}
 
       {/* Pagination */}
-      <div className='flex shrink-0 items-center justify-between gap-4'>
-        <div className='hidden text-muted-foreground text-sm lg:block'>
-          <span className='font-medium text-foreground tabular-nums'>
-            {table.getFilteredSelectedRowModel().rows.length}
-          </span>{' '}
-          de{' '}
-          <span className='tabular-nums'>
-            {table.getFilteredRowModel().rows.length}
-          </span>{' '}
-          linha(s) selecionada(s).
-        </div>
-        <div className='flex items-center gap-6'>
-          <div className='flex items-center gap-2'>
-            <span className='text-sm'>Linhas por página</span>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => table.setPageSize(Number(value))}
-            >
-              <SelectTrigger size='sm' className='w-18'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[10, 20, 30, 50].map((size) => (
-                  <SelectItem key={size} value={`${size}`}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      {viewMode === 'kanban' && kanban ? null : (
+        <div className='flex shrink-0 items-center justify-between gap-4'>
+          <div className='hidden text-muted-foreground text-sm lg:block'>
+            <span className='font-medium text-foreground tabular-nums'>
+              {table.getFilteredSelectedRowModel().rows.length}
+            </span>{' '}
+            de{' '}
+            <span className='tabular-nums'>
+              {table.getFilteredRowModel().rows.length}
+            </span>{' '}
+            linha(s) selecionada(s).
           </div>
-          <span className='text-sm'>
-            Página {table.getState().pagination.pageIndex + 1} de{' '}
-            {table.getPageCount() || 1}
-          </span>
-          <div className='flex items-center gap-1'>
-            <Button
-              variant='outline'
-              size='icon-sm'
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className='sr-only'>Primeira página</span>
-              <SteelIcon icon={ArrowLeftDoubleIcon} strokeWidth={2} />
-            </Button>
-            <Button
-              variant='outline'
-              size='icon-sm'
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className='sr-only'>Página anterior</span>
-              <SteelIcon icon={ArrowLeft01Icon} strokeWidth={2} />
-            </Button>
-            <Button
-              variant='outline'
-              size='icon-sm'
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className='sr-only'>Próxima página</span>
-              <SteelIcon icon={ArrowRight01Icon} strokeWidth={2} />
-            </Button>
-            <Button
-              variant='outline'
-              size='icon-sm'
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className='sr-only'>Última página</span>
-              <SteelIcon icon={ArrowRightDoubleIcon} strokeWidth={2} />
-            </Button>
+          <div className='flex items-center gap-6'>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm'>Linhas por página</span>
+              <Select
+                value={`${table.getState().pagination.pageSize}`}
+                onValueChange={(value) => table.setPageSize(Number(value))}
+              >
+                <SelectTrigger size='sm' className='w-18'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[10, 20, 30, 50].map((size) => (
+                    <SelectItem key={size} value={`${size}`}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <span className='text-sm'>
+              Página {table.getState().pagination.pageIndex + 1} de{' '}
+              {table.getPageCount() || 1}
+            </span>
+            <div className='flex items-center gap-1'>
+              <Button
+                variant='outline'
+                size='icon-sm'
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <span className='sr-only'>Primeira página</span>
+                <SteelIcon icon={ArrowLeftDoubleIcon} strokeWidth={2} />
+              </Button>
+              <Button
+                variant='outline'
+                size='icon-sm'
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                <span className='sr-only'>Página anterior</span>
+                <SteelIcon icon={ArrowLeft01Icon} strokeWidth={2} />
+              </Button>
+              <Button
+                variant='outline'
+                size='icon-sm'
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                <span className='sr-only'>Próxima página</span>
+                <SteelIcon icon={ArrowRight01Icon} strokeWidth={2} />
+              </Button>
+              <Button
+                variant='outline'
+                size='icon-sm'
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                <span className='sr-only'>Última página</span>
+                <SteelIcon icon={ArrowRightDoubleIcon} strokeWidth={2} />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Painel lateral de detalhes/edição do registro */}
       {openRecord ? (

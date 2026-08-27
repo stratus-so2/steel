@@ -14,6 +14,7 @@ declare module '@tanstack/react-table' {
     /** Contexto da grade editável (auto-save inline) do CRM. */
     grid?: {
       slug: string
+      workspaceId: string
       /** Recurso da rota (ex.: "companies") — usado para links de visualização. */
       resource: string
       lookups: Lookups

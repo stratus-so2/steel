@@ -89,6 +89,27 @@ export function CrmLandingPagesTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar páginas…'
       refetch={refetch}
+      kanban={{
+        groupByKey: 'status',
+        columns: [
+          { value: 'DRAFT', label: 'Offline', className: STATUS_STYLES.DRAFT },
+          {
+            value: 'PUBLISHED',
+            label: 'Online',
+            className: STATUS_STYLES.PUBLISHED,
+          },
+        ],
+        renderCard: (record) => (
+          <div className='flex flex-col gap-1'>
+            <span className='truncate font-medium'>
+              {record.title || 'Landing page'}
+            </span>
+            <span className='truncate text-muted-foreground text-xs'>
+              {record.viewsCount} acesso(s)
+            </span>
+          </div>
+        ),
+      }}
       renderRecordExtra={(record) => (
         <CrmLandingPageMetrics workspaceId={workspaceId} pageId={record.id} />
       )}

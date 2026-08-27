@@ -140,6 +140,32 @@ export function CrmProposalsTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar propostas…'
       refetch={refetch}
+      kanban={{
+        groupByKey: 'status',
+        columns: STATUS_OPTIONS.map((opt) => ({
+          value: opt.value,
+          label: opt.label,
+          className: STATUS_STYLES[opt.value],
+        })),
+        renderCard: (record) => (
+          <div className='flex flex-col gap-1'>
+            <span className='truncate font-medium'>
+              {record.name || 'Proposta sem título'}
+            </span>
+            {record.companyId ? (
+              <span className='truncate text-muted-foreground text-xs'>
+                {lookups.maps.companies[record.companyId] ?? ''}
+              </span>
+            ) : null}
+            {record.validUntil ? (
+              <span className='truncate text-muted-foreground text-xs'>
+                Válida até{' '}
+                {new Date(record.validUntil).toLocaleDateString('pt-BR')}
+              </span>
+            ) : null}
+          </div>
+        ),
+      }}
       disableInlineCreate
       headerAction={
         <div className='flex items-center gap-2'>

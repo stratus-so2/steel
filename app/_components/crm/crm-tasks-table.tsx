@@ -127,6 +127,24 @@ export function CrmTasksTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar tarefas…'
       refetch={refetch}
+      kanban={{
+        groupByKey: 'status',
+        columns: TASK_STATUSES.map((s) => ({
+          value: s,
+          label: STATUS_LABEL[s],
+          className: STATUS_STYLES[s],
+        })),
+        renderCard: (record) => (
+          <div className='flex flex-col gap-1'>
+            <span className='truncate font-medium'>{record.title}</span>
+            {record.dueDate ? (
+              <span className='truncate text-muted-foreground text-xs'>
+                {new Date(record.dueDate).toLocaleDateString('pt-BR')}
+              </span>
+            ) : null}
+          </div>
+        ),
+      }}
     />
   )
 }

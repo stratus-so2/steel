@@ -13,7 +13,7 @@ import {
 } from '@/src/hooks/use-crm-workspace-lookups'
 import type { CrmLeadDTO, CrmLeadStatusDTO } from '@/types/crm-lead'
 
-const LOOKUP_KINDS: LookupKind[] = ['users']
+const LOOKUP_KINDS: LookupKind[] = ['users', 'companies']
 
 export const LEAD_STATUSES: CrmLeadStatusDTO[] = [
   'NEW',
@@ -55,7 +55,12 @@ const COLUMNS: GridColumn[] = [
     placeholder: 'maria@x.com',
   },
   { key: 'phones', header: 'Telefones', kind: 'tags' },
-  { key: 'company', header: 'Empresa', kind: 'text' },
+  {
+    key: 'company',
+    header: 'Empresa',
+    kind: 'company-name-picker',
+    placeholder: 'Selecionar empresa',
+  },
   { key: 'jobTitle', header: 'Cargo', kind: 'text' },
   { key: 'source', header: 'Origem', kind: 'text', placeholder: 'WhatsApp' },
   {
@@ -104,6 +109,29 @@ export function CrmLeadsTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar leads…'
       refetch={refetch}
+      kanban={{
+        groupByKey: 'status',
+        columns: LEAD_STATUSES.map((s) => ({
+          value: s,
+          label: STATUS_LABELS[s],
+          className: STATUS_STYLES[s],
+        })),
+        renderCard: (record) => (
+          <div className='flex flex-col gap-1'>
+            <span className='truncate font-medium'>{record.name}</span>
+            {record.company ? (
+              <span className='truncate text-muted-foreground text-xs'>
+                {record.company}
+              </span>
+            ) : null}
+            {record.emails[0] ? (
+              <span className='truncate text-muted-foreground text-xs'>
+                {record.emails[0]}
+              </span>
+            ) : null}
+          </div>
+        ),
+      }}
       renderRecordExtra={(record) => (
         <LeadConvert
           workspaceId={workspaceId}
