@@ -56,6 +56,7 @@ describe('CrmLeadService', () => {
           name: 'Jane',
           emails: ['a@b.com'],
           phones: [],
+          source: 'WhatsApp',
           status: 'NEW',
         }),
       )

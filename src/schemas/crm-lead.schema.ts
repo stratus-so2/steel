@@ -8,18 +8,23 @@ const LeadStatusEnum = z.enum([
   'CONVERTED',
 ])
 
-export const CreateCrmLeadSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório').max(200),
-  emails: z.array(z.email()).default([]),
-  phones: z.array(z.string().max(30)).default([]),
-  company: z.string().max(200).optional(),
-  jobTitle: z.string().max(150).optional(),
-  city: z.string().max(100).optional(),
-  linkedin: z.string().max(300).optional(),
-  source: z.string().max(100).optional(),
-  channel: z.string().max(100).optional(),
-  status: LeadStatusEnum.default('NEW'),
-})
+export const CreateCrmLeadSchema = z
+  .object({
+    name: z.string().min(1, 'Nome é obrigatório').max(200),
+    emails: z.array(z.email()).default([]),
+    phones: z.array(z.string().max(30)).default([]),
+    company: z.string().max(200).optional(),
+    jobTitle: z.string().max(150).optional(),
+    city: z.string().max(100).optional(),
+    linkedin: z.string().max(300).optional(),
+    source: z.string().min(1, 'Origem é obrigatória').max(100),
+    channel: z.string().max(100).optional(),
+    status: LeadStatusEnum.default('NEW'),
+  })
+  .refine((data) => data.emails.length > 0 || data.phones.length > 0, {
+    message: 'Informe ao menos um email ou telefone',
+    path: ['emails'],
+  })
 
 export type CreateCrmLeadDTO = z.infer<typeof CreateCrmLeadSchema>
 

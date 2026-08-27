@@ -41,7 +41,7 @@ describe('POST /api/workspaces/[id]/crm/leads', () => {
 
     const res = await postJson(
       `/api/workspaces/${workspace.id}/crm/leads`,
-      { name: 'Jane Doe', emails: ['jane@acme.com'] },
+      { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
       user.cookie,
     )
 
@@ -60,7 +60,7 @@ describe('POST /api/workspaces/[id]/crm/leads', () => {
 
     const res = await postJson(
       `/api/workspaces/${workspace.id}/crm/leads`,
-      { name: 'Jane Doe', source: 'ads' },
+      { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
       user.cookie,
     )
 
@@ -76,7 +76,7 @@ describe('PATCH & DELETE /api/workspaces/[id]/crm/leads/[leadId]', () => {
     const created = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/leads`,
-        { name: 'Jane' },
+        { name: 'Jane', emails: ['jane@acme.com'], source: 'ads' },
         user.cookie,
       )
     ).json()
@@ -96,7 +96,7 @@ describe('PATCH & DELETE /api/workspaces/[id]/crm/leads/[leadId]', () => {
     const created = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/leads`,
-        { name: 'Jane' },
+        { name: 'Jane', emails: ['jane@acme.com'], source: 'ads' },
         user.cookie,
       )
     ).json()
@@ -115,7 +115,7 @@ describe('POST /api/workspaces/[id]/crm/leads/[leadId]/convert', () => {
     const lead = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/leads`,
-        { name: 'Jane Doe', emails: ['jane@acme.com'] },
+        { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
         user.cookie,
       )
     ).json()
@@ -143,7 +143,7 @@ describe('POST /api/workspaces/[id]/crm/leads/[leadId]/convert', () => {
     const lead = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/leads`,
-        { name: 'Jane Doe' },
+        { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
         user.cookie,
       )
     ).json()

@@ -1,12 +1,27 @@
 'use client'
 
-import { useMemo } from 'react'
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
+import { useMemo, useState } from 'react'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
+import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { notify } from '@/lib/notify'
 import { useConvertCrmLead } from '@/src/hooks/use-crm-lead'
-import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
+import {
+  createCrmResource,
+  useCrmResourceList,
+} from '@/src/hooks/use-crm-resource-list'
 import {
   type LookupKind,
   useCrmWorkspaceLookups,
@@ -125,6 +140,7 @@ export function CrmLeadsTable({
     'leads',
   )
   const { lookups } = useCrmWorkspaceLookups(workspaceId, LOOKUP_KINDS)
+  const [createOpen, setCreateOpen] = useState(false)
 
   const columns = useMemo(() => COLUMNS, [])
 
@@ -140,6 +156,24 @@ export function CrmLeadsTable({
       isLoading={isLoading}
       searchPlaceholder='Buscar leads…'
       refetch={refetch}
+      disableInlineCreate
+      headerAction={
+        <>
+          <Button size='sm' onClick={() => setCreateOpen(true)}>
+            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+            Novo lead
+          </Button>
+          <CreateLeadDialog
+            workspaceId={workspaceId}
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onCreated={() => {
+              setCreateOpen(false)
+              refetch()
+            }}
+          />
+        </>
+      }
       kanban={{
         groupByKey: 'status',
         columns: LEAD_STATUSES.map((s) => ({
@@ -172,6 +206,159 @@ export function CrmLeadsTable({
         />
       )}
     />
+  )
+}
+
+/**
+ * Substitui a criação em branco (padrão da grade genérica) porque o Lead tem
+ * campos obrigatórios que a linha vazia não consegue satisfazer sozinha:
+ * nome, (email OU telefone) e origem — travado no schema do backend
+ * (`CreateCrmLeadSchema`). Esse form coleta tudo antes de criar.
+ */
+function CreateLeadDialog({
+  workspaceId,
+  open,
+  onClose,
+  onCreated,
+}: {
+  workspaceId: string
+  open: boolean
+  onClose: () => void
+  onCreated: () => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [source, setSource] = useState('')
+  const [channel, setChannel] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  function reset() {
+    setName('')
+    setEmail('')
+    setPhone('')
+    setSource('')
+    setChannel('')
+  }
+
+  async function handleSubmit() {
+    if (!name.trim()) {
+      notify.error('Informe o nome')
+      return
+    }
+    if (!email.trim() && !phone.trim()) {
+      notify.error('Informe ao menos um email ou telefone')
+      return
+    }
+    if (!source.trim()) {
+      notify.error('Informe a origem')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const result = await createCrmResource<CrmLeadDTO>(workspaceId, 'leads', {
+        name: name.trim(),
+        emails: email.trim() ? [email.trim()] : [],
+        phones: phone.trim() ? [phone.trim()] : [],
+        source: source.trim(),
+        channel: channel || undefined,
+      })
+      if (!result.ok) {
+        notify.error(result.message ?? 'Não foi possível criar o lead.')
+        return
+      }
+      notify.success('Lead criado')
+      reset()
+      onCreated()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          reset()
+          onClose()
+        }
+      }}
+    >
+      <DialogContent className='w-full sm:max-w-md'>
+        <DialogTitle>Novo lead</DialogTitle>
+        <div className='flex flex-col gap-4'>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>Nome *</Label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder='Maria Silva'
+            />
+          </div>
+          <div className='grid grid-cols-2 gap-3'>
+            <div className='grid gap-1.5'>
+              <Label className='text-muted-foreground text-xs'>Email</Label>
+              <Input
+                type='email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder='maria@x.com'
+              />
+            </div>
+            <div className='grid gap-1.5'>
+              <Label className='text-muted-foreground text-xs'>Telefone</Label>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder='(11) 99999-9999'
+              />
+            </div>
+          </div>
+          <p className='-mt-2 text-muted-foreground text-xs'>
+            Pelo menos um dos dois é obrigatório.
+          </p>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>Origem *</Label>
+            <Input
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder='WhatsApp'
+            />
+          </div>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>
+              Canal de entrada
+            </Label>
+            <Select
+              value={channel || undefined}
+              onValueChange={(v) => setChannel(v ?? '')}
+            >
+              <SelectTrigger className='w-full'>
+                <SelectValue placeholder='Selecionar (opcional)' />
+              </SelectTrigger>
+              <SelectContent>
+                {CHANNEL_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className='flex justify-end gap-2'>
+          <Button variant='ghost' onClick={onClose} disabled={submitting}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Criando…' : 'Criar lead'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

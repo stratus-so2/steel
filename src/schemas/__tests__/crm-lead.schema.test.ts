@@ -10,15 +10,44 @@ import {
 } from '../crm-lead.schema'
 
 describe('CreateCrmLeadSchema', () => {
-  it('should default status to NEW and arrays to empty', () => {
-    const result = CreateCrmLeadSchema.safeParse({ name: 'Jane' })
+  it('should default status to NEW and phones to empty', () => {
+    const result = CreateCrmLeadSchema.safeParse({
+      name: 'Jane',
+      emails: ['jane@x.com'],
+      source: 'WhatsApp',
+    })
     expect(result.success).toBe(true)
     expect(result.data?.status).toBe('NEW')
-    expect(result.data?.emails).toEqual([])
+    expect(result.data?.phones).toEqual([])
   })
 
   it('should reject when name is missing', () => {
     expect(CreateCrmLeadSchema.safeParse({}).success).toBe(false)
+  })
+
+  it('should reject when source is missing', () => {
+    const result = CreateCrmLeadSchema.safeParse({
+      name: 'Jane',
+      emails: ['jane@x.com'],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('should reject when neither email nor phone is provided', () => {
+    const result = CreateCrmLeadSchema.safeParse({
+      name: 'Jane',
+      source: 'WhatsApp',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('should accept phone-only with no email', () => {
+    const result = CreateCrmLeadSchema.safeParse({
+      name: 'Jane',
+      phones: ['+5511999999999'],
+      source: 'WhatsApp',
+    })
+    expect(result.success).toBe(true)
   })
 })
 

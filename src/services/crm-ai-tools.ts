@@ -266,17 +266,25 @@ const TOOLS: ToolDefinition[] = [
 
   writeTool(
     'create_lead',
-    'Cria um novo lead no CRM.',
+    'Cria um novo lead no CRM. Requer nome, origem, e pelo menos um email ou telefone.',
     {
       name: { type: 'string', description: 'Nome do lead (obrigatório).' },
-      emails: { type: 'array', items: { type: 'string' } },
-      phones: { type: 'array', items: { type: 'string' } },
+      emails: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Ao menos um email ou telefone é obrigatório.',
+      },
+      phones: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Ao menos um email ou telefone é obrigatório.',
+      },
       company: { type: 'string' },
       jobTitle: { type: 'string' },
       city: { type: 'string' },
-      source: { type: 'string' },
+      source: { type: 'string', description: 'Origem do lead (obrigatório).' },
     },
-    ['name'],
+    ['name', 'source'],
     async (ctx, args) => {
       const parsed = CreateCrmLeadSchema.safeParse(args)
       if (!parsed.success) {
