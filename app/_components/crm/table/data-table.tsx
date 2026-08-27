@@ -786,6 +786,20 @@ export function DataTable<TData extends WithId>({
     [rows, workspaceId, resource],
   )
 
+  /** Abre o painel lateral de detalhes/edição — usado tanto pela grade
+   * (célula primária) quanto pelo card do Kanban. */
+  const openRecordById = React.useCallback(
+    (id: string) => {
+      if (onOpenRecord) {
+        const found = rows.find((r) => r.id === id)
+        if (found) onOpenRecord(found)
+        return
+      }
+      setOpenRecordId(id)
+    },
+    [onOpenRecord, rows],
+  )
+
   /**
    * Cria a linha já no banco (sem etapa de confirmação) e a abre em edição.
    * O campo primário obrigatório recebe um valor padrão para passar na
@@ -897,14 +911,7 @@ export function DataTable<TData extends WithId>({
         resource,
         lookups,
         patch,
-        openRecord: (id: string) => {
-          if (onOpenRecord) {
-            const found = rows.find((r) => r.id === id)
-            if (found) onOpenRecord(found)
-            return
-          }
-          setOpenRecordId(id)
-        },
+        openRecord: openRecordById,
         newRowId,
       },
     },
@@ -1203,6 +1210,7 @@ export function DataTable<TData extends WithId>({
             onMove={(itemId, toColumn) =>
               patch(itemId, { [kanban.groupByKey]: toColumn })
             }
+            onCardClick={openRecordById}
           />
         </div>
       ) : (

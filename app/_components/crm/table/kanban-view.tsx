@@ -31,12 +31,17 @@ export function CrmKanbanView<TData extends { id: string }>({
   columns,
   onMove,
   renderCard,
+  onCardClick,
 }: {
   items: TData[]
   groupByKey: string
   columns: CrmKanbanColumnDef[]
   onMove: (itemId: string, toColumn: string) => void
   renderCard: (item: TData) => React.ReactNode
+  /** Abre o painel de detalhes/edição do registro — clique simples (o
+   * dnd-kit só inicia o arraste após ~10px de movimento, então clique e
+   * drag convivem sem conflito). */
+  onCardClick?: (id: string) => void
 }) {
   const grouped = React.useMemo(() => {
     const map: Record<string, TData[]> = {}
@@ -104,7 +109,10 @@ export function CrmKanbanView<TData extends { id: string }>({
                     value={item.id}
                     className='rounded-lg border bg-card text-sm shadow-xs'
                   >
-                    <KanbanItemHandle className='block cursor-grab p-3 active:cursor-grabbing'>
+                    <KanbanItemHandle
+                      className='block cursor-grab p-3 active:cursor-grabbing'
+                      onClick={() => onCardClick?.(item.id)}
+                    >
                       {renderCard(item)}
                     </KanbanItemHandle>
                   </KanbanItem>
