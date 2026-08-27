@@ -47,6 +47,7 @@ export const CrmLeadRepository = {
     city?: string
     linkedin?: string
     source?: string
+    channel?: string
     status?: CrmLeadStatus
     score: number
     ownerId?: string | null
@@ -73,6 +74,7 @@ export const CrmLeadRepository = {
       city?: string
       linkedin?: string
       source?: string
+      channel?: string
       status?: CrmLeadStatus
       score?: number
       ownerId?: string | null

@@ -21,6 +21,7 @@ export function toCrmLeadDTO(lead: CrmLead): CrmLeadDTO {
     city: lead.city,
     linkedin: lead.linkedin,
     source: lead.source,
+    channel: lead.channel,
     status: lead.status,
     score: lead.score,
     ownerId: lead.ownerId,

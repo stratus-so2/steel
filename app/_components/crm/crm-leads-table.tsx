@@ -39,6 +39,30 @@ export const STATUS_LABELS: Record<CrmLeadStatusDTO, string> = {
   CONVERTED: 'Convertido',
 }
 
+/** Canal de entrada: categoria fixa, separada de `source` (texto livre para
+ * detalhe/campanha específica dentro do canal). */
+const CHANNEL_OPTIONS = [
+  { value: 'WHATSAPP', label: 'WhatsApp' },
+  { value: 'INSTAGRAM', label: 'Instagram' },
+  { value: 'FACEBOOK', label: 'Facebook' },
+  { value: 'SITE', label: 'Site' },
+  { value: 'FORM', label: 'Formulário' },
+  { value: 'INDICACAO', label: 'Indicação' },
+  { value: 'EVENTO', label: 'Evento' },
+  { value: 'OUTRO', label: 'Outro' },
+]
+
+const CHANNEL_STYLES: Record<string, string> = {
+  WHATSAPP: 'bg-emerald-500/15 text-emerald-600',
+  INSTAGRAM: 'bg-fuchsia-500/15 text-fuchsia-600',
+  FACEBOOK: 'bg-blue-500/15 text-blue-600',
+  SITE: 'bg-slate-500/15 text-slate-600',
+  FORM: 'bg-violet-500/15 text-violet-600',
+  INDICACAO: 'bg-amber-500/15 text-amber-600',
+  EVENTO: 'bg-rose-500/15 text-rose-600',
+  OUTRO: 'bg-muted text-muted-foreground',
+}
+
 const COLUMNS: GridColumn[] = [
   {
     key: 'name',
@@ -63,6 +87,13 @@ const COLUMNS: GridColumn[] = [
   },
   { key: 'jobTitle', header: 'Cargo', kind: 'text' },
   { key: 'source', header: 'Origem', kind: 'text', placeholder: 'WhatsApp' },
+  {
+    key: 'channel',
+    header: 'Canal de entrada',
+    kind: 'select',
+    options: CHANNEL_OPTIONS,
+    optionStyles: CHANNEL_STYLES,
+  },
   {
     key: 'status',
     header: 'Status',

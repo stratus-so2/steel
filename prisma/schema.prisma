@@ -1407,6 +1407,9 @@ model CrmLead {
   city              String?
   linkedin          String?
   source            String?
+  /// Canal de entrada (WhatsApp, Instagram, Site, Indicação etc.) — separado
+  /// de `source`, que é texto livre para detalhe/campanha específica.
+  channel           String?
   status            CrmLeadStatus @default(NEW)
   score             Int           @default(0)
   ownerId           String?       @map("owner_id")

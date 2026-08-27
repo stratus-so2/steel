@@ -17,6 +17,7 @@ export const CreateCrmLeadSchema = z.object({
   city: z.string().max(100).optional(),
   linkedin: z.string().max(300).optional(),
   source: z.string().max(100).optional(),
+  channel: z.string().max(100).optional(),
   status: LeadStatusEnum.default('NEW'),
 })
 
@@ -31,6 +32,7 @@ export const UpdateCrmLeadSchema = z.object({
   city: z.string().max(100).optional(),
   linkedin: z.string().max(300).optional(),
   source: z.string().max(100).optional(),
+  channel: z.string().max(100).optional(),
   status: LeadStatusEnum.optional(),
   // Nullable: a coluna é limpável na grade (envia null para desvincular).
   ownerId: z.string().nullable().optional(),

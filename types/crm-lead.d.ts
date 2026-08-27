@@ -32,6 +32,7 @@ export interface CrmLeadDTO {
   city: string | null
   linkedin: string | null
   source: string | null
+  channel: string | null
   status: CrmLeadStatusDTO
   score: number
   ownerId: string | null
