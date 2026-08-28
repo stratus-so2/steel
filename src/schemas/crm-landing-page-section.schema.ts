@@ -17,6 +17,12 @@ export const CrmLandingPageSectionTypeEnum = z.enum([
   'FEATURES',
   'WORKS',
   'FOOTER',
+  'PRICING',
+  'FAQ',
+  'STEPS',
+  'NEWSLETTER',
+  'LOGOS',
+  'PRODUCTS',
 ])
 
 export type CrmLandingPageSectionType = z.infer<
@@ -49,6 +55,10 @@ const HeroContentSchema = z.object({
 const ServiceItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).default(''),
+  // Opcional — templates cujo grid de serviços/categorias tem uma imagem por
+  // card (ex. categorias de e-commerce, salas de coworking) usam este campo;
+  // os que não têm (Agency) simplesmente não o definem.
+  imageUrl: z.string().trim().min(1).optional(),
 })
 
 const ServicesContentSchema = z.object({
@@ -150,6 +160,84 @@ const FooterContentSchema = z.object({
   ctaHref: z.string().trim().max(500).optional(),
 })
 
+const PricingPlanSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  // String (não number) — mantém formatação livre: "$19", "Grátis", "Sob consulta".
+  price: z.string().trim().min(1).max(40),
+  period: z.string().trim().max(40).optional(),
+  features: z.array(z.string().trim().min(1).max(160)).max(12).default([]),
+  ctaLabel: z.string().trim().max(60).optional(),
+  ctaHref: z.string().trim().max(500).optional(),
+  highlighted: z.boolean().optional().default(false),
+})
+
+const PricingContentSchema = z.object({
+  type: z.literal('PRICING'),
+  title: z.string().trim().min(1, 'Título é obrigatório').max(200),
+  subtitle: z.string().trim().max(400).optional(),
+  plans: z.array(PricingPlanSchema).max(6).default([]),
+})
+
+const FaqItemSchema = z.object({
+  question: z.string().trim().min(1).max(200),
+  answer: z.string().trim().max(1_000).default(''),
+})
+
+const FaqContentSchema = z.object({
+  type: z.literal('FAQ'),
+  title: z.string().trim().min(1, 'Título é obrigatório').max(200),
+  subtitle: z.string().trim().max(400).optional(),
+  items: z.array(FaqItemSchema).max(20).default([]),
+})
+
+const StepItemSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(500).default(''),
+})
+
+const StepsContentSchema = z.object({
+  type: z.literal('STEPS'),
+  eyebrow: z.string().trim().max(80).optional(),
+  title: z.string().trim().min(1, 'Título é obrigatório').max(200),
+  subtitle: z.string().trim().max(400).optional(),
+  imageUrl: z.string().trim().min(1).optional(),
+  items: z.array(StepItemSchema).max(8).default([]),
+})
+
+const NewsletterContentSchema = z.object({
+  type: z.literal('NEWSLETTER'),
+  title: z.string().trim().min(1, 'Título é obrigatório').max(200),
+  description: z.string().trim().max(400).optional(),
+  placeholder: z.string().trim().max(80).optional(),
+  ctaLabel: z.string().trim().max(60).optional(),
+})
+
+const LogoItemSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  imageUrl: z.string().trim().min(1).optional(),
+})
+
+const LogosContentSchema = z.object({
+  type: z.literal('LOGOS'),
+  title: z.string().trim().max(200).optional(),
+  logos: z.array(LogoItemSchema).max(12).default([]),
+})
+
+const ProductItemSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  price: z.string().trim().min(1).max(40),
+  originalPrice: z.string().trim().max(40).optional(),
+  rating: z.number().min(0).max(5).optional(),
+  imageUrl: z.string().trim().min(1).optional(),
+})
+
+const ProductsContentSchema = z.object({
+  type: z.literal('PRODUCTS'),
+  title: z.string().trim().min(1, 'Título é obrigatório').max(200),
+  subtitle: z.string().trim().max(400).optional(),
+  items: z.array(ProductItemSchema).max(16).default([]),
+})
+
 export const CrmLandingPageSectionContentSchema = z.discriminatedUnion('type', [
   HeaderContentSchema,
   HeroContentSchema,
@@ -160,6 +248,12 @@ export const CrmLandingPageSectionContentSchema = z.discriminatedUnion('type', [
   FeaturesContentSchema,
   WorksContentSchema,
   FooterContentSchema,
+  PricingContentSchema,
+  FaqContentSchema,
+  StepsContentSchema,
+  NewsletterContentSchema,
+  LogosContentSchema,
+  ProductsContentSchema,
 ])
 
 export type CrmLandingPageSectionContent = z.infer<

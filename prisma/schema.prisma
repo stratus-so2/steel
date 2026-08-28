@@ -2359,6 +2359,12 @@ enum CrmLandingPageSectionType {
   FEATURES
   WORKS
   FOOTER
+  PRICING
+  FAQ
+  STEPS
+  NEWSLETTER
+  LOGOS
+  PRODUCTS
 }
 
 model CrmLandingPage {

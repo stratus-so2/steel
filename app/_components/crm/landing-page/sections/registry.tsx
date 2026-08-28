@@ -3,11 +3,17 @@ import type { CrmLandingPageSectionType } from '@/src/schemas/crm-landing-page-s
 import { AboutSection, aboutDefaultContent } from './about'
 import { AGENCY_SECTION_OVERRIDES } from './agency/registry'
 import { FactsSection, factsDefaultContent } from './facts'
+import { FaqSection, faqDefaultContent } from './faq'
 import { FeaturesSection, featuresDefaultContent } from './features'
 import { FooterSection, footerDefaultContent } from './footer'
 import { HeaderSection, headerDefaultContent } from './header'
 import { HeroSection, heroDefaultContent } from './hero'
+import { LogosSection, logosDefaultContent } from './logos'
+import { NewsletterSection, newsletterDefaultContent } from './newsletter'
+import { PricingSection, pricingDefaultContent } from './pricing'
+import { ProductsSection, productsDefaultContent } from './products'
 import { ServicesSection, servicesDefaultContent } from './services'
+import { StepsSection, stepsDefaultContent } from './steps'
 import { TestimonialSection, testimonialDefaultContent } from './testimonial'
 import type { LandingPageSectionProps } from './types'
 import { WorksSection, worksDefaultContent } from './works'
@@ -65,6 +71,22 @@ export const SECTION_REGISTRY: Record<
   ),
   WORKS: def('WORKS', 'Projetos', WorksSection, worksDefaultContent),
   FOOTER: def('FOOTER', 'Rodapé', FooterSection, footerDefaultContent),
+  PRICING: def('PRICING', 'Preços', PricingSection, pricingDefaultContent),
+  FAQ: def('FAQ', 'Perguntas frequentes', FaqSection, faqDefaultContent),
+  STEPS: def('STEPS', 'Como funciona', StepsSection, stepsDefaultContent),
+  NEWSLETTER: def(
+    'NEWSLETTER',
+    'Newsletter',
+    NewsletterSection,
+    newsletterDefaultContent,
+  ),
+  LOGOS: def('LOGOS', 'Logos', LogosSection, logosDefaultContent),
+  PRODUCTS: def(
+    'PRODUCTS',
+    'Produtos',
+    ProductsSection,
+    productsDefaultContent,
+  ),
 }
 
 /**
