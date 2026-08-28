@@ -7,6 +7,7 @@ import { b2bTemplate } from './b2b'
 import { coworkingTemplate } from './coworking'
 import { jobSiteTemplate } from './job-site'
 import { saasSubscriptionTemplate } from './saas-subscription'
+import { webApplicationTemplate } from './web-application'
 
 /**
  * Um dos 10 modelos fixos e globais de landing page. Diferente de
@@ -36,6 +37,7 @@ export const LANDING_PAGE_TEMPLATE_CATALOG: Record<
   coworking: coworkingTemplate,
   'job-site': jobSiteTemplate,
   'saas-subscription': saasSubscriptionTemplate,
+  'web-application': webApplicationTemplate,
 }
 
 export const LANDING_PAGE_TEMPLATE_KEYS = Object.keys(

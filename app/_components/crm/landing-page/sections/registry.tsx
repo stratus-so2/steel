@@ -20,6 +20,7 @@ import { ServicesSection, servicesDefaultContent } from './services'
 import { StepsSection, stepsDefaultContent } from './steps'
 import { TestimonialSection, testimonialDefaultContent } from './testimonial'
 import type { LandingPageSectionProps } from './types'
+import { WEB_APPLICATION_SECTION_OVERRIDES } from './web-application/registry'
 import { WorksSection, worksDefaultContent } from './works'
 
 type AnyComponent = ComponentType<LandingPageSectionProps>
@@ -107,6 +108,7 @@ const TEMPLATE_OVERRIDES: Partial<
   coworking: COWORKING_SECTION_OVERRIDES,
   'job-site': JOB_SITE_SECTION_OVERRIDES,
   'saas-subscription': SAAS_SUBSCRIPTION_SECTION_OVERRIDES,
+  'web-application': WEB_APPLICATION_SECTION_OVERRIDES,
 }
 
 /** Resolve a definição de seção pro template — override pixel-perfect se
