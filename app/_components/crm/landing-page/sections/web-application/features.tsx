@@ -1,6 +1,8 @@
 'use client'
 
 import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
@@ -58,7 +60,7 @@ export function WebApplicationFeatures({
 }: LandingPageSectionProps<FeaturesContent>) {
   function updateItem(
     index: number,
-    patch: Partial<{ title: string; description: string }>,
+    patch: Partial<{ title: string; description: string; icon: string }>,
   ) {
     onChange?.({
       ...content,
@@ -99,12 +101,28 @@ export function WebApplicationFeatures({
                 <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
               </Button>
             ) : null}
-            <img
-              src={ICONS[index % ICONS.length]}
-              alt=''
-              aria-hidden
-              className='h-[34px] w-[34px]'
-            />
+            <div className='relative flex size-[34px] shrink-0 items-center justify-center'>
+              <SectionIcon
+                value={item.icon}
+                size={34}
+                fallback={
+                  <img
+                    src={ICONS[index % ICONS.length]}
+                    alt=''
+                    aria-hidden
+                    className='h-[34px] w-[34px]'
+                  />
+                }
+              />
+              {!readOnly ? (
+                <div className='-bottom-2 -right-2 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                  <HugeiconPicker
+                    value={item.icon}
+                    onSelect={(icon) => updateItem(index, { icon })}
+                  />
+                </div>
+              ) : null}
+            </div>
             <div className='flex flex-col gap-2'>
               <GhostInput
                 as='h3'

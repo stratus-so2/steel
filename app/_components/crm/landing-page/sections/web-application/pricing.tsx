@@ -6,9 +6,11 @@ import {
   Delete02Icon,
   Tick02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import { cn } from '@/lib/utils'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
@@ -28,6 +30,8 @@ export function pricingDefaultContent(): PricingContent {
         name: 'Starter',
         price: '$19',
         period: '/ month',
+        yearlyPrice: '$190',
+        yearlyPeriod: '/ year',
         features: [
           'Commercial License',
           '100+ HTML UI Elements',
@@ -40,6 +44,8 @@ export function pricingDefaultContent(): PricingContent {
         name: 'Standard',
         price: '$49',
         period: '/ month',
+        yearlyPrice: '$490',
+        yearlyPeriod: '/ year',
         features: [
           'Commercial License',
           '100+ HTML UI Elements',
@@ -53,6 +59,8 @@ export function pricingDefaultContent(): PricingContent {
         name: 'Premium',
         price: '$99',
         period: '/ month',
+        yearlyPrice: '$990',
+        yearlyPeriod: '/ year',
         features: [
           'Commercial License',
           '100+ HTML UI Elements',
@@ -72,6 +80,9 @@ export function WebApplicationPricing({
   onChange,
   readOnly,
 }: LandingPageSectionProps<PricingContent>) {
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly')
+  const isYearly = billing === 'yearly'
+
   function updatePlan(index: number, patch: Partial<Plan>) {
     onChange?.({
       ...content,
@@ -149,144 +160,203 @@ export function WebApplicationPricing({
             className='text-balance text-[#161c2d]/70 text-[19px] leading-[1.7]'
           />
         ) : null}
+
+        {/* Toggle mensal/anual — pill switch do frame "Full toggle" do Figma.
+            Alterna qual par (price/period ou yearlyPrice/yearlyPeriod) fica
+            visível e editável em cada card abaixo. */}
+        <div className='mt-2 inline-flex items-center gap-1 rounded-full border border-[#e7e9ed] bg-white p-1'>
+          <button
+            type='button'
+            onClick={() => setBilling('monthly')}
+            className={cn(
+              'rounded-full px-5 py-2 font-bold text-[15px] transition-colors',
+              !isYearly
+                ? 'bg-[#473bf0] text-white'
+                : 'text-[#161c2d]/60 hover:text-[#161c2d]',
+            )}
+          >
+            Monthly
+          </button>
+          <button
+            type='button'
+            onClick={() => setBilling('yearly')}
+            className={cn(
+              'rounded-full px-5 py-2 font-bold text-[15px] transition-colors',
+              isYearly
+                ? 'bg-[#473bf0] text-white'
+                : 'text-[#161c2d]/60 hover:text-[#161c2d]',
+            )}
+          >
+            Yearly
+          </button>
+        </div>
       </div>
 
       <div className='mx-auto grid max-w-5xl grid-cols-1 gap-6 sm:grid-cols-3'>
-        {content.plans.map((plan, planIndex) => (
-          <div
-            key={planIndex}
-            className={cn(
-              'group/item relative flex flex-col gap-5 rounded-[10px] border border-[#e7e9ed] bg-white p-8',
-              plan.highlighted &&
-                'shadow-[0px_42px_44px_-10px_rgba(1,23,48,0.12)]',
-            )}
-          >
-            {!readOnly ? (
-              <Button
-                type='button'
-                variant='ghost'
-                size='icon-xs'
-                className='absolute top-2 right-2 opacity-0 group-hover/item:opacity-100'
-                aria-label='Remover plano'
-                onClick={() => removePlan(planIndex)}
-              >
-                <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
-              </Button>
-            ) : null}
-            <GhostInput
-              value={plan.name}
-              onCommit={(v) => updatePlan(planIndex, { name: v })}
-              placeholder='Nome do plano'
-              readOnly={readOnly}
-              className='font-bold text-[#473bf0] text-[13px] uppercase tracking-[1.6px]'
-            />
-            <div className='flex items-baseline gap-1'>
-              <span className='font-bold text-[#161c2d] text-[24px]'>$</span>
-              <GhostInput
-                value={plan.price.replace(/^\$/, '')}
-                onCommit={(v) =>
-                  updatePlan(planIndex, { price: `$${v.replace(/^\$/, '')}` })
-                }
-                placeholder='19'
-                readOnly={readOnly}
-                className='font-bold text-[#161c2d] text-[60px] tracking-[-2px]'
-              />
-              {plan.period || !readOnly ? (
-                <GhostInput
-                  value={plan.period ?? ''}
-                  onCommit={(v) =>
-                    updatePlan(planIndex, { period: v || undefined })
-                  }
-                  placeholder='/ month'
-                  readOnly={readOnly}
-                  className='text-[#161c2d] text-[17px]'
-                />
-              ) : null}
-            </div>
-            <p className='text-[#161c2d]/70 text-[15px]'>billed monthly</p>
+        {content.plans.map((plan, planIndex) => {
+          // O par editado segue o toggle (permite criar o valor anual pela
+          // primeira vez); o valor mostrado cai pro mensal enquanto o anual
+          // não existir, pra nunca renderizar em branco.
+          const priceField: 'price' | 'yearlyPrice' = isYearly
+            ? 'yearlyPrice'
+            : 'price'
+          const periodField: 'period' | 'yearlyPeriod' = isYearly
+            ? 'yearlyPeriod'
+            : 'period'
+          const hasYearly = Boolean(plan.yearlyPrice)
+          const displayPrice = isYearly
+            ? (plan.yearlyPrice ?? plan.price)
+            : plan.price
+          const displayPeriod = isYearly
+            ? (plan.yearlyPeriod ?? plan.period)
+            : plan.period
 
-            <ul className='flex flex-col gap-3'>
-              {plan.features.map((feature, featureIndex) => (
-                <li
-                  key={featureIndex}
-                  className='group/feature flex items-center gap-2'
-                >
-                  <SteelIcon
-                    icon={Tick02Icon}
-                    strokeWidth={2}
-                    size={17}
-                    className='shrink-0 text-[#68d585]'
-                  />
-                  <GhostInput
-                    value={feature}
-                    onCommit={(v) => updateFeature(planIndex, featureIndex, v)}
-                    readOnly={readOnly}
-                    className='text-[#161c2d] text-[17px]'
-                  />
-                  {!readOnly ? (
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon-xs'
-                      className='opacity-0 group-hover/feature:opacity-100'
-                      aria-label='Remover benefício'
-                      onClick={() => removeFeature(planIndex, featureIndex)}
-                    >
-                      <SteelIcon
-                        icon={Delete02Icon}
-                        strokeWidth={2}
-                        size={12}
-                      />
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
+          return (
+            <div
+              key={planIndex}
+              className={cn(
+                'group/item relative flex flex-col gap-5 rounded-[10px] border border-[#e7e9ed] bg-white p-8',
+                plan.highlighted &&
+                  'shadow-[0px_42px_44px_-10px_rgba(1,23,48,0.12)]',
+              )}
+            >
               {!readOnly ? (
                 <Button
                   type='button'
                   variant='ghost'
                   size='icon-xs'
-                  aria-label='Adicionar benefício'
-                  onClick={() => addFeature(planIndex)}
+                  className='absolute top-2 right-2 opacity-0 group-hover/item:opacity-100'
+                  aria-label='Remover plano'
+                  onClick={() => removePlan(planIndex)}
                 >
-                  <SteelIcon icon={Add01Icon} strokeWidth={2} size={12} />
+                  <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
                 </Button>
               ) : null}
-            </ul>
-
-            {plan.ctaLabel || !readOnly ? (
-              <a
-                href={readOnly ? plan.ctaHref : undefined}
-                data-cta
-                className={cn(
-                  'mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-6 py-4 font-bold text-[17px] tracking-[-0.6px] transition-opacity hover:opacity-90',
-                  plan.highlighted
-                    ? 'bg-[#473bf0] text-white'
-                    : 'bg-[#473bf0]/8 text-[#473bf0]',
-                )}
-              >
+              <GhostInput
+                value={plan.name}
+                onCommit={(v) => updatePlan(planIndex, { name: v })}
+                placeholder='Nome do plano'
+                readOnly={readOnly}
+                className='font-bold text-[#473bf0] text-[13px] uppercase tracking-[1.6px]'
+              />
+              <div className='flex items-baseline gap-1'>
+                <span className='font-bold text-[#161c2d] text-[24px]'>$</span>
                 <GhostInput
-                  value={plan.ctaLabel ?? ''}
+                  value={displayPrice.replace(/^\$/, '')}
                   onCommit={(v) =>
-                    updatePlan(planIndex, { ctaLabel: v || undefined })
+                    updatePlan(planIndex, {
+                      [priceField]: `$${v.replace(/^\$/, '')}`,
+                    })
                   }
-                  placeholder='Start Free Trial'
+                  placeholder={isYearly ? '190' : '19'}
                   readOnly={readOnly}
-                  className='text-inherit'
+                  className='font-bold text-[#161c2d] text-[60px] tracking-[-2px]'
                 />
-                <SteelIcon
-                  icon={ArrowRight01Icon}
-                  strokeWidth={2.5}
-                  size={16}
-                />
-              </a>
-            ) : null}
+                {displayPeriod || !readOnly ? (
+                  <GhostInput
+                    value={displayPeriod ?? ''}
+                    onCommit={(v) =>
+                      updatePlan(planIndex, { [periodField]: v || undefined })
+                    }
+                    placeholder={isYearly ? '/ year' : '/ month'}
+                    readOnly={readOnly}
+                    className='text-[#161c2d] text-[17px]'
+                  />
+                ) : null}
+              </div>
+              <p className='text-[#161c2d]/70 text-[15px]'>
+                {isYearly && hasYearly ? 'billed yearly' : 'billed monthly'}
+              </p>
 
-            <p className='text-center text-[#161c2d]/50 text-[13px]'>
-              No credit card required
-            </p>
-          </div>
-        ))}
+              <ul className='flex flex-col gap-3'>
+                {plan.features.map((feature, featureIndex) => (
+                  <li
+                    key={featureIndex}
+                    className='group/feature flex items-center gap-2'
+                  >
+                    <SteelIcon
+                      icon={Tick02Icon}
+                      strokeWidth={2}
+                      size={17}
+                      className='shrink-0 text-[#68d585]'
+                    />
+                    <GhostInput
+                      value={feature}
+                      onCommit={(v) =>
+                        updateFeature(planIndex, featureIndex, v)
+                      }
+                      readOnly={readOnly}
+                      className='text-[#161c2d] text-[17px]'
+                    />
+                    {!readOnly ? (
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon-xs'
+                        className='opacity-0 group-hover/feature:opacity-100'
+                        aria-label='Remover benefício'
+                        onClick={() => removeFeature(planIndex, featureIndex)}
+                      >
+                        <SteelIcon
+                          icon={Delete02Icon}
+                          strokeWidth={2}
+                          size={12}
+                        />
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+                {!readOnly ? (
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon-xs'
+                    aria-label='Adicionar benefício'
+                    onClick={() => addFeature(planIndex)}
+                  >
+                    <SteelIcon icon={Add01Icon} strokeWidth={2} size={12} />
+                  </Button>
+                ) : null}
+              </ul>
+
+              {plan.ctaLabel || !readOnly ? (
+                <GhostLink
+                  href={plan.ctaHref}
+                  onHrefChange={(href) =>
+                    updatePlan(planIndex, { ctaHref: href || undefined })
+                  }
+                  readOnly={readOnly}
+                  data-cta
+                  className={cn(
+                    'mt-auto inline-flex items-center justify-center gap-2 rounded-lg px-6 py-4 font-bold text-[17px] tracking-[-0.6px] transition-opacity hover:opacity-90',
+                    plan.highlighted
+                      ? 'bg-[#473bf0] text-white'
+                      : 'bg-[#473bf0]/8 text-[#473bf0]',
+                  )}
+                >
+                  <GhostInput
+                    value={plan.ctaLabel ?? ''}
+                    onCommit={(v) =>
+                      updatePlan(planIndex, { ctaLabel: v || undefined })
+                    }
+                    placeholder='Start Free Trial'
+                    readOnly={readOnly}
+                    className='text-inherit'
+                  />
+                  <SteelIcon
+                    icon={ArrowRight01Icon}
+                    strokeWidth={2.5}
+                    size={16}
+                  />
+                </GhostLink>
+              ) : null}
+
+              <p className='text-center text-[#161c2d]/50 text-[13px]'>
+                No credit card required
+              </p>
+            </div>
+          )
+        })}
         {!readOnly ? (
           <button
             type='button'
