@@ -13,6 +13,7 @@ import { HeaderSection, headerDefaultContent } from './header'
 import { HeroSection, heroDefaultContent } from './hero'
 import { JOB_SITE_SECTION_OVERRIDES } from './job-site/registry'
 import { LogosSection, logosDefaultContent } from './logos'
+import { MOBILE_APP_SECTION_OVERRIDES } from './mobile-app/registry'
 import { NewsletterSection, newsletterDefaultContent } from './newsletter'
 import { PricingSection, pricingDefaultContent } from './pricing'
 import { ProductsSection, productsDefaultContent } from './products'
@@ -109,6 +110,7 @@ const TEMPLATE_OVERRIDES: Partial<
   coworking: COWORKING_SECTION_OVERRIDES,
   ecommerce: ECOMMERCE_SECTION_OVERRIDES,
   'job-site': JOB_SITE_SECTION_OVERRIDES,
+  'mobile-app': MOBILE_APP_SECTION_OVERRIDES,
   'saas-subscription': SAAS_SUBSCRIPTION_SECTION_OVERRIDES,
   'web-application': WEB_APPLICATION_SECTION_OVERRIDES,
 }

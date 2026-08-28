@@ -7,6 +7,7 @@ import { b2bTemplate } from './b2b'
 import { coworkingTemplate } from './coworking'
 import { ecommerceTemplate } from './ecommerce'
 import { jobSiteTemplate } from './job-site'
+import { mobileAppTemplate } from './mobile-app'
 import { saasSubscriptionTemplate } from './saas-subscription'
 import { webApplicationTemplate } from './web-application'
 
@@ -38,6 +39,7 @@ export const LANDING_PAGE_TEMPLATE_CATALOG: Record<
   coworking: coworkingTemplate,
   ecommerce: ecommerceTemplate,
   'job-site': jobSiteTemplate,
+  'mobile-app': mobileAppTemplate,
   'saas-subscription': saasSubscriptionTemplate,
   'web-application': webApplicationTemplate,
 }
