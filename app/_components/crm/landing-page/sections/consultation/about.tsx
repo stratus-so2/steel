@@ -1,13 +1,19 @@
 'use client'
 
-import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  Add01Icon,
+  Delete02Icon,
+  Message01Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
+import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
 
 type AboutContent = Extract<CrmLandingPageSectionContent, { type: 'ABOUT' }>
+type Dropdown = NonNullable<AboutContent['dropdowns']>[number]
 
 const PATTERN_BG =
   '/landing-page-templates/consultation/cta-form-bg-pattern.png'
@@ -19,7 +25,96 @@ export function consultationAboutDefaultContent(): AboutContent {
     description:
       'With lots of unique blocks, you can easily build a page without coding. Build your next landing page so quickly with Albino.',
     imageUrls: [],
+    dropdowns: [
+      {
+        label: 'Which service do you need?',
+        options: [
+          'Digital Marketing',
+          'Content Writing',
+          'Graphic Design',
+          'SEO for Business',
+        ],
+      },
+    ],
   }
+}
+
+/**
+ * Campo "Which service do you need?" do card de formulário — a única parte
+ * do bloco "CTA Form" com backing real no schema (`AboutContentSchema.
+ * dropdowns`). No preview público (`readOnly`) não há select interativo pra
+ * mostrar (o card inteiro é decorativo, sem submissão), então só o texto do
+ * rótulo é renderizado — mesma convenção dos campos Nome/Email/Telefone
+ * logo acima, que também são decorativos/desabilitados. Em modo de edição
+ * vira um editor completo de rótulo + opções, no mesmo padrão de
+ * adicionar/remover do `crm-form-builder.tsx`.
+ */
+function DropdownField({
+  dropdown,
+  onLabelChange,
+  onOptionChange,
+  onAddOption,
+  onRemoveOption,
+  readOnly,
+}: {
+  dropdown: Dropdown
+  onLabelChange: (label: string) => void
+  onOptionChange: (index: number, value: string) => void
+  onAddOption: () => void
+  onRemoveOption: (index: number) => void
+  readOnly?: boolean
+}) {
+  if (readOnly) {
+    return (
+      <div className='flex flex-col gap-2'>
+        <span className='font-bold text-[#161c2d] text-[15px] tracking-[-0.1px]'>
+          {dropdown.label}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className='flex flex-col gap-2'>
+      <GhostInput
+        value={dropdown.label}
+        onCommit={onLabelChange}
+        placeholder='Pergunta do dropdown'
+        className='font-bold text-[#161c2d] text-[15px] tracking-[-0.1px]'
+      />
+      <div className='flex flex-col gap-2 rounded-lg border border-[#e7e9ed] p-3'>
+        {dropdown.options.map((option, index) => (
+          <div key={index} className='flex items-center gap-1'>
+            <GhostInput
+              value={option}
+              onCommit={(v) => onOptionChange(index, v)}
+              placeholder='Opção'
+              className='flex-1 text-[#161c2d] text-[15px] tracking-[-0.1px]'
+            />
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon-xs'
+              aria-label='Remover opção'
+              onClick={() => onRemoveOption(index)}
+            >
+              <SteelIcon icon={Delete02Icon} strokeWidth={2} size={12} />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type='button'
+          variant='ghost'
+          size='sm'
+          className='self-start'
+          onClick={onAddOption}
+        >
+          <SteelIcon icon={Add01Icon} strokeWidth={2} size={12} />
+          Adicionar opção
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -28,13 +123,51 @@ export function consultationAboutDefaultContent(): AboutContent {
  * (título + descrição), mas sem campos de CTA/formulário no schema. O card
  * de formulário e o botão "Get Free Consultancy" ficam decorativos/fixos
  * no componente (sem submissão real — nenhum outro template tem backend de
- * formulário funcional). Ver relatório final pro gap.
+ * formulário funcional); só o dropdown de serviço tem edição real, via
+ * `AboutContentSchema.dropdowns`.
  */
 export function ConsultationAbout({
   content,
   onChange,
   readOnly,
 }: LandingPageSectionProps<AboutContent>) {
+  const dropdowns = content.dropdowns ?? []
+
+  function updateDropdown(index: number, patch: Partial<Dropdown>) {
+    onChange?.({
+      ...content,
+      dropdowns: dropdowns.map((d, i) =>
+        i === index ? { ...d, ...patch } : d,
+      ),
+    })
+  }
+
+  function setDropdownOption(
+    dropdownIndex: number,
+    optionIndex: number,
+    value: string,
+  ) {
+    updateDropdown(dropdownIndex, {
+      options: dropdowns[dropdownIndex].options.map((o, i) =>
+        i === optionIndex ? value : o,
+      ),
+    })
+  }
+
+  function addDropdownOption(dropdownIndex: number) {
+    updateDropdown(dropdownIndex, {
+      options: [...dropdowns[dropdownIndex].options, 'Opção'],
+    })
+  }
+
+  function removeDropdownOption(dropdownIndex: number, optionIndex: number) {
+    updateDropdown(dropdownIndex, {
+      options: dropdowns[dropdownIndex].options.filter(
+        (_, i) => i !== optionIndex,
+      ),
+    })
+  }
+
   return (
     <section className='relative overflow-hidden bg-[#161c2d] px-6 py-20 sm:px-10 sm:py-28 lg:px-[123px]'>
       <img
@@ -75,7 +208,7 @@ export function ConsultationAbout({
         </div>
 
         <div
-          aria-hidden
+          aria-hidden={readOnly || undefined}
           className='flex flex-col gap-4 rounded-[10px] border border-[#e7e9ed] bg-white p-8 shadow-[0px_34px_33px_-23px_rgba(22,28,45,0.13)]'
         >
           <label className='flex flex-col gap-2'>
@@ -108,17 +241,21 @@ export function ConsultationAbout({
               className='rounded-lg border border-[#e7e9ed] px-[18px] py-3 text-[#161c2d]/70 text-[15px] tracking-[-0.1px]'
             />
           </label>
-          <label className='flex flex-col gap-2'>
-            <span className='font-bold text-[#161c2d] text-[15px] tracking-[-0.1px]'>
-              Which service do you need?
-            </span>
-            <select
-              disabled
-              className='rounded-lg border border-[#e7e9ed] px-[18px] py-3 text-[#161c2d] text-[15px] tracking-[-0.1px]'
-            >
-              <option>Select a service</option>
-            </select>
-          </label>
+          {dropdowns.map((dropdown, index) => (
+            <DropdownField
+              key={index}
+              dropdown={dropdown}
+              onLabelChange={(label) => updateDropdown(index, { label })}
+              onOptionChange={(optionIndex, value) =>
+                setDropdownOption(index, optionIndex, value)
+              }
+              onAddOption={() => addDropdownOption(index)}
+              onRemoveOption={(optionIndex) =>
+                removeDropdownOption(index, optionIndex)
+              }
+              readOnly={readOnly}
+            />
+          ))}
           <button
             type='button'
             disabled
