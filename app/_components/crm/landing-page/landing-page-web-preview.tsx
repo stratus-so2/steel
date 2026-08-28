@@ -1,4 +1,4 @@
-import { SECTION_REGISTRY } from '@/app/_components/crm/landing-page/sections/registry'
+import { getSectionDefinition } from '@/app/_components/crm/landing-page/sections/registry'
 import type { CrmLandingPageSectionDTO } from '@/types/crm-landing-page'
 
 /**
@@ -8,8 +8,10 @@ import type { CrmLandingPageSectionDTO } from '@/types/crm-landing-page'
  * que já desliga toda a interação nos componentes de seção.
  */
 export function LandingPageWebPreview({
+  templateKey,
   sections,
 }: {
+  templateKey: string
   sections: CrmLandingPageSectionDTO[]
 }) {
   return (
@@ -17,9 +19,7 @@ export function LandingPageWebPreview({
       {sections
         .filter((section) => section.enabled)
         .map((section) => {
-          const definition = SECTION_REGISTRY[section.type]
-          if (!definition) return null
-          const { Component } = definition
+          const { Component } = getSectionDefinition(templateKey, section.type)
           return (
             <Component key={section.id} content={section.content} readOnly />
           )

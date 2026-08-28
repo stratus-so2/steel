@@ -43,7 +43,7 @@ const HeroContentSchema = z.object({
   subtitle: z.string().trim().max(400).optional(),
   ctaLabel: z.string().trim().max(60).optional(),
   ctaHref: z.string().trim().max(500).optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().trim().min(1).optional(),
 })
 
 const ServiceItemSchema = z.object({
@@ -73,7 +73,7 @@ const AboutContentSchema = z.object({
   eyebrow: z.string().trim().max(80).optional(),
   title: z.string().trim().min(1, 'Título é obrigatório').max(200),
   description: z.string().trim().max(4_000).default(''),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().trim().min(1).optional(),
 })
 
 const TestimonialContentSchema = z.object({
@@ -81,7 +81,7 @@ const TestimonialContentSchema = z.object({
   quote: z.string().trim().min(1, 'Depoimento é obrigatório').max(1_000),
   authorName: z.string().trim().min(1, 'Nome é obrigatório').max(120),
   authorRole: z.string().trim().max(160).optional(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().trim().min(1).optional(),
 })
 
 const FeatureItemSchema = z.object({
@@ -101,7 +101,7 @@ const FeaturesContentSchema = z.object({
 const WorkItemSchema = z.object({
   title: z.string().trim().min(1).max(160),
   category: z.string().trim().max(120).default(''),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().trim().min(1).optional(),
 })
 
 const WorksContentSchema = z.object({

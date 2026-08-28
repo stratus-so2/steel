@@ -29,7 +29,16 @@ import {
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { CrmLandingPageMetrics } from '@/app/_components/crm/crm-landing-page-metrics'
-import { SECTION_REGISTRY } from '@/app/_components/crm/landing-page/sections/registry'
+import {
+  getSectionDefinition,
+  SECTION_REGISTRY,
+} from '@/app/_components/crm/landing-page/sections/registry'
+import { AGENCY_FONT_CLASS } from '@/src/lib/landing-page-templates/agency/fonts'
+
+const TEMPLATE_FONT_CLASS: Record<string, string> = {
+  agency: AGENCY_FONT_CLASS,
+}
+
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -186,7 +195,7 @@ function CrmLandingPageBuilderInner({
 
   function addSection(type: keyof typeof SECTION_REGISTRY) {
     keyCounter.current += 1
-    const definition = SECTION_REGISTRY[type]
+    const definition = getSectionDefinition(initial.templateKey, type)
     setSections((cur) => {
       const next = [
         ...cur,
@@ -318,11 +327,17 @@ function CrmLandingPageBuilderInner({
             items={sections.map((s) => s.key)}
             strategy={verticalListSortingStrategy}
           >
-            <div className='mx-auto flex max-w-5xl flex-col gap-4 p-4'>
+            <div
+              className={cn(
+                'mx-auto flex max-w-5xl flex-col gap-4 p-4',
+                TEMPLATE_FONT_CLASS[initial.templateKey],
+              )}
+            >
               {sections.map((section) => (
                 <SortableSection
                   key={section.key}
                   section={section}
+                  templateKey={initial.templateKey}
                   workspaceId={workspaceId}
                   onChange={(content) => updateSection(section.key, content)}
                   onRemove={() => removeSection(section.key)}
@@ -380,11 +395,13 @@ function CrmLandingPageBuilderInner({
 
 function SortableSection({
   section,
+  templateKey,
   workspaceId,
   onChange,
   onRemove,
 }: {
   section: SectionItem
+  templateKey: string
   workspaceId: string
   onChange: (content: CrmLandingPageSectionContent) => void
   onRemove: () => void
@@ -403,7 +420,7 @@ function SortableSection({
     transition,
   }
 
-  const definition = SECTION_REGISTRY[section.type]
+  const definition = getSectionDefinition(templateKey, section.type)
   const { Component } = definition
 
   return (

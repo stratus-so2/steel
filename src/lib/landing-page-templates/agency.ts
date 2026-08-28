@@ -16,13 +16,14 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
       type: 'HEADER',
       content: {
         type: 'HEADER',
-        logoText: 'Agência',
+        logoText: 'Brainwave.io',
         navLinks: [
-          { label: 'Serviços', href: '#services' },
-          { label: 'Sobre', href: '#about' },
-          { label: 'Contato', href: '#footer' },
+          { label: 'Demos', href: '#' },
+          { label: 'Pages', href: '#' },
+          { label: 'Support', href: '#' },
+          { label: 'Contact', href: '#footer' },
         ],
-        ctaLabel: 'Fale conosco',
+        ctaLabel: 'Get started a project',
         ctaHref: '#footer',
       },
     },
@@ -30,35 +31,35 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
       type: 'HERO',
       content: {
         type: 'HERO',
-        eyebrow: 'Vamos impulsionar seu negócio',
-        title: 'Transforme sua marca com uma agência criativa completa',
+        eyebrow: "Let's shift your business",
+        title: 'Shift your business fast with Shade Pro.',
         subtitle:
-          'Estratégia, design e tecnologia para levar sua empresa ao próximo nível.',
-        ctaLabel: 'Comece agora',
+          'With lots of unique blocks, you can easily build a page without coding. Build your next consultancy website within few minutes.',
+        ctaLabel: 'Get started a project',
         ctaHref: '#footer',
+        imageUrl: '/landing-page-templates/agency/hero-portrait.png',
       },
     },
     {
       type: 'SERVICES',
       content: {
         type: 'SERVICES',
-        title: 'Nossos serviços',
-        subtitle: 'Soluções completas para o crescimento do seu negócio.',
+        title: 'We provide great services for our customers based on needs',
         items: [
           {
-            title: 'Design Gráfico',
+            title: 'Graphic Design',
             description:
-              'Identidade visual e materiais que comunicam a essência da sua marca.',
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
           {
-            title: 'Desenvolvimento Web',
+            title: 'Web Development',
             description:
-              'Sites e aplicações rápidas, responsivas e feitas sob medida.',
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
           {
-            title: 'Produção de Conteúdo',
+            title: 'Content Writing',
             description:
-              'Conteúdo estratégico para engajar e converter sua audiência.',
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
         ],
       },

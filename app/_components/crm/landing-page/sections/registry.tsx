@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import type { CrmLandingPageSectionType } from '@/src/schemas/crm-landing-page-section.schema'
 import { AboutSection, aboutDefaultContent } from './about'
+import { AGENCY_SECTION_OVERRIDES } from './agency/registry'
 import { FactsSection, factsDefaultContent } from './facts'
 import { FeaturesSection, featuresDefaultContent } from './features'
 import { FooterSection, footerDefaultContent } from './footer'
@@ -32,6 +33,10 @@ function def(
   return { type, label, Component, createDefaultContent }
 }
 
+/**
+ * Componentes genéricos — usados por qualquer template que ainda não tenha
+ * uma versão pixel-perfect própria (ver `getSectionDefinition`).
+ */
 export const SECTION_REGISTRY: Record<
   CrmLandingPageSectionType,
   SectionDefinition
@@ -60,4 +65,25 @@ export const SECTION_REGISTRY: Record<
   ),
   WORKS: def('WORKS', 'Projetos', WorksSection, worksDefaultContent),
   FOOTER: def('FOOTER', 'Rodapé', FooterSection, footerDefaultContent),
+}
+
+/**
+ * Overrides pixel-perfect por template — só entra aqui quem já tem seção
+ * portada 1:1 do Figma (ver `sections/<template>/registry.tsx`). Templates
+ * sem override (ou seções ainda não portadas dentro de um template) caem
+ * pro componente genérico do `SECTION_REGISTRY` acima.
+ */
+const TEMPLATE_OVERRIDES: Partial<
+  Record<string, Partial<Record<CrmLandingPageSectionType, SectionDefinition>>>
+> = {
+  agency: AGENCY_SECTION_OVERRIDES,
+}
+
+/** Resolve a definição de seção pro template — override pixel-perfect se
+ * existir, senão cai pro componente genérico. */
+export function getSectionDefinition(
+  templateKey: string,
+  type: CrmLandingPageSectionType,
+): SectionDefinition {
+  return TEMPLATE_OVERRIDES[templateKey]?.[type] ?? SECTION_REGISTRY[type]
 }
