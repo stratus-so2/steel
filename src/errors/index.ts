@@ -31,6 +31,7 @@ export {
   crmIntegrationKeyInvalid,
   crmIntegrationKeyNotFound,
   crmLandingPageNotFound,
+  crmLandingPageTemplateNotFound,
   crmLeadAlreadyConverted,
   crmLeadNotFound,
   crmLeadRoutingRuleNotFound,

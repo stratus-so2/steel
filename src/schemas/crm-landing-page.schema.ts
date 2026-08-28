@@ -1,8 +1,10 @@
 import z from 'zod'
+import { CrmLandingPageSectionInputSchema } from './crm-landing-page-section.schema'
 
 export const CreateCrmLandingPageSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200),
-  html: z.string().max(500_000).default(''),
+  templateKey: z.string().min(1, 'Modelo é obrigatório').max(60),
+  sections: z.array(CrmLandingPageSectionInputSchema).max(30).default([]),
 })
 
 export type CreateCrmLandingPageDTO = z.infer<typeof CreateCrmLandingPageSchema>
@@ -11,7 +13,7 @@ const LandingPageStatusEnum = z.enum(['DRAFT', 'PUBLISHED'])
 
 export const UpdateCrmLandingPageSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200).optional(),
-  html: z.string().max(500_000).optional(),
+  sections: z.array(CrmLandingPageSectionInputSchema).max(30).optional(),
   // Alterna online/offline; o service carimba publishedAt no 1º publish.
   status: LandingPageStatusEnum.optional(),
 })
@@ -35,13 +37,4 @@ export const RecordCrmLandingPageViewSchema = z.object({
 
 export type RecordCrmLandingPageViewDTO = z.infer<
   typeof RecordCrmLandingPageViewSchema
->
-
-export const GenerateCrmLandingPageSchema = z.object({
-  message: z.string().min(1, 'Mensagem é obrigatória').max(4000),
-  provider: z.enum(['openai', 'anthropic']).optional(),
-})
-
-export type GenerateCrmLandingPageDTO = z.infer<
-  typeof GenerateCrmLandingPageSchema
 >

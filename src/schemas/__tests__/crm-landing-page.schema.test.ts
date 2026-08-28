@@ -1,31 +1,61 @@
 import { describe, expect, it } from 'vitest'
 import {
   CreateCrmLandingPageSchema,
-  GenerateCrmLandingPageSchema,
   RecordCrmLandingPageViewSchema,
   UpdateCrmLandingPageSchema,
 } from '../crm-landing-page.schema'
 
+const heroSection = {
+  type: 'HERO' as const,
+  order: 0,
+  enabled: true,
+  content: { type: 'HERO' as const, title: 'Título' },
+}
+
 describe('CreateCrmLandingPageSchema', () => {
-  it('should default html to empty string', () => {
-    const result = CreateCrmLandingPageSchema.safeParse({ title: 'Home' })
+  it('should default sections to an empty array', () => {
+    const result = CreateCrmLandingPageSchema.safeParse({
+      title: 'Home',
+      templateKey: 'agency',
+    })
     expect(result.success).toBe(true)
-    expect(result.data?.html).toBe('')
+    expect(result.data?.sections).toEqual([])
   })
 
   it('should reject when title is missing', () => {
-    expect(CreateCrmLandingPageSchema.safeParse({}).success).toBe(false)
+    expect(
+      CreateCrmLandingPageSchema.safeParse({ templateKey: 'agency' }).success,
+    ).toBe(false)
+  })
+
+  it('should reject when templateKey is missing', () => {
+    expect(
+      CreateCrmLandingPageSchema.safeParse({ title: 'Home' }).success,
+    ).toBe(false)
+  })
+
+  it('should accept a valid section list, including a repeated type', () => {
+    const result = CreateCrmLandingPageSchema.safeParse({
+      title: 'Home',
+      templateKey: 'agency',
+      sections: [heroSection, { ...heroSection, order: 1 }],
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('should reject a section whose content.type mismatches its envelope type', () => {
+    const result = CreateCrmLandingPageSchema.safeParse({
+      title: 'Home',
+      templateKey: 'agency',
+      sections: [{ ...heroSection, type: 'FOOTER' }],
+    })
+    expect(result.success).toBe(false)
   })
 })
 
 describe('UpdateCrmLandingPageSchema', () => {
   it('should accept an empty payload', () => {
     expect(UpdateCrmLandingPageSchema.safeParse({}).success).toBe(true)
-  })
-
-  it('should leave omitted fields undefined', () => {
-    const result = UpdateCrmLandingPageSchema.safeParse({ title: 'Novo' })
-    expect(result.data?.html).toBeUndefined()
   })
 
   it('should accept a status transition', () => {
@@ -39,6 +69,12 @@ describe('UpdateCrmLandingPageSchema', () => {
       UpdateCrmLandingPageSchema.safeParse({ status: 'ARCHIVED' }).success,
     ).toBe(false)
   })
+
+  it('should accept an updated section list', () => {
+    expect(
+      UpdateCrmLandingPageSchema.safeParse({ sections: [heroSection] }).success,
+    ).toBe(true)
+  })
 })
 
 describe('RecordCrmLandingPageViewSchema', () => {
@@ -47,37 +83,5 @@ describe('RecordCrmLandingPageViewSchema', () => {
     expect(result.success).toBe(true)
     expect(result.data?.durationMs).toBe(0)
     expect(result.data?.ctaClicks).toBe(0)
-  })
-})
-
-describe('GenerateCrmLandingPageSchema', () => {
-  it('should require a non-empty message', () => {
-    expect(
-      GenerateCrmLandingPageSchema.safeParse({ message: '' }).success,
-    ).toBe(false)
-  })
-
-  it('should accept a message without a provider', () => {
-    const result = GenerateCrmLandingPageSchema.safeParse({ message: 'Oi' })
-    expect(result.success).toBe(true)
-    expect(result.data?.provider).toBeUndefined()
-  })
-
-  it('should accept a valid provider', () => {
-    expect(
-      GenerateCrmLandingPageSchema.safeParse({
-        message: 'Oi',
-        provider: 'anthropic',
-      }).success,
-    ).toBe(true)
-  })
-
-  it('should reject an invalid provider', () => {
-    expect(
-      GenerateCrmLandingPageSchema.safeParse({
-        message: 'Oi',
-        provider: 'gemini',
-      }).success,
-    ).toBe(false)
   })
 })

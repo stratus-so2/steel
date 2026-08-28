@@ -2349,15 +2349,22 @@ enum CrmLandingPageStatus {
   PUBLISHED
 }
 
-enum CrmLandingPageMessageRole {
-  USER
-  ASSISTANT
+enum CrmLandingPageSectionType {
+  HEADER
+  HERO
+  SERVICES
+  FACTS
+  ABOUT
+  TESTIMONIAL
+  FEATURES
+  WORKS
+  FOOTER
 }
 
 model CrmLandingPage {
   id          String               @id @default(cuid())
   title       String
-  html        String               @default("") @db.Text
+  templateKey String               @map("template_key")
   status      CrmLandingPageStatus @default(DRAFT)
   shareToken  String               @unique @map("share_token")
   publishedAt DateTime?            @map("published_at")
@@ -2369,11 +2376,11 @@ model CrmLandingPage {
   updatedAt   DateTime             @updatedAt @map("updated_at")
   deletedAt   DateTime?            @map("deleted_at")
 
-  workspace Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User                    @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?                   @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
+  workspace Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                     @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?                    @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
   views     CrmLandingPageView[]
-  messages  CrmLandingPageMessage[]
+  sections  CrmLandingPageSection[]
 
   @@index([workspaceId])
   @@index([status])
@@ -2382,20 +2389,25 @@ model CrmLandingPage {
   @@map("crm_landing_pages")
 }
 
-/// Turno do chat de IA que gera/edita o HTML da landing page. O HTML em si
-/// vive em `CrmLandingPage.html` (sempre o documento completo mais recente);
-/// aqui só o texto conversacional — resumo do assistente, pedido do usuário.
-model CrmLandingPageMessage {
+/// Uma seção da página, escolhida e ordenada pelo usuário a partir do
+/// vocabulário fixo de tipos. Sem unique em (landingPageId, type): o mesmo
+/// tipo pode se repetir (o kit de referência tem templates com 2 blocos de
+/// Testimonial). `content` segue um shape estruturado por `type`
+/// (discriminated union no Zod), nunca HTML livre.
+model CrmLandingPageSection {
   id            String                    @id @default(cuid())
   landingPageId String                    @map("landing_page_id")
-  role          CrmLandingPageMessageRole
-  content       String                    @db.Text
+  type          CrmLandingPageSectionType
+  order         Int                       @default(0)
+  enabled       Boolean                   @default(true)
+  content       Json
   createdAt     DateTime                  @default(now()) @map("created_at")
+  updatedAt     DateTime                  @updatedAt @map("updated_at")
 
   landingPage CrmLandingPage @relation(fields: [landingPageId], references: [id], onDelete: Cascade)
 
   @@index([landingPageId])
-  @@map("crm_landing_page_messages")
+  @@map("crm_landing_page_sections")
 }
 
 /// Beacon de visualização anônima de uma landing page pública (LGPD: IP com hash).
