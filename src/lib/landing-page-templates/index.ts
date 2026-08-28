@@ -4,6 +4,7 @@ import type {
 } from '@/src/schemas/crm-landing-page-section.schema'
 import { agencyTemplate } from './agency'
 import { b2bTemplate } from './b2b'
+import { consultationTemplate } from './consultation'
 import { coworkingTemplate } from './coworking'
 import { ecommerceTemplate } from './ecommerce'
 import { jobSiteTemplate } from './job-site'
@@ -36,6 +37,7 @@ export const LANDING_PAGE_TEMPLATE_CATALOG: Record<
 > = {
   agency: agencyTemplate,
   b2b: b2bTemplate,
+  consultation: consultationTemplate,
   coworking: coworkingTemplate,
   ecommerce: ecommerceTemplate,
   'job-site': jobSiteTemplate,
