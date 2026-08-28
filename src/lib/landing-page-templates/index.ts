@@ -3,6 +3,7 @@ import type {
   CrmLandingPageSectionType,
 } from '@/src/schemas/crm-landing-page-section.schema'
 import { agencyTemplate } from './agency'
+import { b2bTemplate } from './b2b'
 
 /**
  * Um dos 10 modelos fixos e globais de landing page. Diferente de
@@ -28,6 +29,7 @@ export const LANDING_PAGE_TEMPLATE_CATALOG: Record<
   LandingPageTemplateDefinition
 > = {
   agency: agencyTemplate,
+  b2b: b2bTemplate,
 }
 
 export const LANDING_PAGE_TEMPLATE_KEYS = Object.keys(

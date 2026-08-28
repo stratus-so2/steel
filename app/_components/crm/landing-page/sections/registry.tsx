@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { CrmLandingPageSectionType } from '@/src/schemas/crm-landing-page-section.schema'
 import { AboutSection, aboutDefaultContent } from './about'
 import { AGENCY_SECTION_OVERRIDES } from './agency/registry'
+import { B2B_SECTION_OVERRIDES } from './b2b/registry'
 import { FactsSection, factsDefaultContent } from './facts'
 import { FaqSection, faqDefaultContent } from './faq'
 import { FeaturesSection, featuresDefaultContent } from './features'
@@ -99,6 +100,7 @@ const TEMPLATE_OVERRIDES: Partial<
   Record<string, Partial<Record<CrmLandingPageSectionType, SectionDefinition>>>
 > = {
   agency: AGENCY_SECTION_OVERRIDES,
+  b2b: B2B_SECTION_OVERRIDES,
 }
 
 /** Resolve a definição de seção pro template — override pixel-perfect se
