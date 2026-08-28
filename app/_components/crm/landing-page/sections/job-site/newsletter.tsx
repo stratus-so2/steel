@@ -1,10 +1,20 @@
 'use client'
 
 import { Mail01Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { CrmPublicFormRenderer } from '@/app/_components/crm/crm-public-form-renderer'
 import { SteelIcon } from '@/components/icon/icon'
 import { GhostInput } from '@/components/ui/ghost-input'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
+import type { CrmFormDTO } from '@/types/crm-form'
 import type { LandingPageSectionProps } from '../types'
 
 type NewsletterContent = Extract<
@@ -26,8 +36,15 @@ export function newsletterDefaultContent(): NewsletterContent {
 export function JobSiteNewsletter({
   content,
   onChange,
+  workspaceId,
   readOnly,
 }: LandingPageSectionProps<NewsletterContent>) {
+  const { items: forms } = useCrmResourceList<CrmFormDTO>(
+    workspaceId ?? '',
+    'forms',
+  )
+  const selectedForm = forms.find((f) => f.id === content.formId)
+
   return (
     <section
       id='subscribe'
@@ -63,28 +80,68 @@ export function JobSiteNewsletter({
         />
       ) : null}
 
-      <div className='flex w-full max-w-md items-center gap-2 rounded-lg border border-[#e7e9ed] bg-white p-2'>
-        <GhostInput
-          value={content.placeholder ?? ''}
-          onCommit={(v) =>
-            onChange?.({ ...content, placeholder: v || undefined })
-          }
-          placeholder='Seu e-mail'
-          readOnly={readOnly}
-          className='flex-1 px-2 text-[#161c2d]/70 text-[15px]'
-        />
-        <span className='shrink-0 rounded-md bg-[#473bf0] px-6 py-3 font-bold text-[17px] text-white tracking-[-0.6px]'>
-          <GhostInput
-            value={content.ctaLabel ?? ''}
-            onCommit={(v) =>
-              onChange?.({ ...content, ctaLabel: v || undefined })
+      {!readOnly ? (
+        <div className='w-full max-w-md text-left'>
+          <Select
+            value={content.formId ?? ''}
+            onValueChange={(formId) =>
+              onChange?.({ ...content, formId: formId || undefined })
             }
-            placeholder='Inscrever'
-            readOnly={readOnly}
-            className='text-inherit'
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue placeholder='Formulário decorativo (sem envio real)' />
+            </SelectTrigger>
+            <SelectContent>
+              {forms.map((form) => (
+                <SelectItem key={form.id} value={form.id}>
+                  {form.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+
+      {selectedForm ? (
+        <div className='w-full max-w-md text-left'>
+          <CrmPublicFormRenderer
+            form={{
+              id: selectedForm.id,
+              name: selectedForm.name,
+              description: selectedForm.description,
+              fields: selectedForm.fields,
+              phases: selectedForm.phases,
+              successMessage: selectedForm.successMessage,
+              redirectUrl: selectedForm.redirectUrl,
+            }}
+            publicToken={selectedForm.publicToken}
+            preview={!readOnly}
           />
-        </span>
-      </div>
+        </div>
+      ) : (
+        <div className='flex w-full max-w-md items-center gap-2 rounded-lg border border-[#e7e9ed] bg-white p-2'>
+          <GhostInput
+            value={content.placeholder ?? ''}
+            onCommit={(v) =>
+              onChange?.({ ...content, placeholder: v || undefined })
+            }
+            placeholder='Seu e-mail'
+            readOnly={readOnly}
+            className='flex-1 px-2 text-[#161c2d]/70 text-[15px]'
+          />
+          <span className='shrink-0 rounded-md bg-[#473bf0] px-6 py-3 font-bold text-[17px] text-white tracking-[-0.6px]'>
+            <GhostInput
+              value={content.ctaLabel ?? ''}
+              onCommit={(v) =>
+                onChange?.({ ...content, ctaLabel: v || undefined })
+              }
+              placeholder='Inscrever'
+              readOnly={readOnly}
+              className='text-inherit'
+            />
+          </span>
+        </div>
+      )}
 
       <p className='text-[#161c2d]/70 text-[15px]'>
         We&rsquo;ll never share your details with third parties. View our

@@ -4,6 +4,7 @@ import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import { cn } from '@/lib/utils'
 import { jobSiteLogoFont } from '@/src/lib/landing-page-templates/job-site/fonts'
@@ -129,6 +130,15 @@ export function JobSiteFooter({
     })
   }
 
+  function updateSocialLink(index: number, href: string) {
+    onChange?.({
+      ...content,
+      socialLinks: content.socialLinks.map((s, i) =>
+        i === index ? { ...s, href } : s,
+      ),
+    })
+  }
+
   return (
     <footer
       id='footer'
@@ -161,14 +171,16 @@ export function JobSiteFooter({
               const icon = SOCIAL_ICONS[social.platform.toLowerCase()]
               if (!icon) return null
               return (
-                <a
+                <GhostLink
                   key={`${social.platform}-${index}`}
                   href={social.href}
+                  onHrefChange={(href) => updateSocialLink(index, href)}
+                  readOnly={readOnly}
                   className='opacity-80 hover:opacity-100'
                   aria-label={social.platform}
                 >
                   <img src={icon} alt='' className='h-4 w-4' />
-                </a>
+                </GhostLink>
               )
             })}
           </div>
@@ -189,7 +201,13 @@ export function JobSiteFooter({
                   key={linkIndex}
                   className='group/link flex items-center gap-1'
                 >
-                  <a href={readOnly ? link.href : undefined}>
+                  <GhostLink
+                    href={link.href}
+                    onHrefChange={(href) =>
+                      updateLink(groupIndex, linkIndex, { href })
+                    }
+                    readOnly={readOnly}
+                  >
                     <GhostInput
                       value={link.label}
                       onCommit={(v) =>
@@ -198,7 +216,7 @@ export function JobSiteFooter({
                       readOnly={readOnly}
                       className='text-[17px] text-white'
                     />
-                  </a>
+                  </GhostLink>
                   {!readOnly ? (
                     <Button
                       type='button'

@@ -5,6 +5,7 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostImage } from '@/components/ui/ghost-image'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { SimpleCarousel } from '@/components/ui/simple-carousel'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { uploadCrmLandingPageImage } from '@/src/hooks/use-crm-landing-page'
@@ -150,12 +151,15 @@ export function JobSiteWorks({
         />
       </div>
 
-      <div className='mx-auto grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
+      <SimpleCarousel className='mx-auto max-w-6xl'>
         {content.items.map((item, index) => {
           const tagColorClass = JOB_TAG_COLORS[item.category]
           const isJobCard = tagColorClass !== undefined
           return (
-            <div key={index} className='group/item relative'>
+            <div
+              key={index}
+              className='group/item relative w-[320px] shrink-0 snap-start sm:w-[360px]'
+            >
               {!readOnly ? (
                 <Button
                   type='button'
@@ -235,14 +239,14 @@ export function JobSiteWorks({
             type='button'
             onClick={addItem}
             className={cn(
-              'flex min-h-52 flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed text-muted-foreground text-sm hover:bg-muted/40',
+              'flex min-h-52 w-[320px] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed text-muted-foreground text-sm hover:bg-muted/40 sm:w-[360px]',
             )}
           >
             <SteelIcon icon={Add01Icon} strokeWidth={2} />
             Adicionar item
           </button>
         ) : null}
-      </div>
+      </SimpleCarousel>
     </section>
   )
 }
