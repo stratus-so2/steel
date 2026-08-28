@@ -71,6 +71,7 @@ export const CrmFormFieldSchema = z
     placeholder: z.string().trim().max(200).optional(),
     options: z.array(OptionSchema).max(50).optional(),
     mapping: MappingSchema,
+    phaseId: z.string().trim().min(1).max(60).optional(),
   })
   .superRefine((field, ctx) => {
     if (field.type === 'select' && (field.options?.length ?? 0) === 0) {
@@ -101,26 +102,111 @@ const CrmFormFieldsSchema = z
     })
   })
 
-export const CreateCrmFormSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório').max(200),
-  description: z.string().max(2000).optional(),
-  action: z.enum(FORM_ACTIONS).default('LEAD'),
-  fields: CrmFormFieldsSchema.default([]),
-  successMessage: z.string().max(500).optional(),
-  redirectUrl: z.string().max(500).optional(),
+export const CrmFormPhaseSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  title: z.string().trim().min(1, 'Título da fase é obrigatório').max(120),
+  description: z.string().trim().max(500).optional(),
 })
+
+export type CrmFormPhaseDTO = z.infer<typeof CrmFormPhaseSchema>
+
+// Sem campo `order` de propósito — igual a `fields`, a posição no array já é
+// a ordem. Não reintroduzir `order` por analogia com
+// CrmProposalTemplateSection (aquele é linha de banco de verdade; isto é
+// Json solto em CrmForm.phases).
+const CrmFormPhasesSchema = z
+  .array(CrmFormPhaseSchema)
+  .max(10, 'No máximo 10 fases')
+  .superRefine((phases, ctx) => {
+    const seen = new Set<string>()
+    phases.forEach((phase, index) => {
+      if (seen.has(phase.id)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [index, 'id'],
+          message: `Id de fase duplicado: "${phase.id}"`,
+        })
+      }
+      seen.add(phase.id)
+    })
+  })
+
+/** Todo campo com `phaseId` referenciado precisa apontar pra uma fase
+ * existente no mesmo payload. Roda a nível de objeto (não dentro de
+ * `CrmFormFieldsSchema`, que não enxerga `phases`). */
+function validatePhaseReferences(
+  fields: CrmFormFieldDTO[],
+  phases: CrmFormPhaseDTO[],
+  ctx: z.RefinementCtx,
+) {
+  const phaseIds = new Set(phases.map((p) => p.id))
+  fields.forEach((field, index) => {
+    if (field.phaseId && !phaseIds.has(field.phaseId)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fields', index, 'phaseId'],
+        message: 'Fase inválida para este campo',
+      })
+    }
+  })
+}
+
+/** Agrupa `fields` por fase, na ordem de `phases`. Campo sem `phaseId` (ou
+ * com `phaseId` órfão, ex. após a fase ter sido apagada) cai na primeira
+ * fase — regra centralizada aqui pra builder e renderer público nunca
+ * divergirem sobre "campo órfão vai pra onde". */
+export function groupFieldsByPhase(
+  fields: CrmFormFieldDTO[],
+  phases: CrmFormPhaseDTO[],
+): Array<{ phase: CrmFormPhaseDTO; fields: CrmFormFieldDTO[] }> {
+  if (phases.length === 0) return []
+  const defaultId = phases[0].id
+  const phaseIds = new Set(phases.map((p) => p.id))
+  return phases.map((phase) => ({
+    phase,
+    fields: fields.filter((f) => {
+      const resolved =
+        f.phaseId && phaseIds.has(f.phaseId) ? f.phaseId : defaultId
+      return resolved === phase.id
+    }),
+  }))
+}
+
+export const CreateCrmFormSchema = z
+  .object({
+    name: z.string().min(1, 'Nome é obrigatório').max(200),
+    description: z.string().max(2000).optional(),
+    action: z.enum(FORM_ACTIONS).default('LEAD'),
+    fields: CrmFormFieldsSchema.default([]),
+    phases: CrmFormPhasesSchema.default([]),
+    successMessage: z.string().max(500).optional(),
+    redirectUrl: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    validatePhaseReferences(data.fields, data.phases, ctx)
+  })
 
 export type CreateCrmFormDTO = z.infer<typeof CreateCrmFormSchema>
 
-export const UpdateCrmFormSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
-  description: z.string().max(2000).optional(),
-  action: z.enum(FORM_ACTIONS).optional(),
-  fields: CrmFormFieldsSchema.optional(),
-  status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
-  successMessage: z.string().max(500).optional(),
-  redirectUrl: z.string().max(500).optional(),
-})
+export const UpdateCrmFormSchema = z
+  .object({
+    name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
+    description: z.string().max(2000).optional(),
+    action: z.enum(FORM_ACTIONS).optional(),
+    fields: CrmFormFieldsSchema.optional(),
+    phases: CrmFormPhasesSchema.optional(),
+    status: z.enum(['DRAFT', 'PUBLISHED']).optional(),
+    successMessage: z.string().max(500).optional(),
+    redirectUrl: z.string().max(500).optional(),
+  })
+  .superRefine((data, ctx) => {
+    // Só valida a referência cruzada quando os dois vêm juntos no PATCH — se
+    // só um vier, a validação final acontece no service (que faz merge com o
+    // registro atual antes de persistir).
+    if (data.fields && data.phases) {
+      validatePhaseReferences(data.fields, data.phases, ctx)
+    }
+  })
 
 export type UpdateCrmFormDTO = z.infer<typeof UpdateCrmFormSchema>
 

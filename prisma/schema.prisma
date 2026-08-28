@@ -1920,6 +1920,7 @@ model CrmForm {
   publicToken     String        @unique @map("public_token")
   action          CrmFormAction @default(LEAD)
   fields          Json          @default("[]")
+  phases          Json          @default("[]")
   successMessage  String?       @map("success_message")
   redirectUrl     String?       @map("redirect_url")
   submissionCount Int           @default(0) @map("submission_count")
