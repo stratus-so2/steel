@@ -4,6 +4,7 @@ import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import { cn } from '@/lib/utils'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
@@ -245,8 +246,12 @@ export function SaasSubscriptionPricing({
             </ul>
 
             {plan.ctaLabel || !readOnly ? (
-              <a
-                href={readOnly ? plan.ctaHref : undefined}
+              <GhostLink
+                href={plan.ctaHref}
+                onHrefChange={(href) =>
+                  updatePlan(planIndex, { ctaHref: href || undefined })
+                }
+                readOnly={readOnly}
                 data-cta
                 className='mt-auto inline-flex items-center justify-center rounded-lg bg-[#473bf0] px-4 py-4 font-bold text-[17px] text-white tracking-[-0.6px] transition-opacity hover:opacity-90'
               >
@@ -259,7 +264,7 @@ export function SaasSubscriptionPricing({
                   readOnly={readOnly}
                   className='text-inherit'
                 />
-              </a>
+              </GhostLink>
             ) : null}
           </div>
         ))}

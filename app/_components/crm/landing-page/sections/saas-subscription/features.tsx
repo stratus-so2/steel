@@ -1,6 +1,8 @@
 'use client'
 
 import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
@@ -54,7 +56,7 @@ export function SaasSubscriptionFeatures({
 }: LandingPageSectionProps<FeaturesContent>) {
   function updateItem(
     index: number,
-    patch: Partial<{ title: string; description: string }>,
+    patch: Partial<{ title: string; description: string; icon: string }>,
   ) {
     onChange?.({
       ...content,
@@ -104,7 +106,7 @@ export function SaasSubscriptionFeatures({
 
       <div className='mx-auto grid max-w-6xl grid-cols-1 gap-x-12 gap-y-12 sm:grid-cols-3'>
         {content.items.map((item, index) => {
-          const icon = ICONS[index % ICONS.length]
+          const fallbackIcon = ICONS[index % ICONS.length]
           return (
             <div
               key={index}
@@ -122,8 +124,27 @@ export function SaasSubscriptionFeatures({
                   <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
                 </Button>
               ) : null}
-              <div className='flex h-10 w-11 items-center'>
-                <img src={icon} alt='' aria-hidden className='h-full w-auto' />
+              <div className='relative flex h-10 w-11 items-center'>
+                <SectionIcon
+                  value={item.icon}
+                  size={32}
+                  fallback={
+                    <img
+                      src={fallbackIcon}
+                      alt=''
+                      aria-hidden
+                      className='h-full w-auto'
+                    />
+                  }
+                />
+                {!readOnly ? (
+                  <div className='-bottom-2 -right-2 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                    <HugeiconPicker
+                      value={item.icon}
+                      onSelect={(icon) => updateItem(index, { icon })}
+                    />
+                  </div>
+                ) : null}
               </div>
               <div className='flex flex-col gap-3'>
                 <GhostInput

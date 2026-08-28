@@ -4,6 +4,7 @@ import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import { cn } from '@/lib/utils'
 import { saasSubscriptionLogoFont } from '@/src/lib/landing-page-templates/saas-subscription/fonts'
@@ -134,6 +135,15 @@ export function SaasSubscriptionFooter({
     })
   }
 
+  function updateSocialLink(index: number, href: string) {
+    onChange?.({
+      ...content,
+      socialLinks: content.socialLinks.map((s, i) =>
+        i === index ? { ...s, href } : s,
+      ),
+    })
+  }
+
   return (
     <footer id='footer' className='bg-white px-6 pt-16 sm:px-10 lg:px-[123px]'>
       {/* CTA (bloco "CTA" do Figma, dobrado aqui como no padrão do Footer) */}
@@ -169,8 +179,12 @@ export function SaasSubscriptionFooter({
             Learn more
           </a>
           {content.ctaLabel || !readOnly ? (
-            <a
-              href={readOnly ? content.ctaHref : undefined}
+            <GhostLink
+              href={content.ctaHref}
+              onHrefChange={(href) =>
+                onChange?.({ ...content, ctaHref: href || undefined })
+              }
+              readOnly={readOnly}
               data-cta
               className='inline-flex items-center justify-center rounded-lg bg-[#473bf0] px-6 py-4 font-bold text-[17px] text-white tracking-[-0.6px] transition-opacity hover:opacity-90'
             >
@@ -183,7 +197,7 @@ export function SaasSubscriptionFooter({
                 readOnly={readOnly}
                 className='text-inherit'
               />
-            </a>
+            </GhostLink>
           ) : null}
         </div>
       </div>
@@ -218,14 +232,16 @@ export function SaasSubscriptionFooter({
               const icon = SOCIAL_ICONS[social.platform.toLowerCase()]
               if (!icon) return null
               return (
-                <a
+                <GhostLink
                   key={`${social.platform}-${index}`}
                   href={social.href}
+                  onHrefChange={(href) => updateSocialLink(index, href)}
+                  readOnly={readOnly}
                   className='opacity-80 hover:opacity-100'
                   aria-label={social.platform}
                 >
                   <img src={icon} alt='' className='h-4 w-4' />
-                </a>
+                </GhostLink>
               )
             })}
           </div>
@@ -246,7 +262,13 @@ export function SaasSubscriptionFooter({
                   key={linkIndex}
                   className='group/link flex items-center gap-1'
                 >
-                  <a href={readOnly ? link.href : undefined}>
+                  <GhostLink
+                    href={link.href}
+                    onHrefChange={(href) =>
+                      updateLink(groupIndex, linkIndex, { href })
+                    }
+                    readOnly={readOnly}
+                  >
                     <GhostInput
                       value={link.label}
                       onCommit={(v) =>
@@ -255,7 +277,7 @@ export function SaasSubscriptionFooter({
                       readOnly={readOnly}
                       className='text-[#161c2d] text-[17px]'
                     />
-                  </a>
+                  </GhostLink>
                   {!readOnly ? (
                     <Button
                       type='button'
