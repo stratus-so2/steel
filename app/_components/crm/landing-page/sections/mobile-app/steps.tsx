@@ -7,9 +7,13 @@ import { Button } from '@/components/ui/button'
 import { GhostImage } from '@/components/ui/ghost-image'
 import { GhostInput } from '@/components/ui/ghost-input'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
+import { GhostVideo } from '@/components/ui/ghost-video'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { uploadCrmLandingPageImage } from '@/src/hooks/use-crm-landing-page'
+import {
+  uploadCrmLandingPageImage,
+  uploadCrmLandingPageVideo,
+} from '@/src/hooks/use-crm-landing-page'
 import { MOBILE_APP_COLORS } from '@/src/lib/landing-page-templates/mobile-app/colors'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
@@ -124,6 +128,15 @@ export function MobileAppSteps({
     onChange?.({ ...content, imageUrl: res.data.url })
   }
 
+  async function handleVideo(file: File) {
+    const res = await uploadCrmLandingPageVideo(workspaceId ?? '', file)
+    if (!res.ok || !res.data) {
+      notify.error(res.message ?? 'Não foi possível enviar o vídeo.')
+      return
+    }
+    onChange?.({ ...content, videoUrl: res.data.url })
+  }
+
   function updateItem(
     index: number,
     patch: Partial<{ title: string; description: string }>,
@@ -164,23 +177,55 @@ export function MobileAppSteps({
             />
           ) : null}
           <div className='relative overflow-hidden rounded-[20px]'>
-            <GhostImage
-              value={content.imageUrl}
-              onUpload={handleImage}
-              readOnly={readOnly}
-              alt={content.title}
-              className='aspect-[1110/652] w-full'
-            />
-            <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
-              <span className='flex size-[114px] items-center justify-center rounded-full bg-white/95 shadow-lg'>
-                <SteelIcon
-                  icon={PlayIcon}
-                  size={32}
-                  color={MOBILE_APP_COLORS.red}
+            {content.videoUrl ? (
+              <GhostVideo
+                value={content.videoUrl}
+                onUpload={handleVideo}
+                readOnly={readOnly}
+                className='aspect-[1110/652] w-full'
+              />
+            ) : (
+              <>
+                <GhostImage
+                  value={content.imageUrl}
+                  onUpload={handleImage}
+                  readOnly={readOnly}
+                  alt={content.title}
+                  className='aspect-[1110/652] w-full'
                 />
-              </span>
-            </div>
+                <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+                  <span className='flex size-[114px] items-center justify-center rounded-full bg-white/95 shadow-lg'>
+                    <SteelIcon
+                      icon={PlayIcon}
+                      size={32}
+                      color={MOBILE_APP_COLORS.red}
+                    />
+                  </span>
+                </div>
+              </>
+            )}
           </div>
+
+          {!readOnly ? (
+            content.videoUrl ? (
+              <button
+                type='button'
+                onClick={() => onChange?.({ ...content, videoUrl: undefined })}
+                className='mt-3 text-[#161c2d]/50 text-xs underline'
+              >
+                Remover vídeo
+              </button>
+            ) : (
+              <div className='mt-3'>
+                <GhostVideo
+                  value={content.videoUrl}
+                  onUpload={handleVideo}
+                  readOnly={readOnly}
+                  className='inline-flex h-9 items-center gap-1 rounded-lg px-3 text-xs'
+                />
+              </div>
+            )
+          ) : null}
         </div>
       </section>
     )

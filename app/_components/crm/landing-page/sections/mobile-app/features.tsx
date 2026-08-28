@@ -10,6 +10,8 @@ import {
   UserGroupIcon,
   Video01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
@@ -83,7 +85,7 @@ export function MobileAppFeatures({
 }: LandingPageSectionProps<FeaturesContent>) {
   function updateItem(
     index: number,
-    patch: Partial<{ title: string; description: string }>,
+    patch: Partial<{ title: string; description: string; icon: string }>,
   ) {
     onChange?.({
       ...content,
@@ -150,13 +152,28 @@ export function MobileAppFeatures({
                   <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
                 </Button>
               ) : null}
-              <SteelIcon
-                icon={Icon}
-                strokeWidth={2}
-                size={24}
-                color={MOBILE_APP_COLORS.green}
-                className='mt-1 shrink-0'
-              />
+              <div className='relative mt-1 shrink-0'>
+                <SectionIcon
+                  value={item.icon}
+                  size={24}
+                  fallback={
+                    <SteelIcon
+                      icon={Icon}
+                      strokeWidth={2}
+                      size={24}
+                      color={MOBILE_APP_COLORS.green}
+                    />
+                  }
+                />
+                {!readOnly ? (
+                  <div className='-bottom-2 -right-2 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                    <HugeiconPicker
+                      value={item.icon}
+                      onSelect={(icon) => updateItem(index, { icon })}
+                    />
+                  </div>
+                ) : null}
+              </div>
               <div className='flex flex-col gap-1'>
                 <GhostInput
                   as='h3'

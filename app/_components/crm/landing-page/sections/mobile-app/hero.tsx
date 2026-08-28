@@ -2,6 +2,7 @@
 
 import { GhostImage } from '@/components/ui/ghost-image'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import { notify } from '@/lib/notify'
 import { uploadCrmLandingPageImage } from '@/src/hooks/use-crm-landing-page'
@@ -82,8 +83,12 @@ export function MobileAppHero({
           ) : null}
 
           {content.ctaLabel || !readOnly ? (
-            <a
-              href={readOnly ? content.ctaHref : undefined}
+            <GhostLink
+              href={content.ctaHref}
+              onHrefChange={(href) =>
+                onChange?.({ ...content, ctaHref: href || undefined })
+              }
+              readOnly={readOnly}
               data-cta
               className='mt-2 inline-flex items-center justify-center rounded-lg bg-[#f74d4d] px-8 py-4 font-bold text-[17px] text-white tracking-[-0.6px] transition-opacity hover:opacity-90'
             >
@@ -96,7 +101,7 @@ export function MobileAppHero({
                 readOnly={readOnly}
                 className='text-inherit'
               />
-            </a>
+            </GhostLink>
           ) : null}
 
           <div className='mt-8 flex flex-col gap-4'>
