@@ -14,6 +14,7 @@ import { LogosSection, logosDefaultContent } from './logos'
 import { NewsletterSection, newsletterDefaultContent } from './newsletter'
 import { PricingSection, pricingDefaultContent } from './pricing'
 import { ProductsSection, productsDefaultContent } from './products'
+import { SAAS_SUBSCRIPTION_SECTION_OVERRIDES } from './saas-subscription/registry'
 import { ServicesSection, servicesDefaultContent } from './services'
 import { StepsSection, stepsDefaultContent } from './steps'
 import { TestimonialSection, testimonialDefaultContent } from './testimonial'
@@ -103,6 +104,7 @@ const TEMPLATE_OVERRIDES: Partial<
   agency: AGENCY_SECTION_OVERRIDES,
   b2b: B2B_SECTION_OVERRIDES,
   'job-site': JOB_SITE_SECTION_OVERRIDES,
+  'saas-subscription': SAAS_SUBSCRIPTION_SECTION_OVERRIDES,
 }
 
 /** Resolve a definição de seção pro template — override pixel-perfect se
