@@ -141,3 +141,24 @@ export async function uploadCrmLandingPageImage(
     return { ok: false, message: 'Erro de rede. Tente novamente.' }
   }
 }
+
+export async function uploadCrmLandingPageVideo(
+  workspaceId: string,
+  file: File,
+): Promise<MutationResult<{ url: string }>> {
+  try {
+    const res = await fetch(
+      `/api/workspaces/${workspaceId}/crm/landing-pages/videos`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      },
+    )
+    const json = await res.json()
+    if (!res.ok || !json.success) return { ok: false, message: readError(json) }
+    return { ok: true, data: json.data as { url: string } }
+  } catch {
+    return { ok: false, message: 'Erro de rede. Tente novamente.' }
+  }
+}

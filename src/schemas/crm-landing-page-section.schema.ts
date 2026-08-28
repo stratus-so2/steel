@@ -34,6 +34,14 @@ const LinkSchema = z.object({
   href: z.string().trim().min(1).max(500),
 })
 
+// Um dropdown decorativo (ex.: "Selecionar local" de um formulário de busca
+// que não tem backend real) cujas opções o editor pode customizar — usado só
+// pelos poucos templates cujo Figma tem esse tipo de campo.
+const DropdownFieldSchema = z.object({
+  label: z.string().trim().min(1).max(80),
+  options: z.array(z.string().trim().min(1).max(80)).max(10).default([]),
+})
+
 const HeaderContentSchema = z.object({
   type: z.literal('HEADER'),
   logoText: z.string().trim().min(1, 'Texto do logo é obrigatório').max(60),
@@ -50,6 +58,18 @@ const HeroContentSchema = z.object({
   ctaLabel: z.string().trim().max(60).optional(),
   ctaHref: z.string().trim().max(500).optional(),
   imageUrl: z.string().trim().min(1).optional(),
+  // Vídeo de fundo/preview autoplay opcional — quando definido, os templates
+  // com um bloco de vídeo no Figma trocam a imagem estática pelo `<video>`
+  // real (mudo, loop, sem controles). `imageUrl` continua servindo de poster.
+  videoUrl: z.string().trim().min(1).optional(),
+  // Nav embutida no próprio Hero — só usada por templates cujo frame do
+  // Figma não tem uma seção HEADER separada (ex. Coworking). Optional puro
+  // (sem `.default`) de propósito: ao contrário de `imageUrls`/`linkGroups`
+  // em outros schemas, isso é usado por 1-2 templates só — exigir que todo
+  // template preenchesse um array vazio seria ruído. Componentes leem com
+  // `content.navLinks ?? []`.
+  navLinks: z.array(LinkSchema).max(8).optional(),
+  dropdowns: z.array(DropdownFieldSchema).max(4).optional(),
 })
 
 const ServiceItemSchema = z.object({
@@ -66,6 +86,9 @@ const ServicesContentSchema = z.object({
   title: z.string().trim().min(1, 'Título é obrigatório').max(200),
   subtitle: z.string().trim().max(400).optional(),
   items: z.array(ServiceItemSchema).max(12).default([]),
+  // Ver comentário equivalente em HeroContentSchema — cobre o bloco de vídeo
+  // decorativo que alguns templates (ex. B2B) colam depois da grade.
+  videoUrl: z.string().trim().min(1).optional(),
 })
 
 const FactItemSchema = z.object({
@@ -87,6 +110,9 @@ const AboutContentSchema = z.object({
   // Colagem de fotos adicionais (0-2), pra templates cujo layout tem mais de
   // uma imagem — `imageUrl` continua sendo a foto principal.
   imageUrls: z.array(z.string().trim().min(1)).max(2).optional().default([]),
+  // Ver comentário em HeroContentSchema.dropdowns — optional puro de
+  // propósito, só usado pelo bloco "CTA Form" do Consultation.
+  dropdowns: z.array(DropdownFieldSchema).max(4).optional(),
 })
 
 const TestimonialContentSchema = z.object({
@@ -105,6 +131,10 @@ const TestimonialContentSchema = z.object({
 const FeatureItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).default(''),
+  // "<hugeicon-name>:<hex-color>" — mesmo formato composto usado pelo
+  // seletor de ícone de projeto (ver ProjectEmoji). Opcional: sem valor, o
+  // componente do template cai no ícone fixo que já cicla por índice hoje.
+  icon: z.string().trim().min(1).max(80).optional(),
 })
 
 const FeaturesContentSchema = z.object({
@@ -169,6 +199,11 @@ const PricingPlanSchema = z.object({
   ctaLabel: z.string().trim().max(60).optional(),
   ctaHref: z.string().trim().max(500).optional(),
   highlighted: z.boolean().optional().default(false),
+  // Par opcional pro toggle mensal/anual — só definidos pelos templates cujo
+  // Figma realmente mostra o toggle (hoje, Web Application). Sem eles, a
+  // seção renderiza só `price`/`period`, sem toggle, como antes.
+  yearlyPrice: z.string().trim().max(40).optional(),
+  yearlyPeriod: z.string().trim().max(40).optional(),
 })
 
 const PricingContentSchema = z.object({
@@ -201,6 +236,8 @@ const StepsContentSchema = z.object({
   title: z.string().trim().min(1, 'Título é obrigatório').max(200),
   subtitle: z.string().trim().max(400).optional(),
   imageUrl: z.string().trim().min(1).optional(),
+  // Ver comentário em HeroContentSchema.videoUrl.
+  videoUrl: z.string().trim().min(1).optional(),
   items: z.array(StepItemSchema).max(8).default([]),
 })
 
@@ -210,6 +247,10 @@ const NewsletterContentSchema = z.object({
   description: z.string().trim().max(400).optional(),
   placeholder: z.string().trim().max(80).optional(),
   ctaLabel: z.string().trim().max(60).optional(),
+  // Quando definido, a seção embute o formulário real do workspace (id de um
+  // CrmForm) em vez do input/botão decorativos — submissão de verdade via o
+  // fluxo público já existente (`/api/crm/forms/[publicToken]/submit`).
+  formId: z.string().trim().min(1).optional(),
 })
 
 const LogoItemSchema = z.object({
