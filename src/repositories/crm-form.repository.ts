@@ -57,6 +57,7 @@ export const CrmFormRepository = {
     description?: string
     action?: CrmFormAction
     fields?: Prisma.InputJsonValue
+    phases?: Prisma.InputJsonValue
     successMessage?: string
     redirectUrl?: string
   }): Promise<Result<CrmForm>> {
@@ -80,6 +81,7 @@ export const CrmFormRepository = {
       description?: string
       action?: CrmFormAction
       fields?: Prisma.InputJsonValue
+      phases?: Prisma.InputJsonValue
       status?: 'DRAFT' | 'PUBLISHED'
       publishedAt?: Date | null
       successMessage?: string

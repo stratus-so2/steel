@@ -2,6 +2,7 @@ import type { CrmForm, CrmFormSubmission } from '@prisma/client'
 import type {
   CrmFormDTO,
   CrmFormFieldDefinition,
+  CrmFormPhase,
   CrmFormPublicDTO,
   CrmFormSubmissionDTO,
 } from '@/types/crm-form'
@@ -15,6 +16,7 @@ export function toCrmFormDTO(form: CrmForm): CrmFormDTO {
     publicToken: form.publicToken,
     action: form.action,
     fields: form.fields as unknown as CrmFormFieldDefinition[],
+    phases: form.phases as unknown as CrmFormPhase[],
     successMessage: form.successMessage,
     redirectUrl: form.redirectUrl,
     submissionCount: form.submissionCount,
@@ -34,6 +36,7 @@ export function toCrmFormPublicDTO(form: CrmForm): CrmFormPublicDTO {
     name: form.name,
     description: form.description,
     fields: form.fields as unknown as CrmFormFieldDefinition[],
+    phases: form.phases as unknown as CrmFormPhase[],
     successMessage: form.successMessage,
     redirectUrl: form.redirectUrl,
   }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type {
   CrmFormDTO,
   CrmFormFieldDefinition,
+  CrmFormPhase,
   CrmFormSubmissionDTO,
 } from '@/types/crm-form'
 import { apiFetch } from './_fetch'
@@ -51,6 +52,7 @@ export async function saveCrmForm(
     description?: string
     action?: string
     fields?: CrmFormFieldDefinition[]
+    phases?: CrmFormPhase[]
     status?: 'DRAFT' | 'PUBLISHED'
     successMessage?: string
     redirectUrl?: string

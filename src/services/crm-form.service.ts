@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import type { Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { validationError } from '@/src/errors'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmFormDTO,
   toCrmFormPublicDTO,
@@ -17,6 +18,7 @@ import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import type {
   CreateCrmFormDTO,
   CrmFormFieldDTO,
+  CrmFormPhaseDTO,
   SubmitCrmFormDTO,
   UpdateCrmFormDTO,
 } from '@/src/schemas/crm-form.schema'
@@ -26,6 +28,18 @@ import type {
   CrmFormSubmissionDTO,
 } from '@/types/crm-form'
 import { assertMember } from './authz'
+
+/** Todo `phaseId` referenciado por um campo precisa existir em `phases`.
+ * Usada no update quando o PATCH manda só `fields` ou só `phases` — o Zod
+ * não valida a referência cruzada nesse caso (não enxerga o registro atual),
+ * então o service faz o merge com o que já está salvo e revalida aqui. */
+function findOrphanedPhaseId(
+  fields: CrmFormFieldDTO[],
+  phases: CrmFormPhaseDTO[],
+): string | undefined {
+  const phaseIds = new Set(phases.map((p) => p.id))
+  return fields.find((f) => f.phaseId && !phaseIds.has(f.phaseId))?.phaseId
+}
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
@@ -92,6 +106,7 @@ export const CrmFormService = {
       description: dto.description,
       action: dto.action,
       fields: dto.fields as unknown as Prisma.InputJsonValue,
+      phases: dto.phases as unknown as Prisma.InputJsonValue,
       successMessage: dto.successMessage,
       redirectUrl: dto.redirectUrl,
     })
@@ -129,11 +144,33 @@ export const CrmFormService = {
     const existing = await CrmFormRepository.findById(formId, workspaceId)
     if (!existing.ok) return existing
 
+    // fields/phases são independentes no PATCH (semântica de Update), então
+    // um payload que só manda um dos dois é validado aqui contra o que já
+    // está salvo — evita persistir um phaseId órfão (ex. campo apontando pra
+    // uma fase apagada num PATCH anterior).
+    if (dto.fields || dto.phases) {
+      const mergedFields =
+        dto.fields ??
+        (existing.value.fields as unknown as CrmFormFieldDTO[]) ??
+        []
+      const mergedPhases =
+        dto.phases ??
+        (existing.value.phases as unknown as CrmFormPhaseDTO[]) ??
+        []
+      const orphan = findOrphanedPhaseId(mergedFields, mergedPhases)
+      if (orphan) {
+        return err(
+          validationError(`Fase inválida para este campo: "${orphan}"`),
+        )
+      }
+    }
+
     const result = await CrmFormRepository.update(formId, {
       name: dto.name,
       description: dto.description,
       action: dto.action,
       fields: dto.fields as unknown as Prisma.InputJsonValue | undefined,
+      phases: dto.phases as unknown as Prisma.InputJsonValue | undefined,
       status: dto.status,
       publishedAt:
         dto.status === undefined

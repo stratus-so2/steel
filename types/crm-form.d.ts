@@ -30,6 +30,13 @@ export interface CrmFormFieldDefinition {
   placeholder?: string
   options?: CrmFormFieldOption[]
   mapping: CrmFormFieldMapping
+  phaseId?: string
+}
+
+export interface CrmFormPhase {
+  id: string
+  title: string
+  description?: string
 }
 
 export interface CrmFormDTO {
@@ -40,6 +47,7 @@ export interface CrmFormDTO {
   publicToken: string
   action: CrmFormActionDTO
   fields: CrmFormFieldDefinition[]
+  phases: CrmFormPhase[]
   successMessage: string | null
   redirectUrl: string | null
   submissionCount: number
@@ -57,6 +65,7 @@ export interface CrmFormPublicDTO {
   name: string
   description: string | null
   fields: CrmFormFieldDefinition[]
+  phases: CrmFormPhase[]
   successMessage: string | null
   redirectUrl: string | null
 }

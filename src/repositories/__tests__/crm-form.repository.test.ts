@@ -35,6 +35,32 @@ describe('CrmFormRepository', () => {
   })
 })
 
+describe('CrmFormRepository phases', () => {
+  it('should persist phases on create and update', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const phases = [{ id: 'p1', title: 'Fase 1' }]
+
+    const created = expectOk(
+      await CrmFormRepository.create({
+        workspaceId: workspace.id,
+        createdById: user.id,
+        name: 'Contato',
+        phases,
+      }),
+    )
+    expect(created.phases).toEqual(phases)
+
+    const updatedPhases = [
+      { id: 'p1', title: 'Fase 1' },
+      { id: 'p2', title: 'Fase 2' },
+    ]
+    const updated = expectOk(
+      await CrmFormRepository.update(created.id, { phases: updatedPhases }),
+    )
+    expect(updated.phases).toEqual(updatedPhases)
+  })
+})
+
 describe('CrmFormSubmissionRepository', () => {
   describe('create()', () => {
     it('should increment the form submissionCount', async () => {

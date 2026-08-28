@@ -29,6 +29,62 @@ describe('CrmFormService', () => {
     })
   })
 
+  describe('update() phase cross-validation', () => {
+    it('should reject a PATCH with only fields when a field references a phase absent from the saved record', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1', role: 'OWNER' } as never),
+      )
+      mockedFormRepo.findById.mockResolvedValue(
+        ok(createFakeCrmForm({ id: 'f1', workspaceId: 'ws1', phases: [] })),
+      )
+
+      const result = await CrmFormService.update('u1', 'ws1', 'f1', {
+        fields: [
+          {
+            key: 'x',
+            label: 'X',
+            type: 'text',
+            required: false,
+            mapping: { target: 'lead', attribute: 'name' },
+            phaseId: 'phase-that-no-longer-exists',
+          },
+        ],
+      })
+      expectErr(result, 'VALIDATION_ERROR')
+    })
+
+    it('should accept a PATCH with only phases when existing fields have no phaseId', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok({ id: 'm1', role: 'OWNER' } as never),
+      )
+      mockedFormRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmForm({
+            id: 'f1',
+            workspaceId: 'ws1',
+            fields: [
+              {
+                key: 'name',
+                label: 'Nome',
+                type: 'text',
+                required: false,
+                mapping: { target: 'lead', attribute: 'name' },
+              },
+            ],
+          }),
+        ),
+      )
+      mockedFormRepo.update.mockResolvedValue(
+        ok(createFakeCrmForm({ id: 'f1', workspaceId: 'ws1' })),
+      )
+
+      const result = await CrmFormService.update('u1', 'ws1', 'f1', {
+        phases: [{ id: 'p1', title: 'Fase 1' }],
+      })
+      expectOk(result)
+    })
+  })
+
   describe('submit()', () => {
     it('should apply field mappings and create a lead + submission for a LEAD-action form', async () => {
       mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
