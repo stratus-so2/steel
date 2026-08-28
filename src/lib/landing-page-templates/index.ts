@@ -5,6 +5,7 @@ import type {
 import { agencyTemplate } from './agency'
 import { b2bTemplate } from './b2b'
 import { coworkingTemplate } from './coworking'
+import { ecommerceTemplate } from './ecommerce'
 import { jobSiteTemplate } from './job-site'
 import { saasSubscriptionTemplate } from './saas-subscription'
 import { webApplicationTemplate } from './web-application'
@@ -35,6 +36,7 @@ export const LANDING_PAGE_TEMPLATE_CATALOG: Record<
   agency: agencyTemplate,
   b2b: b2bTemplate,
   coworking: coworkingTemplate,
+  ecommerce: ecommerceTemplate,
   'job-site': jobSiteTemplate,
   'saas-subscription': saasSubscriptionTemplate,
   'web-application': webApplicationTemplate,
