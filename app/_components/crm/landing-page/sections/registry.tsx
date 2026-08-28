@@ -9,6 +9,7 @@ import { FeaturesSection, featuresDefaultContent } from './features'
 import { FooterSection, footerDefaultContent } from './footer'
 import { HeaderSection, headerDefaultContent } from './header'
 import { HeroSection, heroDefaultContent } from './hero'
+import { JOB_SITE_SECTION_OVERRIDES } from './job-site/registry'
 import { LogosSection, logosDefaultContent } from './logos'
 import { NewsletterSection, newsletterDefaultContent } from './newsletter'
 import { PricingSection, pricingDefaultContent } from './pricing'
@@ -101,6 +102,7 @@ const TEMPLATE_OVERRIDES: Partial<
 > = {
   agency: AGENCY_SECTION_OVERRIDES,
   b2b: B2B_SECTION_OVERRIDES,
+  'job-site': JOB_SITE_SECTION_OVERRIDES,
 }
 
 /** Resolve a definição de seção pro template — override pixel-perfect se
