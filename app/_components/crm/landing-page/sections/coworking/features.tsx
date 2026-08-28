@@ -1,6 +1,8 @@
 'use client'
 
 import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
@@ -59,7 +61,7 @@ export function CoworkingFeatures({
 }: LandingPageSectionProps<FeaturesContent>) {
   function updateItem(
     index: number,
-    patch: Partial<{ title: string; description: string }>,
+    patch: Partial<{ title: string; description: string; icon: string }>,
   ) {
     onChange?.({
       ...content,
@@ -114,7 +116,23 @@ export function CoworkingFeatures({
                   <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
                 </Button>
               ) : null}
-              <img src={icon} alt='' aria-hidden className='h-10 w-11' />
+              <div className='relative inline-flex'>
+                <SectionIcon
+                  value={item.icon}
+                  size={40}
+                  fallback={
+                    <img src={icon} alt='' aria-hidden className='h-10 w-11' />
+                  }
+                />
+                {!readOnly ? (
+                  <div className='-bottom-2 -right-2 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                    <HugeiconPicker
+                      value={item.icon}
+                      onSelect={(icon) => updateItem(index, { icon })}
+                    />
+                  </div>
+                ) : null}
+              </div>
               <GhostInput
                 as='h3'
                 value={item.title}

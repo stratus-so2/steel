@@ -4,6 +4,7 @@ import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
 
@@ -139,6 +140,15 @@ export function CoworkingFooter({
     })
   }
 
+  function updateSocialLink(index: number, href: string) {
+    onChange?.({
+      ...content,
+      socialLinks: content.socialLinks.map((s, i) =>
+        i === index ? { ...s, href } : s,
+      ),
+    })
+  }
+
   return (
     <footer id='footer' className='bg-white px-6 pt-16 sm:px-10 lg:px-[123px]'>
       <div className='mx-auto grid max-w-6xl grid-cols-2 gap-x-8 gap-y-10 pb-16 sm:grid-cols-3 lg:grid-cols-5'>
@@ -159,7 +169,13 @@ export function CoworkingFooter({
                     key={linkIndex}
                     className='group/link flex items-center gap-1'
                   >
-                    <a href={readOnly ? link.href : undefined}>
+                    <GhostLink
+                      href={link.href}
+                      onHrefChange={(href) =>
+                        updateLink(groupIndex, linkIndex, { href })
+                      }
+                      readOnly={readOnly}
+                    >
                       <GhostInput
                         value={link.label}
                         onCommit={(v) =>
@@ -172,7 +188,7 @@ export function CoworkingFooter({
                             : 'text-[#161c2d] text-[17px]'
                         }
                       />
-                    </a>
+                    </GhostLink>
                     {!readOnly ? (
                       <Button
                         type='button'
@@ -219,14 +235,16 @@ export function CoworkingFooter({
             const icon = SOCIAL_ICONS[social.platform.toLowerCase()]
             if (!icon) return null
             return (
-              <a
+              <GhostLink
                 key={`${social.platform}-${index}`}
                 href={social.href}
+                onHrefChange={(href) => updateSocialLink(index, href)}
+                readOnly={readOnly}
                 className='opacity-80 hover:opacity-100'
                 aria-label={social.platform}
               >
                 <img src={icon} alt='' className='h-4 w-4' />
-              </a>
+              </GhostLink>
             )
           })}
         </div>
