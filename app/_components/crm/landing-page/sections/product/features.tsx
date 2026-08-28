@@ -1,6 +1,8 @@
 'use client'
 
 import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
@@ -50,7 +52,7 @@ export function ProductFeatures({
 }: LandingPageSectionProps<FeaturesContent>) {
   function updateItem(
     index: number,
-    patch: Partial<{ title: string; description: string }>,
+    patch: Partial<{ title: string; description: string; icon: string }>,
   ) {
     onChange?.({
       ...content,
@@ -138,15 +140,29 @@ export function ProductFeatures({
                     </Button>
                   ) : null}
                   <div
-                    className='flex size-10 shrink-0 items-center justify-center rounded-full'
+                    className='relative flex size-10 shrink-0 items-center justify-center rounded-full'
                     style={{ backgroundColor: `${variant.bg}4d` }}
                   >
-                    <img
-                      src={variant.icon}
-                      alt=''
-                      aria-hidden
-                      className='size-5'
+                    <SectionIcon
+                      value={item.icon}
+                      size={20}
+                      fallback={
+                        <img
+                          src={variant.icon}
+                          alt=''
+                          aria-hidden
+                          className='size-5'
+                        />
+                      }
                     />
+                    {!readOnly ? (
+                      <div className='-bottom-2 -right-2 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                        <HugeiconPicker
+                          value={item.icon}
+                          onSelect={(icon) => updateItem(index, { icon })}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   <div className='flex flex-col gap-1'>
                     <GhostInput

@@ -4,6 +4,7 @@ import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { cn } from '@/lib/utils'
 import { productLogoFont } from '@/src/lib/landing-page-templates/product/fonts'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
@@ -115,7 +116,13 @@ export function ProductFooter({
               key={`${groupIndex}-${linkIndex}`}
               className='group/link flex items-center gap-1'
             >
-              <a href={readOnly ? link.href : undefined}>
+              <GhostLink
+                href={link.href}
+                onHrefChange={(href) =>
+                  updateLink(groupIndex, linkIndex, { href })
+                }
+                readOnly={readOnly}
+              >
                 <GhostInput
                   value={link.label}
                   onCommit={(v) =>
@@ -124,7 +131,7 @@ export function ProductFooter({
                   readOnly={readOnly}
                   className='font-bold text-[#161c2d] text-[15px]'
                 />
-              </a>
+              </GhostLink>
               {!readOnly ? (
                 <Button
                   type='button'
