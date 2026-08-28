@@ -41,6 +41,7 @@ import type {
   CrmFormFieldDefinition,
   CrmFormFieldTargetDTO,
   CrmFormFieldTypeDTO,
+  CrmFormPhase,
   CrmFormPublicDTO,
 } from '@/types/crm-form'
 
@@ -130,6 +131,7 @@ function toPublicForm(
   name: string,
   description: string,
   fields: CrmFormFieldDefinition[],
+  phases: CrmFormPhase[],
   successMessage: string,
 ): CrmFormPublicDTO {
   return {
@@ -138,6 +140,7 @@ function toPublicForm(
     description: description || null,
     successMessage: successMessage || null,
     redirectUrl: null,
+    phases,
     fields: fields.map((f) => ({
       key: f.key,
       label: f.label,
@@ -203,6 +206,7 @@ function CrmFormBuilderInner({
   const [description, setDescription] = useState(initial.description ?? '')
   const [action, setAction] = useState<CrmFormActionDTO>(initial.action)
   const [fields, setFields] = useState<CrmFormFieldDefinition[]>(initial.fields)
+  const [phases, setPhases] = useState<CrmFormPhase[]>(initial.phases)
   const [successMessage, setSuccessMessage] = useState(
     initial.successMessage ?? '',
   )
@@ -219,6 +223,7 @@ function CrmFormBuilderInner({
   }, [initial.publicToken])
 
   const keyCounter = useRef(initial.fields.length)
+  const phaseCounter = useRef(initial.phases.length)
 
   function buildPayload() {
     return {
@@ -226,6 +231,7 @@ function CrmFormBuilderInner({
       description: description.trim() ? description.trim() : undefined,
       action,
       fields,
+      phases,
       successMessage: successMessage.trim() ? successMessage.trim() : undefined,
     }
   }
@@ -302,12 +308,48 @@ function CrmFormBuilderInner({
     })
   }
 
+  function addPhase() {
+    phaseCounter.current += 1
+    setPhases((cur) => [
+      ...cur,
+      { id: `phase_${phaseCounter.current}`, title: `Fase ${cur.length + 1}` },
+    ])
+  }
+
+  function updatePhase(index: number, patch: Partial<CrmFormPhase>) {
+    setPhases((cur) =>
+      cur.map((p, i) => (i === index ? { ...p, ...patch } : p)),
+    )
+  }
+
+  function removePhase(index: number) {
+    // Campos que apontavam pra essa fase caem na primeira fase automaticamente
+    // (regra de groupFieldsByPhase) — não precisa limpar phaseId aqui.
+    setPhases((cur) => cur.filter((_, i) => i !== index))
+  }
+
+  function movePhase(index: number, dir: -1 | 1) {
+    setPhases((cur) => {
+      const next = [...cur]
+      const target = index + dir
+      if (target < 0 || target >= next.length) return cur
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+  }
+
   function copyUrl() {
     navigator.clipboard.writeText(publicUrl)
     notify.success('URL pública copiada')
   }
 
-  const preview = toPublicForm(name, description, fields, successMessage)
+  const preview = toPublicForm(
+    name,
+    description,
+    fields,
+    phases,
+    successMessage,
+  )
 
   return (
     <div className='flex h-full flex-col'>
@@ -445,6 +487,64 @@ function CrmFormBuilderInner({
 
             <section className='flex flex-col gap-3'>
               <div className='flex items-center justify-between'>
+                <h2 className='font-medium text-sm'>Fases</h2>
+                <Button variant='outline' size='sm' onClick={addPhase}>
+                  <SteelIcon icon={Add01Icon} strokeWidth={2} />
+                  Adicionar fase
+                </Button>
+              </div>
+              <p className='text-muted-foreground text-xs'>
+                Sem fases (ou com apenas 1), o formulário é uma página única.
+                Com 2 ou mais, vira um wizard de várias etapas.
+              </p>
+
+              {phases.map((phase, index) => (
+                <div
+                  key={phase.id}
+                  className='flex items-center gap-2 rounded-lg border p-3'
+                >
+                  <span className='text-muted-foreground text-xs tabular-nums'>
+                    {index + 1}
+                  </span>
+                  <Input
+                    value={phase.title}
+                    placeholder='Título da fase'
+                    onChange={(e) =>
+                      updatePhase(index, { title: e.target.value })
+                    }
+                  />
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label='Mover fase para cima'
+                    disabled={index === 0}
+                    onClick={() => movePhase(index, -1)}
+                  >
+                    <SteelIcon icon={ArrowUp01Icon} strokeWidth={2} />
+                  </Button>
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label='Mover fase para baixo'
+                    disabled={index === phases.length - 1}
+                    onClick={() => movePhase(index, 1)}
+                  >
+                    <SteelIcon icon={ArrowDown01Icon} strokeWidth={2} />
+                  </Button>
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label='Remover fase'
+                    onClick={() => removePhase(index)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                  </Button>
+                </div>
+              ))}
+            </section>
+
+            <section className='flex flex-col gap-3'>
+              <div className='flex items-center justify-between'>
                 <h2 className='font-medium text-sm'>Campos</h2>
                 <Button variant='outline' size='sm' onClick={addField}>
                   <SteelIcon icon={Add01Icon} strokeWidth={2} />
@@ -464,6 +564,7 @@ function CrmFormBuilderInner({
                   field={field}
                   index={index}
                   total={fields.length}
+                  phases={phases}
                   mappingOptions={mappingOptions}
                   onChange={(patch) => updateField(index, patch)}
                   onRemove={() => removeField(index)}
@@ -491,6 +592,7 @@ function FieldEditor({
   field,
   index,
   total,
+  phases,
   mappingOptions,
   onChange,
   onRemove,
@@ -499,6 +601,7 @@ function FieldEditor({
   field: CrmFormFieldDefinition
   index: number
   total: number
+  phases: CrmFormPhase[]
   mappingOptions: MappingOption[]
   onChange: (patch: Partial<CrmFormFieldDefinition>) => void
   onRemove: () => void
@@ -604,6 +707,29 @@ function FieldEditor({
           </Select>
         </div>
       </div>
+
+      {phases.length > 1 ? (
+        <div className='flex flex-col gap-1.5'>
+          <Label>Fase</Label>
+          <Select
+            value={field.phaseId ?? phases[0].id}
+            onValueChange={(v) => {
+              if (v) onChange({ phaseId: v })
+            }}
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {phases.map((phase) => (
+                <SelectItem key={phase.id} value={phase.id}>
+                  {phase.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
 
       <div className='flex flex-col gap-1.5'>
         <Label>Placeholder</Label>

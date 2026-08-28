@@ -6,6 +6,17 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
+  Questionnaire,
+  QuestionnaireActions,
+  QuestionnaireDescription,
+  QuestionnaireItem,
+  QuestionnaireNext,
+  QuestionnairePrevious,
+  QuestionnaireProgress,
+  QuestionnaireSubmit,
+  QuestionnaireTitle,
+} from '@/components/ui/questionnaire'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -13,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { groupFieldsByPhase } from '@/src/schemas/crm-form.schema'
 import type { CrmFormFieldDefinition, CrmFormPublicDTO } from '@/types/crm-form'
 
 type Values = Record<string, unknown>
@@ -106,6 +118,41 @@ function FieldControl({
   )
 }
 
+function FieldGroup({
+  fields,
+  values,
+  setValue,
+  disabled,
+}: {
+  fields: CrmFormFieldDefinition[]
+  values: Values
+  setValue: (key: string, value: unknown) => void
+  disabled: boolean
+}) {
+  return (
+    <>
+      {fields.map((field) => (
+        <div key={field.key} className='flex flex-col gap-1.5'>
+          {field.type !== 'checkbox' ? (
+            <Label htmlFor={`field-${field.key}`}>
+              {field.label}
+              {field.required ? (
+                <span className='text-destructive'> *</span>
+              ) : null}
+            </Label>
+          ) : null}
+          <FieldControl
+            field={field}
+            value={values[field.key]}
+            onChange={(value) => setValue(field.key, value)}
+            disabled={disabled}
+          />
+        </div>
+      ))}
+    </>
+  )
+}
+
 /**
  * Renderiza o formulário no visual travado do sistema. Compartilhado entre a
  * página pública (`publicToken` definido → envia de verdade) e o preview do
@@ -167,6 +214,71 @@ export function CrmPublicFormRenderer({
     )
   }
 
+  const honeypotField = (
+    // Honeypot anti-spam: oculto para humanos, atrativo para bots.
+    <div aria-hidden className='hidden'>
+      <label htmlFor='company_website'>Não preencha</label>
+      <input
+        id='company_website'
+        name='company_website'
+        tabIndex={-1}
+        autoComplete='off'
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
+      />
+    </div>
+  )
+
+  const disabled = preview || submitting
+  const grouped = groupFieldsByPhase(form.fields, form.phases)
+
+  if (grouped.length > 1) {
+    return (
+      <Questionnaire
+        onSubmit={onSubmit}
+        defaultItem={grouped[0].phase.id}
+        className='rounded-xl border bg-card p-6 sm:p-8'
+      >
+        <div className='mb-1 flex flex-col gap-1'>
+          <h1 className='font-semibold text-xl tracking-tight'>{form.name}</h1>
+          {form.description ? (
+            <p className='text-muted-foreground text-sm'>{form.description}</p>
+          ) : null}
+        </div>
+
+        <QuestionnaireProgress />
+
+        {grouped.map(({ phase, fields }) => (
+          <QuestionnaireItem key={phase.id} name={phase.id}>
+            <QuestionnaireTitle>{phase.title}</QuestionnaireTitle>
+            {phase.description ? (
+              <QuestionnaireDescription>
+                {phase.description}
+              </QuestionnaireDescription>
+            ) : null}
+            <FieldGroup
+              fields={fields}
+              values={values}
+              setValue={setValue}
+              disabled={disabled}
+            />
+          </QuestionnaireItem>
+        ))}
+
+        {honeypotField}
+        {error ? <p className='text-destructive text-sm'>{error}</p> : null}
+
+        <QuestionnaireActions>
+          <QuestionnairePrevious />
+          <QuestionnaireNext />
+          <QuestionnaireSubmit disabled={disabled}>
+            {submitting ? 'Enviando…' : 'Enviar'}
+          </QuestionnaireSubmit>
+        </QuestionnaireActions>
+      </Questionnaire>
+    )
+  }
+
   return (
     <form
       onSubmit={onSubmit}
@@ -185,41 +297,17 @@ export function CrmPublicFormRenderer({
         </p>
       ) : null}
 
-      {form.fields.map((field) => (
-        <div key={field.key} className='flex flex-col gap-1.5'>
-          {field.type !== 'checkbox' ? (
-            <Label htmlFor={`field-${field.key}`}>
-              {field.label}
-              {field.required ? (
-                <span className='text-destructive'> *</span>
-              ) : null}
-            </Label>
-          ) : null}
-          <FieldControl
-            field={field}
-            value={values[field.key]}
-            onChange={(value) => setValue(field.key, value)}
-            disabled={preview || submitting}
-          />
-        </div>
-      ))}
+      <FieldGroup
+        fields={form.fields}
+        values={values}
+        setValue={setValue}
+        disabled={disabled}
+      />
 
-      {/* Honeypot anti-spam: oculto para humanos, atrativo para bots. */}
-      <div aria-hidden className='hidden'>
-        <label htmlFor='company_website'>Não preencha</label>
-        <input
-          id='company_website'
-          name='company_website'
-          tabIndex={-1}
-          autoComplete='off'
-          value={honeypot}
-          onChange={(e) => setHoneypot(e.target.value)}
-        />
-      </div>
-
+      {honeypotField}
       {error ? <p className='text-destructive text-sm'>{error}</p> : null}
 
-      <Button type='submit' disabled={preview || submitting} className='w-full'>
+      <Button type='submit' disabled={disabled} className='w-full'>
         {submitting ? 'Enviando…' : 'Enviar'}
       </Button>
     </form>

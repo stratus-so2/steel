@@ -49,6 +49,59 @@ describe('CRM forms CRUD', () => {
   })
 })
 
+describe('CRM form phases', () => {
+  it('should save a form with multiple phases and reject an invalid phaseId reference', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/forms`,
+        { name: 'Contato faseado' },
+        user.cookie,
+      )
+    ).json()
+
+    const updated = await patchJson(
+      `/api/workspaces/${workspace.id}/crm/forms/${created.data.id}`,
+      {
+        phases: [
+          { id: 'p1', title: 'Sobre você' },
+          { id: 'p2', title: 'Sobre a empresa' },
+        ],
+        fields: [
+          {
+            key: 'name',
+            label: 'Nome',
+            type: 'text',
+            mapping: { target: 'lead', attribute: 'name' },
+            phaseId: 'p1',
+          },
+        ],
+      },
+      user.cookie,
+    )
+    expect(updated.status).toBe(200)
+
+    const invalid = await patchJson(
+      `/api/workspaces/${workspace.id}/crm/forms/${created.data.id}`,
+      {
+        phases: [{ id: 'p1', title: 'Sobre você' }],
+        fields: [
+          {
+            key: 'name',
+            label: 'Nome',
+            type: 'text',
+            mapping: { target: 'lead', attribute: 'name' },
+            phaseId: 'phase-que-nao-existe',
+          },
+        ],
+      },
+      user.cookie,
+    )
+    expect(invalid.status).toBe(422)
+  })
+})
+
 describe('CRM form publish and public submit', () => {
   it('should publish a form and accept a public submission that creates a lead', async () => {
     const { user, workspace } = await authenticatedOwner()
@@ -163,6 +216,56 @@ describe('CRM form builder + public pages (SSR)', () => {
     const publicHtml = await publicPage.text()
     expect(publicHtml).not.toContain('Application error')
     expect(publicHtml).toContain('Página de teste')
+  })
+
+  it('should render the multi-phase wizard on the public page without a server error', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/forms`,
+        {
+          name: 'Formulário em fases',
+          phases: [
+            { id: 'p1', title: 'Sobre você' },
+            { id: 'p2', title: 'Sobre a empresa' },
+          ],
+          fields: [
+            {
+              key: 'name',
+              label: 'Nome',
+              type: 'text',
+              mapping: { target: 'lead', attribute: 'name' },
+              phaseId: 'p1',
+            },
+            {
+              key: 'company',
+              label: 'Empresa',
+              type: 'text',
+              mapping: { target: 'lead', attribute: 'company' },
+              phaseId: 'p2',
+            },
+          ],
+        },
+        user.cookie,
+      )
+    ).json()
+
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/forms/${created.data.id}/publish`,
+      {},
+      user.cookie,
+    )
+
+    const publicPage = await fetch(
+      `${BASE_URL}/f/${created.data.publicToken}`,
+      { headers: defaultHeaders },
+    )
+    expect(publicPage.status).toBe(200)
+    const html = await publicPage.text()
+    expect(html).not.toContain('Application error')
+    expect(html).toContain('data-slot="questionnaire"')
+    expect(html).toContain('Sobre você')
+    expect(html).toContain('Sobre a empresa')
   })
 
   it('should not render the form for an unpublished (draft) form', async () => {
