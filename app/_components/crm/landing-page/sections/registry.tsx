@@ -17,6 +17,7 @@ import { LogosSection, logosDefaultContent } from './logos'
 import { MOBILE_APP_SECTION_OVERRIDES } from './mobile-app/registry'
 import { NewsletterSection, newsletterDefaultContent } from './newsletter'
 import { PricingSection, pricingDefaultContent } from './pricing'
+import { PRODUCT_SECTION_OVERRIDES } from './product/registry'
 import { ProductsSection, productsDefaultContent } from './products'
 import { SAAS_SUBSCRIPTION_SECTION_OVERRIDES } from './saas-subscription/registry'
 import { ServicesSection, servicesDefaultContent } from './services'
@@ -113,6 +114,7 @@ const TEMPLATE_OVERRIDES: Partial<
   ecommerce: ECOMMERCE_SECTION_OVERRIDES,
   'job-site': JOB_SITE_SECTION_OVERRIDES,
   'mobile-app': MOBILE_APP_SECTION_OVERRIDES,
+  product: PRODUCT_SECTION_OVERRIDES,
   'saas-subscription': SAAS_SUBSCRIPTION_SECTION_OVERRIDES,
   'web-application': WEB_APPLICATION_SECTION_OVERRIDES,
 }

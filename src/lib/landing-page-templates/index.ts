@@ -9,6 +9,7 @@ import { coworkingTemplate } from './coworking'
 import { ecommerceTemplate } from './ecommerce'
 import { jobSiteTemplate } from './job-site'
 import { mobileAppTemplate } from './mobile-app'
+import { productTemplate } from './product'
 import { saasSubscriptionTemplate } from './saas-subscription'
 import { webApplicationTemplate } from './web-application'
 
@@ -42,6 +43,7 @@ export const LANDING_PAGE_TEMPLATE_CATALOG: Record<
   ecommerce: ecommerceTemplate,
   'job-site': jobSiteTemplate,
   'mobile-app': mobileAppTemplate,
+  product: productTemplate,
   'saas-subscription': saasSubscriptionTemplate,
   'web-application': webApplicationTemplate,
 }
