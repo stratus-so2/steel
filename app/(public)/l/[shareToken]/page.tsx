@@ -33,7 +33,10 @@ export default async function PublicCrmLandingPage({ params }: PageProps) {
   }
 
   return (
-    <main data-template={result.value.templateKey}>
+    <main
+      data-template={result.value.templateKey}
+      className='landing-page-light-scope'
+    >
       <LandingPageWebPreview
         templateKey={result.value.templateKey}
         sections={result.value.sections}

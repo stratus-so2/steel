@@ -322,7 +322,7 @@ function CrmLandingPageBuilderInner({
             items={sections.map((s) => s.key)}
             strategy={verticalListSortingStrategy}
           >
-            <div className='mx-auto flex flex-col gap-4 p-4'>
+            <div className='landing-page-light-scope mx-auto flex flex-col gap-4 p-4'>
               {sections.map((section) => (
                 <SortableSection
                   key={section.key}
