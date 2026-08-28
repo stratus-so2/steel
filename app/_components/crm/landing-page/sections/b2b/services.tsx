@@ -11,8 +11,12 @@ import { Button } from '@/components/ui/button'
 import { GhostImage } from '@/components/ui/ghost-image'
 import { GhostInput } from '@/components/ui/ghost-input'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
+import { GhostVideo } from '@/components/ui/ghost-video'
 import { notify } from '@/lib/notify'
-import { uploadCrmLandingPageImage } from '@/src/hooks/use-crm-landing-page'
+import {
+  uploadCrmLandingPageImage,
+  uploadCrmLandingPageVideo,
+} from '@/src/hooks/use-crm-landing-page'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
 
@@ -77,6 +81,15 @@ export function B2bServices({
       return
     }
     updateItem(index, { imageUrl: res.data.url })
+  }
+
+  async function handleVideo(file: File) {
+    const res = await uploadCrmLandingPageVideo(workspaceId ?? '', file)
+    if (!res.ok || !res.data) {
+      notify.error(res.message ?? 'Não foi possível enviar o vídeo.')
+      return
+    }
+    onChange?.({ ...content, videoUrl: res.data.url })
   }
 
   function addItem() {
@@ -183,20 +196,32 @@ export function B2bServices({
       </div>
 
       {/* Bloco "Video" do Figma — sem tipo de seção dedicado no vocabulário
-          compartilhado, então vira um banner puramente decorativo (foto +
-          botão de play não-funcional) encaixado logo após a grade de
-          serviços, como a task orienta pra blocos sem tipo correspondente. */}
+          compartilhado, então fica encaixado logo após a grade de serviços.
+          `videoUrl` (opcional) troca a foto estática por um vídeo real em
+          autoplay; sem ele, cai na foto + ícone de play decorativo. */}
       <div
         id='video'
         className='relative mx-auto mt-20 flex aspect-[1600/580] max-w-6xl items-center justify-center overflow-hidden rounded-[10px]'
       >
-        <img
-          src={`${BASE}/video-banner.png`}
-          alt=''
+        {content.videoUrl || !readOnly ? (
+          <GhostVideo
+            value={content.videoUrl}
+            onUpload={handleVideo}
+            readOnly={readOnly}
+            className='absolute inset-0 size-full object-cover'
+          />
+        ) : (
+          <img
+            src={`${BASE}/video-banner.png`}
+            alt=''
+            aria-hidden
+            className='absolute inset-0 size-full object-cover'
+          />
+        )}
+        <div
           aria-hidden
-          className='absolute inset-0 size-full object-cover'
+          className='pointer-events-none absolute inset-0 bg-[#161c2d]/50'
         />
-        <div aria-hidden className='absolute inset-0 bg-[#161c2d]/50' />
         <div className='relative flex flex-col items-center gap-6 px-6 text-center'>
           <span className='flex size-[68px] shrink-0 items-center justify-center rounded-full bg-white'>
             <SteelIcon

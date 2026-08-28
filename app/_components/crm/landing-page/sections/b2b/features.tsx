@@ -5,6 +5,8 @@ import {
   Delete02Icon,
   Tick02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
@@ -38,11 +40,14 @@ export function B2bFeatures({
   onChange,
   readOnly,
 }: LandingPageSectionProps<FeaturesContent>) {
-  function updateItem(index: number, title: string) {
+  function updateItem(
+    index: number,
+    patch: Partial<{ title: string; icon: string }>,
+  ) {
     onChange?.({
       ...content,
       items: content.items.map((it, i) =>
-        i === index ? { ...it, title } : it,
+        i === index ? { ...it, ...patch } : it,
       ),
     })
   }
@@ -121,15 +126,31 @@ export function B2bFeatures({
                     <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
                   </Button>
                 ) : null}
-                <SteelIcon
-                  icon={Tick02Icon}
-                  strokeWidth={2.5}
-                  size={18}
-                  className='shrink-0 text-[#473bf0]'
-                />
+                <div className='relative shrink-0'>
+                  <SectionIcon
+                    value={item.icon}
+                    size={18}
+                    fallback={
+                      <SteelIcon
+                        icon={Tick02Icon}
+                        strokeWidth={2.5}
+                        size={18}
+                        className='text-[#473bf0]'
+                      />
+                    }
+                  />
+                  {!readOnly ? (
+                    <div className='-bottom-3 -right-3 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                      <HugeiconPicker
+                        value={item.icon}
+                        onSelect={(icon) => updateItem(index, { icon })}
+                      />
+                    </div>
+                  ) : null}
+                </div>
                 <GhostInput
                   value={item.title}
-                  onCommit={(v) => updateItem(index, v)}
+                  onCommit={(v) => updateItem(index, { title: v })}
                   placeholder='Título'
                   readOnly={readOnly}
                   className='font-bold text-[#161c2d] text-[19px]'
