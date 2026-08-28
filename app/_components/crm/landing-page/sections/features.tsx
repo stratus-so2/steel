@@ -26,7 +26,7 @@ export function FeaturesSection({
     index: number,
     patch: Partial<{ title: string; description: string }>,
   ) {
-    onChange({
+    onChange?.({
       ...content,
       items: content.items.map((it, i) =>
         i === index ? { ...it, ...patch } : it,
@@ -35,14 +35,17 @@ export function FeaturesSection({
   }
 
   function addItem() {
-    onChange({
+    onChange?.({
       ...content,
       items: [...content.items, { title: 'Novo diferencial', description: '' }],
     })
   }
 
   function removeItem(index: number) {
-    onChange({ ...content, items: content.items.filter((_, i) => i !== index) })
+    onChange?.({
+      ...content,
+      items: content.items.filter((_, i) => i !== index),
+    })
   }
 
   return (
@@ -51,7 +54,7 @@ export function FeaturesSection({
         <GhostInput
           as='h2'
           value={content.title}
-          onCommit={(v) => onChange({ ...content, title: v })}
+          onCommit={(v) => onChange?.({ ...content, title: v })}
           placeholder='Título da seção'
           readOnly={readOnly}
           className='font-semibold text-2xl tracking-tight sm:text-3xl'
@@ -59,7 +62,9 @@ export function FeaturesSection({
         {content.subtitle || !readOnly ? (
           <GhostTextarea
             value={content.subtitle ?? ''}
-            onCommit={(v) => onChange({ ...content, subtitle: v || undefined })}
+            onCommit={(v) =>
+              onChange?.({ ...content, subtitle: v || undefined })
+            }
             placeholder='Descrição de apoio'
             readOnly={readOnly}
             as='p'
@@ -119,7 +124,7 @@ export function FeaturesSection({
       {content.ctaLabel || !readOnly ? (
         <GhostInput
           value={content.ctaLabel ?? ''}
-          onCommit={(v) => onChange({ ...content, ctaLabel: v || undefined })}
+          onCommit={(v) => onChange?.({ ...content, ctaLabel: v || undefined })}
           placeholder='Texto do botão'
           readOnly={readOnly}
           className='rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground text-sm'

@@ -19,7 +19,7 @@ export function FooterSection({
   readOnly,
 }: LandingPageSectionProps<FooterContent>) {
   function addLink() {
-    onChange({
+    onChange?.({
       ...content,
       links: [...content.links, { label: 'Link', href: '#' }],
     })
@@ -29,7 +29,7 @@ export function FooterSection({
     index: number,
     patch: Partial<{ label: string; href: string }>,
   ) {
-    onChange({
+    onChange?.({
       ...content,
       links: content.links.map((l, i) =>
         i === index ? { ...l, ...patch } : l,
@@ -38,7 +38,10 @@ export function FooterSection({
   }
 
   function removeLink(index: number) {
-    onChange({ ...content, links: content.links.filter((_, i) => i !== index) })
+    onChange?.({
+      ...content,
+      links: content.links.filter((_, i) => i !== index),
+    })
   }
 
   return (
@@ -49,7 +52,7 @@ export function FooterSection({
       {content.text || !readOnly ? (
         <GhostInput
           value={content.text ?? ''}
-          onCommit={(v) => onChange({ ...content, text: v || undefined })}
+          onCommit={(v) => onChange?.({ ...content, text: v || undefined })}
           placeholder='Chamada final'
           readOnly={readOnly}
           className='max-w-md text-balance font-medium text-lg'

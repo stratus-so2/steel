@@ -21,12 +21,12 @@ export function AboutSection({
   readOnly,
 }: LandingPageSectionProps<AboutContent>) {
   async function handleImage(file: File) {
-    const res = await uploadCrmLandingPageImage(workspaceId, file)
+    const res = await uploadCrmLandingPageImage(workspaceId ?? '', file)
     if (!res.ok || !res.data) {
       notify.error(res.message ?? 'Não foi possível enviar a imagem.')
       return
     }
-    onChange({ ...content, imageUrl: res.data.url })
+    onChange?.({ ...content, imageUrl: res.data.url })
   }
 
   return (
@@ -42,7 +42,9 @@ export function AboutSection({
         {content.eyebrow || !readOnly ? (
           <GhostInput
             value={content.eyebrow ?? ''}
-            onCommit={(v) => onChange({ ...content, eyebrow: v || undefined })}
+            onCommit={(v) =>
+              onChange?.({ ...content, eyebrow: v || undefined })
+            }
             placeholder='Texto de destaque'
             readOnly={readOnly}
             className='font-medium text-primary text-sm'
@@ -51,14 +53,14 @@ export function AboutSection({
         <GhostInput
           as='h2'
           value={content.title}
-          onCommit={(v) => onChange({ ...content, title: v })}
+          onCommit={(v) => onChange?.({ ...content, title: v })}
           placeholder='Título da seção'
           readOnly={readOnly}
           className='text-balance font-semibold text-2xl tracking-tight sm:text-3xl'
         />
         <GhostTextarea
           value={content.description}
-          onCommit={(v) => onChange({ ...content, description: v })}
+          onCommit={(v) => onChange?.({ ...content, description: v })}
           placeholder='Descrição'
           readOnly={readOnly}
           as='p'

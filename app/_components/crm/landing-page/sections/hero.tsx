@@ -21,12 +21,12 @@ export function HeroSection({
   readOnly,
 }: LandingPageSectionProps<HeroContent>) {
   async function handleImage(file: File) {
-    const res = await uploadCrmLandingPageImage(workspaceId, file)
+    const res = await uploadCrmLandingPageImage(workspaceId ?? '', file)
     if (!res.ok || !res.data) {
       notify.error(res.message ?? 'Não foi possível enviar a imagem.')
       return
     }
-    onChange({ ...content, imageUrl: res.data.url })
+    onChange?.({ ...content, imageUrl: res.data.url })
   }
 
   return (
@@ -34,7 +34,7 @@ export function HeroSection({
       {content.eyebrow || !readOnly ? (
         <GhostInput
           value={content.eyebrow ?? ''}
-          onCommit={(v) => onChange({ ...content, eyebrow: v || undefined })}
+          onCommit={(v) => onChange?.({ ...content, eyebrow: v || undefined })}
           placeholder='Texto de destaque'
           readOnly={readOnly}
           className='font-medium text-primary text-sm'
@@ -44,7 +44,7 @@ export function HeroSection({
       <GhostInput
         as='h1'
         value={content.title}
-        onCommit={(v) => onChange({ ...content, title: v })}
+        onCommit={(v) => onChange?.({ ...content, title: v })}
         placeholder='Título principal'
         readOnly={readOnly}
         className='max-w-2xl text-balance font-semibold text-3xl tracking-tight sm:text-5xl'
@@ -53,7 +53,7 @@ export function HeroSection({
       {content.subtitle || !readOnly ? (
         <GhostTextarea
           value={content.subtitle ?? ''}
-          onCommit={(v) => onChange({ ...content, subtitle: v || undefined })}
+          onCommit={(v) => onChange?.({ ...content, subtitle: v || undefined })}
           placeholder='Descrição de apoio'
           readOnly={readOnly}
           as='p'
@@ -64,7 +64,7 @@ export function HeroSection({
       {content.ctaLabel || !readOnly ? (
         <GhostInput
           value={content.ctaLabel ?? ''}
-          onCommit={(v) => onChange({ ...content, ctaLabel: v || undefined })}
+          onCommit={(v) => onChange?.({ ...content, ctaLabel: v || undefined })}
           placeholder='Texto do botão'
           readOnly={readOnly}
           className='mt-2 rounded-full bg-primary px-6 py-3 font-medium text-primary-foreground text-sm'

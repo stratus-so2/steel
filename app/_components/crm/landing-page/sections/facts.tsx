@@ -22,7 +22,7 @@ export function FactsSection({
     index: number,
     patch: Partial<{ value: string; label: string }>,
   ) {
-    onChange({
+    onChange?.({
       ...content,
       items: content.items.map((it, i) =>
         i === index ? { ...it, ...patch } : it,
@@ -31,14 +31,17 @@ export function FactsSection({
   }
 
   function addItem() {
-    onChange({
+    onChange?.({
       ...content,
       items: [...content.items, { value: '0', label: 'Métrica' }],
     })
   }
 
   function removeItem(index: number) {
-    onChange({ ...content, items: content.items.filter((_, i) => i !== index) })
+    onChange?.({
+      ...content,
+      items: content.items.filter((_, i) => i !== index),
+    })
   }
 
   return (

@@ -25,7 +25,7 @@ export function HeaderSection({
   readOnly,
 }: LandingPageSectionProps<HeaderContent>) {
   function addLink() {
-    onChange({
+    onChange?.({
       ...content,
       navLinks: [...content.navLinks, { label: 'Link', href: '#' }],
     })
@@ -35,7 +35,7 @@ export function HeaderSection({
     index: number,
     patch: Partial<{ label: string; href: string }>,
   ) {
-    onChange({
+    onChange?.({
       ...content,
       navLinks: content.navLinks.map((l, i) =>
         i === index ? { ...l, ...patch } : l,
@@ -44,7 +44,7 @@ export function HeaderSection({
   }
 
   function removeLink(index: number) {
-    onChange({
+    onChange?.({
       ...content,
       navLinks: content.navLinks.filter((_, i) => i !== index),
     })
@@ -54,7 +54,7 @@ export function HeaderSection({
     <header className='flex flex-wrap items-center justify-between gap-4 px-6 py-4 sm:px-10'>
       <GhostInput
         value={content.logoText}
-        onCommit={(v) => onChange({ ...content, logoText: v })}
+        onCommit={(v) => onChange?.({ ...content, logoText: v })}
         placeholder='Nome da marca'
         readOnly={readOnly}
         className='font-semibold text-lg'
@@ -102,7 +102,7 @@ export function HeaderSection({
       {content.ctaLabel || !readOnly ? (
         <GhostInput
           value={content.ctaLabel ?? ''}
-          onCommit={(v) => onChange({ ...content, ctaLabel: v || undefined })}
+          onCommit={(v) => onChange?.({ ...content, ctaLabel: v || undefined })}
           placeholder='Texto do botão'
           readOnly={readOnly}
           className='rounded-full bg-primary px-4 py-2 font-medium text-primary-foreground text-sm'

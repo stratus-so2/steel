@@ -21,13 +21,7 @@ export function LandingPageWebPreview({
           if (!definition) return null
           const { Component } = definition
           return (
-            <Component
-              key={section.id}
-              content={section.content}
-              onChange={() => {}}
-              workspaceId=''
-              readOnly
-            />
+            <Component key={section.id} content={section.content} readOnly />
           )
         })}
     </>

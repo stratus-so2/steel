@@ -27,7 +27,7 @@ export function WorksSection({
     index: number,
     patch: Partial<{ title: string; category: string; imageUrl?: string }>,
   ) {
-    onChange({
+    onChange?.({
       ...content,
       items: content.items.map((it, i) =>
         i === index ? { ...it, ...patch } : it,
@@ -36,7 +36,7 @@ export function WorksSection({
   }
 
   async function handleImage(index: number, file: File) {
-    const res = await uploadCrmLandingPageImage(workspaceId, file)
+    const res = await uploadCrmLandingPageImage(workspaceId ?? '', file)
     if (!res.ok || !res.data) {
       notify.error(res.message ?? 'Não foi possível enviar a imagem.')
       return
@@ -45,14 +45,17 @@ export function WorksSection({
   }
 
   function addItem() {
-    onChange({
+    onChange?.({
       ...content,
       items: [...content.items, { title: 'Novo projeto', category: '' }],
     })
   }
 
   function removeItem(index: number) {
-    onChange({ ...content, items: content.items.filter((_, i) => i !== index) })
+    onChange?.({
+      ...content,
+      items: content.items.filter((_, i) => i !== index),
+    })
   }
 
   return (
@@ -61,7 +64,7 @@ export function WorksSection({
         <GhostInput
           as='h2'
           value={content.title}
-          onCommit={(v) => onChange({ ...content, title: v })}
+          onCommit={(v) => onChange?.({ ...content, title: v })}
           placeholder='Título da seção'
           readOnly={readOnly}
           className='font-semibold text-2xl tracking-tight sm:text-3xl'
@@ -69,7 +72,9 @@ export function WorksSection({
         {content.subtitle || !readOnly ? (
           <GhostTextarea
             value={content.subtitle ?? ''}
-            onCommit={(v) => onChange({ ...content, subtitle: v || undefined })}
+            onCommit={(v) =>
+              onChange?.({ ...content, subtitle: v || undefined })
+            }
             placeholder='Descrição de apoio'
             readOnly={readOnly}
             as='p'

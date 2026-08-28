@@ -28,19 +28,19 @@ export function TestimonialSection({
   readOnly,
 }: LandingPageSectionProps<TestimonialContent>) {
   async function handleImage(file: File) {
-    const res = await uploadCrmLandingPageImage(workspaceId, file)
+    const res = await uploadCrmLandingPageImage(workspaceId ?? '', file)
     if (!res.ok || !res.data) {
       notify.error(res.message ?? 'Não foi possível enviar a imagem.')
       return
     }
-    onChange({ ...content, avatarUrl: res.data.url })
+    onChange?.({ ...content, avatarUrl: res.data.url })
   }
 
   return (
     <section className='flex flex-col items-center gap-6 border-y px-6 py-16 text-center sm:px-12'>
       <GhostTextarea
         value={content.quote}
-        onCommit={(v) => onChange({ ...content, quote: v })}
+        onCommit={(v) => onChange?.({ ...content, quote: v })}
         placeholder='Depoimento'
         readOnly={readOnly}
         as='p'
@@ -57,7 +57,7 @@ export function TestimonialSection({
         <div className='flex flex-col items-start text-left'>
           <GhostInput
             value={content.authorName}
-            onCommit={(v) => onChange({ ...content, authorName: v })}
+            onCommit={(v) => onChange?.({ ...content, authorName: v })}
             placeholder='Nome'
             readOnly={readOnly}
             className='font-medium text-sm'
@@ -66,7 +66,7 @@ export function TestimonialSection({
             <GhostInput
               value={content.authorRole ?? ''}
               onCommit={(v) =>
-                onChange({ ...content, authorRole: v || undefined })
+                onChange?.({ ...content, authorRole: v || undefined })
               }
               placeholder='Cargo/empresa'
               readOnly={readOnly}

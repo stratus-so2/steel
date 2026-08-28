@@ -26,7 +26,7 @@ export function ServicesSection({
     index: number,
     patch: Partial<{ title: string; description: string }>,
   ) {
-    onChange({
+    onChange?.({
       ...content,
       items: content.items.map((it, i) =>
         i === index ? { ...it, ...patch } : it,
@@ -35,14 +35,17 @@ export function ServicesSection({
   }
 
   function addItem() {
-    onChange({
+    onChange?.({
       ...content,
       items: [...content.items, { title: 'Novo serviço', description: '' }],
     })
   }
 
   function removeItem(index: number) {
-    onChange({ ...content, items: content.items.filter((_, i) => i !== index) })
+    onChange?.({
+      ...content,
+      items: content.items.filter((_, i) => i !== index),
+    })
   }
 
   return (
@@ -51,7 +54,7 @@ export function ServicesSection({
         <GhostInput
           as='h2'
           value={content.title}
-          onCommit={(v) => onChange({ ...content, title: v })}
+          onCommit={(v) => onChange?.({ ...content, title: v })}
           placeholder='Título da seção'
           readOnly={readOnly}
           className='font-semibold text-2xl tracking-tight sm:text-3xl'
@@ -59,7 +62,9 @@ export function ServicesSection({
         {content.subtitle || !readOnly ? (
           <GhostTextarea
             value={content.subtitle ?? ''}
-            onCommit={(v) => onChange({ ...content, subtitle: v || undefined })}
+            onCommit={(v) =>
+              onChange?.({ ...content, subtitle: v || undefined })
+            }
             placeholder='Descrição de apoio'
             readOnly={readOnly}
             as='p'
