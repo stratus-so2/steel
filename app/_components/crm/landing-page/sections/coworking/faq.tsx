@@ -1,8 +1,13 @@
 'use client'
 
+import { Accordion as AccordionPrimitive } from '@base-ui/react/accordion'
 import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
@@ -51,8 +56,6 @@ export function CoworkingFaq({
   onChange,
   readOnly,
 }: LandingPageSectionProps<FaqContent>) {
-  const [openIndex, setOpenIndex] = useState(0)
-
   function updateItem(
     index: number,
     patch: Partial<{ question: string; answer: string }>,
@@ -92,19 +95,18 @@ export function CoworkingFaq({
         />
       ) : null}
 
-      <div className='mx-auto flex max-w-xl flex-col overflow-hidden rounded-[10px] bg-white'>
-        {content.items.map((item, index) => {
-          const isOpen = openIndex === index
-          return (
-            <div
-              key={index}
-              className='group/item border-[#161c2d]/10 border-b px-6 py-6 last:border-b-0'
-            >
-              <button
-                type='button'
-                onClick={() => setOpenIndex(isOpen ? -1 : index)}
-                className='flex w-full items-center justify-between gap-4 text-left'
-              >
+      <Accordion
+        defaultValue={[0]}
+        className='mx-auto max-w-xl overflow-hidden rounded-[10px] bg-white'
+      >
+        {content.items.map((item, index) => (
+          <AccordionItem
+            key={index}
+            value={index}
+            className='group/item border-[#161c2d]/10 border-b px-6 py-6 last:border-b-0'
+          >
+            <AccordionPrimitive.Header className='flex'>
+              <AccordionPrimitive.Trigger className='group/accordion-trigger flex w-full items-center justify-between gap-4 text-left'>
                 <GhostInput
                   as='h3'
                   value={item.question}
@@ -114,10 +116,16 @@ export function CoworkingFaq({
                   className='font-bold text-[#161c2d] text-[21px] tracking-[-0.5px]'
                 />
                 <img
-                  src={isOpen ? CHEVRON_UP : CHEVRON_RIGHT}
+                  src={CHEVRON_RIGHT}
                   alt=''
                   aria-hidden
-                  className='h-[8px] w-[14px] shrink-0'
+                  className='h-[8px] w-[14px] shrink-0 group-aria-expanded/accordion-trigger:hidden'
+                />
+                <img
+                  src={CHEVRON_UP}
+                  alt=''
+                  aria-hidden
+                  className='hidden h-[8px] w-[14px] shrink-0 group-aria-expanded/accordion-trigger:inline'
                 />
                 {!readOnly ? (
                   <Button
@@ -134,8 +142,10 @@ export function CoworkingFaq({
                     <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
                   </Button>
                 ) : null}
-              </button>
-              {isOpen && (item.answer || !readOnly) ? (
+              </AccordionPrimitive.Trigger>
+            </AccordionPrimitive.Header>
+            {item.answer || !readOnly ? (
+              <AccordionContent>
                 <GhostTextarea
                   value={item.answer}
                   onCommit={(v) => updateItem(index, { answer: v })}
@@ -144,10 +154,10 @@ export function CoworkingFaq({
                   as='p'
                   className='mt-3 text-[#161c2d]/70 text-[17px] leading-[1.7]'
                 />
-              ) : null}
-            </div>
-          )
-        })}
+              </AccordionContent>
+            ) : null}
+          </AccordionItem>
+        ))}
         {!readOnly ? (
           <button
             type='button'
@@ -158,7 +168,7 @@ export function CoworkingFaq({
             Adicionar pergunta
           </button>
         ) : null}
-      </div>
+      </Accordion>
     </section>
   )
 }

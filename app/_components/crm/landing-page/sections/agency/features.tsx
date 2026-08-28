@@ -8,9 +8,12 @@ import {
   Message01Icon,
   UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { HugeiconPicker } from '@/app/_components/crm/landing-page/hugeicon-picker'
+import { SectionIcon } from '@/app/_components/crm/landing-page/section-icon'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
@@ -70,7 +73,7 @@ export function AgencyFeatures({
 }: LandingPageSectionProps<FeaturesContent>) {
   function updateItem(
     index: number,
-    patch: Partial<{ title: string; description: string }>,
+    patch: Partial<{ title: string; description: string; icon: string }>,
   ) {
     onChange?.({
       ...content,
@@ -140,15 +143,29 @@ export function AgencyFeatures({
                 </Button>
               ) : null}
               <div
-                className='flex size-16 shrink-0 items-center justify-center rounded-2xl'
+                className='relative flex size-16 shrink-0 items-center justify-center rounded-2xl'
                 style={{ backgroundColor: `${variant.bg}1a` }}
               >
-                <SteelIcon
-                  icon={Icon}
-                  strokeWidth={2}
+                <SectionIcon
+                  value={item.icon}
                   size={28}
-                  style={{ color: variant.bg }}
+                  fallback={
+                    <SteelIcon
+                      icon={Icon}
+                      strokeWidth={2}
+                      size={28}
+                      style={{ color: variant.bg }}
+                    />
+                  }
                 />
+                {!readOnly ? (
+                  <div className='-bottom-2 -right-2 absolute opacity-0 transition-opacity group-hover/item:opacity-100'>
+                    <HugeiconPicker
+                      value={item.icon}
+                      onSelect={(icon) => updateItem(index, { icon })}
+                    />
+                  </div>
+                ) : null}
               </div>
               <div className='flex flex-col gap-1'>
                 <GhostInput
@@ -209,8 +226,12 @@ export function AgencyFeatures({
           </div>
 
           {content.ctaLabel || !readOnly ? (
-            <a
-              href={readOnly ? content.ctaHref : undefined}
+            <GhostLink
+              href={content.ctaHref}
+              onHrefChange={(href) =>
+                onChange?.({ ...content, ctaHref: href || undefined })
+              }
+              readOnly={readOnly}
               data-cta
               className='inline-flex shrink-0 items-center justify-center rounded-lg bg-[#473bf0] px-8 py-4 font-bold text-[17px] text-white tracking-[-0.6px] transition-opacity hover:opacity-90'
             >
@@ -223,7 +244,7 @@ export function AgencyFeatures({
                 readOnly={readOnly}
                 className='text-inherit'
               />
-            </a>
+            </GhostLink>
           ) : null}
         </div>
       ) : null}
