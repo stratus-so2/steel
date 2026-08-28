@@ -8,6 +8,7 @@ import {
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { GhostLink } from '@/components/ui/ghost-link'
 import { cn } from '@/lib/utils'
 import { ecommerceLogoFont } from '@/src/lib/landing-page-templates/ecommerce/fonts'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
@@ -84,12 +85,18 @@ export function EcommerceHeader({
             key={`${link.label}-${index}`}
             className='group/nav-link flex items-center gap-1'
           >
-            <GhostInput
-              value={link.label}
-              onCommit={(v) => updateLink(index, { label: v })}
+            <GhostLink
+              href={link.href}
+              onHrefChange={(href) => updateLink(index, { href })}
               readOnly={readOnly}
-              className='font-bold text-[#161c2d] text-[15px] tracking-[-0.1px]'
-            />
+            >
+              <GhostInput
+                value={link.label}
+                onCommit={(v) => updateLink(index, { label: v })}
+                readOnly={readOnly}
+                className='font-bold text-[#161c2d] text-[15px] tracking-[-0.1px]'
+              />
+            </GhostLink>
             {!readOnly ? (
               <Button
                 type='button'

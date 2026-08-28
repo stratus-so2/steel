@@ -5,6 +5,7 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostImage } from '@/components/ui/ghost-image'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { SimpleCarousel } from '@/components/ui/simple-carousel'
 import { notify } from '@/lib/notify'
 import { uploadCrmLandingPageImage } from '@/src/hooks/use-crm-landing-page'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
@@ -141,9 +142,12 @@ export function EcommerceProducts({
         />
       </div>
 
-      <div className='mx-auto grid max-w-6xl grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-6'>
+      <SimpleCarousel trackClassName='mx-auto max-w-6xl'>
         {content.items.map((item, index) => (
-          <div key={index} className='group/item relative flex flex-col gap-3'>
+          <div
+            key={index}
+            className='group/item relative flex w-[80vw] shrink-0 snap-start flex-col gap-3 sm:w-56'
+          >
             {!readOnly ? (
               <Button
                 type='button'
@@ -209,13 +213,13 @@ export function EcommerceProducts({
           <button
             type='button'
             onClick={addItem}
-            className='flex min-h-52 flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed text-muted-foreground text-sm hover:bg-muted/40'
+            className='flex min-h-52 w-[80vw] shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed text-muted-foreground text-sm hover:bg-muted/40 sm:w-56'
           >
             <SteelIcon icon={Add01Icon} strokeWidth={2} />
             Adicionar produto
           </button>
         ) : null}
-      </div>
+      </SimpleCarousel>
     </section>
   )
 }
