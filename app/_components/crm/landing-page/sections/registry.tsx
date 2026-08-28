@@ -3,6 +3,7 @@ import type { CrmLandingPageSectionType } from '@/src/schemas/crm-landing-page-s
 import { AboutSection, aboutDefaultContent } from './about'
 import { AGENCY_SECTION_OVERRIDES } from './agency/registry'
 import { B2B_SECTION_OVERRIDES } from './b2b/registry'
+import { COWORKING_SECTION_OVERRIDES } from './coworking/registry'
 import { FactsSection, factsDefaultContent } from './facts'
 import { FaqSection, faqDefaultContent } from './faq'
 import { FeaturesSection, featuresDefaultContent } from './features'
@@ -103,6 +104,7 @@ const TEMPLATE_OVERRIDES: Partial<
 > = {
   agency: AGENCY_SECTION_OVERRIDES,
   b2b: B2B_SECTION_OVERRIDES,
+  coworking: COWORKING_SECTION_OVERRIDES,
   'job-site': JOB_SITE_SECTION_OVERRIDES,
   'saas-subscription': SAAS_SUBSCRIPTION_SECTION_OVERRIDES,
 }
