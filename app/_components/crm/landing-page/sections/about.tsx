@@ -11,7 +11,12 @@ import type { LandingPageSectionProps } from './types'
 type AboutContent = Extract<CrmLandingPageSectionContent, { type: 'ABOUT' }>
 
 export function aboutDefaultContent(): AboutContent {
-  return { type: 'ABOUT', title: 'Nossa história', description: '' }
+  return {
+    type: 'ABOUT',
+    title: 'Nossa história',
+    description: '',
+    imageUrls: [],
+  }
 }
 
 export function AboutSection({

@@ -16,6 +16,7 @@ type TestimonialContent = Extract<
 export function testimonialDefaultContent(): TestimonialContent {
   return {
     type: 'TESTIMONIAL',
+    style: 'default',
     quote: 'Depoimento de um cliente satisfeito.',
     authorName: 'Nome do cliente',
   }

@@ -99,7 +99,7 @@ describe('CrmLandingPageRepository', () => {
               type: 'FOOTER',
               order: 0,
               enabled: true,
-              content: { type: 'FOOTER', links: [] },
+              content: { type: 'FOOTER', linkGroups: [], socialLinks: [] },
             },
           ],
         }),

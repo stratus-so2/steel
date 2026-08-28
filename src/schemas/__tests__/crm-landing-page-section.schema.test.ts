@@ -17,7 +17,7 @@ describe('CrmLandingPageSectionInputSchema', () => {
       type: 'HERO',
       order: 0,
       enabled: true,
-      content: { type: 'FOOTER', links: [] },
+      content: { type: 'FOOTER', linkGroups: [], socialLinks: [] },
     })
     expect(result.success).toBe(false)
   })
@@ -36,7 +36,7 @@ describe('CrmLandingPageSectionInputSchema', () => {
     const result = CrmLandingPageSectionInputSchema.safeParse({
       type: 'FOOTER',
       order: 0,
-      content: { type: 'FOOTER', links: [] },
+      content: { type: 'FOOTER', linkGroups: [], socialLinks: [] },
     })
     expect(result.success).toBe(true)
     expect(result.data?.enabled).toBe(true)

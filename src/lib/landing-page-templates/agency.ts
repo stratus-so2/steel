@@ -69,19 +69,27 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
       content: {
         type: 'TESTIMONIAL',
         quote:
-          'Simplesmente os melhores. Entregaram além do esperado e no prazo combinado.',
-        authorName: 'Ian Klein',
-        authorRole: 'Marketing Digital',
+          'OMG! I cannot believe that I have got a brand new landing page after getting Albino. It was super easy to edit and publish.',
+        authorName: 'Franklin Hicks',
+        authorRole: 'Web Developer',
+        avatarUrl: '/landing-page-templates/agency/testimonial-avatar-1.png',
+        style: 'default',
       },
     },
     {
       type: 'ABOUT',
       content: {
         type: 'ABOUT',
-        eyebrow: 'Nossa história',
-        title: 'Sabemos como cada detalhe importa',
+        eyebrow: 'Our Story',
+        title:
+          'We know how everything works and why your business is failing over and over again.',
         description:
-          'Compartilhamos tendências e boas práticas de mercado para construir soluções que realmente funcionam para o seu negócio.',
+          'We share common trends and strategies for improving your rental income and making sure you stay in high demand. With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
+        imageUrl: '/landing-page-templates/agency/about-photo-main.png',
+        imageUrls: [
+          '/landing-page-templates/agency/about-photo-2.png',
+          '/landing-page-templates/agency/about-photo-3.png',
+        ],
       },
     },
     {
@@ -91,10 +99,17 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
         items: [
           {
             value: '1M+',
-            label: 'Clientes que já passaram pela nossa agência',
+            label:
+              'Customers visit Omega every month to get their service done.',
           },
-          { value: '92%', label: 'Taxa de satisfação dos nossos clientes' },
-          { value: '4.9/5.0', label: 'Avaliação média dos nossos clientes' },
+          {
+            value: '92%',
+            label: 'Satisfaction rate comes from our awesome customers.',
+          },
+          {
+            value: '4.9/5.0',
+            label: 'Average customer ratings we have got all over internet.',
+          },
         ],
       },
     },
@@ -102,28 +117,34 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
       type: 'FEATURES',
       content: {
         type: 'FEATURES',
-        title: 'Por que nos escolher',
-        subtitle: 'As pessoas escolhem a gente por esses motivos.',
+        title: 'People choose us because we serve the best for everyone',
+        subtitle: 'Why choose us',
         items: [
           {
-            title: 'Gerente de projeto dedicado',
+            title: 'Dedicated project manager',
             description:
-              'Um ponto de contato único do início ao fim do projeto.',
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
           {
-            title: 'Tarefas organizadas',
-            description: 'Processos claros que mantêm tudo sob controle.',
+            title: 'Organized tasks',
+            description:
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
           {
-            title: 'Feedback simplificado',
-            description: 'Aprovação rápida e sem fricção em cada etapa.',
+            title: 'Easy feedback sharing',
+            description:
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
           {
-            title: 'Nunca perca um prazo',
-            description: 'Acompanhamento constante do cronograma do projeto.',
+            title: 'Never miss deadline',
+            description:
+              'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
           },
         ],
-        ctaLabel: 'Comece agora',
+        ctaTitle: 'Ready to launch your next project?',
+        ctaDescription:
+          'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
+        ctaLabel: 'Get started a project',
         ctaHref: '#footer',
       },
     },
@@ -131,16 +152,29 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
       type: 'WORKS',
       content: {
         type: 'WORKS',
-        title: 'Nossos projetos',
-        subtitle: 'Conheça alguns dos trabalhos que já entregamos.',
+        title: 'Our works describe why we are the best in the business',
+        subtitle: 'Case studies',
         items: [
-          { title: 'Identidade Visual Aura', category: 'Design Gráfico' },
           {
-            title: 'Site Institucional Gradient',
-            category: 'Desenvolvimento Web',
+            title: 'Aura Branding Design',
+            category: 'Graphic Design',
+            imageUrl: '/landing-page-templates/agency/work-1.png',
           },
-          { title: 'Embalagem AB.S Snacks', category: 'Design Gráfico' },
-          { title: 'Conteúdo para Revista', category: 'Produção de Conteúdo' },
+          {
+            title: 'AB.S Snack Packaging',
+            category: 'Graphic Design',
+            imageUrl: '/landing-page-templates/agency/work-3.png',
+          },
+          {
+            title: 'Gradient Website Development',
+            category: 'Web Development',
+            imageUrl: '/landing-page-templates/agency/work-2.png',
+          },
+          {
+            title: 'Magazine Content Writing',
+            category: 'Content Writing',
+            imageUrl: '/landing-page-templates/agency/work-4.png',
+          },
         ],
       },
     },
@@ -149,20 +183,67 @@ export const agencyTemplate: LandingPageTemplateDefinition = {
       content: {
         type: 'TESTIMONIAL',
         quote:
-          'A equipe entendeu exatamente o que precisávamos e entregou um resultado incrível.',
-        authorName: 'Marina Costa',
-        authorRole: 'CEO, Loja Verde',
+          "Simply the best. Better than all the rest. I'd recommend this product to beginners and advanced users.",
+        authorName: 'Ian Klein',
+        authorRole: 'Digital Marketer',
+        avatarUrl: '/landing-page-templates/agency/testimonial-avatar-2.png',
+        style: 'spotlight',
       },
     },
     {
       type: 'FOOTER',
       content: {
         type: 'FOOTER',
-        text: 'Pronto para elevar sua marca? Vamos conversar.',
-        links: [
-          { label: 'Serviços', href: '#services' },
-          { label: 'Sobre', href: '#about' },
-          { label: 'Contato', href: 'mailto:contato@agencia.com' },
+        logoText: 'Brainwave.io',
+        text: 'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
+        ctaTitle: 'Ready to launch your next project?',
+        ctaDescription:
+          'With lots of unique blocks, you can easily build a page without coding. Build your next landing page.',
+        ctaLabel: 'Get started a project',
+        ctaHref: '#',
+        linkGroups: [
+          {
+            title: 'Company',
+            links: [
+              { label: 'About us', href: '#' },
+              { label: 'Contact us', href: '#' },
+              { label: 'Careers', href: '#' },
+              { label: 'Press', href: '#' },
+            ],
+          },
+          {
+            title: 'Product',
+            links: [
+              { label: 'Features', href: '#' },
+              { label: 'Pricing', href: '#' },
+              { label: 'News', href: '#' },
+              { label: 'Help desk', href: '#' },
+              { label: 'Support', href: '#' },
+            ],
+          },
+          {
+            title: 'Services',
+            links: [
+              { label: 'Digital Marketing', href: '#' },
+              { label: 'Content Writing', href: '#' },
+              { label: 'SEO for Business', href: '#' },
+              { label: 'UI Design', href: '#' },
+            ],
+          },
+          {
+            title: 'Legal',
+            links: [
+              { label: 'Privacy Policy', href: '#' },
+              { label: 'Terms & Conditions', href: '#' },
+              { label: 'Return Policy', href: '#' },
+            ],
+          },
+        ],
+        socialLinks: [
+          { platform: 'twitter', href: '#' },
+          { platform: 'facebook', href: '#' },
+          { platform: 'instagram', href: '#' },
+          { platform: 'linkedin', href: '#' },
         ],
       },
     },

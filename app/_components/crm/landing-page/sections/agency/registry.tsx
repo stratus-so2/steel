@@ -1,8 +1,14 @@
 import type { ComponentType } from 'react'
 import type { SectionDefinition } from '../registry'
+import { AgencyAbout, aboutDefaultContent } from './about'
+import { AgencyFacts, factsDefaultContent } from './facts'
+import { AgencyFeatures, featuresDefaultContent } from './features'
+import { AgencyFooter, footerDefaultContent } from './footer'
 import { AgencyHeader, headerDefaultContent } from './header'
 import { AgencyHero, heroDefaultContent } from './hero'
 import { AgencyServices, servicesDefaultContent } from './services'
+import { AgencyTestimonial, testimonialDefaultContent } from './testimonial'
+import { AgencyWorks, worksDefaultContent } from './works'
 
 // Mesma checagem solta que `../registry`'s `def()` usa: cada componente é
 // tipado pro seu content discriminado (Extract<..., {type}>), incompatível
@@ -34,4 +40,20 @@ export const AGENCY_SECTION_OVERRIDES: Partial<
     AgencyServices,
     servicesDefaultContent,
   ),
+  TESTIMONIAL: entry(
+    'TESTIMONIAL',
+    'Depoimento',
+    AgencyTestimonial,
+    testimonialDefaultContent,
+  ),
+  ABOUT: entry('ABOUT', 'Sobre', AgencyAbout, aboutDefaultContent),
+  FACTS: entry('FACTS', 'Números', AgencyFacts, factsDefaultContent),
+  FEATURES: entry(
+    'FEATURES',
+    'Diferenciais',
+    AgencyFeatures,
+    featuresDefaultContent,
+  ),
+  WORKS: entry('WORKS', 'Projetos', AgencyWorks, worksDefaultContent),
+  FOOTER: entry('FOOTER', 'Rodapé', AgencyFooter, footerDefaultContent),
 }

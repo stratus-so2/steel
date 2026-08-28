@@ -74,6 +74,9 @@ const AboutContentSchema = z.object({
   title: z.string().trim().min(1, 'Título é obrigatório').max(200),
   description: z.string().trim().max(4_000).default(''),
   imageUrl: z.string().trim().min(1).optional(),
+  // Colagem de fotos adicionais (0-2), pra templates cujo layout tem mais de
+  // uma imagem — `imageUrl` continua sendo a foto principal.
+  imageUrls: z.array(z.string().trim().min(1)).max(2).optional().default([]),
 })
 
 const TestimonialContentSchema = z.object({
@@ -82,6 +85,11 @@ const TestimonialContentSchema = z.object({
   authorName: z.string().trim().min(1, 'Nome é obrigatório').max(120),
   authorRole: z.string().trim().max(160).optional(),
   avatarUrl: z.string().trim().min(1).optional(),
+  // 'default' = avatar ao lado do texto, sobre o fundo da página.
+  // 'spotlight' = bloco full-bleed com cor de destaque, conteúdo centralizado
+  // — cobre o padrão de "seção de depoimento em destaque" usado por vários
+  // templates (ex. o segundo bloco de Testimonial do Agency).
+  style: z.enum(['default', 'spotlight']).optional().default('default'),
 })
 
 const FeatureItemSchema = z.object({
@@ -94,6 +102,11 @@ const FeaturesContentSchema = z.object({
   title: z.string().trim().min(1, 'Título é obrigatório').max(200),
   subtitle: z.string().trim().max(400).optional(),
   items: z.array(FeatureItemSchema).max(12).default([]),
+  // Faixa de CTA opcional embaixo da grade de itens (título + texto próprios,
+  // além do botão) — padrão usado por vários templates pra fechar a seção
+  // com uma chamada pra ação.
+  ctaTitle: z.string().trim().max(200).optional(),
+  ctaDescription: z.string().trim().max(400).optional(),
   ctaLabel: z.string().trim().max(60).optional(),
   ctaHref: z.string().trim().max(500).optional(),
 })
@@ -111,10 +124,30 @@ const WorksContentSchema = z.object({
   items: z.array(WorkItemSchema).max(12).default([]),
 })
 
+const FooterLinkGroupSchema = z.object({
+  title: z.string().trim().min(1).max(60),
+  links: z.array(LinkSchema).max(8).default([]),
+})
+
+const SocialLinkSchema = z.object({
+  // String livre (não enum) pra não travar em templates futuros com outras
+  // redes — o componente casa por nome conhecido e cai num ícone genérico
+  // de link pro resto.
+  platform: z.string().trim().min(1).max(40),
+  href: z.string().trim().min(1).max(500),
+})
+
 const FooterContentSchema = z.object({
   type: z.literal('FOOTER'),
+  logoText: z.string().trim().max(60).optional(),
   text: z.string().trim().max(300).optional(),
-  links: z.array(LinkSchema).max(12).default([]),
+  linkGroups: z.array(FooterLinkGroupSchema).max(6).optional().default([]),
+  socialLinks: z.array(SocialLinkSchema).max(8).optional().default([]),
+  // Mesma faixa de CTA opcional que Features usa antes da grade de links.
+  ctaTitle: z.string().trim().max(200).optional(),
+  ctaDescription: z.string().trim().max(400).optional(),
+  ctaLabel: z.string().trim().max(60).optional(),
+  ctaHref: z.string().trim().max(500).optional(),
 })
 
 export const CrmLandingPageSectionContentSchema = z.discriminatedUnion('type', [

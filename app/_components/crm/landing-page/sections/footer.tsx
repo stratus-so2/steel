@@ -10,7 +10,7 @@ import type { LandingPageSectionProps } from './types'
 type FooterContent = Extract<CrmLandingPageSectionContent, { type: 'FOOTER' }>
 
 export function footerDefaultContent(): FooterContent {
-  return { type: 'FOOTER', links: [] }
+  return { type: 'FOOTER', linkGroups: [], socialLinks: [] }
 }
 
 export function FooterSection({
@@ -18,30 +18,32 @@ export function FooterSection({
   onChange,
   readOnly,
 }: LandingPageSectionProps<FooterContent>) {
-  function addLink() {
+  const links = content.linkGroups[0]?.links ?? []
+
+  function updateLinks(next: { label: string; href: string }[]) {
+    const [firstGroup, ...rest] = content.linkGroups
     onChange?.({
       ...content,
-      links: [...content.links, { label: 'Link', href: '#' }],
+      linkGroups: [
+        { title: firstGroup?.title ?? 'Links', links: next },
+        ...rest,
+      ],
     })
+  }
+
+  function addLink() {
+    updateLinks([...links, { label: 'Link', href: '#' }])
   }
 
   function updateLink(
     index: number,
     patch: Partial<{ label: string; href: string }>,
   ) {
-    onChange?.({
-      ...content,
-      links: content.links.map((l, i) =>
-        i === index ? { ...l, ...patch } : l,
-      ),
-    })
+    updateLinks(links.map((l, i) => (i === index ? { ...l, ...patch } : l)))
   }
 
   function removeLink(index: number) {
-    onChange?.({
-      ...content,
-      links: content.links.filter((_, i) => i !== index),
-    })
+    updateLinks(links.filter((_, i) => i !== index))
   }
 
   return (
@@ -60,7 +62,7 @@ export function FooterSection({
       ) : null}
 
       <nav className='flex flex-wrap items-center justify-center gap-1 sm:gap-4'>
-        {content.links.map((link, index) => (
+        {links.map((link, index) => (
           <div
             key={`${link.label}-${index}`}
             className='group/nav-link flex items-center gap-1'
