@@ -37,13 +37,25 @@ describe('POST, PATCH & DELETE /api/workspaces/[id]/crm/landing-pages', () => {
 
     const created = await postJson(
       `/api/workspaces/${workspace.id}/crm/landing-pages`,
-      { title: 'Home' },
+      {
+        title: 'Home',
+        templateKey: 'agency',
+        sections: [
+          {
+            type: 'HERO',
+            order: 0,
+            enabled: true,
+            content: { type: 'HERO', title: 'Bem-vindo' },
+          },
+        ],
+      },
       user.cookie,
     )
     expect(created.status).toBe(201)
     const createdBody = await created.json()
     expect(createdBody.data.status).toBe('DRAFT')
     expect(createdBody.data.shareToken).toBeTruthy()
+    expect(createdBody.data.sections).toHaveLength(1)
 
     const updated = await patchJson(
       `/api/workspaces/${workspace.id}/crm/landing-pages/${createdBody.data.id}`,
@@ -58,6 +70,19 @@ describe('POST, PATCH & DELETE /api/workspaces/[id]/crm/landing-pages', () => {
     )
     expect(deleted.status).toBe(200)
   })
+
+  it('should reject an unknown templateKey', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const created = await postJson(
+      `/api/workspaces/${workspace.id}/crm/landing-pages`,
+      { title: 'Home', templateKey: 'does-not-exist', sections: [] },
+      user.cookie,
+    )
+    expect(created.status).toBe(404)
+    const body = await created.json()
+    expect(body.error.code).toBe('CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND')
+  })
 })
 
 describe('CRM landing page publish and public access', () => {
@@ -66,7 +91,18 @@ describe('CRM landing page publish and public access', () => {
     const created = await (
       await postJson(
         `/api/workspaces/${workspace.id}/crm/landing-pages`,
-        { title: 'Página Pública', html: '<p>Olá</p>' },
+        {
+          title: 'Página Pública',
+          templateKey: 'agency',
+          sections: [
+            {
+              type: 'HERO',
+              order: 0,
+              enabled: true,
+              content: { type: 'HERO', title: 'Olá' },
+            },
+          ],
+        },
         user.cookie,
       )
     ).json()
@@ -92,10 +128,9 @@ describe('CRM landing page publish and public access', () => {
     )
     expect(afterPublish.status).toBe(200)
     const afterPublishBody = await afterPublish.json()
-    expect(afterPublishBody.data).toEqual({
-      title: 'Página Pública',
-      html: '<p>Olá</p>',
-    })
+    expect(afterPublishBody.data.title).toBe('Página Pública')
+    expect(afterPublishBody.data.templateKey).toBe('agency')
+    expect(afterPublishBody.data.sections).toHaveLength(1)
 
     const view = await fetch(
       `${BASE_URL}/api/crm/landing-pages/${created.data.shareToken}/view`,
@@ -118,5 +153,79 @@ describe('CRM landing page publish and public access', () => {
       { headers: defaultHeaders },
     )
     expect(afterUnpublish.status).toBe(404)
+  })
+})
+
+describe('CRM landing page builder + public page (SSR)', () => {
+  it('should render the builder page and the public page without a server error', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/landing-pages`,
+        {
+          title: 'Página de teste SSR',
+          templateKey: 'agency',
+          sections: [
+            {
+              type: 'HERO',
+              order: 0,
+              enabled: true,
+              content: { type: 'HERO', title: 'Título de teste SSR' },
+            },
+          ],
+        },
+        user.cookie,
+      )
+    ).json()
+
+    const builderPage = await fetch(
+      `${BASE_URL}/${workspace.slug}/crm/landing-pages/${created.data.id}`,
+      { headers: { ...defaultHeaders, Cookie: user.cookie } },
+    )
+    expect(builderPage.status).toBe(200)
+    const builderHtml = await builderPage.text()
+    expect(builderHtml).not.toContain('Application error')
+
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/landing-pages/${created.data.id}/publish`,
+      {},
+      user.cookie,
+    )
+
+    const publicPage = await fetch(`${BASE_URL}/l/${created.data.shareToken}`, {
+      headers: defaultHeaders,
+    })
+    expect(publicPage.status).toBe(200)
+    const publicHtml = await publicPage.text()
+    expect(publicHtml).not.toContain('Application error')
+    expect(publicHtml).toContain('Título de teste SSR')
+  })
+
+  it('should not leak content for an unpublished (draft) page', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/landing-pages`,
+        {
+          title: 'Rascunho Único XPTO',
+          templateKey: 'agency',
+          sections: [
+            {
+              type: 'HERO',
+              order: 0,
+              enabled: true,
+              content: { type: 'HERO', title: 'Rascunho Único XPTO' },
+            },
+          ],
+        },
+        user.cookie,
+      )
+    ).json()
+
+    const publicPage = await fetch(`${BASE_URL}/l/${created.data.shareToken}`, {
+      headers: defaultHeaders,
+    })
+    const html = await publicPage.text()
+    expect(html).not.toContain('Rascunho Único XPTO')
   })
 })

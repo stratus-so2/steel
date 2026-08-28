@@ -1,26 +1,53 @@
 'use client'
 
 import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import {
+  Add01Icon,
   Analytics01Icon,
   ArrowLeft02Icon,
   BrowserIcon,
+  Delete02Icon,
+  DragDropVerticalIcon,
   Globe02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
 import * as React from 'react'
 import { CrmLandingPageMetrics } from '@/app/_components/crm/crm-landing-page-metrics'
-import { CrmLandingPageChat } from '@/app/_components/crm/landing-page/crm-landing-page-chat'
+import { SECTION_REGISTRY } from '@/app/_components/crm/landing-page/sections/registry'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import {
-  saveCrmLandingPage,
   useCrmLandingPage,
+  useSetCrmLandingPagePublished,
+  useUpdateCrmLandingPage,
 } from '@/src/hooks/use-crm-landing-page'
-import type { AiProviderId } from '@/src/lib/ai/provider-meta'
+import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type {
   CrmLandingPageDTO,
   CrmLandingPageStatusDTO,
@@ -30,15 +57,16 @@ export function CrmLandingPageBuilder({
   workspaceId,
   slug,
   pageId,
-  providers = ['openai'],
 }: {
   workspaceId: string
   slug: string
   pageId: string
-  /** Provedores de IA disponíveis (configurados no servidor). */
-  providers?: AiProviderId[]
 }) {
-  const { page, isLoading, error } = useCrmLandingPage(workspaceId, pageId)
+  const {
+    data: page,
+    isLoading,
+    error,
+  } = useCrmLandingPage(workspaceId, pageId)
 
   if (isLoading) {
     return (
@@ -47,10 +75,7 @@ export function CrmLandingPageBuilder({
           <Skeleton className='h-6 w-48' />
           <Skeleton className='ml-auto h-8 w-24' />
         </div>
-        <div className='flex flex-1 gap-0'>
-          <Skeleton className='m-3 h-full w-80' />
-          <Skeleton className='m-3 h-full flex-1' />
-        </div>
+        <Skeleton className='m-3 h-full flex-1' />
       </div>
     )
   }
@@ -58,7 +83,7 @@ export function CrmLandingPageBuilder({
   if (error || !page) {
     return (
       <div className='flex h-full items-center justify-center text-muted-foreground text-sm'>
-        {error ?? 'Página não encontrada.'}
+        {error instanceof Error ? error.message : 'Página não encontrada.'}
       </div>
     )
   }
@@ -68,85 +93,157 @@ export function CrmLandingPageBuilder({
       workspaceId={workspaceId}
       slug={slug}
       initial={page}
-      providers={providers}
     />
   )
+}
+
+type SectionItem = {
+  key: string
+  type: keyof typeof SECTION_REGISTRY
+  enabled: boolean
+  content: CrmLandingPageSectionContent
+}
+
+function toSectionItems(page: CrmLandingPageDTO): SectionItem[] {
+  return page.sections.map((s) => ({
+    key: s.id,
+    type: s.type,
+    enabled: s.enabled,
+    content: s.content,
+  }))
 }
 
 function CrmLandingPageBuilderInner({
   workspaceId,
   slug,
   initial,
-  providers,
 }: {
   workspaceId: string
   slug: string
   initial: CrmLandingPageDTO
-  providers: AiProviderId[]
 }) {
   const router = useRouter()
+  const updatePage = useUpdateCrmLandingPage(workspaceId, initial.id)
+  const setPublished = useSetCrmLandingPagePublished(workspaceId, initial.id)
 
   const [title, setTitle] = React.useState(initial.title)
   const [status, setStatus] = React.useState<CrmLandingPageStatusDTO>(
     initial.status,
   )
-  const [html, setHtml] = React.useState(initial.html)
-  const [publishing, setPublishing] = React.useState(false)
+  const [sections, setSections] = React.useState<SectionItem[]>(() =>
+    toSectionItems(initial),
+  )
   const [metricsOpen, setMetricsOpen] = React.useState(false)
   const publicUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/l/${initial.shareToken}`
       : ''
 
-  /* ----------------------------- autosave título ---------------------- */
-  const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const online = status === 'PUBLISHED'
+  const keyCounter = React.useRef(sections.length)
+
+  const saveTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   React.useEffect(() => {
     return () => {
-      if (timer.current) clearTimeout(timer.current)
+      if (saveTimer.current) clearTimeout(saveTimer.current)
     }
   }, [])
 
-  const onTitleChange = (next: string) => {
-    setTitle(next)
-    if (!next.trim()) return
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(async () => {
-      const saved = await saveCrmLandingPage(workspaceId, initial.id, {
-        title: next.trim(),
-      })
-      if (!saved.ok) notify.error('Não foi possível salvar o título.')
+  function scheduleSectionsSave(next: SectionItem[]) {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      updatePage.mutate(
+        {
+          sections: next.map((s, index) => ({
+            type: s.type,
+            order: index,
+            enabled: s.enabled,
+            content: s.content,
+          })),
+        },
+        {
+          onError: () => notify.error('Não foi possível salvar a página.'),
+        },
+      )
     }, 600)
   }
 
-  const onToggleStatus = async (online: boolean) => {
-    const next: CrmLandingPageStatusDTO = online ? 'PUBLISHED' : 'DRAFT'
-    setStatus(next)
-    setPublishing(true)
-    const saved = await saveCrmLandingPage(workspaceId, initial.id, {
-      status: next,
+  function updateSection(key: string, content: CrmLandingPageSectionContent) {
+    setSections((cur) => {
+      const next = cur.map((s) => (s.key === key ? { ...s, content } : s))
+      scheduleSectionsSave(next)
+      return next
     })
-    setPublishing(false)
-    if (saved.ok) {
-      notify.success(online ? 'Página publicada' : 'Página despublicada')
-    } else {
-      setStatus(online ? 'DRAFT' : 'PUBLISHED')
+  }
+
+  function removeSection(key: string) {
+    setSections((cur) => {
+      const next = cur.filter((s) => s.key !== key)
+      scheduleSectionsSave(next)
+      return next
+    })
+  }
+
+  function addSection(type: keyof typeof SECTION_REGISTRY) {
+    keyCounter.current += 1
+    const definition = SECTION_REGISTRY[type]
+    setSections((cur) => {
+      const next = [
+        ...cur,
+        {
+          key: `new-${keyCounter.current}`,
+          type,
+          enabled: true,
+          content: definition.createDefaultContent(),
+        },
+      ]
+      scheduleSectionsSave(next)
+      return next
+    })
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setSections((cur) => {
+      const oldIndex = cur.findIndex((s) => s.key === active.id)
+      const newIndex = cur.findIndex((s) => s.key === over.id)
+      if (oldIndex === -1 || newIndex === -1) return cur
+      const next = arrayMove(cur, oldIndex, newIndex)
+      scheduleSectionsSave(next)
+      return next
+    })
+  }
+
+  function onTitleChange(next: string) {
+    setTitle(next)
+    if (!next.trim()) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      updatePage.mutate(
+        { title: next.trim() },
+        { onError: () => notify.error('Não foi possível salvar o título.') },
+      )
+    }, 600)
+  }
+
+  async function onToggleStatus(next: boolean) {
+    setStatus(next ? 'PUBLISHED' : 'DRAFT')
+    try {
+      await setPublished.mutateAsync(next)
+      notify.success(next ? 'Página publicada' : 'Página despublicada')
+    } catch {
+      setStatus(next ? 'DRAFT' : 'PUBLISHED')
       notify.error('Não foi possível alterar a publicação.')
     }
   }
-
-  const onHtml = React.useCallback(
-    (next: string) => {
-      setHtml(next)
-      saveCrmLandingPage(workspaceId, initial.id, { html: next }).then(
-        (saved) => {
-          if (!saved.ok) notify.error('Não foi possível salvar a página.')
-        },
-      )
-    },
-    [workspaceId, initial.id],
-  )
-
-  const online = status === 'PUBLISHED'
 
   return (
     <div className='flex h-full flex-col'>
@@ -204,45 +301,57 @@ function CrmLandingPageBuilderInner({
           </span>
           <Switch
             checked={online}
-            disabled={publishing}
+            disabled={setPublished.isPending}
             onCheckedChange={onToggleStatus}
             aria-label='Publicar página'
           />
         </div>
       </header>
 
-      <div className='flex min-h-0 flex-1'>
-        <aside className='flex w-[360px] shrink-0 flex-col border-r'>
-          <CrmLandingPageChat
-            workspaceId={workspaceId}
-            pageId={initial.id}
-            hasContent={html.trim().length > 0}
-            onHtml={onHtml}
-            providers={providers}
-          />
-        </aside>
-        <main className='min-w-0 flex-1 bg-muted/30 p-3'>
-          {html.trim() ? (
-            <iframe
-              title='Pré-visualização da página'
-              srcDoc={html}
-              sandbox='allow-scripts allow-same-origin'
-              className='h-full w-full rounded-lg border bg-white'
-            />
-          ) : (
-            <div className='flex h-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed text-center text-muted-foreground text-sm'>
-              <SteelIcon
-                icon={BrowserIcon}
-                strokeWidth={2}
-                className='size-8 opacity-40'
-              />
-              <p className='max-w-xs'>
-                Sua página aparecerá aqui. Descreva no chat ao lado o que você
-                quer criar.
-              </p>
+      <div className='min-h-0 flex-1 overflow-y-auto bg-muted/30'>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext
+            items={sections.map((s) => s.key)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className='mx-auto flex max-w-5xl flex-col gap-4 p-4'>
+              {sections.map((section) => (
+                <SortableSection
+                  key={section.key}
+                  section={section}
+                  workspaceId={workspaceId}
+                  onChange={(content) => updateSection(section.key, content)}
+                  onRemove={() => removeSection(section.key)}
+                />
+              ))}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button variant='outline' className='self-center'>
+                      <SteelIcon icon={Add01Icon} strokeWidth={2} />
+                      Adicionar seção
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent>
+                  {Object.values(SECTION_REGISTRY).map((definition) => (
+                    <DropdownMenuItem
+                      key={definition.type}
+                      onClick={() => addSection(definition.type)}
+                    >
+                      {definition.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
-        </main>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {metricsOpen ? (
@@ -265,6 +374,75 @@ function CrmLandingPageBuilderInner({
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function SortableSection({
+  section,
+  workspaceId,
+  onChange,
+  onRemove,
+}: {
+  section: SectionItem
+  workspaceId: string
+  onChange: (content: CrmLandingPageSectionContent) => void
+  onRemove: () => void
+}) {
+  const {
+    setNodeRef,
+    transform,
+    transition,
+    attributes,
+    listeners,
+    isDragging,
+  } = useSortable({ id: section.key })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  const definition = SECTION_REGISTRY[section.type]
+  const { Component } = definition
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group/section relative rounded-xl border bg-background',
+        isDragging && 'z-10 opacity-70',
+      )}
+    >
+      <div className='flex items-center gap-1 border-b px-2 py-1 opacity-0 transition-opacity group-hover/section:opacity-100'>
+        <button
+          type='button'
+          aria-label='Reordenar seção'
+          className='cursor-grab rounded p-1 text-muted-foreground hover:bg-muted active:cursor-grabbing'
+          {...attributes}
+          {...listeners}
+        >
+          <SteelIcon icon={DragDropVerticalIcon} strokeWidth={2} size={16} />
+        </button>
+        <span className='text-muted-foreground text-xs'>
+          {definition.label}
+        </span>
+        <Button
+          variant='ghost'
+          size='icon-xs'
+          className='ml-auto'
+          aria-label='Remover seção'
+          onClick={onRemove}
+        >
+          <SteelIcon icon={Delete02Icon} strokeWidth={2} size={14} />
+        </Button>
+      </div>
+      <Component
+        content={section.content}
+        onChange={onChange}
+        workspaceId={workspaceId}
+      />
     </div>
   )
 }

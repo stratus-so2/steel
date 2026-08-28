@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { CrmLandingPageMetrics } from '@/app/_components/crm/crm-landing-page-metrics'
+import { LandingPageTemplatePicker } from '@/app/_components/crm/landing-page/template-picker'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
 import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
@@ -85,6 +86,10 @@ export function CrmLandingPagesTable({
       slug={slug}
       resource='landing-pages'
       createTitle='página'
+      disableInlineCreate
+      headerAction={
+        <LandingPageTemplatePicker workspaceId={workspaceId} slug={slug} />
+      }
       lookups={lookups}
       isLoading={isLoading}
       searchPlaceholder='Buscar páginas…'
