@@ -4,6 +4,8 @@ import { Add01Icon, Delete02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { GhostInput } from '@/components/ui/ghost-input'
+import { cn } from '@/lib/utils'
+import { agencyLogoFont } from '@/src/lib/landing-page-templates/agency/fonts'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
 
@@ -62,7 +64,10 @@ export function AgencyHeader({
         onCommit={(v) => onChange?.({ ...content, logoText: v })}
         placeholder='Nome da marca'
         readOnly={readOnly}
-        className='font-[family-name:var(--font-agency-logo)] font-bold text-[#161c2d] text-[24px] tracking-[-0.13px]'
+        className={cn(
+          agencyLogoFont.className,
+          'font-bold text-[#161c2d] text-[24px] tracking-[-0.13px]',
+        )}
       />
 
       <nav className='hidden items-center gap-10 lg:flex'>

@@ -33,11 +33,6 @@ import {
   getSectionDefinition,
   SECTION_REGISTRY,
 } from '@/app/_components/crm/landing-page/sections/registry'
-import { AGENCY_FONT_CLASS } from '@/src/lib/landing-page-templates/agency/fonts'
-
-const TEMPLATE_FONT_CLASS: Record<string, string> = {
-  agency: AGENCY_FONT_CLASS,
-}
 
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
@@ -327,12 +322,7 @@ function CrmLandingPageBuilderInner({
             items={sections.map((s) => s.key)}
             strategy={verticalListSortingStrategy}
           >
-            <div
-              className={cn(
-                'mx-auto flex max-w-5xl flex-col gap-4 p-4',
-                TEMPLATE_FONT_CLASS[initial.templateKey],
-              )}
-            >
+            <div className='mx-auto flex max-w-5xl flex-col gap-4 p-4'>
               {sections.map((section) => (
                 <SortableSection
                   key={section.key}

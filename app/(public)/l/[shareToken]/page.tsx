@@ -34,7 +34,10 @@ export default async function PublicCrmLandingPage({ params }: PageProps) {
 
   return (
     <main data-template={result.value.templateKey}>
-      <LandingPageWebPreview sections={result.value.sections} />
+      <LandingPageWebPreview
+        templateKey={result.value.templateKey}
+        sections={result.value.sections}
+      />
       <LandingPageTracker token={shareToken} />
     </main>
   )
