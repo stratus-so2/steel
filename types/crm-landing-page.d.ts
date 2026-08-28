@@ -1,12 +1,26 @@
+import type {
+  CrmLandingPageSectionContent,
+  CrmLandingPageSectionType,
+} from '@/src/schemas/crm-landing-page-section.schema'
+
 export type CrmLandingPageStatusDTO = 'DRAFT' | 'PUBLISHED'
+
+export interface CrmLandingPageSectionDTO {
+  id: string
+  type: CrmLandingPageSectionType
+  order: number
+  enabled: boolean
+  content: CrmLandingPageSectionContent
+}
 
 export interface CrmLandingPageDTO {
   id: string
   title: string
-  html: string
+  templateKey: string
   status: CrmLandingPageStatusDTO
   shareToken: string
   viewsCount: number
+  sections: CrmLandingPageSectionDTO[]
   publishedAt: string | null
   workspaceId: string
   createdById: string
@@ -18,7 +32,8 @@ export interface CrmLandingPageDTO {
 
 export interface CrmLandingPagePublicDTO {
   title: string
-  html: string
+  templateKey: string
+  sections: CrmLandingPageSectionDTO[]
 }
 
 export interface CrmLandingPageViewDTO {
@@ -31,13 +46,4 @@ export interface CrmLandingPageViewDTO {
   referrer: string | null
   createdAt: string
   updatedAt: string
-}
-
-export type CrmLandingPageMessageRoleDTO = 'user' | 'assistant'
-
-export interface CrmLandingPageMessageDTO {
-  id: string
-  role: CrmLandingPageMessageRoleDTO
-  content: string
-  createdAt: string
 }

@@ -1,10 +1,23 @@
 import { createId } from '@paralleldrive/cuid2'
 import type {
   CrmLandingPage,
-  CrmLandingPageMessage,
+  CrmLandingPageSection,
+  CrmLandingPageSectionType,
   CrmLandingPageView,
+  Prisma,
 } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
+import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
+
+export function fakeHeroContent(
+  overrides?: Partial<Extract<CrmLandingPageSectionContent, { type: 'HERO' }>>,
+): CrmLandingPageSectionContent {
+  return {
+    type: 'HERO',
+    title: 'Título de destaque',
+    ...overrides,
+  }
+}
 
 export function createFakeCrmLandingPage(
   overrides?: Partial<CrmLandingPage>,
@@ -13,7 +26,7 @@ export function createFakeCrmLandingPage(
   return {
     id: createId(),
     title: 'Home',
-    html: '',
+    templateKey: 'agency',
     status: 'DRAFT',
     shareToken: createId(),
     publishedAt: null,
@@ -28,23 +41,65 @@ export function createFakeCrmLandingPage(
   }
 }
 
+export function createFakeCrmLandingPageSection(
+  overrides?: Partial<CrmLandingPageSection>,
+): CrmLandingPageSection {
+  const now = new Date()
+  return {
+    id: createId(),
+    landingPageId: createId(),
+    type: 'HERO' as CrmLandingPageSectionType,
+    order: 0,
+    enabled: true,
+    content: fakeHeroContent() as unknown as Prisma.JsonValue,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
+
 export async function seedCrmLandingPage(
   workspaceId: string,
   createdById: string,
   overrides?: Partial<
     Pick<
       CrmLandingPage,
-      'title' | 'html' | 'status' | 'publishedAt' | 'position' | 'deletedAt'
+      | 'title'
+      | 'templateKey'
+      | 'status'
+      | 'publishedAt'
+      | 'position'
+      | 'deletedAt'
     >
   >,
 ) {
   return prisma.crmLandingPage.create({
     data: {
       title: 'Seed Page',
+      templateKey: 'agency',
       shareToken: createId(),
       workspaceId,
       createdById,
       ...overrides,
+    },
+  })
+}
+
+export async function seedCrmLandingPageSection(
+  landingPageId: string,
+  overrides?: Partial<
+    Pick<CrmLandingPageSection, 'type' | 'order' | 'enabled'> & {
+      content: Prisma.InputJsonValue
+    }
+  >,
+) {
+  const { content, ...rest } = overrides ?? {}
+  return prisma.crmLandingPageSection.create({
+    data: {
+      landingPageId,
+      type: 'HERO',
+      content: (content ?? fakeHeroContent()) as Prisma.InputJsonValue,
+      ...rest,
     },
   })
 }
@@ -60,33 +115,6 @@ export async function seedCrmLandingPageView(
       landingPageId,
       viewId: createId(),
       ipHash: 'hash',
-      ...overrides,
-    },
-  })
-}
-
-export function createFakeCrmLandingPageMessage(
-  overrides?: Partial<CrmLandingPageMessage>,
-): CrmLandingPageMessage {
-  return {
-    id: createId(),
-    landingPageId: createId(),
-    role: 'USER',
-    content: 'Crie uma landing page para o meu SaaS',
-    createdAt: new Date(),
-    ...overrides,
-  }
-}
-
-export async function seedCrmLandingPageMessage(
-  landingPageId: string,
-  overrides?: Partial<Pick<CrmLandingPageMessage, 'role' | 'content'>>,
-) {
-  return prisma.crmLandingPageMessage.create({
-    data: {
-      landingPageId,
-      role: 'USER',
-      content: 'Crie uma landing page para o meu SaaS',
       ...overrides,
     },
   })

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  fakeHeroContent,
   seedCrmLandingPage,
-  seedCrmLandingPageMessage,
+  seedCrmLandingPageSection,
   seedCrmLandingPageView,
 } from '@/src/__tests__/factories/crm-landing-page.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectOk } from '@/src/__tests__/helpers/result.helpers'
 import {
-  CrmLandingPageMessageRepository,
   CrmLandingPageRepository,
   CrmLandingPageViewRepository,
 } from '../crm-landing-page.repository'
@@ -27,6 +27,20 @@ describe('CrmLandingPageRepository', () => {
     })
   })
 
+  describe('findById()', () => {
+    it('should include sections ordered by `order`', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const page = await seedCrmLandingPage(workspace.id, user.id)
+      await seedCrmLandingPageSection(page.id, { type: 'FOOTER', order: 1 })
+      await seedCrmLandingPageSection(page.id, { type: 'HERO', order: 0 })
+
+      const found = expectOk(
+        await CrmLandingPageRepository.findById(page.id, workspace.id),
+      )
+      expect(found.sections.map((s) => s.type)).toEqual(['HERO', 'FOOTER'])
+    })
+  })
+
   describe('findByShareToken()', () => {
     it('should only return PUBLISHED pages', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
@@ -38,6 +52,72 @@ describe('CrmLandingPageRepository', () => {
         page.shareToken,
       )
       expect(result.ok).toBe(false)
+    })
+  })
+
+  describe('create()', () => {
+    it('should persist sections and allow a repeated type', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+
+      const created = expectOk(
+        await CrmLandingPageRepository.create({
+          workspaceId: workspace.id,
+          createdById: user.id,
+          title: 'Home',
+          templateKey: 'agency',
+          sections: [
+            {
+              type: 'TESTIMONIAL',
+              order: 0,
+              enabled: true,
+              content: fakeHeroContent() as never,
+            },
+            {
+              type: 'TESTIMONIAL',
+              order: 1,
+              enabled: true,
+              content: fakeHeroContent() as never,
+            },
+          ],
+        }),
+      )
+      expect(created.sections).toHaveLength(2)
+      expect(created.sections.every((s) => s.type === 'TESTIMONIAL')).toBe(true)
+    })
+  })
+
+  describe('update()', () => {
+    it('should replace all sections (delete + recreate) when sections is provided', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const page = await seedCrmLandingPage(workspace.id, user.id)
+      await seedCrmLandingPageSection(page.id, { type: 'HERO' })
+
+      const updated = expectOk(
+        await CrmLandingPageRepository.update(page.id, {
+          sections: [
+            {
+              type: 'FOOTER',
+              order: 0,
+              enabled: true,
+              content: { type: 'FOOTER', links: [] },
+            },
+          ],
+        }),
+      )
+      expect(updated.sections.map((s) => s.type)).toEqual(['FOOTER'])
+    })
+
+    it('should leave sections untouched when sections is omitted', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const page = await seedCrmLandingPage(workspace.id, user.id)
+      await seedCrmLandingPageSection(page.id, { type: 'HERO' })
+
+      const updated = expectOk(
+        await CrmLandingPageRepository.update(page.id, {
+          title: 'Novo título',
+        }),
+      )
+      expect(updated.sections).toHaveLength(1)
     })
   })
 
@@ -98,33 +178,6 @@ describe('CrmLandingPageViewRepository', () => {
         await CrmLandingPageViewRepository.listByLandingPage(page.id),
       )
       expect(list).toHaveLength(1)
-    })
-  })
-})
-
-describe('CrmLandingPageMessageRepository', () => {
-  describe('append() and listByLandingPage()', () => {
-    it('should persist messages in creation order', async () => {
-      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
-      const page = await seedCrmLandingPage(workspace.id, user.id)
-      await seedCrmLandingPageMessage(page.id, {
-        role: 'USER',
-        content: 'Crie uma página',
-      })
-
-      const appended = expectOk(
-        await CrmLandingPageMessageRepository.append({
-          landingPageId: page.id,
-          role: 'ASSISTANT',
-          content: 'Pronto!',
-        }),
-      )
-      expect(appended.role).toBe('ASSISTANT')
-
-      const list = expectOk(
-        await CrmLandingPageMessageRepository.listByLandingPage(page.id),
-      )
-      expect(list.map((m) => m.role)).toEqual(['USER', 'ASSISTANT'])
     })
   })
 })

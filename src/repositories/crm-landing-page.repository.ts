@@ -1,14 +1,30 @@
 import { createId } from '@paralleldrive/cuid2'
 import type {
   CrmLandingPage,
-  CrmLandingPageMessage,
-  CrmLandingPageMessageRole,
+  CrmLandingPageSection,
   CrmLandingPageView,
+  Prisma,
 } from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
+import type { CrmLandingPageSectionInputDTO } from '@/src/schemas/crm-landing-page-section.schema'
 import { dbError } from './db-error'
+
+export type CrmLandingPageWithSections = CrmLandingPage & {
+  sections: CrmLandingPageSection[]
+}
+
+function toSectionCreateInput(
+  sections: CrmLandingPageSectionInputDTO[],
+): Prisma.CrmLandingPageSectionCreateManyLandingPageInput[] {
+  return sections.map((section) => ({
+    type: section.type,
+    order: section.order,
+    enabled: section.enabled,
+    content: section.content as unknown as Prisma.InputJsonValue,
+  }))
+}
 
 export const CrmLandingPageRepository = {
   async listByWorkspace(
@@ -29,10 +45,11 @@ export const CrmLandingPageRepository = {
   async findById(
     id: string,
     workspaceId: string,
-  ): Promise<Result<CrmLandingPage>> {
+  ): Promise<Result<CrmLandingPageWithSections>> {
     try {
       const page = await prisma.crmLandingPage.findFirst({
         where: { id, workspaceId, deletedAt: null },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
       if (!page) return err(notFound('CrmLandingPage'))
       return ok(page)
@@ -41,10 +58,13 @@ export const CrmLandingPageRepository = {
     }
   },
 
-  async findByShareToken(shareToken: string): Promise<Result<CrmLandingPage>> {
+  async findByShareToken(
+    shareToken: string,
+  ): Promise<Result<CrmLandingPageWithSections>> {
     try {
       const page = await prisma.crmLandingPage.findFirst({
         where: { shareToken, status: 'PUBLISHED', deletedAt: null },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
       if (!page) return err(notFound('CrmLandingPage'))
       return ok(page)
@@ -59,14 +79,26 @@ export const CrmLandingPageRepository = {
     workspaceId: string
     createdById: string
     title: string
-    html?: string
-  }): Promise<Result<CrmLandingPage>> {
+    templateKey: string
+    sections: CrmLandingPageSectionInputDTO[]
+  }): Promise<Result<CrmLandingPageWithSections>> {
     try {
       const position = await prisma.crmLandingPage.count({
         where: { workspaceId: data.workspaceId, deletedAt: null },
       })
       const page = await prisma.crmLandingPage.create({
-        data: { ...data, shareToken: createId(), position },
+        data: {
+          workspaceId: data.workspaceId,
+          createdById: data.createdById,
+          title: data.title,
+          templateKey: data.templateKey,
+          shareToken: createId(),
+          position,
+          sections: {
+            createMany: { data: toSectionCreateInput(data.sections) },
+          },
+        },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
       return ok(page)
     } catch (error) {
@@ -78,14 +110,33 @@ export const CrmLandingPageRepository = {
     id: string,
     data: {
       title?: string
-      html?: string
       status?: 'DRAFT' | 'PUBLISHED'
       publishedAt?: Date
       updatedById?: string
+      sections?: CrmLandingPageSectionInputDTO[]
     },
-  ): Promise<Result<CrmLandingPage>> {
+  ): Promise<Result<CrmLandingPageWithSections>> {
     try {
-      const page = await prisma.crmLandingPage.update({ where: { id }, data })
+      const { sections, ...rest } = data
+      const page = await prisma.$transaction(async (tx) => {
+        if (sections) {
+          await tx.crmLandingPageSection.deleteMany({
+            where: { landingPageId: id },
+          })
+        }
+        return tx.crmLandingPage.update({
+          where: { id },
+          data: {
+            ...rest,
+            ...(sections && {
+              sections: {
+                createMany: { data: toSectionCreateInput(sections) },
+              },
+            }),
+          },
+          include: { sections: { orderBy: { order: 'asc' } } },
+        })
+      })
       return ok(page)
     } catch (error) {
       return err(dbError('Failed to update CRM landing page', error))
@@ -95,7 +146,7 @@ export const CrmLandingPageRepository = {
   async setPublished(
     id: string,
     published: boolean,
-  ): Promise<Result<CrmLandingPage>> {
+  ): Promise<Result<CrmLandingPageWithSections>> {
     try {
       const page = await prisma.crmLandingPage.update({
         where: { id },
@@ -103,6 +154,7 @@ export const CrmLandingPageRepository = {
           status: published ? 'PUBLISHED' : 'DRAFT',
           publishedAt: published ? new Date() : null,
         },
+        include: { sections: { orderBy: { order: 'asc' } } },
       })
       return ok(page)
     } catch (error) {
@@ -182,35 +234,6 @@ export const CrmLandingPageViewRepository = {
       return ok(views)
     } catch (error) {
       return err(dbError('Failed to list CRM landing page views', error))
-    }
-  },
-}
-
-export const CrmLandingPageMessageRepository = {
-  async listByLandingPage(
-    landingPageId: string,
-  ): Promise<Result<CrmLandingPageMessage[]>> {
-    try {
-      const messages = await prisma.crmLandingPageMessage.findMany({
-        where: { landingPageId },
-        orderBy: { createdAt: 'asc' },
-      })
-      return ok(messages)
-    } catch (error) {
-      return err(dbError('Failed to list CRM landing page messages', error))
-    }
-  },
-
-  async append(data: {
-    landingPageId: string
-    role: CrmLandingPageMessageRole
-    content: string
-  }): Promise<Result<CrmLandingPageMessage>> {
-    try {
-      const message = await prisma.crmLandingPageMessage.create({ data })
-      return ok(message)
-    } catch (error) {
-      return err(dbError('Failed to append CRM landing page message', error))
     }
   },
 }
