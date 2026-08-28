@@ -11,6 +11,7 @@ import { GhostInput } from '@/components/ui/ghost-input'
 import { GhostTextarea } from '@/components/ui/ghost-textarea'
 import type { CrmLandingPageSectionContent } from '@/src/schemas/crm-landing-page-section.schema'
 import type { LandingPageSectionProps } from '../types'
+import { AGENCY_COLORS } from './colors'
 
 type ServicesContent = Extract<
   CrmLandingPageSectionContent,
@@ -22,14 +23,17 @@ const BASE = '/landing-page-templates/agency'
 // As 3 variantes de card do Figma (cor + ilustração), cicladas por índice —
 // o design de referência só define exatamente 3 cards.
 const CARD_VARIANTS = [
-  { bg: '#68d585', illustration: `${BASE}/services-illustration-design.svg` },
   {
-    bg: '#473bf0',
+    bg: AGENCY_COLORS.green,
+    illustration: `${BASE}/services-illustration-design.svg`,
+  },
+  {
+    bg: AGENCY_COLORS.primary,
     illustration: `${BASE}/services-illustration-dev-desk.svg`,
     illustrationOverlay: `${BASE}/services-illustration-dev-character.svg`,
   },
   {
-    bg: '#f64b4b',
+    bg: AGENCY_COLORS.red,
     illustration: `${BASE}/services-illustration-writing-board.svg`,
     illustrationOverlay: `${BASE}/services-illustration-writing-character.svg`,
   },
