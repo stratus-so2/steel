@@ -1,8 +1,13 @@
 import { createId } from '@paralleldrive/cuid2'
-import type {
-  CrmLead,
-  CrmLeadRoutingRule,
-  CrmLeadScoringRule,
+import {
+  type CrmLead,
+  type CrmLeadContactAttempt,
+  type CrmLeadMeeting,
+  type CrmLeadProposalPresentation,
+  type CrmLeadQualification,
+  type CrmLeadRoutingRule,
+  type CrmLeadScoringRule,
+  Prisma,
 } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import type {
@@ -220,6 +225,185 @@ export async function seedCrmLeadRoutingRule(
       field: 'source',
       operator: 'equals',
       value: 'ads',
+      ...overrides,
+    },
+  })
+}
+
+export function createFakeCrmLeadContactAttempt(
+  overrides?: Partial<CrmLeadContactAttempt>,
+): CrmLeadContactAttempt {
+  const now = new Date()
+  return {
+    id: createId(),
+    leadId: createId(),
+    workspaceId: createId(),
+    contactedWith: 'Maria Silva',
+    channel: 'WHATSAPP',
+    outcome: 'ATTEMPTED',
+    occurredAt: now,
+    note: null,
+    createdById: createId(),
+    createdAt: now,
+    ...overrides,
+  }
+}
+
+export async function seedCrmLeadContactAttempt(
+  leadId: string,
+  workspaceId: string,
+  createdById: string,
+  overrides?: Partial<
+    Pick<
+      CrmLeadContactAttempt,
+      'contactedWith' | 'channel' | 'outcome' | 'occurredAt' | 'note'
+    >
+  >,
+) {
+  return prisma.crmLeadContactAttempt.create({
+    data: {
+      leadId,
+      workspaceId,
+      createdById,
+      contactedWith: 'Maria Silva',
+      channel: 'WHATSAPP',
+      occurredAt: new Date(),
+      ...overrides,
+    },
+  })
+}
+
+export function createFakeCrmLeadQualification(
+  overrides?: Partial<CrmLeadQualification>,
+): CrmLeadQualification {
+  const now = new Date()
+  return {
+    id: createId(),
+    leadId: createId(),
+    expectedCloseAt: null,
+    decisionMakerName: 'Carlos Souza',
+    decisionMakerRole: 'CTO',
+    qualifiedById: createId(),
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
+
+export async function seedCrmLeadQualification(
+  leadId: string,
+  qualifiedById: string,
+  overrides?: Partial<
+    Pick<
+      CrmLeadQualification,
+      'expectedCloseAt' | 'decisionMakerName' | 'decisionMakerRole'
+    >
+  >,
+) {
+  return prisma.crmLeadQualification.create({
+    data: {
+      leadId,
+      qualifiedById,
+      decisionMakerName: 'Carlos Souza',
+      decisionMakerRole: 'CTO',
+      ...overrides,
+    },
+  })
+}
+
+export function createFakeCrmLeadMeeting(
+  overrides?: Partial<CrmLeadMeeting>,
+): CrmLeadMeeting {
+  const now = new Date()
+  return {
+    id: createId(),
+    leadId: createId(),
+    workspaceId: createId(),
+    scheduledAt: now,
+    format: 'ONLINE',
+    contactPersonId: null,
+    contactPersonName: 'Carlos Souza',
+    interestDetails: 'Quer automatizar o funil de vendas',
+    identifiedNeed: 'Falta de visibilidade do pipeline',
+    createdById: createId(),
+    createdAt: now,
+    ...overrides,
+  }
+}
+
+export async function seedCrmLeadMeeting(
+  leadId: string,
+  workspaceId: string,
+  createdById: string,
+  overrides?: Partial<
+    Pick<
+      CrmLeadMeeting,
+      | 'scheduledAt'
+      | 'format'
+      | 'contactPersonId'
+      | 'contactPersonName'
+      | 'interestDetails'
+      | 'identifiedNeed'
+    >
+  >,
+) {
+  return prisma.crmLeadMeeting.create({
+    data: {
+      leadId,
+      workspaceId,
+      createdById,
+      scheduledAt: new Date(),
+      format: 'ONLINE',
+      interestDetails: 'Quer automatizar o funil de vendas',
+      identifiedNeed: 'Falta de visibilidade do pipeline',
+      ...overrides,
+    },
+  })
+}
+
+export function createFakeCrmLeadProposalPresentation(
+  overrides?: Partial<CrmLeadProposalPresentation>,
+): CrmLeadProposalPresentation {
+  const now = new Date()
+  return {
+    id: createId(),
+    leadId: createId(),
+    proposalId: createId(),
+    presentedAt: now,
+    format: 'ONLINE',
+    amount: new Prisma.Decimal(1500),
+    interestLevel: 'HIGH',
+    interactionsCount: 3,
+    createdById: createId(),
+    createdAt: now,
+    ...overrides,
+  }
+}
+
+export async function seedCrmLeadProposalPresentation(
+  leadId: string,
+  proposalId: string,
+  createdById: string,
+  overrides?: Partial<
+    Pick<
+      CrmLeadProposalPresentation,
+      | 'presentedAt'
+      | 'format'
+      | 'amount'
+      | 'interestLevel'
+      | 'interactionsCount'
+    >
+  >,
+) {
+  return prisma.crmLeadProposalPresentation.create({
+    data: {
+      leadId,
+      proposalId,
+      createdById,
+      presentedAt: new Date(),
+      format: 'ONLINE',
+      amount: 1500,
+      interestLevel: 'HIGH',
       ...overrides,
     },
   })
