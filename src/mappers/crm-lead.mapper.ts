@@ -1,10 +1,18 @@
 import type {
   CrmLead,
+  CrmLeadContactAttempt,
+  CrmLeadMeeting,
+  CrmLeadProposalPresentation,
+  CrmLeadQualification,
   CrmLeadRoutingRule,
   CrmLeadScoringRule,
 } from '@prisma/client'
 import type {
+  CrmLeadContactAttemptDTO,
   CrmLeadDTO,
+  CrmLeadMeetingDTO,
+  CrmLeadProposalPresentationDTO,
+  CrmLeadQualificationDTO,
   CrmLeadRoutingRuleDTO,
   CrmLeadScoringRuleDTO,
 } from '@/types/crm-lead'
@@ -73,5 +81,72 @@ export function toCrmLeadRoutingRuleDTO(
     position: rule.position,
     createdAt: rule.createdAt.toISOString(),
     updatedAt: rule.updatedAt.toISOString(),
+  }
+}
+
+export function toCrmLeadContactAttemptDTO(
+  attempt: CrmLeadContactAttempt,
+): CrmLeadContactAttemptDTO {
+  return {
+    id: attempt.id,
+    leadId: attempt.leadId,
+    workspaceId: attempt.workspaceId,
+    contactedWith: attempt.contactedWith,
+    channel: attempt.channel,
+    outcome: attempt.outcome,
+    occurredAt: attempt.occurredAt.toISOString(),
+    note: attempt.note,
+    createdById: attempt.createdById,
+    createdAt: attempt.createdAt.toISOString(),
+  }
+}
+
+export function toCrmLeadQualificationDTO(
+  qualification: CrmLeadQualification,
+): CrmLeadQualificationDTO {
+  return {
+    id: qualification.id,
+    leadId: qualification.leadId,
+    expectedCloseAt: qualification.expectedCloseAt?.toISOString() ?? null,
+    decisionMakerName: qualification.decisionMakerName,
+    decisionMakerRole: qualification.decisionMakerRole,
+    qualifiedById: qualification.qualifiedById,
+    createdAt: qualification.createdAt.toISOString(),
+    updatedAt: qualification.updatedAt.toISOString(),
+  }
+}
+
+export function toCrmLeadMeetingDTO(
+  meeting: CrmLeadMeeting,
+): CrmLeadMeetingDTO {
+  return {
+    id: meeting.id,
+    leadId: meeting.leadId,
+    workspaceId: meeting.workspaceId,
+    scheduledAt: meeting.scheduledAt.toISOString(),
+    format: meeting.format,
+    contactPersonId: meeting.contactPersonId,
+    contactPersonName: meeting.contactPersonName,
+    interestDetails: meeting.interestDetails,
+    identifiedNeed: meeting.identifiedNeed,
+    createdById: meeting.createdById,
+    createdAt: meeting.createdAt.toISOString(),
+  }
+}
+
+export function toCrmLeadProposalPresentationDTO(
+  presentation: CrmLeadProposalPresentation,
+): CrmLeadProposalPresentationDTO {
+  return {
+    id: presentation.id,
+    leadId: presentation.leadId,
+    proposalId: presentation.proposalId,
+    presentedAt: presentation.presentedAt.toISOString(),
+    format: presentation.format,
+    amount: Number(presentation.amount),
+    interestLevel: presentation.interestLevel,
+    interactionsCount: presentation.interactionsCount,
+    createdById: presentation.createdById,
+    createdAt: presentation.createdAt.toISOString(),
   }
 }
