@@ -1,4 +1,15 @@
-import type { CrmLead, CrmLeadStage } from '@prisma/client'
+import type {
+  CrmLead,
+  CrmLeadContactAttempt,
+  CrmLeadContactChannel,
+  CrmLeadContactOutcome,
+  CrmLeadMeeting,
+  CrmLeadMeetingFormat,
+  CrmLeadProposalFormat,
+  CrmLeadProposalPresentation,
+  CrmLeadQualification,
+  CrmLeadStage,
+} from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -125,6 +136,171 @@ export const CrmLeadRepository = {
       return ok(undefined)
     } catch (error) {
       return err(dbError('Failed to reorder CRM leads', error))
+    }
+  },
+
+  // --- 01/02: tentativas e contatos efetivos ---
+
+  async createContactAttempt(data: {
+    leadId: string
+    workspaceId: string
+    createdById: string
+    contactedWith: string
+    channel: CrmLeadContactChannel
+    outcome: CrmLeadContactOutcome
+    occurredAt: Date
+    note?: string
+  }): Promise<Result<CrmLeadContactAttempt>> {
+    try {
+      const attempt = await prisma.crmLeadContactAttempt.create({ data })
+      return ok(attempt)
+    } catch (error) {
+      return err(dbError('Failed to create CRM lead contact attempt', error))
+    }
+  },
+
+  async listContactAttempts(
+    leadId: string,
+  ): Promise<Result<CrmLeadContactAttempt[]>> {
+    try {
+      const attempts = await prisma.crmLeadContactAttempt.findMany({
+        where: { leadId },
+        orderBy: { occurredAt: 'desc' },
+      })
+      return ok(attempts)
+    } catch (error) {
+      return err(dbError('Failed to list CRM lead contact attempts', error))
+    }
+  },
+
+  // --- 02: produtos/serviços de interesse ---
+
+  async setInterestProducts(
+    leadId: string,
+    productIds: string[],
+  ): Promise<Result<void>> {
+    try {
+      await prisma.$transaction([
+        prisma.crmLeadInterestProduct.deleteMany({ where: { leadId } }),
+        prisma.crmLeadInterestProduct.createMany({
+          data: productIds.map((productId) => ({ leadId, productId })),
+        }),
+      ])
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to set CRM lead interest products', error))
+    }
+  },
+
+  // --- 03: qualificação (único por lead) ---
+
+  async upsertQualification(data: {
+    leadId: string
+    qualifiedById: string
+    expectedCloseAt?: Date
+    decisionMakerName: string
+    decisionMakerRole: string
+  }): Promise<Result<CrmLeadQualification>> {
+    try {
+      const qualification = await prisma.crmLeadQualification.upsert({
+        where: { leadId: data.leadId },
+        create: data,
+        update: {
+          qualifiedById: data.qualifiedById,
+          expectedCloseAt: data.expectedCloseAt,
+          decisionMakerName: data.decisionMakerName,
+          decisionMakerRole: data.decisionMakerRole,
+        },
+      })
+      return ok(qualification)
+    } catch (error) {
+      return err(dbError('Failed to upsert CRM lead qualification', error))
+    }
+  },
+
+  async findQualification(
+    leadId: string,
+  ): Promise<Result<CrmLeadQualification | null>> {
+    try {
+      const qualification = await prisma.crmLeadQualification.findUnique({
+        where: { leadId },
+      })
+      return ok(qualification)
+    } catch (error) {
+      return err(dbError('Failed to find CRM lead qualification', error))
+    }
+  },
+
+  // --- 04: reuniões ---
+
+  async createMeeting(data: {
+    leadId: string
+    workspaceId: string
+    createdById: string
+    scheduledAt: Date
+    format: CrmLeadMeetingFormat
+    contactPersonId?: string
+    contactPersonName?: string
+    interestDetails: string
+    identifiedNeed: string
+  }): Promise<Result<CrmLeadMeeting>> {
+    try {
+      const meeting = await prisma.crmLeadMeeting.create({ data })
+      return ok(meeting)
+    } catch (error) {
+      return err(dbError('Failed to create CRM lead meeting', error))
+    }
+  },
+
+  async listMeetings(leadId: string): Promise<Result<CrmLeadMeeting[]>> {
+    try {
+      const meetings = await prisma.crmLeadMeeting.findMany({
+        where: { leadId },
+        orderBy: { scheduledAt: 'desc' },
+      })
+      return ok(meetings)
+    } catch (error) {
+      return err(dbError('Failed to list CRM lead meetings', error))
+    }
+  },
+
+  // --- 05: apresentações de proposta ---
+
+  async createProposalPresentation(data: {
+    leadId: string
+    proposalId: string
+    createdById: string
+    presentedAt: Date
+    format: CrmLeadProposalFormat
+    amount: number
+    interestLevel: 'VERY_LOW' | 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH'
+    interactionsCount: number
+  }): Promise<Result<CrmLeadProposalPresentation>> {
+    try {
+      const presentation = await prisma.crmLeadProposalPresentation.create({
+        data,
+      })
+      return ok(presentation)
+    } catch (error) {
+      return err(
+        dbError('Failed to create CRM lead proposal presentation', error),
+      )
+    }
+  },
+
+  async listProposalPresentations(
+    leadId: string,
+  ): Promise<Result<CrmLeadProposalPresentation[]>> {
+    try {
+      const presentations = await prisma.crmLeadProposalPresentation.findMany({
+        where: { leadId },
+        orderBy: { presentedAt: 'desc' },
+      })
+      return ok(presentations)
+    } catch (error) {
+      return err(
+        dbError('Failed to list CRM lead proposal presentations', error),
+      )
     }
   },
 }
