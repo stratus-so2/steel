@@ -1,7 +1,7 @@
 import { UserSearch01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { CrmLeadsTable } from '@/app/_components/crm/crm-leads-table'
+import { CrmLeadsBoard } from '@/app/_components/crm/crm-leads-board'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -46,7 +46,7 @@ export default async function CrmLeadsPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='min-h-0 flex-1'>
-        <CrmLeadsTable workspaceId={membership.value.workspaceId} slug={slug} />
+        <CrmLeadsBoard workspaceId={membership.value.workspaceId} slug={slug} />
       </div>
     </div>
   )

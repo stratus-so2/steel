@@ -12,7 +12,7 @@ import { useMemo, useState } from 'react'
 import {
   STAGE_LABELS,
   STAGE_STYLES,
-} from '@/app/_components/crm/crm-leads-table'
+} from '@/app/_components/crm/crm-lead-stage'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
 import { SteelIcon } from '@/components/icon/icon'

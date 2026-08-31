@@ -1,0 +1,1261 @@
+'use client'
+
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  LEAD_STAGES,
+  STAGE_LABELS,
+  STAGE_STYLES,
+} from '@/app/_components/crm/crm-lead-stage'
+import { SteelIcon } from '@/components/icon/icon'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import { Textarea } from '@/components/ui/textarea'
+import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
+import { apiFetch } from '@/src/hooks/_fetch'
+import {
+  useCloseCrmLeadLost,
+  useCloseCrmLeadWon,
+  useCreateCrmLeadProposal,
+  useRegisterCrmLeadContactAttempt,
+  useRegisterCrmLeadMeeting,
+  useRegisterCrmLeadProposalPresentation,
+  useSetCrmLeadInterestProducts,
+  useUpsertCrmLeadQualification,
+} from '@/src/hooks/use-crm-lead-pipeline'
+import {
+  createCrmResource,
+  useCrmResourceList,
+} from '@/src/hooks/use-crm-resource-list'
+import type {
+  CrmLeadContactAttemptDTO,
+  CrmLeadDTO,
+  CrmLeadInterestLevelDTO,
+  CrmLeadMeetingDTO,
+  CrmLeadProposalPresentationDTO,
+  CrmLeadStageDTO,
+} from '@/types/crm-lead'
+import type { CrmProductDTO } from '@/types/crm-product'
+
+const NEXT_STEP_HINT: Record<CrmLeadStageDTO, string> = {
+  RECEIVED: 'Para avançar: registre a primeira tentativa de contato.',
+  IN_CONTACT:
+    'Para avançar: registre um contato efetivo (uma conversa realizada).',
+  QUALIFIED:
+    'Para avançar: informe a previsão de fechamento e o decisor (nome e cargo).',
+  OPPORTUNITY: 'Para avançar: registre a reunião e crie a proposta comercial.',
+  PROPOSAL:
+    'Para avançar: registre o resultado da proposta (ganho ou perdido).',
+  CLOSED: 'Negócio encerrado.',
+}
+
+const INTEREST_LEVELS: { value: CrmLeadInterestLevelDTO; label: string }[] = [
+  { value: 'VERY_LOW', label: 'Muito baixo' },
+  { value: 'LOW', label: 'Baixo' },
+  { value: 'MEDIUM', label: 'Médio' },
+  { value: 'HIGH', label: 'Alto' },
+  { value: 'VERY_HIGH', label: 'Muito alto' },
+]
+
+const THERMOMETER_COLORS = [
+  'bg-blue-400',
+  'bg-emerald-400',
+  'bg-amber-400',
+  'bg-orange-400',
+  'bg-rose-400',
+]
+
+function InterestThermometer({
+  value,
+  onChange,
+}: {
+  value: CrmLeadInterestLevelDTO | null
+  onChange?: (value: CrmLeadInterestLevelDTO) => void
+}) {
+  const activeIndex = value
+    ? INTEREST_LEVELS.findIndex((l) => l.value === value)
+    : -1
+
+  return (
+    <div className='flex flex-col gap-1.5'>
+      <div className='flex items-center gap-1'>
+        {INTEREST_LEVELS.map((level, i) => (
+          <button
+            key={level.value}
+            type='button'
+            disabled={!onChange}
+            onClick={() => onChange?.(level.value)}
+            title={level.label}
+            className={cn(
+              'h-2 flex-1 rounded-full transition-colors',
+              i <= activeIndex ? THERMOMETER_COLORS[i] : 'bg-muted',
+              onChange && 'cursor-pointer',
+            )}
+          />
+        ))}
+      </div>
+      <div className='flex items-center justify-between text-[10px] text-muted-foreground'>
+        {INTEREST_LEVELS.map((level) => (
+          <span
+            key={level.value}
+            className={cn(
+              level.value === value && 'font-medium text-foreground',
+            )}
+          >
+            {level.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function CrmLeadsBoard({
+  workspaceId,
+  slug: _slug,
+}: {
+  workspaceId: string
+  slug: string
+}) {
+  const {
+    items: leads,
+    isLoading,
+    refetch,
+  } = useCrmResourceList<CrmLeadDTO>(workspaceId, 'leads')
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const byStage = useMemo(() => {
+    const map = new Map<CrmLeadStageDTO, CrmLeadDTO[]>()
+    for (const stage of LEAD_STAGES) map.set(stage, [])
+    for (const lead of leads) map.get(lead.stage)?.push(lead)
+    return map
+  }, [leads])
+
+  const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null
+
+  return (
+    <div className='flex h-full min-h-0 w-full flex-col gap-4 p-4'>
+      <div className='flex items-center justify-between'>
+        <p className='text-muted-foreground text-sm'>
+          {leads.length} lead{leads.length === 1 ? '' : 's'} no funil
+        </p>
+        <Button size='sm' onClick={() => setCreateOpen(true)}>
+          <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+          Novo lead
+        </Button>
+      </div>
+
+      <div className='flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2'>
+        {LEAD_STAGES.map((stage) => (
+          <div
+            key={stage}
+            className='flex w-72 shrink-0 flex-col rounded-lg border bg-muted/30'
+          >
+            <div className='flex items-center justify-between border-b p-3'>
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 font-medium text-xs',
+                  STAGE_STYLES[stage],
+                )}
+              >
+                {STAGE_LABELS[stage]}
+              </span>
+              <span className='text-muted-foreground text-xs'>
+                {byStage.get(stage)?.length ?? 0}
+              </span>
+            </div>
+            <div className='flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2'>
+              {isLoading ? (
+                <p className='p-2 text-muted-foreground text-xs'>Carregando…</p>
+              ) : null}
+              {byStage.get(stage)?.map((lead) => (
+                <button
+                  key={lead.id}
+                  type='button'
+                  onClick={() => setSelectedLeadId(lead.id)}
+                  className='flex flex-col gap-1 rounded-md border bg-background p-3 text-left shadow-sm transition-colors hover:border-primary/50'
+                >
+                  <span className='truncate font-medium text-sm'>
+                    {lead.name}
+                  </span>
+                  {lead.company ? (
+                    <span className='truncate text-muted-foreground text-xs'>
+                      {lead.company}
+                    </span>
+                  ) : null}
+                  {lead.emails[0] ? (
+                    <span className='truncate text-muted-foreground text-xs'>
+                      {lead.emails[0]}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+              {!isLoading && byStage.get(stage)?.length === 0 ? (
+                <p className='p-2 text-muted-foreground text-xs'>Vazio</p>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className='rounded-lg border bg-muted/20 p-3'>
+        <p className='mb-1.5 font-medium text-xs'>Termômetro de Interesse</p>
+        <InterestThermometer value={null} />
+      </div>
+
+      <CreateLeadDialog
+        workspaceId={workspaceId}
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => {
+          setCreateOpen(false)
+          refetch()
+        }}
+      />
+
+      <Sheet
+        open={!!selectedLead}
+        onOpenChange={(next) => {
+          if (!next) setSelectedLeadId(null)
+        }}
+      >
+        <SheetContent className='overflow-y-auto'>
+          {selectedLead ? (
+            <LeadStagePanel
+              workspaceId={workspaceId}
+              lead={selectedLead}
+              onChanged={refetch}
+              onClose={() => setSelectedLeadId(null)}
+            />
+          ) : null}
+        </SheetContent>
+      </Sheet>
+    </div>
+  )
+}
+
+function LeadStagePanel({
+  workspaceId,
+  lead,
+  onChanged,
+  onClose,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+  onClose: () => void
+}) {
+  return (
+    <>
+      <SheetHeader>
+        <div className='flex items-center gap-2'>
+          <SheetTitle>{lead.name}</SheetTitle>
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 font-medium text-xs',
+              STAGE_STYLES[lead.stage],
+            )}
+          >
+            {STAGE_LABELS[lead.stage]}
+          </span>
+        </div>
+        <p className='text-muted-foreground text-sm'>
+          {NEXT_STEP_HINT[lead.stage]}
+        </p>
+      </SheetHeader>
+
+      <div className='flex flex-col gap-6 px-4'>
+        {lead.stage === 'RECEIVED' || lead.stage === 'IN_CONTACT' ? (
+          <ContactAttemptForm
+            workspaceId={workspaceId}
+            lead={lead}
+            onChanged={onChanged}
+          />
+        ) : null}
+
+        {lead.stage === 'QUALIFIED' ? (
+          <QualificationForm
+            workspaceId={workspaceId}
+            lead={lead}
+            onChanged={onChanged}
+          />
+        ) : null}
+
+        {lead.stage === 'OPPORTUNITY' ? (
+          <OpportunityForms
+            workspaceId={workspaceId}
+            lead={lead}
+            onChanged={onChanged}
+          />
+        ) : null}
+
+        {lead.stage === 'PROPOSAL' ? (
+          <ProposalStageForms
+            workspaceId={workspaceId}
+            lead={lead}
+            onChanged={onChanged}
+          />
+        ) : null}
+
+        {lead.stage === 'CLOSED' ? <ClosedSummary lead={lead} /> : null}
+      </div>
+
+      {lead.stage !== 'CLOSED' ? (
+        <SheetFooter>
+          <CloseLostAction
+            workspaceId={workspaceId}
+            lead={lead}
+            onChanged={() => {
+              onChanged()
+              onClose()
+            }}
+          />
+        </SheetFooter>
+      ) : null}
+    </>
+  )
+}
+
+const CONTACT_CHANNELS = [
+  { value: 'PHONE', label: 'Telefone' },
+  { value: 'WHATSAPP', label: 'WhatsApp' },
+  { value: 'EMAIL', label: 'E-mail' },
+  { value: 'MEETING', label: 'Reunião' },
+  { value: 'OTHER', label: 'Outro' },
+] as const
+
+function ContactAttemptForm({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
+  const [contactedWith, setContactedWith] = useState('')
+  const [channel, setChannel] =
+    useState<(typeof CONTACT_CHANNELS)[number]['value']>('WHATSAPP')
+  const [outcome, setOutcome] = useState<'ATTEMPTED' | 'REACHED'>('ATTEMPTED')
+  const [note, setNote] = useState('')
+  const [history, setHistory] = useState<CrmLeadContactAttemptDTO[]>([])
+  const registerAttempt = useRegisterCrmLeadContactAttempt(workspaceId)
+
+  useEffect(() => {
+    apiFetch<CrmLeadContactAttemptDTO[]>(
+      `/api/workspaces/${workspaceId}/crm/leads/${lead.id}/contact-attempts`,
+    )
+      .then(setHistory)
+      .catch(() => setHistory([]))
+  }, [workspaceId, lead.id])
+
+  async function handleSubmit() {
+    if (!contactedWith.trim()) {
+      notify.error('Informe com quem falou ou tentou falar')
+      return
+    }
+    try {
+      await registerAttempt.mutateAsync({
+        leadId: lead.id,
+        contactedWith: contactedWith.trim(),
+        channel,
+        outcome,
+        note: note.trim() || undefined,
+      })
+      notify.success('Contato registrado')
+      setContactedWith('')
+      setNote('')
+      onChanged()
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  return (
+    <div className='flex flex-col gap-3'>
+      <p className='font-medium text-sm'>Registrar contato</p>
+      <div className='grid gap-1.5'>
+        <Label className='text-muted-foreground text-xs'>
+          Com quem falou/tentou falar
+        </Label>
+        <Input
+          value={contactedWith}
+          onChange={(e) => setContactedWith(e.target.value)}
+        />
+      </div>
+      <div className='grid grid-cols-2 gap-3'>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Forma de contato
+          </Label>
+          <Select
+            value={channel}
+            onValueChange={(v) => setChannel(v as typeof channel)}
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTACT_CHANNELS.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>Resultado</Label>
+          <Select
+            value={outcome}
+            onValueChange={(v) => setOutcome(v as typeof outcome)}
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='ATTEMPTED'>
+                Tentativa (sem resposta)
+              </SelectItem>
+              <SelectItem value='REACHED'>
+                Contato efetivo (conversou)
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className='grid gap-1.5'>
+        <Label className='text-muted-foreground text-xs'>Observação</Label>
+        <Textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={3}
+        />
+      </div>
+      <Button
+        size='sm'
+        onClick={handleSubmit}
+        disabled={registerAttempt.isPending}
+      >
+        {registerAttempt.isPending ? 'Registrando…' : 'Registrar contato'}
+      </Button>
+
+      {history.length > 0 ? (
+        <div className='flex flex-col gap-1.5 border-t pt-3'>
+          <p className='text-muted-foreground text-xs'>Histórico</p>
+          {history.map((h) => (
+            <div key={h.id} className='text-xs'>
+              <span className='font-medium'>{h.contactedWith}</span> ·{' '}
+              {h.channel} ·{' '}
+              {h.outcome === 'REACHED' ? 'contato efetivo' : 'tentativa'} ·{' '}
+              {new Date(h.occurredAt).toLocaleString('pt-BR')}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {lead.stage === 'IN_CONTACT' ? (
+        <InterestProductsPicker workspaceId={workspaceId} lead={lead} />
+      ) : null}
+    </div>
+  )
+}
+
+function InterestProductsPicker({
+  workspaceId,
+  lead,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+}) {
+  const { items: products } = useCrmResourceList<CrmProductDTO>(
+    workspaceId,
+    'products',
+  )
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const setInterestProducts = useSetCrmLeadInterestProducts(workspaceId)
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleSave() {
+    try {
+      await setInterestProducts.mutateAsync({
+        leadId: lead.id,
+        productIds: Array.from(selected),
+      })
+      notify.success('Produtos de interesse salvos')
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  if (products.length === 0) return null
+
+  return (
+    <div className='flex flex-col gap-2 border-t pt-3'>
+      <p className='font-medium text-sm'>Serviço(s)/produto(s) de interesse</p>
+      <div className='flex flex-wrap gap-1.5'>
+        {products.map((p) => (
+          <button
+            key={p.id}
+            type='button'
+            onClick={() => toggle(p.id)}
+            className={cn(
+              'rounded-full border px-2.5 py-1 text-xs',
+              selected.has(p.id)
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'text-muted-foreground',
+            )}
+          >
+            {p.name}
+          </button>
+        ))}
+      </div>
+      <Button
+        size='sm'
+        variant='secondary'
+        className='w-fit'
+        onClick={handleSave}
+        disabled={setInterestProducts.isPending || selected.size === 0}
+      >
+        Salvar interesse
+      </Button>
+    </div>
+  )
+}
+
+function QualificationForm({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
+  const [expectedCloseAt, setExpectedCloseAt] = useState('')
+  const [decisionMakerName, setDecisionMakerName] = useState('')
+  const [decisionMakerRole, setDecisionMakerRole] = useState('')
+  const upsertQualification = useUpsertCrmLeadQualification(workspaceId)
+
+  async function handleSubmit() {
+    if (!decisionMakerName.trim() || !decisionMakerRole.trim()) {
+      notify.error('Informe o nome e o cargo do decisor')
+      return
+    }
+    try {
+      await upsertQualification.mutateAsync({
+        leadId: lead.id,
+        expectedCloseAt: expectedCloseAt || undefined,
+        decisionMakerName: decisionMakerName.trim(),
+        decisionMakerRole: decisionMakerRole.trim(),
+      })
+      notify.success('Lead qualificado')
+      onChanged()
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  return (
+    <div className='flex flex-col gap-3'>
+      <p className='font-medium text-sm'>Qualificar lead</p>
+      <div className='grid gap-1.5'>
+        <Label className='text-muted-foreground text-xs'>
+          Previsão de fechamento
+        </Label>
+        <Input
+          type='date'
+          value={expectedCloseAt}
+          onChange={(e) => setExpectedCloseAt(e.target.value)}
+        />
+      </div>
+      <div className='grid gap-1.5'>
+        <Label className='text-muted-foreground text-xs'>Nome do decisor</Label>
+        <Input
+          value={decisionMakerName}
+          onChange={(e) => setDecisionMakerName(e.target.value)}
+        />
+      </div>
+      <div className='grid gap-1.5'>
+        <Label className='text-muted-foreground text-xs'>
+          Cargo do decisor
+        </Label>
+        <Input
+          value={decisionMakerRole}
+          onChange={(e) => setDecisionMakerRole(e.target.value)}
+        />
+      </div>
+      <Button
+        size='sm'
+        onClick={handleSubmit}
+        disabled={upsertQualification.isPending}
+      >
+        {upsertQualification.isPending ? 'Salvando…' : 'Confirmar qualificação'}
+      </Button>
+    </div>
+  )
+}
+
+function OpportunityForms({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [format, setFormat] = useState<'IN_PERSON' | 'ONLINE'>('ONLINE')
+  const [contactPersonName, setContactPersonName] = useState('')
+  const [interestDetails, setInterestDetails] = useState('')
+  const [identifiedNeed, setIdentifiedNeed] = useState('')
+  const [proposalName, setProposalName] = useState(`Proposta ${lead.name}`)
+  const [meetings, setMeetings] = useState<CrmLeadMeetingDTO[]>([])
+  const registerMeeting = useRegisterCrmLeadMeeting(workspaceId)
+  const createProposal = useCreateCrmLeadProposal(workspaceId)
+
+  useEffect(() => {
+    apiFetch<CrmLeadMeetingDTO[]>(
+      `/api/workspaces/${workspaceId}/crm/leads/${lead.id}/meetings`,
+    )
+      .then(setMeetings)
+      .catch(() => setMeetings([]))
+  }, [workspaceId, lead.id])
+
+  async function handleRegisterMeeting() {
+    if (!interestDetails.trim() || !identifiedNeed.trim() || !scheduledAt) {
+      notify.error('Preencha data, interesse e necessidade identificada')
+      return
+    }
+    try {
+      await registerMeeting.mutateAsync({
+        leadId: lead.id,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        format,
+        contactPersonName: contactPersonName.trim() || undefined,
+        interestDetails: interestDetails.trim(),
+        identifiedNeed: identifiedNeed.trim(),
+      })
+      notify.success('Reunião registrada')
+      setMeetings((prev) => [...prev])
+      onChanged()
+      apiFetch<CrmLeadMeetingDTO[]>(
+        `/api/workspaces/${workspaceId}/crm/leads/${lead.id}/meetings`,
+      ).then(setMeetings)
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  async function handleCreateProposal() {
+    if (!proposalName.trim()) {
+      notify.error('Informe o nome da proposta')
+      return
+    }
+    try {
+      await createProposal.mutateAsync({
+        leadId: lead.id,
+        name: proposalName.trim(),
+      })
+      notify.success('Proposta criada')
+      onChanged()
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  return (
+    <div className='flex flex-col gap-6'>
+      <div className='flex flex-col gap-3'>
+        <p className='font-medium text-sm'>Registrar reunião</p>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Data e horário
+          </Label>
+          <Input
+            type='datetime-local'
+            value={scheduledAt}
+            onChange={(e) => setScheduledAt(e.target.value)}
+          />
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>Formato</Label>
+          <Select
+            value={format}
+            onValueChange={(v) => setFormat(v as typeof format)}
+          >
+            <SelectTrigger className='w-full'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='IN_PERSON'>Presencial</SelectItem>
+              <SelectItem value='ONLINE'>Online</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Pessoa de contato
+          </Label>
+          <Input
+            value={contactPersonName}
+            onChange={(e) => setContactPersonName(e.target.value)}
+          />
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Detalhes do interesse
+          </Label>
+          <Textarea
+            value={interestDetails}
+            onChange={(e) => setInterestDetails(e.target.value)}
+            rows={2}
+          />
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Necessidade/demanda identificada
+          </Label>
+          <Textarea
+            value={identifiedNeed}
+            onChange={(e) => setIdentifiedNeed(e.target.value)}
+            rows={2}
+          />
+        </div>
+        <Button
+          size='sm'
+          onClick={handleRegisterMeeting}
+          disabled={registerMeeting.isPending}
+        >
+          {registerMeeting.isPending ? 'Registrando…' : 'Registrar reunião'}
+        </Button>
+
+        {meetings.length > 0 ? (
+          <p className='text-muted-foreground text-xs'>
+            {meetings.length} reunião(ões) registrada(s).
+          </p>
+        ) : null}
+      </div>
+
+      <div className='flex flex-col gap-3 border-t pt-4'>
+        <p className='font-medium text-sm'>Criar proposta comercial</p>
+        <p className='text-muted-foreground text-xs'>
+          Registre ao menos uma reunião antes de criar a proposta.
+        </p>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Nome da proposta
+          </Label>
+          <Input
+            value={proposalName}
+            onChange={(e) => setProposalName(e.target.value)}
+          />
+        </div>
+        <Button
+          size='sm'
+          variant='secondary'
+          onClick={handleCreateProposal}
+          disabled={createProposal.isPending || meetings.length === 0}
+        >
+          {createProposal.isPending
+            ? 'Criando…'
+            : 'Criar e avançar para Proposta'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ProposalStageForms({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
+  const [proposalId, setProposalId] = useState<string | null>(null)
+  const [presentedAt, setPresentedAt] = useState('')
+  const [format, setFormat] = useState<
+    'IN_PERSON' | 'ONLINE' | 'EMAIL' | 'OTHER'
+  >('ONLINE')
+  const [amount, setAmount] = useState('')
+  const [interestLevel, setInterestLevel] =
+    useState<CrmLeadInterestLevelDTO>('MEDIUM')
+  const [interactionsCount, setInteractionsCount] = useState('0')
+  const [notes, setNotes] = useState('')
+  const [presentations, setPresentations] = useState<
+    CrmLeadProposalPresentationDTO[]
+  >([])
+  const registerPresentation =
+    useRegisterCrmLeadProposalPresentation(workspaceId)
+  const closeWon = useCloseCrmLeadWon(workspaceId)
+  const [contractSignedAt, setContractSignedAt] = useState('')
+  const [billingType, setBillingType] = useState<
+    'ONE_TIME' | 'MONTHLY' | 'YEARLY'
+  >('MONTHLY')
+  const [closedAmount, setClosedAmount] = useState('')
+
+  useEffect(() => {
+    apiFetch<{ id: string } | null>(
+      `/api/workspaces/${workspaceId}/crm/leads/${lead.id}/proposal`,
+    )
+      .then((proposal) => setProposalId(proposal?.id ?? null))
+      .catch(() => setProposalId(null))
+  }, [workspaceId, lead.id])
+
+  useEffect(() => {
+    if (!proposalId) return
+    apiFetch<CrmLeadProposalPresentationDTO[]>(
+      `/api/workspaces/${workspaceId}/crm/leads/${lead.id}/proposal/${proposalId}/presentations`,
+    )
+      .then(setPresentations)
+      .catch(() => setPresentations([]))
+  }, [workspaceId, lead.id, proposalId])
+
+  async function handleRegisterPresentation() {
+    if (!proposalId) {
+      notify.error('Nenhuma proposta encontrada para este lead')
+      return
+    }
+    if (!presentedAt || !amount) {
+      notify.error('Preencha data e valor da proposta')
+      return
+    }
+    try {
+      await registerPresentation.mutateAsync({
+        leadId: lead.id,
+        proposalId,
+        presentedAt: new Date(presentedAt).toISOString(),
+        format,
+        amount: Number(amount),
+        interestLevel,
+        interactionsCount: Number(interactionsCount) || 0,
+        notes: notes.trim() || undefined,
+      })
+      notify.success('Apresentação registrada')
+      onChanged()
+      apiFetch<CrmLeadProposalPresentationDTO[]>(
+        `/api/workspaces/${workspaceId}/crm/leads/${lead.id}/proposal/${proposalId}/presentations`,
+      ).then(setPresentations)
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  async function handleCloseWon() {
+    if (!contractSignedAt || !closedAmount) {
+      notify.error('Preencha a data de assinatura e o valor fechado')
+      return
+    }
+    try {
+      await closeWon.mutateAsync({
+        leadId: lead.id,
+        contractSignedAt: new Date(contractSignedAt).toISOString(),
+        billingType,
+        closedAmount: Number(closedAmount),
+        contractSignedConfirmed: true,
+      })
+      notify.success('Negócio fechado como ganho — lead convertido em pessoa')
+      onChanged()
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  return (
+    <div className='flex flex-col gap-6'>
+      <div className='flex flex-col gap-3'>
+        <p className='font-medium text-sm'>Registrar apresentação</p>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Data da apresentação
+          </Label>
+          <Input
+            type='datetime-local'
+            value={presentedAt}
+            onChange={(e) => setPresentedAt(e.target.value)}
+          />
+        </div>
+        <div className='grid grid-cols-2 gap-3'>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>Forma</Label>
+            <Select
+              value={format}
+              onValueChange={(v) => setFormat(v as typeof format)}
+            >
+              <SelectTrigger className='w-full'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='IN_PERSON'>Presencial</SelectItem>
+                <SelectItem value='ONLINE'>Online</SelectItem>
+                <SelectItem value='EMAIL'>E-mail</SelectItem>
+                <SelectItem value='OTHER'>Outro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>Valor (R$)</Label>
+            <Input
+              type='number'
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Termômetro de Interesse
+          </Label>
+          <InterestThermometer
+            value={interestLevel}
+            onChange={setInterestLevel}
+          />
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Quantidade de perguntas/interações
+          </Label>
+          <Input
+            type='number'
+            value={interactionsCount}
+            onChange={(e) => setInteractionsCount(e.target.value)}
+          />
+        </div>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Observações e negociações
+          </Label>
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={3}
+          />
+        </div>
+        <Button
+          size='sm'
+          onClick={handleRegisterPresentation}
+          disabled={registerPresentation.isPending}
+        >
+          {registerPresentation.isPending
+            ? 'Registrando…'
+            : 'Registrar apresentação'}
+        </Button>
+        {presentations.length > 0 ? (
+          <p className='text-muted-foreground text-xs'>
+            {presentations.length} apresentação(ões) registrada(s).
+          </p>
+        ) : null}
+      </div>
+
+      <div className='flex flex-col gap-3 border-t pt-4'>
+        <p className='font-medium text-sm'>Fechar como ganho</p>
+        <p className='text-muted-foreground text-xs'>
+          Registre ao menos uma apresentação antes de fechar.
+        </p>
+        <div className='grid gap-1.5'>
+          <Label className='text-muted-foreground text-xs'>
+            Data da assinatura do contrato
+          </Label>
+          <Input
+            type='date'
+            value={contractSignedAt}
+            onChange={(e) => setContractSignedAt(e.target.value)}
+          />
+        </div>
+        <div className='grid grid-cols-2 gap-3'>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>
+              Forma de cobrança
+            </Label>
+            <Select
+              value={billingType}
+              onValueChange={(v) => setBillingType(v as typeof billingType)}
+            >
+              <SelectTrigger className='w-full'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='ONE_TIME'>Pagamento único</SelectItem>
+                <SelectItem value='MONTHLY'>Mensal</SelectItem>
+                <SelectItem value='YEARLY'>Anual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>
+              Valor fechado (R$)
+            </Label>
+            <Input
+              type='number'
+              value={closedAmount}
+              onChange={(e) => setClosedAmount(e.target.value)}
+            />
+          </div>
+        </div>
+        <Button
+          size='sm'
+          onClick={handleCloseWon}
+          disabled={closeWon.isPending || presentations.length === 0}
+        >
+          {closeWon.isPending
+            ? 'Fechando…'
+            : 'Confirmar contrato assinado — Ganho'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ClosedSummary({ lead }: { lead: CrmLeadDTO }) {
+  if (lead.closeResult === 'WON') {
+    return (
+      <div className='flex flex-col gap-2'>
+        <Badge className='w-fit bg-emerald-500/15 text-emerald-600'>
+          Ganho
+        </Badge>
+        <p className='text-sm'>
+          Contrato assinado em{' '}
+          {lead.contractSignedAt
+            ? new Date(lead.contractSignedAt).toLocaleDateString('pt-BR')
+            : '—'}
+        </p>
+        <p className='text-muted-foreground text-sm'>
+          Valor: {lead.closedAmount ?? '—'} · Cobrança:{' '}
+          {lead.billingType ?? '—'}
+        </p>
+      </div>
+    )
+  }
+  if (lead.closeResult === 'LOST') {
+    return (
+      <div className='flex flex-col gap-2'>
+        <Badge className='w-fit bg-rose-500/15 text-rose-600'>Perdido</Badge>
+        <p className='text-sm'>Motivo: {lead.lostReason ?? '—'}</p>
+        {lead.lostNote ? (
+          <p className='text-muted-foreground text-sm'>{lead.lostNote}</p>
+        ) : null}
+        {lead.retryAt ? (
+          <p className='text-muted-foreground text-xs'>
+            Nova tentativa prevista para{' '}
+            {new Date(lead.retryAt).toLocaleDateString('pt-BR')}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+  return (
+    <p className='text-muted-foreground text-sm'>Sem resultado registrado.</p>
+  )
+}
+
+function CloseLostAction({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [lostReason, setLostReason] = useState('')
+  const [lostNote, setLostNote] = useState('')
+  const closeLost = useCloseCrmLeadLost(workspaceId)
+
+  async function handleSubmit() {
+    if (!lostReason.trim()) {
+      notify.error('Informe o motivo da perda')
+      return
+    }
+    try {
+      await closeLost.mutateAsync({
+        leadId: lead.id,
+        lostReason: lostReason.trim(),
+        lostNote: lostNote.trim() || undefined,
+      })
+      notify.success('Lead marcado como perdido')
+      onChanged()
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button size='sm' variant='ghost' onClick={() => setOpen(true)}>
+        Marcar como perdido
+      </Button>
+    )
+  }
+
+  return (
+    <div className='flex flex-col gap-2'>
+      <Input
+        placeholder='Motivo da perda'
+        value={lostReason}
+        onChange={(e) => setLostReason(e.target.value)}
+      />
+      <Textarea
+        placeholder='Observação (opcional)'
+        value={lostNote}
+        onChange={(e) => setLostNote(e.target.value)}
+        rows={2}
+      />
+      <div className='flex gap-2'>
+        <Button size='sm' variant='ghost' onClick={() => setOpen(false)}>
+          Cancelar
+        </Button>
+        <Button
+          size='sm'
+          variant='destructive'
+          onClick={handleSubmit}
+          disabled={closeLost.isPending}
+        >
+          {closeLost.isPending ? 'Fechando…' : 'Confirmar perda'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function CreateLeadDialog({
+  workspaceId,
+  open,
+  onClose,
+  onCreated,
+}: {
+  workspaceId: string
+  open: boolean
+  onClose: () => void
+  onCreated: () => void
+}) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [source, setSource] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  function reset() {
+    setName('')
+    setEmail('')
+    setPhone('')
+    setSource('')
+  }
+
+  async function handleSubmit() {
+    if (!name.trim()) {
+      notify.error('Informe o nome')
+      return
+    }
+    if (!email.trim() && !phone.trim()) {
+      notify.error('Informe ao menos um email ou telefone')
+      return
+    }
+    if (!source.trim()) {
+      notify.error('Informe a origem')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const result = await createCrmResource<CrmLeadDTO>(workspaceId, 'leads', {
+        name: name.trim(),
+        emails: email.trim() ? [email.trim()] : [],
+        phones: phone.trim() ? [phone.trim()] : [],
+        source: source.trim(),
+      })
+      if (!result.ok) {
+        notify.error(result.message ?? 'Não foi possível criar o lead.')
+        return
+      }
+      notify.success('Lead criado')
+      reset()
+      onCreated()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          reset()
+          onClose()
+        }
+      }}
+    >
+      <DialogContent className='w-full sm:max-w-md'>
+        <DialogTitle>Novo lead</DialogTitle>
+        <div className='flex flex-col gap-4'>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>Nome *</Label>
+            <Input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className='grid grid-cols-2 gap-3'>
+            <div className='grid gap-1.5'>
+              <Label className='text-muted-foreground text-xs'>Email</Label>
+              <Input
+                type='email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-1.5'>
+              <Label className='text-muted-foreground text-xs'>Telefone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+          </div>
+          <div className='grid gap-1.5'>
+            <Label className='text-muted-foreground text-xs'>Origem *</Label>
+            <Input value={source} onChange={(e) => setSource(e.target.value)} />
+          </div>
+        </div>
+        <div className='flex justify-end gap-2'>
+          <Button variant='ghost' onClick={onClose} disabled={submitting}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={submitting}>
+            {submitting ? 'Criando…' : 'Criar lead'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
