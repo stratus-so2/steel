@@ -1,24 +1,70 @@
+import type { CrmLead, CrmLeadStage } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { crmLeadAlreadyConverted } from '@/src/errors'
+import {
+  crmLeadAlreadyClosed,
+  crmLeadAlreadyConverted,
+  crmLeadProposalNotFound,
+  crmLeadStageRequirementsNotMet,
+  crmLeadStageTransitionInvalid,
+} from '@/src/errors'
 import {
   computeLeadScore,
   findLeadRoutingOwner,
 } from '@/src/lib/crm-lead-rules'
 import { err, ok, type Result } from '@/src/lib/result'
-import { toCrmLeadDTO } from '@/src/mappers/crm-lead.mapper'
+import {
+  toCrmLeadContactAttemptDTO,
+  toCrmLeadDTO,
+  toCrmLeadMeetingDTO,
+  toCrmLeadProposalPresentationDTO,
+  toCrmLeadQualificationDTO,
+} from '@/src/mappers/crm-lead.mapper'
 import { toCrmPersonDTO } from '@/src/mappers/crm-person.mapper'
+import { toCrmProposalDTO } from '@/src/mappers/crm-proposal.mapper'
 import { CrmLeadRepository } from '@/src/repositories/crm-lead.repository'
 import { CrmLeadRoutingRuleRepository } from '@/src/repositories/crm-lead-routing-rule.repository'
 import { CrmLeadScoringRuleRepository } from '@/src/repositories/crm-lead-scoring-rule.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
+import { CrmProposalRepository } from '@/src/repositories/crm-proposal.repository'
 import type {
+  CloseCrmLeadLostDTO,
+  CloseCrmLeadWonDTO,
   CreateCrmLeadDTO,
+  CreateCrmLeadProposalDTO,
   ListCrmLeadsDTO,
+  RegisterCrmLeadContactAttemptDTO,
+  RegisterCrmLeadMeetingDTO,
+  RegisterCrmLeadProposalPresentationDTO,
   UpdateCrmLeadDTO,
+  UpsertCrmLeadQualificationDTO,
 } from '@/src/schemas/crm-lead.schema'
-import type { CrmLeadDTO } from '@/types/crm-lead'
+import type {
+  CrmLeadContactAttemptDTO,
+  CrmLeadDTO,
+  CrmLeadMeetingDTO,
+  CrmLeadProposalPresentationDTO,
+  CrmLeadQualificationDTO,
+} from '@/types/crm-lead'
 import type { CrmPersonDTO } from '@/types/crm-person'
+import type { CrmProposalDTO } from '@/types/crm-proposal'
 import { assertMember } from './authz'
+
+async function createPersonFromLead(
+  workspaceId: string,
+  actorId: string,
+  lead: CrmLead,
+) {
+  return CrmPersonRepository.create({
+    workspaceId,
+    createdById: actorId,
+    name: lead.name,
+    emails: lead.emails,
+    phones: lead.phones,
+    city: lead.city ?? undefined,
+    jobTitle: lead.jobTitle ?? undefined,
+    linkedin: lead.linkedin ?? undefined,
+  })
+}
 
 export const CrmLeadService = {
   async list(
@@ -235,16 +281,7 @@ export const CrmLeadService = {
       return err(crmLeadAlreadyConverted())
     }
 
-    const person = await CrmPersonRepository.create({
-      workspaceId,
-      createdById: actorId,
-      name: lead.value.name,
-      emails: lead.value.emails,
-      phones: lead.value.phones,
-      city: lead.value.city ?? undefined,
-      jobTitle: lead.value.jobTitle ?? undefined,
-      linkedin: lead.value.linkedin ?? undefined,
-    })
+    const person = await createPersonFromLead(workspaceId, actorId, lead.value)
     if (!person.ok) return person
 
     const updated = await CrmLeadRepository.update(leadId, {
@@ -262,5 +299,428 @@ export const CrmLeadService = {
     })
 
     return ok(toCrmPersonDTO(person.value))
+  },
+
+  // --- 01 Recebido -> 02 Em Contato / 02 -> 03 Qualificado ---
+
+  async registerContactAttempt(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: RegisterCrmLeadContactAttemptDTO,
+  ): Promise<Result<{ lead: CrmLeadDTO; attempt: CrmLeadContactAttemptDTO }>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage === 'CLOSED') return err(crmLeadAlreadyClosed())
+
+    const attempt = await CrmLeadRepository.createContactAttempt({
+      leadId,
+      workspaceId,
+      createdById: actorId,
+      contactedWith: dto.contactedWith,
+      channel: dto.channel,
+      outcome: dto.outcome,
+      occurredAt: dto.occurredAt,
+      note: dto.note,
+    })
+    if (!attempt.ok) return attempt
+
+    let nextStage: CrmLeadStage | undefined
+    if (lead.value.stage === 'RECEIVED') nextStage = 'IN_CONTACT'
+    else if (lead.value.stage === 'IN_CONTACT' && dto.outcome === 'REACHED')
+      nextStage = 'QUALIFIED'
+
+    let updatedLead = lead.value
+    if (nextStage) {
+      const advanced = await CrmLeadRepository.update(leadId, {
+        stage: nextStage,
+        updatedById: actorId,
+      })
+      if (!advanced.ok) return advanced
+      updatedLead = advanced.value
+    }
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { contactAttempt: dto.outcome, stage: updatedLead.stage },
+    })
+
+    return ok({
+      lead: toCrmLeadDTO(updatedLead),
+      attempt: toCrmLeadContactAttemptDTO(attempt.value),
+    })
+  },
+
+  // --- 02: produtos/serviços de interesse ---
+
+  async setInterestProducts(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    productIds: string[],
+  ): Promise<Result<CrmLeadDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmLeadRepository.setInterestProducts(
+      leadId,
+      productIds,
+    )
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { interestProducts: productIds.length },
+    })
+
+    return ok(toCrmLeadDTO(lead.value))
+  },
+
+  // --- 03 Lead Qualificado -> 04 Interesse/Oportunidade ---
+
+  async upsertQualification(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: UpsertCrmLeadQualificationDTO,
+  ): Promise<
+    Result<{ lead: CrmLeadDTO; qualification: CrmLeadQualificationDTO }>
+  > {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage === 'CLOSED') return err(crmLeadAlreadyClosed())
+
+    const existing = await CrmLeadRepository.findQualification(leadId)
+    if (!existing.ok) return existing
+    if (!existing.value && lead.value.stage !== 'QUALIFIED') {
+      return err(
+        crmLeadStageTransitionInvalid(
+          'Qualifique o lead somente a partir da etapa "Lead Qualificado"',
+        ),
+      )
+    }
+
+    const qualification = await CrmLeadRepository.upsertQualification({
+      leadId,
+      qualifiedById: actorId,
+      expectedCloseAt: dto.expectedCloseAt,
+      decisionMakerName: dto.decisionMakerName,
+      decisionMakerRole: dto.decisionMakerRole,
+    })
+    if (!qualification.ok) return qualification
+
+    let updatedLead = lead.value
+    if (lead.value.stage === 'QUALIFIED') {
+      const advanced = await CrmLeadRepository.update(leadId, {
+        stage: 'OPPORTUNITY',
+        updatedById: actorId,
+      })
+      if (!advanced.ok) return advanced
+      updatedLead = advanced.value
+    }
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { qualification: true, stage: updatedLead.stage },
+    })
+
+    return ok({
+      lead: toCrmLeadDTO(updatedLead),
+      qualification: toCrmLeadQualificationDTO(qualification.value),
+    })
+  },
+
+  // --- 04 Interesse/Oportunidade ---
+
+  async registerMeeting(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: RegisterCrmLeadMeetingDTO,
+  ): Promise<Result<{ lead: CrmLeadDTO; meeting: CrmLeadMeetingDTO }>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage !== 'OPPORTUNITY') {
+      return err(
+        crmLeadStageTransitionInvalid(
+          'Registre reuniões somente na etapa "Interesse/Oportunidade"',
+        ),
+      )
+    }
+
+    const meeting = await CrmLeadRepository.createMeeting({
+      leadId,
+      workspaceId,
+      createdById: actorId,
+      scheduledAt: dto.scheduledAt,
+      format: dto.format,
+      contactPersonId: dto.contactPersonId,
+      contactPersonName: dto.contactPersonName,
+      interestDetails: dto.interestDetails,
+      identifiedNeed: dto.identifiedNeed,
+    })
+    if (!meeting.ok) return meeting
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { meeting: true },
+    })
+
+    return ok({
+      lead: toCrmLeadDTO(lead.value),
+      meeting: toCrmLeadMeetingDTO(meeting.value),
+    })
+  },
+
+  // OPPORTUNITY -> PROPOSAL: criar a proposta é a transição.
+  async createProposal(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: CreateCrmLeadProposalDTO,
+  ): Promise<Result<{ lead: CrmLeadDTO; proposal: CrmProposalDTO }>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage !== 'OPPORTUNITY') {
+      return err(
+        crmLeadStageTransitionInvalid(
+          'Crie a proposta somente a partir da etapa "Interesse/Oportunidade"',
+        ),
+      )
+    }
+
+    const meetings = await CrmLeadRepository.listMeetings(leadId)
+    if (!meetings.ok) return meetings
+    if (meetings.value.length === 0) {
+      return err(
+        crmLeadStageRequirementsNotMet(
+          'Registre ao menos uma reunião antes de criar a proposta',
+        ),
+      )
+    }
+
+    const proposal = await CrmProposalRepository.create({
+      workspaceId,
+      createdById: actorId,
+      name: dto.name,
+      templateId: dto.templateId,
+      leadId,
+      responsibleId: actorId,
+      validUntil: dto.validUntil,
+      sections: [],
+    })
+    if (!proposal.ok) return proposal
+
+    const advanced = await CrmLeadRepository.update(leadId, {
+      stage: 'PROPOSAL',
+      updatedById: actorId,
+    })
+    if (!advanced.ok) return advanced
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { proposalCreated: proposal.value.id },
+    })
+
+    return ok({
+      lead: toCrmLeadDTO(advanced.value),
+      proposal: toCrmProposalDTO(proposal.value),
+    })
+  },
+
+  // --- 05 Proposta (inclui o Termômetro de Interesse) ---
+
+  async registerProposalPresentation(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    proposalId: string,
+    dto: RegisterCrmLeadProposalPresentationDTO,
+  ): Promise<
+    Result<{ lead: CrmLeadDTO; presentation: CrmLeadProposalPresentationDTO }>
+  > {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage !== 'PROPOSAL') {
+      return err(
+        crmLeadStageTransitionInvalid(
+          'Registre apresentações somente na etapa "Proposta"',
+        ),
+      )
+    }
+
+    const proposal = await CrmProposalRepository.findById(
+      proposalId,
+      workspaceId,
+    )
+    if (!proposal.ok) return proposal
+    if (proposal.value.leadId !== leadId) {
+      return err(crmLeadProposalNotFound())
+    }
+
+    const presentation = await CrmLeadRepository.createProposalPresentation({
+      leadId,
+      proposalId,
+      createdById: actorId,
+      presentedAt: dto.presentedAt,
+      format: dto.format,
+      amount: dto.amount,
+      interestLevel: dto.interestLevel,
+      interactionsCount: dto.interactionsCount,
+    })
+    if (!presentation.ok) return presentation
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { proposalPresentation: true, interestLevel: dto.interestLevel },
+    })
+
+    return ok({
+      lead: toCrmLeadDTO(lead.value),
+      presentation: toCrmLeadProposalPresentationDTO(presentation.value),
+    })
+  },
+
+  // --- 06 Fechado/Encerrado ---
+
+  async closeWon(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: CloseCrmLeadWonDTO,
+  ): Promise<Result<CrmPersonDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage === 'CLOSED') return err(crmLeadAlreadyClosed())
+    if (lead.value.stage !== 'PROPOSAL') {
+      return err(
+        crmLeadStageTransitionInvalid(
+          'Só é possível fechar como ganho a partir da etapa "Proposta"',
+        ),
+      )
+    }
+
+    const presentations =
+      await CrmLeadRepository.listProposalPresentations(leadId)
+    if (!presentations.ok) return presentations
+    if (presentations.value.length === 0) {
+      return err(
+        crmLeadStageRequirementsNotMet(
+          'Registre a apresentação da proposta antes de fechar como ganho',
+        ),
+      )
+    }
+
+    const person = await createPersonFromLead(workspaceId, actorId, lead.value)
+    if (!person.ok) return person
+
+    const updated = await CrmLeadRepository.update(leadId, {
+      stage: 'CLOSED',
+      closeResult: 'WON',
+      closedAt: new Date(),
+      contractSignedAt: dto.contractSignedAt,
+      billingType: dto.billingType,
+      closedAmount: dto.closedAmount,
+      convertedPersonId: person.value.id,
+      updatedById: actorId,
+    })
+    if (!updated.ok) return updated
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { closed: 'WON', personId: person.value.id },
+    })
+
+    return ok(toCrmPersonDTO(person.value))
+  },
+
+  async closeLost(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: CloseCrmLeadLostDTO,
+  ): Promise<Result<CrmLeadDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.stage === 'CLOSED') return err(crmLeadAlreadyClosed())
+
+    if (lead.value.stage === 'PROPOSAL') {
+      const presentations =
+        await CrmLeadRepository.listProposalPresentations(leadId)
+      if (!presentations.ok) return presentations
+      if (presentations.value.length === 0) {
+        return err(
+          crmLeadStageRequirementsNotMet(
+            'Registre a apresentação da proposta antes de registrar o resultado',
+          ),
+        )
+      }
+    }
+
+    const updated = await CrmLeadRepository.update(leadId, {
+      stage: 'CLOSED',
+      closeResult: 'LOST',
+      closedAt: new Date(),
+      lostReason: dto.lostReason,
+      lostNote: dto.lostNote,
+      retryAt: dto.retryAt,
+      updatedById: actorId,
+    })
+    if (!updated.ok) return updated
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: { closed: 'LOST', reason: dto.lostReason },
+    })
+
+    return ok(toCrmLeadDTO(updated.value))
   },
 }

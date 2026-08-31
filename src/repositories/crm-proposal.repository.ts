@@ -90,6 +90,7 @@ export const CrmProposalRepository = {
     companyId?: string
     contactId?: string
     opportunityId?: string
+    leadId?: string
     responsibleId: string
     validUntil?: Date
     sections: CrmProposalSectionInputDTO[]
@@ -107,6 +108,7 @@ export const CrmProposalRepository = {
           companyId: data.companyId,
           contactId: data.contactId,
           opportunityId: data.opportunityId,
+          leadId: data.leadId,
           responsibleId: data.responsibleId,
           validUntil: data.validUntil,
           shareToken: createId(),
