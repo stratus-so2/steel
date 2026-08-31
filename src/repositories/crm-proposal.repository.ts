@@ -67,6 +67,22 @@ export const CrmProposalRepository = {
     }
   },
 
+  async findLatestByLeadId(
+    leadId: string,
+    workspaceId: string,
+  ): Promise<Result<CrmProposalWithSections | null>> {
+    try {
+      const proposal = await prisma.crmProposal.findFirst({
+        where: { leadId, workspaceId, deletedAt: null },
+        orderBy: { createdAt: 'desc' },
+        include: { sections: { orderBy: { order: 'asc' } } },
+      })
+      return ok(proposal)
+    } catch (error) {
+      return err(dbError('Failed to find CRM proposal by lead id', error))
+    }
+  },
+
   async findByShareToken(
     shareToken: string,
   ): Promise<Result<CrmProposalWithSections>> {

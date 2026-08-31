@@ -301,6 +301,26 @@ export const CrmLeadService = {
     return ok(toCrmPersonDTO(person.value))
   },
 
+  async getActiveProposal(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+  ): Promise<Result<CrmProposalDTO | null>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmProposalRepository.findLatestByLeadId(
+      leadId,
+      workspaceId,
+    )
+    if (!result.ok) return result
+
+    return ok(result.value ? toCrmProposalDTO(result.value) : null)
+  },
+
   // --- 01 Recebido -> 02 Em Contato / 02 -> 03 Qualificado ---
 
   async registerContactAttempt(
@@ -355,6 +375,23 @@ export const CrmLeadService = {
       lead: toCrmLeadDTO(updatedLead),
       attempt: toCrmLeadContactAttemptDTO(attempt.value),
     })
+  },
+
+  async listContactAttempts(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+  ): Promise<Result<CrmLeadContactAttemptDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmLeadRepository.listContactAttempts(leadId)
+    if (!result.ok) return result
+
+    return ok(result.value.map(toCrmLeadContactAttemptDTO))
   },
 
   // --- 02: produtos/serviços de interesse ---
@@ -448,6 +485,23 @@ export const CrmLeadService = {
     })
   },
 
+  async getQualification(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+  ): Promise<Result<CrmLeadQualificationDTO | null>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmLeadRepository.findQualification(leadId)
+    if (!result.ok) return result
+
+    return ok(result.value ? toCrmLeadQualificationDTO(result.value) : null)
+  },
+
   // --- 04 Interesse/Oportunidade ---
 
   async registerMeeting(
@@ -494,6 +548,23 @@ export const CrmLeadService = {
       lead: toCrmLeadDTO(lead.value),
       meeting: toCrmLeadMeetingDTO(meeting.value),
     })
+  },
+
+  async listMeetings(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+  ): Promise<Result<CrmLeadMeetingDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmLeadRepository.listMeetings(leadId)
+    if (!result.ok) return result
+
+    return ok(result.value.map(toCrmLeadMeetingDTO))
   },
 
   // OPPORTUNITY -> PROPOSAL: criar a proposta é a transição.
@@ -615,6 +686,23 @@ export const CrmLeadService = {
       lead: toCrmLeadDTO(lead.value),
       presentation: toCrmLeadProposalPresentationDTO(presentation.value),
     })
+  },
+
+  async listProposalPresentations(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+  ): Promise<Result<CrmLeadProposalPresentationDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmLeadRepository.listProposalPresentations(leadId)
+    if (!result.ok) return result
+
+    return ok(result.value.map(toCrmLeadProposalPresentationDTO))
   },
 
   // --- 06 Fechado/Encerrado ---
