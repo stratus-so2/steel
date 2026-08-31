@@ -10,8 +10,8 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useMemo, useState } from 'react'
 import {
-  STATUS_LABELS,
-  STATUS_STYLES,
+  STAGE_LABELS,
+  STAGE_STYLES,
 } from '@/app/_components/crm/crm-leads-table'
 import { DataTable } from '@/app/_components/crm/table/data-table'
 import type { GridColumn } from '@/app/_components/crm/table/grid'
@@ -375,10 +375,10 @@ function LeadPickerDropdown({
                       <span
                         className={cn(
                           'shrink-0 rounded-full px-2 py-0.5 font-medium text-[10px]',
-                          STATUS_STYLES[l.status],
+                          STAGE_STYLES[l.stage],
                         )}
                       >
-                        {STATUS_LABELS[l.status]}
+                        {STAGE_LABELS[l.stage]}
                       </span>
                     </label>
                   </li>

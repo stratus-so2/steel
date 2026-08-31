@@ -26,32 +26,37 @@ import {
   type LookupKind,
   useCrmWorkspaceLookups,
 } from '@/src/hooks/use-crm-workspace-lookups'
-import type { CrmLeadDTO, CrmLeadStatusDTO } from '@/types/crm-lead'
+import type { CrmLeadDTO, CrmLeadStageDTO } from '@/types/crm-lead'
 
 const LOOKUP_KINDS: LookupKind[] = ['users', 'companies']
 
-export const LEAD_STATUSES: CrmLeadStatusDTO[] = [
-  'NEW',
-  'WORKING',
+/** As 6 etapas fixas do painel de leads — ver CrmLeadService para as regras
+ * de avanço (gates) entre cada uma. */
+export const LEAD_STAGES: CrmLeadStageDTO[] = [
+  'RECEIVED',
+  'IN_CONTACT',
   'QUALIFIED',
-  'UNQUALIFIED',
-  'CONVERTED',
+  'OPPORTUNITY',
+  'PROPOSAL',
+  'CLOSED',
 ]
 
-export const STATUS_STYLES: Record<CrmLeadStatusDTO, string> = {
-  NEW: 'bg-slate-500/15 text-slate-600',
-  WORKING: 'bg-blue-500/15 text-blue-600',
+export const STAGE_STYLES: Record<CrmLeadStageDTO, string> = {
+  RECEIVED: 'bg-blue-500/15 text-blue-600',
+  IN_CONTACT: 'bg-amber-500/15 text-amber-600',
   QUALIFIED: 'bg-emerald-500/15 text-emerald-600',
-  UNQUALIFIED: 'bg-rose-500/15 text-rose-600',
-  CONVERTED: 'bg-violet-500/15 text-violet-600',
+  OPPORTUNITY: 'bg-violet-500/15 text-violet-600',
+  PROPOSAL: 'bg-orange-500/15 text-orange-600',
+  CLOSED: 'bg-rose-500/15 text-rose-600',
 }
 
-export const STATUS_LABELS: Record<CrmLeadStatusDTO, string> = {
-  NEW: 'Novo',
-  WORKING: 'Em contato',
-  QUALIFIED: 'Qualificado',
-  UNQUALIFIED: 'Desqualificado',
-  CONVERTED: 'Convertido',
+export const STAGE_LABELS: Record<CrmLeadStageDTO, string> = {
+  RECEIVED: 'Lead recebido',
+  IN_CONTACT: 'Em contato',
+  QUALIFIED: 'Lead qualificado',
+  OPPORTUNITY: 'Interesse/Oportunidade',
+  PROPOSAL: 'Proposta',
+  CLOSED: 'Fechado/Encerrado',
 }
 
 /** Canal de entrada: categoria fixa, separada de `source` (texto livre para
@@ -110,12 +115,13 @@ const COLUMNS: GridColumn[] = [
     optionStyles: CHANNEL_STYLES,
   },
   {
-    key: 'status',
-    header: 'Status',
+    key: 'stage',
+    header: 'Etapa',
     kind: 'select',
-    defaultValue: 'NEW',
-    options: LEAD_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] })),
-    optionStyles: STATUS_STYLES,
+    defaultValue: 'RECEIVED',
+    readonly: true,
+    options: LEAD_STAGES.map((s) => ({ value: s, label: STAGE_LABELS[s] })),
+    optionStyles: STAGE_STYLES,
   },
   { key: 'score', header: 'Score', kind: 'number', readonly: true },
   {
@@ -175,11 +181,11 @@ export function CrmLeadsTable({
         </>
       }
       kanban={{
-        groupByKey: 'status',
-        columns: LEAD_STATUSES.map((s) => ({
+        groupByKey: 'stage',
+        columns: LEAD_STAGES.map((s) => ({
           value: s,
-          label: STATUS_LABELS[s],
-          className: STATUS_STYLES[s],
+          label: STAGE_LABELS[s],
+          className: STAGE_STYLES[s],
         })),
         renderCard: (record) => (
           <div className='flex flex-col gap-1'>
@@ -201,7 +207,7 @@ export function CrmLeadsTable({
         <LeadConvert
           workspaceId={workspaceId}
           leadId={record.id}
-          status={record.status}
+          convertedPersonId={record.convertedPersonId}
           onConverted={refetch}
         />
       )}
@@ -365,12 +371,12 @@ function CreateLeadDialog({
 function LeadConvert({
   workspaceId,
   leadId,
-  status,
+  convertedPersonId,
   onConverted,
 }: {
   workspaceId: string
   leadId: string
-  status: CrmLeadStatusDTO
+  convertedPersonId: string | null
   onConverted: () => void
 }) {
   const convertLead = useConvertCrmLead(workspaceId)
@@ -385,7 +391,7 @@ function LeadConvert({
     }
   }
 
-  if (status === 'CONVERTED') {
+  if (convertedPersonId) {
     return (
       <p className='text-muted-foreground text-sm'>
         Este lead já foi convertido.

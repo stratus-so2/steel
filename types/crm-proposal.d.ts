@@ -26,6 +26,7 @@ export interface CrmProposalDTO {
   companyId: string | null
   contactId: string | null
   opportunityId: string | null
+  leadId: string | null
   responsibleId: string
   validUntil: string | null
   status: CrmProposalStatusDTO

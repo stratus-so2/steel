@@ -1,11 +1,12 @@
 import z from 'zod'
 
-const LeadStatusEnum = z.enum([
-  'NEW',
-  'WORKING',
+export const CrmLeadStageEnum = z.enum([
+  'RECEIVED',
+  'IN_CONTACT',
   'QUALIFIED',
-  'UNQUALIFIED',
-  'CONVERTED',
+  'OPPORTUNITY',
+  'PROPOSAL',
+  'CLOSED',
 ])
 
 export const CreateCrmLeadSchema = z
@@ -19,12 +20,12 @@ export const CreateCrmLeadSchema = z
     linkedin: z.string().max(300).optional(),
     source: z.string().min(1, 'Origem é obrigatória').max(100),
     channel: z.string().max(100).optional(),
-    status: LeadStatusEnum.default('NEW'),
   })
   .refine((data) => data.emails.length > 0 || data.phones.length > 0, {
     message: 'Informe ao menos um email ou telefone',
     path: ['emails'],
   })
+// stage nunca é definível pelo cliente na criação — todo lead nasce em RECEIVED.
 
 export type CreateCrmLeadDTO = z.infer<typeof CreateCrmLeadSchema>
 
@@ -38,7 +39,6 @@ export const UpdateCrmLeadSchema = z.object({
   linkedin: z.string().max(300).optional(),
   source: z.string().max(100).optional(),
   channel: z.string().max(100).optional(),
-  status: LeadStatusEnum.optional(),
   // Nullable: a coluna é limpável na grade (envia null para desvincular).
   ownerId: z.string().nullable().optional(),
 })
@@ -46,7 +46,7 @@ export const UpdateCrmLeadSchema = z.object({
 export type UpdateCrmLeadDTO = z.infer<typeof UpdateCrmLeadSchema>
 
 export const ListCrmLeadsSchema = z.object({
-  status: LeadStatusEnum.optional(),
+  stage: CrmLeadStageEnum.optional(),
 })
 
 export type ListCrmLeadsDTO = z.infer<typeof ListCrmLeadsSchema>
@@ -56,6 +56,144 @@ export const ReorderCrmLeadsSchema = z.object({
 })
 
 export type ReorderCrmLeadsDTO = z.infer<typeof ReorderCrmLeadsSchema>
+
+// --- 01 Recebido -> 02 Em Contato / 02 -> 03 Qualificado ---
+
+const CrmLeadContactChannelEnum = z.enum([
+  'PHONE',
+  'WHATSAPP',
+  'EMAIL',
+  'MEETING',
+  'OTHER',
+])
+
+export const CrmLeadContactOutcomeEnum = z.enum(['ATTEMPTED', 'REACHED'])
+
+export const RegisterCrmLeadContactAttemptSchema = z.object({
+  contactedWith: z
+    .string()
+    .min(1, 'Informe com quem falou ou tentou falar')
+    .max(200),
+  channel: CrmLeadContactChannelEnum,
+  outcome: CrmLeadContactOutcomeEnum.default('ATTEMPTED'),
+  occurredAt: z.coerce.date().default(() => new Date()),
+  note: z.string().max(2000).optional(),
+})
+
+export type RegisterCrmLeadContactAttemptDTO = z.infer<
+  typeof RegisterCrmLeadContactAttemptSchema
+>
+
+export const SetCrmLeadInterestProductsSchema = z.object({
+  productIds: z
+    .array(z.string())
+    .min(1, 'Selecione ao menos um produto/serviço'),
+})
+
+export type SetCrmLeadInterestProductsDTO = z.infer<
+  typeof SetCrmLeadInterestProductsSchema
+>
+
+// --- 03 Lead Qualificado — gate de QUALIFIED -> OPPORTUNITY ---
+
+export const UpsertCrmLeadQualificationSchema = z.object({
+  expectedCloseAt: z.coerce.date().optional(),
+  decisionMakerName: z
+    .string()
+    .min(1, 'Nome do decisor é obrigatório')
+    .max(200),
+  decisionMakerRole: z
+    .string()
+    .min(1, 'Cargo do decisor é obrigatório')
+    .max(150),
+})
+
+export type UpsertCrmLeadQualificationDTO = z.infer<
+  typeof UpsertCrmLeadQualificationSchema
+>
+
+// --- 04 Interesse/Oportunidade ---
+
+const CrmLeadMeetingFormatEnum = z.enum(['IN_PERSON', 'ONLINE'])
+
+export const RegisterCrmLeadMeetingSchema = z.object({
+  scheduledAt: z.coerce.date(),
+  format: CrmLeadMeetingFormatEnum,
+  contactPersonId: z.string().optional(),
+  contactPersonName: z.string().max(200).optional(),
+  interestDetails: z
+    .string()
+    .min(1, 'Detalhe o interesse identificado')
+    .max(2000),
+  identifiedNeed: z
+    .string()
+    .min(1, 'Descreva a necessidade identificada')
+    .max(2000),
+})
+
+export type RegisterCrmLeadMeetingDTO = z.infer<
+  typeof RegisterCrmLeadMeetingSchema
+>
+
+// OPPORTUNITY -> PROPOSAL: a criação da proposta em si é a transição.
+export const CreateCrmLeadProposalSchema = z.object({
+  name: z.string().min(1, 'Nome da proposta é obrigatório').max(200),
+  templateId: z.string().optional(),
+  validUntil: z.coerce.date().optional(),
+})
+
+export type CreateCrmLeadProposalDTO = z.infer<
+  typeof CreateCrmLeadProposalSchema
+>
+
+// --- 05 Proposta (inclui o Termômetro de Interesse) ---
+
+const CrmLeadProposalFormatEnum = z.enum([
+  'IN_PERSON',
+  'ONLINE',
+  'EMAIL',
+  'OTHER',
+])
+
+export const CrmLeadInterestLevelEnum = z.enum([
+  'VERY_LOW',
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'VERY_HIGH',
+])
+
+export const RegisterCrmLeadProposalPresentationSchema = z.object({
+  presentedAt: z.coerce.date(),
+  format: CrmLeadProposalFormatEnum,
+  amount: z.number().nonnegative(),
+  interestLevel: CrmLeadInterestLevelEnum,
+  interactionsCount: z.number().int().nonnegative().default(0),
+  notes: z.string().max(2000).optional(),
+})
+
+export type RegisterCrmLeadProposalPresentationDTO = z.infer<
+  typeof RegisterCrmLeadProposalPresentationSchema
+>
+
+// --- 06 Fechado/Encerrado ---
+
+export const CloseCrmLeadWonSchema = z.object({
+  contractSignedAt: z.coerce.date(),
+  billingType: z.enum(['ONE_TIME', 'MONTHLY', 'YEARLY']),
+  closedAmount: z.number().nonnegative(),
+  contractSignedConfirmed: z.literal(true),
+})
+
+export type CloseCrmLeadWonDTO = z.infer<typeof CloseCrmLeadWonSchema>
+
+export const CloseCrmLeadLostSchema = z.object({
+  lostReason: z.string().min(1, 'Informe o motivo da perda').max(200),
+  lostNote: z.string().max(2000).optional(),
+  retryAt: z.coerce.date().optional(),
+})
+
+export type CloseCrmLeadLostDTO = z.infer<typeof CloseCrmLeadLostSchema>
 
 const LeadRuleFieldEnum = z.enum([
   'name',

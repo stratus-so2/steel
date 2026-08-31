@@ -5,6 +5,7 @@ export interface CrmNoteDTO {
   companyId: string | null
   personId: string | null
   opportunityId: string | null
+  leadId: string | null
   workspaceId: string
   createdById: string
   updatedById: string | null

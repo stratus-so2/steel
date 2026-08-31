@@ -171,7 +171,7 @@ const TOOLS: ToolDefinition[] = [
           name: l.name,
           company: l.company,
           source: l.source,
-          status: l.status,
+          stage: l.stage,
           score: l.score,
         })),
       )

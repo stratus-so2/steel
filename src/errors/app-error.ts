@@ -283,6 +283,27 @@ export const crmLeadRoutingRuleNotFound = (): AppError =>
     'Regra de roteamento não encontrada',
   )
 
+export const crmLeadStageTransitionInvalid = (
+  message = 'Não é possível pular etapas do painel de leads',
+): AppError => appError('CRM_LEAD_STAGE_TRANSITION_INVALID', message)
+
+export const crmLeadStageRequirementsNotMet = (
+  message = 'Preencha os dados obrigatórios da etapa antes de avançar',
+): AppError => appError('CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET', message)
+
+export const crmLeadAlreadyClosed = (
+  message = 'Este lead já está fechado',
+): AppError => appError('CRM_LEAD_ALREADY_CLOSED', message)
+
+export const crmLeadQualificationNotFound = (): AppError =>
+  appError(
+    'CRM_LEAD_QUALIFICATION_NOT_FOUND',
+    'Qualificação do lead não encontrada',
+  )
+
+export const crmLeadProposalNotFound = (): AppError =>
+  appError('CRM_LEAD_PROPOSAL_NOT_FOUND', 'Proposta do lead não encontrada')
+
 export const crmCustomFieldNotFound = (): AppError =>
   appError('CRM_CUSTOM_FIELD_NOT_FOUND', 'Campo customizado não encontrado')
 

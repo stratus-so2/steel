@@ -1,4 +1,4 @@
-import type { CrmLead, CrmLeadStatus } from '@prisma/client'
+import type { CrmLead, CrmLeadStage } from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -7,14 +7,14 @@ import { dbError } from './db-error'
 export const CrmLeadRepository = {
   async listByWorkspace(
     workspaceId: string,
-    filters?: { status?: CrmLeadStatus },
+    filters?: { stage?: CrmLeadStage },
   ): Promise<Result<CrmLead[]>> {
     try {
       const leads = await prisma.crmLead.findMany({
         where: {
           workspaceId,
           deletedAt: null,
-          ...(filters?.status ? { status: filters.status } : {}),
+          ...(filters?.stage ? { stage: filters.stage } : {}),
         },
         orderBy: { position: 'asc' },
       })
@@ -48,7 +48,6 @@ export const CrmLeadRepository = {
     linkedin?: string
     source?: string
     channel?: string
-    status?: CrmLeadStatus
     score: number
     ownerId?: string | null
   }): Promise<Result<CrmLead>> {
@@ -75,10 +74,18 @@ export const CrmLeadRepository = {
       linkedin?: string
       source?: string
       channel?: string
-      status?: CrmLeadStatus
+      stage?: CrmLeadStage
       score?: number
       ownerId?: string | null
       convertedPersonId?: string
+      closeResult?: 'WON' | 'LOST'
+      closedAt?: Date
+      contractSignedAt?: Date
+      billingType?: 'ONE_TIME' | 'MONTHLY' | 'YEARLY'
+      closedAmount?: number
+      lostReason?: string
+      lostNote?: string
+      retryAt?: Date
       updatedById?: string
     },
   ): Promise<Result<CrmLead>> {

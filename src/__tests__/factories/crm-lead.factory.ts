@@ -25,10 +25,18 @@ export function createFakeCrmLead(overrides?: Partial<CrmLead>): CrmLead {
     linkedin: null,
     source: null,
     channel: null,
-    status: 'NEW',
+    stage: 'RECEIVED',
     score: 0,
     ownerId: null,
     convertedPersonId: null,
+    closeResult: null,
+    closedAt: null,
+    contractSignedAt: null,
+    billingType: null,
+    closedAmount: null,
+    lostReason: null,
+    lostNote: null,
+    retryAt: null,
     createdById: createId(),
     updatedById: null,
     position: 0,
@@ -55,10 +63,18 @@ export function createFakeCrmLeadDTO(
     linkedin: null,
     source: null,
     channel: null,
-    status: 'NEW',
+    stage: 'RECEIVED',
     score: 0,
     ownerId: null,
     convertedPersonId: null,
+    closeResult: null,
+    closedAt: null,
+    contractSignedAt: null,
+    billingType: null,
+    closedAmount: null,
+    lostReason: null,
+    lostNote: null,
+    retryAt: null,
     createdById: createId(),
     updatedById: null,
     position: 0,
@@ -78,7 +94,7 @@ export async function seedCrmLead(
       | 'emails'
       | 'company'
       | 'source'
-      | 'status'
+      | 'stage'
       | 'score'
       | 'ownerId'
       | 'position'

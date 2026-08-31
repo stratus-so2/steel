@@ -9,6 +9,7 @@ export function toCrmNoteDTO(note: CrmNote): CrmNoteDTO {
     companyId: note.companyId,
     personId: note.personId,
     opportunityId: note.opportunityId,
+    leadId: note.leadId,
     workspaceId: note.workspaceId,
     createdById: note.createdById,
     updatedById: note.updatedById,

@@ -51,65 +51,69 @@ model User {
   whatsappGroupMessagesSent           WhatsAppGroupMessage[]        @relation("WhatsAppGroupMessageSender")
   whatsappAiKnowledgeDocumentsCreated WhatsAppAiKnowledgeDocument[] @relation("WhatsAppAiKnowledgeDocumentCreatedBy")
 
-  crmCompaniesCreated          CrmCompany[]               @relation("CrmCompanyCreatedBy")
-  crmCompaniesOwned            CrmCompany[]               @relation("CrmCompanyAccountOwner")
-  crmCompaniesUpdated          CrmCompany[]               @relation("CrmCompanyUpdatedBy")
-  crmPeopleCreated             CrmPerson[]                @relation("CrmPersonCreatedBy")
-  crmPeopleUpdated             CrmPerson[]                @relation("CrmPersonUpdatedBy")
-  crmPipelinesCreated          CrmPipeline[]              @relation("CrmPipelineCreatedBy")
-  crmPipelinesUpdated          CrmPipeline[]              @relation("CrmPipelineUpdatedBy")
-  crmProductsCreated           CrmProduct[]               @relation("CrmProductCreatedBy")
-  crmProductsUpdated           CrmProduct[]               @relation("CrmProductUpdatedBy")
-  crmOpportunitiesCreated      CrmOpportunity[]           @relation("CrmOpportunityCreatedBy")
-  crmOpportunitiesUpdated      CrmOpportunity[]           @relation("CrmOpportunityUpdatedBy")
-  crmOpportunitiesOwned        CrmOpportunity[]           @relation("CrmOpportunityOwner")
-  crmLeadsCreated              CrmLead[]                  @relation("CrmLeadCreatedBy")
-  crmLeadsUpdated              CrmLead[]                  @relation("CrmLeadUpdatedBy")
-  crmLeadsOwned                CrmLead[]                  @relation("CrmLeadOwner")
-  crmLeadRoutingRulesOwned     CrmLeadRoutingRule[]       @relation("CrmLeadRoutingOwner")
-  crmCustomFieldsCreated       CrmCustomFieldDefinition[] @relation("CrmCustomFieldCreatedBy")
-  crmCustomFieldsUpdated       CrmCustomFieldDefinition[] @relation("CrmCustomFieldUpdatedBy")
-  crmTasksAssigned             CrmTask[]                  @relation("CrmTaskAssignee")
-  crmTasksCreated              CrmTask[]                  @relation("CrmTaskCreatedBy")
-  crmTasksUpdated              CrmTask[]                  @relation("CrmTaskUpdatedBy")
-  crmNotesCreated              CrmNote[]                  @relation("CrmNoteCreatedBy")
-  crmNotesUpdated              CrmNote[]                  @relation("CrmNoteUpdatedBy")
-  crmActivitiesActed           CrmActivity[]              @relation("CrmActivityActor")
-  crmQuotasOwned               CrmQuota[]                 @relation("CrmQuotaOwner")
-  crmQuotasCreated             CrmQuota[]                 @relation("CrmQuotaCreatedBy")
-  crmQuotasUpdated             CrmQuota[]                 @relation("CrmQuotaUpdatedBy")
-  crmReportsCreated            CrmReport[]                @relation("CrmReportCreatedBy")
-  crmReportsUpdated            CrmReport[]                @relation("CrmReportUpdatedBy")
-  crmDashboardsCreated         CrmDashboard[]             @relation("CrmDashboardCreatedBy")
-  crmDashboardsUpdated         CrmDashboard[]             @relation("CrmDashboardUpdatedBy")
-  crmProposalsCreated          CrmProposal[]              @relation("CrmProposalCreatedBy")
-  crmProposalsUpdated          CrmProposal[]              @relation("CrmProposalUpdatedBy")
-  crmProposalsResponsible      CrmProposal[]              @relation("CrmProposalResponsible")
-  crmProposalTemplatesCreated  CrmProposalTemplate[]      @relation("CrmProposalTemplateCreatedBy")
-  crmProposalTemplatesUpdated  CrmProposalTemplate[]      @relation("CrmProposalTemplateUpdatedBy")
-  crmFormsCreated              CrmForm[]                  @relation("CrmFormCreatedBy")
-  crmFormsUpdated              CrmForm[]                  @relation("CrmFormUpdatedBy")
-  crmAiConversationsOwned      CrmAiConversation[]        @relation("CrmAiConversationUser")
-  crmIntegrationApiKeysCreated CrmIntegrationApiKey[]     @relation("CrmIntegrationApiKeyCreatedBy")
-  crmEmailTemplatesCreated     CrmEmailTemplate[]         @relation("CrmEmailTemplateCreatedBy")
-  crmEmailTemplatesUpdated     CrmEmailTemplate[]         @relation("CrmEmailTemplateUpdatedBy")
-  crmEmailCampaignsCreated     CrmEmailCampaign[]         @relation("CrmEmailCampaignCreatedBy")
-  crmMailingListsCreated       CrmMailingList[]           @relation("CrmMailingListCreatedBy")
-  crmWorkflowsCreated          CrmWorkflow[]              @relation("CrmWorkflowCreatedBy")
-  crmWorkflowsUpdated          CrmWorkflow[]              @relation("CrmWorkflowUpdatedBy")
-  crmWorkflowRunsStarted       CrmWorkflowRun[]           @relation("CrmWorkflowRunStartedBy")
-  crmLandingPagesCreated       CrmLandingPage[]           @relation("CrmLandingPageCreatedBy")
-  crmLandingPagesUpdated       CrmLandingPage[]           @relation("CrmLandingPageUpdatedBy")
-  crmSocialConnectionsCreated  CrmSocialConnection[]      @relation("CrmSocialConnectionCreatedBy")
-  crmSocialConnectionsUpdated  CrmSocialConnection[]      @relation("CrmSocialConnectionUpdatedBy")
-  crmHookVaultItemsCreated     CrmHookVaultItem[]         @relation("CrmHookVaultItemCreatedBy")
-  crmHookVaultItemsUpdated     CrmHookVaultItem[]         @relation("CrmHookVaultItemUpdatedBy")
-  crmTrackedCompetitorsCreated CrmTrackedCompetitor[]     @relation("CrmTrackedCompetitorCreatedBy")
-  crmTrackedCompetitorsUpdated CrmTrackedCompetitor[]     @relation("CrmTrackedCompetitorUpdatedBy")
-  crmScheduledPostsCreated     CrmScheduledPost[]         @relation("CrmScheduledPostCreatedBy")
-  crmEmailAccounts             CrmEmailAccount[]          @relation("CrmEmailAccountUser")
-  crmEmailMessagesCreated      CrmEmailMessage[]          @relation("CrmEmailMessageCreatedBy")
-  crmCalendarEventsCreated     CrmCalendarEvent[]         @relation("CrmCalendarEventCreatedBy")
+  crmCompaniesCreated                CrmCompany[]                  @relation("CrmCompanyCreatedBy")
+  crmCompaniesOwned                  CrmCompany[]                  @relation("CrmCompanyAccountOwner")
+  crmCompaniesUpdated                CrmCompany[]                  @relation("CrmCompanyUpdatedBy")
+  crmPeopleCreated                   CrmPerson[]                   @relation("CrmPersonCreatedBy")
+  crmPeopleUpdated                   CrmPerson[]                   @relation("CrmPersonUpdatedBy")
+  crmPipelinesCreated                CrmPipeline[]                 @relation("CrmPipelineCreatedBy")
+  crmPipelinesUpdated                CrmPipeline[]                 @relation("CrmPipelineUpdatedBy")
+  crmProductsCreated                 CrmProduct[]                  @relation("CrmProductCreatedBy")
+  crmProductsUpdated                 CrmProduct[]                  @relation("CrmProductUpdatedBy")
+  crmOpportunitiesCreated            CrmOpportunity[]              @relation("CrmOpportunityCreatedBy")
+  crmOpportunitiesUpdated            CrmOpportunity[]              @relation("CrmOpportunityUpdatedBy")
+  crmOpportunitiesOwned              CrmOpportunity[]              @relation("CrmOpportunityOwner")
+  crmLeadsCreated                    CrmLead[]                     @relation("CrmLeadCreatedBy")
+  crmLeadsUpdated                    CrmLead[]                     @relation("CrmLeadUpdatedBy")
+  crmLeadsOwned                      CrmLead[]                     @relation("CrmLeadOwner")
+  crmLeadContactAttemptsLogged       CrmLeadContactAttempt[]       @relation("CrmLeadContactAttemptCreatedBy")
+  crmLeadQualificationsHandled       CrmLeadQualification[]        @relation("CrmLeadQualificationQualifiedBy")
+  crmLeadMeetingsCreated             CrmLeadMeeting[]              @relation("CrmLeadMeetingCreatedBy")
+  crmLeadProposalPresentationsLogged CrmLeadProposalPresentation[] @relation("CrmLeadProposalPresentationCreatedBy")
+  crmLeadRoutingRulesOwned           CrmLeadRoutingRule[]          @relation("CrmLeadRoutingOwner")
+  crmCustomFieldsCreated             CrmCustomFieldDefinition[]    @relation("CrmCustomFieldCreatedBy")
+  crmCustomFieldsUpdated             CrmCustomFieldDefinition[]    @relation("CrmCustomFieldUpdatedBy")
+  crmTasksAssigned                   CrmTask[]                     @relation("CrmTaskAssignee")
+  crmTasksCreated                    CrmTask[]                     @relation("CrmTaskCreatedBy")
+  crmTasksUpdated                    CrmTask[]                     @relation("CrmTaskUpdatedBy")
+  crmNotesCreated                    CrmNote[]                     @relation("CrmNoteCreatedBy")
+  crmNotesUpdated                    CrmNote[]                     @relation("CrmNoteUpdatedBy")
+  crmActivitiesActed                 CrmActivity[]                 @relation("CrmActivityActor")
+  crmQuotasOwned                     CrmQuota[]                    @relation("CrmQuotaOwner")
+  crmQuotasCreated                   CrmQuota[]                    @relation("CrmQuotaCreatedBy")
+  crmQuotasUpdated                   CrmQuota[]                    @relation("CrmQuotaUpdatedBy")
+  crmReportsCreated                  CrmReport[]                   @relation("CrmReportCreatedBy")
+  crmReportsUpdated                  CrmReport[]                   @relation("CrmReportUpdatedBy")
+  crmDashboardsCreated               CrmDashboard[]                @relation("CrmDashboardCreatedBy")
+  crmDashboardsUpdated               CrmDashboard[]                @relation("CrmDashboardUpdatedBy")
+  crmProposalsCreated                CrmProposal[]                 @relation("CrmProposalCreatedBy")
+  crmProposalsUpdated                CrmProposal[]                 @relation("CrmProposalUpdatedBy")
+  crmProposalsResponsible            CrmProposal[]                 @relation("CrmProposalResponsible")
+  crmProposalTemplatesCreated        CrmProposalTemplate[]         @relation("CrmProposalTemplateCreatedBy")
+  crmProposalTemplatesUpdated        CrmProposalTemplate[]         @relation("CrmProposalTemplateUpdatedBy")
+  crmFormsCreated                    CrmForm[]                     @relation("CrmFormCreatedBy")
+  crmFormsUpdated                    CrmForm[]                     @relation("CrmFormUpdatedBy")
+  crmAiConversationsOwned            CrmAiConversation[]           @relation("CrmAiConversationUser")
+  crmIntegrationApiKeysCreated       CrmIntegrationApiKey[]        @relation("CrmIntegrationApiKeyCreatedBy")
+  crmEmailTemplatesCreated           CrmEmailTemplate[]            @relation("CrmEmailTemplateCreatedBy")
+  crmEmailTemplatesUpdated           CrmEmailTemplate[]            @relation("CrmEmailTemplateUpdatedBy")
+  crmEmailCampaignsCreated           CrmEmailCampaign[]            @relation("CrmEmailCampaignCreatedBy")
+  crmMailingListsCreated             CrmMailingList[]              @relation("CrmMailingListCreatedBy")
+  crmWorkflowsCreated                CrmWorkflow[]                 @relation("CrmWorkflowCreatedBy")
+  crmWorkflowsUpdated                CrmWorkflow[]                 @relation("CrmWorkflowUpdatedBy")
+  crmWorkflowRunsStarted             CrmWorkflowRun[]              @relation("CrmWorkflowRunStartedBy")
+  crmLandingPagesCreated             CrmLandingPage[]              @relation("CrmLandingPageCreatedBy")
+  crmLandingPagesUpdated             CrmLandingPage[]              @relation("CrmLandingPageUpdatedBy")
+  crmSocialConnectionsCreated        CrmSocialConnection[]         @relation("CrmSocialConnectionCreatedBy")
+  crmSocialConnectionsUpdated        CrmSocialConnection[]         @relation("CrmSocialConnectionUpdatedBy")
+  crmHookVaultItemsCreated           CrmHookVaultItem[]            @relation("CrmHookVaultItemCreatedBy")
+  crmHookVaultItemsUpdated           CrmHookVaultItem[]            @relation("CrmHookVaultItemUpdatedBy")
+  crmTrackedCompetitorsCreated       CrmTrackedCompetitor[]        @relation("CrmTrackedCompetitorCreatedBy")
+  crmTrackedCompetitorsUpdated       CrmTrackedCompetitor[]        @relation("CrmTrackedCompetitorUpdatedBy")
+  crmScheduledPostsCreated           CrmScheduledPost[]            @relation("CrmScheduledPostCreatedBy")
+  crmEmailAccounts                   CrmEmailAccount[]             @relation("CrmEmailAccountUser")
+  crmEmailMessagesCreated            CrmEmailMessage[]             @relation("CrmEmailMessageCreatedBy")
+  crmCalendarEventsCreated           CrmCalendarEvent[]            @relation("CrmCalendarEventCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -329,7 +333,9 @@ model Workspace {
   crmHookVaultItems         CrmHookVaultItem[]
   crmTrackedCompetitors     CrmTrackedCompetitor[]
 
-  profiles Profile[]
+  profiles               Profile[]
+  crmLeadContactAttempts CrmLeadContactAttempt[]
+  crmLeadMeetings        CrmLeadMeeting[]
 
   @@map("workspaces")
 }
@@ -1194,6 +1200,7 @@ model CrmPerson {
 
   opportunitiesAsPointOfContact CrmOpportunity[]   @relation("CrmOpportunityPointOfContact")
   convertedFromLeads            CrmLead[]
+  leadMeetings                  CrmLeadMeeting[]   @relation("CrmLeadMeetingContactPerson")
   tasks                         CrmTask[]
   notes                         CrmNote[]
   emailMessages                 CrmEmailMessage[]
@@ -1287,7 +1294,8 @@ model CrmProduct {
   createdBy User      @relation("CrmProductCreatedBy", fields: [createdById], references: [id])
   updatedBy User?     @relation("CrmProductUpdatedBy", fields: [updatedById], references: [id])
 
-  lineItems CrmOpportunityLineItem[]
+  lineItems     CrmOpportunityLineItem[]
+  leadInterests CrmLeadInterestProduct[]
 
   @@unique([workspaceId, sku])
   @@index([workspaceId])
@@ -1368,12 +1376,51 @@ model CrmOpportunityLineItem {
   @@map("crm_opportunity_line_items")
 }
 
-enum CrmLeadStatus {
-  NEW
-  WORKING
+enum CrmLeadStage {
+  RECEIVED
+  IN_CONTACT
   QUALIFIED
-  UNQUALIFIED
-  CONVERTED
+  OPPORTUNITY
+  PROPOSAL
+  CLOSED
+}
+
+enum CrmLeadContactChannel {
+  PHONE
+  WHATSAPP
+  EMAIL
+  MEETING
+  OTHER
+}
+
+enum CrmLeadContactOutcome {
+  ATTEMPTED
+  REACHED
+}
+
+enum CrmLeadMeetingFormat {
+  IN_PERSON
+  ONLINE
+}
+
+enum CrmLeadProposalFormat {
+  IN_PERSON
+  ONLINE
+  EMAIL
+  OTHER
+}
+
+enum CrmLeadInterestLevel {
+  VERY_LOW
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+}
+
+enum CrmLeadCloseResult {
+  WON
+  LOST
 }
 
 enum CrmLeadRuleField {
@@ -1397,29 +1444,42 @@ enum CrmLeadRuleOperator {
 /// Lead (contato bruto de marketing) antes de virar Pessoa. Pontuado e roteado
 /// automaticamente via CrmLeadScoringRule/CrmLeadRoutingRule; convertido manualmente.
 model CrmLead {
-  id                String        @id @default(cuid())
-  workspaceId       String        @map("workspace_id")
+  id                String       @id @default(cuid())
+  workspaceId       String       @map("workspace_id")
   name              String
-  emails            String[]      @default([])
-  phones            String[]      @default([])
+  emails            String[]     @default([])
+  phones            String[]     @default([])
   company           String?
-  jobTitle          String?       @map("job_title")
+  jobTitle          String?      @map("job_title")
   city              String?
   linkedin          String?
   source            String?
   /// Canal de entrada (WhatsApp, Instagram, Site, Indicação etc.) — separado
   /// de `source`, que é texto livre para detalhe/campanha específica.
   channel           String?
-  status            CrmLeadStatus @default(NEW)
-  score             Int           @default(0)
-  ownerId           String?       @map("owner_id")
-  convertedPersonId String?       @map("converted_person_id")
-  createdById       String        @map("created_by_id")
-  updatedById       String?       @map("updated_by_id")
-  position          Int           @default(0)
-  createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt @map("updated_at")
-  deletedAt         DateTime?     @map("deleted_at")
+  /// Etapa fixa do painel de leads (01 Recebido -> 06 Fechado). Avanço é
+  /// sempre gated por um registro obrigatório da etapa — ver CrmLeadService.
+  stage             CrmLeadStage @default(RECEIVED)
+  score             Int          @default(0)
+  ownerId           String?      @map("owner_id")
+  convertedPersonId String?      @map("converted_person_id")
+
+  // Preenchidos apenas quando stage = CLOSED.
+  closeResult      CrmLeadCloseResult? @map("close_result")
+  closedAt         DateTime?           @map("closed_at")
+  contractSignedAt DateTime?           @map("contract_signed_at")
+  billingType      CrmBillingType?     @map("billing_type")
+  closedAmount     Decimal?            @map("closed_amount") @db.Decimal(14, 2)
+  lostReason       String?             @map("lost_reason")
+  lostNote         String?             @map("lost_note")
+  retryAt          DateTime?           @map("retry_at")
+
+  createdById String    @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   workspace       Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   owner           User?      @relation("CrmLeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
@@ -1427,12 +1487,122 @@ model CrmLead {
   updatedBy       User?      @relation("CrmLeadUpdatedBy", fields: [updatedById], references: [id])
   convertedPerson CrmPerson? @relation(fields: [convertedPersonId], references: [id], onDelete: SetNull)
 
+  contactAttempts       CrmLeadContactAttempt[]
+  interestProducts      CrmLeadInterestProduct[]
+  qualification         CrmLeadQualification?
+  meetings              CrmLeadMeeting[]
+  proposals             CrmProposal[]
+  proposalPresentations CrmLeadProposalPresentation[]
+  notes                 CrmNote[]
+
   @@index([workspaceId])
   @@index([ownerId])
-  @@index([status])
+  @@index([stage])
   @@index([deletedAt])
   @@index([workspaceId, position])
   @@map("crm_leads")
+}
+
+/// Tentativa (ou contato efetivo) registrada nas etapas 01/02 do painel de
+/// leads. `outcome = REACHED` é o gate de IN_CONTACT -> QUALIFIED.
+model CrmLeadContactAttempt {
+  id            String                @id @default(cuid())
+  leadId        String                @map("lead_id")
+  workspaceId   String                @map("workspace_id")
+  contactedWith String                @map("contacted_with")
+  channel       CrmLeadContactChannel
+  outcome       CrmLeadContactOutcome @default(ATTEMPTED)
+  occurredAt    DateTime              @map("occurred_at")
+  note          String?
+  createdById   String                @map("created_by_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  lead      CrmLead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("CrmLeadContactAttemptCreatedBy", fields: [createdById], references: [id])
+
+  @@index([leadId, occurredAt])
+  @@index([workspaceId])
+  @@map("crm_lead_contact_attempts")
+}
+
+/// Produto/serviço de interesse do lead, do catálogo existente (CrmProduct).
+model CrmLeadInterestProduct {
+  leadId    String   @map("lead_id")
+  productId String   @map("product_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead    CrmLead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  product CrmProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([leadId, productId])
+  @@index([productId])
+  @@map("crm_lead_interest_products")
+}
+
+/// Snapshot de qualificação (único por lead) — gate de QUALIFIED -> OPPORTUNITY.
+model CrmLeadQualification {
+  id                String    @id @default(cuid())
+  leadId            String    @unique @map("lead_id")
+  expectedCloseAt   DateTime? @map("expected_close_at")
+  decisionMakerName String    @map("decision_maker_name")
+  decisionMakerRole String    @map("decision_maker_role")
+  qualifiedById     String    @map("qualified_by_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  lead        CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  qualifiedBy User    @relation("CrmLeadQualificationQualifiedBy", fields: [qualifiedById], references: [id])
+
+  @@map("crm_lead_qualifications")
+}
+
+/// Reunião registrada na etapa OPPORTUNITY — gate (junto com a criação da
+/// CrmProposal) de OPPORTUNITY -> PROPOSAL.
+model CrmLeadMeeting {
+  id                String               @id @default(cuid())
+  leadId            String               @map("lead_id")
+  workspaceId       String               @map("workspace_id")
+  scheduledAt       DateTime             @map("scheduled_at")
+  format            CrmLeadMeetingFormat
+  contactPersonId   String?              @map("contact_person_id")
+  contactPersonName String?              @map("contact_person_name")
+  interestDetails   String               @map("interest_details")
+  identifiedNeed    String               @map("identified_need")
+  createdById       String               @map("created_by_id")
+  createdAt         DateTime             @default(now()) @map("created_at")
+
+  lead          CrmLead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  workspace     Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contactPerson CrmPerson? @relation("CrmLeadMeetingContactPerson", fields: [contactPersonId], references: [id], onDelete: SetNull)
+  createdBy     User       @relation("CrmLeadMeetingCreatedBy", fields: [createdById], references: [id])
+
+  @@index([leadId, scheduledAt])
+  @@index([workspaceId])
+  @@map("crm_lead_meetings")
+}
+
+/// Apresentação de proposta na etapa PROPOSAL — carrega o Termômetro de
+/// Interesse (`interestLevel`) exibido na barra inferior do painel.
+model CrmLeadProposalPresentation {
+  id                String                @id @default(cuid())
+  leadId            String                @map("lead_id")
+  proposalId        String                @map("proposal_id")
+  presentedAt       DateTime              @map("presented_at")
+  format            CrmLeadProposalFormat
+  amount            Decimal               @db.Decimal(14, 2)
+  interestLevel     CrmLeadInterestLevel  @map("interest_level")
+  interactionsCount Int                   @default(0) @map("interactions_count")
+  createdById       String                @map("created_by_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+
+  lead      CrmLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  proposal  CrmProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  createdBy User        @relation("CrmLeadProposalPresentationCreatedBy", fields: [createdById], references: [id])
+
+  @@index([leadId, presentedAt])
+  @@index([proposalId])
+  @@map("crm_lead_proposal_presentations")
 }
 
 /// Regra de pontuação de leads: condição → pontos somados ao score.
@@ -1585,6 +1755,7 @@ model CrmNote {
   companyId     String?   @map("company_id")
   personId      String?   @map("person_id")
   opportunityId String?   @map("opportunity_id")
+  leadId        String?   @map("lead_id")
   workspaceId   String    @map("workspace_id")
   createdById   String    @map("created_by_id")
   updatedById   String?   @map("updated_by_id")
@@ -1597,6 +1768,7 @@ model CrmNote {
   company     CrmCompany?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
   person      CrmPerson?      @relation(fields: [personId], references: [id], onDelete: SetNull)
   opportunity CrmOpportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  lead        CrmLead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
   createdBy   User            @relation("CrmNoteCreatedBy", fields: [createdById], references: [id])
   updatedBy   User?           @relation("CrmNoteUpdatedBy", fields: [updatedById], references: [id])
 
@@ -1604,6 +1776,7 @@ model CrmNote {
   @@index([companyId])
   @@index([personId])
   @@index([opportunityId])
+  @@index([leadId])
   @@index([deletedAt])
   @@map("crm_notes")
 }
@@ -1827,6 +2000,7 @@ model CrmProposal {
   companyId     String?           @map("company_id")
   contactId     String?           @map("contact_id")
   opportunityId String?           @map("opportunity_id")
+  leadId        String?           @map("lead_id")
   responsibleId String            @map("responsible_id")
   validUntil    DateTime?         @map("valid_until")
   status        CrmProposalStatus @default(DRAFT)
@@ -1839,21 +2013,24 @@ model CrmProposal {
   updatedAt     DateTime          @updatedAt @map("updated_at")
   deletedAt     DateTime?         @map("deleted_at")
 
-  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  template    CrmProposalTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  company     CrmCompany?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  contact     CrmPerson?           @relation("CrmProposalContact", fields: [contactId], references: [id], onDelete: SetNull)
-  opportunity CrmOpportunity?      @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
-  responsible User                 @relation("CrmProposalResponsible", fields: [responsibleId], references: [id])
-  createdBy   User                 @relation("CrmProposalCreatedBy", fields: [createdById], references: [id])
-  updatedBy   User?                @relation("CrmProposalUpdatedBy", fields: [updatedById], references: [id])
-  sections    CrmProposalSection[]
-  views       CrmProposalView[]
+  workspace         Workspace                     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template          CrmProposalTemplate?          @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  company           CrmCompany?                   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  contact           CrmPerson?                    @relation("CrmProposalContact", fields: [contactId], references: [id], onDelete: SetNull)
+  opportunity       CrmOpportunity?               @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  lead              CrmLead?                      @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  responsible       User                          @relation("CrmProposalResponsible", fields: [responsibleId], references: [id])
+  createdBy         User                          @relation("CrmProposalCreatedBy", fields: [createdById], references: [id])
+  updatedBy         User?                         @relation("CrmProposalUpdatedBy", fields: [updatedById], references: [id])
+  sections          CrmProposalSection[]
+  views             CrmProposalView[]
+  leadPresentations CrmLeadProposalPresentation[]
 
   @@index([workspaceId])
   @@index([templateId])
   @@index([companyId])
   @@index([opportunityId])
+  @@index([leadId])
   @@index([status])
   @@index([deletedAt])
   @@index([workspaceId, position])
@@ -2074,22 +2251,22 @@ model CrmIntegrationApiKey {
 }
 
 model CrmEmailTemplate {
-  id          String    @id @default(cuid())
-  name        String
-  subject     String
-  contentHtml String    @map("content_html") @db.Text
-  contentJson String?   @map("content_json") @db.Text
+  id            String    @id @default(cuid())
+  name          String
+  subject       String
+  contentHtml   String    @map("content_html") @db.Text
+  contentJson   String?   @map("content_json") @db.Text
   /// Layout fixo de origem (ex.: "promo-announcement"), quando o template foi
   /// criado a partir de um modelo pronto em vez do editor de blocos livre.
-  templateId     String?                @map("template_id")
+  templateId    String?   @map("template_id")
   /// Valores dos campos editáveis (texto/imagem) desse layout fixo.
-  templateProps  Json?                  @map("template_props")
-  workspaceId String    @map("workspace_id")
-  createdById String    @map("created_by_id")
-  updatedById String?   @map("updated_by_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  templateProps Json?     @map("template_props")
+  workspaceId   String    @map("workspace_id")
+  createdById   String    @map("created_by_id")
+  updatedById   String?   @map("updated_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation("CrmEmailTemplateCreatedBy", fields: [createdById], references: [id])
@@ -2382,9 +2559,9 @@ model CrmLandingPage {
   updatedAt   DateTime             @updatedAt @map("updated_at")
   deletedAt   DateTime?            @map("deleted_at")
 
-  workspace Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User                     @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?                    @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
+  workspace Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                    @relation("CrmLandingPageCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?                   @relation("CrmLandingPageUpdatedBy", fields: [updatedById], references: [id])
   views     CrmLandingPageView[]
   sections  CrmLandingPageSection[]
 
@@ -2561,9 +2738,9 @@ model CrmTrackedCompetitor {
   updatedAt      DateTime                @updatedAt @map("updated_at")
   deletedAt      DateTime?               @map("deleted_at")
 
-  workspace       Workspace                      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy       User                           @relation("CrmTrackedCompetitorCreatedBy", fields: [createdById], references: [id])
-  updatedBy       User?                          @relation("CrmTrackedCompetitorUpdatedBy", fields: [updatedById], references: [id])
+  workspace       Workspace                     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy       User                          @relation("CrmTrackedCompetitorCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User?                         @relation("CrmTrackedCompetitorUpdatedBy", fields: [updatedById], references: [id])
   metricSnapshots CrmCompetitorMetricSnapshot[]
 
   @@index([workspaceId])
@@ -2632,8 +2809,8 @@ model CrmScheduledPost {
   updatedAt    DateTime               @updatedAt @map("updated_at")
   deletedAt    DateTime?              @map("deleted_at")
 
-  workspace Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User                      @relation("CrmScheduledPostCreatedBy", fields: [createdById], references: [id])
+  workspace Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                     @relation("CrmScheduledPostCreatedBy", fields: [createdById], references: [id])
   targets   CrmScheduledPostTarget[]
   media     CrmScheduledPostMedia[]
 

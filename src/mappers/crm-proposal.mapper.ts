@@ -38,6 +38,7 @@ export function toCrmProposalDTO(
     companyId: proposal.companyId,
     contactId: proposal.contactId,
     opportunityId: proposal.opportunityId,
+    leadId: proposal.leadId,
     responsibleId: proposal.responsibleId,
     validUntil: proposal.validUntil ? proposal.validUntil.toISOString() : null,
     status: proposal.status,

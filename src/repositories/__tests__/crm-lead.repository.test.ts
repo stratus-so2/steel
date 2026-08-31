@@ -24,16 +24,16 @@ describe('CrmLeadRepository', () => {
   })
 
   describe('listByWorkspace()', () => {
-    it('should filter by status when provided', async () => {
+    it('should filter by stage when provided', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
       const qualified = await seedCrmLead(workspace.id, user.id, {
-        status: 'QUALIFIED',
+        stage: 'QUALIFIED',
       })
-      await seedCrmLead(workspace.id, user.id, { status: 'NEW' })
+      await seedCrmLead(workspace.id, user.id, { stage: 'RECEIVED' })
 
       const list = expectOk(
         await CrmLeadRepository.listByWorkspace(workspace.id, {
-          status: 'QUALIFIED',
+          stage: 'QUALIFIED',
         }),
       )
       expect(list.map((l) => l.id)).toEqual([qualified.id])

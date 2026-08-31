@@ -1,23 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CloseCrmLeadLostSchema,
+  CloseCrmLeadWonSchema,
+  CreateCrmLeadProposalSchema,
   CreateCrmLeadRoutingRuleSchema,
   CreateCrmLeadSchema,
   CreateCrmLeadScoringRuleSchema,
+  RegisterCrmLeadContactAttemptSchema,
+  RegisterCrmLeadMeetingSchema,
+  RegisterCrmLeadProposalPresentationSchema,
   ReorderCrmLeadsSchema,
+  SetCrmLeadInterestProductsSchema,
   UpdateCrmLeadRoutingRuleSchema,
   UpdateCrmLeadSchema,
   UpdateCrmLeadScoringRuleSchema,
+  UpsertCrmLeadQualificationSchema,
 } from '../crm-lead.schema'
 
 describe('CreateCrmLeadSchema', () => {
-  it('should default status to NEW and phones to empty', () => {
+  it('should default phones to empty', () => {
     const result = CreateCrmLeadSchema.safeParse({
       name: 'Jane',
       emails: ['jane@x.com'],
       source: 'WhatsApp',
     })
     expect(result.success).toBe(true)
-    expect(result.data?.status).toBe('NEW')
     expect(result.data?.phones).toEqual([])
   })
 
@@ -52,9 +59,8 @@ describe('CreateCrmLeadSchema', () => {
 })
 
 describe('UpdateCrmLeadSchema', () => {
-  it('should leave status and emails undefined when omitted', () => {
+  it('should leave emails undefined when omitted', () => {
     const result = UpdateCrmLeadSchema.safeParse({ name: 'Jane' })
-    expect(result.data?.status).toBeUndefined()
     expect(result.data?.emails).toBeUndefined()
   })
 })
@@ -64,6 +70,125 @@ describe('ReorderCrmLeadsSchema', () => {
     expect(ReorderCrmLeadsSchema.safeParse({ orderedIds: [] }).success).toBe(
       false,
     )
+  })
+})
+
+describe('RegisterCrmLeadContactAttemptSchema', () => {
+  it('should default outcome to ATTEMPTED and fill occurredAt', () => {
+    const result = RegisterCrmLeadContactAttemptSchema.safeParse({
+      contactedWith: 'Maria',
+      channel: 'WHATSAPP',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data?.outcome).toBe('ATTEMPTED')
+    expect(result.data?.occurredAt).toBeInstanceOf(Date)
+  })
+
+  it('should reject an invalid channel', () => {
+    expect(
+      RegisterCrmLeadContactAttemptSchema.safeParse({
+        contactedWith: 'Maria',
+        channel: 'CARRIER_PIGEON',
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('SetCrmLeadInterestProductsSchema', () => {
+  it('should reject an empty productIds array', () => {
+    expect(
+      SetCrmLeadInterestProductsSchema.safeParse({ productIds: [] }).success,
+    ).toBe(false)
+  })
+})
+
+describe('UpsertCrmLeadQualificationSchema', () => {
+  it('should require decisionMakerName and decisionMakerRole', () => {
+    expect(
+      UpsertCrmLeadQualificationSchema.safeParse({
+        decisionMakerName: 'Carlos',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('should accept a full valid payload', () => {
+    expect(
+      UpsertCrmLeadQualificationSchema.safeParse({
+        decisionMakerName: 'Carlos',
+        decisionMakerRole: 'CTO',
+      }).success,
+    ).toBe(true)
+  })
+})
+
+describe('RegisterCrmLeadMeetingSchema', () => {
+  it('should require interestDetails and identifiedNeed', () => {
+    expect(
+      RegisterCrmLeadMeetingSchema.safeParse({
+        scheduledAt: new Date().toISOString(),
+        format: 'ONLINE',
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('CreateCrmLeadProposalSchema', () => {
+  it('should require a name', () => {
+    expect(CreateCrmLeadProposalSchema.safeParse({}).success).toBe(false)
+  })
+})
+
+describe('RegisterCrmLeadProposalPresentationSchema', () => {
+  it('should default interactionsCount to 0', () => {
+    const result = RegisterCrmLeadProposalPresentationSchema.safeParse({
+      presentedAt: new Date().toISOString(),
+      format: 'ONLINE',
+      amount: 1500,
+      interestLevel: 'HIGH',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data?.interactionsCount).toBe(0)
+  })
+
+  it('should reject a negative amount', () => {
+    expect(
+      RegisterCrmLeadProposalPresentationSchema.safeParse({
+        presentedAt: new Date().toISOString(),
+        format: 'ONLINE',
+        amount: -1,
+        interestLevel: 'HIGH',
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('CloseCrmLeadWonSchema', () => {
+  it('should require contractSignedConfirmed to be exactly true', () => {
+    expect(
+      CloseCrmLeadWonSchema.safeParse({
+        contractSignedAt: new Date().toISOString(),
+        billingType: 'MONTHLY',
+        closedAmount: 1000,
+        contractSignedConfirmed: false,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('should accept a full valid payload', () => {
+    expect(
+      CloseCrmLeadWonSchema.safeParse({
+        contractSignedAt: new Date().toISOString(),
+        billingType: 'MONTHLY',
+        closedAmount: 1000,
+        contractSignedConfirmed: true,
+      }).success,
+    ).toBe(true)
+  })
+})
+
+describe('CloseCrmLeadLostSchema', () => {
+  it('should require a lostReason', () => {
+    expect(CloseCrmLeadLostSchema.safeParse({}).success).toBe(false)
   })
 })
 

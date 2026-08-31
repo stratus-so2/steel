@@ -1,9 +1,34 @@
-export type CrmLeadStatusDTO =
-  | 'NEW'
-  | 'WORKING'
+export type CrmLeadStageDTO =
+  | 'RECEIVED'
+  | 'IN_CONTACT'
   | 'QUALIFIED'
-  | 'UNQUALIFIED'
-  | 'CONVERTED'
+  | 'OPPORTUNITY'
+  | 'PROPOSAL'
+  | 'CLOSED'
+
+export type CrmLeadCloseResultDTO = 'WON' | 'LOST'
+
+export type CrmLeadBillingTypeDTO = 'ONE_TIME' | 'MONTHLY' | 'YEARLY'
+
+export type CrmLeadContactChannelDTO =
+  | 'PHONE'
+  | 'WHATSAPP'
+  | 'EMAIL'
+  | 'MEETING'
+  | 'OTHER'
+
+export type CrmLeadContactOutcomeDTO = 'ATTEMPTED' | 'REACHED'
+
+export type CrmLeadMeetingFormatDTO = 'IN_PERSON' | 'ONLINE'
+
+export type CrmLeadProposalFormatDTO = 'IN_PERSON' | 'ONLINE' | 'EMAIL' | 'OTHER'
+
+export type CrmLeadInterestLevelDTO =
+  | 'VERY_LOW'
+  | 'LOW'
+  | 'MEDIUM'
+  | 'HIGH'
+  | 'VERY_HIGH'
 
 export type CrmLeadRuleFieldDTO =
   | 'name'
@@ -33,15 +58,74 @@ export interface CrmLeadDTO {
   linkedin: string | null
   source: string | null
   channel: string | null
-  status: CrmLeadStatusDTO
+  stage: CrmLeadStageDTO
   score: number
   ownerId: string | null
   convertedPersonId: string | null
+  closeResult: CrmLeadCloseResultDTO | null
+  closedAt: string | null
+  contractSignedAt: string | null
+  billingType: CrmLeadBillingTypeDTO | null
+  closedAmount: number | null
+  lostReason: string | null
+  lostNote: string | null
+  retryAt: string | null
   createdById: string
   updatedById: string | null
   position: number
   createdAt: string
   updatedAt: string
+}
+
+export interface CrmLeadContactAttemptDTO {
+  id: string
+  leadId: string
+  workspaceId: string
+  contactedWith: string
+  channel: CrmLeadContactChannelDTO
+  outcome: CrmLeadContactOutcomeDTO
+  occurredAt: string
+  note: string | null
+  createdById: string
+  createdAt: string
+}
+
+export interface CrmLeadQualificationDTO {
+  id: string
+  leadId: string
+  expectedCloseAt: string | null
+  decisionMakerName: string
+  decisionMakerRole: string
+  qualifiedById: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CrmLeadMeetingDTO {
+  id: string
+  leadId: string
+  workspaceId: string
+  scheduledAt: string
+  format: CrmLeadMeetingFormatDTO
+  contactPersonId: string | null
+  contactPersonName: string | null
+  interestDetails: string
+  identifiedNeed: string
+  createdById: string
+  createdAt: string
+}
+
+export interface CrmLeadProposalPresentationDTO {
+  id: string
+  leadId: string
+  proposalId: string
+  presentedAt: string
+  format: CrmLeadProposalFormatDTO
+  amount: number
+  interestLevel: CrmLeadInterestLevelDTO
+  interactionsCount: number
+  createdById: string
+  createdAt: string
 }
 
 export interface CrmLeadScoringRuleDTO {

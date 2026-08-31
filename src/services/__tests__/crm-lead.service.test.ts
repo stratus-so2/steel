@@ -57,7 +57,6 @@ describe('CrmLeadService', () => {
           emails: ['a@b.com'],
           phones: [],
           source: 'WhatsApp',
-          status: 'NEW',
         }),
       )
       expect(dto.score).toBe(10)
@@ -73,13 +72,13 @@ describe('CrmLeadService', () => {
         ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedLeadRepo.findById.mockResolvedValue(
-        ok(createFakeCrmLead({ id: 'l1', status: 'QUALIFIED' })),
+        ok(createFakeCrmLead({ id: 'l1', stage: 'QUALIFIED' })),
       )
       mockedPersonRepo.create.mockResolvedValue(
         ok(createFakeCrmPerson({ id: 'p1' })),
       )
       mockedLeadRepo.update.mockResolvedValue(
-        ok(createFakeCrmLead({ id: 'l1', status: 'CONVERTED' })),
+        ok(createFakeCrmLead({ id: 'l1', convertedPersonId: 'p1' })),
       )
 
       const dto = expectOk(await CrmLeadService.convert('u1', 'ws1', 'l1'))
@@ -87,7 +86,6 @@ describe('CrmLeadService', () => {
       expect(mockedLeadRepo.update).toHaveBeenCalledWith(
         'l1',
         expect.objectContaining({
-          status: 'CONVERTED',
           convertedPersonId: 'p1',
         }),
       )
@@ -98,7 +96,7 @@ describe('CrmLeadService', () => {
         ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedLeadRepo.findById.mockResolvedValue(
-        ok(createFakeCrmLead({ id: 'l1', status: 'CONVERTED' })),
+        ok(createFakeCrmLead({ id: 'l1', convertedPersonId: 'p0' })),
       )
 
       expectErr(

@@ -30,7 +30,7 @@ export const CrmLeadService = {
     if (!membership.ok) return membership
 
     const result = await CrmLeadRepository.listByWorkspace(workspaceId, {
-      status: filters.status,
+      stage: filters.stage,
     })
     if (!result.ok) return result
 
@@ -91,7 +91,6 @@ export const CrmLeadService = {
       linkedin: dto.linkedin,
       source: dto.source,
       channel: dto.channel,
-      status: dto.status,
       score,
       ownerId,
     })
@@ -169,7 +168,6 @@ export const CrmLeadService = {
       linkedin: dto.linkedin,
       source: dto.source,
       channel: dto.channel,
-      status: dto.status,
       ownerId: dto.ownerId,
       score,
       updatedById: actorId,
@@ -233,7 +231,7 @@ export const CrmLeadService = {
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
     if (!lead.ok) return lead
 
-    if (lead.value.status === 'CONVERTED' || lead.value.convertedPersonId) {
+    if (lead.value.convertedPersonId) {
       return err(crmLeadAlreadyConverted())
     }
 
@@ -250,7 +248,6 @@ export const CrmLeadService = {
     if (!person.ok) return person
 
     const updated = await CrmLeadRepository.update(leadId, {
-      status: 'CONVERTED',
       convertedPersonId: person.value.id,
       updatedById: actorId,
     })
