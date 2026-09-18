@@ -1,4 +1,5 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
+import { broadcastRoutes } from './whatsapp/broadcasts'
 import { connectionRoutes } from './whatsapp/connections'
 import { contactRoutes } from './whatsapp/contacts'
 import { conversationRoutes } from './whatsapp/conversations'
@@ -16,6 +17,7 @@ const routes: RouteConfig[] = [
   ...conversationRoutes,
   ...contactRoutes,
   ...groupRoutes,
+  ...broadcastRoutes,
 ]
 
 export function registerWhatsAppPaths(registry: OpenApiRegistry): void {

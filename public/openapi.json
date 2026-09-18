@@ -129,6 +129,10 @@
       "description": "Grupos do WhatsApp."
     },
     {
+      "name": "Comunicação · Transmissões",
+      "description": "Transmissões (broadcasts) e importação de destinatários."
+    },
+    {
       "name": "Comunicação · Conexões",
       "description": "Conexões com a Meta Cloud API e a Z-API."
     },
@@ -238,6 +242,7 @@
         "Comunicação · Conversas",
         "Comunicação · Contatos",
         "Comunicação · Grupos",
+        "Comunicação · Transmissões",
         "Comunicação · Conexões"
       ]
     },
@@ -899,7 +904,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_10"
+            "$ref": "#/components/responses/400_BAD_REQUEST_11"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -15079,7 +15084,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_5"
+            "$ref": "#/components/responses/400_BAD_REQUEST_6"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -15233,7 +15238,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_4"
+            "$ref": "#/components/responses/400_BAD_REQUEST_5"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -20216,7 +20221,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+            "$ref": "#/components/responses/400_BAD_REQUEST_10"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24240,7 +24245,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_6"
+            "$ref": "#/components/responses/400_BAD_REQUEST_7"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24725,7 +24730,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -28262,7 +28267,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_7"
+            "$ref": "#/components/responses/400_BAD_REQUEST_8"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -28469,7 +28474,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_2"
+            "$ref": "#/components/responses/400_BAD_REQUEST_3"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -28567,7 +28572,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_3"
+            "$ref": "#/components/responses/400_BAD_REQUEST_4"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -33417,6 +33422,396 @@
         ]
       }
     },
+    "/workspaces/{id}/whatsapp/broadcasts": {
+      "get": {
+        "tags": ["Comunicação · Transmissões"],
+        "summary": "Listar transmissões",
+        "operationId": "getWorkspacesByIdWhatsappBroadcasts",
+        "description": "Listas de transmissão do workspace com os contadores de envio. Sem paginação. Módulo **Comunicação** habilitado e permissão `broadcasts` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transmissões.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppBroadcast"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Transmissões"],
+        "summary": "Criar transmissão",
+        "operationId": "postWorkspacesByIdWhatsappBroadcasts",
+        "description": "Cria uma lista de transmissão em `DRAFT` (até 1000 contatos, ids repetidos são ignorados) com texto livre e, opcionalmente, mídia por URL pública — `mediaMimeType` é obrigatório com `mediaUrl` e define o tipo (imagem até 5 MB; vídeo, áudio e documento até 16 MB, checados por `mediaSizeBytes` quando informado). Nada é enviado até `POST .../start`. Contatos descadastrados (opt-out LGPD) nunca recebem: são excluídos na criação e, se descadastrarem depois, marcados `SKIPPED` no disparo. Auditado. Módulo **Comunicação** habilitado e permissão `broadcasts` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "connectionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "messageBody": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "mediaUrl": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  },
+                  "mediaMimeType": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "mediaFileName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "mediaSizeBytes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "contactIds": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": ["connectionId", "name", "messageBody", "contactIds"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transmissão criada (rascunho, com destinatários).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppBroadcastDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_WHATSAPP_BROADCAST_MEDIA_INVALID_WHATSAPP_BROADCAST_NO_RECIPIENTS"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/broadcasts/import": {
+      "post": {
+        "tags": ["Comunicação · Transmissões"],
+        "summary": "Importar transmissão agendada (CSV)",
+        "operationId": "postWorkspacesByIdWhatsappBroadcastsImport",
+        "description": "Cria uma transmissão **agendada por destinatário** a partir de um CSV (conteúdo no campo `csv`) e de um template **aprovado** pela Meta — o caso típico é lembrete de consulta/exame.\n\nFormato: cabeçalho com `telefone` e `data_referencia` (obrigatórias), `nome` (opcional) e `var_1`…`var_N`, onde N é o número de variáveis do BODY do template. Cada linha é agendada para `data_referencia − sendOffsetHours` (padrão 24 h); o worker dispara no tick de 5 min.\n\nOs contatos são criados/atualizados pelo telefone. Linhas inválidas (telefone fora de 10–15 dígitos, data inválida, variáveis faltando ou em branco, contato descadastrado) voltam em `rejectedRows` sem abortar a importação; se nenhuma linha passar, `broadcastList` é `null`. A lista criada fica `QUEUED`. Auditado. Módulo **Comunicação** habilitado e permissão `broadcasts` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 140
+                  },
+                  "connectionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sendOffsetHours": {
+                    "default": 24,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "csv": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["name", "connectionId", "templateId", "csv"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Resultado da importação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppBroadcastImportResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_TEMPLATE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_WHATSAPP_TEMPLATE_NOT_APPROVED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/broadcasts/{broadcastId}": {
+      "get": {
+        "tags": ["Comunicação · Transmissões"],
+        "summary": "Detalhar transmissão",
+        "operationId": "getWorkspacesByIdWhatsappBroadcastsByBroadcastId",
+        "description": "Transmissão com cada destinatário e seu status de envio (`PENDING`, `SENT`, `FAILED`, `SKIPPED`). Módulo **Comunicação** habilitado e permissão `broadcasts` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "broadcastId",
+            "in": "path",
+            "required": true,
+            "description": "Id da lista de transmissão.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transmissão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppBroadcastDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_BROADCAST_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/broadcasts/{broadcastId}/start": {
+      "post": {
+        "tags": ["Comunicação · Transmissões"],
+        "summary": "Disparar transmissão",
+        "operationId": "postWorkspacesByIdWhatsappBroadcastsByBroadcastIdStart",
+        "description": "Enfileira o envio de um rascunho (`DRAFT`): um job por destinatário no worker, espaçados de 4 s. A lista vai para `RUNNING` (ou direto para `DONE` se todos estiverem descadastrados) e os contadores avançam conforme o worker envia. Contatos descadastrados (opt-out LGPD) nunca recebem: são excluídos na criação e, se descadastrarem depois, marcados `SKIPPED` no disparo. Sem corpo. Auditado. Módulo **Comunicação** habilitado e permissão `broadcasts` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "broadcastId",
+            "in": "path",
+            "required": true,
+            "description": "Id da lista de transmissão.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transmissão em andamento.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppBroadcastDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_BROADCAST_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_BROADCAST_LOCKED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/whatsapp/connections": {
       "get": {
         "tags": ["Comunicação · Conexões"],
@@ -33458,7 +33853,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33822,7 +34217,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST"
+            "$ref": "#/components/responses/400_BAD_REQUEST_2"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -33894,7 +34289,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -33979,7 +34374,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "409": {
             "$ref": "#/components/responses/409_CONFLICT_2"
@@ -34060,7 +34455,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -34169,7 +34564,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -34238,7 +34633,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -34386,7 +34781,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -34614,7 +35009,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -34907,7 +35302,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_8"
+            "$ref": "#/components/responses/400_BAD_REQUEST_9"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -34979,7 +35374,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -36960,6 +37355,29 @@
             },
             "examples": {
               "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — CSV sem as colunas obrigatórias (ou sem linhas de dados)",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Cabeçalho deve conter as colunas \"telefone\" e \"data_referencia\"",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_2": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
                 "summary": "BAD_REQUEST — Conexão Meta",
                 "value": {
                   "success": false,
@@ -36985,7 +37403,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_2": {
+      "400_BAD_REQUEST_3": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37041,7 +37459,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_3": {
+      "400_BAD_REQUEST_4": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37055,40 +37473,6 @@
                   "success": false,
                   "statusCode": 400,
                   "message": "Plataforma inválida para este endpoint",
-                  "error": {
-                    "code": "BAD_REQUEST"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "400_BAD_REQUEST_4": {
-        "description": "Requisição inválida: `BAD_REQUEST`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "BAD_REQUEST": {
-                "summary": "BAD_REQUEST — Sem header Content-Type",
-                "value": {
-                  "success": false,
-                  "statusCode": 400,
-                  "message": "Content-Type é obrigatório",
-                  "error": {
-                    "code": "BAD_REQUEST"
-                  }
-                }
-              },
-              "BAD_REQUEST_2": {
-                "summary": "BAD_REQUEST — Content-Length acima do limite",
-                "value": {
-                  "success": false,
-                  "statusCode": 400,
-                  "message": "Arquivo muito grande. Máximo 25 MB",
                   "error": {
                     "code": "BAD_REQUEST"
                   }
@@ -37122,7 +37506,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 400,
-                  "message": "Arquivo muito grande. Máximo 5 MB",
+                  "message": "Arquivo muito grande. Máximo 25 MB",
                   "error": {
                     "code": "BAD_REQUEST"
                   }
@@ -37133,6 +37517,40 @@
         }
       },
       "400_BAD_REQUEST_6": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Sem header Content-Type",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Content-Type é obrigatório",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_2": {
+                "summary": "BAD_REQUEST — Content-Length acima do limite",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Arquivo muito grande. Máximo 5 MB",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_7": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37166,7 +37584,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_7": {
+      "400_BAD_REQUEST_8": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37200,7 +37618,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_8": {
+      "400_BAD_REQUEST_9": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37223,7 +37641,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_9": {
+      "400_BAD_REQUEST_10": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37246,7 +37664,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_10": {
+      "400_BAD_REQUEST_11": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -38296,7 +38714,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `CREATE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `broadcasts` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -38341,7 +38759,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `EDIT`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -38386,7 +38804,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `DELETE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `EDIT`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -38423,6 +38841,51 @@
         }
       },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -38489,7 +38952,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -38534,7 +38997,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -38579,7 +39042,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -38745,6 +39208,129 @@
               },
               "FEATURE_NOT_ENABLED": {
                 "summary": "FEATURE_NOT_ENABLED — Feature `crm.aiAssistant` desligada para o workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Esta funcionalidade não está disponível para este workspace",
+                  "error": {
+                    "code": "FEATURE_NOT_ENABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_3": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `FEATURE_NOT_ENABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `broadcasts` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "FEATURE_NOT_ENABLED": {
+                "summary": "FEATURE_NOT_ENABLED — Feature `communication.broadcasts` desligada para o workspace (plano/override)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Esta funcionalidade não está disponível para este workspace",
+                  "error": {
+                    "code": "FEATURE_NOT_ENABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_4": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `FEATURE_NOT_ENABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `broadcasts` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "FEATURE_NOT_ENABLED": {
+                "summary": "FEATURE_NOT_ENABLED — Feature `communication.broadcasts` desligada para o workspace (plano/override)",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40988,6 +41574,29 @@
           }
         }
       },
+      "404_WHATSAPP_BROADCAST_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_BROADCAST_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_BROADCAST_NOT_FOUND": {
+                "summary": "WHATSAPP_BROADCAST_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Lista de transmissão não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_BROADCAST_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_WHATSAPP_CONNECTION_NOT_FOUND": {
         "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`",
         "content": {
@@ -41196,6 +41805,40 @@
                   "message": "Conexão do WhatsApp não encontrada",
                   "error": {
                     "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_TEMPLATE_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`, `WHATSAPP_TEMPLATE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONNECTION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONNECTION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conexão do WhatsApp não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_TEMPLATE_NOT_FOUND": {
+                "summary": "WHATSAPP_TEMPLATE_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Template não encontrado",
+                  "error": {
+                    "code": "WHATSAPP_TEMPLATE_NOT_FOUND"
                   }
                 }
               }
@@ -42381,6 +43024,29 @@
                   "message": "Slug já está em uso neste workspace",
                   "error": {
                     "code": "PROJECT_SLUG_CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_WHATSAPP_BROADCAST_LOCKED": {
+        "description": "Conflito com o estado atual: `WHATSAPP_BROADCAST_LOCKED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_BROADCAST_LOCKED": {
+                "summary": "WHATSAPP_BROADCAST_LOCKED — A transmissão não está mais em `DRAFT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Esta lista de transmissão já foi iniciada e não pode ser editada",
+                  "error": {
+                    "code": "WHATSAPP_BROADCAST_LOCKED"
                   }
                 }
               }
@@ -43790,6 +44456,58 @@
           }
         }
       },
+      "422_VALIDATION_ERROR_WHATSAPP_BROADCAST_MEDIA_INVALID_WHATSAPP_BROADCAST_NO_RECIPIENTS": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `WHATSAPP_BROADCAST_MEDIA_INVALID`, `WHATSAPP_BROADCAST_NO_RECIPIENTS`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "WHATSAPP_BROADCAST_NO_RECIPIENTS": {
+                "summary": "WHATSAPP_BROADCAST_NO_RECIPIENTS — Nenhum contato elegível (todos descadastrados ou de outro workspace)",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Nenhum contato elegível: os selecionados se descadastraram das transmissões",
+                  "error": {
+                    "code": "WHATSAPP_BROADCAST_NO_RECIPIENTS"
+                  }
+                }
+              },
+              "WHATSAPP_BROADCAST_MEDIA_INVALID": {
+                "summary": "WHATSAPP_BROADCAST_MEDIA_INVALID — Tipo de mídia não reconhecido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Não foi possível identificar o tipo da mídia. Envie imagem, vídeo, áudio ou documento.",
+                  "error": {
+                    "code": "WHATSAPP_BROADCAST_MEDIA_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_VALIDATION_ERROR_WHATSAPP_GROUP_PROVIDER_UNSUPPORTED": {
         "description": "Dados inválidos: `VALIDATION_ERROR`, `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED`",
         "content": {
@@ -43906,6 +44624,47 @@
                   "message": "Grupos só são suportados em conexões Z-API — a API oficial da Meta não expõe esse recurso",
                   "error": {
                     "code": "WHATSAPP_GROUP_PROVIDER_UNSUPPORTED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_WHATSAPP_TEMPLATE_NOT_APPROVED": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `WHATSAPP_TEMPLATE_NOT_APPROVED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "WHATSAPP_TEMPLATE_NOT_APPROVED": {
+                "summary": "WHATSAPP_TEMPLATE_NOT_APPROVED",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Este template ainda não foi aprovado pela Meta",
+                  "error": {
+                    "code": "WHATSAPP_TEMPLATE_NOT_APPROVED"
                   }
                 }
               }
@@ -58074,6 +58833,341 @@
           "weekStartsOn",
           "weekendDays"
         ]
+      },
+      "WhatsAppBroadcast": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckv9x2p0h0000bc7d3k1e5abc"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "messageBody": {
+            "type": "string"
+          },
+          "mediaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mediaType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["IMAGE", "VIDEO", "AUDIO", "DOCUMENT"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mediaFileName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "QUEUED", "RUNNING", "DONE", "FAILED"]
+          },
+          "scheduledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Envio agendado (listas importadas por CSV); o worker dispara no tick de 5 min."
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "recipientCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sentCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failedCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "skippedCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Contatos descadastrados (opt-out LGPD) no momento do disparo."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "connectionId",
+          "name",
+          "messageBody",
+          "mediaUrl",
+          "mediaType",
+          "mediaFileName",
+          "status",
+          "scheduledAt",
+          "createdById",
+          "recipientCount",
+          "sentCount",
+          "failedCount",
+          "skippedCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WhatsAppBroadcastDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckv9x2p0h0000bc7d3k1e5abc"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "messageBody": {
+            "type": "string"
+          },
+          "mediaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mediaType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["IMAGE", "VIDEO", "AUDIO", "DOCUMENT"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mediaFileName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "QUEUED", "RUNNING", "DONE", "FAILED"]
+          },
+          "scheduledAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Envio agendado (listas importadas por CSV); o worker dispara no tick de 5 min."
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "recipientCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sentCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "failedCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "skippedCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Contatos descadastrados (opt-out LGPD) no momento do disparo."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "contactId": {
+                  "type": "string"
+                },
+                "contactName": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "contactWaId": {
+                  "type": "string",
+                  "description": "Número do WhatsApp só com dígitos (DDI + DDD + número).",
+                  "example": "5511987654321"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["PENDING", "SENT", "FAILED", "SKIPPED"]
+                },
+                "errorMessage": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "sentAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["id", "contactId", "contactName", "contactWaId", "status", "errorMessage", "sentAt"]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "connectionId",
+          "name",
+          "messageBody",
+          "mediaUrl",
+          "mediaType",
+          "mediaFileName",
+          "status",
+          "scheduledAt",
+          "createdById",
+          "recipientCount",
+          "sentCount",
+          "failedCount",
+          "skippedCount",
+          "createdAt",
+          "updatedAt",
+          "recipients"
+        ]
+      },
+      "WhatsAppBroadcastImportResult": {
+        "type": "object",
+        "properties": {
+          "broadcastList": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WhatsAppBroadcast"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` quando nenhuma linha do CSV foi aceita."
+          },
+          "createdCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "rejectedRows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rowNumber": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "example": 3
+                },
+                "reason": {
+                  "type": "string",
+                  "example": "Telefone inválido"
+                }
+              },
+              "required": ["rowNumber", "reason"]
+            }
+          }
+        },
+        "required": ["broadcastList", "createdCount", "rejectedRows"]
       },
       "WhatsAppConnection": {
         "type": "object",
