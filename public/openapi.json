@@ -561,7 +561,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_4"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_5"
           }
         },
         "security": [
@@ -8163,7 +8163,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_3"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_4"
           }
         },
         "security": [
@@ -28793,7 +28793,7 @@
         "tags": ["CRM · Redes sociais"],
         "summary": "Publicar agora na plataforma",
         "operationId": "postWorkspacesByIdCrmSocialByPlatformPublish",
-        "description": "Publica imediatamente na conta conectada. Corpo `multipart/form-data`, com campos por plataforma:\n- **Facebook**: `message` e/ou `link`, `image` opcional → `201`; com `video` → `202` (fila).\n- **Instagram**: `caption`, `postType` e a mídia em `image` ou `video` (+ `cover` em Reels) → sempre `202` (fila).\n- **YouTube**: `file` (vídeo), `title`, `description`, `privacyStatus`, `tags` → `202` (fila).\n- **TikTok**: `file` (vídeo), `title`, `privacyLevel`, `disable*` → `201`.\n- **X**: `text`, `image` opcional → `201`. **LinkedIn**: `text`, `image` opcional → `201`.\n\nPublicações assíncronas (`202`) devolvem `jobId`: acompanhe em `GET .../publish/{jobId}` — a permissão e os erros de plataforma (escopo, conexão, vídeo inválido) aparecem lá, em `state: failed` + `code`.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `CREATE` no perfil (OWNER/ADMIN sempre passam). Nas publicações assíncronas a permissão é conferida pelo worker, não na requisição.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Publica imediatamente na conta conectada. Corpo `multipart/form-data`, com campos por plataforma:\n- **Facebook**: `message` e/ou `link`, `image` opcional → `201`; com `video` → `202` (fila).\n- **Instagram**: `caption`, `postType` e a mídia em `image` ou `video` (+ `cover` em Reels) → sempre `202` (fila).\n- **YouTube**: `file` (vídeo), `title`, `description`, `privacyStatus`, `tags` → `202` (fila).\n- **TikTok**: `file` (vídeo), `title`, `privacyLevel`, `disable*` → `201`.\n- **X**: `text`, `image` opcional → `201`. **LinkedIn**: `text`, `image` opcional → `201`.\n\nPublicações assíncronas (`202`) devolvem `jobId`: acompanhe em `GET .../publish/{jobId}` — os erros de plataforma (escopo, conexão, vídeo inválido) aparecem lá, em `state: failed` + `code`.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `CREATE` no perfil (OWNER/ADMIN sempre passam). Nas publicações assíncronas a permissão e o consentimento LGPD são conferidos antes de enfileirar (e a permissão de novo pelo worker).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -28970,7 +28970,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_SOCIAL_CONNECTION_NOT_FOUND"
@@ -28983,6 +28983,9 @@
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR_3"
           },
           "502": {
             "$ref": "#/components/responses/502_CRM_SOCIAL_OAUTH_FAILED"
@@ -34730,7 +34733,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -44126,6 +44129,62 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Publicação assíncrona com consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Usuário não é membro do workspace",
                 "value": {
                   "success": false,
@@ -50497,6 +50556,29 @@
             },
             "examples": {
               "STORAGE_ERROR": {
+                "summary": "STORAGE_ERROR — Falha ao gravar a mídia de uma publicação assíncrona",
+                "value": {
+                  "success": false,
+                  "statusCode": 500,
+                  "message": "Falha ao armazenar o arquivo",
+                  "error": {
+                    "code": "STORAGE_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500_STORAGE_ERROR_4": {
+        "description": "Erro interno: `STORAGE_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "STORAGE_ERROR": {
                 "summary": "STORAGE_ERROR — Falha ao gravar no MinIO",
                 "value": {
                   "success": false,
@@ -50511,7 +50593,7 @@
           }
         }
       },
-      "500_STORAGE_ERROR_4": {
+      "500_STORAGE_ERROR_5": {
         "description": "Erro interno: `STORAGE_ERROR`",
         "content": {
           "application/json": {
