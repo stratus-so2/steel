@@ -121,7 +121,11 @@ export const WhatsAppContactRepository = {
 
   async update(
     id: string,
-    data: { name?: string; avatarUrl?: string; description?: string },
+    data: {
+      name?: string | null
+      avatarUrl?: string | null
+      description?: string | null
+    },
   ): Promise<Result<WhatsAppContact>> {
     try {
       const contact = await prisma.whatsAppContact.update({

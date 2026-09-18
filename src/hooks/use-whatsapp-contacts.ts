@@ -12,10 +12,11 @@ interface CreateWhatsAppContactInput {
   description?: string
 }
 
+/** `null` limpa o campo; omitido = sem alteração. */
 interface UpdateWhatsAppContactInput {
-  name?: string
-  avatarUrl?: string
-  description?: string
+  name?: string | null
+  avatarUrl?: string | null
+  description?: string | null
 }
 
 export function useWhatsAppContacts(workspaceId: string, search?: string) {

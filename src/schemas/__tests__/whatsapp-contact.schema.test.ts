@@ -47,6 +47,39 @@ describe('UpdateWhatsAppContactSchema', () => {
   it('should accept an empty object', () => {
     expect(UpdateWhatsAppContactSchema.safeParse({}).success).toBe(true)
   })
+
+  it('should accept null to clear name, photo and description', () => {
+    const result = UpdateWhatsAppContactSchema.safeParse({
+      name: null,
+      avatarUrl: null,
+      description: null,
+    })
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({
+      name: null,
+      avatarUrl: null,
+      description: null,
+    })
+  })
+
+  it('should normalize emptied fields to null', () => {
+    const result = UpdateWhatsAppContactSchema.safeParse({
+      name: '',
+      avatarUrl: '',
+      description: ' ',
+    })
+    expect(result.data).toEqual({
+      name: null,
+      avatarUrl: null,
+      description: null,
+    })
+  })
+
+  it('should still reject an invalid avatarUrl', () => {
+    expect(
+      UpdateWhatsAppContactSchema.safeParse({ avatarUrl: 'not-a-url' }).success,
+    ).toBe(false)
+  })
 })
 
 describe('ListWhatsAppContactsSchema', () => {

@@ -155,7 +155,35 @@ describe('<WhatsappContactsPage />', () => {
     )
     expect(fetchBody(fetchSpy, `${BASE}/c1`, 'PATCH')).toEqual({
       name: 'Ana Souza',
+      avatarUrl: null,
       description: 'Prefere contato à tarde',
+    })
+  })
+
+  it('sends null for emptied fields so they are cleared', async () => {
+    const fetchSpy = setup([
+      { method: 'PATCH', match: `${BASE}/c1`, data: contact() },
+    ])
+    renderWithQuery(<WhatsappContactsPage workspaceId='ws_1' />)
+    await screen.findByText('Ana Souza')
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0])
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Nome'), {
+      target: { value: '' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Descrição / recado'), {
+      target: { value: '   ' },
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() =>
+      expect(notify.success).toHaveBeenCalledWith('Contato atualizado'),
+    )
+    expect(fetchBody(fetchSpy, `${BASE}/c1`, 'PATCH')).toEqual({
+      name: null,
+      avatarUrl: null,
+      description: null,
     })
   })
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { clearableText, clearableUrl } from '@/src/schemas/clearable.schema'
 
 const WaIdField = z
   .string()
@@ -17,10 +18,11 @@ export type CreateWhatsAppContactDTO = z.infer<
   typeof CreateWhatsAppContactSchema
 >
 
+// Campos limpáveis: null (ou '') apaga o valor; omitido = sem alteração.
 export const UpdateWhatsAppContactSchema = z.object({
-  name: z.string().min(1).max(120).optional(),
-  avatarUrl: z.url().max(2048).optional(),
-  description: z.string().max(500).optional(),
+  name: clearableText(120),
+  avatarUrl: clearableUrl(2048),
+  description: clearableText(500),
 })
 
 export type UpdateWhatsAppContactDTO = z.infer<

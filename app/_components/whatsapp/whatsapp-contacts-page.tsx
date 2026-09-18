@@ -190,11 +190,12 @@ function EditContactDialog({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    // Campos esvaziados vão como null para limpar o valor salvo.
     updateContact.mutate(
       {
-        name: form.name || undefined,
-        avatarUrl: form.avatarUrl || undefined,
-        description: form.description || undefined,
+        name: form.name.trim() || null,
+        avatarUrl: form.avatarUrl.trim() || null,
+        description: form.description.trim() || null,
       },
       {
         onSuccess: () => {
