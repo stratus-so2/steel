@@ -6,6 +6,7 @@ import {
   mockFetch,
   renderWithQuery,
 } from '@/src/__tests__/component-utils'
+import { WorkspacePermissionsProvider } from '../../workspace/workspace-permissions'
 import { WhatsappContactsPage } from '../whatsapp-contacts-page'
 
 // Dialog/select flows render Base UI portals and wait on several fetches;
@@ -26,6 +27,8 @@ function contact(overrides: Record<string, unknown> = {}) {
     avatarUrl: null,
     description: 'Cliente VIP',
     conversationCount: 4,
+    broadcastOptedOutAt: null,
+    broadcastOptOutSource: null,
     createdAt: '2026-03-15T12:00:00.000Z',
     updatedAt: '2026-03-15T12:00:00.000Z',
     ...overrides,
@@ -200,5 +203,78 @@ describe('<WhatsappContactsPage />', () => {
           init?.method === 'DELETE' && String(url).endsWith('/contacts/c2'),
       ),
     ).toBe(true)
+  })
+
+  describe('broadcast opt-out (LGPD)', () => {
+    function renderAs(isPrivileged: boolean) {
+      renderWithQuery(
+        <WorkspacePermissionsProvider
+          value={{ isPrivileged, permissions: null }}
+        >
+          <WhatsappContactsPage workspaceId='ws_1' />
+        </WorkspacePermissionsProvider>,
+      )
+    }
+
+    it('shows the opted-out state but hides the action from non-admins', async () => {
+      setup(
+        [],
+        [
+          contact({
+            broadcastOptedOutAt: '2026-09-01T12:00:00.000Z',
+            broadcastOptOutSource: 'KEYWORD',
+          }),
+        ],
+      )
+      renderAs(false)
+
+      expect(await screen.findByText('Descadastrado')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Reinscrever' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Descadastrar' })).toBeNull()
+    })
+
+    it('lets an admin re-subscribe only after confirming the contact asked', async () => {
+      const fetchSpy = setup(
+        [
+          {
+            method: 'PUT',
+            match: `${BASE}/c1/broadcast-opt-out`,
+            data: contact(),
+          },
+        ],
+        [
+          contact({
+            broadcastOptedOutAt: '2026-09-01T12:00:00.000Z',
+            broadcastOptOutSource: 'KEYWORD',
+          }),
+        ],
+      )
+      renderAs(true)
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Reinscrever' }),
+      )
+      const alert = await screen.findByRole('alertdialog')
+      const confirm = within(alert).getByRole('button', {
+        name: 'Reinscrever',
+      })
+      expect(confirm.hasAttribute('disabled')).toBe(true)
+
+      fireEvent.click(within(alert).getByRole('checkbox'))
+      await waitFor(() => expect(confirm.hasAttribute('disabled')).toBe(false))
+      fireEvent.click(confirm)
+
+      await waitFor(() =>
+        expect(notify.success).toHaveBeenCalledWith(
+          'Contato reinscrito nas transmissões',
+        ),
+      )
+      expect(
+        fetchBody(fetchSpy, `${BASE}/c1/broadcast-opt-out`, 'PUT'),
+      ).toEqual({
+        optedOut: false,
+        contactRequested: true,
+      })
+    })
   })
 })

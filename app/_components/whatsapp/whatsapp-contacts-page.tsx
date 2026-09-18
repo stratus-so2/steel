@@ -4,7 +4,10 @@ import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { type FormEvent, useState } from 'react'
-import { useCan } from '@/app/_components/workspace/workspace-permissions'
+import {
+  useCan,
+  useIsPrivileged,
+} from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   AlertDialog,
@@ -364,6 +367,8 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
   const contacts = useWhatsAppContacts(workspaceId, search)
   const deleteContact = useDeleteWhatsAppContact(workspaceId)
   const canDelete = useCan('contacts', 'DELETE')
+  // Opt-out de transmissões é só OWNER/ADMIN (assertModulePrivileged).
+  const canManageOptOut = useIsPrivileged()
   const syncAvatar = useSyncWhatsAppContactAvatar(workspaceId)
 
   return (
@@ -450,15 +455,17 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
                 </TableCell>
                 <TableCell>
                   <div className='flex justify-end gap-1.5'>
-                    <Button
-                      size='xs'
-                      variant='ghost'
-                      onClick={() => setOptOutContact(contact)}
-                    >
-                      {contact.broadcastOptedOutAt
-                        ? 'Reinscrever'
-                        : 'Descadastrar'}
-                    </Button>
+                    {canManageOptOut && (
+                      <Button
+                        size='xs'
+                        variant='ghost'
+                        onClick={() => setOptOutContact(contact)}
+                      >
+                        {contact.broadcastOptedOutAt
+                          ? 'Reinscrever'
+                          : 'Descadastrar'}
+                      </Button>
+                    )}
                     <Button
                       size='xs'
                       variant='outline'

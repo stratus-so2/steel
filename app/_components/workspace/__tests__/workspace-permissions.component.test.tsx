@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { SYSTEM_PROFILE_PERMISSIONS } from '@/src/lib/permissions'
 import {
   useCan,
+  useIsPrivileged,
   type WorkspacePermissions,
   WorkspacePermissionsProvider,
 } from '../workspace-permissions'
@@ -55,5 +56,43 @@ describe('useCan()', () => {
 
   it('falls back to allowed outside the provider (the API still decides)', () => {
     expect(renderWith()).toBe('true,true,true')
+  })
+})
+
+function PrivilegedProbe() {
+  return <span data-testid='privileged'>{String(useIsPrivileged())}</span>
+}
+
+describe('useIsPrivileged()', () => {
+  function privilegedWith(value?: WorkspacePermissions) {
+    render(
+      value ? (
+        <WorkspacePermissionsProvider value={value}>
+          <PrivilegedProbe />
+        </WorkspacePermissionsProvider>
+      ) : (
+        <PrivilegedProbe />
+      ),
+    )
+    return screen.getByTestId('privileged').textContent
+  }
+
+  it('is true only for OWNER/ADMIN, whatever the matrix grants', () => {
+    expect(privilegedWith({ isPrivileged: true, permissions: null })).toBe(
+      'true',
+    )
+  })
+
+  it('is false for a member even with a permissive matrix', () => {
+    expect(
+      privilegedWith({
+        isPrivileged: false,
+        permissions: SYSTEM_PROFILE_PERMISSIONS.MEMBER,
+      }),
+    ).toBe('false')
+  })
+
+  it('falls back to true outside the provider (the API still decides)', () => {
+    expect(privilegedWith()).toBe('true')
   })
 })

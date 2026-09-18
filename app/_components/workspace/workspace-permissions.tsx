@@ -50,3 +50,14 @@ export function useCan(resource: string, action: PermissionAction): boolean {
   if (ctx.isPrivileged) return true
   return ctx.permissions ? can(ctx.permissions, resource, action) : false
 }
+
+/**
+ * O usuário é OWNER/ADMIN da workspace? Para ações restritas a admin que não
+ * são uma célula da matriz (ex: opt-out LGPD de transmissões). Fora do
+ * provider devolve `true` — a API decide.
+ */
+export function useIsPrivileged(): boolean {
+  const ctx = useContext(Ctx)
+  if (!ctx) return true
+  return ctx.isPrivileged
+}
