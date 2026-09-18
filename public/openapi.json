@@ -117,6 +117,10 @@
       "description": "Configurações e membros do módulo CRM."
     },
     {
+      "name": "Comunicação · Conversas",
+      "description": "Conversas e mensagens do WhatsApp, atribuição e fechamento."
+    },
+    {
       "name": "Comunicação · Conexões",
       "description": "Conexões com a Meta Cloud API e a Z-API."
     },
@@ -222,7 +226,7 @@
     },
     {
       "name": "Comunicação",
-      "tags": ["Comunicação · Conexões"]
+      "tags": ["Comunicação · Conversas", "Comunicação · Conexões"]
     },
     {
       "name": "Páginas públicas do CRM",
@@ -882,7 +886,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+            "$ref": "#/components/responses/400_BAD_REQUEST_10"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -6131,7 +6135,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "429": {
-            "$ref": "#/components/responses/429_RATE_LIMITED_3"
+            "$ref": "#/components/responses/429_RATE_LIMITED_4"
           }
         },
         "security": [
@@ -13902,7 +13906,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13972,7 +13976,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -14040,7 +14044,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
@@ -20199,7 +20203,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_8"
+            "$ref": "#/components/responses/400_BAD_REQUEST_9"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24708,7 +24712,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -24860,7 +24864,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_CRM_PROPOSAL_NOT_FOUND"
@@ -25132,7 +25136,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -25215,7 +25219,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_QUOTA_CONFLICT"
@@ -25297,7 +25301,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
@@ -25366,7 +25370,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
@@ -27457,7 +27461,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -33441,7 +33445,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33579,7 +33583,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "409": {
             "$ref": "#/components/responses/409_WHATSAPP_CONNECTION_CONFLICT"
@@ -33676,7 +33680,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -33745,7 +33749,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -33811,10 +33815,1597 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations": {
+      "get": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Listar conversas",
+        "operationId": "getWorkspacesByIdWhatsappConversations",
+        "description": "Conversas do workspace (excluídas nunca aparecem), fixadas primeiro e depois pela última mensagem. Sem paginação. Módulo **Comunicação** habilitado e permissão `conversations` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "`OPEN` = não fechadas (`NEW` + `IN_PROGRESS`), a caixa de entrada ativa. Valor desconhecido é ignorado (sem filtro).",
+            "schema": {
+              "type": "string",
+              "enum": ["NEW", "IN_PROGRESS", "CLOSED", "OPEN"]
+            }
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "description": "`true` lista só as arquivadas; ausente/`false`, só as não arquivadas.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          },
+          {
+            "name": "connectionId",
+            "in": "query",
+            "required": false,
+            "description": "Filtra por conexão.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppConversation"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Iniciar conversa",
+        "operationId": "postWorkspacesByIdWhatsappConversations",
+        "description": "Abre uma conversa com o contato pela conexão informada. Idempotente: se o contato já tem uma conversa ativa, ela é devolvida em vez de criar outra. Não envia mensagem — fora da janela de 24 h da Meta, a primeira mensagem precisa ser um template (`POST .../messages/template`). A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "connectionId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["contactId", "connectionId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversa (nova ou a ativa existente).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONTACT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}": {
+      "delete": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Excluir conversa",
+        "operationId": "deleteWorkspacesByIdWhatsappConversationsByConversationId",
+        "description": "Exclusão lógica (`deletedAt`): a conversa some das listagens. Publica `conversation.deleted` no SSE. Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppDeletedId"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/ai": {
+      "patch": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Tirar a conversa da IA",
+        "operationId": "patchWorkspacesByIdWhatsappConversationsByConversationIdAi",
+        "description": "Desliga o atendimento automático nesta conversa (`aiActive: false`, `aiHandoff: true`, status `IN_PROGRESS`) para um humano assumir. Sem corpo. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/ai/resume": {
+      "patch": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Devolver a conversa à IA",
+        "operationId": "patchWorkspacesByIdWhatsappConversationsByConversationIdAiResume",
+        "description": "Religa o atendimento automático nesta conversa (`aiActive: true`). Sem corpo. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/archive": {
+      "patch": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Arquivar/desarquivar conversa",
+        "operationId": "patchWorkspacesByIdWhatsappConversationsByConversationIdArchive",
+        "description": "Arquivadas só aparecem em `GET .../conversations?archived=true`. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "archived": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["archived"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/assign": {
+      "patch": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Atribuir conversa",
+        "operationId": "patchWorkspacesByIdWhatsappConversationsByConversationIdAssign",
+        "description": "Define o atendente responsável (ou remove, com `null`) e move a conversa para `IN_PROGRESS`. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assignedUserId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Membro do workspace que assume a conversa; `null` desatribui."
+                  }
+                },
+                "required": ["assignedUserId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_8"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/clear": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Limpar histórico",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdClear",
+        "description": "Esconde as mensagens anteriores a agora (`clearedAt`) — a listagem de mensagens passa a mostrar só as novas. Nada é apagado do provedor. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/close": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Fechar conversa",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdClose",
+        "description": "Fecha a conversa (`CLOSED`), com motivo opcional, e registra o evento `CLOSED` (origem `AGENT`) na linha do tempo. Uma nova mensagem do contato reabre a conversa automaticamente. Conversas sem mensagem também são fechadas pelo worker após `autoCloseAfterHours` (configurações). A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "description": "Opcional; `reason` vazio é ignorado.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversa fechada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_ALREADY_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/events": {
+      "get": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Linha do tempo da conversa",
+        "operationId": "getWorkspacesByIdWhatsappConversationsByConversationIdEvents",
+        "description": "Eventos de fechamento, reabertura e alerta de sentimento, com o autor (ou `null` = sistema). Conversa inexistente devolve lista vazia. Módulo **Comunicação** habilitado e permissão `conversations` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Eventos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppConversationEvent"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/messages": {
+      "get": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Listar mensagens",
+        "operationId": "getWorkspacesByIdWhatsappConversationsByConversationIdMessages",
+        "description": "Página de mensagens em ordem cronológica (a mais antiga primeiro). Sem `cursor`, traz as `limit` mais recentes; para carregar as anteriores, passe como `cursor` o `id` da mensagem mais antiga já recebida. Mensagens excluídas e anteriores a uma limpeza de histórico não aparecem. Módulo **Comunicação** habilitado e permissão `conversations` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppMessage"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Enviar texto",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdMessages",
+        "description": "Envia uma mensagem de texto; `replyToMessageId` (id de uma mensagem desta conversa) cita a mensagem original. O envio passa pelo provedor da conexão (Z-API ou Meta Cloud API) e consome também o limite de envio **por conexão** (20 mensagens/min). Bloqueado enquanto a IA atende a conversa (remova-a com `PATCH .../ai`). A mensagem criada (status `SENT`) é publicada no SSE `GET /whatsapp/events` (`message.created` + `conversation.updated`) e a conversa passa a `IN_PROGRESS`. Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "replyToMessageId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["text"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_AI_HANDLING"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED_3"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/messages/contact": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Enviar cartão de contato",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdMessagesContact",
+        "description": "Compartilha um contato do workspace (nome + número) como cartão de contato. O envio passa pelo provedor da conexão (Z-API ou Meta Cloud API) e consome também o limite de envio **por conexão** (20 mensagens/min). Bloqueado enquanto a IA atende a conversa (remova-a com `PATCH .../ai`). A mensagem criada (status `SENT`) é publicada no SSE `GET /whatsapp/events` (`message.created` + `conversation.updated`) e a conversa passa a `IN_PROGRESS`. Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["contactId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONTACT_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_AI_HANDLING"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED_3"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/messages/media": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Enviar mídia",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdMessagesMedia",
+        "description": "Envia imagem, áudio, vídeo ou documento a partir de uma URL pública (use `POST /workspaces/{id}/whatsapp/media/upload` para hospedar o arquivo). `caption` vira a legenda. O envio passa pelo provedor da conexão (Z-API ou Meta Cloud API) e consome também o limite de envio **por conexão** (20 mensagens/min). Bloqueado enquanto a IA atende a conversa (remova-a com `PATCH .../ai`). A mensagem criada (status `SENT`) é publicada no SSE `GET /whatsapp/events` (`message.created` + `conversation.updated`) e a conversa passa a `IN_PROGRESS`. Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mediaUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["IMAGE", "AUDIO", "VIDEO", "DOCUMENT"]
+                  },
+                  "caption": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "fileName": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "replyToMessageId": {
+                    "type": "string"
+                  }
+                },
+                "required": ["mediaUrl", "type"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_AI_HANDLING"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED_3"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/messages/template": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Enviar template",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdMessagesTemplate",
+        "description": "Envia um template aprovado pela Meta (obrigatório para iniciar contato fora da janela de 24 h). `components` segue o formato da Graph API (parâmetros de header/body/botões). **Só conexões Meta** — na Z-API o provedor recusa e a rota responde `502 WHATSAPP_PROVIDER_ERROR`. O envio passa pelo provedor da conexão (Z-API ou Meta Cloud API) e consome também o limite de envio **por conexão** (20 mensagens/min). Bloqueado enquanto a IA atende a conversa (remova-a com `PATCH .../ai`). A mensagem criada (status `SENT`) é publicada no SSE `GET /whatsapp/events` (`message.created` + `conversation.updated`) e a conversa passa a `IN_PROGRESS`. Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "components": {
+                    "type": "array",
+                    "items": {}
+                  }
+                },
+                "required": ["templateName", "language"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_AI_HANDLING"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED_3"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/messages/{messageId}": {
+      "delete": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Excluir mensagem",
+        "operationId": "deleteWorkspacesByIdWhatsappConversationsByConversationIdMessagesByMessageId",
+        "description": "Exclusão lógica **só no Steel** (a mensagem continua no WhatsApp do contato). Publica `message.deleted` no SSE. Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "description": "Id da mensagem (na conversa).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagem excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppDeletedId"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND_WHATSAPP_MESSAGE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/messages/{messageId}/react": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Reagir a uma mensagem",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdMessagesByMessageIdReact",
+        "description": "Envia uma reação (emoji) à mensagem pelo provedor; `emoji` vazio remove a reação. A mensagem atualizada é publicada no SSE (`message.updated`). O envio passa pelo provedor da conexão (Z-API ou Meta Cloud API) e consome também o limite de envio **por conexão** (20 mensagens/min). Bloqueado enquanto a IA atende a conversa. Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "description": "Id da mensagem (na conversa).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "emoji": {
+                    "type": "string",
+                    "maxLength": 8
+                  }
+                },
+                "required": ["emoji"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mensagem com a reação.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND_WHATSAPP_MESSAGE_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_AI_HANDLING"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED_3"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/pin": {
+      "patch": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Fixar/desafixar conversa",
+        "operationId": "patchWorkspacesByIdWhatsappConversationsByConversationIdPin",
+        "description": "Conversas fixadas aparecem no topo da lista. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pinned": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["pinned"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/read": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Marcar como lida",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdRead",
+        "description": "Zera o `unreadCount`. Sem mensagens não lidas, devolve a conversa sem alterar nada. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Módulo **Comunicação** habilitado e permissão `conversations` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/conversations/{conversationId}/reopen": {
+      "post": {
+        "tags": ["Comunicação · Conversas"],
+        "summary": "Reabrir conversa",
+        "operationId": "postWorkspacesByIdWhatsappConversationsByConversationIdReopen",
+        "description": "Reabre uma conversa fechada: volta a `IN_PROGRESS` se tem atendente, senão `NEW`; registra o evento `REOPENED`. A conversa atualizada é publicada no SSE `GET /whatsapp/events` (`conversation.updated`). Auditado. Módulo **Comunicação** habilitado e permissão `conversations` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa reaberta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_CONVERSATION_NOT_CLOSED"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34138,6 +35729,29 @@
             },
             "examples": {
               "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — `assignedUserId` não é membro ativo do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Usuário informado não pertence a este workspace",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_9": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
                 "summary": "BAD_REQUEST — `stageId` sem `pipelineId`",
                 "value": {
                   "success": false,
@@ -34152,7 +35766,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_9": {
+      "400_BAD_REQUEST_10": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -34786,6 +36400,51 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Consentimento LGPD pendente",
                 "value": {
                   "success": false,
@@ -34833,7 +36492,97 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -34878,7 +36627,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -34923,7 +36672,52 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -34990,7 +36784,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -37422,6 +39216,221 @@
           }
         }
       },
+      "404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONTACT_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`, `WHATSAPP_CONTACT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONTACT_NOT_FOUND": {
+                "summary": "WHATSAPP_CONTACT_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Contato não encontrado",
+                  "error": {
+                    "code": "WHATSAPP_CONTACT_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_CONNECTION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONNECTION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conexão do WhatsApp não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONTACT_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`, `WHATSAPP_CONTACT_NOT_FOUND`, `WHATSAPP_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONVERSATION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_CONNECTION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONNECTION_NOT_FOUND — A conexão da conversa foi removida",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conexão do WhatsApp não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_CONTACT_NOT_FOUND": {
+                "summary": "WHATSAPP_CONTACT_NOT_FOUND — O contato compartilhado não existe no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Contato não encontrado",
+                  "error": {
+                    "code": "WHATSAPP_CONTACT_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`, `WHATSAPP_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONVERSATION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_CONNECTION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONNECTION_NOT_FOUND — A conexão da conversa foi removida",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conexão do WhatsApp não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_CONVERSATION_NOT_FOUND_WHATSAPP_MESSAGE_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`, `WHATSAPP_CONVERSATION_NOT_FOUND`, `WHATSAPP_MESSAGE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONVERSATION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_CONNECTION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONNECTION_NOT_FOUND — A conexão da conversa foi removida",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conexão do WhatsApp não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_MESSAGE_NOT_FOUND": {
+                "summary": "WHATSAPP_MESSAGE_NOT_FOUND — Mensagem não existe nesta conversa ou ainda não tem id no provedor",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Mensagem não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_MESSAGE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONVERSATION_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONVERSATION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONVERSATION_NOT_FOUND_WHATSAPP_MESSAGE_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONVERSATION_NOT_FOUND`, `WHATSAPP_MESSAGE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONVERSATION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              },
+              "WHATSAPP_MESSAGE_NOT_FOUND": {
+                "summary": "WHATSAPP_MESSAGE_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Mensagem não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_MESSAGE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_BACKUP_NOT_RESTORABLE_WORKSPACE_STATUS_CONFLICT_WORKSPACE_OPERATION_IN_PROGRESS": {
         "description": "Conflito com o estado atual: `BACKUP_NOT_RESTORABLE`, `WORKSPACE_STATUS_CONFLICT`, `WORKSPACE_OPERATION_IN_PROGRESS`",
         "content": {
@@ -38497,6 +40506,75 @@
                   "message": "Já existe uma conexão com este número neste workspace",
                   "error": {
                     "code": "WHATSAPP_CONNECTION_CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_WHATSAPP_CONVERSATION_AI_HANDLING": {
+        "description": "Conflito com o estado atual: `WHATSAPP_CONVERSATION_AI_HANDLING`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_AI_HANDLING": {
+                "summary": "WHATSAPP_CONVERSATION_AI_HANDLING — A IA está atendendo a conversa (`aiActive`)",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "A IA está atendendo esta conversa. Remova-a do atendimento da IA para enviar mensagens.",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_AI_HANDLING"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_WHATSAPP_CONVERSATION_ALREADY_CLOSED": {
+        "description": "Conflito com o estado atual: `WHATSAPP_CONVERSATION_ALREADY_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_ALREADY_CLOSED": {
+                "summary": "WHATSAPP_CONVERSATION_ALREADY_CLOSED",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Esta conversa já está fechada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_ALREADY_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_WHATSAPP_CONVERSATION_NOT_CLOSED": {
+        "description": "Conflito com o estado atual: `WHATSAPP_CONVERSATION_NOT_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONVERSATION_NOT_CLOSED": {
+                "summary": "WHATSAPP_CONVERSATION_NOT_CLOSED",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Esta conversa não está fechada",
+                  "error": {
+                    "code": "WHATSAPP_CONVERSATION_NOT_CLOSED"
                   }
                 }
               }
@@ -39932,6 +42010,54 @@
             },
             "examples": {
               "RATE_LIMITED": {
+                "summary": "RATE_LIMITED — Limite de requisições excedido",
+                "value": {
+                  "success": false,
+                  "statusCode": 429,
+                  "message": "Muitas requisições",
+                  "error": {
+                    "code": "RATE_LIMITED",
+                    "details": {
+                      "retryAfterSeconds": 30
+                    }
+                  }
+                }
+              },
+              "RATE_LIMITED_2": {
+                "summary": "RATE_LIMITED — Limite de envio da conexão (20 mensagens/min) excedido",
+                "value": {
+                  "success": false,
+                  "statusCode": 429,
+                  "message": "Muitas requisições",
+                  "error": {
+                    "code": "RATE_LIMITED",
+                    "details": {
+                      "retryAfterSeconds": 30
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "description": "Segundos até a próxima tentativa ser aceita.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "429_RATE_LIMITED_4": {
+        "description": "Limite de requisições excedido: `RATE_LIMITED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RATE_LIMITED": {
                 "summary": "RATE_LIMITED — Já houve um pedido nas últimas 24 h",
                 "value": {
                   "success": false,
@@ -40326,6 +42452,29 @@
                   "message": "Não foi possível buscar a release no GitHub",
                   "error": {
                     "code": "RELEASE_NOTES_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "502_WHATSAPP_PROVIDER_ERROR": {
+        "description": "Falha em serviço externo: `WHATSAPP_PROVIDER_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_PROVIDER_ERROR": {
+                "summary": "WHATSAPP_PROVIDER_ERROR — O provedor (Z-API/Meta) recusou ou falhou o envio",
+                "value": {
+                  "success": false,
+                  "statusCode": 502,
+                  "message": "Falha ao comunicar com o provedor do WhatsApp",
+                  "error": {
+                    "code": "WHATSAPP_PROVIDER_ERROR"
                   }
                 }
               }
@@ -53975,6 +56124,391 @@
           "createdAt",
           "updatedAt",
           "webhookSecret"
+        ]
+      },
+      "WhatsAppConversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckv9x2p0h0000cv7d3k1e5abc"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "contactName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contactWaId": {
+            "type": "string",
+            "description": "Número do WhatsApp só com dígitos (DDI + DDD + número).",
+            "example": "5511987654321"
+          },
+          "contactAvatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["NEW", "IN_PROGRESS", "CLOSED"]
+          },
+          "assignedUserId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "aiActive": {
+            "type": "boolean",
+            "description": "A IA está atendendo — envios manuais são bloqueados até removê-la (`PATCH .../ai`)."
+          },
+          "aiHandoff": {
+            "type": "boolean",
+            "description": "A conversa foi transferida da IA para um humano."
+          },
+          "unreadCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "avgSentimentScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Média de sentimento das mensagens (-1 a 1)."
+          },
+          "lastMessageAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastMessagePreview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closeReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contactSince": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "connectionId",
+          "contactId",
+          "contactName",
+          "contactWaId",
+          "contactAvatarUrl",
+          "status",
+          "assignedUserId",
+          "aiActive",
+          "aiHandoff",
+          "unreadCount",
+          "avgSentimentScore",
+          "lastMessageAt",
+          "lastMessagePreview",
+          "pinned",
+          "archived",
+          "closedAt",
+          "closeReason",
+          "contactSince",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WhatsAppConversationEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["CLOSED", "REOPENED", "SENTIMENT_ALERT"]
+          },
+          "source": {
+            "type": "string",
+            "enum": ["AGENT", "CONTACT", "INACTIVITY", "SENTIMENT"]
+          },
+          "actorUserId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` quando foi o sistema."
+          },
+          "actorName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "kind",
+          "source",
+          "actorUserId",
+          "actorName",
+          "reason",
+          "createdAt"
+        ],
+        "description": "Evento da linha do tempo da conversa."
+      },
+      "WhatsAppDeletedId": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": ["id"],
+        "description": "Id do recurso removido."
+      },
+      "WhatsAppMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckv9x2p0h0000ms7d3k1e5abc"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["IN", "OUT"]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "IMAGE",
+              "AUDIO",
+              "VIDEO",
+              "DOCUMENT",
+              "STICKER",
+              "LOCATION",
+              "TEMPLATE",
+              "BUTTON",
+              "CONTACT"
+            ]
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mediaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "SENT", "DELIVERED", "READ", "FAILED"]
+          },
+          "senderUserId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sentByAi": {
+            "type": "boolean"
+          },
+          "replyToMessageId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reactionEmoji": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reactedByContact": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`true` = reação do contato; `false` = do atendente; `null` = sem reação."
+          },
+          "contactPayload": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "waId": {
+                    "type": "string",
+                    "description": "Número do WhatsApp só com dígitos (DDI + DDD + número).",
+                    "example": "5511987654321"
+                  }
+                },
+                "required": ["name", "waId"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cartão de contato (mensagens `CONTACT`)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "conversationId",
+          "direction",
+          "type",
+          "text",
+          "mediaUrl",
+          "status",
+          "senderUserId",
+          "sentByAi",
+          "replyToMessageId",
+          "reactionEmoji",
+          "reactedByContact",
+          "contactPayload",
+          "createdAt"
         ]
       },
       "WhatsAppQrCode": {

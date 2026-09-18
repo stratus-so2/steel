@@ -1,5 +1,6 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
 import { connectionRoutes } from './whatsapp/connections'
+import { conversationRoutes } from './whatsapp/conversations'
 
 /**
  * Comunicação (WhatsApp) — `app/api/workspaces/[id]/whatsapp/**` (sessão +
@@ -8,7 +9,7 @@ import { connectionRoutes } from './whatsapp/connections'
  * `app/api/whatsapp/webhook/{meta,zapi}`. Uma lista de rotas por tag em
  * `./whatsapp/*.ts`; DTOs em `../schemas/whatsapp`.
  */
-const routes: RouteConfig[] = [...connectionRoutes]
+const routes: RouteConfig[] = [...connectionRoutes, ...conversationRoutes]
 
 export function registerWhatsAppPaths(registry: OpenApiRegistry): void {
   for (const route of routes) registry.registerRoute(route)
