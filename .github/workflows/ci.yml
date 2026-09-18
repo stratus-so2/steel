@@ -88,7 +88,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16
@@ -138,6 +138,16 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm prisma:generate
+
+      # Banco descartável: sem fsync/synchronous_commit o TRUNCATE ... CASCADE
+      # entre testes (~150 tabelas) deixa de ser dominado por escrita em disco.
+      - name: Tune disposable Postgres for tests
+        run: >-
+          PGPASSWORD=test psql -h localhost -U test -d steel_test
+          -c "ALTER SYSTEM SET fsync = off"
+          -c "ALTER SYSTEM SET synchronous_commit = off"
+          -c "ALTER SYSTEM SET full_page_writes = off"
+          -c "SELECT pg_reload_conf()"
 
       - name: Push database schema
         run: pnpm prisma db push
@@ -213,6 +223,16 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm prisma:generate
+
+      # Banco descartável: sem fsync/synchronous_commit o TRUNCATE ... CASCADE
+      # entre testes (~150 tabelas) deixa de ser dominado por escrita em disco.
+      - name: Tune disposable Postgres for tests
+        run: >-
+          PGPASSWORD=test psql -h localhost -U test -d steel_test
+          -c "ALTER SYSTEM SET fsync = off"
+          -c "ALTER SYSTEM SET synchronous_commit = off"
+          -c "ALTER SYSTEM SET full_page_writes = off"
+          -c "SELECT pg_reload_conf()"
 
       - name: Push database schema
         run: pnpm prisma db push
@@ -318,6 +338,16 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm prisma:generate
 
+      # Banco descartável: sem fsync/synchronous_commit o TRUNCATE ... CASCADE
+      # entre testes (~150 tabelas) deixa de ser dominado por escrita em disco.
+      - name: Tune disposable Postgres for tests
+        run: >-
+          PGPASSWORD=test psql -h localhost -U test -d steel_test
+          -c "ALTER SYSTEM SET fsync = off"
+          -c "ALTER SYSTEM SET synchronous_commit = off"
+          -c "ALTER SYSTEM SET full_page_writes = off"
+          -c "SELECT pg_reload_conf()"
+
       - name: Push database schema
         run: pnpm prisma db push
 
@@ -385,6 +415,16 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm prisma:generate
+
+      # Banco descartável: sem fsync/synchronous_commit o TRUNCATE ... CASCADE
+      # entre testes (~150 tabelas) deixa de ser dominado por escrita em disco.
+      - name: Tune disposable Postgres for tests
+        run: >-
+          PGPASSWORD=test psql -h localhost -U test -d steel_test
+          -c "ALTER SYSTEM SET fsync = off"
+          -c "ALTER SYSTEM SET synchronous_commit = off"
+          -c "ALTER SYSTEM SET full_page_writes = off"
+          -c "SELECT pg_reload_conf()"
 
       - name: Push database schema
         run: pnpm prisma db push
