@@ -1,6 +1,12 @@
 import 'dotenv/config'
 import { vi } from 'vitest'
 
+// Tokens assinados (ex.: descadastro LGPD) usam o BETTER_AUTH_SECRET e os
+// links montados usam o BETTER_AUTH_URL. Os jobs de unit/coverage do CI não
+// os definem; valores só de teste evitam que a suíte dependa do .env local.
+process.env.BETTER_AUTH_SECRET ??= 'test-only-better-auth-secret'
+process.env.BETTER_AUTH_URL ??= 'http://localhost:3001'
+
 // `next/font/google` só resolve fontes de verdade via o transform SWC do
 // Next.js — fora do build (aqui, sob Vitest) os exports vêm vazios. Mocka
 // qualquer função de fonte pra devolver um objeto com `className`/`variable`
