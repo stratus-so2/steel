@@ -1,3 +1,4 @@
+import type { Role } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeCrmEmailCampaign,
@@ -5,7 +6,8 @@ import {
 } from '@/src/__tests__/factories/crm-email-marketing.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { databaseError, notFound } from '@/src/errors'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-email-campaign.repository')
@@ -25,6 +27,7 @@ import { CrmEmailOptOutRepository } from '@/src/repositories/crm-email-opt-out.r
 import { CrmMailingListMemberRepository } from '@/src/repositories/crm-mailing-list.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmEmailCampaignService } from '../crm-email-campaign.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -34,6 +37,7 @@ const mockedPersonRepo = vi.mocked(CrmPersonRepository)
 const mockedMailingListMemberRepo = vi.mocked(CrmMailingListMemberRepository)
 const mockedOptOutRepo = vi.mocked(CrmEmailOptOutRepository)
 const mockedSendEmail = vi.mocked(sendEmail)
+const mockedModuleAccess = vi.mocked(WorkspaceModuleAccessRepository)
 
 function optOutIndex(emails: string[] = [], personIds: string[] = []) {
   return ok({ emails: new Set(emails), personIds: new Set(personIds) })
@@ -361,5 +365,525 @@ describe('CrmEmailCampaignService', () => {
         'SENDING',
       )
     })
+  })
+})
+
+const baseCreate = {
+  subject: 'Promo',
+  contentHtml: '<p>Oi</p>',
+  fromAddress: 'crm@stratustelecom.com.br',
+}
+
+function asRole(role: Role) {
+  mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+    ok(createFakeMembership({ role })),
+  )
+}
+
+function listMember(email: string, personId: string | null = null) {
+  return {
+    id: `m-${email}`,
+    mailingListId: 'l1',
+    email,
+    name: null,
+    personId,
+    createdAt: new Date(),
+  }
+}
+
+describe('CrmEmailCampaignService — authorization', () => {
+  it('should return FORBIDDEN for a non-member', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+    expectErr(await CrmEmailCampaignService.list('u1', 'ws1'), 'FORBIDDEN')
+  })
+
+  it('should return MODULE_DISABLED when the CRM is off', async () => {
+    asRole('OWNER')
+    mockedModuleAccess.isEnabled.mockResolvedValueOnce(ok(false))
+    expectErr(
+      await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+      'MODULE_DISABLED',
+    )
+    expect(mockedSendEmail).not.toHaveBeenCalled()
+  })
+
+  it('should block a suspended workspace', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'OWNER', workspaceStatus: 'SUSPENDED' })),
+    )
+    expectErr(
+      await CrmEmailCampaignService.getById('u1', 'ws1', 'c1'),
+      'WORKSPACE_SUSPENDED',
+    )
+  })
+
+  it.each([
+    [
+      'create',
+      () =>
+        CrmEmailCampaignService.create('u1', 'ws1', {
+          ...baseCreate,
+          recipientScope: 'ALL',
+        }),
+    ],
+    ['update', () => CrmEmailCampaignService.update('u1', 'ws1', 'c1', {})],
+    ['send', () => CrmEmailCampaignService.send('u1', 'ws1', 'c1')],
+  ])('should forbid a VIEWER from %s', async (_name, call) => {
+    asRole('VIEWER')
+    expectErr(await call(), 'FORBIDDEN')
+    expect(mockedCampaignRepo.findById).not.toHaveBeenCalled()
+    expect(mockedCampaignRepo.create).not.toHaveBeenCalled()
+    expect(mockedPersonRepo.listByWorkspace).not.toHaveBeenCalled()
+  })
+})
+
+describe('CrmEmailCampaignService — reads', () => {
+  it('should list campaigns for a VIEWER', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.listByWorkspace.mockResolvedValue(
+      ok([
+        {
+          ...createFakeCrmEmailCampaign({ id: 'c1' }),
+          _count: { recipients: 0 },
+          recipients: [],
+        },
+      ]),
+    )
+    const dtos = expectOk(await CrmEmailCampaignService.list('u1', 'ws1'))
+    expect(dtos.map((d) => d.id)).toEqual(['c1'])
+  })
+
+  it('should propagate list errors', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.listByWorkspace.mockResolvedValue(err(databaseError()))
+    expectErr(await CrmEmailCampaignService.list('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+
+  it('should get a campaign scoped to the workspace', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    const dto = expectOk(
+      await CrmEmailCampaignService.getById('u1', 'ws1', 'c1'),
+    )
+    expect(dto.id).toBe('c1')
+    expect(mockedCampaignRepo.findById).toHaveBeenCalledWith('c1', 'ws1')
+  })
+
+  it('should return not found on getById for another workspace', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      err(notFound('CrmEmailCampaign')),
+    )
+    expectErr(
+      await CrmEmailCampaignService.getById('u1', 'ws1', 'c1'),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should list recipients of a campaign', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    mockedRecipientRepo.listByCampaign.mockResolvedValue(
+      ok([createFakeCrmEmailCampaignRecipient({ id: 'r1', campaignId: 'c1' })]),
+    )
+    const dtos = expectOk(
+      await CrmEmailCampaignService.listRecipients('u1', 'ws1', 'c1'),
+    )
+    expect(dtos.map((d) => d.id)).toEqual(['r1'])
+  })
+
+  it('should not list recipients to a non-member', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+    expectErr(
+      await CrmEmailCampaignService.listRecipients('u1', 'ws1', 'c1'),
+      'FORBIDDEN',
+    )
+    expect(mockedCampaignRepo.findById).not.toHaveBeenCalled()
+  })
+
+  it('should not list recipients of a campaign outside the workspace', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      err(notFound('CrmEmailCampaign')),
+    )
+    expectErr(
+      await CrmEmailCampaignService.listRecipients('u1', 'ws1', 'c1'),
+      'RESOURCE_NOT_FOUND',
+    )
+    expect(mockedRecipientRepo.listByCampaign).not.toHaveBeenCalled()
+  })
+
+  it('should propagate recipient listing errors', async () => {
+    asRole('VIEWER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    mockedRecipientRepo.listByCampaign.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.listRecipients('u1', 'ws1', 'c1'),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('CrmEmailCampaignService — create() recipient resolution', () => {
+  it('should skip people without an email in ALL', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.create.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    mockedPersonRepo.listByWorkspace.mockResolvedValue(
+      ok([
+        fakePerson('p1', 'Jane', 'jane@acme.com'),
+        { ...fakePerson('p2', 'Sem e-mail', 'x'), emails: [] },
+      ]),
+    )
+    mockedRecipientRepo.createMany.mockResolvedValue(ok(1))
+
+    expectOk(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'ALL',
+      }),
+    )
+    expect(mockedRecipientRepo.createMany).toHaveBeenCalledWith('c1', [
+      { email: 'jane@acme.com', name: 'Jane', personId: 'p1' },
+    ])
+  })
+
+  it('should fail with no recipients when nobody in ALL has an email', async () => {
+    asRole('MEMBER')
+    mockedPersonRepo.listByWorkspace.mockResolvedValue(ok([]))
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'ALL',
+      }),
+      'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
+    )
+    expect(mockedCampaignRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a person listing error in ALL', async () => {
+    asRole('MEMBER')
+    mockedPersonRepo.listByWorkspace.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'ALL',
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedCampaignRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should treat an omitted selection in SELECTED as empty', async () => {
+    asRole('MEMBER')
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+      }),
+      'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
+    )
+    expect(mockedPersonRepo.listByWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('should ignore selected people that are missing or have no email', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.create.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    mockedPersonRepo.findById.mockImplementation(async (id: string) => {
+      if (id === 'gone') return err(notFound('CrmPerson'))
+      if (id === 'noemail') {
+        return ok({ ...fakePerson(id, 'X', 'x'), emails: [] })
+      }
+      return ok(fakePerson(id, 'Jane', 'jane@acme.com'))
+    })
+    mockedRecipientRepo.createMany.mockResolvedValue(ok(1))
+
+    expectOk(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+        personIds: ['gone', 'noemail', 'p1'],
+      }),
+    )
+    expect(mockedPersonRepo.findById).toHaveBeenCalledWith('gone', 'ws1')
+    expect(mockedRecipientRepo.createMany).toHaveBeenCalledWith('c1', [
+      { email: 'jane@acme.com', name: 'Jane', personId: 'p1' },
+    ])
+  })
+
+  it('should drop blank addresses and list members whose linked person opted out', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.create.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    mockedMailingListMemberRepo.listByList.mockResolvedValue(
+      ok([
+        listMember('   '),
+        listMember('saiu@acme.com', 'p9'),
+        listMember('fica@acme.com', 'p2'),
+      ]),
+    )
+    mockedOptOutRepo.indexByWorkspace.mockResolvedValue(optOutIndex([], ['p9']))
+    mockedRecipientRepo.createMany.mockResolvedValue(ok(1))
+
+    expectOk(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+        mailingListIds: ['l1'],
+      }),
+    )
+    expect(mockedRecipientRepo.createMany).toHaveBeenCalledWith('c1', [
+      { email: 'fica@acme.com', name: undefined, personId: 'p2' },
+    ])
+  })
+
+  it('should propagate a mailing list lookup error', async () => {
+    asRole('MEMBER')
+    mockedMailingListMemberRepo.listByList.mockResolvedValue(
+      err(databaseError()),
+    )
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+        mailingListIds: ['l1'],
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedCampaignRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should propagate an opt-out index error', async () => {
+    asRole('MEMBER')
+    mockedOptOutRepo.indexByWorkspace.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+        extraEmails: ['a@acme.com'],
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedCampaignRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a campaign creation error without creating recipients', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.create.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+        extraEmails: ['a@acme.com'],
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedRecipientRepo.createMany).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a recipient insert error', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.create.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+    )
+    mockedRecipientRepo.createMany.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.create('u1', 'ws1', {
+        ...baseCreate,
+        recipientScope: 'SELECTED',
+        extraEmails: ['a@acme.com'],
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('CrmEmailCampaignService — update()', () => {
+  it('should update a scheduled campaign', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1', status: 'SCHEDULED' })),
+    )
+    mockedCampaignRepo.update.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1', subject: 'Novo' })),
+    )
+
+    const dto = expectOk(
+      await CrmEmailCampaignService.update('u1', 'ws1', 'c1', {
+        subject: 'Novo',
+      }),
+    )
+    expect(dto.subject).toBe('Novo')
+    expect(mockedCampaignRepo.update).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({ subject: 'Novo' }),
+    )
+  })
+
+  it('should return not found for a missing campaign', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      err(notFound('CrmEmailCampaign')),
+    )
+    expectErr(
+      await CrmEmailCampaignService.update('u1', 'ws1', 'c1', {}),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should propagate update errors', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1', status: 'DRAFT' })),
+    )
+    mockedCampaignRepo.update.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.update('u1', 'ws1', 'c1', {}),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('CrmEmailCampaignService — send() outcomes', () => {
+  function setupSend(
+    recipients: ReturnType<typeof createFakeCrmEmailCampaignRecipient>[],
+    status: 'DRAFT' | 'SCHEDULED' = 'DRAFT',
+  ) {
+    asRole('MEMBER')
+    const campaign = createFakeCrmEmailCampaign({ id: 'c1', status })
+    mockedCampaignRepo.findById.mockResolvedValue(ok(campaign))
+    mockedCampaignRepo.setStatus.mockImplementation(async (_id, next) =>
+      ok({ ...campaign, status: next }),
+    )
+    mockedRecipientRepo.listByCampaign.mockResolvedValue(ok(recipients))
+    mockedRecipientRepo.markSent.mockResolvedValue(ok(undefined))
+    mockedRecipientRepo.markFailed.mockResolvedValue(ok(undefined))
+    mockedRecipientRepo.markSkipped.mockResolvedValue(ok(undefined))
+  }
+
+  const r1 = createFakeCrmEmailCampaignRecipient({
+    id: 'r1',
+    email: 'a@acme.com',
+  })
+  const r2 = createFakeCrmEmailCampaignRecipient({
+    id: 'r2',
+    email: 'b@acme.com',
+  })
+
+  it('should refuse to resend a SENT campaign', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      ok(createFakeCrmEmailCampaign({ id: 'c1', status: 'SENT' })),
+    )
+    expectErr(
+      await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+      'CRM_EMAIL_CAMPAIGN_ALREADY_SENT',
+    )
+    expect(mockedRecipientRepo.listByCampaign).not.toHaveBeenCalled()
+  })
+
+  it('should return not found for a missing campaign', async () => {
+    asRole('MEMBER')
+    mockedCampaignRepo.findById.mockResolvedValue(
+      err(notFound('CrmEmailCampaign')),
+    )
+    expectErr(
+      await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should propagate a recipient listing error', async () => {
+    setupSend([])
+    mockedRecipientRepo.listByCampaign.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedSendEmail).not.toHaveBeenCalled()
+  })
+
+  it('should not start sending when the opt-out index fails', async () => {
+    setupSend([r1])
+    mockedOptOutRepo.indexByWorkspace.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedCampaignRepo.setStatus).not.toHaveBeenCalled()
+    expect(mockedSendEmail).not.toHaveBeenCalled()
+  })
+
+  it('should mark partial provider failures and still finish as SENT', async () => {
+    setupSend([r1, r2], 'SCHEDULED')
+    mockedSendEmail
+      .mockResolvedValueOnce({ id: 'resend-1' } as never)
+      .mockRejectedValueOnce(new Error('Resend 500'))
+
+    const dto = expectOk(await CrmEmailCampaignService.send('u1', 'ws1', 'c1'))
+    expect(dto.status).toBe('SENT')
+    expect(mockedRecipientRepo.markSent).toHaveBeenCalledWith('r1', 'resend-1')
+    expect(mockedRecipientRepo.markFailed).toHaveBeenCalledWith(
+      'r2',
+      'Resend 500',
+    )
+    expect(mockedCampaignRepo.setStatus).toHaveBeenNthCalledWith(
+      1,
+      'c1',
+      'SENDING',
+    )
+  })
+
+  it('should mark the campaign FAILED when every attempt fails', async () => {
+    setupSend([r1])
+    mockedSendEmail.mockRejectedValueOnce('boom')
+
+    const dto = expectOk(await CrmEmailCampaignService.send('u1', 'ws1', 'c1'))
+    expect(dto.status).toBe('FAILED')
+    expect(mockedRecipientRepo.markFailed).toHaveBeenCalledWith(
+      'r1',
+      'Falha ao enviar',
+    )
+  })
+
+  it('should finish as SENT when every recipient opted out (nothing attempted)', async () => {
+    setupSend([r1])
+    mockedOptOutRepo.indexByWorkspace.mockResolvedValue(
+      optOutIndex(['a@acme.com']),
+    )
+
+    const dto = expectOk(await CrmEmailCampaignService.send('u1', 'ws1', 'c1'))
+    expect(dto.status).toBe('SENT')
+    expect(mockedSendEmail).not.toHaveBeenCalled()
+    expect(mockedRecipientRepo.markSkipped).toHaveBeenCalledWith('r1')
+  })
+
+  it('should skip a recipient whose linked person opted out', async () => {
+    setupSend([{ ...r1, personId: 'p1' }])
+    mockedOptOutRepo.indexByWorkspace.mockResolvedValue(optOutIndex([], ['p1']))
+    expectOk(await CrmEmailCampaignService.send('u1', 'ws1', 'c1'))
+    expect(mockedSendEmail).not.toHaveBeenCalled()
+    expect(mockedRecipientRepo.markSkipped).toHaveBeenCalledWith('r1')
+  })
+
+  it('should propagate the final status update error', async () => {
+    setupSend([r1])
+    mockedCampaignRepo.setStatus
+      .mockResolvedValueOnce(ok(createFakeCrmEmailCampaign({ id: 'c1' })))
+      .mockResolvedValueOnce(err(databaseError()))
+    expectErr(
+      await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+      'DATABASE_ERROR',
+    )
   })
 })

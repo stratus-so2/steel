@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createFakeCrmEmailCampaignRecipient } from '@/src/__tests__/factories/crm-email-marketing.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { notFound } from '@/src/errors'
+import { databaseError, notFound } from '@/src/errors'
 import { createCrmUnsubscribeToken } from '@/src/lib/crm-email-unsubscribe'
 import { err, ok } from '@/src/lib/result'
 
@@ -153,7 +153,55 @@ describe('CrmEmailOptOutService', () => {
     })
   })
 
+  describe('unsubscribe() failures', () => {
+    it('should propagate a database error on lookup instead of masking it', async () => {
+      mockedRecipientRepo.findByIdWithCampaign.mockResolvedValue(
+        err(databaseError()),
+      )
+
+      expectErr(
+        await CrmEmailOptOutService.unsubscribe(
+          createCrmUnsubscribeToken('r1'),
+          'LINK',
+        ),
+        'DATABASE_ERROR',
+      )
+      expect(mockedOptOutRepo.upsert).not.toHaveBeenCalled()
+    })
+
+    it('should audit a failed upsert and propagate the error', async () => {
+      mockedRecipientRepo.findByIdWithCampaign.mockResolvedValue(
+        ok(recipientWithCampaign()),
+      )
+      mockedOptOutRepo.upsert.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await CrmEmailOptOutService.unsubscribe(
+          createCrmUnsubscribeToken('r1'),
+          'LINK',
+        ),
+        'DATABASE_ERROR',
+      )
+      expect(mockedAudit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: 'crm_email_opt_out',
+          outcome: 'failure',
+          reason: 'DATABASE_ERROR',
+          meta: { workspaceId: 'ws1', campaignId: 'c1' },
+        }),
+      )
+    })
+  })
+
   describe('preview()', () => {
+    it('should reject a malformed token', async () => {
+      expectErr(
+        await CrmEmailOptOutService.preview('not-a-token'),
+        'CRM_EMAIL_UNSUBSCRIBE_INVALID',
+      )
+      expect(mockedRecipientRepo.findByIdWithCampaign).not.toHaveBeenCalled()
+    })
+
     it('should resolve the address without recording anything', async () => {
       mockedRecipientRepo.findByIdWithCampaign.mockResolvedValue(
         ok(recipientWithCampaign()),
@@ -184,6 +232,15 @@ describe('CrmEmailOptOutService', () => {
         await CrmEmailOptOutService.list('u1', 'ws1'),
         'MODULE_DISABLED',
       )
+    })
+
+    it('should propagate repository errors', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'VIEWER' })),
+      )
+      mockedOptOutRepo.listByWorkspace.mockResolvedValue(err(databaseError()))
+
+      expectErr(await CrmEmailOptOutService.list('u1', 'ws1'), 'DATABASE_ERROR')
     })
 
     it('should list the workspace opt-outs for a member', async () => {
