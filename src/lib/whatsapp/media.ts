@@ -1,10 +1,13 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
+import type { WhatsAppConnection } from '@prisma/client'
 import { storageError } from '@/src/errors'
+import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { err, ok, type Result } from '@/src/lib/result'
 import { persistObject } from '@/src/services/media/_media'
 
 const BUCKET = 'whatsapp-media'
+const META_GRAPH_VERSION = 'v23.0'
 
 const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -77,4 +80,38 @@ export async function persistOutboundMedia(input: {
   if (!stored.ok) return stored
 
   return ok({ url: stored.value })
+}
+
+/**
+ * Resolve a URL baixável de uma mídia recebida. Z-API já entrega a URL; a
+ * Meta entrega um media id que precisa ser trocado por uma URL temporária
+ * (autenticada com o access token da conexão). Lança em falha — quem chama
+ * converte em `Result`.
+ */
+export async function resolveInboundMediaSource(
+  connection: Pick<WhatsAppConnection, 'provider' | 'encryptedMetaAccessToken'>,
+  rawMediaUrl: string,
+): Promise<{ url: string; headers?: Record<string, string> }> {
+  if (connection.provider === 'ZAPI') {
+    return { url: rawMediaUrl }
+  }
+
+  if (!connection.encryptedMetaAccessToken) {
+    throw new Error('Conexão Meta sem access token configurado')
+  }
+  const accessToken = await decryptConnectionSecret(
+    connection.encryptedMetaAccessToken,
+  )
+
+  const metaResponse = await fetch(
+    `https://graph.facebook.com/${META_GRAPH_VERSION}/${rawMediaUrl}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  )
+  if (!metaResponse.ok) {
+    throw new Error(`Falha ao resolver mídia da Meta (${metaResponse.status})`)
+  }
+  const body = (await metaResponse.json()) as { url?: string }
+  if (!body.url) throw new Error('Meta não retornou URL de mídia')
+
+  return { url: body.url, headers: { Authorization: `Bearer ${accessToken}` } }
 }
