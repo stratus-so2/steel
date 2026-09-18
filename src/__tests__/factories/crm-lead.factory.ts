@@ -5,6 +5,7 @@ import {
   type CrmLeadMeeting,
   type CrmLeadProposalPresentation,
   type CrmLeadQualification,
+  type CrmLeadReopening,
   type CrmLeadRoutingRule,
   type CrmLeadScoringRule,
   Prisma,
@@ -12,6 +13,7 @@ import {
 import { prisma } from '@/src/lib/prisma'
 import type {
   CrmLeadDTO,
+  CrmLeadReopeningDTO,
   CrmLeadRoutingRuleDTO,
   CrmLeadScoringRuleDTO,
 } from '@/types/crm-lead'
@@ -105,6 +107,11 @@ export async function seedCrmLead(
       | 'ownerId'
       | 'position'
       | 'deletedAt'
+      | 'closeResult'
+      | 'closedAt'
+      | 'lostReason'
+      | 'lostNote'
+      | 'retryAt'
     >
   >,
 ) {
@@ -408,4 +415,53 @@ export async function seedCrmLeadProposalPresentation(
       ...overrides,
     },
   })
+}
+
+/** Lead fechado como perdido — ponto de partida da reabertura. */
+export function createFakeLostCrmLead(overrides?: Partial<CrmLead>): CrmLead {
+  return createFakeCrmLead({
+    stage: 'CLOSED',
+    closeResult: 'LOST',
+    closedAt: new Date(),
+    lostReason: 'Preço',
+    lostNote: 'Achou caro',
+    ...overrides,
+  })
+}
+
+export function createFakeCrmLeadReopening(
+  overrides?: Partial<CrmLeadReopening>,
+): CrmLeadReopening {
+  return {
+    id: createId(),
+    leadId: createId(),
+    workspaceId: createId(),
+    toStage: 'RECEIVED',
+    reason: 'Cliente voltou a responder',
+    previousLostReason: 'Preço',
+    previousLostNote: null,
+    previousClosedAt: new Date(),
+    previousRetryAt: null,
+    reopenedById: createId(),
+    createdAt: new Date(),
+    ...overrides,
+  }
+}
+
+export function createFakeCrmLeadReopeningDTO(
+  overrides?: Partial<CrmLeadReopeningDTO>,
+): CrmLeadReopeningDTO {
+  return {
+    id: createId(),
+    leadId: createId(),
+    toStage: 'RECEIVED',
+    reason: 'Cliente voltou a responder',
+    previousLostReason: 'Preço',
+    previousLostNote: null,
+    previousClosedAt: new Date().toISOString(),
+    previousRetryAt: null,
+    reopenedById: createId(),
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  }
 }

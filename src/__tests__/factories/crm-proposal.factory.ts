@@ -131,6 +131,10 @@ export async function seedCrmProposal(
       | 'templateId'
       | 'position'
       | 'deletedAt'
+      | 'leadId'
+      | 'acceptedAt'
+      | 'acceptedByName'
+      | 'expiredAt'
     >
   >,
 ) {

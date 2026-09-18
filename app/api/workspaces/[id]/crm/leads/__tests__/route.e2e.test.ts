@@ -336,3 +336,82 @@ describe('CRM lead 6-stage pipeline', () => {
     expect(body.data.closeResult).toBe('LOST')
   })
 })
+
+describe('POST /api/workspaces/[id]/crm/leads/[leadId]/reopen', () => {
+  async function lostLead(cookie: string, workspaceId: string) {
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspaceId}/crm/leads`,
+        { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
+        cookie,
+      )
+    ).json()
+    await postJson(
+      `/api/workspaces/${workspaceId}/crm/leads/${created.data.id}/close-lost`,
+      { lostReason: 'Sem resposta' },
+      cookie,
+    )
+    return created.data.id as string
+  }
+
+  it('should reopen a lost lead into the configured stage and keep the history', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const leadId = await lostLead(user.cookie, workspace.id)
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/leads/${leadId}/reopen`,
+      { reason: 'Cliente voltou a responder' },
+      user.cookie,
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.data.stage).toBe('RECEIVED')
+    expect(body.data.closeResult).toBeNull()
+    expect(body.data.lostReason).toBeNull()
+
+    const history = await getJson(
+      `/api/workspaces/${workspace.id}/crm/leads/${leadId}/reopenings`,
+      user.cookie,
+    )
+    expect(history.status).toBe(200)
+    const historyBody = await history.json()
+    expect(historyBody.data).toHaveLength(1)
+    expect(historyBody.data[0]).toMatchObject({
+      reason: 'Cliente voltou a responder',
+      previousLostReason: 'Sem resposta',
+      toStage: 'RECEIVED',
+    })
+  })
+
+  it('should require a reason', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const leadId = await lostLead(user.cookie, workspace.id)
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/leads/${leadId}/reopen`,
+      { reason: '' },
+      user.cookie,
+    )
+    expect(res.status).toBe(422)
+  })
+
+  it('should refuse to reopen a lead that is not lost', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/leads`,
+        { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
+        user.cookie,
+      )
+    ).json()
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/leads/${created.data.id}/reopen`,
+      { reason: 'Retomou' },
+      user.cookie,
+    )
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.error.code).toBe('CRM_LEAD_REOPEN_NOT_ALLOWED')
+  })
+})
