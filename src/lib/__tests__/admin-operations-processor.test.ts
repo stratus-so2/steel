@@ -51,6 +51,7 @@ vi.mock('@/src/cache/workspace-features.cache', () => ({
 }))
 vi.mock('@/lib/axiom/logger', () => ({ logger: mocks.logger }))
 
+import { WorkspaceCache } from '@/src/cache/workspace.cache'
 import {
   runWorkspaceDeletion,
   runWorkspaceRestore,
@@ -258,5 +259,129 @@ describe('runWorkspaceRestore()', () => {
       where: { id: 'op1' },
       data: expect.objectContaining({ status: 'FAILED' }),
     })
+  })
+})
+
+describe('admin operations — edge cases', () => {
+  it('skips an operation that no longer exists', async () => {
+    mocks.op.findUnique.mockResolvedValue(null)
+
+    expect(await runWorkspaceRestore(job('restore-workspace'))).toBeUndefined()
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      'queue.admin_operation.skipped',
+      expect.objectContaining({ reason: 'not_found' }),
+    )
+  })
+
+  it('reverts to ACTIVE (no meta) when the row purge transaction fails', async () => {
+    mocks.op.findUnique.mockResolvedValue(operation({ meta: null }))
+    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 1 })
+    mocks.transaction.mockRejectedValue('deadlock')
+
+    await expect(runWorkspaceDeletion(job('delete-workspace'))).rejects.toBe(
+      'deadlock',
+    )
+    expect(mocks.workspace.updateMany).toHaveBeenCalledWith({
+      where: { id: 'ws1', status: 'DELETING' },
+      data: { status: 'ACTIVE' },
+    })
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({ status: 'FAILED', error: 'deadlock' }),
+    })
+  })
+
+  it('fails without purging when the backup step yields no id', async () => {
+    mocks.op.findUnique.mockResolvedValue(operation({ backupId: 'b0' }))
+    mocks.backup.findUnique.mockResolvedValue({ id: 'b0', status: 'FAILED' })
+    mocks.backupWorkspace.mockResolvedValue({ backupId: '', sizeBytes: 0 })
+
+    await expect(runWorkspaceDeletion(job('delete-workspace'))).rejects.toThrow(
+      'Backup do workspace não foi gerado.',
+    )
+    expect(mocks.purgeWorkspaceRows).not.toHaveBeenCalled()
+  })
+
+  it('records non-Error file purge failures and tolerates cache invalidation errors', async () => {
+    mocks.op.findUnique.mockResolvedValue(operation())
+    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 1 })
+    mocks.purgeWorkspaceFiles.mockRejectedValue('timeout')
+    vi.mocked(WorkspaceCache.invalidate).mockRejectedValueOnce(
+      new Error('redis down'),
+    )
+
+    const result = await runWorkspaceDeletion(job('delete-workspace'))
+
+    expect(result).toEqual({ backupId: 'b1', filesDeleted: 0 })
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({
+        meta: expect.objectContaining({ filesError: 'timeout' }),
+      }),
+    })
+  })
+
+  it('fails a restore without a source backup', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({ kind: 'WORKSPACE_RESTORE', backupId: null }),
+    )
+
+    await expect(runWorkspaceRestore(job('restore-workspace'))).rejects.toThrow(
+      'Operação sem backup de origem.',
+    )
+    expect(mocks.fetchAndDecryptBackup).not.toHaveBeenCalled()
+    expect(mocks.recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'workspace.restore_failed' }),
+    )
+  })
+
+  it('refuses to restore from a FULL backup', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({ kind: 'WORKSPACE_RESTORE', backupId: 'b9' }),
+    )
+    mocks.workspace.findUnique.mockResolvedValue(null)
+    mocks.fetchAndDecryptBackup.mockResolvedValue({
+      buffer: Buffer.from('{}'),
+      backup: { id: 'b9', scope: 'FULL', workspaceId: null },
+    })
+
+    await expect(runWorkspaceRestore(job('restore-workspace'))).rejects.toThrow(
+      'Backup "b9" não é de workspace.',
+    )
+    expect(mocks.restoreWorkspaceSnapshot).not.toHaveBeenCalled()
+  })
+
+  it('stringifies non-Error restore failures', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({ kind: 'WORKSPACE_RESTORE', backupId: 'b1' }),
+    )
+    mocks.workspace.findUnique.mockResolvedValue(null)
+    mocks.fetchAndDecryptBackup.mockRejectedValue('decrypt failed')
+
+    await expect(runWorkspaceRestore(job('restore-workspace'))).rejects.toBe(
+      'decrypt failed',
+    )
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({ error: 'decrypt failed' }),
+    })
+  })
+})
+
+describe('admin operations — failure after the purge', () => {
+  it('does not revert the workspace status once rows were already purged', async () => {
+    mocks.op.findUnique.mockResolvedValue(operation())
+    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 1 })
+    mocks.recordAdminAction.mockRejectedValueOnce(new Error('audit down'))
+
+    await expect(runWorkspaceDeletion(job('delete-workspace'))).rejects.toThrow(
+      'audit down',
+    )
+    expect(mocks.purgeWorkspaceRows).toHaveBeenCalled()
+    expect(mocks.workspace.updateMany).not.toHaveBeenCalled()
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      'queue.admin_operation.workspace_delete_failed',
+      expect.objectContaining({ databasePurged: true }),
+    )
   })
 })

@@ -52,4 +52,10 @@ describe('processCrmProposalExpiry', () => {
       'Unknown crm-proposal-expiry job',
     )
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processCrmProposalExpiry({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown crm-proposal-expiry job: nope (id=unknown)')
+  })
 })

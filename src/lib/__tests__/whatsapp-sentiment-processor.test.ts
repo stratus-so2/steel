@@ -89,4 +89,70 @@ describe('processWhatsappSentiment', () => {
       'Unknown whatsapp-sentiment job',
     )
   })
+
+  it('warns about unparseable provider responses', async () => {
+    analyzeMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'skipped', reason: 'unparseable_response' },
+    })
+
+    await processWhatsappSentiment(fakeJob())
+
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      'queue.whatsapp_sentiment.unparseable_response',
+      expect.objectContaining({ messageId: 'm1' }),
+    )
+  })
+
+  it('logs ordinary skips as info', async () => {
+    analyzeMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'skipped', reason: 'sentiment_disabled' },
+    })
+
+    await processWhatsappSentiment(fakeJob())
+
+    expect(loggerMock.info).toHaveBeenCalledWith(
+      'queue.whatsapp_sentiment.skipped',
+      expect.objectContaining({ reason: 'sentiment_disabled' }),
+    )
+  })
+
+  it('logs the alert when a negative classification notified the team', async () => {
+    analyzeMock.mockResolvedValue({
+      ok: true,
+      value: {
+        status: 'classified',
+        sentiment: 'NEGATIVE',
+        score: -0.8,
+        conversationId: 'c1',
+        workspaceId: 'ws1',
+        avgSentimentScore: -0.8,
+        alert: {
+          alerted: true,
+          recipients: 2,
+          email: true,
+          assignedToId: 'u1',
+        },
+      },
+    })
+
+    await processWhatsappSentiment(fakeJob())
+
+    expect(loggerMock.info).toHaveBeenCalledWith(
+      'queue.whatsapp_sentiment.alert_sent',
+      expect.objectContaining({
+        conversationId: 'c1',
+        recipients: 2,
+        email: true,
+        assignedToId: 'u1',
+      }),
+    )
+  })
+
+  it('reports an unknown id for unknown jobs without an id', async () => {
+    await expect(
+      processWhatsappSentiment({ name: 'nope' } as unknown as Job),
+    ).rejects.toThrow('Unknown whatsapp-sentiment job: nope (id=unknown)')
+  })
 })

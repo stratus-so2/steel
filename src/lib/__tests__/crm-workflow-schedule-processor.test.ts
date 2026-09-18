@@ -215,4 +215,10 @@ describe('processCrmWorkflowSchedule', () => {
       'Unknown crm-workflow-schedule job: other (id=tick-1)',
     )
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processCrmWorkflowSchedule({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown crm-workflow-schedule job: nope (id=unknown)')
+  })
 })

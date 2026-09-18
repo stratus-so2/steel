@@ -262,4 +262,154 @@ describe('processDataExport', () => {
     expect(sendExportEmailMock).not.toHaveBeenCalled()
     expect(auditMutationMock).not.toHaveBeenCalled()
   })
+
+  it('exports audit entries, refresh-token expiry, consents and the scheduled deletion date', async () => {
+    const scheduled = new Date('2026-07-01T00:00:00Z')
+    userFindUniqueMock.mockResolvedValue(
+      buildUser({ deletionScheduledAt: scheduled }),
+    )
+    accountFindManyMock.mockResolvedValue([
+      {
+        id: 'acc-1',
+        providerId: 'google',
+        accountId: 'g-1',
+        scope: null,
+        accessTokenExpiresAt: null,
+        refreshTokenExpiresAt: new Date('2026-08-01T00:00:00Z'),
+        createdAt: new Date('2026-05-19T00:00:00Z'),
+        updatedAt: new Date('2026-05-19T00:00:00Z'),
+      },
+    ])
+    consentFindManyMock.mockResolvedValue([
+      {
+        id: 'c-1',
+        document: 'TERMS',
+        version: '2026-05',
+        action: 'GRANTED',
+        ipAddress: null,
+        userAgent: null,
+        createdAt: new Date('2026-05-19T00:00:00Z'),
+      },
+    ])
+    axiomQueryMock.mockResolvedValue({
+      matches: [
+        {
+          _time: '2026-05-20T10:00:00.000Z',
+          data: { auditType: 'auth', event: 'sign_in', outcome: 'success' },
+        },
+      ],
+    })
+
+    await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
+
+    expect(axiomQueryMock).toHaveBeenCalledWith(
+      expect.stringContaining("['actorId'] == 'user-1'"),
+    )
+    const uploaded = JSON.parse(putObjectMock.mock.calls[0][0].body)
+    expect(uploaded.profile.deletionScheduledAt).toBe(scheduled.toISOString())
+    expect(uploaded.accounts[0]).toMatchObject({
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: '2026-08-01T00:00:00.000Z',
+    })
+    expect(uploaded.consents[0]).toMatchObject({
+      document: 'TERMS',
+      action: 'GRANTED',
+    })
+    expect(uploaded.auditLog).toEqual([
+      {
+        timestamp: '2026-05-20T10:00:00.000Z',
+        auditType: 'auth',
+        event: 'sign_in',
+        outcome: 'success',
+      },
+    ])
+  })
+
+  it('treats an Axiom response without matches as an empty audit log', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+    axiomQueryMock.mockResolvedValue({})
+
+    await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
+
+    const uploaded = JSON.parse(putObjectMock.mock.calls[0][0].body)
+    expect(uploaded.auditLog).toEqual([])
+  })
+
+  it('tolerates non-Error failures from Axiom and the mailer', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+    axiomQueryMock.mockRejectedValueOnce('axiom 429')
+    sendExportEmailMock.mockRejectedValueOnce('resend 500')
+
+    const result = await processDataExport(
+      fakeJob('export-user-data', { userId: 'user-1' }),
+    )
+
+    expect(result.exported).toBe(true)
+  })
+
+  it('uses the user id as the file name when the job has no id', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+
+    await processDataExport({
+      name: 'export-user-data',
+      data: { userId: 'user-1' },
+    } as unknown as Job)
+
+    expect(putObjectMock).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'user-1/user-1.json' }),
+    )
+  })
+
+  it('formats the e-mailed file size in B, KB and MB', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+    const entries = (count: number, pad: number) => ({
+      matches: Array.from({ length: count }, () => ({
+        _time: '2026-05-20T10:00:00.000Z',
+        data: { reason: 'x'.repeat(pad) },
+      })),
+    })
+
+    axiomQueryMock.mockResolvedValueOnce(entries(3, 1_000))
+    await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
+    expect(sendExportEmailMock.mock.calls[0][0].fileSize).toMatch(
+      /^\d+\.\d KB$/,
+    )
+
+    axiomQueryMock.mockResolvedValueOnce(entries(3, 400_000))
+    await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
+    expect(sendExportEmailMock.mock.calls[1][0].fileSize).toMatch(
+      /^\d+\.\d MB$/,
+    )
+  })
+
+  it('reports tiny exports in bytes', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+
+    const result = await processDataExport(
+      fakeJob('export-user-data', { userId: 'user-1' }),
+    )
+
+    expect(result.fileSize).toBeLessThan(1024)
+    expect(sendExportEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ fileSize: `${result.fileSize} B` }),
+    )
+  })
+
+  it('exports null consent timestamps for users who never accepted the terms', async () => {
+    userFindUniqueMock.mockResolvedValue(
+      buildUser({ acceptedTermsAt: null, acceptedPrivacyAt: null }),
+    )
+
+    await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
+
+    const uploaded = JSON.parse(putObjectMock.mock.calls[0][0].body)
+    expect(uploaded.profile.acceptedTermsAt).toBeNull()
+    expect(uploaded.profile.acceptedPrivacyAt).toBeNull()
+  })
+
+  it('reports an unknown id for unknown jobs without an id', async () => {
+    await expect(
+      processDataExport({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown data-export job: nope (id=unknown)')
+  })
 })

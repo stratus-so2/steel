@@ -100,4 +100,10 @@ describe('processCrmSocialPostsTick', () => {
       'Unknown crm-social-posts-tick job: other (id=tick-1)',
     )
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processCrmSocialPostsTick({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown crm-social-posts-tick job: nope (id=unknown)')
+  })
 })

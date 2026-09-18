@@ -64,4 +64,24 @@ describe('processWhatsappMedia', () => {
       'Unknown whatsapp-media job',
     )
   })
+
+  it('warns when the conversation disappeared before the download', async () => {
+    downloadMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'skipped', reason: 'conversation_missing' },
+    })
+
+    await processWhatsappMedia(fakeJob())
+
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      'queue.whatsapp_media.conversation_missing',
+      expect.objectContaining({ messageId: 'm1' }),
+    )
+  })
+
+  it('reports an unknown id for unknown jobs without an id', async () => {
+    await expect(
+      processWhatsappMedia({ name: 'nope' } as unknown as Job),
+    ).rejects.toThrow('Unknown whatsapp-media job: nope (id=unknown)')
+  })
 })

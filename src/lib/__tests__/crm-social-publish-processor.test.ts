@@ -439,4 +439,10 @@ describe('processCrmSocialPublish — routing', () => {
       'Unknown crm-social-publish job: nope (id=job-1)',
     )
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processCrmSocialPublish({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown crm-social-publish job: nope (id=unknown)')
+  })
 })

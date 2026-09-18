@@ -82,4 +82,10 @@ describe('processStatusCollect', () => {
     )
     expect(collectMock).not.toHaveBeenCalled()
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processStatusCollect({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown status-collect job: nope (id=unknown)')
+  })
 })

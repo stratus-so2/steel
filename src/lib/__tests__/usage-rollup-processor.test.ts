@@ -62,4 +62,10 @@ describe('processUsageRollup()', () => {
       /Unknown usage-rollup job/,
     )
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processUsageRollup({ name: 'nope', data: {} } as unknown as Job, NOW),
+    ).rejects.toThrow('Unknown usage-rollup job: nope (id=unknown)')
+  })
 })

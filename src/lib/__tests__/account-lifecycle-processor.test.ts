@@ -75,4 +75,10 @@ describe('processAccountLifecycle', () => {
       processAccountLifecycle(fakeJob('unknown', {})),
     ).rejects.toThrow(/Unknown account-lifecycle job/)
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processAccountLifecycle({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown account-lifecycle job: nope (id=unknown)')
+  })
 })

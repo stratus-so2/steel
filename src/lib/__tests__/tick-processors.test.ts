@@ -117,8 +117,8 @@ describe('processCrmCompetitorSync', () => {
 
   it('throws on an unknown job name', async () => {
     await expect(
-      processCrmCompetitorSync(fakeJob('other', 'j9')),
-    ).rejects.toThrow('Unknown crm-competitor-sync job: other (id=j9)')
+      processCrmCompetitorSync(fakeJob('other', null)),
+    ).rejects.toThrow('Unknown crm-competitor-sync job: other (id=unknown)')
     expect(mocks.syncAll).not.toHaveBeenCalled()
   })
 })
@@ -170,8 +170,8 @@ describe('processCrmScheduledSend', () => {
   })
 
   it('throws on an unknown job name', async () => {
-    await expect(processCrmScheduledSend(fakeJob('x'))).rejects.toThrow(
-      'Unknown crm-scheduled-send job: x (id=job-1)',
+    await expect(processCrmScheduledSend(fakeJob('x', null))).rejects.toThrow(
+      'Unknown crm-scheduled-send job: x (id=unknown)',
     )
   })
 })

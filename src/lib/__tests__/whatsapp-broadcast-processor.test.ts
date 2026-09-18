@@ -100,4 +100,53 @@ describe('processWhatsappBroadcast', () => {
       processWhatsappBroadcast({ id: 'x', name: 'nope' } as unknown as Job),
     ).rejects.toThrow('Unknown whatsapp-broadcast job')
   })
+
+  it('warns when the recipient no longer exists', async () => {
+    sendMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'skipped', reason: 'recipient_missing' },
+    })
+
+    await processWhatsappBroadcast(sendJob())
+
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      'queue.whatsapp_broadcast.recipient_missing',
+      expect.anything(),
+    )
+  })
+
+  it('silently ignores other skip reasons (e.g. already processed)', async () => {
+    loggerMock.info.mockClear()
+    loggerMock.warn.mockClear()
+    sendMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'skipped', reason: 'already_processed' },
+    })
+
+    await expect(processWhatsappBroadcast(sendJob())).resolves.toBeUndefined()
+    expect(loggerMock.info).not.toHaveBeenCalled()
+    expect(loggerMock.warn).not.toHaveBeenCalled()
+  })
+
+  it('throws when the schedule tick cannot list due recipients', async () => {
+    tickMock.mockResolvedValue({
+      ok: false,
+      error: { code: 'DATABASE_ERROR', message: 'down' },
+    })
+
+    await expect(
+      processWhatsappBroadcast({
+        id: 't1',
+        name: 'run-schedule-tick',
+      } as unknown as Job),
+    ).rejects.toThrow(
+      'Failed to list due scheduled broadcast recipients: DATABASE_ERROR',
+    )
+  })
+
+  it('reports an unknown id for unknown jobs without an id', async () => {
+    await expect(
+      processWhatsappBroadcast({ name: 'nope' } as unknown as Job),
+    ).rejects.toThrow('Unknown whatsapp-broadcast job: nope (id=unknown)')
+  })
 })

@@ -47,4 +47,15 @@ describe('processWhatsappConversationLifecycle', () => {
       processWhatsappConversationLifecycle(fakeJob('nope')),
     ).rejects.toThrow('Unknown whatsapp-conversation-lifecycle job')
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processWhatsappConversationLifecycle({
+        name: 'nope',
+        data: {},
+      } as unknown as Job),
+    ).rejects.toThrow(
+      'Unknown whatsapp-conversation-lifecycle job: nope (id=unknown)',
+    )
+  })
 })

@@ -167,4 +167,10 @@ describe('processChangelog', () => {
       'Unknown changelog job: nope (id=job-1)',
     )
   })
+
+  it('falls back to an unknown id in the error when the job has none', async () => {
+    await expect(
+      processChangelog({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown changelog job: nope (id=unknown)')
+  })
 })

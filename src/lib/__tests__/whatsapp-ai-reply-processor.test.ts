@@ -117,4 +117,37 @@ describe('processWhatsappAiReply', () => {
       'Unknown whatsapp-ai-reply job',
     )
   })
+
+  it('warns about empty completions', async () => {
+    generateReplyMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'skipped', reason: 'empty_completion' },
+    })
+
+    await processWhatsappAiReply(fakeJob())
+
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      'queue.whatsapp_ai_reply.empty_completion',
+      expect.objectContaining({ conversationId: 'conv1' }),
+    )
+  })
+
+  it('logs send failures (not provider failures) with the detail', async () => {
+    generateReplyMock.mockResolvedValue({
+      ok: true,
+      value: { status: 'failed', reason: 'send_failed', detail: 'meta 500' },
+    })
+
+    await expect(processWhatsappAiReply(fakeJob())).resolves.toBeUndefined()
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      'queue.whatsapp_ai_reply.send_failed',
+      expect.objectContaining({ reason: 'meta 500' }),
+    )
+  })
+
+  it('reports an unknown id for unknown jobs without an id', async () => {
+    await expect(
+      processWhatsappAiReply({ name: 'nope', data: {} } as unknown as Job),
+    ).rejects.toThrow('Unknown whatsapp-ai-reply job: nope (id=unknown)')
+  })
 })
