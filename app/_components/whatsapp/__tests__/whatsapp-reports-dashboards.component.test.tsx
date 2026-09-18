@@ -261,4 +261,92 @@ describe('<WhatsappDashboardsList />', () => {
       fetchSpy.mock.calls.some(([, init]) => init?.method === 'DELETE'),
     ).toBe(true)
   })
+
+  it('shows an error state (not the empty state) when loading fails', async () => {
+    let fail = true
+    mockFetch([
+      {
+        match: DASHBOARDS,
+        handler: () =>
+          fail
+            ? new Response(
+                JSON.stringify({ success: false, message: 'Falha interna' }),
+                { status: 500 },
+              )
+            : dashboards,
+      },
+    ])
+    renderWithQuery(<WhatsappDashboardsList workspaceId='ws_1' slug='acme' />)
+
+    expect(
+      (await screen.findByRole('alert')).textContent?.includes(
+        'Não foi possível carregar os painéis.',
+      ),
+    ).toBe(true)
+    expect(screen.queryByText('Nenhum painel criado ainda.')).toBeNull()
+
+    fail = false
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(await screen.findByText('Sentimento')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('warns when creating a dashboard hits a network failure', async () => {
+    mockFetch([
+      {
+        method: 'POST',
+        match: DASHBOARDS,
+        handler: () => {
+          throw new TypeError('Failed to fetch')
+        },
+      },
+      { match: DASHBOARDS, data: [] },
+    ])
+    renderWithQuery(<WhatsappDashboardsList workspaceId='ws_1' slug='acme' />)
+    await screen.findByText('Nenhum painel criado ainda.')
+
+    fireEvent.click(screen.getByRole('button', { name: /Novo painel/ }))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Título'), {
+      target: { value: 'SLA' },
+    })
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Criar painel' }),
+    )
+
+    await waitFor(() =>
+      expect(notify.error).toHaveBeenCalledWith(
+        'Não foi possível criar o painel. Verifique sua conexão.',
+      ),
+    )
+    expect(
+      (
+        within(dialog).getByRole('button', {
+          name: 'Criar painel',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false)
+  })
+
+  it('surfaces the API message when deletion fails', async () => {
+    mockFetch([
+      {
+        method: 'DELETE',
+        match: `${DASHBOARDS}/d1`,
+        status: 403,
+        error: 'Sem permissão',
+      },
+      { match: DASHBOARDS, data: dashboards },
+    ])
+    renderWithQuery(<WhatsappDashboardsList workspaceId='ws_1' slug='acme' />)
+    await screen.findByText('Sentimento')
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Remover painel' })[0],
+    )
+    await waitFor(() =>
+      expect(notify.error).toHaveBeenCalledWith('Sem permissão'),
+    )
+    expect(screen.getByText('Sentimento')).toBeTruthy()
+  })
 })

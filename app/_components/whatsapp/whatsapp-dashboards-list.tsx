@@ -27,7 +27,7 @@ export function WhatsappDashboardsList({
   slug: string
 }) {
   const router = useRouter()
-  const { items, isLoading, refetch } = useResourceList<CrmDashboardDTO>(
+  const { items, isLoading, error, refetch } = useResourceList<CrmDashboardDTO>(
     workspaceId,
     'whatsapp/dashboards',
   )
@@ -47,29 +47,36 @@ export function WhatsappDashboardsList({
           body: JSON.stringify({ title }),
         },
       )
-      const json = await res.json()
-      if (!res.ok || !json.success) {
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) {
         notify.error(json?.message ?? 'Não foi possível criar o painel.')
         return
       }
       setOpen(false)
       setTitle('')
       router.push(`/${slug}/zap/dashboards/${json.data.id}`)
+    } catch {
+      notify.error('Não foi possível criar o painel. Verifique sua conexão.')
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(id: string) {
-    const res = await fetch(
-      `/api/workspaces/${workspaceId}/whatsapp/dashboards/${id}`,
-      { method: 'DELETE' },
-    )
-    if (!res.ok) {
-      notify.error('Não foi possível remover o painel.')
-      return
+    try {
+      const res = await fetch(
+        `/api/workspaces/${workspaceId}/whatsapp/dashboards/${id}`,
+        { method: 'DELETE' },
+      )
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        notify.error(json?.message ?? 'Não foi possível remover o painel.')
+        return
+      }
+      refetch()
+    } catch {
+      notify.error('Não foi possível remover o painel. Verifique sua conexão.')
     }
-    refetch()
   }
 
   return (
@@ -140,7 +147,17 @@ export function WhatsappDashboardsList({
             </Button>
           </div>
         ))}
-        {!isLoading && items.length === 0 && (
+        {!isLoading && error && (
+          <div className='flex flex-col items-center gap-2 px-4 py-6 text-center'>
+            <p role='alert' className='text-destructive text-sm'>
+              Não foi possível carregar os painéis. {error}
+            </p>
+            <Button size='sm' variant='outline' onClick={() => refetch()}>
+              Tentar novamente
+            </Button>
+          </div>
+        )}
+        {!isLoading && !error && items.length === 0 && (
           <p className='px-4 py-6 text-center text-muted-foreground text-sm'>
             Nenhum painel criado ainda.
           </p>
