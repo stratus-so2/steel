@@ -1248,3 +1248,144 @@ describe('resumeCrmWorkflow()', () => {
     })
   })
 })
+
+describe('runCrmWorkflow() — unresolved expressions', () => {
+  const none = '{{trigger.record.none}}'
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedRunRepo.setStatus.mockResolvedValue(ok({} as never))
+    mockedRunRepo.createStep.mockResolvedValue(ok({ id: 'step-1' } as never))
+    mockedRunRepo.updateStep.mockResolvedValue(ok({} as never))
+  })
+
+  it('search-records should drop conditions whose field is unresolved and default a missing value', async () => {
+    crmTask.findMany.mockResolvedValue([])
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          {
+            id: 's1',
+            data: {
+              type: 'search-records',
+              entity: 'task',
+              limit: 5,
+              outputAlias: 'found',
+              conditions: [
+                { field: none, operator: 'equals', value: 'x' },
+                { field: 'dueAt', operator: 'is_empty' },
+                { field: 'title', operator: 'equals' },
+              ],
+            },
+          },
+        ]),
+      ),
+    )
+    expect(crmTask.findMany).toHaveBeenCalledWith({
+      where: { workspaceId: 'ws-1', deletedAt: null, dueAt: null, title: '' },
+      take: 5,
+    })
+  })
+
+  it('delete-record should skip when the record id resolves to nothing', async () => {
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          {
+            id: 'd1',
+            data: { type: 'delete-record', entity: 'task', recordId: none },
+          },
+        ]),
+      ),
+    )
+    expect(crmTask.update).not.toHaveBeenCalled()
+    expect(stepOutputs()[0]).toEqual({ skipped: true, reason: 'no recordId' })
+  })
+
+  it('send-email should use empty subject/body when they resolve to nothing', async () => {
+    await runCrmWorkflow({
+      ...baseParams(
+        def([
+          {
+            id: 'm1',
+            data: {
+              type: 'send-email',
+              to: 'a@b.com',
+              subject: none,
+              body: none,
+            },
+          },
+        ]),
+      ),
+      testMode: true,
+    })
+    expect(stepOutputs()[0]).toEqual({
+      simulated: true,
+      to: 'a@b.com',
+      subject: '',
+    })
+  })
+
+  it('draft-email should produce empty strings for unresolved fields', async () => {
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          {
+            id: 'dr1',
+            data: { type: 'draft-email', to: none, subject: none, body: none },
+          },
+        ]),
+      ),
+    )
+    expect(stepOutputs()[0]).toEqual({
+      drafted: true,
+      to: '',
+      subject: '',
+      body: '',
+    })
+  })
+
+  it('filter should compare an unresolved right side as null', async () => {
+    await runCrmWorkflow({
+      ...baseParams(
+        def([
+          {
+            id: 'f1',
+            data: {
+              type: 'filter',
+              conditions: [
+                {
+                  field: '{{trigger.record.v}}',
+                  operator: 'equals',
+                  value: none,
+                },
+              ],
+            },
+          },
+        ]),
+      ),
+      triggerPayload: { record: { v: null } },
+    })
+    expect(stepOutputs()[0]).toEqual({ passes: true })
+  })
+
+  it('filter should accept raw non-string values from stored definitions', async () => {
+    await runCrmWorkflow({
+      ...baseParams(
+        def([
+          {
+            id: 'f1',
+            data: {
+              type: 'filter',
+              conditions: [
+                { field: '{{trigger.record.v}}', operator: 'equals', value: 5 },
+              ],
+            },
+          },
+        ]),
+      ),
+      triggerPayload: { record: { v: 5 } },
+    })
+    expect(stepOutputs()[0]).toEqual({ passes: true })
+  })
+})
