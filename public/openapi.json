@@ -145,6 +145,10 @@
       "description": "Atendimento por IA e base de conhecimento."
     },
     {
+      "name": "Comunicação · Dashboards e relatórios",
+      "description": "Dashboards e relatórios de atendimento."
+    },
+    {
       "name": "Comunicação · Configurações",
       "description": "Configurações de atendimento, mídia e membros atribuíveis."
     },
@@ -258,6 +262,7 @@
         "Comunicação · Templates e respostas rápidas",
         "Comunicação · Conexões",
         "Comunicação · IA",
+        "Comunicação · Dashboards e relatórios",
         "Comunicação · Configurações"
       ]
     },
@@ -1390,7 +1395,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -3594,7 +3599,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
           },
           "422": {
             "$ref": "#/components/responses/422_CRM_FORM_NOT_PUBLISHED"
@@ -3683,7 +3688,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_FORM_NOT_PUBLISHED"
@@ -3946,7 +3951,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_37"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_40"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -4043,7 +4048,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_38"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_41"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -4939,7 +4944,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_4"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -5005,7 +5010,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_4"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -5548,7 +5553,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -5614,7 +5619,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7260,7 +7265,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7530,7 +7535,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7597,7 +7602,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7679,7 +7684,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
@@ -7780,7 +7785,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -8056,7 +8061,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -8125,7 +8130,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -8488,7 +8493,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -8683,7 +8688,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_COMPANY_CONFLICT"
@@ -8755,7 +8760,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9317,7 +9322,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -9386,7 +9391,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9460,10 +9465,10 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9873,7 +9878,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -9942,7 +9947,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10046,7 +10051,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -10256,7 +10261,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -10325,7 +10330,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10391,7 +10396,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10855,7 +10860,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -10986,7 +10991,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -11094,10 +11099,10 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11172,7 +11177,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11374,7 +11379,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_35"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11608,7 +11613,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11703,7 +11708,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_EMAIL_CAMPAIGN_ALREADY_SENT"
@@ -11775,7 +11780,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11838,7 +11843,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_EMAIL_CAMPAIGN_ALREADY_SENT"
@@ -12094,7 +12099,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_33"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_36"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -12485,7 +12490,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
@@ -12554,7 +12559,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13816,7 +13821,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -13885,7 +13890,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13939,7 +13944,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -14080,7 +14085,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_34"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -16740,7 +16745,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -16809,7 +16814,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -17051,7 +17056,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_33"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -17120,7 +17125,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_33"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19264,7 +19269,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -19333,7 +19338,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19399,7 +19404,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19488,7 +19493,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_MAILING_LIST_MEMBER_CONFLICT"
@@ -19571,7 +19576,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19993,7 +19998,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -20062,7 +20067,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20394,7 +20399,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20628,7 +20633,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20694,7 +20699,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20798,7 +20803,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -20919,7 +20924,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_35"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_38"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -20997,7 +21002,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_36"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_39"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21321,7 +21326,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21471,7 +21476,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
@@ -21540,7 +21545,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21830,7 +21835,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -21899,7 +21904,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21965,7 +21970,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -22059,7 +22064,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -22150,7 +22155,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_10"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -22255,7 +22260,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -22333,7 +22338,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_PIPELINE_STAGE_IN_USE"
@@ -22642,7 +22647,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -22757,7 +22762,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_PRODUCT_CONFLICT"
@@ -22829,7 +22834,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -24745,7 +24750,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -24906,7 +24911,7 @@
             "$ref": "#/components/responses/409_CONFLICT_4"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -25169,7 +25174,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -25337,7 +25342,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -25406,7 +25411,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26011,7 +26016,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26497,7 +26502,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -26566,7 +26571,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26629,7 +26634,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26699,7 +26704,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27709,7 +27714,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27772,7 +27777,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28095,7 +28100,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28504,7 +28509,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28596,7 +28601,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_34"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_37"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -29196,7 +29201,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -29265,7 +29270,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -32300,7 +32305,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33688,7 +33693,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE"
@@ -33865,7 +33870,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34132,7 +34137,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_BROADCAST_NOT_FOUND"
@@ -34255,7 +34260,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34691,7 +34696,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -34776,7 +34781,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "409": {
             "$ref": "#/components/responses/409_CONFLICT_2"
@@ -34857,7 +34862,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -34966,7 +34971,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -35035,7 +35040,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -35183,7 +35188,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -35411,7 +35416,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -35776,7 +35781,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -36792,6 +36797,1102 @@
         ]
       }
     },
+    "/workspaces/{id}/whatsapp/dashboards": {
+      "get": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Listar dashboards",
+        "operationId": "getWorkspacesByIdWhatsappDashboards",
+        "description": "Dashboards da Comunicação, na ordem definida pelo usuário (`position`). Usa o mesmo motor de dashboards/relatórios do CRM, escopado ao módulo `COMMUNICATION`. Módulo **Comunicação** habilitado e permissão `dashboards` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboards.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppDashboard"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Criar dashboard",
+        "operationId": "postWorkspacesByIdWhatsappDashboards",
+        "description": "Cria um dashboard vazio no módulo `COMMUNICATION`. Auditado. Módulo **Comunicação** habilitado e permissão `dashboards` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": ["title"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Dashboard criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppDashboard"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/dashboards/{dashboardId}": {
+      "patch": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Renomear dashboard",
+        "operationId": "patchWorkspacesByIdWhatsappDashboardsByDashboardId",
+        "description": "A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Um corpo que não é JSON válido não é tratado (erro 500). Auditado. Módulo **Comunicação** habilitado e permissão `dashboards` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Dashboard atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppDashboard"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Excluir dashboard",
+        "operationId": "deleteWorkspacesByIdWhatsappDashboardsByDashboardId",
+        "description": "Exclui o dashboard e seus widgets. A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Auditado. Módulo **Comunicação** habilitado e permissão `dashboards` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets": {
+      "get": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Listar widgets",
+        "operationId": "getWorkspacesByIdWhatsappDashboardsByDashboardIdWidgets",
+        "description": "Widgets do dashboard com posição/tamanho no grid (12 colunas) e configuração. A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Módulo **Comunicação** habilitado e permissão `dashboards` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Widgets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppDashboardWidget"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Criar widget",
+        "operationId": "postWorkspacesByIdWhatsappDashboardsByDashboardIdWidgets",
+        "description": "Adiciona um widget, discriminado por `type`: `CHART` (gráfico sobre uma fonte — para a Comunicação, `whatsapp-conversations` e `whatsapp-broadcasts`), `VIEW` (tabela), `IFRAME` (URL embutida) ou `RICH_TEXT` (HTML). `x`/`y`/`w`/`h` posicionam no grid. A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Auditado. Módulo **Comunicação** habilitado e permissão `dashboards` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "CHART"
+                      },
+                      "config": {
+                        "type": "object",
+                        "properties": {
+                          "chartType": {
+                            "type": "string",
+                            "enum": ["vertical", "horizontal", "line", "pie", "aggregate"]
+                          },
+                          "source": {
+                            "default": "companies",
+                            "type": "string",
+                            "enum": [
+                              "companies",
+                              "people",
+                              "opportunities",
+                              "leads",
+                              "tasks",
+                              "notes",
+                              "forms",
+                              "landing-pages",
+                              "whatsapp-conversations",
+                              "whatsapp-broadcasts",
+                              "socials"
+                            ]
+                          },
+                          "filters": {
+                            "default": [],
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "operator": {
+                                  "type": "string",
+                                  "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                                },
+                                "value": {
+                                  "default": "",
+                                  "type": "string",
+                                  "maxLength": 500
+                                }
+                              },
+                              "required": ["field", "operator"]
+                            }
+                          },
+                          "platforms": {
+                            "default": [],
+                            "maxItems": 6,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": [
+                                "FACEBOOK",
+                                "INSTAGRAM",
+                                "TIKTOK",
+                                "YOUTUBE",
+                                "GOOGLE_ANALYTICS",
+                                "TWITTER",
+                                "GOOGLE_ADS",
+                                "LINKEDIN"
+                              ]
+                            }
+                          },
+                          "compareRange": {
+                            "type": "string",
+                            "enum": ["7d", "30d"]
+                          },
+                          "xField": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "yField": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "groupBy": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "xSort": {
+                            "default": "none",
+                            "type": "string",
+                            "enum": ["none", "asc", "desc"]
+                          },
+                          "ySort": {
+                            "default": "none",
+                            "type": "string",
+                            "enum": ["none", "asc", "desc"]
+                          },
+                          "omitZero": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "cumulative": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "yMin": {
+                            "type": "number"
+                          },
+                          "yMax": {
+                            "type": "number"
+                          },
+                          "hideEmpty": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "xAxisName": {
+                            "default": "",
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "yAxisName": {
+                            "default": "",
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "stacked": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "dataLabels": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "legend": {
+                            "default": true,
+                            "type": "boolean"
+                          },
+                          "prefix": {
+                            "default": "",
+                            "type": "string",
+                            "maxLength": 20
+                          },
+                          "suffix": {
+                            "default": "",
+                            "type": "string",
+                            "maxLength": 20
+                          }
+                        },
+                        "required": ["chartType"]
+                      },
+                      "x": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "y": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      "w": {
+                        "default": 4,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                      },
+                      "h": {
+                        "default": 6,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60
+                      }
+                    },
+                    "required": ["type", "config"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "VIEW"
+                      },
+                      "config": {
+                        "type": "object",
+                        "properties": {
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "companies",
+                              "people",
+                              "opportunities",
+                              "leads",
+                              "tasks",
+                              "notes",
+                              "forms",
+                              "landing-pages",
+                              "whatsapp-conversations",
+                              "whatsapp-broadcasts"
+                            ]
+                          },
+                          "fields": {
+                            "default": [],
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            }
+                          },
+                          "filters": {
+                            "default": [],
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "operator": {
+                                  "type": "string",
+                                  "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                                },
+                                "value": {
+                                  "default": "",
+                                  "type": "string",
+                                  "maxLength": 500
+                                }
+                              },
+                              "required": ["field", "operator"]
+                            }
+                          },
+                          "sort": {
+                            "default": [],
+                            "maxItems": 10,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "field": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "direction": {
+                                  "type": "string",
+                                  "enum": ["asc", "desc"]
+                                }
+                              },
+                              "required": ["field", "direction"]
+                            }
+                          }
+                        },
+                        "required": ["source"]
+                      },
+                      "x": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "y": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      "w": {
+                        "default": 4,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                      },
+                      "h": {
+                        "default": 6,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60
+                      }
+                    },
+                    "required": ["type", "config"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "IFRAME"
+                      },
+                      "config": {
+                        "type": "object",
+                        "properties": {
+                          "url": {
+                            "type": "string",
+                            "maxLength": 2000,
+                            "format": "uri"
+                          }
+                        },
+                        "required": ["url"]
+                      },
+                      "x": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "y": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      "w": {
+                        "default": 4,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                      },
+                      "h": {
+                        "default": 6,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60
+                      }
+                    },
+                    "required": ["type", "config"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "RICH_TEXT"
+                      },
+                      "config": {
+                        "type": "object",
+                        "properties": {
+                          "html": {
+                            "default": "",
+                            "type": "string",
+                            "maxLength": 50000
+                          }
+                        }
+                      },
+                      "x": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 100
+                      },
+                      "y": {
+                        "default": 0,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000
+                      },
+                      "w": {
+                        "default": 4,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 12
+                      },
+                      "h": {
+                        "default": 6,
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 60
+                      }
+                    },
+                    "required": ["type", "config"]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Widget criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppDashboardWidget"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets/layout": {
+      "post": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Salvar layout dos widgets",
+        "operationId": "postWorkspacesByIdWhatsappDashboardsByDashboardIdWidgetsLayout",
+        "description": "Atualiza em lote posição e tamanho dos widgets (arrastar/redimensionar no grid; até 200 itens). A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Módulo **Comunicação** habilitado e permissão `dashboards` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "maxItems": 200,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "x": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "y": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000
+                        },
+                        "w": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 12
+                        },
+                        "h": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 60
+                        }
+                      },
+                      "required": ["id", "x", "y", "w", "h"]
+                    }
+                  }
+                },
+                "required": ["items"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Layout aplicado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "applied": {
+                              "type": "boolean",
+                              "const": true
+                            }
+                          },
+                          "required": ["applied"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets/{widgetId}": {
+      "patch": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Atualizar widget",
+        "operationId": "patchWorkspacesByIdWhatsappDashboardsByDashboardIdWidgetsByWidgetId",
+        "description": "Atualização parcial de posição/tamanho e/ou `config` (validado contra o tipo do widget). A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Um corpo que não é JSON válido não é tratado (erro 500). Auditado. Módulo **Comunicação** habilitado e permissão `dashboards` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "widgetId",
+            "in": "path",
+            "required": true,
+            "description": "Id do widget.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "y": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000
+                  },
+                  "w": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "h": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 60
+                  },
+                  "config": {}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Widget atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppDashboardWidget"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Excluir widget",
+        "operationId": "deleteWorkspacesByIdWhatsappDashboardsByDashboardIdWidgetsByWidgetId",
+        "description": "A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Auditado. Módulo **Comunicação** habilitado e permissão `dashboards` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "dashboardId",
+            "in": "path",
+            "required": true,
+            "description": "Id do dashboard.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "widgetId",
+            "in": "path",
+            "required": true,
+            "description": "Id do widget.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Widget excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/whatsapp/groups": {
       "get": {
         "tags": ["Comunicação · Grupos"],
@@ -36924,7 +38025,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -37491,7 +38592,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -37583,7 +38684,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -37805,7 +38906,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -37887,7 +38988,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32"
           },
           "409": {
             "$ref": "#/components/responses/409_WHATSAPP_QUICK_REPLY_CONFLICT"
@@ -37985,7 +39086,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
@@ -38057,10 +39158,1288 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/reports": {
+      "get": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Listar relatórios",
+        "operationId": "getWorkspacesByIdWhatsappReports",
+        "description": "Relatórios salvos da Comunicação, na ordem definida pelo usuário. Usa o mesmo motor de dashboards/relatórios do CRM, escopado ao módulo `COMMUNICATION`. Módulo **Comunicação** habilitado e permissão `reports` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relatórios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppReport"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Criar relatório",
+        "operationId": "postWorkspacesByIdWhatsappReports",
+        "description": "Salva a definição de um relatório: forma simples (`source` + `columns` + `filters`/`groupBy`/`sort`) ou `query` completa — `mode: join` (mescla datasets por chave) ou `mode: union` (empilha fontes com colunas mapeadas), com agregações `count/sum/avg/min/max`. Fontes da Comunicação: `whatsapp_conversation` e `whatsapp_broadcast`. Auditado. Módulo **Comunicação** habilitado e permissão `reports` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "company",
+                      "person",
+                      "opportunity",
+                      "lead",
+                      "task",
+                      "note",
+                      "product",
+                      "whatsapp_conversation",
+                      "whatsapp_broadcast"
+                    ]
+                  },
+                  "columns": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "filters": {
+                    "default": [],
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "operator": {
+                          "type": "string",
+                          "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                        },
+                        "value": {
+                          "default": "",
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      },
+                      "required": ["field", "operator"]
+                    }
+                  },
+                  "groupBy": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "sort": {
+                    "type": "object",
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 100
+                      },
+                      "direction": {
+                        "type": "string",
+                        "enum": ["asc", "desc"]
+                      }
+                    },
+                    "required": ["field", "direction"]
+                  },
+                  "query": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "join"
+                          },
+                          "datasets": {
+                            "minItems": 1,
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "alias": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9_]+$"
+                                },
+                                "source": {
+                                  "type": "string",
+                                  "enum": [
+                                    "company",
+                                    "person",
+                                    "opportunity",
+                                    "lead",
+                                    "task",
+                                    "note",
+                                    "product",
+                                    "whatsapp_conversation",
+                                    "whatsapp_broadcast"
+                                  ]
+                                },
+                                "filters": {
+                                  "default": [],
+                                  "maxItems": 20,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "field": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                      },
+                                      "operator": {
+                                        "type": "string",
+                                        "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                                      },
+                                      "value": {
+                                        "default": "",
+                                        "type": "string",
+                                        "maxLength": 500
+                                      }
+                                    },
+                                    "required": ["field", "operator"]
+                                  }
+                                }
+                              },
+                              "required": ["alias", "source"]
+                            }
+                          },
+                          "joins": {
+                            "default": [],
+                            "maxItems": 4,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "leftAlias": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9_]+$"
+                                },
+                                "rightAlias": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9_]+$"
+                                },
+                                "leftField": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "rightField": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["inner", "left"]
+                                }
+                              },
+                              "required": ["leftAlias", "rightAlias", "leftField", "rightField", "type"]
+                            }
+                          },
+                          "columns": {
+                            "minItems": 1,
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            }
+                          },
+                          "group": {
+                            "type": "object",
+                            "properties": {
+                              "by": {
+                                "minItems": 1,
+                                "maxItems": 5,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              },
+                              "aggregations": {
+                                "minItems": 1,
+                                "maxItems": 10,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "fn": {
+                                      "type": "string",
+                                      "enum": ["count", "sum", "avg", "min", "max"]
+                                    },
+                                    "field": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    },
+                                    "alias": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 60
+                                    }
+                                  },
+                                  "required": ["fn", "alias"]
+                                }
+                              }
+                            },
+                            "required": ["by", "aggregations"]
+                          },
+                          "sort": {
+                            "type": "object",
+                            "properties": {
+                              "field": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "direction": {
+                                "type": "string",
+                                "enum": ["asc", "desc"]
+                              }
+                            },
+                            "required": ["field", "direction"]
+                          }
+                        },
+                        "required": ["mode", "datasets", "columns"]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "mode": {
+                            "type": "string",
+                            "const": "union"
+                          },
+                          "datasets": {
+                            "minItems": 2,
+                            "maxItems": 5,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "alias": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9_]+$"
+                                },
+                                "source": {
+                                  "type": "string",
+                                  "enum": [
+                                    "company",
+                                    "person",
+                                    "opportunity",
+                                    "lead",
+                                    "task",
+                                    "note",
+                                    "product",
+                                    "whatsapp_conversation",
+                                    "whatsapp_broadcast"
+                                  ]
+                                },
+                                "filters": {
+                                  "default": [],
+                                  "maxItems": 20,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "field": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                      },
+                                      "operator": {
+                                        "type": "string",
+                                        "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                                      },
+                                      "value": {
+                                        "default": "",
+                                        "type": "string",
+                                        "maxLength": 500
+                                      }
+                                    },
+                                    "required": ["field", "operator"]
+                                  }
+                                }
+                              },
+                              "required": ["alias", "source"]
+                            }
+                          },
+                          "columns": {
+                            "minItems": 1,
+                            "maxItems": 50,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                },
+                                "label": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                },
+                                "fields": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 40,
+                                    "pattern": "^[a-z0-9_]+$"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  }
+                                }
+                              },
+                              "required": ["key", "label", "fields"]
+                            }
+                          },
+                          "includeSource": {
+                            "default": false,
+                            "type": "boolean"
+                          },
+                          "group": {
+                            "type": "object",
+                            "properties": {
+                              "by": {
+                                "minItems": 1,
+                                "maxItems": 5,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              },
+                              "aggregations": {
+                                "minItems": 1,
+                                "maxItems": 10,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "fn": {
+                                      "type": "string",
+                                      "enum": ["count", "sum", "avg", "min", "max"]
+                                    },
+                                    "field": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    },
+                                    "alias": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 60
+                                    }
+                                  },
+                                  "required": ["fn", "alias"]
+                                }
+                              }
+                            },
+                            "required": ["by", "aggregations"]
+                          },
+                          "sort": {
+                            "type": "object",
+                            "properties": {
+                              "field": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "direction": {
+                                "type": "string",
+                                "enum": ["asc", "desc"]
+                              }
+                            },
+                            "required": ["field", "direction"]
+                          }
+                        },
+                        "required": ["mode", "datasets", "columns"]
+                      }
+                    ]
+                  }
+                },
+                "required": ["name", "source", "columns"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Relatório criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppReport"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/reports/{reportId}": {
+      "get": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Detalhar relatório",
+        "operationId": "getWorkspacesByIdWhatsappReportsByReportId",
+        "description": "Definição do relatório (sem executar — veja `.../data`). A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Módulo **Comunicação** habilitado e permissão `reports` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "description": "Id do relatório.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relatório.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppReport"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Atualizar relatório",
+        "operationId": "patchWorkspacesByIdWhatsappReportsByReportId",
+        "description": "Atualização parcial (ao menos um campo); `null` limpa `groupBy`, `sort` e `query`. A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Um corpo que não é JSON válido não é tratado (erro 500). Auditado. Módulo **Comunicação** habilitado e permissão `reports` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "description": "Id do relatório.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "columns": {
+                    "minItems": 1,
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  },
+                  "filters": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100
+                        },
+                        "operator": {
+                          "type": "string",
+                          "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                        },
+                        "value": {
+                          "default": "",
+                          "type": "string",
+                          "maxLength": 500
+                        }
+                      },
+                      "required": ["field", "operator"]
+                    }
+                  },
+                  "groupBy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sort": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "direction": {
+                            "type": "string",
+                            "enum": ["asc", "desc"]
+                          }
+                        },
+                        "required": ["field", "direction"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "query": {
+                    "anyOf": [
+                      {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "mode": {
+                                "type": "string",
+                                "const": "join"
+                              },
+                              "datasets": {
+                                "minItems": 1,
+                                "maxItems": 5,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "alias": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 40,
+                                      "pattern": "^[a-z0-9_]+$"
+                                    },
+                                    "source": {
+                                      "type": "string",
+                                      "enum": [
+                                        "company",
+                                        "person",
+                                        "opportunity",
+                                        "lead",
+                                        "task",
+                                        "note",
+                                        "product",
+                                        "whatsapp_conversation",
+                                        "whatsapp_broadcast"
+                                      ]
+                                    },
+                                    "filters": {
+                                      "default": [],
+                                      "maxItems": 20,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                          },
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                                          },
+                                          "value": {
+                                            "default": "",
+                                            "type": "string",
+                                            "maxLength": 500
+                                          }
+                                        },
+                                        "required": ["field", "operator"]
+                                      }
+                                    }
+                                  },
+                                  "required": ["alias", "source"]
+                                }
+                              },
+                              "joins": {
+                                "default": [],
+                                "maxItems": 4,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "leftAlias": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 40,
+                                      "pattern": "^[a-z0-9_]+$"
+                                    },
+                                    "rightAlias": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 40,
+                                      "pattern": "^[a-z0-9_]+$"
+                                    },
+                                    "leftField": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    },
+                                    "rightField": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    },
+                                    "type": {
+                                      "type": "string",
+                                      "enum": ["inner", "left"]
+                                    }
+                                  },
+                                  "required": ["leftAlias", "rightAlias", "leftField", "rightField", "type"]
+                                }
+                              },
+                              "columns": {
+                                "minItems": 1,
+                                "maxItems": 50,
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              },
+                              "group": {
+                                "type": "object",
+                                "properties": {
+                                  "by": {
+                                    "minItems": 1,
+                                    "maxItems": 5,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    }
+                                  },
+                                  "aggregations": {
+                                    "minItems": 1,
+                                    "maxItems": 10,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "fn": {
+                                          "type": "string",
+                                          "enum": ["count", "sum", "avg", "min", "max"]
+                                        },
+                                        "field": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 100
+                                        },
+                                        "alias": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 60
+                                        }
+                                      },
+                                      "required": ["fn", "alias"]
+                                    }
+                                  }
+                                },
+                                "required": ["by", "aggregations"]
+                              },
+                              "sort": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  },
+                                  "direction": {
+                                    "type": "string",
+                                    "enum": ["asc", "desc"]
+                                  }
+                                },
+                                "required": ["field", "direction"]
+                              }
+                            },
+                            "required": ["mode", "datasets", "columns"]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "mode": {
+                                "type": "string",
+                                "const": "union"
+                              },
+                              "datasets": {
+                                "minItems": 2,
+                                "maxItems": 5,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "alias": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 40,
+                                      "pattern": "^[a-z0-9_]+$"
+                                    },
+                                    "source": {
+                                      "type": "string",
+                                      "enum": [
+                                        "company",
+                                        "person",
+                                        "opportunity",
+                                        "lead",
+                                        "task",
+                                        "note",
+                                        "product",
+                                        "whatsapp_conversation",
+                                        "whatsapp_broadcast"
+                                      ]
+                                    },
+                                    "filters": {
+                                      "default": [],
+                                      "maxItems": 20,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "field": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                          },
+                                          "operator": {
+                                            "type": "string",
+                                            "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                                          },
+                                          "value": {
+                                            "default": "",
+                                            "type": "string",
+                                            "maxLength": 500
+                                          }
+                                        },
+                                        "required": ["field", "operator"]
+                                      }
+                                    }
+                                  },
+                                  "required": ["alias", "source"]
+                                }
+                              },
+                              "columns": {
+                                "minItems": 1,
+                                "maxItems": 50,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "key": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 60
+                                    },
+                                    "label": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 60
+                                    },
+                                    "fields": {
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 40,
+                                        "pattern": "^[a-z0-9_]+$"
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                      }
+                                    }
+                                  },
+                                  "required": ["key", "label", "fields"]
+                                }
+                              },
+                              "includeSource": {
+                                "default": false,
+                                "type": "boolean"
+                              },
+                              "group": {
+                                "type": "object",
+                                "properties": {
+                                  "by": {
+                                    "minItems": 1,
+                                    "maxItems": 5,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 100
+                                    }
+                                  },
+                                  "aggregations": {
+                                    "minItems": 1,
+                                    "maxItems": 10,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "fn": {
+                                          "type": "string",
+                                          "enum": ["count", "sum", "avg", "min", "max"]
+                                        },
+                                        "field": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 100
+                                        },
+                                        "alias": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 60
+                                        }
+                                      },
+                                      "required": ["fn", "alias"]
+                                    }
+                                  }
+                                },
+                                "required": ["by", "aggregations"]
+                              },
+                              "sort": {
+                                "type": "object",
+                                "properties": {
+                                  "field": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100
+                                  },
+                                  "direction": {
+                                    "type": "string",
+                                    "enum": ["asc", "desc"]
+                                  }
+                                },
+                                "required": ["field", "direction"]
+                              }
+                            },
+                            "required": ["mode", "datasets", "columns"]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Relatório atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppReport"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Excluir relatório",
+        "operationId": "deleteWorkspacesByIdWhatsappReportsByReportId",
+        "description": "A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Auditado. Módulo **Comunicação** habilitado e permissão `reports` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "description": "Id do relatório.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relatório excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/reports/{reportId}/data": {
+      "get": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Executar relatório",
+        "operationId": "getWorkspacesByIdWhatsappReportsByReportIdData",
+        "description": "Executa a query do relatório em memória sobre as listagens de cada fonte (com as permissões do usuário em cada uma) e devolve colunas + linhas. Sem paginação. Erros de acesso a uma fonte (ex.: fonte do CRM sem o módulo CRM) são propagados. A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Módulo **Comunicação** habilitado e permissão `reports` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "description": "Id do relatório.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppReportData"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/reports/{reportId}/export": {
+      "get": {
+        "tags": ["Comunicação · Dashboards e relatórios"],
+        "summary": "Exportar relatório",
+        "operationId": "getWorkspacesByIdWhatsappReportsByReportIdExport",
+        "description": "Executa o relatório e devolve o arquivo para download (fora do envelope JSON): CSV por padrão (`relatorio.csv`) ou planilha Excel SpreadsheetML com `?format=xlsx` (ou `excel`) — `relatorio.xls`. Cabeçalhos = rótulos das colunas. Erros seguem o envelope JSON. A autorização confere a permissão e o módulo **do próprio recurso** (um id de dashboard/relatório do CRM também é aceito aqui). Módulo **Comunicação** habilitado e permissão `reports` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "reportId",
+            "in": "path",
+            "required": true,
+            "description": "Id do relatório.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "`xlsx`/`excel` = SpreadsheetML (.xls); outro valor = CSV.",
+            "schema": {
+              "type": "string",
+              "enum": ["csv", "xlsx", "excel"],
+              "default": "csv"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Arquivo do relatório.",
+            "headers": {
+              "Content-Disposition": {
+                "description": "`attachment; filename=\"relatorio.csv\"` (ou `relatorio.xls` com `format=xlsx`; `Content-Type: application/vnd.ms-excel`).",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -38272,7 +40651,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -38453,7 +40832,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -38534,7 +40913,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -39997,7 +42376,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `CREATE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40042,7 +42421,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40064,7 +42443,7 @@
                 }
               },
               "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "summary": "MODULE_DISABLED",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40087,7 +42466,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `broadcasts` × `VIEW`",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40132,7 +42522,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `CREATE`",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `DELETE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40177,7 +42578,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `EDIT`",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `EDIT`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -40222,6 +42634,186 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `broadcasts` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `DELETE`",
                 "value": {
                   "success": false,
@@ -40258,7 +42850,52 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40314,7 +42951,175 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40381,7 +43186,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40437,7 +43242,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40482,7 +43287,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40527,7 +43332,52 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40572,7 +43422,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40617,7 +43467,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40662,7 +43512,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40707,7 +43557,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40752,7 +43602,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -40797,7 +43647,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -42198,7 +45048,7 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
-                "summary": "RESOURCE_NOT_FOUND — Dashboard inexistente no workspace",
+                "summary": "RESOURCE_NOT_FOUND — CrmDashboard inexistente no workspace",
                 "value": {
                   "success": false,
                   "statusCode": 404,
@@ -42221,6 +45071,52 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — CrmReport inexistente no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmReport not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_8": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Dashboard inexistente no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmDashboard not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_9": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
                 "summary": "RESOURCE_NOT_FOUND — Lista inexistente no workspace",
                 "value": {
                   "success": false,
@@ -42235,7 +45131,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_8": {
+      "404_RESOURCE_NOT_FOUND_10": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42258,7 +45154,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_9": {
+      "404_RESOURCE_NOT_FOUND_11": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42281,7 +45177,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_10": {
+      "404_RESOURCE_NOT_FOUND_12": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42304,7 +45200,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_11": {
+      "404_RESOURCE_NOT_FOUND_13": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42327,7 +45223,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_12": {
+      "404_RESOURCE_NOT_FOUND_14": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42350,7 +45246,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_13": {
+      "404_RESOURCE_NOT_FOUND_15": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42373,7 +45269,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_14": {
+      "404_RESOURCE_NOT_FOUND_16": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42396,7 +45292,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_15": {
+      "404_RESOURCE_NOT_FOUND_17": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42419,7 +45315,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_16": {
+      "404_RESOURCE_NOT_FOUND_18": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42442,7 +45338,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_17": {
+      "404_RESOURCE_NOT_FOUND_19": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42465,7 +45361,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_18": {
+      "404_RESOURCE_NOT_FOUND_20": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42488,7 +45384,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_19": {
+      "404_RESOURCE_NOT_FOUND_21": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42511,7 +45407,41 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_20": {
+      "404_RESOURCE_NOT_FOUND_22": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — CrmDashboard inexistente no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmDashboard not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              },
+              "RESOURCE_NOT_FOUND_2": {
+                "summary": "RESOURCE_NOT_FOUND — Widget inexistente no dashboard",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmDashboardWidget not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_23": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42545,7 +45475,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_21": {
+      "404_RESOURCE_NOT_FOUND_24": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42568,7 +45498,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_22": {
+      "404_RESOURCE_NOT_FOUND_25": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42591,7 +45521,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_23": {
+      "404_RESOURCE_NOT_FOUND_26": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42614,7 +45544,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_24": {
+      "404_RESOURCE_NOT_FOUND_27": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42637,7 +45567,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_25": {
+      "404_RESOURCE_NOT_FOUND_28": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42671,7 +45601,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_26": {
+      "404_RESOURCE_NOT_FOUND_29": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42694,7 +45624,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_27": {
+      "404_RESOURCE_NOT_FOUND_30": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42717,7 +45647,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_28": {
+      "404_RESOURCE_NOT_FOUND_31": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42740,7 +45670,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_29": {
+      "404_RESOURCE_NOT_FOUND_32": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42763,7 +45693,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_30": {
+      "404_RESOURCE_NOT_FOUND_33": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42786,7 +45716,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_31": {
+      "404_RESOURCE_NOT_FOUND_34": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42809,7 +45739,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_32": {
+      "404_RESOURCE_NOT_FOUND_35": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42832,7 +45762,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_33": {
+      "404_RESOURCE_NOT_FOUND_36": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42855,7 +45785,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_34": {
+      "404_RESOURCE_NOT_FOUND_37": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42878,7 +45808,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_35": {
+      "404_RESOURCE_NOT_FOUND_38": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42923,7 +45853,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_36": {
+      "404_RESOURCE_NOT_FOUND_39": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42957,7 +45887,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_37": {
+      "404_RESOURCE_NOT_FOUND_40": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -42980,7 +45910,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_38": {
+      "404_RESOURCE_NOT_FOUND_41": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -45668,7 +48598,7 @@
                 }
               },
               "VALIDATION_ERROR_2": {
-                "summary": "VALIDATION_ERROR — `config` não confere com o tipo do widget",
+                "summary": "VALIDATION_ERROR — `config` não confere com o `type` do widget",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -45709,6 +48639,47 @@
                 }
               },
               "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — `config` não confere com o tipo do widget",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Config inválida para este tipo de widget",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_17": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
                 "summary": "VALIDATION_ERROR — `validUntil` no passado",
                 "value": {
                   "success": false,
@@ -45723,7 +48694,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_17": {
+      "422_VALIDATION_ERROR_18": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45757,7 +48728,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_18": {
+      "422_VALIDATION_ERROR_19": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45791,7 +48762,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_19": {
+      "422_VALIDATION_ERROR_20": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45814,7 +48785,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_20": {
+      "422_VALIDATION_ERROR_21": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45837,7 +48808,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_21": {
+      "422_VALIDATION_ERROR_22": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -61763,6 +64734,112 @@
         ],
         "description": "Evento da linha do tempo da conversa."
       },
+      "WhatsAppDashboard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "example": "Atendimento"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string",
+            "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "workspaceId",
+          "module",
+          "createdById",
+          "updatedById",
+          "position",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WhatsAppDashboardWidget": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dashboardId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["CHART", "VIEW", "IFRAME", "RICH_TEXT"]
+          },
+          "x": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "y": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "w": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Largura em colunas (1–12)."
+          },
+          "h": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Configuração do tipo do widget (chart, view, iframe ou rich text) — mesmo formato do `config` na criação."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "dashboardId", "type", "x", "y", "w", "h", "config", "createdAt", "updatedAt"]
+      },
       "WhatsAppDeletedId": {
         "type": "object",
         "properties": {
@@ -62214,6 +65291,166 @@
           "createdAt",
           "updatedAt"
         ]
+      },
+      "WhatsAppReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string",
+            "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+          },
+          "name": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "example": "whatsapp_conversation"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "operator": {
+                  "type": "string",
+                  "enum": ["contains", "equals", "not_equals", "is_empty", "is_not_empty"]
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": ["field", "operator", "value"]
+            }
+          },
+          "groupBy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sort": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": ["asc", "desc"]
+                  }
+                },
+                "required": ["field", "direction"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "query": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Query normalizada (`mode: join | union`, datasets, colunas, agrupamento) — sempre presente, sintetizada dos campos legados quando não foi salva."
+          },
+          "position": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "module",
+          "name",
+          "source",
+          "columns",
+          "filters",
+          "groupBy",
+          "sort",
+          "query",
+          "position",
+          "createdById",
+          "updatedById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WhatsAppReportData": {
+        "type": "object",
+        "properties": {
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": ["key", "label"]
+            }
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "description": "Linhas indexadas por `columns[].key`."
+          },
+          "grouped": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": ["columns", "rows", "grouped", "total"]
       },
       "WhatsAppSettings": {
         "type": "object",

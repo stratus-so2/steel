@@ -423,3 +423,93 @@ export const DeletedIdDTO = dto(
   'WhatsAppDeletedId',
   z.object({ id: z.string() }).meta({ description: 'Id do recurso removido.' }),
 )
+
+/* ------------------------- dashboards e relatórios ------------------------ */
+// Dashboards e relatórios da Comunicação reusam o motor do CRM
+// (`CrmDashboardService`/`CrmReportService`, `module: COMMUNICATION`).
+
+const MODULE = z.enum(['SERVICE_DESK', 'CRM', 'COMMUNICATION'])
+
+export const WhatsAppDashboardDTO = dto(
+  'WhatsAppDashboard',
+  z.object({
+    id: z.string(),
+    title: z.string().meta({ example: 'Atendimento' }),
+    workspaceId: z.string(),
+    module: MODULE,
+    createdById: z.string(),
+    updatedById: z.string().nullable(),
+    position: z.number().int(),
+    createdAt: dateTime(),
+    updatedAt: dateTime(),
+  }),
+)
+
+export const WhatsAppDashboardWidgetDTO = dto(
+  'WhatsAppDashboardWidget',
+  z.object({
+    id: z.string(),
+    dashboardId: z.string(),
+    type: z.enum(['CHART', 'VIEW', 'IFRAME', 'RICH_TEXT']),
+    x: z.number().int(),
+    y: z.number().int(),
+    w: z.number().int().meta({ description: 'Largura em colunas (1–12).' }),
+    h: z.number().int(),
+    config: z.record(z.string(), z.unknown()).meta({
+      description:
+        'Configuração do tipo do widget (chart, view, iframe ou rich text) — mesmo formato do `config` na criação.',
+    }),
+    createdAt: dateTime(),
+    updatedAt: dateTime(),
+  }),
+)
+
+export const WhatsAppReportDTO = dto(
+  'WhatsAppReport',
+  z.object({
+    id: z.string(),
+    workspaceId: z.string(),
+    module: MODULE,
+    name: z.string(),
+    source: z.string().meta({ example: 'whatsapp_conversation' }),
+    columns: z.array(z.string()),
+    filters: z.array(
+      z.object({
+        field: z.string(),
+        operator: z.enum([
+          'contains',
+          'equals',
+          'not_equals',
+          'is_empty',
+          'is_not_empty',
+        ]),
+        value: z.string(),
+      }),
+    ),
+    groupBy: z.string().nullable(),
+    sort: z
+      .object({ field: z.string(), direction: z.enum(['asc', 'desc']) })
+      .nullable(),
+    query: z.record(z.string(), z.unknown()).meta({
+      description:
+        'Query normalizada (`mode: join | union`, datasets, colunas, agrupamento) — sempre presente, sintetizada dos campos legados quando não foi salva.',
+    }),
+    position: z.number().int(),
+    createdById: z.string(),
+    updatedById: z.string().nullable(),
+    createdAt: dateTime(),
+    updatedAt: dateTime(),
+  }),
+)
+
+export const WhatsAppReportDataDTO = dto(
+  'WhatsAppReportData',
+  z.object({
+    columns: z.array(z.object({ key: z.string(), label: z.string() })),
+    rows: z.array(z.record(z.string(), z.unknown())).meta({
+      description: 'Linhas indexadas por `columns[].key`.',
+    }),
+    grouped: z.boolean(),
+    total: z.number(),
+  }),
+)
