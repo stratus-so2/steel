@@ -87,6 +87,34 @@ describe('CrmEmailCampaignService', () => {
       ])
     })
 
+    // Bug: "Selecionados" sem ninguém marcado disparava pra todo mundo com
+    // e-mail no workspace. Seleção vazia nunca pode virar "todos".
+    it('should reject a SELECTED scope with an empty selection without fanning out to everyone', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedCampaignRepo.create.mockResolvedValue(
+        ok(createFakeCrmEmailCampaign({ id: 'c1' })),
+      )
+      mockedPersonRepo.listByWorkspace.mockResolvedValue(ok([]))
+
+      expectErr(
+        await CrmEmailCampaignService.create('u1', 'ws1', {
+          subject: 'Promo',
+          contentHtml: '<p>Oi</p>',
+          fromAddress: 'crm@stratustelecom.com.br',
+          recipientScope: 'SELECTED',
+          personIds: [],
+          mailingListIds: [],
+          extraEmails: [],
+        }),
+        'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
+      )
+      expect(mockedPersonRepo.listByWorkspace).not.toHaveBeenCalled()
+      expect(mockedCampaignRepo.create).not.toHaveBeenCalled()
+      expect(mockedRecipientRepo.createMany).not.toHaveBeenCalled()
+    })
+
     it('should combine personIds + mailingListIds + extraEmails, deduping by email', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),
@@ -159,6 +187,27 @@ describe('CrmEmailCampaignService', () => {
         },
         { email: 'avulso@acme.com' },
       ])
+    })
+  })
+
+  describe('send()', () => {
+    it('should refuse to send a campaign without recipients', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedCampaignRepo.findById.mockResolvedValue(
+        ok(createFakeCrmEmailCampaign({ id: 'c1', status: 'DRAFT' })),
+      )
+      mockedRecipientRepo.listByCampaign.mockResolvedValue(ok([]))
+
+      expectErr(
+        await CrmEmailCampaignService.send('u1', 'ws1', 'c1'),
+        'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
+      )
+      expect(mockedCampaignRepo.setStatus).not.toHaveBeenCalledWith(
+        'c1',
+        'SENDING',
+      )
     })
   })
 })

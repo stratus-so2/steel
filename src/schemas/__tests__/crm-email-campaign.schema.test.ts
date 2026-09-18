@@ -41,6 +41,23 @@ describe('CreateCrmEmailCampaignSchema', () => {
     ).toBe(true)
   })
 
+  // Bug: "Selecionados" sem ninguém marcado caía no fallback de "todos".
+  it('should reject a SELECTED scope with nothing selected', () => {
+    for (const selection of [
+      {},
+      { personIds: [], mailingListIds: [], extraEmails: [] },
+    ]) {
+      const parsed = CreateCrmEmailCampaignSchema.safeParse({
+        subject: 'Promo',
+        contentHtml: '<p>Oi</p>',
+        fromAddress: 'crm@stratustelecom.com.br',
+        recipientScope: 'SELECTED',
+        ...selection,
+      })
+      expect(parsed.success).toBe(false)
+    }
+  })
+
   it('should reject an invalid extraEmails entry', () => {
     expect(
       CreateCrmEmailCampaignSchema.safeParse({
