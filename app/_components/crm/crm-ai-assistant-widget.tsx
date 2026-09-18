@@ -13,14 +13,17 @@ import {
   Sent02Icon,
   SparklesIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { AiModelPreferenceSelect } from '@/app/_components/settings/ai-model-preference-select'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { AI_SETTINGS_KEY, useAiSettings } from '@/src/hooks/use-ai-settings'
 import {
   useCreateCrmAiConversation,
   useCrmAiConversations,
@@ -42,7 +45,8 @@ const SUGGESTIONS = [
  * Balão flutuante do assistente de IA, disponível em todo o workspace
  * (montado no layout privado) — substitui a antiga página dedicada de chat
  * do CRM. Adaptação do original: usa o backend não-streaming já existente
- * do Steel (`crm-ai.service.ts`, OpenAI direto), então mostra um indicador de
+ * do Steel (`crm-ai.service.ts`, OpenAI ou Claude conforme o modelo escolhido
+ * no seletor do painel / Ajustes > Steel IA), então mostra um indicador de
  * "digitando" em vez do cursor de streaming token-a-token do original —
  * a UI/UX (histórico, anexos, markdown, sugestões) replica o original.
  */
@@ -110,6 +114,9 @@ function ChatPanel({
   )
   const sendMessage = useSendCrmAiMessage(workspaceId)
   const uploadAttachment = useUploadCrmAiAttachment(workspaceId)
+  const queryClient = useQueryClient()
+  const { data: aiSettings } = useAiSettings(workspaceId)
+  const quotaExceeded = aiSettings?.usage.exceeded ?? false
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight })
@@ -177,7 +184,13 @@ function ChatPanel({
     try {
       await sendMessage.mutateAsync({ conversationId, content, attachmentIds })
     } catch (err) {
+      // Cota esgotada / provedor indisponível: a mensagem não foi gravada,
+      // então devolve o texto ao campo e mostra o motivo (pt-BR do backend).
+      setDraft(content)
       notify.error(err)
+    } finally {
+      // Atualiza o consumo da cota exibido no painel e nos ajustes.
+      queryClient.invalidateQueries({ queryKey: AI_SETTINGS_KEY(workspaceId) })
     }
   }
 
@@ -221,6 +234,28 @@ function ChatPanel({
           <SteelIcon icon={Cancel01Icon} strokeWidth={2} />
         </Button>
       </header>
+
+      {aiSettings ? (
+        <div className='flex shrink-0 items-center gap-2 border-b border-border px-3 py-1.5'>
+          <span className='shrink-0 text-muted-foreground text-xs'>Modelo</span>
+          <AiModelPreferenceSelect
+            workspaceId={workspaceId}
+            settings={aiSettings}
+            size='sm'
+            className='h-7 flex-1 text-xs'
+          />
+        </div>
+      ) : null}
+
+      {quotaExceeded ? (
+        <p
+          role='alert'
+          className='shrink-0 border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-destructive text-xs'
+        >
+          A cota mensal de IA do workspace foi atingida. Peça a um administrador
+          para ajustá-la em Ajustes &gt; Steel IA ou aguarde o próximo mês.
+        </p>
+      ) : null}
 
       {showHistory ? (
         <div className='min-h-0 flex-1 overflow-y-auto px-2 py-2'>
@@ -356,7 +391,7 @@ function ChatPanel({
             <Button
               size='icon'
               aria-label='Enviar'
-              disabled={!draft.trim() || sendMessage.isPending}
+              disabled={!draft.trim() || sendMessage.isPending || quotaExceeded}
               onClick={() => submit()}
             >
               <SteelIcon
