@@ -15,7 +15,7 @@ export const options = {
   },
 };
 
-const pages = ['/', '/sign-in', '/sign-up', '/contact'];
+const pages = ['/', '/sign-in', '/sign-up', '/talk-to-sales'];
 
 export default function () {
   const page = pages[Math.floor(Math.random() * pages.length)];
