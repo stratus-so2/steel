@@ -247,7 +247,7 @@ export const CrmOpportunityLineItemRepository = {
       unitPrice?: number
       discountPct?: number
       billingType?: CrmBillingType
-      productId?: string
+      productId?: string | null
     },
   ): Promise<Result<CrmOpportunityLineItem>> {
     try {

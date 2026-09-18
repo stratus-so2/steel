@@ -13,6 +13,7 @@ import {
   CrmPipelineRepository,
   CrmPipelineStageRepository,
 } from '@/src/repositories/crm-pipeline.repository'
+import { CrmProductRepository } from '@/src/repositories/crm-product.repository'
 import type {
   CreateCrmOpportunityDTO,
   CreateCrmOpportunityLineItemDTO,
@@ -500,9 +501,26 @@ export const CrmOpportunityLineItemService = {
     )
     if (!existing.ok) return existing
 
+    // Trocar o produto atualiza o item no lugar (sem apagar/recriar), usando o
+    // snapshot do produto para os campos que o cliente não enviou.
+    let data = dto
+    if (dto.productId && dto.productId !== existing.value.productId) {
+      const product = await CrmProductRepository.findById(
+        dto.productId,
+        workspaceId,
+      )
+      if (!product.ok) return product
+      data = {
+        ...dto,
+        name: dto.name ?? product.value.name,
+        unitPrice: dto.unitPrice ?? Number(product.value.unitPrice),
+        billingType: dto.billingType ?? product.value.billingType,
+      }
+    }
+
     const result = await CrmOpportunityLineItemRepository.update(
       lineItemId,
-      dto,
+      data,
     )
     if (!result.ok) return result
 

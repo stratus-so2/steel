@@ -7,15 +7,18 @@ import {
   createFakeCrmPipeline,
   createFakeCrmPipelineStage,
 } from '@/src/__tests__/factories/crm-pipeline.factory'
+import { createFakeCrmProduct } from '@/src/__tests__/factories/crm-product.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { notFound } from '@/src/errors'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-opportunity.repository')
 vi.mock('@/src/repositories/crm-pipeline.repository')
 vi.mock('@/src/repositories/crm-activity.repository')
 vi.mock('@/src/repositories/crm-custom-field.repository')
+vi.mock('@/src/repositories/crm-product.repository')
 
 import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
 import { CrmCustomFieldValueRepository } from '@/src/repositories/crm-custom-field.repository'
@@ -27,6 +30,7 @@ import {
   CrmPipelineRepository,
   CrmPipelineStageRepository,
 } from '@/src/repositories/crm-pipeline.repository'
+import { CrmProductRepository } from '@/src/repositories/crm-product.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import {
   CrmOpportunityLineItemService,
@@ -42,6 +46,7 @@ mockedCustomFieldValueRepo.listByRecords.mockResolvedValue(ok([]))
 const mockedPipelineRepo = vi.mocked(CrmPipelineRepository)
 const mockedStageRepo = vi.mocked(CrmPipelineStageRepository)
 const mockedActivityRepo = vi.mocked(CrmActivityRepository)
+const mockedProductRepo = vi.mocked(CrmProductRepository)
 
 describe('CrmOpportunityService', () => {
   describe('list()', () => {
@@ -258,6 +263,87 @@ describe('CrmOpportunityLineItemService', () => {
         }),
       )
       expect(dto.name).toBe('Licença')
+    })
+  })
+
+  describe('update()', () => {
+    function arrange() {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedOpportunityRepo.findById.mockResolvedValue(
+        ok(createFakeCrmOpportunity({ id: 'op1' })),
+      )
+      mockedLineItemRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmOpportunityLineItem({
+            id: 'li1',
+            opportunityId: 'op1',
+            productId: null,
+          }),
+        ),
+      )
+      mockedLineItemRepo.update.mockResolvedValue(
+        ok(createFakeCrmOpportunityLineItem({ id: 'li1' })),
+      )
+    }
+
+    it('should switch the product in place, copying its snapshot', async () => {
+      arrange()
+      mockedProductRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmProduct({
+            id: 'prod1',
+            name: 'Plano Pro',
+            unitPrice: 250 as never,
+            billingType: 'MONTHLY',
+          }),
+        ),
+      )
+
+      expectOk(
+        await CrmOpportunityLineItemService.update('u1', 'ws1', 'op1', 'li1', {
+          productId: 'prod1',
+        }),
+      )
+
+      expect(mockedProductRepo.findById).toHaveBeenCalledWith('prod1', 'ws1')
+      expect(mockedLineItemRepo.update).toHaveBeenCalledWith('li1', {
+        productId: 'prod1',
+        name: 'Plano Pro',
+        unitPrice: 250,
+        billingType: 'MONTHLY',
+      })
+      expect(mockedLineItemRepo.delete).not.toHaveBeenCalled()
+      expect(mockedLineItemRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should reject a product from another workspace without touching the item', async () => {
+      arrange()
+      mockedProductRepo.findById.mockResolvedValue(err(notFound('CrmProduct')))
+
+      expectErr(
+        await CrmOpportunityLineItemService.update('u1', 'ws1', 'op1', 'li1', {
+          productId: 'other',
+        }),
+        'RESOURCE_NOT_FOUND',
+      )
+      expect(mockedLineItemRepo.update).not.toHaveBeenCalled()
+    })
+
+    it('should detach the product when productId is null', async () => {
+      arrange()
+
+      expectOk(
+        await CrmOpportunityLineItemService.update('u1', 'ws1', 'op1', 'li1', {
+          productId: null,
+        }),
+      )
+
+      expect(mockedProductRepo.findById).not.toHaveBeenCalled()
+      expect(mockedLineItemRepo.update).toHaveBeenCalledWith('li1', {
+        productId: null,
+      })
     })
   })
 })

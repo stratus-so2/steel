@@ -57,16 +57,21 @@ export async function createCrmOpportunityLineItem(
   return { ok: res.ok && json.success, message: json.message }
 }
 
+export type CrmOpportunityLineItemPatch = Partial<
+  Pick<
+    CrmOpportunityLineItemDTO,
+    'name' | 'quantity' | 'unitPrice' | 'discountPct'
+  >
+> & {
+  /** string vincula ao produto (a API copia nome/preço); null desvincula. */
+  productId?: string | null
+}
+
 export async function updateCrmOpportunityLineItem(
   workspaceId: string,
   opportunityId: string,
   id: string,
-  patch: Partial<
-    Pick<
-      CrmOpportunityLineItemDTO,
-      'name' | 'quantity' | 'unitPrice' | 'discountPct'
-    >
-  >,
+  patch: CrmOpportunityLineItemPatch,
 ): Promise<{ ok: boolean; message?: string }> {
   const res = await fetch(`${baseUrl(workspaceId, opportunityId)}/${id}`, {
     method: 'PATCH',

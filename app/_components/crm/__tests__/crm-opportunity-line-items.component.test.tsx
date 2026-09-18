@@ -160,4 +160,29 @@ describe('<CrmOpportunityLineItems />', () => {
     expect(screen.queryByLabelText('Nome do item')).toBeNull()
     expect(screen.getByRole('combobox')).toBeTruthy()
   })
+
+  it('changes the product with a single PATCH, never deleting the item', async () => {
+    const fetchSpy = mockFetch([
+      { match: /line-items$/, data: [item({ name: 'Consultoria' })] },
+      {
+        method: 'PATCH',
+        match: `${BASE}/li1`,
+        data: item({ productId: 'prod1', name: 'Plano Pro' }),
+      },
+    ])
+    const { onChanged } = renderItems([{ value: 'prod1', label: 'Plano Pro' }])
+
+    fireEvent.click(await screen.findByRole('combobox'))
+    const option = await screen.findByRole('option', { name: 'Plano Pro' })
+    fireEvent.pointerDown(option, { pointerType: 'mouse' })
+    fireEvent.click(option)
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1))
+    expect(fetchBody(fetchSpy, `${BASE}/li1`, 'PATCH')).toEqual({
+      productId: 'prod1',
+    })
+    const methods = fetchSpy.mock.calls.map(([, init]) => init?.method ?? 'GET')
+    expect(methods).not.toContain('DELETE')
+    expect(methods).not.toContain('POST')
+  })
 })

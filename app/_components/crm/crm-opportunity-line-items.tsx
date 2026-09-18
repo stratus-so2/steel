@@ -76,25 +76,13 @@ export function CrmOpportunityLineItems({
     item: CrmOpportunityLineItemDTO,
     productId: string,
   ) {
+    if (productId === (item.productId ?? NONE)) return
     setBusy(true)
-    // Trocar o produto recria o item com o snapshot do produto escolhido.
-    const removed = await deleteCrmOpportunityLineItem(
-      workspaceId,
-      opportunityId,
-      item.id,
-    )
-    if (!removed.ok) return afterMutation(removed)
-    const label =
-      productId === NONE
-        ? item.name
-        : (productOptions.find((o) => o.value === productId)?.label ??
-          item.name)
+    // Atualização atômica: a API copia nome/preço do produto escolhido; em
+    // "avulso" apenas desvincula, mantendo os valores atuais do item.
     await afterMutation(
-      await createCrmOpportunityLineItem(workspaceId, opportunityId, {
-        productId: productId === NONE ? undefined : productId,
-        name: label,
-        quantity: item.quantity,
-        discountPct: item.discountPct,
+      await updateCrmOpportunityLineItem(workspaceId, opportunityId, item.id, {
+        productId: productId === NONE ? null : productId,
       }),
     )
   }
@@ -146,7 +134,9 @@ export function CrmOpportunityLineItems({
         <div className='flex flex-col gap-2'>
           {items.map((item) => (
             <div
-              key={item.id}
+              // updatedAt na chave remonta os inputs não controlados quando a
+              // API muda valores (ex.: preço copiado ao trocar o produto).
+              key={`${item.id}:${item.updatedAt}`}
               className='flex flex-col gap-2 rounded-lg border p-2.5'
             >
               <div className='flex items-center gap-2'>

@@ -65,7 +65,9 @@ export type CreateCrmOpportunityLineItemDTO = z.infer<
 >
 
 export const UpdateCrmOpportunityLineItemSchema = z.object({
-  productId: z.string().optional(),
+  // Trocar o produto é uma atualização atômica do item: string vincula (e
+  // copia nome/preço/cobrança do produto, salvo se enviados), null desvincula.
+  productId: z.string().min(1).nullable().optional(),
   name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
   quantity: z.number().int().min(1).optional(),
   unitPrice: z.number().min(0).optional(),
