@@ -1,4 +1,4 @@
-import type OpenAI from 'openai'
+import type { AiToolSpec } from '@/src/lib/ai/types'
 import { CreateCrmDashboardSchema } from '@/src/schemas/crm-dashboard.schema'
 import { CreateCrmFormSchema } from '@/src/schemas/crm-form.schema'
 import { CreateCrmLeadSchema } from '@/src/schemas/crm-lead.schema'
@@ -19,7 +19,8 @@ import { CrmSocialTrendingService } from '@/src/services/crm-social-trending.ser
 export type AiToolContext = { actorId: string; workspaceId: string }
 
 /**
- * Registro de tools do assistente de IA (Responses API): definição (schema
+ * Registro de tools do assistente de IA (neutro de provedor — o adaptador em
+ * `src/lib/ai` converte para OpenAI ou Anthropic): definição (schema
  * que o modelo vê) + executor (código real que roda no servidor). Tools de
  * escrita (`create_*`) exigem `userConfirmed: true` no schema — o modelo só
  * deve marcar isso depois que o usuário aprovar explicitamente a proposta
@@ -29,7 +30,7 @@ export type AiToolContext = { actorId: string; workspaceId: string }
  * "confirmar antes de agir" em agentes de chat.
  */
 type ToolDefinition = {
-  spec: OpenAI.Responses.FunctionTool
+  spec: AiToolSpec
   execute: (
     ctx: AiToolContext,
     args: Record<string, unknown>,
@@ -45,10 +46,8 @@ function readTool(
 ): ToolDefinition {
   return {
     spec: {
-      type: 'function',
       name,
       description,
-      strict: false,
       parameters: {
         type: 'object',
         properties,
@@ -454,9 +453,7 @@ const TOOLS: ToolDefinition[] = [
   ),
 ]
 
-export const CRM_AI_FUNCTION_TOOLS: OpenAI.Responses.FunctionTool[] = TOOLS.map(
-  (t) => t.spec,
-)
+export const CRM_AI_TOOLS: AiToolSpec[] = TOOLS.map((t) => t.spec)
 
 const TOOLS_BY_NAME = new Map(TOOLS.map((t) => [t.spec.name, t]))
 

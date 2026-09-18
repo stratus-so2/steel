@@ -1,8 +1,7 @@
-import OpenAI from 'openai'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
-import { OPENAI_API_KEY } from '@/lib/env/server'
-import { crmAiNotConfigured } from '@/src/errors'
+import { aiProviderUnavailable } from '@/src/errors'
+import type { AiMessage } from '@/src/lib/ai/types'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmAiAttachmentDTO,
@@ -24,15 +23,17 @@ import type {
   CrmAiConversationDTO,
   CrmAiMessageDTO,
 } from '@/types/crm-ai'
+import { AiUsageService } from './ai-usage.service'
 import { assertModuleMember } from './authz'
 import {
   classifyAttachment,
   getAttachmentDownloadUrl,
   storeAttachment,
 } from './crm-ai-attachment'
-import { CRM_AI_FUNCTION_TOOLS, executeAiTool } from './crm-ai-tools'
+import { CRM_AI_TOOLS, executeAiTool } from './crm-ai-tools'
 
-const MODEL = 'gpt-4o-mini'
+const REFUSAL_REPLY =
+  'Não posso ajudar com esse pedido. Tente reformular a pergunta.'
 /**
  * O agente tem tools de leitura (pipeline, leads, propostas, concorrentes,
  * posts em alta) e de escrita (criar lead/dashboard/formulário/template de
@@ -150,7 +151,15 @@ export const CrmAiConversationService = {
     )
     if (!conversation.ok) return conversation
 
-    if (!OPENAI_API_KEY) return err(crmAiNotConfigured())
+    // Resolve provedor/modelo (preferência do usuário → padrão do workspace)
+    // e aplica a cota mensal antes de gravar qualquer coisa.
+    const prepared = await AiUsageService.prepare(
+      workspaceId,
+      'CRM_ASSISTANT',
+      actorId,
+    )
+    if (!prepared.ok) return prepared
+    const call = prepared.value
 
     const userMessage = await CrmAiMessageRepository.create({
       conversationId,
@@ -182,91 +191,92 @@ export const CrmAiConversationService = {
       await CrmAiMessageRepository.listByConversation(conversationId)
     if (!history.ok) return history
 
-    const client = new OpenAI({ apiKey: OPENAI_API_KEY })
     const recent = history.value.slice(-HISTORY_LIMIT)
 
-    const input: OpenAI.Responses.ResponseInputItem[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...recent.map((message): OpenAI.Responses.ResponseInputItem => {
-        if (
-          message.role === 'USER' &&
-          message.id === userMessage.value.id &&
-          imageUrls.length > 0
-        ) {
-          return {
-            role: 'user',
-            content: [
-              { type: 'input_text', text: message.content },
-              ...imageUrls.map((url) => ({
-                type: 'input_image' as const,
-                image_url: url,
-                detail: 'auto' as const,
-              })),
-            ],
-          }
-        }
-
+    const messages: AiMessage[] = recent.map((message): AiMessage => {
+      if (
+        message.role === 'USER' &&
+        message.id === userMessage.value.id &&
+        imageUrls.length > 0
+      ) {
         return {
-          role: message.role === 'USER' ? 'user' : 'assistant',
-          content: message.content,
+          role: 'user',
+          content: [
+            { type: 'text', text: message.content },
+            ...imageUrls.map((url) => ({ type: 'image' as const, url })),
+          ],
         }
-      }),
-    ]
+      }
+      return message.role === 'USER'
+        ? { role: 'user', content: message.content }
+        : { role: 'assistant', content: message.content }
+    })
 
     let replyText = 'Não consegui gerar uma resposta agora.'
-    let totalInputTokens = 0
-    let totalOutputTokens = 0
+    const usage = { inputTokens: 0, outputTokens: 0 }
     const toolCallLog: string[] = []
 
     // Loop de tool-calling: chama o modelo, executa as funções que ele pedir,
     // devolve o resultado, repete — até ele responder em texto final ou
     // estourar `MAX_TOOL_ROUNDS` (evita loop indefinido em caso de tool que
     // sempre "falha" de um jeito que o modelo insiste em tentar de novo).
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const response = await client.responses.create({
-        model: MODEL,
-        input,
-        tools: [{ type: 'web_search' }, ...CRM_AI_FUNCTION_TOOLS],
-      })
+    try {
+      for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+        const response = await call.provider.chat({
+          model: call.model.model,
+          system: SYSTEM_PROMPT,
+          messages,
+          tools: CRM_AI_TOOLS,
+          webSearch: true,
+        })
 
-      totalInputTokens += response.usage?.input_tokens ?? 0
-      totalOutputTokens += response.usage?.output_tokens ?? 0
+        usage.inputTokens += response.usage.inputTokens
+        usage.outputTokens += response.usage.outputTokens
 
-      const functionCalls = response.output.filter(
-        (item): item is OpenAI.Responses.ResponseFunctionToolCall =>
-          item.type === 'function_call',
-      )
-
-      if (functionCalls.length === 0) {
-        replyText = response.output_text || replyText
-        break
-      }
-
-      input.push(...functionCalls)
-      for (const call of functionCalls) {
-        toolCallLog.push(call.name)
-        let args: Record<string, unknown> = {}
-        try {
-          args = JSON.parse(call.arguments)
-        } catch {
-          // Argumentos malformados do modelo — segue com objeto vazio; a
-          // tool valida o payload e devolve erro legível pro modelo tentar de novo.
+        if (response.stopReason !== 'tool_use') {
+          replyText =
+            response.text ||
+            (response.stopReason === 'refusal' ? REFUSAL_REPLY : replyText)
+          break
         }
-        const output = await executeAiTool(call.name, args, {
-          actorId,
-          workspaceId,
-        })
-        input.push({
-          type: 'function_call_output',
-          call_id: call.call_id,
-          output,
-        })
-      }
 
-      if (round === MAX_TOOL_ROUNDS - 1) {
-        replyText =
-          'Não consegui concluir isso agora — precisou de mais etapas do que o permitido. Tente reformular a pergunta em partes menores.'
+        messages.push(response.message)
+        for (const toolCall of response.toolCalls) {
+          toolCallLog.push(toolCall.name)
+          const output = await executeAiTool(
+            toolCall.name,
+            toolCall.arguments,
+            { actorId, workspaceId },
+          )
+          messages.push({
+            role: 'tool',
+            toolCallId: toolCall.id,
+            name: toolCall.name,
+            content: output,
+          })
+        }
+
+        if (round === MAX_TOOL_ROUNDS - 1) {
+          replyText =
+            'Não consegui concluir isso agora — precisou de mais etapas do que o permitido. Tente reformular a pergunta em partes menores.'
+        }
       }
+    } catch (error) {
+      logger.error('crm_ai.provider_failed', {
+        component: 'CrmAiConversationService',
+        conversationId,
+        workspaceId,
+        provider: call.model.provider,
+        model: call.model.model,
+        message: error instanceof Error ? error.message : String(error),
+      })
+      // O que já foi consumido antes da falha conta na cota.
+      await AiUsageService.record(call, { workspaceId, userId: actorId, usage })
+      return err(
+        aiProviderUnavailable(
+          'Não foi possível falar com o provedor de IA agora. Tente novamente em instantes.',
+        ),
+      )
     }
 
     if (toolCallLog.length > 0) {
@@ -285,13 +295,16 @@ export const CrmAiConversationService = {
     })
     if (!assistantMessage.ok) return assistantMessage
 
-    await CrmAiUsageRepository.record({
-      workspaceId,
-      conversationId,
-      inputTokens: totalInputTokens,
-      outputTokens: totalOutputTokens,
-      model: MODEL,
-    })
+    await Promise.all([
+      AiUsageService.record(call, { workspaceId, userId: actorId, usage }),
+      CrmAiUsageRepository.record({
+        workspaceId,
+        conversationId,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        model: call.model.model,
+      }),
+    ])
 
     await CrmAiConversationRepository.touch(conversationId)
 
