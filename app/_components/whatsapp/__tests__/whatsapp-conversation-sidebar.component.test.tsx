@@ -40,6 +40,8 @@ function conversation(
     lastMessagePreview: 'Oi, tudo bem?',
     pinned: false,
     archived: false,
+    closedAt: null,
+    closeReason: null,
     contactSince: '2026-01-01T00:00:00.000Z',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',

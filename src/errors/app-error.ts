@@ -153,6 +153,15 @@ export const whatsappConversationNotFound = (): AppError =>
 export const whatsappMessageNotFound = (): AppError =>
   appError('WHATSAPP_MESSAGE_NOT_FOUND', 'Mensagem não encontrada')
 
+export const whatsappConversationAlreadyClosed = (): AppError =>
+  appError(
+    'WHATSAPP_CONVERSATION_ALREADY_CLOSED',
+    'Esta conversa já está fechada',
+  )
+
+export const whatsappConversationNotClosed = (): AppError =>
+  appError('WHATSAPP_CONVERSATION_NOT_CLOSED', 'Esta conversa não está fechada')
+
 export const whatsappConversationAiHandling = (
   message = 'A IA está atendendo esta conversa. Remova-a do atendimento da IA para enviar mensagens.',
 ): AppError => appError('WHATSAPP_CONVERSATION_AI_HANDLING', message)

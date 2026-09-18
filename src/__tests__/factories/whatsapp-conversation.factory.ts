@@ -24,6 +24,8 @@ export function createFakeWhatsAppConversation(
     archivedAt: null,
     deletedAt: null,
     clearedAt: null,
+    closedAt: null,
+    closeReason: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,

@@ -51,6 +51,10 @@ export function toWhatsAppConversationDTO(
       : null,
     pinned: conversation.pinnedAt !== null,
     archived: conversation.archivedAt !== null,
+    closedAt: conversation.closedAt
+      ? conversation.closedAt.toISOString()
+      : null,
+    closeReason: conversation.closeReason,
     contactSince: conversation.contact.createdAt.toISOString(),
     createdAt: conversation.createdAt.toISOString(),
     updatedAt: conversation.updatedAt.toISOString(),

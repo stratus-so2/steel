@@ -132,6 +132,8 @@ export {
   whatsappContactNotFound,
   whatsappContactPhotoUnavailable,
   whatsappConversationAiHandling,
+  whatsappConversationAlreadyClosed,
+  whatsappConversationNotClosed,
   whatsappConversationNotFound,
   whatsappGroupMessageNotFound,
   whatsappGroupNotFound,

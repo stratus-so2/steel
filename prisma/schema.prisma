@@ -51,6 +51,7 @@ model User {
   whatsappBroadcastsCreated           WhatsAppBroadcastList[]       @relation("WhatsAppBroadcastCreatedBy")
   whatsappGroupMessagesSent           WhatsAppGroupMessage[]        @relation("WhatsAppGroupMessageSender")
   whatsappAiKnowledgeDocumentsCreated WhatsAppAiKnowledgeDocument[] @relation("WhatsAppAiKnowledgeDocumentCreatedBy")
+  whatsappConversationEventsActed     WhatsAppConversationEvent[]   @relation("WhatsAppConversationEventActor")
 
   crmCompaniesCreated                CrmCompany[]                  @relation("CrmCompanyCreatedBy")
   crmCompaniesOwned                  CrmCompany[]                  @relation("CrmCompanyAccountOwner")
@@ -302,6 +303,8 @@ model Workspace {
   whatsappBroadcastLists       WhatsAppBroadcastList[]
   whatsappTemplates            WhatsAppTemplate[]
   whatsappAiConfig             WhatsAppAiConfig?
+  whatsappSettings             WhatsAppSettings?
+  whatsappConversationEvents   WhatsAppConversationEvent[]
   whatsappGroups               WhatsAppGroup[]
   whatsappGroupMessages        WhatsAppGroupMessage[]
   whatsappAiKnowledgeDocuments WhatsAppAiKnowledgeDocument[]
@@ -868,14 +871,19 @@ model WhatsAppConversation {
   archivedAt        DateTime?                  @map("archived_at")
   deletedAt         DateTime?                  @map("deleted_at")
   clearedAt         DateTime?                  @map("cleared_at")
+  /// Quando a conversa foi fechada (status CLOSED) e o motivo opcional
+  /// informado pelo atendente. Limpos ao reabrir.
+  closedAt          DateTime?                  @map("closed_at")
+  closeReason       String?                    @map("close_reason")
   createdAt         DateTime                   @default(now()) @map("created_at")
   updatedAt         DateTime                   @updatedAt @map("updated_at")
 
-  workspace    Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  connection   WhatsAppConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  contact      WhatsAppContact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  assignedUser User?              @relation("WhatsAppConversationAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  workspace    Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection   WhatsAppConnection          @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  contact      WhatsAppContact             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  assignedUser User?                       @relation("WhatsAppConversationAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
   messages     WhatsAppMessage[]
+  events       WhatsAppConversationEvent[]
 
   @@index([workspaceId, status, lastMessageAt])
   @@index([workspaceId, deletedAt, archivedAt, pinnedAt])
@@ -883,6 +891,54 @@ model WhatsAppConversation {
   @@index([contactId])
   @@index([assignedUserId])
   @@map("whatsapp_conversations")
+}
+
+enum WhatsAppConversationEventKind {
+  CLOSED
+  REOPENED
+}
+
+/// Quem disparou o evento: um atendente (AGENT), uma nova mensagem do
+/// contato (CONTACT) ou o fechamento automático por inatividade (INACTIVITY).
+enum WhatsAppConversationEventSource {
+  AGENT
+  CONTACT
+  INACTIVITY
+}
+
+/// Linha do tempo da conversa (fechada/reaberta...), exibida entre as
+/// mensagens. Não é mensagem do WhatsApp — nunca vai para o contato.
+model WhatsAppConversationEvent {
+  id             String                          @id @default(cuid())
+  workspaceId    String                          @map("workspace_id")
+  conversationId String                          @map("conversation_id")
+  kind           WhatsAppConversationEventKind
+  source         WhatsAppConversationEventSource
+  actorUserId    String?                         @map("actor_user_id")
+  reason         String?
+  createdAt      DateTime                        @default(now()) @map("created_at")
+
+  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  actorUser    User?                @relation("WhatsAppConversationEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, createdAt])
+  @@index([workspaceId])
+  @@map("whatsapp_conversation_events")
+}
+
+/// Configurações de atendimento do WhatsApp por workspace (admin).
+model WhatsAppSettings {
+  id                  String   @id @default(cuid())
+  workspaceId         String   @unique @map("workspace_id")
+  /// Fecha conversas sem mensagem há N horas (0 = desligado).
+  autoCloseAfterHours Int      @default(24) @map("auto_close_after_hours")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("whatsapp_settings")
 }
 
 enum WhatsAppMessageDirection {

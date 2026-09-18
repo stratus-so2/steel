@@ -8,3 +8,16 @@ export const StartWhatsAppConversationSchema = z.object({
 export type StartWhatsAppConversationDTO = z.infer<
   typeof StartWhatsAppConversationSchema
 >
+
+export const CloseWhatsAppConversationSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .max(500, 'Motivo deve ter no máximo 500 caracteres')
+    .optional()
+    .transform((value) => value || undefined),
+})
+
+export type CloseWhatsAppConversationDTO = z.infer<
+  typeof CloseWhatsAppConversationSchema
+>

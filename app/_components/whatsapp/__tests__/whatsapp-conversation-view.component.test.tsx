@@ -66,6 +66,8 @@ function conversation(
     lastMessagePreview: null,
     pinned: false,
     archived: false,
+    closedAt: null,
+    closeReason: null,
     contactSince: '2025-03-10T12:00:00.000Z',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',

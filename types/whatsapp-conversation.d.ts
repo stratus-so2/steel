@@ -18,6 +18,8 @@ export interface WhatsAppConversationDTO {
   lastMessagePreview: string | null
   pinned: boolean
   archived: boolean
+  closedAt: string | null
+  closeReason: string | null
   contactSince: string
   createdAt: string
   updatedAt: string
@@ -28,4 +30,21 @@ export interface WhatsAppAssignableMemberDTO {
   name: string
   email: string
   image: string | null
+}
+
+export type WhatsAppConversationEventKindDTO = 'CLOSED' | 'REOPENED'
+export type WhatsAppConversationEventSourceDTO =
+  | 'AGENT'
+  | 'CONTACT'
+  | 'INACTIVITY'
+
+export interface WhatsAppConversationEventDTO {
+  id: string
+  conversationId: string
+  kind: WhatsAppConversationEventKindDTO
+  source: WhatsAppConversationEventSourceDTO
+  actorUserId: string | null
+  actorName: string | null
+  reason: string | null
+  createdAt: string
 }
