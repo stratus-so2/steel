@@ -1,4 +1,4 @@
-import type { Plan, Workspace } from '@prisma/client'
+import type { Plan, Workspace, WorkspaceStatus } from '@prisma/client'
 import { conflict, notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -106,6 +106,57 @@ export const WorkspaceRepository = {
         return err(conflict('Slug já está em uso'))
       }
       return err(dbError('Failed to update workspace', error))
+    }
+  },
+
+  /** Workspace + contagem de membros (detalhe do painel admin). */
+  async findWithMemberCount(
+    id: string,
+  ): Promise<Result<(Workspace & { memberCount: number }) | null>> {
+    try {
+      const workspace = await prisma.workspace.findUnique({
+        where: { id },
+        include: { _count: { select: { memberships: true } } },
+      })
+      if (!workspace) return ok(null)
+      const { _count, ...rest } = workspace
+      return ok({ ...rest, memberCount: _count.memberships })
+    } catch (error) {
+      return err(dbError('Failed to find workspace with counts', error))
+    }
+  },
+
+  /** Ciclo de vida controlado pelo admin global (suspender/reativar/excluir). */
+  async setStatus(
+    id: string,
+    data: {
+      status: WorkspaceStatus
+      suspendedAt?: Date | null
+      suspendedReason?: string | null
+      suspendedById?: string | null
+    },
+  ): Promise<Result<Workspace>> {
+    try {
+      const workspace = await prisma.workspace.update({ where: { id }, data })
+      return ok(workspace)
+    } catch (error) {
+      return err(dbError('Failed to set workspace status', error))
+    }
+  },
+
+  /**
+   * Troca manual de plano pelo admin global (ex.: ENTERPRISE negociado fora do
+   * AbacatePay). Zera o trial para o `revertExpiredTrials` não desfazer.
+   */
+  async setPlan(id: string, plan: Plan): Promise<Result<Workspace>> {
+    try {
+      const workspace = await prisma.workspace.update({
+        where: { id },
+        data: { activePlan: plan, trialEndsAt: null },
+      })
+      return ok(workspace)
+    } catch (error) {
+      return err(dbError('Failed to set workspace plan', error))
     }
   },
 

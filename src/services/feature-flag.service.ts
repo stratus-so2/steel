@@ -6,6 +6,7 @@ import {
 } from '@/src/cache/workspace-features.cache'
 import type { FeatureKey } from '@/src/config/features'
 import { featureNotEnabled } from '@/src/errors'
+import { persistAdminAction } from '@/src/lib/admin-audit'
 import { resolveFeatureMap } from '@/src/lib/feature-flags'
 import { err, ok, type Result } from '@/src/lib/result'
 import { toWorkspaceFeatureDTOs } from '@/src/mappers/feature-flag.mapper'
@@ -167,6 +168,18 @@ export const FeatureFlagService = {
       action,
       actorId,
       targetId: workspaceId,
+      meta,
+    })
+    await persistAdminAction({
+      actor: admin.value,
+      action:
+        input.enabled === null
+          ? 'feature.override_removed'
+          : 'feature.override',
+      targetType: 'workspace',
+      targetId: workspaceId,
+      targetLabel: workspace.value.slug,
+      reason: input.note ?? null,
       meta,
     })
 

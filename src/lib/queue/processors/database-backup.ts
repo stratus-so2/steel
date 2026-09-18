@@ -21,6 +21,7 @@ import {
   getObject,
   putObject,
 } from '@/src/lib/storage/s3'
+import { BACKUP_BUCKET } from '../backup-bucket'
 import { DatabaseBackupJob, type DatabaseBackupJobPayload } from '../jobs'
 import { getDatabaseBackupQueue } from '../queues'
 import { BackupRetentionDays } from '../retention'
@@ -29,7 +30,7 @@ import { runWorkspaceDeletion, runWorkspaceRestore } from './admin-operations'
 
 const execFileAsync = promisify(execFile)
 
-export const BACKUP_BUCKET = 'database-backups'
+export { BACKUP_BUCKET }
 
 async function uploadEncrypted(params: {
   key: string

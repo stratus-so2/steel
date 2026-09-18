@@ -1,6 +1,7 @@
 import type { ModuleKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
+import { persistAdminAction } from '@/src/lib/admin-audit'
 import { ok, type Result } from '@/src/lib/result'
 import { toWorkspaceModuleAccessDTO } from '@/src/mappers/workspace-module-access.mapper'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
@@ -79,6 +80,13 @@ export const WorkspaceModuleAccessService = {
       actorId,
       targetId: workspaceId,
       meta: { module, enabled },
+    })
+    await persistAdminAction({
+      actor: admin.value,
+      action: enabled ? 'module.grant' : 'module.revoke',
+      targetType: 'workspace',
+      targetId: workspaceId,
+      meta: { module },
     })
 
     // Dashboards/relatórios padrão do zap e pipeline padrão do CRM — não

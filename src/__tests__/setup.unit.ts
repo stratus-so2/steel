@@ -13,6 +13,16 @@ vi.mock('@/src/repositories/workspace-module-access.repository', () => ({
   },
 }))
 
+// Trilha do painel admin (`recordAdminAction`): nos unitários, gravar a
+// linha é no-op; testes que verificam a trilha mockam `@/src/lib/admin-audit`.
+vi.mock('@/src/repositories/admin-audit-log.repository', () => ({
+  AdminAuditLogRepository: {
+    create: vi.fn(async () => ok({})),
+    listRecent: vi.fn(async () => ok([])),
+    listByTarget: vi.fn(async () => ok([])),
+  },
+}))
+
 afterEach(() => {
   vi.restoreAllMocks()
   vi.clearAllMocks()

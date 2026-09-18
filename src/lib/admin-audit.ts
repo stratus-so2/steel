@@ -45,6 +45,16 @@ export async function recordAdminAction(
     meta: { adminAction: input.action, ...(input.meta ?? {}) },
   })
 
+  await persistAdminAction(input)
+}
+
+/**
+ * Só a linha em `admin_audit_logs`, para ações cujo service já emite o
+ * `auditMutation` próprio (módulos, feature flags).
+ */
+export async function persistAdminAction(
+  input: Omit<RecordAdminActionInput, 'audit'>,
+): Promise<void> {
   const meta =
     input.outcome === 'failure'
       ? { ...(input.meta ?? {}), outcome: 'failure' }
