@@ -1,0 +1,358 @@
+import { z } from 'zod'
+import { FEATURE_KEYS } from '@/src/config/features'
+import { dto } from '../common'
+
+/** DTOs do painel admin global (`types/admin-*.d.ts`, `types/changelog.d.ts`). */
+
+const dateTime = () => z.iso.datetime()
+const nullableDateTime = () => z.iso.datetime().nullable()
+
+const PLAN = z.enum(['FREE', 'PRO', 'BUSINESS', 'ENTERPRISE'])
+const WORKSPACE_STATUS = z.enum(['ACTIVE', 'SUSPENDED', 'DELETING'])
+const MODULE = z.enum(['SERVICE_DESK', 'CRM', 'COMMUNICATION'])
+
+export const AdminWorkspaceSummaryDTO = dto(
+  'AdminWorkspaceSummary',
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+    activePlan: PLAN,
+    status: WORKSPACE_STATUS,
+    memberCount: z.number().int(),
+    createdAt: dateTime(),
+  }),
+)
+
+export const AdminWorkspaceDetailDTO = dto(
+  'AdminWorkspaceDetail',
+  z.object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+    activePlan: PLAN,
+    status: WORKSPACE_STATUS,
+    memberCount: z.number().int(),
+    createdAt: dateTime(),
+    trialEndsAt: nullableDateTime(),
+    suspendedAt: nullableDateTime(),
+    suspendedReason: z.string().nullable(),
+    updatedAt: dateTime(),
+  }),
+)
+
+export const AdminWorkspaceRecordDTO = dto(
+  'AdminWorkspaceRecord',
+  z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      slug: z.string(),
+      activePlan: PLAN,
+      trialEndsAt: nullableDateTime(),
+      status: WORKSPACE_STATUS,
+      suspendedAt: nullableDateTime(),
+      suspendedReason: z.string().nullable(),
+      suspendedById: z.string().nullable(),
+      createdAt: dateTime(),
+      updatedAt: dateTime(),
+    })
+    .meta({ description: 'Registro do workspace como está no banco.' }),
+)
+
+export const AdminOperationDTO = dto(
+  'AdminOperation',
+  z
+    .object({
+      id: z.string(),
+      kind: z.enum(['WORKSPACE_DELETE', 'WORKSPACE_RESTORE']),
+      status: z.enum(['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED']),
+      step: z.string().meta({
+        description:
+          'Etapa atual: `queued` → `backup` → `purge_database` → `purge_files` → `done` (exclusão), etc.',
+        example: 'backup',
+      }),
+      workspaceId: z.string(),
+      workspaceSlug: z.string(),
+      workspaceName: z.string(),
+      backupId: z.string().nullable(),
+      requestedByEmail: z.string(),
+      reason: z.string(),
+      error: z.string().nullable(),
+      subscriptionsToCancel: z
+        .array(z.object({ billId: z.string(), plan: z.string() }))
+        .meta({
+          description:
+            'Assinaturas pagas a cancelar manualmente na AbacatePay (exclusão).',
+        }),
+      filesDeleted: z.number().int().nullable(),
+      filesError: z.string().nullable(),
+      safetyBackupId: z.string().nullable(),
+      createdAt: dateTime(),
+      updatedAt: dateTime(),
+      completedAt: nullableDateTime(),
+    })
+    .meta({
+      description:
+        'Exclusão ou restauração de workspace executada pelo worker.',
+    }),
+)
+
+export const AdminBackupDTO = dto(
+  'AdminBackup',
+  z.object({
+    id: z.string(),
+    scope: z.enum(['FULL', 'WORKSPACE']),
+    status: z.enum(['RUNNING', 'COMPLETED', 'FAILED']),
+    workspaceId: z.string().nullable(),
+    workspaceSlug: z.string().nullable(),
+    workspaceExists: z.boolean().meta({
+      description: '`false` quando o workspace do backup não existe mais.',
+    }),
+    sizeBytes: z.number().int().nullable(),
+    errorMessage: z.string().nullable(),
+    locations: z.object({ local: z.boolean(), offsite: z.boolean() }),
+    offsiteCopiedAt: nullableDateTime(),
+    triggeredBy: z.enum(['admin', 'system']),
+    startedAt: dateTime(),
+    completedAt: nullableDateTime(),
+    expiresAt: nullableDateTime(),
+  }),
+)
+
+export const AdminAuditEntryDTO = dto(
+  'AdminAuditEntry',
+  z.object({
+    id: z.string(),
+    actorEmail: z.string(),
+    action: z.string().meta({ example: 'workspace.suspend' }),
+    targetType: z.string(),
+    targetId: z.string().nullable(),
+    targetLabel: z.string().nullable(),
+    reason: z.string().nullable(),
+    failed: z.boolean(),
+    createdAt: dateTime(),
+  }),
+)
+
+const ComponentStatus = z.enum([
+  'OPERATIONAL',
+  'DEGRADED',
+  'PARTIAL_OUTAGE',
+  'MAJOR_OUTAGE',
+  'MAINTENANCE',
+])
+
+export const AdminOverviewDTO = dto(
+  'AdminOverview',
+  z.object({
+    generatedAt: dateTime(),
+    workspaces: z.object({
+      total: z.number().int(),
+      active: z.number().int(),
+      suspended: z.number().int(),
+      deleting: z.number().int(),
+      trial: z.number().int(),
+      createdLast30d: z.number().int(),
+      createdPrev30d: z.number().int(),
+    }),
+    users: z.object({
+      total: z.number().int(),
+      createdLast7d: z.number().int(),
+      createdPrev7d: z.number().int(),
+    }),
+    mrr: z.object({
+      cents: z.number().int().meta({ description: 'MRR em centavos (BRL).' }),
+      payingWorkspaces: z.number().int(),
+    }),
+    recentSignups: z.array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        email: z.string(),
+        createdAt: dateTime(),
+      }),
+    ),
+    recentActions: z.array(AdminAuditEntryDTO),
+    queues: z
+      .array(
+        z.object({
+          name: z.string(),
+          waiting: z.number().int(),
+          active: z.number().int(),
+          delayed: z.number().int(),
+          failed: z.number().int(),
+          completed: z.number().int(),
+        }),
+      )
+      .nullable()
+      .meta({ description: '`null` quando o Redis das filas não respondeu.' }),
+    status: z.array(
+      z.object({
+        componentKey: z.string(),
+        name: z.string(),
+        status: ComponentStatus,
+        latencyMs: z.number(),
+        checkedAt: dateTime(),
+      }),
+    ),
+    recentBackups: z.array(AdminBackupDTO),
+    operations: z.array(AdminOperationDTO),
+  }),
+)
+
+export const AdminMetricsDTO = dto(
+  'AdminMetrics',
+  z.object({
+    generatedAt: dateTime(),
+    windowDays: z.number().int(),
+    totalWorkspaces: z.number().int(),
+    activeClients: z
+      .number()
+      .int()
+      .meta({ description: 'Workspaces com uso de módulo na janela.' }),
+    workspacesWithLogin: z.number().int(),
+    mrr: z.object({
+      cents: z.number().int(),
+      payingWorkspaces: z.number().int(),
+    }),
+    churnByMonth: z.array(
+      z.object({
+        month: z.string().meta({ example: '2026-08' }),
+        cancelled: z.number().int(),
+        expired: z.number().int(),
+        lostMrrCents: z.number().int(),
+      }),
+    ),
+    usage: z.object({
+      totals: z.array(
+        z.object({
+          module: MODULE,
+          requests: z.number().int(),
+          mutations: z.number().int(),
+          workspaces: z.number().int(),
+        }),
+      ),
+      daily: z.array(
+        z.object({
+          day: z.string(),
+          module: MODULE,
+          requests: z.number().int(),
+          mutations: z.number().int(),
+        }),
+      ),
+      topWorkspaces: z.array(
+        z.object({
+          workspaceId: z.string(),
+          name: z.string(),
+          slug: z.string(),
+          requests: z.number().int(),
+          mutations: z.number().int(),
+        }),
+      ),
+      trackedSince: z.string().nullable(),
+    }),
+  }),
+)
+
+export const AdminFeatureDTO = dto(
+  'AdminWorkspaceFeature',
+  z.object({
+    key: z.enum(FEATURE_KEYS),
+    module: MODULE,
+    label: z.string(),
+    description: z.string(),
+    planDefault: z.boolean(),
+    override: z
+      .object({
+        enabled: z.boolean(),
+        note: z.string().nullable(),
+        expiresAt: nullableDateTime(),
+        expired: z.boolean(),
+        updatedById: z.string().nullable(),
+        updatedAt: dateTime(),
+      })
+      .nullable(),
+    enabled: z.boolean(),
+  }),
+)
+
+const CHANGELOG_STATUS = z.enum([
+  'DRAFT',
+  'QUEUED',
+  'RUNNING',
+  'DONE',
+  'FAILED',
+])
+
+export const ChangelogSummaryDTO = dto(
+  'ChangelogSummary',
+  z.object({
+    id: z.string(),
+    subject: z.string(),
+    status: CHANGELOG_STATUS,
+    createdById: z.string(),
+    recipientCount: z.number().int(),
+    sentCount: z.number().int(),
+    failedCount: z.number().int(),
+    createdAt: dateTime(),
+    updatedAt: dateTime(),
+  }),
+)
+
+export const ChangelogDetailDTO = dto(
+  'ChangelogDetail',
+  z.object({
+    id: z.string(),
+    subject: z.string(),
+    status: CHANGELOG_STATUS,
+    createdById: z.string(),
+    recipientCount: z.number().int(),
+    sentCount: z.number().int(),
+    failedCount: z.number().int(),
+    createdAt: dateTime(),
+    updatedAt: dateTime(),
+    items: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        body: z.string(),
+        imageUrl: z.string().nullable(),
+        position: z.number().int(),
+      }),
+    ),
+    recipients: z.array(
+      z.object({
+        id: z.string(),
+        email: z.string(),
+        userId: z.string().nullable(),
+        status: z.enum(['PENDING', 'SENT', 'FAILED']),
+        errorMessage: z.string().nullable(),
+        sentAt: nullableDateTime(),
+      }),
+    ),
+  }),
+)
+
+export const ChangelogReleaseDraftDTO = dto(
+  'ChangelogReleaseDraft',
+  z.object({
+    subject: z.string(),
+    items: z.array(z.object({ title: z.string(), body: z.string() })),
+    skipped: z.number().int().meta({
+      description: 'Linhas internas (ci, chore, test...) descartadas.',
+    }),
+    release: z
+      .object({
+        tag: z.string(),
+        name: z.string().nullable(),
+        url: z.string(),
+        publishedAt: nullableDateTime(),
+        fromCommits: z.boolean().meta({
+          description:
+            '`true` quando as notas eram vazias e os itens vieram dos commits.',
+        }),
+      })
+      .nullable(),
+  }),
+)
