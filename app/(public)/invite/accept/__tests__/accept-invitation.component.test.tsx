@@ -45,7 +45,11 @@ describe('<AcceptInvitation />', () => {
     ])
     renderWithQuery(<AcceptInvitation token='tok' />)
 
+    // Primeiro render (mutação ainda `idle`) já mostra o carregamento.
+    expect(screen.getByText('Validando convite…')).toBeTruthy()
+    expect(screen.queryByText('Convite aceito! Redirecionando…')).toBeNull()
     expect(await screen.findByText('Validando convite…')).toBeTruthy()
+    expect(screen.queryByText('Convite aceito! Redirecionando…')).toBeNull()
   })
 
   it('renders the API error and does not redirect', async () => {

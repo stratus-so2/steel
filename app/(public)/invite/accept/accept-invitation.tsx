@@ -14,8 +14,6 @@ export function AcceptInvitation({ token }: { token: string }) {
     })
   }, [token, mutate, router])
 
-  if (status === 'pending') return <p>Validando convite…</p>
-
   if (status === 'error') {
     return (
       <div>
@@ -25,5 +23,9 @@ export function AcceptInvitation({ token }: { token: string }) {
     )
   }
 
-  return <p>Convite aceito! Redirecionando…</p>
+  if (status === 'success') return <p>Convite aceito! Redirecionando…</p>
+
+  // `idle` (antes do efeito disparar a mutação) também é carregamento: não
+  // anuncia sucesso antes de a requisição sequer começar.
+  return <p>Validando convite…</p>
 }
