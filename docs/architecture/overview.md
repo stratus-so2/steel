@@ -92,6 +92,25 @@ Campanhas de e-mail e transmissões do WhatsApp respeitam o descadastro LGPD
 (link + `List-Unsubscribe` no e-mail, palavras-chave no WhatsApp) — regras,
 registro e política de reinscrição em [LGPD — descadastro](../lgpd.md).
 
+**Atendimento no WhatsApp** (Configurações do WhatsApp > Atendimento, só
+OWNER/ADMIN; `WhatsAppSettings`):
+
+- **Fechar conversa.** Atendentes fecham (motivo opcional) e reabrem pelo
+  cabeçalho da conversa; fechadas saem da caixa ativa (aba "Fechadas") e a IA
+  não responde. Nova mensagem do contato reabre a mesma conversa. O job
+  `whatsapp-conversation-lifecycle` fecha conversas sem mensagem há N horas
+  (padrão 24h, 0 = desligado). Fechar/reabrir vira evento na linha do tempo
+  (`whatsapp_conversation_events`) e é auditado.
+- **Alerta de sentimento.** Quando a média de sentimento da conversa cai até o
+  limite (padrão -0,3), avisa os membros escolhidos (padrão OWNER/ADMIN) na
+  caixa de entrada do app (`notifications`, `/[slug]/inbox`) e/ou por
+  e-mail, e pode atribuir a conversa sem atendente a um supervisor. No máximo
+  um alerta por conversa a cada N horas (padrão 6).
+- **Mídia em transmissões.** Imagem (JPG/PNG, 5 MB), vídeo (MP4/3GP), áudio
+  (AAC/M4A/MP3/AMR/OGG) ou documento (PDF/Office/TXT) até 16 MB, enviados
+  com o tipo certo na Meta e na Z-API (`src/lib/whatsapp/broadcast-media.ts`).
+  Áudio não tem legenda: a mensagem segue como texto logo depois.
+
 ## Worker (BullMQ)
 
 Processo Node separado (`worker/index.ts`, build `pnpm worker:build` →
