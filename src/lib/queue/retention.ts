@@ -32,6 +32,9 @@ export const CrmSocialPostsTickCron = '* * * * *' as const
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 
+/** Frequência do fechamento automático de conversas inativas do WhatsApp. */
+export const WhatsappConversationAutoCloseCron = '*/15 * * * *' as const
+
 export const BackupRetentionDays = 90
 
 export const DatabaseBackupCron = {

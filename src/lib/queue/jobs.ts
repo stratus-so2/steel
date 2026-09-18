@@ -8,6 +8,7 @@ export const QueueName = {
   WhatsappSentiment: 'whatsapp-sentiment',
   WhatsappBroadcast: 'whatsapp-broadcast',
   WhatsappTemplateSync: 'whatsapp-template-sync',
+  WhatsappConversationLifecycle: 'whatsapp-conversation-lifecycle',
   CrmScheduledSend: 'crm-scheduled-send',
   CrmWorkflowSchedule: 'crm-workflow-schedule',
   CrmCompetitorSync: 'crm-competitor-sync',
@@ -119,6 +120,17 @@ export type WhatsappBroadcastJobPayload = {
     recipientId: string
   }
   [WhatsappBroadcastJob.RunScheduleTick]: Record<string, never>
+}
+
+export const WhatsappConversationLifecycleJob = {
+  AutoCloseInactive: 'auto-close-inactive',
+} as const
+
+export type WhatsappConversationLifecycleJob =
+  (typeof WhatsappConversationLifecycleJob)[keyof typeof WhatsappConversationLifecycleJob]
+
+export type WhatsappConversationLifecycleJobPayload = {
+  [WhatsappConversationLifecycleJob.AutoCloseInactive]: Record<string, never>
 }
 
 export const WhatsappTemplateSyncJob = {

@@ -34,6 +34,8 @@ import {
   type WhatsappAiReplyJobPayload,
   type WhatsappBroadcastJob,
   type WhatsappBroadcastJobPayload,
+  type WhatsappConversationLifecycleJob,
+  type WhatsappConversationLifecycleJobPayload,
   type WhatsappMediaJob,
   type WhatsappMediaJobPayload,
   type WhatsappSentimentJob,
@@ -58,6 +60,7 @@ let whatsappAiReplyQueue: Queue | null = null
 let whatsappSentimentQueue: Queue | null = null
 let whatsappBroadcastQueue: Queue | null = null
 let whatsappTemplateSyncQueue: Queue | null = null
+let whatsappConversationLifecycleQueue: Queue | null = null
 let crmScheduledSendQueue: Queue | null = null
 let crmWorkflowScheduleQueue: Queue | null = null
 let crmCompetitorSyncQueue: Queue | null = null
@@ -210,6 +213,24 @@ export function getWhatsappBroadcastQueue(): Queue<
     WhatsappBroadcastJobPayload[WhatsappBroadcastJob],
     unknown,
     WhatsappBroadcastJob
+  >
+}
+
+export function getWhatsappConversationLifecycleQueue(): Queue<
+  WhatsappConversationLifecycleJobPayload[WhatsappConversationLifecycleJob],
+  unknown,
+  WhatsappConversationLifecycleJob
+> {
+  if (!whatsappConversationLifecycleQueue) {
+    whatsappConversationLifecycleQueue = new Queue(
+      QueueName.WhatsappConversationLifecycle,
+      { connection: getQueueConnection(), defaultJobOptions },
+    )
+  }
+  return whatsappConversationLifecycleQueue as Queue<
+    WhatsappConversationLifecycleJobPayload[WhatsappConversationLifecycleJob],
+    unknown,
+    WhatsappConversationLifecycleJob
   >
 }
 
@@ -443,6 +464,7 @@ export async function closeQueues(): Promise<void> {
     whatsappSentimentQueue?.close(),
     whatsappBroadcastQueue?.close(),
     whatsappTemplateSyncQueue?.close(),
+    whatsappConversationLifecycleQueue?.close(),
     crmScheduledSendQueue?.close(),
     crmWorkflowScheduleQueue?.close(),
     crmCompetitorSyncQueue?.close(),
@@ -463,6 +485,7 @@ export async function closeQueues(): Promise<void> {
   whatsappSentimentQueue = null
   whatsappBroadcastQueue = null
   whatsappTemplateSyncQueue = null
+  whatsappConversationLifecycleQueue = null
   crmScheduledSendQueue = null
   crmCompetitorSyncQueue = null
   crmProposalExpiryQueue = null

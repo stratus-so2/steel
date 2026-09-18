@@ -21,6 +21,7 @@ import { processStatusCollect } from '../src/lib/queue/processors/status-collect
 import { processUsageRollup } from '../src/lib/queue/processors/usage-rollup'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
 import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-broadcast'
+import { processWhatsappConversationLifecycle } from '../src/lib/queue/processors/whatsapp-conversation-lifecycle'
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
 import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-sentiment'
 import { closeQueues } from '../src/lib/queue/queues'
@@ -36,6 +37,7 @@ import {
   scheduleTrialLifecycleJobs,
   scheduleUsageRollupJobs,
   scheduleWhatsappBroadcastJobs,
+  scheduleWhatsappConversationLifecycleJobs,
 } from '../src/lib/queue/scheduler'
 
 const workers: Worker[] = []
@@ -127,6 +129,12 @@ async function main(): Promise<void> {
     registerWorker(QueueName.WhatsappBroadcast, processWhatsappBroadcast),
   )
   workers.push(
+    registerWorker(
+      QueueName.WhatsappConversationLifecycle,
+      processWhatsappConversationLifecycle,
+    ),
+  )
+  workers.push(
     registerWorker(QueueName.CrmScheduledSend, processCrmScheduledSend),
   )
   workers.push(
@@ -157,6 +165,7 @@ async function main(): Promise<void> {
   await scheduleCrmProposalExpiryJobs()
   await scheduleCrmSocialPostsTickJobs()
   await scheduleWhatsappBroadcastJobs()
+  await scheduleWhatsappConversationLifecycleJobs()
   await scheduleDatabaseBackupJobs()
   await scheduleStatusCollectJobs()
   await scheduleUsageRollupJobs()

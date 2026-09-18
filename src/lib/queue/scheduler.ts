@@ -12,6 +12,7 @@ import {
   TrialLifecycleJob,
   UsageRollupJob,
   WhatsappBroadcastJob,
+  WhatsappConversationLifecycleJob,
 } from './jobs'
 import {
   getCrmCompetitorSyncQueue,
@@ -25,6 +26,7 @@ import {
   getTrialLifecycleQueue,
   getUsageRollupQueue,
   getWhatsappBroadcastQueue,
+  getWhatsappConversationLifecycleQueue,
 } from './queues'
 import {
   CrmCompetitorSyncCron,
@@ -38,6 +40,7 @@ import {
   StatusCollectCron,
   UsageRollupCron,
   WhatsappBroadcastScheduleCron,
+  WhatsappConversationAutoCloseCron,
 } from './retention'
 
 export async function scheduleDataRetentionJobs(): Promise<void> {
@@ -133,6 +136,21 @@ export async function scheduleWhatsappBroadcastJobs(): Promise<void> {
   logger.info('queue.scheduler.whatsapp_broadcast_schedule_registered', {
     component: 'Worker',
     pattern: WhatsappBroadcastScheduleCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleWhatsappConversationLifecycleJobs(): Promise<void> {
+  const queue = getWhatsappConversationLifecycleQueue()
+  await queue.upsertJobScheduler(
+    WhatsappConversationLifecycleJob.AutoCloseInactive,
+    { pattern: WhatsappConversationAutoCloseCron, tz: RetentionTimezone },
+    { name: WhatsappConversationLifecycleJob.AutoCloseInactive, data: {} },
+  )
+
+  logger.info('queue.scheduler.whatsapp_conversation_lifecycle_registered', {
+    component: 'Worker',
+    pattern: WhatsappConversationAutoCloseCron,
     timezone: RetentionTimezone,
   })
 }

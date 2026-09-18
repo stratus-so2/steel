@@ -109,6 +109,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `whatsapp-ai-reply` | resposta automática por IA | por mensagem |
 | `whatsapp-sentiment` | análise de sentimento | por mensagem |
 | `whatsapp-broadcast` | envio de transmissões + tick de agendadas | sob demanda + a cada 5 min |
+| `whatsapp-conversation-lifecycle` | fecha conversas inativas (janela por workspace, padrão 24h) | a cada 15 min |
 | `crm-scheduled-send` | campanhas de e-mail agendadas | a cada 5 min |
 | `crm-workflow-schedule` | workflows `on-a-schedule` | a cada 1 min |
 | `crm-competitor-sync` | métricas de concorrentes | cron 04:00 |
