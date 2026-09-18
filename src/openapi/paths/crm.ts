@@ -1,5 +1,6 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
 import { crmActivitiesRoutes } from './crm/activities'
+import { crmAiRoutes } from './crm/ai'
 import { crmEmailRoutes } from './crm/email'
 import { crmForecastRoutes } from './crm/forecast'
 import { crmFormsRoutes } from './crm/forms'
@@ -36,6 +37,7 @@ const routes: RouteConfig[] = [
   ...crmSettingsRoutes,
   ...crmSocialRoutes,
   ...crmWorkflowsRoutes,
+  ...crmAiRoutes,
 ]
 
 export function registerCrmPaths(registry: OpenApiRegistry): void {

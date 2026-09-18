@@ -105,6 +105,10 @@
       "description": "Conexões sociais, posts agendados, tendências e concorrentes."
     },
     {
+      "name": "CRM · IA",
+      "description": "Assistente de IA do CRM e Hook Vault."
+    },
+    {
       "name": "CRM · Integrações",
       "description": "Chaves de API de integração (gestão interna)."
     },
@@ -207,6 +211,7 @@
         "CRM · Formulários e landing pages",
         "CRM · Workflows",
         "CRM · Redes sociais",
+        "CRM · IA",
         "CRM · Integrações",
         "CRM · Configurações"
       ]
@@ -501,7 +506,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_2"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_3"
           }
         },
         "security": [
@@ -3544,7 +3549,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
           },
           "422": {
             "$ref": "#/components/responses/422_CRM_FORM_NOT_PUBLISHED"
@@ -3633,7 +3638,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_FORM_NOT_PUBLISHED"
@@ -3838,7 +3843,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -3896,7 +3901,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_35"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_37"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -3993,7 +3998,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_36"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_38"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -7140,7 +7145,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_CONNECTION_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_10"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7210,7 +7215,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7295,6 +7300,451 @@
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/ai/conversations": {
+      "get": {
+        "tags": ["CRM · IA"],
+        "summary": "Listar conversas com o assistente",
+        "operationId": "getWorkspacesByIdCrmAiConversations",
+        "description": "Conversas do usuário autenticado no workspace, da mais recente para a mais antiga.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmAiConversation"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["CRM · IA"],
+        "summary": "Criar conversa com o assistente",
+        "operationId": "postWorkspacesByIdCrmAiConversations",
+        "description": "Abre uma conversa vazia (o título é opcional). As mensagens vão em `POST .../conversations/{conversationId}/messages`.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversa criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmAiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/ai/conversations/{conversationId}": {
+      "get": {
+        "tags": ["CRM · IA"],
+        "summary": "Listar mensagens da conversa",
+        "operationId": "getWorkspacesByIdCrmAiConversationsByConversationId",
+        "description": "Histórico em ordem cronológica. Anexos trazem `url` assinada (15 min).\n\nConversas são pessoais: só o usuário que criou a conversa a enxerga (outro usuário recebe `404`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o assistente.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmAiMessage"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["CRM · IA"],
+        "summary": "Excluir conversa",
+        "operationId": "deleteWorkspacesByIdCrmAiConversationsByConversationId",
+        "description": "Exclusão lógica (soft delete) da conversa.\n\nConversas são pessoais: só o usuário que criou a conversa a enxerga (outro usuário recebe `404`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o assistente.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/ai/conversations/{conversationId}/attachments": {
+      "post": {
+        "tags": ["CRM · IA"],
+        "summary": "Enviar anexo para a conversa",
+        "operationId": "postWorkspacesByIdCrmAiConversationsByConversationIdAttachments",
+        "description": "Faz o upload de um anexo (JPEG, PNG, WebP, PDF ou TXT, até 10 MB) e devolve o anexo pendente — envie o `id` em `attachmentIds` na próxima mensagem. Exige a feature `crm.aiAssistant`.\n\nConversas são pessoais: só o usuário que criou a conversa a enxerga (outro usuário recebe `404`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o assistente.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Arquivo (JPEG, PNG, WebP, PDF ou TXT; máx. 10 MB)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Anexo salvo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmAiAttachment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR_2"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/ai/conversations/{conversationId}/messages": {
+      "post": {
+        "tags": ["CRM · IA"],
+        "summary": "Enviar mensagem ao assistente",
+        "operationId": "postWorkspacesByIdCrmAiConversationsByConversationIdMessages",
+        "description": "Grava a mensagem do usuário, chama o modelo (com ferramentas que consultam e operam o CRM e busca na web) e devolve a **resposta do assistente** já gravada. Resposta síncrona — não há streaming.\n\n- Provedor/modelo: preferência do usuário → padrão do workspace → modelos habilitados (Ajustes > Steel IA, ADR 0007).\n- A **cota mensal em USD** do workspace é conferida antes de gravar qualquer coisa; estourada, responde `402 AI_QUOTA_EXCEEDED` (o erro traz `usedUsd`/`quotaUsd`). O consumo de tokens é contabilizado mesmo quando o provedor falha no meio.\n- `attachmentIds`: anexos pendentes desta conversa (de `POST .../attachments`), até 5; imagens são enviadas ao modelo.\n- Exige a feature `crm.aiAssistant` do workspace.\n\nConversas são pessoais: só o usuário que criou a conversa a enxerga (outro usuário recebe `404`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o assistente.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "attachmentIds": {
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["content"]
+              },
+              "example": {
+                "content": "Quantos leads entraram esta semana?"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Resposta do assistente.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmAiMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
           }
         },
         "security": [
@@ -7561,7 +8011,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -7630,7 +8080,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7993,7 +8443,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -8188,7 +8638,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_COMPANY_CONFLICT"
@@ -8260,7 +8710,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -8822,7 +9272,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -8891,7 +9341,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -8965,10 +9415,10 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9378,7 +9828,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -9447,7 +9897,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9551,7 +10001,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -10599,10 +11049,10 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10677,7 +11127,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10879,7 +11329,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11599,7 +12049,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_33"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11990,7 +12440,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
@@ -12059,7 +12509,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -12706,7 +13156,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_3"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_8"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_9"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -12979,6 +13429,430 @@
         ]
       }
     },
+    "/workspaces/{id}/crm/hook-vault": {
+      "get": {
+        "tags": ["CRM · IA"],
+        "summary": "Listar itens do Hook Vault",
+        "operationId": "getWorkspacesByIdCrmHookVault",
+        "description": "Ganchos de conteúdo salvos pelo workspace, na ordem manual (`position`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Itens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmHookVaultItem"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["CRM · IA"],
+        "summary": "Criar item do Hook Vault",
+        "operationId": "postWorkspacesByIdCrmHookVault",
+        "description": "Acesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "platform": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "FACEBOOK",
+                          "INSTAGRAM",
+                          "TIKTOK",
+                          "YOUTUBE",
+                          "GOOGLE_ANALYTICS",
+                          "TWITTER",
+                          "GOOGLE_ADS",
+                          "LINKEDIN"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "usageCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["text"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmHookVaultItem"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/hook-vault/reorder": {
+      "patch": {
+        "tags": ["CRM · IA"],
+        "summary": "Reordenar itens do Hook Vault",
+        "operationId": "patchWorkspacesByIdCrmHookVaultReorder",
+        "description": "`orderedIds` define a nova ordem (`position` = índice na lista).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderedIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["orderedIds"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordem salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/hook-vault/{itemId}": {
+      "patch": {
+        "tags": ["CRM · IA"],
+        "summary": "Atualizar item do Hook Vault",
+        "operationId": "patchWorkspacesByIdCrmHookVaultByItemId",
+        "description": "Atualização parcial — informe ao menos um campo.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "description": "ID do item do Hook Vault.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "platform": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "FACEBOOK",
+                          "INSTAGRAM",
+                          "TIKTOK",
+                          "YOUTUBE",
+                          "GOOGLE_ANALYTICS",
+                          "TWITTER",
+                          "GOOGLE_ADS",
+                          "LINKEDIN"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "usageCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmHookVaultItem"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["CRM · IA"],
+        "summary": "Excluir item do Hook Vault",
+        "operationId": "deleteWorkspacesByIdCrmHookVaultByItemId",
+        "description": "Exclusão lógica (soft delete).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `social` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "description": "ID do item do Hook Vault.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/crm/integration-keys": {
       "get": {
         "tags": ["CRM · Integrações"],
@@ -13161,7 +14035,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -14189,7 +15063,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_7"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -14343,7 +15217,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_7"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_8"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -15821,7 +16695,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -15890,7 +16764,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -16132,7 +17006,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -16201,7 +17075,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19074,7 +19948,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -19143,7 +20017,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19475,7 +20349,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19709,7 +20583,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19775,7 +20649,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19879,7 +20753,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_12"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_13"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -20000,7 +20874,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_33"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_35"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -20078,7 +20952,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_34"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_36"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20402,7 +21276,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20552,7 +21426,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
@@ -20621,7 +21495,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21336,7 +22210,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -21414,7 +22288,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_PIPELINE_STAGE_IN_USE"
@@ -21723,7 +22597,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21838,7 +22712,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_PRODUCT_CONFLICT"
@@ -21910,7 +22784,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -23835,7 +24709,7 @@
             "$ref": "#/components/responses/409_CRM_PROPOSAL_EXPIRED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -23987,7 +24861,7 @@
             "$ref": "#/components/responses/409_CONFLICT_3"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -24418,7 +25292,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -24487,7 +25361,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26013,7 +26887,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_9"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_10"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26790,7 +27664,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26853,7 +27727,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27176,7 +28050,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27585,7 +28459,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27677,7 +28551,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_34"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28277,7 +29151,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -28346,7 +29220,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -31381,7 +32255,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33027,6 +33901,29 @@
           }
         }
       },
+      "402_AI_QUOTA_EXCEEDED": {
+        "description": "Cota esgotada: `AI_QUOTA_EXCEEDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_QUOTA_EXCEEDED": {
+                "summary": "AI_QUOTA_EXCEEDED — Cota mensal de IA do workspace esgotada",
+                "value": {
+                  "success": false,
+                  "statusCode": 402,
+                  "message": "A cota mensal de IA do workspace foi atingida (US$ 50,00 de US$ 50,00). Peça a um administrador para ajustá-la em Ajustes > Steel IA ou aguarde o próximo mês.",
+                  "error": {
+                    "code": "AI_QUOTA_EXCEEDED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "403_FORBIDDEN": {
         "description": "Acesso negado: `FORBIDDEN`",
         "content": {
@@ -33633,6 +34530,73 @@
               },
               "FEATURE_NOT_ENABLED": {
                 "summary": "FEATURE_NOT_ENABLED — Feature `crm.socialPublishing` desligada para o workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Esta funcionalidade não está disponível para este workspace",
+                  "error": {
+                    "code": "FEATURE_NOT_ENABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_2": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `FEATURE_NOT_ENABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "FEATURE_NOT_ENABLED": {
+                "summary": "FEATURE_NOT_ENABLED — Feature `crm.aiAssistant` desligada para o workspace",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -34883,6 +35847,29 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Conversa inexistente, excluída ou de outro usuário",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmAiConversation not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_13": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
                 "summary": "RESOURCE_NOT_FOUND — Oportunidade inexistente, excluída ou de outro workspace",
                 "value": {
                   "success": false,
@@ -34897,7 +35884,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_13": {
+      "404_RESOURCE_NOT_FOUND_14": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -34920,7 +35907,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_14": {
+      "404_RESOURCE_NOT_FOUND_15": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -34943,7 +35930,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_15": {
+      "404_RESOURCE_NOT_FOUND_16": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -34966,7 +35953,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_16": {
+      "404_RESOURCE_NOT_FOUND_17": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -34989,7 +35976,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_17": {
+      "404_RESOURCE_NOT_FOUND_18": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35012,7 +35999,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_18": {
+      "404_RESOURCE_NOT_FOUND_19": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35035,7 +36022,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_19": {
+      "404_RESOURCE_NOT_FOUND_20": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35069,7 +36056,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_20": {
+      "404_RESOURCE_NOT_FOUND_21": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35092,7 +36079,30 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_21": {
+      "404_RESOURCE_NOT_FOUND_22": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Item inexistente",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmHookVaultItem not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_23": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35115,7 +36125,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_22": {
+      "404_RESOURCE_NOT_FOUND_24": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35138,7 +36148,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_23": {
+      "404_RESOURCE_NOT_FOUND_25": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35172,7 +36182,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_24": {
+      "404_RESOURCE_NOT_FOUND_26": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35195,7 +36205,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_25": {
+      "404_RESOURCE_NOT_FOUND_27": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35218,7 +36228,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_26": {
+      "404_RESOURCE_NOT_FOUND_28": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35241,7 +36251,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_27": {
+      "404_RESOURCE_NOT_FOUND_29": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35264,7 +36274,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_28": {
+      "404_RESOURCE_NOT_FOUND_30": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35287,7 +36297,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_29": {
+      "404_RESOURCE_NOT_FOUND_31": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35310,7 +36320,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_30": {
+      "404_RESOURCE_NOT_FOUND_32": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35333,7 +36343,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_31": {
+      "404_RESOURCE_NOT_FOUND_33": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35356,7 +36366,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_32": {
+      "404_RESOURCE_NOT_FOUND_34": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35379,7 +36389,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_33": {
+      "404_RESOURCE_NOT_FOUND_35": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35424,7 +36434,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_34": {
+      "404_RESOURCE_NOT_FOUND_36": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35458,7 +36468,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_35": {
+      "404_RESOURCE_NOT_FOUND_37": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -35481,7 +36491,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_36": {
+      "404_RESOURCE_NOT_FOUND_38": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -37225,11 +38235,33 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Content-Type fora da lista aceita",
+                "summary": "VALIDATION_ERROR — Campo `file` ausente",
                 "value": {
                   "success": false,
                   "statusCode": 422,
-                  "message": "Formato não suportado. Use JPEG, PNG ou WebP",
+                  "message": "Arquivo não enviado",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — Arquivo acima de 10 MB",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Arquivo muito grande. Máximo 10 MB",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              },
+              "VALIDATION_ERROR_3": {
+                "summary": "VALIDATION_ERROR — Tipo de arquivo não suportado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Formato não suportado. Use JPEG, PNG, WebP, PDF ou TXT",
                   "error": {
                     "code": "VALIDATION_ERROR"
                   }
@@ -37252,7 +38284,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 422,
-                  "message": "Formato não suportado. Use MP4 ou WebM",
+                  "message": "Formato não suportado. Use JPEG, PNG ou WebP",
                   "error": {
                     "code": "VALIDATION_ERROR"
                   }
@@ -37263,6 +38295,29 @@
         }
       },
       "422_VALIDATION_ERROR_8": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Content-Type fora da lista aceita",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Formato não suportado. Use MP4 ou WebM",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_9": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37303,7 +38358,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_9": {
+      "422_VALIDATION_ERROR_10": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37344,7 +38399,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_10": {
+      "422_VALIDATION_ERROR_11": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37385,7 +38440,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_11": {
+      "422_VALIDATION_ERROR_12": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37426,7 +38481,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_12": {
+      "422_VALIDATION_ERROR_13": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37474,7 +38529,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_13": {
+      "422_VALIDATION_ERROR_14": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37515,7 +38570,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_14": {
+      "422_VALIDATION_ERROR_15": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37556,7 +38611,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_15": {
+      "422_VALIDATION_ERROR_16": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37590,7 +38645,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_16": {
+      "422_VALIDATION_ERROR_17": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37624,7 +38679,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_17": {
+      "422_VALIDATION_ERROR_18": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37647,7 +38702,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_18": {
+      "422_VALIDATION_ERROR_19": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -37670,7 +38725,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_19": {
+      "422_VALIDATION_ERROR_20": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -38500,6 +39555,29 @@
             },
             "examples": {
               "STORAGE_ERROR": {
+                "summary": "STORAGE_ERROR — Falha ao gravar no MinIO",
+                "value": {
+                  "success": false,
+                  "statusCode": 500,
+                  "message": "Falha ao armazenar o anexo",
+                  "error": {
+                    "code": "STORAGE_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500_STORAGE_ERROR_3": {
+        "description": "Erro interno: `STORAGE_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "STORAGE_ERROR": {
                 "summary": "STORAGE_ERROR",
                 "value": {
                   "success": false,
@@ -38664,6 +39742,40 @@
                   "success": false,
                   "statusCode": 503,
                   "message": "Nenhum provedor de IA habilitado está disponível neste ambiente",
+                  "error": {
+                    "code": "AI_PROVIDER_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "503_AI_PROVIDER_UNAVAILABLE_2": {
+        "description": "Serviço indisponível: `AI_PROVIDER_UNAVAILABLE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_PROVIDER_UNAVAILABLE": {
+                "summary": "AI_PROVIDER_UNAVAILABLE — Nenhum modelo habilitado com provedor configurado",
+                "value": {
+                  "success": false,
+                  "statusCode": 503,
+                  "message": "Nenhum provedor de IA habilitado está disponível neste ambiente",
+                  "error": {
+                    "code": "AI_PROVIDER_UNAVAILABLE"
+                  }
+                }
+              },
+              "AI_PROVIDER_UNAVAILABLE_2": {
+                "summary": "AI_PROVIDER_UNAVAILABLE — Falha na chamada ao provedor",
+                "value": {
+                  "success": false,
+                  "statusCode": 503,
+                  "message": "Não foi possível falar com o provedor de IA agora. Tente novamente em instantes.",
                   "error": {
                     "code": "AI_PROVIDER_UNAVAILABLE"
                   }
@@ -40201,6 +41313,137 @@
           "createdAt"
         ],
         "description": "Evento da linha do tempo do CRM."
+      },
+      "CrmAiAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "messageId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` até o anexo ser enviado numa mensagem (`attachmentIds`)."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["IMAGE", "DOCUMENT"]
+          },
+          "filename": {
+            "type": "string",
+            "example": "print.png"
+          },
+          "contentType": {
+            "type": "string",
+            "example": "image/png"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL assinada de download (expira em 15 minutos)."
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "messageId",
+          "kind",
+          "filename",
+          "contentType",
+          "sizeBytes",
+          "createdAt",
+          "url"
+        ]
+      },
+      "CrmAiConversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "description": "Dono da conversa (conversas são pessoais)."
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "workspaceId", "userId", "title", "createdAt", "updatedAt"],
+        "description": "Conversa com o assistente de IA do CRM."
+      },
+      "CrmAiMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["USER", "ASSISTANT"]
+          },
+          "content": {
+            "type": "string",
+            "example": "Quantos leads entraram esta semana?"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CrmAiAttachment"
+            }
+          }
+        },
+        "required": ["id", "conversationId", "role", "content", "createdAt"]
       },
       "CrmCalendarEvent": {
         "type": "object",
@@ -42638,6 +43881,94 @@
           }
         },
         "required": ["propertyId", "propertyName", "accountName", "totals"]
+      },
+      "CrmHookVaultItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "example": "Você está perdendo leads por um motivo simples…"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "FACEBOOK",
+                  "INSTAGRAM",
+                  "TIKTOK",
+                  "YOUTUBE",
+                  "GOOGLE_ANALYTICS",
+                  "TWITTER",
+                  "GOOGLE_ADS",
+                  "LINKEDIN"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "usageCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "platform",
+          "usageCount",
+          "notes",
+          "workspaceId",
+          "createdById",
+          "updatedById",
+          "position",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "Gancho (hook) de conteúdo salvo no Hook Vault para reutilizar em posts."
       },
       "CrmInstagramInsights": {
         "type": "object",
