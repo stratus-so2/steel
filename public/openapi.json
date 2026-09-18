@@ -57,6 +57,10 @@
       "description": "Planos pagos via AbacatePay, cupons e o webhook de cobrança."
     },
     {
+      "name": "CRM · Pessoas e empresas",
+      "description": "Pessoas, empresas e campos personalizados."
+    },
+    {
       "name": "CRM · Integrações",
       "description": "Chaves de API de integração (gestão interna)."
     },
@@ -146,7 +150,7 @@
     },
     {
       "name": "CRM",
-      "tags": ["CRM · Integrações", "CRM · Configurações"]
+      "tags": ["CRM · Pessoas e empresas", "CRM · Integrações", "CRM · Configurações"]
     },
     {
       "name": "Páginas públicas do CRM",
@@ -263,7 +267,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_3"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -815,7 +819,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -3481,7 +3485,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_3"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
           },
           "422": {
             "$ref": "#/components/responses/422_CRM_FORM_NOT_PUBLISHED"
@@ -3570,7 +3574,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_3"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_FORM_NOT_PUBLISHED"
@@ -3833,7 +3837,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -3930,7 +3934,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_9"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -5246,7 +5250,7 @@
             }
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_3"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -5821,7 +5825,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -5953,7 +5957,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7160,6 +7164,1222 @@
         ]
       }
     },
+    "/workspaces/{id}/crm/companies": {
+      "get": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Listar empresas",
+        "operationId": "getWorkspacesByIdCrmCompanies",
+        "description": "Empresas do workspace (excluídas ficam de fora), na ordem manual (`position`), com os valores de campos customizados.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `companies` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "icp",
+            "in": "query",
+            "required": false,
+            "description": "`true` só empresas no ICP; `false` só fora do ICP; omitido, todas. Qualquer valor diferente de `true` conta como `false`.",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empresas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmCompany"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Criar empresa",
+        "operationId": "postWorkspacesByIdCrmCompanies",
+        "description": "Domínio e CNPJ são únicos por workspace.\n\n`customFields` é um mapa `definitionId → valor` (não `cf_<id>`); chaves que não correspondem a definições ativas da entidade são ignoradas. Os valores são convertidos pelo tipo da definição (`NUMBER`, `DATE` → ISO, `BOOLEAN`, `SELECT` precisa estar em `options`). A resposta traz os valores achatados em `customFields` (`cf_<definitionId>`).\n\nRegistra a atividade na linha do tempo e dispara os workflows com gatilho de registro correspondente.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `companies` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "cnpj": {
+                    "type": "string",
+                    "maxLength": 20
+                  },
+                  "domain": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "employees": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "linkedin": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "address": {
+                    "type": "object",
+                    "properties": {
+                      "street": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "number": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "complement": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "neighborhood": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "city": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "state": {
+                        "type": "string",
+                        "maxLength": 2
+                      },
+                      "zipCode": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "country": {
+                        "type": "string",
+                        "maxLength": 100
+                      }
+                    }
+                  },
+                  "arr": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "icp": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "accountOwnerId": {
+                    "type": "string"
+                  },
+                  "customFields": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "required": ["name"]
+              },
+              "example": {
+                "name": "Empresa Exemplo Ltda",
+                "cnpj": "12.345.678/0001-90",
+                "domain": "empresa.com.br",
+                "employees": 120,
+                "icp": true,
+                "address": {
+                  "city": "São Paulo",
+                  "state": "SP",
+                  "country": "Brasil"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Empresa criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmCompany"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_CRM_COMPANY_CONFLICT"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/companies/reorder": {
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Reordenar empresas",
+        "operationId": "patchWorkspacesByIdCrmCompaniesReorder",
+        "description": "Grava a ordem manual da grade: cada ID em `orderedIds` recebe `position` igual ao seu índice. IDs de outro workspace fazem a transação falhar (`500 DATABASE_ERROR`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `companies` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderedIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["orderedIds"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordem salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/companies/{companyId}": {
+      "get": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Detalhe da empresa",
+        "operationId": "getWorkspacesByIdCrmCompaniesByCompanyId",
+        "description": "Acesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `companies` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "description": "ID da empresa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empresa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmCompany"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_4"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Atualizar empresa",
+        "operationId": "patchWorkspacesByIdCrmCompaniesByCompanyId",
+        "description": "Atualização parcial: campos omitidos não mudam; textos opcionais aceitam `null` (ou `\"\"`) para apagar o valor.\n\n`address`, `employees`, `arr` e `accountOwnerId` também aceitam `null`.\n\n`customFields` é um mapa `definitionId → valor` (não `cf_<id>`); chaves que não correspondem a definições ativas da entidade são ignoradas. Os valores são convertidos pelo tipo da definição (`NUMBER`, `DATE` → ISO, `BOOLEAN`, `SELECT` precisa estar em `options`). A resposta traz os valores achatados em `customFields` (`cf_<definitionId>`).\n\nRegistra a atividade na linha do tempo e dispara os workflows com gatilho de registro correspondente.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `companies` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "description": "ID da empresa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "cnpj": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "domain": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "employees": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "linkedin": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "address": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "street": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "number": {
+                            "type": "string",
+                            "maxLength": 20
+                          },
+                          "complement": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "neighborhood": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "city": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "state": {
+                            "type": "string",
+                            "maxLength": 2
+                          },
+                          "zipCode": {
+                            "type": "string",
+                            "maxLength": 20
+                          },
+                          "country": {
+                            "type": "string",
+                            "maxLength": 100
+                          }
+                        }
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "arr": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "icp": {
+                    "type": "boolean"
+                  },
+                  "accountOwnerId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "customFields": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Empresa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmCompany"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_4"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_CRM_COMPANY_CONFLICT"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Excluir empresa",
+        "operationId": "deleteWorkspacesByIdCrmCompaniesByCompanyId",
+        "description": "Exclusão lógica (`deletedAt`): a empresa some das listagens.\n\nRegistra a atividade na linha do tempo e dispara os workflows com gatilho de registro correspondente.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `companies` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "companyId",
+            "in": "path",
+            "required": true,
+            "description": "ID da empresa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empresa excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_4"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/custom-field-values/{recordId}": {
+      "get": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Valores customizados de um registro",
+        "operationId": "getWorkspacesByIdCrmCustomFieldValuesByRecordId",
+        "description": "Todos os valores de campos customizados gravados para o registro (um por definição).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `custom-fields` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "description": "ID do registro dono do valor (empresa, pessoa ou oportunidade).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valores.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmCustomFieldValue"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/custom-fields": {
+      "get": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Listar campos customizados",
+        "operationId": "getWorkspacesByIdCrmCustomFields",
+        "description": "Definições ativas, na ordem manual (`position`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `custom-fields` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "entity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["COMPANY", "PERSON", "OPPORTUNITY"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Definições.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmCustomFieldDefinition"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Criar campo customizado",
+        "operationId": "postWorkspacesByIdCrmCustomFields",
+        "description": "`key` (snake_case) é única por entidade no workspace.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `custom-fields` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entity": {
+                    "type": "string",
+                    "enum": ["COMPANY", "PERSON", "OPPORTUNITY"]
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 60,
+                    "pattern": "^[a-z][a-z0-9_]*$"
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150
+                  },
+                  "type": {
+                    "default": "TEXT",
+                    "type": "string",
+                    "enum": ["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT"]
+                  },
+                  "options": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 100
+                    }
+                  },
+                  "required": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": ["entity", "key", "label"]
+              },
+              "example": {
+                "entity": "COMPANY",
+                "key": "segmento",
+                "label": "Segmento",
+                "type": "SELECT",
+                "options": ["SMB", "Mid-market", "Enterprise"],
+                "required": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Definição criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmCustomFieldDefinition"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_CRM_CUSTOM_FIELD_CONFLICT"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/custom-fields/reorder": {
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Reordenar campos customizados",
+        "operationId": "patchWorkspacesByIdCrmCustomFieldsReorder",
+        "description": "Grava a ordem manual da grade: cada ID em `orderedIds` recebe `position` igual ao seu índice. IDs de outro workspace fazem a transação falhar (`500 DATABASE_ERROR`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `custom-fields` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderedIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["orderedIds"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordem salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/custom-fields/{definitionId}": {
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Atualizar campo customizado",
+        "operationId": "patchWorkspacesByIdCrmCustomFieldsByDefinitionId",
+        "description": "Atualização parcial. `entity` e `key` são imutáveis. Valores já gravados não são reconvertidos ao mudar `type`/`options`.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `custom-fields` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "definitionId",
+            "in": "path",
+            "required": true,
+            "description": "ID da definição de campo customizado.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT"]
+                  },
+                  "options": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 100
+                    }
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Definição atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmCustomFieldDefinition"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_3"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Excluir campo customizado",
+        "operationId": "deleteWorkspacesByIdCrmCustomFieldsByDefinitionId",
+        "description": "Exclusão lógica: a definição some das listagens e seus valores deixam de ser aceitos na escrita.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `custom-fields` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "definitionId",
+            "in": "path",
+            "required": true,
+            "description": "ID da definição de campo customizado.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Definição excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/custom-fields/{definitionId}/values/{recordId}": {
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Definir valor de campo customizado",
+        "operationId": "patchWorkspacesByIdCrmCustomFieldsByDefinitionIdValuesByRecordId",
+        "description": "Grava (upsert) o valor de uma definição para um registro — edição célula a célula da grade. O valor é salvo como enviado (sem a conversão por tipo do `customFields` do create/update); `null` limpa.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado, a permissão `custom-fields` × `VIEW` e a permissão `EDIT` na entidade dona da definição (`companies`, `people` ou `opportunities`); OWNER/ADMIN sempre passam.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "definitionId",
+            "in": "path",
+            "required": true,
+            "description": "ID da definição de campo customizado.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recordId",
+            "in": "path",
+            "required": true,
+            "description": "ID do registro dono do valor (empresa, pessoa ou oportunidade).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["value"]
+              },
+              "example": {
+                "value": "SMB"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Valor gravado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmCustomFieldValue"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_3"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/crm/integration-keys": {
       "get": {
         "tags": ["CRM · Integrações"],
@@ -7201,7 +8421,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7271,7 +8491,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -7339,10 +8559,10 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_4"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7397,6 +8617,549 @@
           },
           "403": {
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/people": {
+      "get": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Listar pessoas",
+        "operationId": "getWorkspacesByIdCrmPeople",
+        "description": "Pessoas do workspace (excluídas ficam de fora), na ordem manual (`position`), com os valores de campos customizados.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `people` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "companyId",
+            "in": "query",
+            "required": false,
+            "description": "Só as pessoas vinculadas a esta empresa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pessoas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmPerson"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Criar pessoa",
+        "operationId": "postWorkspacesByIdCrmPeople",
+        "description": "`customFields` é um mapa `definitionId → valor` (não `cf_<id>`); chaves que não correspondem a definições ativas da entidade são ignoradas. Os valores são convertidos pelo tipo da definição (`NUMBER`, `DATE` → ISO, `BOOLEAN`, `SELECT` precisa estar em `options`). A resposta traz os valores achatados em `customFields` (`cf_<definitionId>`).\n\nRegistra a atividade na linha do tempo e dispara os workflows com gatilho de registro correspondente.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `people` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "emails": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  },
+                  "phones": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 30
+                    }
+                  },
+                  "city": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "jobTitle": {
+                    "type": "string",
+                    "maxLength": 150
+                  },
+                  "linkedin": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "avatar": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "companyId": {
+                    "type": "string"
+                  },
+                  "customFields": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "required": ["name"]
+              },
+              "example": {
+                "name": "Carlos Lima",
+                "emails": ["carlos@empresa.com.br"],
+                "phones": ["+5511999990000"],
+                "jobTitle": "Gerente de TI",
+                "companyId": "ckw1comp0000ab7d3k1e5xyz"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pessoa criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmPerson"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/people/reorder": {
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Reordenar pessoas",
+        "operationId": "patchWorkspacesByIdCrmPeopleReorder",
+        "description": "Grava a ordem manual da grade: cada ID em `orderedIds` recebe `position` igual ao seu índice. IDs de outro workspace fazem a transação falhar (`500 DATABASE_ERROR`).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `people` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderedIds": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": ["orderedIds"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordem salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/people/{personId}": {
+      "get": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Detalhe da pessoa",
+        "operationId": "getWorkspacesByIdCrmPeopleByPersonId",
+        "description": "Acesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `people` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "description": "ID da pessoa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pessoa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmPerson"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Atualizar pessoa",
+        "operationId": "patchWorkspacesByIdCrmPeopleByPersonId",
+        "description": "Atualização parcial: campos omitidos não mudam; textos opcionais aceitam `null` (ou `\"\"`) para apagar o valor.\n\n`companyId: null` desvincula a empresa.\n\n`customFields` é um mapa `definitionId → valor` (não `cf_<id>`); chaves que não correspondem a definições ativas da entidade são ignoradas. Os valores são convertidos pelo tipo da definição (`NUMBER`, `DATE` → ISO, `BOOLEAN`, `SELECT` precisa estar em `options`). A resposta traz os valores achatados em `customFields` (`cf_<definitionId>`).\n\nRegistra a atividade na linha do tempo e dispara os workflows com gatilho de registro correspondente.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `people` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "description": "ID da pessoa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "emails": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  },
+                  "phones": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 30
+                    }
+                  },
+                  "city": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "jobTitle": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 150
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "linkedin": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "avatar": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "companyId": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "customFields": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pessoa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmPerson"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["CRM · Pessoas e empresas"],
+        "summary": "Excluir pessoa",
+        "operationId": "deleteWorkspacesByIdCrmPeopleByPersonId",
+        "description": "Exclusão lógica (`deletedAt`): a pessoa some das listagens.\n\nRegistra a atividade na linha do tempo e dispara os workflows com gatilho de registro correspondente.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `people` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "description": "ID da pessoa.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pessoa excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7520,7 +9283,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -10316,7 +12079,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -10398,6 +12161,62 @@
         }
       },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -11244,6 +13063,75 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Definição inexistente, excluída ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmCustomFieldDefinition not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_4": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Empresa inexistente ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmCompany not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_5": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Pessoa inexistente ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmPerson not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_6": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
                 "summary": "RESOURCE_NOT_FOUND — Token inexistente",
                 "value": {
                   "success": false,
@@ -11258,7 +13146,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_4": {
+      "404_RESOURCE_NOT_FOUND_7": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -11281,7 +13169,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_5": {
+      "404_RESOURCE_NOT_FOUND_8": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -11304,7 +13192,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_6": {
+      "404_RESOURCE_NOT_FOUND_9": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -11521,6 +13409,52 @@
                   "statusCode": 409,
                   "error": {
                     "code": "CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_CRM_COMPANY_CONFLICT": {
+        "description": "Conflito com o estado atual: `CRM_COMPANY_CONFLICT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "CRM_COMPANY_CONFLICT": {
+                "summary": "CRM_COMPANY_CONFLICT — Domínio ou CNPJ já usado por outra empresa do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Já existe uma empresa com este domínio ou CNPJ neste workspace",
+                  "error": {
+                    "code": "CRM_COMPANY_CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_CRM_CUSTOM_FIELD_CONFLICT": {
+        "description": "Conflito com o estado atual: `CRM_CUSTOM_FIELD_CONFLICT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "CRM_CUSTOM_FIELD_CONFLICT": {
+                "summary": "CRM_CUSTOM_FIELD_CONFLICT — Já existe a mesma `key` para a entidade",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Já existe um campo customizado com esta chave para esta entidade",
+                  "error": {
+                    "code": "CRM_CUSTOM_FIELD_CONFLICT"
                   }
                 }
               }
@@ -11985,11 +13919,11 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR",
+                "summary": "VALIDATION_ERROR — Query inválida",
                 "value": {
                   "success": false,
                   "statusCode": 422,
-                  "message": "Formato não suportado. Use JPEG, PNG ou WebP",
+                  "message": "Parâmetros inválidos",
                   "error": {
                     "code": "VALIDATION_ERROR"
                   }
@@ -12008,11 +13942,11 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Query inválida",
+                "summary": "VALIDATION_ERROR",
                 "value": {
                   "success": false,
                   "statusCode": 422,
-                  "message": "Parâmetros inválidos",
+                  "message": "Formato não suportado. Use JPEG, PNG ou WebP",
                   "error": {
                     "code": "VALIDATION_ERROR"
                   }
@@ -12266,6 +14200,47 @@
                   "message": "Cupom inválido ou expirado",
                   "error": {
                     "code": "COUPON_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `CRM_CUSTOM_FIELD_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "CRM_CUSTOM_FIELD_INVALID": {
+                "summary": "CRM_CUSTOM_FIELD_INVALID — Valor de `customFields` incompatível com o tipo, fora das opções ou obrigatório vazio",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "\"Segmento\": opção inválida",
+                  "error": {
+                    "code": "CRM_CUSTOM_FIELD_INVALID"
                   }
                 }
               }
@@ -14050,6 +16025,303 @@
         },
         "required": ["code", "discount", "discountKind"]
       },
+      "CrmCompany": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1comp0000ab7d3k1e5xyz"
+          },
+          "name": {
+            "type": "string",
+            "example": "Empresa Exemplo Ltda"
+          },
+          "cnpj": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "domain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "empresa.com.br"
+          },
+          "employees": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "linkedin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "address": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CrmCompanyAddress"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "arr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Receita anual recorrente (ARR)."
+          },
+          "icp": {
+            "type": "boolean",
+            "description": "Empresa dentro do perfil de cliente ideal."
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "accountOwnerId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Responsável pela conta (usuário)."
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": "number",
+            "description": "Ordem manual na grade (ver `reorder`)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customFields": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Valores dos campos customizados do registro, achatados com a chave `cf_<definitionId>` (vazio quando não há valores).",
+            "example": {
+              "cf_ckw1cfd0000ab7d3k1e5xyz": "Enterprise"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "cnpj",
+          "domain",
+          "employees",
+          "linkedin",
+          "address",
+          "arr",
+          "icp",
+          "workspaceId",
+          "createdById",
+          "accountOwnerId",
+          "updatedById",
+          "position",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "Empresa (conta) do CRM."
+      },
+      "CrmCompanyAddress": {
+        "type": "object",
+        "properties": {
+          "street": {
+            "type": "string"
+          },
+          "number": {
+            "type": "string"
+          },
+          "complement": {
+            "type": "string"
+          },
+          "neighborhood": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "state": {
+            "description": "UF (2 letras).",
+            "type": "string"
+          },
+          "zipCode": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "CrmCustomFieldDefinition": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1cfd0000ab7d3k1e5xyz"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "entity": {
+            "type": "string",
+            "enum": ["COMPANY", "PERSON", "OPPORTUNITY"],
+            "description": "Entidade que recebe o campo."
+          },
+          "key": {
+            "type": "string",
+            "example": "segmento"
+          },
+          "label": {
+            "type": "string",
+            "example": "Segmento"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["TEXT", "NUMBER", "DATE", "BOOLEAN", "SELECT"]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Opções válidas quando `type` é `SELECT`.",
+            "example": ["SMB", "Mid-market", "Enterprise"]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "number"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "entity",
+          "key",
+          "label",
+          "type",
+          "options",
+          "required",
+          "position",
+          "createdById",
+          "updatedById",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "Definição de campo customizado."
+      },
+      "CrmCustomFieldValue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "definitionId": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string",
+            "description": "Empresa, pessoa ou oportunidade dona do valor."
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "definitionId", "recordId", "value", "createdAt", "updatedAt"]
+      },
       "CrmFormPublic": {
         "type": "object",
         "properties": {
@@ -15543,6 +17815,138 @@
         },
         "required": ["id", "name", "email", "image"],
         "description": "Membro do workspace, para atribuição no CRM."
+      },
+      "CrmPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1pers0000ab7d3k1e5xyz"
+          },
+          "name": {
+            "type": "string",
+            "example": "Carlos Lima"
+          },
+          "emails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["carlos@empresa.com.br"]
+          },
+          "phones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["+5511999990000"]
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "jobTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "linkedin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "companyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Empresa vinculada (`null` = sem empresa)."
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "position": {
+            "type": "number",
+            "description": "Ordem manual na grade (ver `reorder`)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customFields": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "Valores dos campos customizados do registro, achatados com a chave `cf_<definitionId>` (vazio quando não há valores).",
+            "example": {
+              "cf_ckw1cfd0000ab7d3k1e5xyz": "Enterprise"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "emails",
+          "phones",
+          "city",
+          "jobTitle",
+          "linkedin",
+          "avatar",
+          "companyId",
+          "workspaceId",
+          "createdById",
+          "updatedById",
+          "position",
+          "createdAt",
+          "updatedAt"
+        ],
+        "description": "Pessoa (contato) do CRM."
       },
       "CrmProposalPublic": {
         "type": "object",

@@ -1,5 +1,6 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
 import { crmIntegrationsRoutes } from './crm/integrations'
+import { crmPeopleRoutes } from './crm/people'
 import { crmSettingsRoutes } from './crm/settings'
 
 /**
@@ -9,7 +10,11 @@ import { crmSettingsRoutes } from './crm/settings'
  * `./public.ts`. Cada grupo de tags tem seu arquivo em `./crm/`; os DTOs de
  * resposta ficam em `../schemas/crm/`.
  */
-const routes: RouteConfig[] = [...crmIntegrationsRoutes, ...crmSettingsRoutes]
+const routes: RouteConfig[] = [
+  ...crmIntegrationsRoutes,
+  ...crmSettingsRoutes,
+  ...crmPeopleRoutes,
+]
 
 export function registerCrmPaths(registry: OpenApiRegistry): void {
   for (const route of routes) registry.registerRoute(route)
