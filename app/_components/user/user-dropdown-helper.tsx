@@ -24,6 +24,7 @@ export function UserDropdownHelper() {
           <Button
             variant='ghost'
             size='icon'
+            aria-label='Ajuda'
             className='data-popup-open:bg-muted dark:data-popup-open:bg-muted p-1 rounded-md'
           >
             <SteelIcon icon={HelpCircleIcon} strokeWidth={2} size={20} />

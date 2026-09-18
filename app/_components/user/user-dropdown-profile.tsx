@@ -41,6 +41,7 @@ export function UserDropdownProfile() {
             <Button
               variant='ghost'
               size='icon'
+              aria-label='Menu do perfil'
               className='data-popup-open:bg-muted dark:data-popup-open:bg-muted p-1 rounded-md'
             >
               <Avatar className='rounded-full size-6'>

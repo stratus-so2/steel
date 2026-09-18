@@ -24,7 +24,7 @@ export default function AiLayout({ children }: { children: ReactNode }) {
         <ContextHeader
           title='Steel IA'
           actions={
-            <Button variant='ghost' size='icon-sm'>
+            <Button variant='ghost' size='icon-sm' aria-label='Alternar painel'>
               <SteelIcon icon={PanelLeftIcon} strokeWidth={2} />
             </Button>
           }

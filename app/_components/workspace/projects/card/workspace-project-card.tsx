@@ -151,7 +151,12 @@ export function ProjectCard({
               </Tooltip>
               <ProjectCardMembers leadId={project.leadId} />
             </div>
-            <Button size='icon-sm' variant='ghost' onClick={goToSettings}>
+            <Button
+              size='icon-sm'
+              variant='ghost'
+              aria-label='Configurações do projeto'
+              onClick={goToSettings}
+            >
               <SteelIcon icon={Settings01Icon} strokeWidth={2} />
             </Button>
           </div>

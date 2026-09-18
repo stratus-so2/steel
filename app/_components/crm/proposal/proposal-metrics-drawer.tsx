@@ -89,7 +89,7 @@ export function ProposalMetricsDrawer({
             className='ml-auto'
             nativeButton={true}
             render={
-              <Button variant='ghost' size='icon-sm'>
+              <Button variant='ghost' size='icon-sm' aria-label='Fechar'>
                 <SteelIcon icon={Cancel01Icon} strokeWidth={2} />
               </Button>
             }
