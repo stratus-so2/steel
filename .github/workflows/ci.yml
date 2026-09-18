@@ -219,7 +219,7 @@ jobs:
             -p 9000:9000 \
             -e MINIO_ROOT_USER=$MINIO_USER \
             -e MINIO_ROOT_PASSWORD=$MINIO_PASSWORD \
-            minio/minio:RELEASE.2025-02-28T09-55-16Z \
+            quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z \
             server /data
 
       - name: Wait for MinIO to be ready
