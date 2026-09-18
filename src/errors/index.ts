@@ -125,6 +125,7 @@ export {
   whatsappAiKnowledgeDocumentNotFound,
   whatsappAiKnowledgeDocumentUnsupportedType,
   whatsappBroadcastLocked,
+  whatsappBroadcastMediaInvalid,
   whatsappBroadcastNoRecipients,
   whatsappBroadcastNotFound,
   whatsappConnectionConflict,

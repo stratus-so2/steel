@@ -21,6 +21,12 @@ export interface WhatsAppBroadcastRecipientDTO {
   sentAt: string | null
 }
 
+export type WhatsAppBroadcastMediaTypeDTO =
+  | 'IMAGE'
+  | 'VIDEO'
+  | 'AUDIO'
+  | 'DOCUMENT'
+
 export interface WhatsAppBroadcastListDTO {
   id: string
   workspaceId: string
@@ -28,6 +34,8 @@ export interface WhatsAppBroadcastListDTO {
   name: string
   messageBody: string
   mediaUrl: string | null
+  mediaType: WhatsAppBroadcastMediaTypeDTO | null
+  mediaFileName: string | null
   status: WhatsAppBroadcastStatusDTO
   scheduledAt: string | null
   createdById: string

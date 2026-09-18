@@ -1048,6 +1048,13 @@ model WhatsAppQuickReply {
   @@map("whatsapp_quick_replies")
 }
 
+enum WhatsAppBroadcastMediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
 enum WhatsAppBroadcastStatus {
   DRAFT
   QUEUED
@@ -1057,18 +1064,24 @@ enum WhatsAppBroadcastStatus {
 }
 
 model WhatsAppBroadcastList {
-  id           String                  @id @default(cuid())
-  workspaceId  String                  @map("workspace_id")
-  connectionId String                  @map("connection_id")
-  templateId   String?                 @map("template_id")
-  name         String
-  messageBody  String                  @map("message_body")
-  mediaUrl     String?                 @map("media_url")
-  status       WhatsAppBroadcastStatus @default(DRAFT)
-  scheduledAt  DateTime?               @map("scheduled_at")
-  createdById  String                  @map("created_by_id")
-  createdAt    DateTime                @default(now()) @map("created_at")
-  updatedAt    DateTime                @updatedAt @map("updated_at")
+  id            String                      @id @default(cuid())
+  workspaceId   String                      @map("workspace_id")
+  connectionId  String                      @map("connection_id")
+  templateId    String?                     @map("template_id")
+  name          String
+  messageBody   String                      @map("message_body")
+  mediaUrl      String?                     @map("media_url")
+  /// Tipo da mídia (define imagem/vídeo/áudio/documento no envio), mime e
+  /// nome original do arquivo (nome exibido no documento). Nulos em listas
+  /// antigas: o envio deduz o tipo pela extensão da URL.
+  mediaType     WhatsAppBroadcastMediaType? @map("media_type")
+  mediaMimeType String?                     @map("media_mime_type")
+  mediaFileName String?                     @map("media_file_name")
+  status        WhatsAppBroadcastStatus     @default(DRAFT)
+  scheduledAt   DateTime?                   @map("scheduled_at")
+  createdById   String                      @map("created_by_id")
+  createdAt     DateTime                    @default(now()) @map("created_at")
+  updatedAt     DateTime                    @updatedAt @map("updated_at")
 
   workspace  Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   connection WhatsAppConnection           @relation(fields: [connectionId], references: [id], onDelete: Cascade)

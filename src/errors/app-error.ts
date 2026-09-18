@@ -162,6 +162,9 @@ export const whatsappConversationAlreadyClosed = (): AppError =>
 export const whatsappConversationNotClosed = (): AppError =>
   appError('WHATSAPP_CONVERSATION_NOT_CLOSED', 'Esta conversa não está fechada')
 
+export const whatsappBroadcastMediaInvalid = (message: string): AppError =>
+  appError('WHATSAPP_BROADCAST_MEDIA_INVALID', message)
+
 export const whatsappConversationAiHandling = (
   message = 'A IA está atendendo esta conversa. Remova-a do atendimento da IA para enviar mensagens.',
 ): AppError => appError('WHATSAPP_CONVERSATION_AI_HANDLING', message)
