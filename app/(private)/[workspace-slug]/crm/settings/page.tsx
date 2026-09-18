@@ -12,6 +12,7 @@ import HeaderInternalNavigation from '@/app/_components/header/header-internal-n
 import { CrmAuditLogSection } from '@/app/_components/settings/crm-audit-log-section'
 import { CrmLeadRulesSection } from '@/app/_components/settings/crm-lead-rules-section'
 import { CrmMembersSection } from '@/app/_components/settings/crm-members-section'
+import { CrmPipelineSettingsSection } from '@/app/_components/settings/crm-pipeline-settings-section'
 import { CrmPrivacySection } from '@/app/_components/settings/crm-privacy-section'
 import { CrmProfilesSection } from '@/app/_components/settings/crm-profiles-section'
 import { SteelIcon } from '@/components/icon/icon'
@@ -22,7 +23,7 @@ import { MembershipService } from '@/src/services/membership.service'
 export const metadata: Metadata = {
   title: 'Configurações do CRM | Steel',
   description:
-    'Membros, pipelines, campos customizados, regras e perfis do CRM',
+    'Membros, pipelines, campos customizados, regras do funil, validade de propostas e perfis do CRM',
 }
 
 export default async function CrmSettingsPage({
@@ -85,6 +86,8 @@ export default async function CrmSettingsPage({
         </Card>
 
         <CrmLeadRulesSection workspaceId={workspaceId} />
+
+        <CrmPipelineSettingsSection workspaceId={workspaceId} />
 
         <CrmProfilesSection workspaceId={workspaceId} />
 
