@@ -134,7 +134,7 @@ describe('CrmPipelineStageService', () => {
   describe('create()', () => {
     it('should create a stage for a workspace member', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedPipelineRepo.findById.mockResolvedValue(
         ok(createFakeCrmPipeline({ id: 'pl1' })),

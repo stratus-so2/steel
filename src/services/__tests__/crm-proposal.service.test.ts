@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeCrmProposal } from '@/src/__tests__/factories/crm-proposal.factory'
 import { createFakeCrmProposalTemplate } from '@/src/__tests__/factories/crm-proposal-template.factory'
+import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
@@ -39,7 +40,7 @@ describe('CrmProposalService', () => {
   describe('create()', () => {
     it('should create a proposal with the given sections', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedProposalRepo.create.mockResolvedValue(
         ok(fakeProposalWithSections({ id: 'p1', name: 'Proposta X' })),
@@ -66,7 +67,7 @@ describe('CrmProposalService', () => {
 
     it('should copy enabled template sections when no sections are given', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedTemplateRepo.findById.mockResolvedValue(
         ok({
@@ -116,7 +117,7 @@ describe('CrmProposalService', () => {
   describe('update()', () => {
     it('should replace sections when provided', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       const existing = fakeProposalWithSections({ id: 'p1' })
       mockedProposalRepo.findById.mockResolvedValue(ok(existing))
@@ -146,7 +147,7 @@ describe('CrmProposalService', () => {
   describe('send()', () => {
     it('should transition status to SENT', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       const existing = fakeProposalWithSections({ id: 'p1', status: 'DRAFT' })
       mockedProposalRepo.findById.mockResolvedValue(ok(existing))

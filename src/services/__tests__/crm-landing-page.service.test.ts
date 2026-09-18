@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeCrmLandingPage } from '@/src/__tests__/factories/crm-landing-page.factory'
+import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
@@ -32,7 +33,7 @@ describe('CrmLandingPageService', () => {
   describe('create()', () => {
     it('should reject an unknown templateKey', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
 
       expectErr(
@@ -48,7 +49,7 @@ describe('CrmLandingPageService', () => {
 
     it('should create with a valid templateKey, sections allowed to repeat a type', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedPageRepo.create.mockResolvedValue(
         ok(withSections(createFakeCrmLandingPage({ id: 'p1' }))),
@@ -74,7 +75,7 @@ describe('CrmLandingPageService', () => {
   describe('update()', () => {
     it('should stamp publishedAt on the first publish', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       const existing = withSections(
         createFakeCrmLandingPage({
@@ -104,7 +105,7 @@ describe('CrmLandingPageService', () => {
 
     it('should not overwrite publishedAt when re-publishing', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       const originalPublishedAt = new Date('2026-01-01T00:00:00Z')
       const existing = withSections(

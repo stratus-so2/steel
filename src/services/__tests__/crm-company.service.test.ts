@@ -17,6 +17,7 @@ import {
   CrmCustomFieldValueRepository,
 } from '@/src/repositories/crm-custom-field.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmCompanyService } from '../crm-company.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -57,6 +58,39 @@ describe('CrmCompanyService', () => {
   })
 
   describe('create()', () => {
+    it('should forbid a VIEWER from creating a company', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'VIEWER' })),
+      )
+
+      expectErr(
+        await CrmCompanyService.create('u1', 'ws1', {
+          name: 'Acme',
+          icp: false,
+        }),
+        'FORBIDDEN',
+      )
+      expect(mockedCompanyRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should return MODULE_DISABLED when the CRM is off for the workspace', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      vi.mocked(
+        WorkspaceModuleAccessRepository.isEnabled,
+      ).mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await CrmCompanyService.create('u1', 'ws1', {
+          name: 'Acme',
+          icp: false,
+        }),
+        'MODULE_DISABLED',
+      )
+      expect(mockedCompanyRepo.create).not.toHaveBeenCalled()
+    })
+
     it('should create a company for a workspace member', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),

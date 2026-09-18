@@ -73,5 +73,26 @@ describe('CrmCustomFieldValueService', () => {
       )
       expect(dto.value).toBe('Enterprise')
     })
+
+    it('should forbid a VIEWER from filling a custom field value', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'VIEWER' })),
+      )
+      mockedDefinitionRepo.findById.mockResolvedValue(
+        ok(createFakeCrmCustomFieldDefinition({ id: 'd1' })),
+      )
+
+      expectErr(
+        await CrmCustomFieldValueService.setValue(
+          'u1',
+          'ws1',
+          'd1',
+          'record-1',
+          'Enterprise',
+        ),
+        'FORBIDDEN',
+      )
+      expect(mockedValueRepo.upsert).not.toHaveBeenCalled()
+    })
   })
 })

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeCrmProposalTemplate } from '@/src/__tests__/factories/crm-proposal-template.factory'
+import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
@@ -24,7 +25,7 @@ describe('CrmProposalTemplateService', () => {
   describe('create()', () => {
     it('should create a template with the given sections', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedTemplateRepo.create.mockResolvedValue(
         ok({
@@ -46,7 +47,7 @@ describe('CrmProposalTemplateService', () => {
   describe('createFromProposal()', () => {
     it('should map proposal sections into template defaultContent', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok({ id: 'm1' } as never),
+        ok(createFakeMembership({ role: 'MEMBER' })),
       )
       mockedTemplateRepo.create.mockResolvedValue(
         ok({

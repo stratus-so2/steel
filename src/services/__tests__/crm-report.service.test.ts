@@ -11,6 +11,7 @@ vi.mock('@/src/services/crm-opportunity.service')
 
 import { CrmReportRepository } from '@/src/repositories/crm-report.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmCompanyService } from '@/src/services/crm-company.service'
 import { CrmOpportunityService } from '@/src/services/crm-opportunity.service'
 import { CrmReportService } from '../crm-report.service'
@@ -41,6 +42,23 @@ describe('CrmReportService', () => {
   })
 
   describe('getById()', () => {
+    it('should gate by the report own module (COMMUNICATION), not CRM', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedReportRepo.findById.mockResolvedValue(
+        ok(createFakeCrmReport({ id: 'r1', module: 'COMMUNICATION' })),
+      )
+      const isEnabled = vi.mocked(WorkspaceModuleAccessRepository.isEnabled)
+      isEnabled.mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await CrmReportService.getById('u1', 'ws1', 'r1'),
+        'MODULE_DISABLED',
+      )
+      expect(isEnabled).toHaveBeenCalledWith('ws1', 'COMMUNICATION')
+    })
+
     it('should return FORBIDDEN for a non-member', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
       expectErr(await CrmReportService.getById('u1', 'ws1', 'r1'), 'FORBIDDEN')
