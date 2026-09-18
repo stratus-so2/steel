@@ -153,6 +153,10 @@
       "description": "Configurações de atendimento, mídia e membros atribuíveis."
     },
     {
+      "name": "Comunicação · Tempo real e webhooks",
+      "description": "SSE de eventos e webhooks de entrada da Meta e da Z-API."
+    },
+    {
       "name": "CRM público · Formulários",
       "description": "Formulários publicados — leitura e envio por visitantes, sem sessão (o `publicToken` é o acesso)."
     },
@@ -263,7 +267,8 @@
         "Comunicação · Conexões",
         "Comunicação · IA",
         "Comunicação · Dashboards e relatórios",
-        "Comunicação · Configurações"
+        "Comunicação · Configurações",
+        "Comunicação · Tempo real e webhooks"
       ]
     },
     {
@@ -6410,6 +6415,471 @@
         "security": [
           {
             "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/whatsapp/events": {
+      "get": {
+        "tags": ["Comunicação · Tempo real e webhooks"],
+        "summary": "Stream de eventos em tempo real (SSE)",
+        "operationId": "getWhatsappEvents",
+        "description": "Server-Sent Events (`text/event-stream`) com os eventos de Comunicação do workspace, via Redis pub/sub (canal `whatsapp:workspace:<id>`). Use `EventSource` com o cookie de sessão.\n\n- Ao conectar: comentário `: connected`; a cada 25 s, heartbeat `: ping`.\n- Cada evento: `data: <json>` — `message.created`, `message.updated`, `message.deleted`, `conversation.updated`, `conversation.deleted` ou `group-message.created` (schema abaixo). Não há `event:` nem `id:` — reconecte e recarregue as listas após quedas (sem replay).\n\nMódulo **Comunicação** habilitado e permissão `conversations` × `VIEW`. Sem rate limit.",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "description": "Workspace cujos eventos serão transmitidos.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream SSE aberto (`Cache-Control: no-cache`).",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "message.created"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      },
+                      "required": ["type", "conversationId", "message"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "message.updated"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      },
+                      "required": ["type", "conversationId", "message"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "message.deleted"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        },
+                        "messageId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["type", "conversationId", "messageId"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "conversation.updated"
+                        },
+                        "conversation": {
+                          "$ref": "#/components/schemas/WhatsAppConversation"
+                        }
+                      },
+                      "required": ["type", "conversation"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "conversation.deleted"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["type", "conversationId"]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "group-message.created"
+                        },
+                        "groupId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["type", "groupId"]
+                    }
+                  ],
+                  "description": "Payload JSON de cada linha `data:` do stream (discriminado por `type`)."
+                },
+                "example": ": connected\n\ndata: {\"type\":\"conversation.deleted\",\"conversationId\":\"ckv9x2p0h0000cv7d3k1e5abc\"}\n\n: ping\n\n"
+              }
+            }
+          },
+          "400": {
+            "description": "`workspaceId` ausente (texto puro).",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "workspaceId é obrigatório"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/whatsapp/webhook/meta": {
+      "get": {
+        "tags": ["Comunicação · Tempo real e webhooks"],
+        "summary": "Verificação do webhook (Meta)",
+        "operationId": "getWhatsappWebhookMeta",
+        "description": "Handshake de verificação do webhook da WhatsApp Cloud API, feito pela Meta ao cadastrar a URL `https://<host>/api/whatsapp/webhook/meta` no app. Com `hub.mode=subscribe` e `hub.verify_token` igual a `WHATSAPP_META_VERIFY_TOKEN`, devolve o `hub.challenge` em texto puro; senão `403`. Um único webhook para todas as conexões Meta (roteado pelo `phone_number_id`).",
+        "parameters": [
+          {
+            "name": "hub.mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["subscribe"]
+            }
+          },
+          {
+            "name": "hub.verify_token",
+            "in": "query",
+            "required": false,
+            "description": "Deve ser igual a `WHATSAPP_META_VERIFY_TOKEN`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hub.challenge",
+            "in": "query",
+            "required": false,
+            "description": "Valor ecoado na resposta.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Challenge ecoado.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "1158201444"
+              }
+            }
+          },
+          "403": {
+            "description": "Token de verificação inválido.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Token inválido"
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": ["Comunicação · Tempo real e webhooks"],
+        "summary": "Webhook de eventos (Meta)",
+        "operationId": "postWhatsappWebhookMeta",
+        "description": "Recebe as notificações da WhatsApp Cloud API (`entry[0].changes[0].value`: mensagens, reações e status).\n\n**Assinatura:** o header `X-Hub-Signature-256: sha256=<hex>` precisa ser o HMAC-SHA256 do **corpo bruto** com o App Secret (`WHATSAPP_META_APP_SECRET`), comparado em tempo constante; sem o segredo configurado, tudo é recusado com `401`. A conexão é localizada por `value.metadata.phone_number_id`.\n\nMensagem recebida: cria/atualiza o contato, abre (ou reabre) a conversa, grava a mensagem (deduplicada pelo id do provedor), enfileira o download de mídia, a resposta da IA (se ativa na conversa) e a análise de sentimento, trata a palavra-chave de descadastro das transmissões e publica no SSE. Status (`sent`/`delivered`/`read`) e reações atualizam a mensagem original. Respostas em texto puro (fora do envelope). A conexão precisa existir e o módulo Comunicação estar habilitado no workspace dela. Rate limit **por conexão** (120 eventos/min).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Payload de notificação da Graph API (objeto `whatsapp_business_account`). Só o primeiro `entry`/`change` e a primeira mensagem/status são processados.",
+                "properties": {
+                  "object": {
+                    "type": "string",
+                    "example": "whatsapp_business_account"
+                  },
+                  "entry": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evento aceito: `EVENT_RECEIVED`, `STATUS_RECEIVED`, `REACTION_RECEIVED`, ou ignorado sem erro (`SEM_PHONE_NUMBER_ID`, `SEM_MENSAGEM`).",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "EVENT_RECEIVED"
+              }
+            }
+          },
+          "400": {
+            "description": "Payload sem `entry[0].changes[0].value`.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Entrada inválida"
+              }
+            }
+          },
+          "401": {
+            "description": "Assinatura ausente/inválida ou App Secret não configurado.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Assinatura inválida"
+              }
+            }
+          },
+          "403": {
+            "description": "Módulo Comunicação desabilitado no workspace da conexão.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Módulo desabilitado"
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma conexão com este `phone_number_id`.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Número não encontrado"
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de eventos da conexão excedido.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Muitas requisições"
+              }
+            }
+          },
+          "500": {
+            "description": "Falha ao consultar a conexão ou ao processar a mensagem (a Meta reenvia).",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Erro ao processar mensagem"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "metaWebhookSignature": []
+          }
+        ]
+      }
+    },
+    "/whatsapp/webhook/zapi": {
+      "get": {
+        "tags": ["Comunicação · Tempo real e webhooks"],
+        "summary": "Verificação do webhook (Z-API)",
+        "operationId": "getWhatsappWebhookZapi",
+        "description": "Responde `OK` em texto puro — usado pela Z-API/operadores para checar se a URL do webhook está acessível. Não valida segredo.",
+        "responses": {
+          "200": {
+            "description": "Webhook acessível.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "OK"
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": ["Comunicação · Tempo real e webhooks"],
+        "summary": "Webhook de eventos (Z-API)",
+        "operationId": "postWhatsappWebhookZapi",
+        "description": "Recebe os callbacks da Z-API (`ReceivedCallback` e `StatusCallback`; outros `type` são ignorados). Cadastre na Z-API a URL `https://<host>/api/whatsapp/webhook/zapi?secret=<webhookSecret>` — o segredo é **por conexão**, devolvido só na criação da conexão.\n\n**Verificação:** a conexão é localizada pelo `instanceId` do corpo e o `secret` da query precisa ser igual ao `webhookSecret` dela (comparação em tempo constante); senão `401`.\n\nMensagem recebida: cria/atualiza o contato, abre (ou reabre) a conversa, grava a mensagem (deduplicada pelo id do provedor), enfileira o download de mídia, a resposta da IA (se ativa na conversa) e a análise de sentimento, trata a palavra-chave de descadastro das transmissões e publica no SSE. Status (`sent`/`delivered`/`read`) e reações atualizam a mensagem original. Também processa mensagens de grupos (`isGroup`) e mensagens enviadas pelo próprio aparelho pareado (`fromMe`), que entram como saída na conversa. Respostas em texto puro (fora do envelope). A conexão precisa existir e o módulo Comunicação estar habilitado no workspace dela. Rate limit **por conexão** (120 eventos/min).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["instanceId", "type"],
+                "description": "Callback da Z-API (campos usados: `phone`, `messageId`, `fromMe`, `isGroup`, `senderName`, `senderPhoto`, `text`, `image`, `audio`, `video`, `document`, `contact`, `reaction`, `status`, `referenceMessageId`).",
+                "properties": {
+                  "instanceId": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "ReceivedCallback",
+                    "description": "`ReceivedCallback` (mensagem/reação) ou `StatusCallback` (`SENT`, `RECEIVED`, `READ`, `PLAYED`)."
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "5511987654321"
+                  },
+                  "messageId": {
+                    "type": "string"
+                  },
+                  "fromMe": {
+                    "type": "boolean"
+                  },
+                  "isGroup": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evento aceito: `EVENT_RECEIVED`, `STATUS_RECEIVED`, `REACTION_RECEIVED`, `GROUP_MESSAGE_RECEIVED` ou `IGNORED`.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "EVENT_RECEIVED"
+              }
+            }
+          },
+          "400": {
+            "description": "Corpo não é JSON ou sem `instanceId`/`type`.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Dados incompletos"
+              }
+            }
+          },
+          "401": {
+            "description": "`secret` ausente ou diferente do da conexão.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Assinatura inválida"
+              }
+            }
+          },
+          "403": {
+            "description": "Módulo Comunicação desabilitado no workspace da conexão.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Módulo desabilitado"
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma conexão com este `instanceId`.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Instância não encontrada"
+              }
+            }
+          },
+          "429": {
+            "description": "Limite de eventos da conexão excedido.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Muitas requisições"
+              }
+            }
+          },
+          "500": {
+            "description": "Falha ao consultar a conexão ou ao processar a mensagem.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Erro ao processar mensagem"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "zapiWebhookSecret": []
           }
         ]
       }

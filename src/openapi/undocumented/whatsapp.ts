@@ -7,10 +7,4 @@
  * mais, ou se uma entrada sair do escopo deste arquivo. Rotas novas devem
  * nascer documentadas, nunca entrar aqui.
  */
-export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
-  'GET /whatsapp/events',
-  'GET /whatsapp/webhook/meta',
-  'GET /whatsapp/webhook/zapi',
-  'POST /whatsapp/webhook/meta',
-  'POST /whatsapp/webhook/zapi',
-]
+export const UNDOCUMENTED_WHATSAPP: readonly string[] = []
