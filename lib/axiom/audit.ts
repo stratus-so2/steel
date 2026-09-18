@@ -1,6 +1,6 @@
 import { logger } from '@/lib/axiom/logger'
 
-type AuditEntity =
+export type AuditEntity =
   | 'user'
   | 'session'
   | 'workspace'
@@ -73,7 +73,7 @@ type AuditEntity =
   | 'workspace_ai_settings'
   | 'user_ai_preference'
 
-type AuditAction =
+export type AuditAction =
   | 'create'
   | 'update'
   | 'delete'
@@ -106,6 +106,9 @@ type AuditAction =
   | 'close'
   | 'reopen'
   | 'alert'
+  | 'suspend'
+  | 'reactivate'
+  | 'download'
 
 type AuditOutcome = 'success' | 'failure'
 

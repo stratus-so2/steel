@@ -1,5 +1,5 @@
-import { DatabaseBackupJob } from '@/src/lib/queue/jobs'
-import { closeQueues, getDatabaseBackupQueue } from '@/src/lib/queue/queues'
+import { triggerFullBackup } from '@/src/lib/queue/database-backup'
+import { closeQueues } from '@/src/lib/queue/queues'
 
 /**
  * Enfileira um backup completo do banco fora do cron das 03:15. O worker
@@ -8,8 +8,7 @@ import { closeQueues, getDatabaseBackupQueue } from '@/src/lib/queue/queues'
  *   pnpm backup:full
  */
 async function main() {
-  const queue = getDatabaseBackupQueue()
-  await queue.add(DatabaseBackupJob.RunFullBackup, {})
+  await triggerFullBackup()
   console.log('Backup completo enfileirado. Acompanhe pela tabela `backups`.')
 }
 

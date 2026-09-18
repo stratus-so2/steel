@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
+  update: vi.fn(),
   getObject: vi.fn(),
   getOffsiteConfig: vi.fn(),
   uploadAndVerifyOffsite: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('@/src/lib/prisma', () => ({
   prisma: {
     backup: {
       findUnique: mocks.findUnique,
+      update: mocks.update,
       findMany: vi.fn().mockResolvedValue([]),
       deleteMany: vi.fn(),
     },
@@ -39,6 +41,10 @@ vi.mock('@/src/lib/crypto', () => ({ encryptConnectionSecret: vi.fn() }))
 vi.mock('@/lib/axiom/logger', () => ({ logger: mocks.logger }))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: mocks.auditMutation }))
 vi.mock('@/lib/env/server', () => ({ DATABASE_URL: 'postgresql://x' }))
+vi.mock('@/src/lib/queue/processors/admin-operations', () => ({
+  runWorkspaceDeletion: vi.fn(),
+  runWorkspaceRestore: vi.fn(),
+}))
 
 import { processDatabaseBackup } from '@/src/lib/queue/processors/database-backup'
 
@@ -93,6 +99,13 @@ describe('processDatabaseBackup — copy-to-offsite', () => {
       key: 'full/b1.dump.enc',
       body,
       plainChecksum: 'plain-sha',
+    })
+    expect(mocks.update).toHaveBeenCalledWith({
+      where: { id: 'b1' },
+      data: {
+        offsiteKey: 'steel/full/b1.dump.enc',
+        offsiteCopiedAt: expect.any(Date),
+      },
     })
     expect(mocks.logger.info).toHaveBeenCalledWith(
       'queue.database_backup.offsite_completed',

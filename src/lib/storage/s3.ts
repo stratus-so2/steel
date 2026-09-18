@@ -1,8 +1,11 @@
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
+  type DeleteObjectsCommandOutput,
   GetObjectCommand,
   HeadBucketCommand,
+  ListObjectsV2Command,
   PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client,
@@ -125,4 +128,88 @@ export async function getPresignedDownloadUrl(
     new GetObjectCommand({ Bucket: input.bucket, Key: input.key }),
     { expiresIn: input.expiresInSeconds },
   )
+}
+
+/**
+ * Stream de um objeto (download de backups pelo painel admin): evita
+ * carregar um dump inteiro na memória do app.
+ */
+export async function getObjectStream(input: GetObjectInput): Promise<{
+  body: ReadableStream<Uint8Array>
+  contentLength: number | undefined
+}> {
+  const s3 = getS3Client()
+  const result = await s3.send(
+    new GetObjectCommand({ Bucket: input.bucket, Key: input.key }),
+  )
+  if (!result.Body) throw new Error(`Objeto vazio: ${input.key}`)
+  return {
+    body: result.Body.transformToWebStream() as ReadableStream<Uint8Array>,
+    contentLength: result.ContentLength,
+  }
+}
+
+function isMissingBucket(error: unknown): boolean {
+  const name = (error as { name?: string; Code?: string } | null)?.name
+  return name === 'NoSuchBucket' || name === 'NotFound'
+}
+
+/** Todas as chaves sob um prefixo (paginado). Bucket inexistente → `[]`. */
+export async function listObjectKeys(
+  bucket: string,
+  prefix: string,
+): Promise<string[]> {
+  const s3 = getS3Client()
+  const keys: string[] = []
+  let token: string | undefined
+  try {
+    do {
+      const page = await s3.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      )
+      for (const object of page.Contents ?? []) {
+        if (object.Key) keys.push(object.Key)
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined
+    } while (token)
+  } catch (error) {
+    if (isMissingBucket(error)) return []
+    throw error
+  }
+  return keys
+}
+
+/** Apaga em lotes de 1000 (limite do S3). Devolve quantos foram apagados. */
+export async function deleteObjects(
+  bucket: string,
+  keys: string[],
+): Promise<number> {
+  const s3 = getS3Client()
+  let deleted = 0
+  for (let i = 0; i < keys.length; i += 1000) {
+    const batch = keys.slice(i, i + 1000)
+    let result: DeleteObjectsCommandOutput
+    try {
+      result = await s3.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+        }),
+      )
+    } catch (error) {
+      if (isMissingBucket(error)) return deleted
+      throw error
+    }
+    if (result.Errors && result.Errors.length > 0) {
+      throw new Error(
+        `Falha ao apagar ${result.Errors.length} objeto(s) em ${bucket}: ${result.Errors[0]?.Message ?? ''}`,
+      )
+    }
+    deleted += batch.length
+  }
+  return deleted
 }

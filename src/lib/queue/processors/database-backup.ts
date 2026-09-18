@@ -4,7 +4,6 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { Prisma } from '@prisma/client'
 import type { Job } from 'bullmq'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
@@ -25,6 +24,8 @@ import {
 import { DatabaseBackupJob, type DatabaseBackupJobPayload } from '../jobs'
 import { getDatabaseBackupQueue } from '../queues'
 import { BackupRetentionDays } from '../retention'
+import { gatherWorkspaceData } from '../workspace-snapshot'
+import { runWorkspaceDeletion, runWorkspaceRestore } from './admin-operations'
 
 const execFileAsync = promisify(execFile)
 
@@ -112,6 +113,13 @@ async function runCopyToOffsite(
       plainChecksum: backup.checksum,
     })
 
+    // O painel mostra onde cada backup está; sem isto a cópia offsite só
+    // seria visível listando o bucket externo.
+    await prisma.backup.update({
+      where: { id: backupId },
+      data: { offsiteKey: result.key, offsiteCopiedAt: new Date() },
+    })
+
     auditMutation({
       entity: 'backup',
       action: 'update',
@@ -144,9 +152,12 @@ async function runCopyToOffsite(
   }
 }
 
-async function runFullBackup(job: Job): Promise<void> {
+async function runFullBackup(
+  job: Job<DatabaseBackupJobPayload[typeof DatabaseBackupJob.RunFullBackup]>,
+): Promise<void> {
+  const triggeredById = job.data?.triggeredById ?? null
   const record = await prisma.backup.create({
-    data: { scope: 'FULL', status: 'RUNNING' },
+    data: { scope: 'FULL', status: 'RUNNING', triggeredById },
   })
 
   const dir = await mkdtemp(join(tmpdir(), 'steel-backup-'))
@@ -181,7 +192,7 @@ async function runFullBackup(job: Job): Promise<void> {
       action: 'create',
       actorId: 'system',
       targetId: record.id,
-      meta: { scope: 'FULL', sizeBytes, jobId: job.id },
+      meta: { scope: 'FULL', sizeBytes, jobId: job.id, triggeredById },
     })
 
     logger.info('queue.database_backup.full_completed', {
@@ -214,56 +225,41 @@ async function runFullBackup(job: Job): Promise<void> {
   }
 }
 
-function workspaceScopedDelegates(): string[] {
-  return Prisma.dmmf.datamodel.models
-    .filter(
-      (model) =>
-        model.name !== 'Backup' &&
-        model.fields.some((field) => field.name === 'workspaceId'),
-    )
-    .map((model) => model.name.charAt(0).toLowerCase() + model.name.slice(1))
-}
+/**
+ * Backup lógico de um workspace (JSON cifrado). Exportado porque a exclusão
+ * definitiva (`delete-workspace`) e o restore reaproveitam exatamente este
+ * passo antes de mexer nos dados. Lança em falha, com o registro já FAILED.
+ */
+export async function backupWorkspace(params: {
+  workspaceId: string
+  triggeredById?: string | null
+  jobId?: string
+}): Promise<{ backupId: string; sizeBytes: number }> {
+  const { workspaceId, jobId } = params
+  const triggeredById = params.triggeredById ?? null
 
-type FindManyDelegate = {
-  findMany: (args: { where: { workspaceId: string } }) => Promise<unknown[]>
-}
-
-async function gatherWorkspaceData(
-  workspaceId: string,
-): Promise<Record<string, unknown>> {
   const workspace = await prisma.workspace.findUnique({
     where: { id: workspaceId },
+    select: { slug: true },
   })
-  if (!workspace) return { workspace: null }
-
-  const data: Record<string, unknown> = { workspace }
-  const client = prisma as unknown as Record<string, FindManyDelegate>
-
-  for (const delegateName of workspaceScopedDelegates()) {
-    const delegate = client[delegateName]
-    if (!delegate?.findMany) continue
-    data[delegateName] = await delegate.findMany({ where: { workspaceId } })
-  }
-
-  return data
-}
-
-async function runWorkspaceBackup(
-  job: Job<
-    DatabaseBackupJobPayload[typeof DatabaseBackupJob.RunWorkspaceBackup]
-  >,
-): Promise<void> {
-  const { workspaceId } = job.data
 
   const record = await prisma.backup.create({
-    data: { scope: 'WORKSPACE', workspaceId, status: 'RUNNING' },
+    data: {
+      scope: 'WORKSPACE',
+      workspaceId,
+      workspaceSlug: workspace?.slug ?? null,
+      triggeredById,
+      status: 'RUNNING',
+    },
   })
 
   try {
-    const data = await gatherWorkspaceData(workspaceId)
+    if (!workspace) throw new Error(`Workspace "${workspaceId}" não existe.`)
+
+    const data = await gatherWorkspaceData(prisma, workspaceId)
     const buffer = Buffer.from(
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         exportedAt: new Date().toISOString(),
         workspaceId,
         data,
@@ -288,18 +284,19 @@ async function runWorkspaceBackup(
     auditMutation({
       entity: 'backup',
       action: 'create',
-      actorId: 'system',
+      actorId: triggeredById ?? 'system',
       targetId: record.id,
-      meta: { scope: 'WORKSPACE', workspaceId, sizeBytes, jobId: job.id },
+      meta: { scope: 'WORKSPACE', workspaceId, sizeBytes, jobId },
     })
 
     logger.info('queue.database_backup.workspace_completed', {
       component: 'Worker',
-      jobId: job.id,
+      jobId,
       backupId: record.id,
       workspaceId,
       sizeBytes,
     })
+    return { backupId: record.id, sizeBytes }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await prisma.backup.update({
@@ -312,13 +309,26 @@ async function runWorkspaceBackup(
     })
     logger.error('queue.database_backup.workspace_failed', {
       component: 'Worker',
-      jobId: job.id,
+      jobId,
       backupId: record.id,
       workspaceId,
       message,
     })
     throw error
   }
+}
+
+async function runWorkspaceBackup(
+  job: Job<
+    DatabaseBackupJobPayload[typeof DatabaseBackupJob.RunWorkspaceBackup]
+  >,
+): Promise<{ backupId: string }> {
+  const { backupId } = await backupWorkspace({
+    workspaceId: job.data.workspaceId,
+    triggeredById: job.data.triggeredById,
+    jobId: job.id,
+  })
+  return { backupId }
 }
 
 async function pruneExpiredBackups(): Promise<void> {
@@ -362,10 +372,22 @@ async function pruneExpiredBackups(): Promise<void> {
   }
 }
 
-export async function processDatabaseBackup(job: Job): Promise<void> {
+export async function processDatabaseBackup(job: Job): Promise<unknown> {
   switch (job.name) {
     case DatabaseBackupJob.RunFullBackup:
       return runFullBackup(job)
+    case DatabaseBackupJob.DeleteWorkspace:
+      return runWorkspaceDeletion(
+        job as Job<
+          DatabaseBackupJobPayload[typeof DatabaseBackupJob.DeleteWorkspace]
+        >,
+      )
+    case DatabaseBackupJob.RestoreWorkspace:
+      return runWorkspaceRestore(
+        job as Job<
+          DatabaseBackupJobPayload[typeof DatabaseBackupJob.RestoreWorkspace]
+        >,
+      )
     case DatabaseBackupJob.RunWorkspaceBackup:
       return runWorkspaceBackup(
         job as Job<

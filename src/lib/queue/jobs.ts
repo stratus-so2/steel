@@ -269,21 +269,36 @@ export type ChangelogJobPayload = {
   }
 }
 
+/**
+ * `DeleteWorkspace` e `RestoreWorkspace` são operações do painel admin
+ * (`admin_operations`) e rodam nesta mesma fila de propósito: o worker de
+ * backup processa um job por vez, então exclusão/restauração nunca correm em
+ * paralelo com um backup do mesmo banco. Enfileiradas com `attempts: 1` —
+ * operação destrutiva não é refeita sozinha; o admin decide repetir.
+ */
 export const DatabaseBackupJob = {
   RunFullBackup: 'run-full-backup',
   RunWorkspaceBackup: 'run-workspace-backup',
   PruneExpiredBackups: 'prune-expired-backups',
   CopyToOffsite: 'copy-to-offsite',
+  DeleteWorkspace: 'delete-workspace',
+  RestoreWorkspace: 'restore-workspace',
 } as const
 
 export type DatabaseBackupJob =
   (typeof DatabaseBackupJob)[keyof typeof DatabaseBackupJob]
 
 export type DatabaseBackupJobPayload = {
-  [DatabaseBackupJob.RunFullBackup]: Record<string, never>
-  [DatabaseBackupJob.RunWorkspaceBackup]: { workspaceId: string }
+  /** `triggeredById` = admin que disparou pelo painel (cron/CLI: ausente). */
+  [DatabaseBackupJob.RunFullBackup]: { triggeredById?: string }
+  [DatabaseBackupJob.RunWorkspaceBackup]: {
+    workspaceId: string
+    triggeredById?: string
+  }
   [DatabaseBackupJob.PruneExpiredBackups]: Record<string, never>
   [DatabaseBackupJob.CopyToOffsite]: { backupId: string }
+  [DatabaseBackupJob.DeleteWorkspace]: { operationId: string }
+  [DatabaseBackupJob.RestoreWorkspace]: { operationId: string }
 }
 
 /**
