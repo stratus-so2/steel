@@ -151,7 +151,7 @@ export const CrmCompanyService = {
       domain: dto.domain,
       employees: dto.employees,
       linkedin: dto.linkedin,
-      address: dto.address as Prisma.InputJsonValue | undefined,
+      address: dto.address as Prisma.InputJsonValue | null | undefined,
       arr: dto.arr,
       icp: dto.icp,
       accountOwnerId: dto.accountOwnerId,

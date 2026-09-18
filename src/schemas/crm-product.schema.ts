@@ -1,4 +1,5 @@
 import z from 'zod'
+import { clearableText } from '@/src/schemas/clearable.schema'
 
 export const CreateCrmProductSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
@@ -14,8 +15,9 @@ export type CreateCrmProductDTO = z.infer<typeof CreateCrmProductSchema>
 
 export const UpdateCrmProductSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
-  sku: z.string().max(100).optional(),
-  description: z.string().max(2000).optional(),
+  // Opcionais limpáveis: null (ou '') apaga o valor.
+  sku: clearableText(100),
+  description: clearableText(2000),
   unitPrice: z.number().min(0).optional(),
   currency: z.string().max(10).optional(),
   billingType: z.enum(['ONE_TIME', 'MONTHLY', 'YEARLY']).optional(),

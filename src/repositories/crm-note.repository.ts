@@ -63,8 +63,8 @@ export const CrmNoteRepository = {
   async update(
     id: string,
     data: {
-      title?: string
-      body?: string
+      title?: string | null
+      body?: string | null
       companyId?: string | null
       personId?: string | null
       opportunityId?: string | null

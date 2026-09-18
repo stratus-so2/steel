@@ -74,8 +74,8 @@ export const CrmTaskRepository = {
     data: {
       title?: string
       status?: CrmTaskStatus
-      body?: string
-      dueDate?: Date
+      body?: string | null
+      dueDate?: Date | null
       assigneeId?: string | null
       companyId?: string | null
       personId?: string | null

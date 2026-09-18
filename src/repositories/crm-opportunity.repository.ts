@@ -110,7 +110,7 @@ export const CrmOpportunityRepository = {
       companyId?: string | null
       pointOfContactId?: string | null
       ownerId?: string | null
-      source?: string
+      source?: string | null
       updatedById?: string
     },
   ): Promise<Result<CrmOpportunity>> {

@@ -56,3 +56,26 @@ describe('ReorderCrmProductsSchema', () => {
     )
   })
 })
+
+describe('UpdateCrmProductSchema — clearing optional fields', () => {
+  it.each(['sku', 'description'])('should accept null to clear %s', (field) => {
+    const result = UpdateCrmProductSchema.safeParse({ [field]: null })
+    expect(result.success).toBe(true)
+    expect((result.data as Record<string, unknown>)[field]).toBeNull()
+  })
+
+  it.each([
+    'sku',
+    'description',
+  ])('should normalize an emptied %s to null', (field) => {
+    const result = UpdateCrmProductSchema.safeParse({ [field]: '  ' })
+    expect(result.success).toBe(true)
+    expect((result.data as Record<string, unknown>)[field]).toBeNull()
+  })
+
+  it('should leave omitted optional fields undefined', () => {
+    const result = UpdateCrmProductSchema.safeParse({})
+    expect(result.success).toBe(true)
+    expect(result.data).not.toHaveProperty('sku')
+  })
+})

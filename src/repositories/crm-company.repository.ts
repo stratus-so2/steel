@@ -1,4 +1,4 @@
-import type { CrmCompany, Prisma } from '@prisma/client'
+import { type CrmCompany, Prisma } from '@prisma/client'
 import { crmCompanyConflict, notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -72,19 +72,29 @@ export const CrmCompanyRepository = {
     id: string,
     data: {
       name?: string
-      cnpj?: string
-      domain?: string
-      employees?: number
-      linkedin?: string
-      address?: Prisma.InputJsonValue
-      arr?: number
+      cnpj?: string | null
+      domain?: string | null
+      employees?: number | null
+      linkedin?: string | null
+      address?: Prisma.InputJsonValue | null
+      arr?: number | null
       icp?: boolean
       accountOwnerId?: string | null
       updatedById?: string
     },
   ): Promise<Result<CrmCompany>> {
     try {
-      const company = await prisma.crmCompany.update({ where: { id }, data })
+      const { address, ...rest } = data
+      const company = await prisma.crmCompany.update({
+        where: { id },
+        data: {
+          ...rest,
+          // null limpa o endereço (coluna Json exige o sentinela DbNull).
+          ...(address === undefined
+            ? {}
+            : { address: address === null ? Prisma.DbNull : address }),
+        },
+      })
       return ok(company)
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'P2002') {

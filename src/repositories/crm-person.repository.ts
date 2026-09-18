@@ -111,10 +111,10 @@ export const CrmPersonRepository = {
       name?: string
       emails?: string[]
       phones?: string[]
-      city?: string
-      jobTitle?: string
-      linkedin?: string
-      avatar?: string
+      city?: string | null
+      jobTitle?: string | null
+      linkedin?: string | null
+      avatar?: string | null
       companyId?: string | null
       updatedById?: string
     },

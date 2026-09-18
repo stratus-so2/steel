@@ -67,8 +67,8 @@ export const CrmProductRepository = {
     id: string,
     data: {
       name?: string
-      sku?: string
-      description?: string
+      sku?: string | null
+      description?: string | null
       unitPrice?: number
       currency?: string
       billingType?: CrmBillingType

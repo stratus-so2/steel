@@ -1,4 +1,5 @@
 import z from 'zod'
+import { clearableText } from '@/src/schemas/clearable.schema'
 import { CustomFieldsInputSchema } from '@/src/schemas/crm-custom-field.schema'
 
 export const CreateCrmOpportunitySchema = z.object({
@@ -23,16 +24,16 @@ export type CreateCrmOpportunityDTO = z.infer<typeof CreateCrmOpportunitySchema>
 
 export const UpdateCrmOpportunitySchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
-  amount: z.number().min(0).optional(),
+  amount: z.number().min(0).nullable().optional(),
   probability: z.number().int().min(0).max(100).nullable().optional(),
-  closeDate: z.coerce.date().optional(),
+  closeDate: z.coerce.date().nullable().optional(),
   pipelineId: z.string().min(1).optional(),
   stageId: z.string().min(1).optional(),
   // Nullable: colunas limpáveis na grade (enviam null para desvincular).
   companyId: z.string().nullable().optional(),
   pointOfContactId: z.string().nullable().optional(),
   ownerId: z.string().nullable().optional(),
-  source: z.string().max(100).optional(),
+  source: clearableText(100),
   customFields: CustomFieldsInputSchema.optional(),
 })
 

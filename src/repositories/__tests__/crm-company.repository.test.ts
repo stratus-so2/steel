@@ -130,6 +130,36 @@ describe('CrmCompanyRepository', () => {
     })
   })
 
+  describe('update()', () => {
+    it('should clear optional fields and the address when given null', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const seeded = await seedCrmCompany(workspace.id, user.id, {
+        domain: 'acme.com',
+        linkedin: 'https://linkedin.com/company/acme',
+        employees: 10,
+      })
+      expectOk(
+        await CrmCompanyRepository.update(seeded.id, {
+          address: { city: 'São Paulo' },
+        }),
+      )
+
+      const company = expectOk(
+        await CrmCompanyRepository.update(seeded.id, {
+          domain: null,
+          linkedin: null,
+          employees: null,
+          address: null,
+        }),
+      )
+
+      expect(company.domain).toBeNull()
+      expect(company.linkedin).toBeNull()
+      expect(company.employees).toBeNull()
+      expect(company.address).toBeNull()
+    })
+  })
+
   describe('reorder()', () => {
     it('should update positions to match the given order', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])

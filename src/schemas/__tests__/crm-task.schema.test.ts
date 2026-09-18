@@ -64,3 +64,23 @@ describe('ReorderCrmTasksSchema', () => {
     ).toBe(true)
   })
 })
+
+describe('UpdateCrmTaskSchema — clearing optional fields', () => {
+  it.each(['body', 'dueDate'])('should accept null to clear %s', (field) => {
+    const result = UpdateCrmTaskSchema.safeParse({ [field]: null })
+    expect(result.success).toBe(true)
+    expect((result.data as Record<string, unknown>)[field]).toBeNull()
+  })
+
+  it.each(['body'])('should normalize an emptied %s to null', (field) => {
+    const result = UpdateCrmTaskSchema.safeParse({ [field]: '  ' })
+    expect(result.success).toBe(true)
+    expect((result.data as Record<string, unknown>)[field]).toBeNull()
+  })
+
+  it('should leave omitted optional fields undefined', () => {
+    const result = UpdateCrmTaskSchema.safeParse({})
+    expect(result.success).toBe(true)
+    expect(result.data).not.toHaveProperty('body')
+  })
+})

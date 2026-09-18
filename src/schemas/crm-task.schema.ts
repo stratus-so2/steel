@@ -1,4 +1,5 @@
 import z from 'zod'
+import { clearableText } from '@/src/schemas/clearable.schema'
 
 const TaskStatusEnum = z.enum(['TODO', 'IN_PROGRESS', 'DONE'])
 
@@ -18,8 +19,9 @@ export type CreateCrmTaskDTO = z.infer<typeof CreateCrmTaskSchema>
 export const UpdateCrmTaskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório').max(200).optional(),
   status: TaskStatusEnum.optional(),
-  body: z.string().max(5000).optional(),
-  dueDate: z.coerce.date().optional(),
+  // Opcionais limpáveis: null (ou '') apaga o valor.
+  body: clearableText(5000),
+  dueDate: z.coerce.date().nullable().optional(),
   // Nullable: colunas limpáveis na grade (enviam null para desvincular).
   assigneeId: z.string().nullable().optional(),
   companyId: z.string().nullable().optional(),

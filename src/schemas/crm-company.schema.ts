@@ -1,4 +1,5 @@
 import z from 'zod'
+import { clearableText } from '@/src/schemas/clearable.schema'
 import { CustomFieldsInputSchema } from '@/src/schemas/crm-custom-field.schema'
 
 const AddressSchema = z
@@ -31,12 +32,13 @@ export type CreateCrmCompanyDTO = z.infer<typeof CreateCrmCompanySchema>
 
 export const UpdateCrmCompanySchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
-  cnpj: z.string().max(20).optional(),
-  domain: z.string().max(200).optional(),
-  employees: z.number().int().min(0).optional(),
-  linkedin: z.string().max(300).optional(),
-  address: AddressSchema,
-  arr: z.number().min(0).optional(),
+  // Opcionais limpáveis: null (ou '') apaga o valor.
+  cnpj: clearableText(20),
+  domain: clearableText(200),
+  employees: z.number().int().min(0).nullable().optional(),
+  linkedin: clearableText(300),
+  address: AddressSchema.nullable(),
+  arr: z.number().min(0).nullable().optional(),
   icp: z.boolean().optional(),
   // Nullable: a coluna é limpável na grade (envia null para desvincular).
   accountOwnerId: z.string().nullable().optional(),

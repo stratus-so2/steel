@@ -56,3 +56,26 @@ describe('ReorderCrmNotesSchema', () => {
     ).toBe(true)
   })
 })
+
+describe('UpdateCrmNoteSchema — clearing optional fields', () => {
+  it.each(['title', 'body'])('should accept null to clear %s', (field) => {
+    const result = UpdateCrmNoteSchema.safeParse({ [field]: null })
+    expect(result.success).toBe(true)
+    expect((result.data as Record<string, unknown>)[field]).toBeNull()
+  })
+
+  it.each([
+    'title',
+    'body',
+  ])('should normalize an emptied %s to null', (field) => {
+    const result = UpdateCrmNoteSchema.safeParse({ [field]: '  ' })
+    expect(result.success).toBe(true)
+    expect((result.data as Record<string, unknown>)[field]).toBeNull()
+  })
+
+  it('should leave omitted optional fields undefined', () => {
+    const result = UpdateCrmNoteSchema.safeParse({})
+    expect(result.success).toBe(true)
+    expect(result.data).not.toHaveProperty('title')
+  })
+})

@@ -1,4 +1,5 @@
 import z from 'zod'
+import { clearableText } from '@/src/schemas/clearable.schema'
 
 export const CreateCrmNoteSchema = z.object({
   title: z.string().max(200).optional(),
@@ -11,8 +12,9 @@ export const CreateCrmNoteSchema = z.object({
 export type CreateCrmNoteDTO = z.infer<typeof CreateCrmNoteSchema>
 
 export const UpdateCrmNoteSchema = z.object({
-  title: z.string().max(200).optional(),
-  body: z.string().max(20000).optional(),
+  // Opcionais limpáveis: null (ou '') apaga o valor.
+  title: clearableText(200),
+  body: clearableText(20000),
   // Nullable: colunas limpáveis na grade (enviam null para desvincular).
   companyId: z.string().nullable().optional(),
   personId: z.string().nullable().optional(),
