@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { WhatsAppGroupRepository } from '../whatsapp-group.repository'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 let counter = 0
 async function seedConnection() {
@@ -146,6 +150,127 @@ describe('WhatsAppGroupRepository', () => {
         }),
       )
       expect(archivedList.map((g) => g.id)).toEqual([archived.id])
+    })
+  })
+
+  describe('findById() scoping', () => {
+    it('should not find a group from another workspace', async () => {
+      const { workspace, connection } = await seedConnection()
+      const other = await seedWorkspace()
+      const group = expectOk(
+        await WhatsAppGroupRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          groupJid: '120363000000000009@g.us',
+          name: 'Privado',
+        }),
+      )
+
+      expect(
+        expectOk(await WhatsAppGroupRepository.findById(group.id, other.id)),
+      ).toBeNull()
+    })
+  })
+
+  describe('upsertParticipantName()', () => {
+    it('should rename only the matching participant of the group', async () => {
+      const { workspace, connection } = await seedConnection()
+      const group = expectOk(
+        await WhatsAppGroupRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          groupJid: '120363000000000010@g.us',
+          name: 'Vendas',
+        }),
+      )
+      expectOk(
+        await WhatsAppGroupRepository.replaceParticipants(group.id, [
+          { waId: '5511900000001', role: 'ADMIN' },
+          { waId: '5511900000002', name: 'Bia', role: 'MEMBER' },
+        ]),
+      )
+
+      expectOk(
+        await WhatsAppGroupRepository.upsertParticipantName(
+          group.id,
+          '5511900000001',
+          'Carlos',
+        ),
+      )
+
+      const participants = await prisma.whatsAppGroupParticipant.findMany({
+        where: { groupId: group.id },
+        orderBy: { waId: 'asc' },
+      })
+      expect(participants.map((p) => p.name)).toEqual(['Carlos', 'Bia'])
+    })
+
+    it('should be a no-op for an unknown participant', async () => {
+      expectOk(
+        await WhatsAppGroupRepository.upsertParticipantName(
+          'missing-group',
+          '5511',
+          'X',
+        ),
+      )
+    })
+  })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR when writes hit missing rows or FKs', async () => {
+      const workspace = await seedWorkspace()
+      expectErr(
+        await WhatsAppGroupRepository.create({
+          workspaceId: workspace.id,
+          connectionId: 'missing-connection',
+          groupJid: 'x@g.us',
+          name: 'X',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupRepository.update('missing', { name: 'X' }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupRepository.replaceParticipants('missing-group', [
+          { waId: '5511', role: 'MEMBER' },
+        ]),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      vi.spyOn(prisma.whatsAppGroup, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(prisma.whatsAppGroup, 'findFirst').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(prisma.whatsAppGroup, 'findUnique').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(
+        prisma.whatsAppGroupParticipant,
+        'updateMany',
+      ).mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppGroupRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupRepository.findById('g', 'w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupRepository.findByGroupJid('w', 'j'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupRepository.upsertParticipantName('g', 'w', 'n'),
+        'DATABASE_ERROR',
+      )
     })
   })
 })

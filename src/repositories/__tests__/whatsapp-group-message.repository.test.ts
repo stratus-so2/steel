@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { WhatsAppGroupMessageRepository } from '../whatsapp-group-message.repository'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 let counter = 0
 async function seedGroup() {
@@ -157,6 +161,123 @@ describe('WhatsAppGroupMessageRepository', () => {
       )
 
       expect(result).toBeNull()
+    })
+  })
+
+  describe('listByGroup() pagination', () => {
+    it('should page backwards from a cursor, returning chronological pages', async () => {
+      const { workspace, group } = await seedGroup()
+      const base = Date.now()
+      const ids: string[] = []
+      for (let i = 0; i < 4; i++) {
+        const message = expectOk(
+          await WhatsAppGroupMessageRepository.create({
+            workspaceId: workspace.id,
+            groupId: group.id,
+            direction: 'IN',
+            type: 'TEXT',
+            text: `m${i}`,
+            createdAt: new Date(base + i * 1000),
+          }),
+        )
+        ids.push(message.id)
+      }
+
+      const newest = expectOk(
+        await WhatsAppGroupMessageRepository.listByGroup(group.id, {
+          limit: 2,
+        }),
+      )
+      expect(newest.map((m) => m.text)).toEqual(['m2', 'm3'])
+
+      const older = expectOk(
+        await WhatsAppGroupMessageRepository.listByGroup(group.id, {
+          limit: 2,
+          cursor: newest[0].id,
+        }),
+      )
+      expect(older.map((m) => m.text)).toEqual(['m0', 'm1'])
+    })
+  })
+
+  describe('findById() / update()', () => {
+    it('should find and update a message', async () => {
+      const { workspace, group } = await seedGroup()
+      const message = expectOk(
+        await WhatsAppGroupMessageRepository.create({
+          workspaceId: workspace.id,
+          groupId: group.id,
+          direction: 'OUT',
+          type: 'TEXT',
+          text: 'Oi',
+        }),
+      )
+
+      expect(
+        expectOk(await WhatsAppGroupMessageRepository.findById(message.id))
+          ?.text,
+      ).toBe('Oi')
+      expect(
+        expectOk(await WhatsAppGroupMessageRepository.findById('missing')),
+      ).toBeNull()
+
+      const updated = expectOk(
+        await WhatsAppGroupMessageRepository.update(message.id, {
+          text: 'Oi, editado',
+          deletedAt: new Date(),
+        }),
+      )
+      expect(updated.text).toBe('Oi, editado')
+      expect(updated.deletedAt).not.toBeNull()
+    })
+  })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR when writes hit missing rows or FKs', async () => {
+      const workspace = await seedWorkspace()
+      expectErr(
+        await WhatsAppGroupMessageRepository.create({
+          workspaceId: workspace.id,
+          groupId: 'missing-group',
+          direction: 'IN',
+          type: 'TEXT',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupMessageRepository.update('missing', { text: 'x' }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      vi.spyOn(prisma.whatsAppGroupMessage, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(prisma.whatsAppGroupMessage, 'findUnique')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppGroupMessageRepository.listByGroup('g', { limit: 1 }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupMessageRepository.findById('m'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupMessageRepository.findByProviderMessageId('p'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppGroupMessageRepository.updateStatusByProviderMessageId(
+          'p',
+          'READ',
+        ),
+        'DATABASE_ERROR',
+      )
     })
   })
 })

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   fakeHeroContent,
   seedCrmLandingPage,
@@ -7,11 +7,16 @@ import {
 } from '@/src/__tests__/factories/crm-landing-page.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import {
   CrmLandingPageRepository,
   CrmLandingPageViewRepository,
 } from '../crm-landing-page.repository'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 describe('CrmLandingPageRepository', () => {
   describe('listByWorkspace()', () => {
@@ -179,5 +184,119 @@ describe('CrmLandingPageViewRepository', () => {
       )
       expect(list).toHaveLength(1)
     })
+  })
+})
+
+describe('CrmLandingPageRepository — lifecycle and failures', () => {
+  it('should unpublish a page, clearing publishedAt and hiding it from the public token', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const page = await seedCrmLandingPage(workspace.id, user.id)
+    expectOk(await CrmLandingPageRepository.setPublished(page.id, true))
+
+    const draft = expectOk(
+      await CrmLandingPageRepository.setPublished(page.id, false),
+    )
+    expect(draft.status).toBe('DRAFT')
+    expect(draft.publishedAt).toBeNull()
+    expectErr(
+      await CrmLandingPageRepository.findByShareToken(page.shareToken),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should soft delete a page so it disappears from lookups', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const page = await seedCrmLandingPage(workspace.id, user.id)
+
+    expectOk(await CrmLandingPageRepository.softDelete(page.id))
+
+    expectErr(
+      await CrmLandingPageRepository.findById(page.id, workspace.id),
+      'RESOURCE_NOT_FOUND',
+    )
+    expect(
+      expectOk(await CrmLandingPageRepository.listByWorkspace(workspace.id)),
+    ).toEqual([])
+  })
+
+  it('should not find a page from another workspace', async () => {
+    const [workspace, other, user] = await Promise.all([
+      seedWorkspace(),
+      seedWorkspace(),
+      seedUser(),
+    ])
+    const page = await seedCrmLandingPage(workspace.id, user.id)
+    expectErr(
+      await CrmLandingPageRepository.findById(page.id, other.id),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should return DATABASE_ERROR when writes target missing rows', async () => {
+    const user = await seedUser()
+    const workspace = await seedWorkspace()
+    expectErr(
+      await CrmLandingPageRepository.create({
+        workspaceId: 'missing',
+        createdById: user.id,
+        title: 'x',
+        templateKey: 'saas',
+        sections: [],
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageRepository.update('missing', { title: 'x' }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageRepository.setPublished('missing', true),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageRepository.softDelete('missing'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageRepository.reorder(workspace.id, ['missing']),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageViewRepository.record({
+        landingPageId: 'missing',
+        viewId: 'v',
+        ipHash: 'h',
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.crmLandingPage, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.crmLandingPage, 'findFirst')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(prisma.crmLandingPageView, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await CrmLandingPageRepository.listByWorkspace('w'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageRepository.findById('p', 'w'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageRepository.findByShareToken('t'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLandingPageViewRepository.listByLandingPage('p'),
+      'DATABASE_ERROR',
+    )
   })
 })
