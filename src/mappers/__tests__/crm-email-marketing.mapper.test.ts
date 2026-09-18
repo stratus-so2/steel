@@ -6,6 +6,7 @@ import {
 } from '@/src/__tests__/factories/crm-email-marketing.factory'
 import {
   toCrmEmailCampaignDTO,
+  toCrmEmailOptOutDTO,
   toCrmEmailTemplateDTO,
   toCrmMailingListDTO,
 } from '../crm-email-marketing.mapper'
@@ -68,5 +69,29 @@ describe('toCrmMailingListDTO()', () => {
     const list = createFakeCrmMailingList({ id: 'l-1' })
     const dto = toCrmMailingListDTO({ ...list, _count: { members: 4 } })
     expect(dto.memberCount).toBe(4)
+  })
+})
+
+describe('toCrmEmailOptOutDTO()', () => {
+  it('should map the opt-out record', () => {
+    const createdAt = new Date('2026-09-18T12:00:00.000Z')
+    expect(
+      toCrmEmailOptOutDTO({
+        id: 'o1',
+        workspaceId: 'ws1',
+        email: 'jane@acme.com',
+        personId: null,
+        campaignId: 'c1',
+        source: 'ONE_CLICK',
+        createdAt,
+      }),
+    ).toEqual({
+      id: 'o1',
+      email: 'jane@acme.com',
+      personId: null,
+      campaignId: 'c1',
+      source: 'ONE_CLICK',
+      createdAt: '2026-09-18T12:00:00.000Z',
+    })
   })
 })

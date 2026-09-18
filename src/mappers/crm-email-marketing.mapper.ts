@@ -1,6 +1,7 @@
 import type {
   CrmEmailCampaign,
   CrmEmailCampaignRecipient,
+  CrmEmailOptOut,
   CrmEmailTemplate,
   CrmMailingList,
   CrmMailingListMember,
@@ -8,6 +9,7 @@ import type {
 import type {
   CrmEmailCampaignDTO,
   CrmEmailCampaignRecipientDTO,
+  CrmEmailOptOutDTO,
   CrmEmailTemplateDTO,
   CrmMailingListDTO,
   CrmMailingListMemberDTO,
@@ -106,5 +108,16 @@ export function toCrmMailingListMemberDTO(
     name: member.name,
     personId: member.personId,
     createdAt: member.createdAt.toISOString(),
+  }
+}
+
+export function toCrmEmailOptOutDTO(optOut: CrmEmailOptOut): CrmEmailOptOutDTO {
+  return {
+    id: optOut.id,
+    email: optOut.email,
+    personId: optOut.personId,
+    campaignId: optOut.campaignId,
+    source: optOut.source,
+    createdAt: optOut.createdAt.toISOString(),
   }
 }
