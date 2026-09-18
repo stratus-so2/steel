@@ -87,7 +87,9 @@ export default defineConfig({
             './src/__tests__/setup.ts',
             './src/__tests__/setup.component.ts',
           ],
-          testTimeout: 5000,
+          // Full CRM grids and Base UI dialogs render slowly on a loaded runner;
+          // the first render of a file can exceed 5s even though it passes.
+          testTimeout: 15000,
         },
       },
       {

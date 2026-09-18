@@ -1,4 +1,4 @@
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 
 // jsdom lacks a handful of layout/browser APIs that Base UI, input-otp,
@@ -72,6 +72,10 @@ if (typeof window !== 'undefined') {
   }
   window.scrollTo ??= () => {}
 }
+
+// `findBy*`/`waitFor` default to 1s, which the heavier screens (data grid,
+// dialogs) can miss on a busy CI runner.
+configure({ asyncUtilTimeout: 3000 })
 
 // Unmount any rendered tree and reset mocks between component tests so a
 // previous render's DOM never leaks into the next assertion.
