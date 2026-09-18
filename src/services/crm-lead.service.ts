@@ -4,6 +4,7 @@ import {
   crmLeadAlreadyClosed,
   crmLeadDuplicate,
   crmLeadProposalNotFound,
+  crmLeadReopenNotAllowed,
   crmLeadStageRequirementsNotMet,
   crmLeadStageTransitionInvalid,
   validationError,
@@ -19,6 +20,7 @@ import {
   toCrmLeadMeetingDTO,
   toCrmLeadProposalPresentationDTO,
   toCrmLeadQualificationDTO,
+  toCrmLeadReopeningDTO,
 } from '@/src/mappers/crm-lead.mapper'
 import { toCrmPersonDTO } from '@/src/mappers/crm-person.mapper'
 import { toCrmProposalDTO } from '@/src/mappers/crm-proposal.mapper'
@@ -38,6 +40,7 @@ import {
   type RegisterCrmLeadContactAttemptDTO,
   type RegisterCrmLeadMeetingDTO,
   type RegisterCrmLeadProposalPresentationDTO,
+  type ReopenCrmLeadDTO,
   type UpdateCrmLeadDTO,
   type UpsertCrmLeadQualificationDTO,
 } from '@/src/schemas/crm-lead.schema'
@@ -48,10 +51,12 @@ import type {
   CrmLeadMeetingDTO,
   CrmLeadProposalPresentationDTO,
   CrmLeadQualificationDTO,
+  CrmLeadReopeningDTO,
 } from '@/types/crm-lead'
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
 import { assertModuleEnabled, assertModuleMember } from './authz'
+import { CrmSettingsService } from './crm-settings.service'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 /**
@@ -126,6 +131,43 @@ async function resolvePersonForLead(
   })
   if (!created.ok) return created
   return ok({ person: created.value, created: true })
+}
+
+/** Ordem das etapas abertas do painel (índice = posição no funil). */
+const OPEN_STAGE_ORDER: CrmLeadStage[] = [
+  'RECEIVED',
+  'IN_CONTACT',
+  'QUALIFIED',
+  'OPPORTUNITY',
+  'PROPOSAL',
+]
+
+/**
+ * Etapa mais avançada que os registros do lead sustentam — a mesma regra de
+ * gate do avanço normal: IN_CONTACT exige uma tentativa de contato,
+ * QUALIFIED um contato efetivo, OPPORTUNITY a qualificação e PROPOSAL uma
+ * proposta vinculada. Reabrir nunca pula um gate.
+ */
+async function furthestReachableStage(
+  workspaceId: string,
+  leadId: string,
+): Promise<Result<CrmLeadStage>> {
+  const [attempts, qualification, proposal] = await Promise.all([
+    CrmLeadRepository.listContactAttempts(leadId),
+    CrmLeadRepository.findQualification(leadId),
+    CrmProposalRepository.findLatestByLeadId(leadId, workspaceId),
+  ])
+  if (!attempts.ok) return attempts
+  if (!qualification.ok) return qualification
+  if (!proposal.ok) return proposal
+
+  if (proposal.value && qualification.value) return ok('PROPOSAL')
+  if (qualification.value) return ok('OPPORTUNITY')
+  if (attempts.value.some((a) => a.outcome === 'REACHED')) {
+    return ok('QUALIFIED')
+  }
+  if (attempts.value.length > 0) return ok('IN_CONTACT')
+  return ok('RECEIVED')
 }
 
 /** Dispara os workflows de lead para um update (best-effort, não bloqueia). */
@@ -1092,5 +1134,110 @@ export const CrmLeadService = {
     ])
 
     return ok(toCrmLeadDTO(updated.value))
+  },
+
+  /**
+   * Reabre um lead perdido: volta para a etapa configurada em CrmSettings
+   * (padrão: a 1ª etapa), limitada à etapa mais avançada que os registros
+   * do lead sustentam. Limpa motivo/data da perda no lead, mas guarda o
+   * snapshot em `crm_lead_reopenings` (histórico) e na auditoria. Leads
+   * ganhos não reabrem. Dispara o gatilho de workflow "stage changed".
+   */
+  async reopen(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+    dto: ReopenCrmLeadDTO,
+  ): Promise<Result<CrmLeadDTO>> {
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+    if (lead.value.closeResult === 'WON') {
+      return err(
+        crmLeadReopenNotAllowed(
+          'Leads ganhos não podem ser reabertos — o negócio já foi fechado',
+        ),
+      )
+    }
+    if (lead.value.closeResult !== 'LOST') return err(crmLeadReopenNotAllowed())
+
+    const settings = await CrmSettingsService.resolve(workspaceId)
+    if (!settings.ok) return settings
+    const configuredStage = settings.value.leadReopenStage
+
+    const reachable = await furthestReachableStage(workspaceId, leadId)
+    if (!reachable.ok) return reachable
+
+    const toStage =
+      OPEN_STAGE_ORDER.indexOf(reachable.value) <
+      OPEN_STAGE_ORDER.indexOf(configuredStage)
+        ? reachable.value
+        : configuredStage
+
+    const reopened = await CrmLeadRepository.reopen(leadId, {
+      workspaceId,
+      toStage,
+      reason: dto.reason,
+      reopenedById: actorId,
+    })
+
+    if (!reopened.ok) {
+      auditMutation({
+        entity: 'crm_lead',
+        action: 'update',
+        actorId,
+        targetId: leadId,
+        outcome: 'failure',
+        reason: reopened.error.code,
+        meta: { reopened: true },
+      })
+      return reopened
+    }
+
+    auditMutation({
+      entity: 'crm_lead',
+      action: 'update',
+      actorId,
+      targetId: leadId,
+      meta: {
+        reopened: true,
+        toStage,
+        configuredStage,
+        previousLostReason: lead.value.lostReason,
+      },
+    })
+
+    emitLeadUpdated(workspaceId, actorId, lead.value, reopened.value, [
+      'stage',
+      'closeResult',
+      'lostReason',
+    ])
+
+    return ok(toCrmLeadDTO(reopened.value))
+  },
+
+  async listReopenings(
+    actorId: string,
+    workspaceId: string,
+    leadId: string,
+  ): Promise<Result<CrmLeadReopeningDTO[]>> {
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
+    if (!membership.ok) return membership
+
+    const lead = await CrmLeadRepository.findById(leadId, workspaceId)
+    if (!lead.ok) return lead
+
+    const result = await CrmLeadRepository.listReopenings(leadId)
+    if (!result.ok) return result
+
+    return ok(result.value.map(toCrmLeadReopeningDTO))
   },
 }

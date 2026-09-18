@@ -8,9 +8,10 @@ import type {
   CrmLeadProposalFormat,
   CrmLeadProposalPresentation,
   CrmLeadQualification,
+  CrmLeadReopening,
   CrmLeadStage,
 } from '@prisma/client'
-import { notFound } from '@/src/errors'
+import { crmLeadReopenNotAllowed, notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
@@ -343,6 +344,80 @@ export const CrmLeadRepository = {
       return err(
         dbError('Failed to list CRM lead proposal presentations', error),
       )
+    }
+  },
+
+  /**
+   * Reabre um lead perdido numa transação: grava o snapshot da perda em
+   * `crm_lead_reopenings` e devolve o lead à etapa `toStage` com os campos
+   * de fechamento limpos. A leitura dentro da transação garante que só um
+   * lead ainda LOST (desta workspace) é reaberto — corrida com outra
+   * reabertura/edição cai em CRM_LEAD_REOPEN_NOT_ALLOWED.
+   */
+  async reopen(
+    leadId: string,
+    data: {
+      workspaceId: string
+      toStage: CrmLeadStage
+      reason: string
+      reopenedById: string
+    },
+  ): Promise<Result<CrmLead>> {
+    try {
+      const lead = await prisma.$transaction(async (tx) => {
+        const current = await tx.crmLead.findFirst({
+          where: {
+            id: leadId,
+            workspaceId: data.workspaceId,
+            closeResult: 'LOST',
+            deletedAt: null,
+          },
+        })
+        if (!current) return null
+
+        await tx.crmLeadReopening.create({
+          data: {
+            leadId,
+            workspaceId: data.workspaceId,
+            toStage: data.toStage,
+            reason: data.reason,
+            previousLostReason: current.lostReason,
+            previousLostNote: current.lostNote,
+            previousClosedAt: current.closedAt,
+            previousRetryAt: current.retryAt,
+            reopenedById: data.reopenedById,
+          },
+        })
+
+        return tx.crmLead.update({
+          where: { id: leadId },
+          data: {
+            stage: data.toStage,
+            closeResult: null,
+            closedAt: null,
+            lostReason: null,
+            lostNote: null,
+            retryAt: null,
+            updatedById: data.reopenedById,
+          },
+        })
+      })
+      if (!lead) return err(crmLeadReopenNotAllowed())
+      return ok(lead)
+    } catch (error) {
+      return err(dbError('Failed to reopen CRM lead', error))
+    }
+  },
+
+  async listReopenings(leadId: string): Promise<Result<CrmLeadReopening[]>> {
+    try {
+      const reopenings = await prisma.crmLeadReopening.findMany({
+        where: { leadId },
+        orderBy: { createdAt: 'desc' },
+      })
+      return ok(reopenings)
+    } catch (error) {
+      return err(dbError('Failed to list CRM lead reopenings', error))
     }
   },
 }

@@ -1,11 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeCrmLead,
   createFakeCrmLeadContactAttempt,
   createFakeCrmLeadMeeting,
   createFakeCrmLeadProposalPresentation,
   createFakeCrmLeadQualification,
+  createFakeCrmLeadReopening,
+  createFakeLostCrmLead,
 } from '@/src/__tests__/factories/crm-lead.factory'
+import { createFakeCrmSettings } from '@/src/__tests__/factories/crm-settings.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
@@ -16,6 +19,7 @@ vi.mock('@/src/repositories/crm-lead-scoring-rule.repository')
 vi.mock('@/src/repositories/crm-lead-routing-rule.repository')
 vi.mock('@/src/repositories/crm-person.repository')
 vi.mock('@/src/repositories/crm-proposal.repository')
+vi.mock('@/src/repositories/crm-settings.repository')
 vi.mock('@/src/services/crm-workflow-dispatcher')
 
 import { createFakeCrmPerson } from '@/src/__tests__/factories/crm-person.factory'
@@ -25,6 +29,7 @@ import { CrmLeadRoutingRuleRepository } from '@/src/repositories/crm-lead-routin
 import { CrmLeadScoringRuleRepository } from '@/src/repositories/crm-lead-scoring-rule.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { CrmProposalRepository } from '@/src/repositories/crm-proposal.repository'
+import { CrmSettingsRepository } from '@/src/repositories/crm-settings.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmLeadService } from '../crm-lead.service'
@@ -37,6 +42,12 @@ const mockedRoutingRepo = vi.mocked(CrmLeadRoutingRuleRepository)
 const mockedPersonRepo = vi.mocked(CrmPersonRepository)
 const mockedProposalRepo = vi.mocked(CrmProposalRepository)
 const mockedDispatch = vi.mocked(dispatchCrmWorkflowRecordEvent)
+const mockedSettingsRepo = vi.mocked(CrmSettingsRepository)
+
+beforeEach(() => {
+  // Sem configurações salvas -> valores padrão (reabre em RECEIVED, 15 dias).
+  mockedSettingsRepo.findByWorkspace.mockResolvedValue(ok(null))
+})
 
 function mockNoRules() {
   mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
@@ -779,6 +790,186 @@ describe('CrmLeadService', () => {
         }),
         'CRM_LEAD_ALREADY_CLOSED',
       )
+    })
+  })
+
+  describe('reopen()', () => {
+    function mockGateRecords(records: {
+      attempts?: ('ATTEMPTED' | 'REACHED')[]
+      qualified?: boolean
+      proposal?: boolean
+    }) {
+      mockedLeadRepo.listContactAttempts.mockResolvedValue(
+        ok(
+          (records.attempts ?? []).map((outcome) =>
+            createFakeCrmLeadContactAttempt({ leadId: 'l1', outcome }),
+          ),
+        ),
+      )
+      mockedLeadRepo.findQualification.mockResolvedValue(
+        ok(
+          records.qualified
+            ? createFakeCrmLeadQualification({ leadId: 'l1' })
+            : null,
+        ),
+      )
+      mockedProposalRepo.findLatestByLeadId.mockResolvedValue(
+        ok(
+          records.proposal
+            ? { ...createFakeCrmProposal({ leadId: 'l1' }), sections: [] }
+            : null,
+        ),
+      )
+    }
+
+    it('should move a lost lead back to the first stage by default', async () => {
+      mockMember()
+      const lost = createFakeLostCrmLead({ id: 'l1' })
+      mockedLeadRepo.findById.mockResolvedValue(ok(lost))
+      mockGateRecords({})
+      mockedLeadRepo.reopen.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'RECEIVED' })),
+      )
+
+      const dto = expectOk(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', {
+          reason: 'Cliente voltou a responder',
+        }),
+      )
+
+      expect(dto.stage).toBe('RECEIVED')
+      expect(dto.closeResult).toBeNull()
+      expect(mockedLeadRepo.reopen).toHaveBeenCalledWith('l1', {
+        workspaceId: 'ws1',
+        toStage: 'RECEIVED',
+        reason: 'Cliente voltou a responder',
+        reopenedById: 'u1',
+      })
+    })
+
+    it('should use the configured reopen stage when the lead has its gate records', async () => {
+      mockMember()
+      mockedSettingsRepo.findByWorkspace.mockResolvedValue(
+        ok(createFakeCrmSettings({ leadReopenStage: 'OPPORTUNITY' })),
+      )
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeLostCrmLead({ id: 'l1' })),
+      )
+      mockGateRecords({ attempts: ['REACHED'], qualified: true })
+      mockedLeadRepo.reopen.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'OPPORTUNITY' })),
+      )
+
+      expectOk(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'Retomou' }),
+      )
+      expect(mockedLeadRepo.reopen).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ toStage: 'OPPORTUNITY' }),
+      )
+    })
+
+    it('should never skip a stage gate: clamps to the furthest stage the records allow', async () => {
+      mockMember()
+      mockedSettingsRepo.findByWorkspace.mockResolvedValue(
+        ok(createFakeCrmSettings({ leadReopenStage: 'PROPOSAL' })),
+      )
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeLostCrmLead({ id: 'l1' })),
+      )
+      // Só houve tentativa de contato (sem conversa efetiva).
+      mockGateRecords({ attempts: ['ATTEMPTED'] })
+      mockedLeadRepo.reopen.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'IN_CONTACT' })),
+      )
+
+      expectOk(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'Retomou' }),
+      )
+      expect(mockedLeadRepo.reopen).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ toStage: 'IN_CONTACT' }),
+      )
+    })
+
+    it('should fire the stage-changed lead workflow trigger', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeLostCrmLead({ id: 'l1' })),
+      )
+      mockGateRecords({})
+      mockedLeadRepo.reopen.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'RECEIVED' })),
+      )
+
+      expectOk(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'Retomou' }),
+      )
+      expect(mockedDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: 'lead',
+          event: 'updated',
+          leadEvents: ['stage-changed'],
+        }),
+      )
+    })
+
+    it('should refuse to reopen a won lead', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmLead({ id: 'l1', stage: 'CLOSED', closeResult: 'WON' }),
+        ),
+      )
+
+      expectErr(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'x' }),
+        'CRM_LEAD_REOPEN_NOT_ALLOWED',
+      )
+      expect(mockedLeadRepo.reopen).not.toHaveBeenCalled()
+    })
+
+    it('should refuse to reopen a lead that is still open', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'QUALIFIED' })),
+      )
+
+      expectErr(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'x' }),
+        'CRM_LEAD_REOPEN_NOT_ALLOWED',
+      )
+    })
+
+    it('should require EDIT on leads', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'VIEWER' })),
+      )
+
+      expectErr(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'x' }),
+        'FORBIDDEN',
+      )
+      expect(mockedLeadRepo.findById).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('listReopenings()', () => {
+    it('should list the reopening history of a lead', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1' })),
+      )
+      mockedLeadRepo.listReopenings.mockResolvedValue(
+        ok([createFakeCrmLeadReopening({ leadId: 'l1', reason: 'Retomou' })]),
+      )
+
+      const list = expectOk(
+        await CrmLeadService.listReopenings('u1', 'ws1', 'l1'),
+      )
+      expect(list).toHaveLength(1)
+      expect(list[0]?.reason).toBe('Retomou')
+      expect(typeof list[0]?.createdAt).toBe('string')
     })
   })
 })

@@ -6,6 +6,7 @@ import {
   createFakeCrmLeadMeeting,
   createFakeCrmLeadProposalPresentation,
   createFakeCrmLeadQualification,
+  createFakeCrmLeadReopening,
   createFakeCrmLeadRoutingRule,
   createFakeCrmLeadScoringRule,
 } from '@/src/__tests__/factories/crm-lead.factory'
@@ -15,6 +16,7 @@ import {
   toCrmLeadMeetingDTO,
   toCrmLeadProposalPresentationDTO,
   toCrmLeadQualificationDTO,
+  toCrmLeadReopeningDTO,
   toCrmLeadRoutingRuleDTO,
   toCrmLeadScoringRuleDTO,
 } from '../crm-lead.mapper'
@@ -88,5 +90,31 @@ describe('toCrmLeadProposalPresentationDTO()', () => {
     const dto = toCrmLeadProposalPresentationDTO(presentation)
     expect(dto.id).toBe('pp-1')
     expect(dto.amount).toBe(2500)
+  })
+})
+
+describe('toCrmLeadReopeningDTO()', () => {
+  it('should map the reopening with the snapshot of the undone loss', () => {
+    const closedAt = new Date('2026-09-01T12:00:00.000Z')
+    const reopening = createFakeCrmLeadReopening({
+      id: 'r1',
+      leadId: 'l1',
+      toStage: 'QUALIFIED',
+      previousClosedAt: closedAt,
+      previousRetryAt: null,
+    })
+
+    const dto = toCrmLeadReopeningDTO(reopening)
+
+    expect(dto).toMatchObject({
+      id: 'r1',
+      leadId: 'l1',
+      toStage: 'QUALIFIED',
+      reason: reopening.reason,
+      previousLostReason: 'Preço',
+      previousClosedAt: closedAt.toISOString(),
+      previousRetryAt: null,
+      createdAt: reopening.createdAt.toISOString(),
+    })
   })
 })

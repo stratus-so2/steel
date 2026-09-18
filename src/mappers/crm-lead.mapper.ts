@@ -4,6 +4,7 @@ import type {
   CrmLeadMeeting,
   CrmLeadProposalPresentation,
   CrmLeadQualification,
+  CrmLeadReopening,
   CrmLeadRoutingRule,
   CrmLeadScoringRule,
 } from '@prisma/client'
@@ -13,6 +14,7 @@ import type {
   CrmLeadMeetingDTO,
   CrmLeadProposalPresentationDTO,
   CrmLeadQualificationDTO,
+  CrmLeadReopeningDTO,
   CrmLeadRoutingRuleDTO,
   CrmLeadScoringRuleDTO,
 } from '@/types/crm-lead'
@@ -148,5 +150,22 @@ export function toCrmLeadProposalPresentationDTO(
     interactionsCount: presentation.interactionsCount,
     createdById: presentation.createdById,
     createdAt: presentation.createdAt.toISOString(),
+  }
+}
+
+export function toCrmLeadReopeningDTO(
+  reopening: CrmLeadReopening,
+): CrmLeadReopeningDTO {
+  return {
+    id: reopening.id,
+    leadId: reopening.leadId,
+    toStage: reopening.toStage,
+    reason: reopening.reason,
+    previousLostReason: reopening.previousLostReason,
+    previousLostNote: reopening.previousLostNote,
+    previousClosedAt: reopening.previousClosedAt?.toISOString() ?? null,
+    previousRetryAt: reopening.previousRetryAt?.toISOString() ?? null,
+    reopenedById: reopening.reopenedById,
+    createdAt: reopening.createdAt.toISOString(),
   }
 }

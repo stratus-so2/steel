@@ -277,4 +277,122 @@ describe('CrmLeadRepository', () => {
       expect(Number(list[0]?.amount)).toBe(1500)
     })
   })
+
+  describe('reopen()', () => {
+    it('should move a lost lead back, clear the loss and keep a snapshot', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const closedAt = new Date('2026-09-01T12:00:00.000Z')
+      const retryAt = new Date('2026-12-01T12:00:00.000Z')
+      const lead = await seedCrmLead(workspace.id, user.id, {
+        stage: 'CLOSED',
+        closeResult: 'LOST',
+        closedAt,
+        lostReason: 'Preço',
+        lostNote: 'Achou caro',
+        retryAt,
+      })
+
+      const reopened = expectOk(
+        await CrmLeadRepository.reopen(lead.id, {
+          workspaceId: workspace.id,
+          toStage: 'IN_CONTACT',
+          reason: 'Cliente pediu nova proposta',
+          reopenedById: user.id,
+        }),
+      )
+
+      expect(reopened.stage).toBe('IN_CONTACT')
+      expect(reopened.closeResult).toBeNull()
+      expect(reopened.closedAt).toBeNull()
+      expect(reopened.lostReason).toBeNull()
+      expect(reopened.lostNote).toBeNull()
+      expect(reopened.retryAt).toBeNull()
+      expect(reopened.updatedById).toBe(user.id)
+
+      const history = expectOk(await CrmLeadRepository.listReopenings(lead.id))
+      expect(history).toHaveLength(1)
+      expect(history[0]).toMatchObject({
+        toStage: 'IN_CONTACT',
+        reason: 'Cliente pediu nova proposta',
+        previousLostReason: 'Preço',
+        previousLostNote: 'Achou caro',
+        previousClosedAt: closedAt,
+        previousRetryAt: retryAt,
+        reopenedById: user.id,
+      })
+    })
+
+    it('should refuse a lead that is not lost (won or already reopened)', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const won = await seedCrmLead(workspace.id, user.id, {
+        stage: 'CLOSED',
+        closeResult: 'WON',
+      })
+
+      expectErr(
+        await CrmLeadRepository.reopen(won.id, {
+          workspaceId: workspace.id,
+          toStage: 'RECEIVED',
+          reason: 'x',
+          reopenedById: user.id,
+        }),
+        'CRM_LEAD_REOPEN_NOT_ALLOWED',
+      )
+      expect(
+        expectOk(await CrmLeadRepository.listReopenings(won.id)),
+      ).toHaveLength(0)
+    })
+
+    it('should not reopen a lead of another workspace', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const lead = await seedCrmLead(other.id, user.id, {
+        stage: 'CLOSED',
+        closeResult: 'LOST',
+      })
+
+      expectErr(
+        await CrmLeadRepository.reopen(lead.id, {
+          workspaceId: workspace.id,
+          toStage: 'RECEIVED',
+          reason: 'x',
+          reopenedById: user.id,
+        }),
+        'CRM_LEAD_REOPEN_NOT_ALLOWED',
+      )
+    })
+  })
+
+  describe('listReopenings()', () => {
+    it('should list the history newest first', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const lead = await seedCrmLead(workspace.id, user.id)
+      await prisma.crmLeadReopening.createMany({
+        data: [
+          {
+            leadId: lead.id,
+            workspaceId: workspace.id,
+            toStage: 'RECEIVED',
+            reason: 'primeira',
+            reopenedById: user.id,
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+          {
+            leadId: lead.id,
+            workspaceId: workspace.id,
+            toStage: 'RECEIVED',
+            reason: 'segunda',
+            reopenedById: user.id,
+            createdAt: new Date('2026-02-01T00:00:00.000Z'),
+          },
+        ],
+      })
+
+      const history = expectOk(await CrmLeadRepository.listReopenings(lead.id))
+      expect(history.map((r) => r.reason)).toEqual(['segunda', 'primeira'])
+    })
+  })
 })
