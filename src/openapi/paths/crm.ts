@@ -11,6 +11,7 @@ import { crmProductsRoutes } from './crm/products'
 import { crmProposalsRoutes } from './crm/proposals'
 import { crmReportsRoutes } from './crm/reports'
 import { crmSettingsRoutes } from './crm/settings'
+import { crmSocialRoutes } from './crm/social'
 import { crmWorkflowsRoutes } from './crm/workflows'
 
 /**
