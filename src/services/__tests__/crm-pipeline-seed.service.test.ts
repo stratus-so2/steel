@@ -77,6 +77,21 @@ describe('CrmPipelineSeedService.seedDefaultPipeline()', () => {
     expect(mockedStageRepo.create).not.toHaveBeenCalled()
   })
 
+  it('propagates a failure listing the existing pipelines', async () => {
+    stubEmptyWorkspace()
+    mockedPipelineRepo.listByWorkspace.mockResolvedValue(
+      err(databaseError('Failed to list CRM pipelines')),
+    )
+
+    const result = await CrmPipelineSeedService.seedDefaultPipeline(
+      WORKSPACE_ID,
+      ACTOR_ID,
+    )
+
+    expectErr(result, 'DATABASE_ERROR')
+    expect(mockedPipelineRepo.create).not.toHaveBeenCalled()
+  })
+
   it('propagates a pipeline creation failure', async () => {
     stubEmptyWorkspace()
     mockedPipelineRepo.create.mockResolvedValueOnce(
