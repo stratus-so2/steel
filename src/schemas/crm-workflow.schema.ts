@@ -187,7 +187,8 @@ const TriggerRecordCreatedOrUpdatedSchema = z.object({
   type: z.literal('record-is-created-or-updated'),
   entity: z.enum(CRM_WORKFLOW_TRIGGER_ENTITIES),
   fields: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
-  /** Só para `entity: 'lead'`; na criação o filtro não se aplica. */
+  /** Só para `entity: 'lead'`. Com filtro, a criação não dispara (não é um
+   * evento de etapa/ganho/perda). */
   leadEvent: z.enum(CRM_WORKFLOW_LEAD_EVENTS).optional(),
 })
 

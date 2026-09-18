@@ -7,7 +7,8 @@ import {
   CrmWorkflowRunRepository,
 } from '@/src/repositories/crm-workflow.repository'
 import type {
-  CrmWorkflowEntity,
+  CrmWorkflowLeadEvent,
+  CrmWorkflowTriggerEntity,
   CrmWorkflowTriggerType,
 } from '@/src/schemas/crm-workflow.schema'
 import { runCrmWorkflow } from '@/src/services/crm-workflow-runner'
@@ -21,7 +22,7 @@ const EVENT_TO_TRIGGER: Record<Event, CrmWorkflowTriggerType[]> = {
 }
 
 /**
- * Disparado pelos services CRUD (Company/Person/Opportunity/Task/Note) após
+ * Disparado pelos services CRUD (Company/Person/Opportunity/Task/Note/Lead) após
  * commit — mesmo ponto de chamada de `recordCrmActivity`, mas para
  * automação em vez de timeline. Carrega workflows ACTIVE da workspace,
  * filtra pelos que casam com `(entity, event)` e dispara uma run por match.
@@ -31,10 +32,13 @@ const EVENT_TO_TRIGGER: Record<Event, CrmWorkflowTriggerType[]> = {
 export async function dispatchCrmWorkflowRecordEvent(params: {
   workspaceId: string
   actorUserId: string
-  entity: CrmWorkflowEntity
+  entity: CrmWorkflowTriggerEntity
   event: Event
   record: unknown
   changedFields?: string[]
+  /** Eventos de domínio do lead carregados por este update (etapa, ganho,
+   * perdido). Um trigger com `leadEvent` só casa se o evento estiver aqui. */
+  leadEvents?: CrmWorkflowLeadEvent[]
 }): Promise<void> {
   const candidates = EVENT_TO_TRIGGER[params.event]
   const wfList = await CrmWorkflowRepository.findActiveByWorkspace(
@@ -49,6 +53,13 @@ export async function dispatchCrmWorkflowRecordEvent(params: {
     if (!trigger) continue
     if (!candidates.includes(trigger.type)) continue
     if ('entity' in trigger && trigger.entity !== params.entity) continue
+    if (
+      'leadEvent' in trigger &&
+      trigger.leadEvent &&
+      !params.leadEvents?.includes(trigger.leadEvent)
+    ) {
+      continue
+    }
 
     // Trigger update/created-or-updated com `fields` exige interseção.
     if (
@@ -66,6 +77,7 @@ export async function dispatchCrmWorkflowRecordEvent(params: {
       event: params.event,
       record: params.record,
       changedFields: params.changedFields ?? [],
+      ...(params.leadEvents ? { leadEvents: params.leadEvents } : {}),
     }
     const run = await CrmWorkflowRunRepository.create({
       workflowId: wf.id,
