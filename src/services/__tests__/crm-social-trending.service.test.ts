@@ -9,6 +9,7 @@ vi.mock('../crm-social-instagram.service')
 vi.mock('../crm-social-token')
 
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import {
   fetchActiveStories,
   fetchEnrichedMediaSince,
@@ -141,6 +142,114 @@ describe('CrmSocialTrendingService', () => {
         likes: 0,
         comments: 0,
         saved: null,
+      })
+    })
+
+    it('should return MODULE_DISABLED when the CRM module is off', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      vi.mocked(
+        WorkspaceModuleAccessRepository.isEnabled,
+      ).mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await CrmSocialTrendingService.getTodayRanking('u1', 'ws1'),
+        'MODULE_DISABLED',
+      )
+      expect(mockedGetFreshAccessToken).not.toHaveBeenCalled()
+    })
+
+    describe('with a connected Instagram account', () => {
+      const media = (id: string, timestamp: string, engagementScore = 10) => ({
+        id,
+        mediaType: 'IMAGE' as const,
+        mediaUrl: `https://cdn.example/${id}.jpg`,
+        thumbnailUrl: null,
+        caption: null,
+        timestamp,
+        permalink: null,
+        likeCount: engagementScore,
+        commentsCount: 0,
+        saved: 0,
+        engagementScore,
+      })
+      const story = (id: string, timestamp: string, reach = 10) => ({
+        id,
+        mediaUrl: null,
+        timestamp,
+        permalink: null,
+        reach,
+      })
+
+      beforeEach(() => {
+        mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+          ok(createFakeMembership({ role: 'VIEWER' })),
+        )
+        mockedGetFreshAccessToken.mockResolvedValue(
+          ok({
+            accessToken: 'token-1',
+            connection: createFakeCrmSocialConnection({
+              externalAccountId: 'ig-1',
+            }),
+          }),
+        )
+      })
+
+      it("should keep today's stories when the media listing fails", async () => {
+        mockedFetchEnrichedMediaSince.mockResolvedValue(
+          err({ code: 'CRM_SOCIAL_OAUTH_FAILED', message: 'x' }),
+        )
+        mockedFetchActiveStories.mockResolvedValue(
+          ok([story('s1', new Date().toISOString())]),
+        )
+
+        const items = expectOk(
+          await CrmSocialTrendingService.getTodayRanking('u1', 'ws1'),
+        )
+        expect(items.map((i) => i.id)).toEqual(['s1'])
+        expect(mockedFetchEnrichedMediaSince).toHaveBeenCalledWith(
+          'token-1',
+          'ig-1',
+          new Date(2026, 8, 15, 0, 0, 0).getTime(),
+        )
+      })
+
+      it("should keep today's media when the stories listing fails", async () => {
+        mockedFetchEnrichedMediaSince.mockResolvedValue(
+          ok([media('m1', new Date().toISOString())]),
+        )
+        mockedFetchActiveStories.mockResolvedValue(
+          err({ code: 'CRM_SOCIAL_OAUTH_FAILED', message: 'x' }),
+        )
+
+        const items = expectOk(
+          await CrmSocialTrendingService.getTodayRanking('u1', 'ws1'),
+        )
+        expect(items).toHaveLength(1)
+        // Sem thumbnail: cai na própria mídia.
+        expect(items[0].thumbnailUrl).toBe('https://cdn.example/m1.jpg')
+        // Postado "agora": horas mínimas de 1 min evitam divisão por zero.
+        expect(items[0].score).toBe(10 * 60)
+      })
+
+      it('should drop posts and stories from yesterday or with an invalid timestamp', async () => {
+        const yesterday = new Date(2026, 8, 14, 22, 0, 0).toISOString()
+        mockedFetchEnrichedMediaSince.mockResolvedValue(
+          ok([
+            media('old', yesterday, 999),
+            media('bad', 'not-a-date', 999),
+            media('today', new Date(2026, 8, 15, 20, 0, 0).toISOString()),
+          ]),
+        )
+        mockedFetchActiveStories.mockResolvedValue(
+          ok([story('old-story', yesterday), story('bad-story', '')]),
+        )
+
+        const items = expectOk(
+          await CrmSocialTrendingService.getTodayRanking('u1', 'ws1'),
+        )
+        expect(items.map((i) => i.id)).toEqual(['today'])
       })
     })
   })
