@@ -29,6 +29,11 @@ export const CreateCrmLeadSchema = z
 
 export type CreateCrmLeadDTO = z.infer<typeof CreateCrmLeadSchema>
 
+/** Entrada crua de qualquer canal (manual, API de integração, formulário
+ * público). O `CrmLeadService.intake` valida com `CreateCrmLeadSchema` —
+ * um único contrato para todos os canais. */
+export type CrmLeadIntakeInput = z.input<typeof CreateCrmLeadSchema>
+
 export const UpdateCrmLeadSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200).optional(),
   emails: z.array(z.email()).optional(),

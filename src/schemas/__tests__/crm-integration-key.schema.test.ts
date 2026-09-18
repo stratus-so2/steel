@@ -26,4 +26,17 @@ describe('IngestCrmLeadSchema', () => {
   it('should reject when name is missing', () => {
     expect(IngestCrmLeadSchema.safeParse({}).success).toBe(false)
   })
+
+  it('should accept the same optional profile fields as manual creation', () => {
+    const result = IngestCrmLeadSchema.safeParse({
+      name: 'Jane',
+      emails: ['jane@acme.com'],
+      jobTitle: 'CTO',
+      city: 'Recife',
+      linkedin: 'https://linkedin.com/in/jane',
+      channel: 'webhook',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data?.jobTitle).toBe('CTO')
+  })
 })

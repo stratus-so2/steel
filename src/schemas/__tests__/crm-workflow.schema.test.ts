@@ -116,6 +116,69 @@ describe('CrmWorkflowDefinitionSchema', () => {
   })
 })
 
+describe('CrmWorkflowDefinitionSchema — lead triggers', () => {
+  const withTrigger = (data: unknown) => ({
+    trigger: { id: 'trigger', position: { x: 0, y: 0 }, data },
+    nodes: [],
+    edges: [],
+  })
+
+  it('should accept a lead creation trigger', () => {
+    const result = CrmWorkflowDefinitionSchema.safeParse(
+      withTrigger({ type: 'record-is-created', entity: 'lead' }),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it.each([
+    'stage-changed',
+    'won',
+    'lost',
+  ])('should accept a lead update trigger scoped to the %s event', (leadEvent) => {
+    const result = CrmWorkflowDefinitionSchema.safeParse(
+      withTrigger({ type: 'record-is-updated', entity: 'lead', leadEvent }),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('should reject a leadEvent on a non-lead trigger', () => {
+    const result = CrmWorkflowDefinitionSchema.safeParse(
+      withTrigger({
+        type: 'record-is-updated',
+        entity: 'person',
+        leadEvent: 'won',
+      }),
+    )
+    expect(result.success).toBe(false)
+  })
+
+  it('should reject an unknown lead event', () => {
+    const result = CrmWorkflowDefinitionSchema.safeParse(
+      withTrigger({
+        type: 'record-is-updated',
+        entity: 'lead',
+        leadEvent: 'reopened',
+      }),
+    )
+    expect(result.success).toBe(false)
+  })
+
+  it('should keep lead out of the node entities', () => {
+    const result = CrmWorkflowDefinitionSchema.safeParse({
+      trigger: { id: 'trigger', position: { x: 0, y: 0 }, data: null },
+      nodes: [
+        {
+          id: 'n1',
+          position: { x: 0, y: 0 },
+          data: { type: 'create-record', entity: 'lead', fields: {} },
+        },
+      ],
+      edges: [],
+    })
+    expect(result.success).toBe(false)
+  })
+})
+
 describe('UpdateCrmWorkflowDraftSchema', () => {
   it('should require a full valid definition', () => {
     const result = UpdateCrmWorkflowDraftSchema.safeParse({

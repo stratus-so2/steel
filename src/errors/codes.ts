@@ -168,6 +168,7 @@ export const ERROR_CODES = {
     code: 'CRM_LEAD_PROPOSAL_NOT_FOUND',
     status: 404,
   },
+  CRM_LEAD_DUPLICATE: { code: 'CRM_LEAD_DUPLICATE', status: 409 },
   CRM_CUSTOM_FIELD_NOT_FOUND: {
     code: 'CRM_CUSTOM_FIELD_NOT_FOUND',
     status: 404,

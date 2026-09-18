@@ -304,6 +304,10 @@ export const crmLeadQualificationNotFound = (): AppError =>
 export const crmLeadProposalNotFound = (): AppError =>
   appError('CRM_LEAD_PROPOSAL_NOT_FOUND', 'Proposta do lead não encontrada')
 
+export const crmLeadDuplicate = (
+  message = 'Já existe um lead em aberto com este e-mail ou telefone',
+): AppError => appError('CRM_LEAD_DUPLICATE', message)
+
 export const crmCustomFieldNotFound = (): AppError =>
   appError('CRM_CUSTOM_FIELD_NOT_FOUND', 'Campo customizado não encontrado')
 

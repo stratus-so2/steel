@@ -19,6 +19,31 @@ export const CRM_WORKFLOW_ENTITIES = [
 ] as const
 export type CrmWorkflowEntity = (typeof CRM_WORKFLOW_ENTITIES)[number]
 
+/**
+ * Entidades que podem *disparar* um workflow. Superconjunto das entidades de
+ * node: o lead dispara eventos (criado, etapa alterada, ganho, perdido), mas
+ * não é criado/editado por nodes — o painel de leads tem gates de etapa que
+ * um node genérico de update ignoraria.
+ */
+export const CRM_WORKFLOW_TRIGGER_ENTITIES = [
+  ...CRM_WORKFLOW_ENTITIES,
+  'lead',
+] as const
+export type CrmWorkflowTriggerEntity =
+  (typeof CRM_WORKFLOW_TRIGGER_ENTITIES)[number]
+
+/**
+ * Eventos de domínio do lead além do CRUD. Um trigger de update com
+ * `entity: 'lead'` pode restringir a um deles via `leadEvent`. Ganho/perdido
+ * também são mudança de etapa (-> CLOSED), então disparam `stage-changed`.
+ */
+export const CRM_WORKFLOW_LEAD_EVENTS = [
+  'stage-changed',
+  'won',
+  'lost',
+] as const
+export type CrmWorkflowLeadEvent = (typeof CRM_WORKFLOW_LEAD_EVENTS)[number]
+
 export const CRM_WORKFLOW_STATUSES = ['DRAFT', 'ACTIVE', 'DEACTIVATED'] as const
 export type CrmWorkflowStatus = (typeof CRM_WORKFLOW_STATUSES)[number]
 
@@ -141,25 +166,29 @@ const PositionSchema = z.object({
 
 const TriggerRecordCreatedSchema = z.object({
   type: z.literal('record-is-created'),
-  entity: z.enum(CRM_WORKFLOW_ENTITIES),
+  entity: z.enum(CRM_WORKFLOW_TRIGGER_ENTITIES),
 })
 
 const TriggerRecordUpdatedSchema = z.object({
   type: z.literal('record-is-updated'),
-  entity: z.enum(CRM_WORKFLOW_ENTITIES),
+  entity: z.enum(CRM_WORKFLOW_TRIGGER_ENTITIES),
   /** Lista de campos observados. Vazio = qualquer campo. */
   fields: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
+  /** Só para `entity: 'lead'`. Ausente = qualquer atualização. */
+  leadEvent: z.enum(CRM_WORKFLOW_LEAD_EVENTS).optional(),
 })
 
 const TriggerRecordDeletedSchema = z.object({
   type: z.literal('record-is-deleted'),
-  entity: z.enum(CRM_WORKFLOW_ENTITIES),
+  entity: z.enum(CRM_WORKFLOW_TRIGGER_ENTITIES),
 })
 
 const TriggerRecordCreatedOrUpdatedSchema = z.object({
   type: z.literal('record-is-created-or-updated'),
-  entity: z.enum(CRM_WORKFLOW_ENTITIES),
+  entity: z.enum(CRM_WORKFLOW_TRIGGER_ENTITIES),
   fields: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
+  /** Só para `entity: 'lead'`; na criação o filtro não se aplica. */
+  leadEvent: z.enum(CRM_WORKFLOW_LEAD_EVENTS).optional(),
 })
 
 const TriggerManualSchema = z.object({
@@ -381,6 +410,20 @@ export const CrmWorkflowDefinitionSchema = z
     edges: z.array(CrmWorkflowEdgeSchema).max(500).default([]),
   })
   .superRefine((def, ctx) => {
+    const trigger = def.trigger.data
+    if (
+      trigger &&
+      'leadEvent' in trigger &&
+      trigger.leadEvent &&
+      trigger.entity !== 'lead'
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Evento de lead só vale para gatilhos da entidade lead',
+        path: ['trigger', 'data', 'leadEvent'],
+      })
+    }
+
     const nodeIds = new Set<string>(['trigger'])
     for (const node of def.nodes) {
       if (nodeIds.has(node.id)) {

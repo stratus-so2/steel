@@ -34,6 +34,7 @@ export {
   crmLandingPageTemplateNotFound,
   crmLeadAlreadyClosed,
   crmLeadAlreadyConverted,
+  crmLeadDuplicate,
   crmLeadNotFound,
   crmLeadProposalNotFound,
   crmLeadQualificationNotFound,
