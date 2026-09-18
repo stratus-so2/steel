@@ -28,6 +28,11 @@ async function runTick(): Promise<TickResult> {
       sent += 1
     } else {
       failed += 1
+      // Sem destinatário não há o que reenviar: marca FAILED para o tick não
+      // reprocessar a campanha a cada minuto (e nunca recalcula "todos").
+      if (result.error.code === 'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS') {
+        await CrmEmailCampaignRepository.setStatus(campaign.id, 'FAILED')
+      }
       logger.error('queue.crm_scheduled_send.campaign_failed', {
         component: 'Worker',
         campaignId: campaign.id,

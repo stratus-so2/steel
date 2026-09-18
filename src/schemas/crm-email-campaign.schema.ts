@@ -1,19 +1,33 @@
 import z from 'zod'
 
-export const CreateCrmEmailCampaignSchema = z.object({
-  subject: z.string().min(1, 'Assunto é obrigatório').max(300),
-  contentHtml: z.string().min(1, 'Conteúdo é obrigatório').max(200_000),
-  contentJson: z.string().max(200_000).optional(),
-  fromAddress: z.email(),
-  recipientScope: z.enum(['ALL', 'SELECTED']),
-  // Quando SELECTED, os três conjuntos abaixo são unidos (dedupe por
-  // e-mail) — combinar pessoas + várias listas + e-mails avulsos numa
-  // campanha só, igual ao original.
-  mailingListIds: z.array(z.string()).optional(),
-  personIds: z.array(z.string()).optional(),
-  extraEmails: z.array(z.email()).optional(),
-  scheduledAt: z.coerce.date().optional(),
-})
+export const CreateCrmEmailCampaignSchema = z
+  .object({
+    subject: z.string().min(1, 'Assunto é obrigatório').max(300),
+    contentHtml: z.string().min(1, 'Conteúdo é obrigatório').max(200_000),
+    contentJson: z.string().max(200_000).optional(),
+    fromAddress: z.email(),
+    recipientScope: z.enum(['ALL', 'SELECTED']),
+    // Quando SELECTED, os três conjuntos abaixo são unidos (dedupe por
+    // e-mail) — combinar pessoas + várias listas + e-mails avulsos numa
+    // campanha só, igual ao original.
+    mailingListIds: z.array(z.string()).optional(),
+    personIds: z.array(z.string()).optional(),
+    extraEmails: z.array(z.email()).optional(),
+    scheduledAt: z.coerce.date().optional(),
+  })
+  // "Selecionados" sem ninguém marcado já disparou para o workspace inteiro:
+  // seleção vazia é erro, nunca fallback para "todos".
+  .refine(
+    (data) =>
+      data.recipientScope === 'ALL' ||
+      (data.personIds?.length ?? 0) > 0 ||
+      (data.mailingListIds?.length ?? 0) > 0 ||
+      (data.extraEmails?.length ?? 0) > 0,
+    {
+      message: 'Selecione ao menos um destinatário',
+      path: ['recipientScope'],
+    },
+  )
 
 export type CreateCrmEmailCampaignDTO = z.infer<
   typeof CreateCrmEmailCampaignSchema

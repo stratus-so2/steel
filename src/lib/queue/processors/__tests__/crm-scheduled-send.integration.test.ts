@@ -49,4 +49,38 @@ describe('processCrmScheduledSend()', () => {
     expect(dueAfter.status).toBe('SENT')
     expect(futureAfter.status).toBe('SCHEDULED')
   })
+
+  it('should fail a due campaign with no recipients instead of fanning out or retrying forever', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    await seedMembership({ userId: user.id, workspaceId: workspace.id })
+    await prisma.crmPerson.create({
+      data: {
+        name: 'Não selecionada',
+        emails: ['nao-selecionada@example.com'],
+        workspaceId: workspace.id,
+        createdById: user.id,
+      },
+    })
+    const empty = await seedCrmEmailCampaign(workspace.id, user.id, {
+      status: 'SCHEDULED',
+      recipientScope: 'SELECTED',
+      scheduledAt: new Date(Date.now() - 60_000),
+    })
+
+    const result = await processCrmScheduledSend(tickJob())
+
+    expect(result.due).toBe(1)
+    expect(result.sent).toBe(0)
+    expect(result.failed).toBe(1)
+
+    const after = await prisma.crmEmailCampaign.findUniqueOrThrow({
+      where: { id: empty.id },
+    })
+    expect(after.status).toBe('FAILED')
+    expect(
+      await prisma.crmEmailCampaignRecipient.count({
+        where: { campaignId: empty.id },
+      }),
+    ).toBe(0)
+  })
 })

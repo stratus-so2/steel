@@ -1,5 +1,8 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { crmEmailCampaignAlreadySent } from '@/src/errors'
+import {
+  crmEmailCampaignAlreadySent,
+  crmEmailCampaignNoRecipients,
+} from '@/src/errors'
 import { sendEmail } from '@/src/lib/mail/send'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
@@ -70,6 +73,30 @@ export const CrmEmailCampaignService = {
     })
     if (!membership.ok) return membership
 
+    // Resolve antes de criar: uma campanha sem destinatário elegível não
+    // deve nem existir (e jamais cair no fallback de "todos").
+    const recipients = await resolveRecipients(
+      workspaceId,
+      dto.recipientScope,
+      {
+        mailingListIds: dto.mailingListIds,
+        personIds: dto.personIds,
+        extraEmails: dto.extraEmails,
+      },
+    )
+    if (!recipients.ok) return recipients
+    if (recipients.value.length === 0) {
+      auditMutation({
+        entity: 'crm_email_campaign',
+        action: 'create',
+        actorId,
+        outcome: 'failure',
+        reason: 'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
+        meta: { recipientScope: dto.recipientScope },
+      })
+      return err(crmEmailCampaignNoRecipients())
+    }
+
     const result = await CrmEmailCampaignRepository.create({
       workspaceId,
       createdById: actorId,
@@ -92,24 +119,11 @@ export const CrmEmailCampaignService = {
       return result
     }
 
-    const recipients = await resolveRecipients(
-      workspaceId,
-      dto.recipientScope,
-      {
-        mailingListIds: dto.mailingListIds,
-        personIds: dto.personIds,
-        extraEmails: dto.extraEmails,
-      },
+    const created = await CrmEmailCampaignRecipientRepository.createMany(
+      result.value.id,
+      recipients.value,
     )
-    if (!recipients.ok) return recipients
-
-    if (recipients.value.length > 0) {
-      const created = await CrmEmailCampaignRecipientRepository.createMany(
-        result.value.id,
-        recipients.value,
-      )
-      if (!created.ok) return created
-    }
+    if (!created.ok) return created
 
     auditMutation({
       entity: 'crm_email_campaign',
@@ -213,11 +227,15 @@ export const CrmEmailCampaignService = {
       return err(crmEmailCampaignAlreadySent())
     }
 
-    await CrmEmailCampaignRepository.setStatus(campaignId, 'SENDING')
-
     const recipients =
       await CrmEmailCampaignRecipientRepository.listByCampaign(campaignId)
     if (!recipients.ok) return recipients
+    // Envio usa só as linhas gravadas na criação — nunca recalcula "todos".
+    if (recipients.value.length === 0) {
+      return err(crmEmailCampaignNoRecipients())
+    }
+
+    await CrmEmailCampaignRepository.setStatus(campaignId, 'SENDING')
 
     let failures = 0
     for (const recipient of recipients.value) {
@@ -290,7 +308,13 @@ async function resolveRecipients(
     (input.personIds?.length ?? 0) > 0 ||
     (input.extraEmails?.length ?? 0) > 0
 
-  if (scope === 'ALL' || !hasSelection) {
+  // Seleção vazia em "Selecionados" é erro — antes caía no ramo de "todos"
+  // e a campanha ia para o workspace inteiro.
+  if (scope === 'SELECTED' && !hasSelection) {
+    return err(crmEmailCampaignNoRecipients())
+  }
+
+  if (scope === 'ALL') {
     const people = await CrmPersonRepository.listByWorkspace(workspaceId)
     if (!people.ok) return people
     return ok(
