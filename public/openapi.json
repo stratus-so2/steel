@@ -133,6 +133,10 @@
       "description": "Transmissões (broadcasts) e importação de destinatários."
     },
     {
+      "name": "Comunicação · Templates e respostas rápidas",
+      "description": "Templates aprovados pela Meta e respostas rápidas."
+    },
+    {
       "name": "Comunicação · Conexões",
       "description": "Conexões com a Meta Cloud API e a Z-API."
     },
@@ -243,6 +247,7 @@
         "Comunicação · Contatos",
         "Comunicação · Grupos",
         "Comunicação · Transmissões",
+        "Comunicação · Templates e respostas rápidas",
         "Comunicação · Conexões"
       ]
     },
@@ -904,7 +909,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_11"
+            "$ref": "#/components/responses/400_BAD_REQUEST_13"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -15084,7 +15089,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_6"
+            "$ref": "#/components/responses/400_BAD_REQUEST_8"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -15238,7 +15243,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_5"
+            "$ref": "#/components/responses/400_BAD_REQUEST_7"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -20221,7 +20226,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_10"
+            "$ref": "#/components/responses/400_BAD_REQUEST_12"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24245,7 +24250,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_7"
+            "$ref": "#/components/responses/400_BAD_REQUEST_9"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24730,7 +24735,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -28267,7 +28272,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_8"
+            "$ref": "#/components/responses/400_BAD_REQUEST_10"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -28474,7 +28479,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_3"
+            "$ref": "#/components/responses/400_BAD_REQUEST_5"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -28572,7 +28577,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_4"
+            "$ref": "#/components/responses/400_BAD_REQUEST_6"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -33853,7 +33858,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34289,7 +34294,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -34633,7 +34638,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -35302,7 +35307,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+            "$ref": "#/components/responses/400_BAD_REQUEST_11"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -37292,6 +37297,637 @@
           }
         ]
       }
+    },
+    "/workspaces/{id}/whatsapp/quick-replies": {
+      "get": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Listar respostas rápidas",
+        "operationId": "getWorkspacesByIdWhatsappQuickReplies",
+        "description": "Mensagens prontas do workspace, por atalho (ordem alfabética). Módulo **Comunicação** habilitado e permissão `quick-replies` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Respostas rápidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppQuickReply"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Criar resposta rápida",
+        "operationId": "postWorkspacesByIdWhatsappQuickReplies",
+        "description": "O `shortcut` é único no workspace. Auditado. Módulo **Comunicação** habilitado e permissão `quick-replies` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shortcut": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "mediaUrl": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  }
+                },
+                "required": ["shortcut", "title", "body"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Resposta rápida criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppQuickReply"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_QUICK_REPLY_CONFLICT"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/quick-replies/{quickReplyId}": {
+      "patch": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Atualizar resposta rápida",
+        "operationId": "patchWorkspacesByIdWhatsappQuickRepliesByQuickReplyId",
+        "description": "Atualização parcial. Auditado. Módulo **Comunicação** habilitado e permissão `quick-replies` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "quickReplyId",
+            "in": "path",
+            "required": true,
+            "description": "Id da resposta rápida.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shortcut": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "mediaUrl": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resposta rápida atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppQuickReply"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_WHATSAPP_QUICK_REPLY_CONFLICT"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Excluir resposta rápida",
+        "operationId": "deleteWorkspacesByIdWhatsappQuickRepliesByQuickReplyId",
+        "description": "Auditado. Módulo **Comunicação** habilitado e permissão `quick-replies` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "quickReplyId",
+            "in": "path",
+            "required": true,
+            "description": "Id da resposta rápida.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resposta rápida excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/templates": {
+      "get": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Listar templates",
+        "operationId": "getWorkspacesByIdWhatsappTemplates",
+        "description": "Templates de mensagem de todas as conexões Meta do workspace, em ordem alfabética, com o status de aprovação da Meta. Para atualizar status e novos templates criados no Business Manager, use `POST .../templates/sync`. Módulo **Comunicação** habilitado e permissão `message-templates` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppTemplate"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Criar template",
+        "operationId": "postWorkspacesByIdWhatsappTemplates",
+        "description": "Submete um template à aprovação da Meta (Graph API) e o salva localmente — normalmente com status `PENDING` até a Meta revisar. Monta os componentes `HEADER` (texto), `BODY`, `FOOTER` e `BUTTONS`; para cada variável `{{n}}` do corpo, envie um exemplo em `bodyExample[n-1]` (sem ele, usa `exemploN`). Só conexões **Meta** (Cloud API) — templates são um recurso da WABA; na Z-API não existem. Um corpo que não é JSON válido não é tratado (erro 500). Auditado. Módulo **Comunicação** habilitado e permissão `message-templates` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "connectionId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "pattern": "^[a-z0-9_]+$"
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": ["UTILITY", "MARKETING", "AUTHENTICATION"]
+                  },
+                  "headerText": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "bodyExample": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "footer": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "buttons": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "QUICK_REPLY"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 25
+                            }
+                          },
+                          "required": ["type", "text"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "URL"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 25
+                            },
+                            "url": {
+                              "type": "string",
+                              "format": "uri"
+                            }
+                          },
+                          "required": ["type", "text", "url"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "PHONE_NUMBER"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 25
+                            },
+                            "phone_number": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": ["type", "text", "phone_number"]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "const": "COPY_CODE"
+                            },
+                            "text": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 25
+                            }
+                          },
+                          "required": ["type"]
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": ["connectionId", "name", "language", "category", "body"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template submetido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppTemplate"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_3"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/templates/sync": {
+      "post": {
+        "tags": ["Comunicação · Templates e respostas rápidas"],
+        "summary": "Sincronizar templates da Meta",
+        "operationId": "postWorkspacesByIdWhatsappTemplatesSync",
+        "description": "Busca todos os templates da WABA da conexão na Graph API e faz upsert local (nome + idioma), atualizando status e componentes. Devolve os templates sincronizados. Só conexões **Meta** (Cloud API) — templates são um recurso da WABA; na Z-API não existem. Auditado. Módulo **Comunicação** habilitado e permissão `message-templates` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "connectionId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Conexão Meta."
+                  }
+                },
+                "required": ["connectionId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Templates sincronizados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppTemplate"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_4"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -37412,6 +38048,74 @@
             },
             "examples": {
               "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Conexão Z-API ou Meta sem WABA/token",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Criação de templates está disponível apenas para conexões Meta",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_2": {
+                "summary": "BAD_REQUEST — A Meta recusou o template (a mensagem vem da Graph API)",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Falha ao criar template",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_4": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Conexão Z-API ou Meta sem WABA/token",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Sincronização de templates está disponível apenas para conexões Meta",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_2": {
+                "summary": "BAD_REQUEST — Falha na Graph API (a mensagem vem da Meta)",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Falha ao sincronizar templates",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_5": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
                 "summary": "BAD_REQUEST — Corpo não é multipart",
                 "value": {
                   "success": false,
@@ -37459,7 +38163,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_4": {
+      "400_BAD_REQUEST_6": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37482,7 +38186,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_5": {
+      "400_BAD_REQUEST_7": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37516,7 +38220,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_6": {
+      "400_BAD_REQUEST_8": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37550,7 +38254,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_7": {
+      "400_BAD_REQUEST_9": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37584,7 +38288,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_8": {
+      "400_BAD_REQUEST_10": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37618,7 +38322,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_9": {
+      "400_BAD_REQUEST_11": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37641,7 +38345,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_10": {
+      "400_BAD_REQUEST_12": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -37664,7 +38368,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_11": {
+      "400_BAD_REQUEST_13": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -38905,6 +39609,62 @@
                 }
               },
               "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `message-templates` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
@@ -38952,7 +39712,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -38997,7 +39757,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -39042,7 +39802,277 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `message-templates` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `message-templates` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `quick-replies` × `CREATE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `quick-replies` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `quick-replies` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `quick-replies` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -41949,6 +42979,29 @@
           }
         }
       },
+      "404_WHATSAPP_QUICK_REPLY_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_QUICK_REPLY_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_QUICK_REPLY_NOT_FOUND": {
+                "summary": "WHATSAPP_QUICK_REPLY_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Mensagem rápida não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_QUICK_REPLY_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_BACKUP_NOT_RESTORABLE_WORKSPACE_STATUS_CONFLICT_WORKSPACE_OPERATION_IN_PROGRESS": {
         "description": "Conflito com o estado atual: `BACKUP_NOT_RESTORABLE`, `WORKSPACE_STATUS_CONFLICT`, `WORKSPACE_OPERATION_IN_PROGRESS`",
         "content": {
@@ -43139,6 +44192,29 @@
                   "message": "Esta conversa não está fechada",
                   "error": {
                     "code": "WHATSAPP_CONVERSATION_NOT_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_WHATSAPP_QUICK_REPLY_CONFLICT": {
+        "description": "Conflito com o estado atual: `WHATSAPP_QUICK_REPLY_CONFLICT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_QUICK_REPLY_CONFLICT": {
+                "summary": "WHATSAPP_QUICK_REPLY_CONFLICT",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Já existe uma mensagem rápida com este atalho",
+                  "error": {
+                    "code": "WHATSAPP_QUICK_REPLY_CONFLICT"
                   }
                 }
               }
@@ -60096,6 +61172,110 @@
           }
         },
         "required": ["status"]
+      },
+      "WhatsAppQuickReply": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "shortcut": {
+            "type": "string",
+            "example": "saudacao"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "mediaUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "shortcut",
+          "title",
+          "body",
+          "mediaUrl",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WhatsAppTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "lembrete_consulta"
+          },
+          "language": {
+            "type": "string",
+            "example": "pt_BR"
+          },
+          "category": {
+            "type": "string",
+            "example": "UTILITY"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["APPROVED", "PENDING", "REJECTED"]
+          },
+          "components": {
+            "type": "array",
+            "items": {},
+            "description": "Componentes do template como a Graph API da Meta os devolve (`HEADER`, `BODY`, `FOOTER`, `BUTTONS`)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "connectionId",
+          "name",
+          "language",
+          "category",
+          "status",
+          "components",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "Workspace": {
         "type": "object",
