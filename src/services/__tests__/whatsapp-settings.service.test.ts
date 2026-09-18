@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
+import { createFakeWhatsAppSettings } from '@/src/__tests__/factories/whatsapp-settings.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
@@ -7,7 +8,6 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-settings.repository')
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 
-import type { WhatsAppSettings } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppSettingsRepository } from '@/src/repositories/whatsapp-settings.repository'
@@ -16,16 +16,12 @@ import { WhatsAppSettingsService } from '../whatsapp-settings.service'
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedSettingsRepo = vi.mocked(WhatsAppSettingsRepository)
 
-function row(overrides: Partial<WhatsAppSettings> = {}): WhatsAppSettings {
-  const now = new Date()
-  return {
+function row(overrides: Parameters<typeof createFakeWhatsAppSettings>[0] = {}) {
+  return createFakeWhatsAppSettings({
     id: 's1',
     workspaceId: 'ws1',
-    autoCloseAfterHours: 24,
-    createdAt: now,
-    updatedAt: now,
     ...overrides,
-  }
+  })
 }
 
 function asRole(role: 'MEMBER' | 'ADMIN' | 'OWNER') {

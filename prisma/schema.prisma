@@ -52,6 +52,7 @@ model User {
   whatsappGroupMessagesSent           WhatsAppGroupMessage[]        @relation("WhatsAppGroupMessageSender")
   whatsappAiKnowledgeDocumentsCreated WhatsAppAiKnowledgeDocument[] @relation("WhatsAppAiKnowledgeDocumentCreatedBy")
   whatsappConversationEventsActed     WhatsAppConversationEvent[]   @relation("WhatsAppConversationEventActor")
+  notifications                       Notification[]
 
   crmCompaniesCreated                CrmCompany[]                  @relation("CrmCompanyCreatedBy")
   crmCompaniesOwned                  CrmCompany[]                  @relation("CrmCompanyAccountOwner")
@@ -305,6 +306,7 @@ model Workspace {
   whatsappAiConfig             WhatsAppAiConfig?
   whatsappSettings             WhatsAppSettings?
   whatsappConversationEvents   WhatsAppConversationEvent[]
+  notifications                Notification[]
   whatsappGroups               WhatsAppGroup[]
   whatsappGroupMessages        WhatsAppGroupMessage[]
   whatsappAiKnowledgeDocuments WhatsAppAiKnowledgeDocument[]
@@ -854,29 +856,32 @@ enum WhatsAppConversationStatus {
 }
 
 model WhatsAppConversation {
-  id                String                     @id @default(cuid())
-  workspaceId       String                     @map("workspace_id")
-  connectionId      String                     @map("connection_id")
-  contactId         String                     @map("contact_id")
-  status            WhatsAppConversationStatus @default(NEW)
-  assignedUserId    String?                    @map("assigned_user_id")
-  aiActive          Boolean                    @default(false) @map("ai_active")
-  aiHandoff         Boolean                    @default(false) @map("ai_handoff")
-  unreadCount       Int                        @default(0) @map("unread_count")
+  id                 String                     @id @default(cuid())
+  workspaceId        String                     @map("workspace_id")
+  connectionId       String                     @map("connection_id")
+  contactId          String                     @map("contact_id")
+  status             WhatsAppConversationStatus @default(NEW)
+  assignedUserId     String?                    @map("assigned_user_id")
+  aiActive           Boolean                    @default(false) @map("ai_active")
+  aiHandoff          Boolean                    @default(false) @map("ai_handoff")
+  unreadCount        Int                        @default(0) @map("unread_count")
   /// Média das últimas mensagens classificadas (IN) da conversa, de -1
   /// (negativo) a 1 (positivo). Nulo até a primeira classificação.
-  avgSentimentScore Float?                     @map("avg_sentiment_score")
-  lastMessageAt     DateTime?                  @map("last_message_at")
-  pinnedAt          DateTime?                  @map("pinned_at")
-  archivedAt        DateTime?                  @map("archived_at")
-  deletedAt         DateTime?                  @map("deleted_at")
-  clearedAt         DateTime?                  @map("cleared_at")
+  avgSentimentScore  Float?                     @map("avg_sentiment_score")
+  lastMessageAt      DateTime?                  @map("last_message_at")
+  pinnedAt           DateTime?                  @map("pinned_at")
+  archivedAt         DateTime?                  @map("archived_at")
+  deletedAt          DateTime?                  @map("deleted_at")
+  clearedAt          DateTime?                  @map("cleared_at")
   /// Quando a conversa foi fechada (status CLOSED) e o motivo opcional
   /// informado pelo atendente. Limpos ao reabrir.
-  closedAt          DateTime?                  @map("closed_at")
-  closeReason       String?                    @map("close_reason")
-  createdAt         DateTime                   @default(now()) @map("created_at")
-  updatedAt         DateTime                   @updatedAt @map("updated_at")
+  closedAt           DateTime?                  @map("closed_at")
+  closeReason        String?                    @map("close_reason")
+  /// Último alerta de sentimento negativo enviado aos supervisores — base do
+  /// intervalo mínimo entre alertas da mesma conversa (anti-spam).
+  sentimentAlertedAt DateTime?                  @map("sentiment_alerted_at")
+  createdAt          DateTime                   @default(now()) @map("created_at")
+  updatedAt          DateTime                   @updatedAt @map("updated_at")
 
   workspace    Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   connection   WhatsAppConnection          @relation(fields: [connectionId], references: [id], onDelete: Cascade)
@@ -896,6 +901,7 @@ model WhatsAppConversation {
 enum WhatsAppConversationEventKind {
   CLOSED
   REOPENED
+  SENTIMENT_ALERT
 }
 
 /// Quem disparou o evento: um atendente (AGENT), uma nova mensagem do
@@ -904,6 +910,7 @@ enum WhatsAppConversationEventSource {
   AGENT
   CONTACT
   INACTIVITY
+  SENTIMENT
 }
 
 /// Linha do tempo da conversa (fechada/reaberta...), exibida entre as
@@ -929,12 +936,25 @@ model WhatsAppConversationEvent {
 
 /// Configurações de atendimento do WhatsApp por workspace (admin).
 model WhatsAppSettings {
-  id                  String   @id @default(cuid())
-  workspaceId         String   @unique @map("workspace_id")
+  id                  String @id @default(cuid())
+  workspaceId         String @unique @map("workspace_id")
   /// Fecha conversas sem mensagem há N horas (0 = desligado).
-  autoCloseAfterHours Int      @default(24) @map("auto_close_after_hours")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  autoCloseAfterHours Int    @default(24) @map("auto_close_after_hours")
+
+  /// Alerta de sentimento negativo: quando a média da conversa cai até o
+  /// limite, avisa os supervisores (no app e/ou e-mail), no máximo uma vez
+  /// por conversa a cada `sentimentAlertCooldownHours`.
+  sentimentAlertEnabled       Boolean  @default(true) @map("sentiment_alert_enabled")
+  sentimentAlertThreshold     Float    @default(-0.3) @map("sentiment_alert_threshold")
+  sentimentAlertNotifyInApp   Boolean  @default(true) @map("sentiment_alert_notify_in_app")
+  sentimentAlertNotifyEmail   Boolean  @default(false) @map("sentiment_alert_notify_email")
+  /// Membros avisados; vazio = todos os OWNER/ADMIN do workspace.
+  sentimentAlertRecipientIds  String[] @default([]) @map("sentiment_alert_recipient_ids")
+  /// Supervisor que assume a conversa sem atendente ao disparar o alerta.
+  sentimentAlertAssignToId    String?  @map("sentiment_alert_assign_to_id")
+  sentimentAlertCooldownHours Int      @default(6) @map("sentiment_alert_cooldown_hours")
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -3309,4 +3329,31 @@ model AiUsage {
 
   @@index([workspaceId, createdAt])
   @@map("ai_usage")
+}
+
+// ─── Notificações no app ─────────────────────────────────────────────────────
+
+enum NotificationKind {
+  WHATSAPP_NEGATIVE_SENTIMENT
+}
+
+/// Notificação no app (caixa de entrada do usuário no workspace).
+model Notification {
+  id          String           @id @default(cuid())
+  workspaceId String           @map("workspace_id")
+  userId      String           @map("user_id")
+  kind        NotificationKind
+  title       String
+  body        String
+  /// Caminho interno para onde o clique leva (ex.: a conversa).
+  href        String?
+  readAt      DateTime?        @map("read_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, workspaceId, createdAt])
+  @@index([userId, workspaceId, readAt])
+  @@map("notifications")
 }

@@ -26,6 +26,7 @@ export function createFakeWhatsAppConversation(
     clearedAt: null,
     closedAt: null,
     closeReason: null,
+    sentimentAlertedAt: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,

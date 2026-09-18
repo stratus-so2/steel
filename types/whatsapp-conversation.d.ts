@@ -32,11 +32,15 @@ export interface WhatsAppAssignableMemberDTO {
   image: string | null
 }
 
-export type WhatsAppConversationEventKindDTO = 'CLOSED' | 'REOPENED'
+export type WhatsAppConversationEventKindDTO =
+  | 'CLOSED'
+  | 'REOPENED'
+  | 'SENTIMENT_ALERT'
 export type WhatsAppConversationEventSourceDTO =
   | 'AGENT'
   | 'CONTACT'
   | 'INACTIVITY'
+  | 'SENTIMENT'
 
 export interface WhatsAppConversationEventDTO {
   id: string

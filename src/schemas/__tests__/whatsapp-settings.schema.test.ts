@@ -24,4 +24,39 @@ describe('UpdateWhatsAppSettingsSchema', () => {
   it('should accept an empty patch', () => {
     expect(UpdateWhatsAppSettingsSchema.safeParse({}).success).toBe(true)
   })
+
+  describe('sentiment alert', () => {
+    it('should accept a full alert configuration', () => {
+      expect(
+        UpdateWhatsAppSettingsSchema.safeParse({
+          sentimentAlertEnabled: true,
+          sentimentAlertThreshold: -0.5,
+          sentimentAlertNotifyInApp: true,
+          sentimentAlertNotifyEmail: true,
+          sentimentAlertRecipientIds: ['u1', 'u2'],
+          sentimentAlertAssignToId: null,
+          sentimentAlertCooldownHours: 12,
+        }).success,
+      ).toBe(true)
+    })
+
+    it('should keep the threshold between -1 and 0', () => {
+      for (const sentimentAlertThreshold of [-1.1, 0.2]) {
+        expect(
+          UpdateWhatsAppSettingsSchema.safeParse({ sentimentAlertThreshold })
+            .success,
+        ).toBe(false)
+      }
+    })
+
+    it('should require a cooldown of 1 to 168 whole hours', () => {
+      for (const sentimentAlertCooldownHours of [0, 169, 2.5]) {
+        expect(
+          UpdateWhatsAppSettingsSchema.safeParse({
+            sentimentAlertCooldownHours,
+          }).success,
+        ).toBe(false)
+      }
+    })
+  })
 })

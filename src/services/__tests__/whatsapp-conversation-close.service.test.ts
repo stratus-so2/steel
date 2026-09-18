@@ -4,6 +4,7 @@ import {
   createFakeWhatsAppConversation,
   createFakeWhatsAppConversationWithPreview,
 } from '@/src/__tests__/factories/whatsapp-conversation.factory'
+import { createFakeWhatsAppSettings } from '@/src/__tests__/factories/whatsapp-settings.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
@@ -232,20 +233,14 @@ describe('WhatsAppConversationService.closeInactive()', () => {
   it('should use the 24h default for workspaces without settings and the saved window otherwise', async () => {
     mockedSettingsRepo.listAll.mockResolvedValue(
       ok([
-        {
-          id: 's1',
+        createFakeWhatsAppSettings({
           workspaceId: 'wsCustom',
           autoCloseAfterHours: 2,
-          createdAt: now,
-          updatedAt: now,
-        },
-        {
-          id: 's2',
+        }),
+        createFakeWhatsAppSettings({
           workspaceId: 'wsOff',
           autoCloseAfterHours: 0,
-          createdAt: now,
-          updatedAt: now,
-        },
+        }),
       ]),
     )
     mockedConversationRepo.listInactiveOpen.mockResolvedValue(ok([]))
