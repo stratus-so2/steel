@@ -208,6 +208,11 @@ export const featureNotEnabled = (
   message = 'Esta funcionalidade não está disponível para este workspace',
 ): AppError => appError('FEATURE_NOT_ENABLED', message)
 
+/** Falha ao buscar a release no GitHub (rede, token, repositório, rate limit). */
+export const releaseNotesUnavailable = (
+  message = 'Não foi possível buscar a release no GitHub',
+): AppError => appError('RELEASE_NOTES_UNAVAILABLE', message)
+
 export const whatsappProviderError = (
   message = 'Falha ao comunicar com o provedor do WhatsApp',
 ): AppError => appError('WHATSAPP_PROVIDER_ERROR', message)

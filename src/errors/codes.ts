@@ -366,6 +366,7 @@ export const ERROR_CODES = {
   PAYMENT_ERROR: { code: 'PAYMENT_ERROR', status: 502 },
   MAIL_ERROR: { code: 'MAIL_ERROR', status: 502 },
   CONNECTION_TEST_FAILED: { code: 'CONNECTION_TEST_FAILED', status: 502 },
+  RELEASE_NOTES_UNAVAILABLE: { code: 'RELEASE_NOTES_UNAVAILABLE', status: 502 },
   BACKUP_FAILED: { code: 'BACKUP_FAILED', status: 500 },
 } as const
 

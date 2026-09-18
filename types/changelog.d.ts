@@ -43,3 +43,20 @@ export interface ChangelogUserSearchResultDTO {
   email: string
   image: string | null
 }
+
+/** Rascunho do e-mail de novidades gerado a partir de notas de release. */
+export interface ChangelogReleaseDraftDTO {
+  subject: string
+  items: { title: string; body: string }[]
+  /** Linhas internas (ci, chore, test...) descartadas na conversão. */
+  skipped: number
+  /** Release de origem, quando veio do GitHub. */
+  release: {
+    tag: string
+    name: string | null
+    url: string
+    publishedAt: string | null
+    /** `true` quando as notas eram vazias e os itens vieram dos commits. */
+    fromCommits: boolean
+  } | null
+}

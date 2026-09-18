@@ -112,6 +112,7 @@ export {
   projectNotFound,
   projectSlugConflict,
   rateLimited,
+  releaseNotesUnavailable,
   seatLimitReached,
   storageError,
   unauthorized,

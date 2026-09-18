@@ -60,6 +60,8 @@ const serverEnv = {
   BACKUP_OFFSITE_FORCE_PATH_STYLE: process.env.BACKUP_OFFSITE_FORCE_PATH_STYLE,
   BACKUP_OFFSITE_SSE: process.env.BACKUP_OFFSITE_SSE,
   BACKUP_OFFSITE_RETENTION_DAYS: process.env.BACKUP_OFFSITE_RETENTION_DAYS,
+  GITHUB_RELEASES_TOKEN: process.env.GITHUB_RELEASES_TOKEN,
+  GITHUB_RELEASES_REPO: process.env.GITHUB_RELEASES_REPO,
 }
 
 /** String opcional que trata `""` como ausente (não só `undefined`). */
@@ -197,6 +199,20 @@ const serverEnvSchema = z.object({
       })
       .optional(),
   ),
+  // Rascunho do e-mail de novidades a partir da última release do GitHub
+  // (painel admin → Changelog). Token fine-grained só com "Contents: read"
+  // no repositório; sem ele a busca funciona apenas para repositório público
+  // e o admin ainda pode colar as notas à mão.
+  GITHUB_RELEASES_TOKEN: blankOptional,
+  GITHUB_RELEASES_REPO: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^[\w.-]+\/[\w.-]+$/, {
+        message: 'GITHUB_RELEASES_REPO must look like owner/repo',
+      })
+      .optional(),
+  ),
 })
 
 const validatedServerEnv =
@@ -263,4 +279,6 @@ export const {
   BACKUP_OFFSITE_FORCE_PATH_STYLE,
   BACKUP_OFFSITE_SSE,
   BACKUP_OFFSITE_RETENTION_DAYS,
+  GITHUB_RELEASES_TOKEN,
+  GITHUB_RELEASES_REPO,
 } = validatedServerEnv
