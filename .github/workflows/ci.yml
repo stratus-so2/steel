@@ -172,7 +172,7 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/steel_test
       REDIS_URL: redis://localhost:6379
       BETTER_AUTH_SECRET: ci-test-secret-not-real
-      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_URL: http://localhost:3001
       SKIP_ENV_VALIDATION: 'true'
       # Shared by the server and the test process so the secret-checked routes
       # (status collector, payment webhook) accept the requests the e2e tests send.
@@ -242,12 +242,12 @@ jobs:
       - name: Start server
         run: pnpm start &
         env:
-          PORT: 3000
+          PORT: 3001
 
       - name: Wait for server to be ready
         run: |
           for i in $(seq 1 30); do
-            if curl -s http://localhost:3000 > /dev/null 2>&1; then
+            if curl -s http://localhost:3001 > /dev/null 2>&1; then
               echo "Server is ready"
               exit 0
             fi
@@ -354,7 +354,7 @@ jobs:
       DATABASE_URL: postgresql://test:test@localhost:5432/steel_test
       REDIS_URL: redis://localhost:6379
       BETTER_AUTH_SECRET: ci-test-secret-not-real
-      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_URL: http://localhost:3001
       SKIP_ENV_VALIDATION: 'true'
     steps:
       - name: Checkout repository

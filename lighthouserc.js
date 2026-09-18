@@ -5,10 +5,10 @@ module.exports = {
       startServerCommand: 'pnpm start',
       startServerReadyPattern: 'Ready in',
       url: [
-        'http://localhost:3000/',
-        'http://localhost:3000/sign-in',
-        'http://localhost:3000/sign-up',
-        'http://localhost:3000/contact',
+        'http://localhost:3001/',
+        'http://localhost:3001/sign-in',
+        'http://localhost:3001/sign-up',
+        'http://localhost:3001/contact',
       ],
       numberOfRuns: 3,
       settings: {

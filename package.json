@@ -4,10 +4,10 @@
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
-    "dev": "pnpm infra && pnpm next dev",
+    "dev": "pnpm infra && pnpm next dev -p 3001",
     "infra": "pnpm docker:start && pnpm prisma:migrate:dev",
     "build": "prisma generate && next build",
-    "start": "next start -H 0.0.0.0 -p 3000",
+    "start": "next start -H 0.0.0.0 -p 3001",
     "check": "biome check --fix",
     "check:ci": "biome check",
     "check:staged": "biome check --fix --staged --no-errors-on-unmatched",
@@ -42,7 +42,7 @@
     "restore:full": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/restore-full-backup.ts",
     "restore:workspace": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/restore-workspace-backup.ts",
     "prepare": "husky",
-    "email": "ESBUILD_BINARY_PATH=node_modules/.pnpm/@esbuild+linux-x64@0.28.0/node_modules/@esbuild/linux-x64/bin/esbuild npx email dev --dir components/emails --port 3001"
+    "email": "ESBUILD_BINARY_PATH=node_modules/.pnpm/@esbuild+linux-x64@0.28.0/node_modules/@esbuild/linux-x64/bin/esbuild npx email dev --dir components/emails --port 3002"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.1",

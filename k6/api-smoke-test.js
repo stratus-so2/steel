@@ -1,7 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
 
 // Accept 2xx-4xx as expected — this test intentionally hits unauthenticated endpoints.
 // Only 5xx and connection errors should count as failures.

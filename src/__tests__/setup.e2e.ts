@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeEach } from 'vitest'
 import { prisma } from '@/src/lib/prisma'
 import { ensureRedisConnected, redis } from '@/src/lib/redis'
 
-export const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3000'
+export const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3001'
 
 // Rate-limit counters live in Redis under the rl:* prefixes and are NOT cleared
 // by the table truncation below. The dedicated rate-limit spec deliberately
