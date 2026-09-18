@@ -371,4 +371,48 @@ describe('WhatsAppConversationRepository', () => {
       expect(excluded).toEqual([])
     })
   })
+
+  describe('claimSentimentAlert()', () => {
+    it('should claim once per cooldown window', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      const conversation = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+      const now = new Date('2026-09-18T12:00:00Z')
+      const cutoff = new Date('2026-09-18T06:00:00Z')
+
+      expect(
+        expectOk(
+          await WhatsAppConversationRepository.claimSentimentAlert(
+            conversation.id,
+            cutoff,
+            now,
+          ),
+        ),
+      ).toBe(true)
+      expect(
+        expectOk(
+          await WhatsAppConversationRepository.claimSentimentAlert(
+            conversation.id,
+            cutoff,
+            new Date('2026-09-18T13:00:00Z'),
+          ),
+        ),
+      ).toBe(false)
+      // Depois da janela, pode alertar de novo.
+      expect(
+        expectOk(
+          await WhatsAppConversationRepository.claimSentimentAlert(
+            conversation.id,
+            new Date('2026-09-18T13:00:00Z'),
+            new Date('2026-09-18T19:00:00Z'),
+          ),
+        ),
+      ).toBe(true)
+    })
+  })
 })

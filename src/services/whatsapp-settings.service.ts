@@ -1,9 +1,11 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { validationError } from '@/src/errors'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toWhatsAppSettingsDTO,
   WHATSAPP_SETTINGS_DEFAULTS,
 } from '@/src/mappers/whatsapp-settings.mapper'
+import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppSettingsRepository } from '@/src/repositories/whatsapp-settings.repository'
 import type { UpdateWhatsAppSettingsDTO } from '@/src/schemas/whatsapp-settings.schema'
 import type { WhatsAppSettingsDTO } from '@/types/whatsapp-settings'
@@ -45,9 +47,45 @@ export const WhatsAppSettingsService = {
     if (!existing.ok) return existing
     const current = toWhatsAppSettingsDTO(workspaceId, existing.value)
 
+    // Destinatários e supervisor precisam ser membros do workspace.
+    const referencedIds = [
+      ...(dto.sentimentAlertRecipientIds ?? []),
+      ...(dto.sentimentAlertAssignToId ? [dto.sentimentAlertAssignToId] : []),
+    ]
+    if (referencedIds.length > 0) {
+      const members =
+        await MembershipRepository.listWithUserByWorkspace(workspaceId)
+      if (!members.ok) return members
+      const memberIds = new Set(members.value.map((m) => m.userId))
+      if (referencedIds.some((id) => !memberIds.has(id))) {
+        return err(
+          validationError(
+            'Selecione apenas membros deste workspace para o alerta de sentimento',
+          ),
+        )
+      }
+    }
+
     const saved = await WhatsAppSettingsRepository.upsert(workspaceId, {
       autoCloseAfterHours:
         dto.autoCloseAfterHours ?? current.autoCloseAfterHours,
+      sentimentAlertEnabled:
+        dto.sentimentAlertEnabled ?? current.sentimentAlertEnabled,
+      sentimentAlertThreshold:
+        dto.sentimentAlertThreshold ?? current.sentimentAlertThreshold,
+      sentimentAlertNotifyInApp:
+        dto.sentimentAlertNotifyInApp ?? current.sentimentAlertNotifyInApp,
+      sentimentAlertNotifyEmail:
+        dto.sentimentAlertNotifyEmail ?? current.sentimentAlertNotifyEmail,
+      sentimentAlertRecipientIds: dto.sentimentAlertRecipientIds
+        ? Array.from(new Set(dto.sentimentAlertRecipientIds))
+        : current.sentimentAlertRecipientIds,
+      sentimentAlertAssignToId:
+        dto.sentimentAlertAssignToId === undefined
+          ? current.sentimentAlertAssignToId
+          : dto.sentimentAlertAssignToId,
+      sentimentAlertCooldownHours:
+        dto.sentimentAlertCooldownHours ?? current.sentimentAlertCooldownHours,
     })
     if (!saved.ok) return saved
 
@@ -59,6 +97,9 @@ export const WhatsAppSettingsService = {
       meta: {
         workspaceId,
         autoCloseAfterHours: saved.value.autoCloseAfterHours,
+        sentimentAlertEnabled: saved.value.sentimentAlertEnabled,
+        sentimentAlertNotifyEmail: saved.value.sentimentAlertNotifyEmail,
+        sentimentAlertRecipients: saved.value.sentimentAlertRecipientIds.length,
       },
     })
 
@@ -89,5 +130,13 @@ export const WhatsAppSettingsService = {
       configuredWorkspaceIds: rows.value.map((row) => row.workspaceId),
       defaultHours: WHATSAPP_SETTINGS_DEFAULTS.autoCloseAfterHours,
     })
+  },
+  /** Configuração efetiva (linha salva ou padrões) — uso de sistema. */
+  async getEffective(
+    workspaceId: string,
+  ): Promise<Result<WhatsAppSettingsDTO>> {
+    const row = await WhatsAppSettingsRepository.findByWorkspace(workspaceId)
+    if (!row.ok) return row
+    return ok(toWhatsAppSettingsDTO(workspaceId, row.value))
   },
 }

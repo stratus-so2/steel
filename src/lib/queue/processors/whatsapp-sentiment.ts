@@ -52,6 +52,15 @@ async function processAnalyzeMessage(
         ...base,
         sentiment: outcome.sentiment,
       })
+      if (outcome.alert?.alerted) {
+        logger.info('queue.whatsapp_sentiment.alert_sent', {
+          ...base,
+          conversationId: outcome.conversationId,
+          recipients: outcome.alert.recipients,
+          email: outcome.alert.email,
+          assignedToId: outcome.alert.assignedToId,
+        })
+      }
       return
   }
 }

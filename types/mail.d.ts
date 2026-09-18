@@ -72,3 +72,12 @@ export interface CrmProposalExpiredEmailProps extends EmailProps {
   validUntil: string
   proposalUrl: string
 }
+
+export interface WhatsAppSentimentAlertEmailProps extends EmailProps {
+  workspaceName: string
+  /** Nome do contato (ou número, sem nome salvo). */
+  contactLabel: string
+  /** Média já formatada (ex.: "-0,62"). */
+  averageScore: string
+  redirectUrl: string
+}

@@ -78,6 +78,49 @@ describe('WhatsAppSettingsService', () => {
       )
     })
 
+    it('should reject alert recipients that are not workspace members', async () => {
+      asRole('ADMIN')
+      mockedSettingsRepo.findByWorkspace.mockResolvedValue(ok(null))
+      mockedMembershipRepo.listWithUserByWorkspace.mockResolvedValue(
+        ok([
+          {
+            ...createFakeMembership({ userId: 'u1', role: 'ADMIN' }),
+            user: { id: 'u1', name: 'A', email: 'a@x.com', image: null },
+          },
+        ]),
+      )
+
+      expectErr(
+        await WhatsAppSettingsService.update('u1', 'ws1', {
+          sentimentAlertRecipientIds: ['u1', 'stranger'],
+        }),
+        'VALIDATION_ERROR',
+      )
+      expect(mockedSettingsRepo.upsert).not.toHaveBeenCalled()
+    })
+
+    it('should keep unspecified fields when saving the alert rule', async () => {
+      asRole('ADMIN')
+      mockedSettingsRepo.findByWorkspace.mockResolvedValue(
+        ok(row({ autoCloseAfterHours: 8 })),
+      )
+      mockedSettingsRepo.upsert.mockResolvedValue(ok(row()))
+
+      expectOk(
+        await WhatsAppSettingsService.update('u1', 'ws1', {
+          sentimentAlertNotifyEmail: true,
+        }),
+      )
+      expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({
+          autoCloseAfterHours: 8,
+          sentimentAlertNotifyEmail: true,
+          sentimentAlertThreshold: -0.3,
+        }),
+      )
+    })
+
     it('should forbid a MEMBER', async () => {
       asRole('MEMBER')
       expectErr(

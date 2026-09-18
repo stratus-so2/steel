@@ -9,6 +9,7 @@ vi.mock('@/src/repositories/whatsapp-ai-config.repository')
 vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/repositories/whatsapp-message.repository')
 vi.mock('@/src/services/ai-usage.service')
+vi.mock('@/src/services/whatsapp-sentiment-alert.service')
 
 import { aiQuotaExceeded, databaseError } from '@/src/errors'
 import type { AiChatResponse, AiProvider } from '@/src/lib/ai/types'
@@ -19,6 +20,7 @@ import {
   AiUsageService,
   type PreparedAiCall,
 } from '@/src/services/ai-usage.service'
+import { WhatsAppSentimentAlertService } from '@/src/services/whatsapp-sentiment-alert.service'
 import {
   parseSentimentResponse,
   WhatsAppSentimentService,
@@ -28,6 +30,7 @@ const mockedMessageRepo = vi.mocked(WhatsAppMessageRepository)
 const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
 const mockedAiConfigRepo = vi.mocked(WhatsAppAiConfigRepository)
 const mockedAiUsage = vi.mocked(AiUsageService)
+const mockedAlert = vi.mocked(WhatsAppSentimentAlertService)
 
 function preparedCall(chat: AiProvider['chat']): PreparedAiCall {
   return {
@@ -139,6 +142,9 @@ describe('WhatsAppSentimentService.analyzeMessage()', () => {
     mockedConversationRepo.update.mockResolvedValue(
       ok(createFakeWhatsAppConversation()),
     )
+    mockedAlert.evaluate.mockResolvedValue(
+      ok({ alerted: false, reason: 'above_threshold' }),
+    )
 
     const outcome = expectOk(
       await WhatsAppSentimentService.analyzeMessage('m1'),
@@ -150,6 +156,12 @@ describe('WhatsAppSentimentService.analyzeMessage()', () => {
       score: -0.8,
       conversationId: 'conv1',
       workspaceId: 'ws1',
+      avgSentimentScore: expect.closeTo(-0.3),
+      alert: { alerted: false, reason: 'above_threshold' },
+    })
+    expect(mockedAlert.evaluate).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      conversationId: 'conv1',
       avgSentimentScore: expect.closeTo(-0.3),
     })
     expect(mockedAiUsage.prepare).toHaveBeenCalledWith(

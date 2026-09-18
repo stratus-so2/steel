@@ -28,6 +28,7 @@ type AuditEntity =
   | 'whatsapp_template'
   | 'whatsapp_ai_config'
   | 'whatsapp_settings'
+  | 'notification'
   | 'whatsapp_ai_knowledge_document'
   | 'whatsapp_group'
   | 'whatsapp_group_message'
@@ -104,6 +105,7 @@ type AuditAction =
   | 'opt_in'
   | 'close'
   | 'reopen'
+  | 'alert'
 
 type AuditOutcome = 'success' | 'failure'
 

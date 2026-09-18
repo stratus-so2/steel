@@ -1,9 +1,14 @@
 import type { WhatsAppSentiment } from '@prisma/client'
+import { logger } from '@/lib/axiom/logger'
 import { ok, type Result } from '@/src/lib/result'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import { AiUsageService } from './ai-usage.service'
+import {
+  type WhatsAppSentimentAlertOutcome,
+  WhatsAppSentimentAlertService,
+} from './whatsapp-sentiment-alert.service'
 
 const SENTIMENT_HISTORY_SAMPLE = 50
 const SENTIMENT_JSON_SCHEMA = {
@@ -51,6 +56,8 @@ export type WhatsAppSentimentOutcome =
       workspaceId: string
       /** Nova média da conversa (null se nada classificado ainda). */
       avgSentimentScore: number | null
+      /** Regra de alerta aos supervisores (null = falhou, só logado). */
+      alert: WhatsAppSentimentAlertOutcome | null
     }
 
 export function parseSentimentResponse(
@@ -181,6 +188,20 @@ export const WhatsAppSentimentService = {
     const avg = await recomputeConversationAvgSentiment(message.conversationId)
     if (!avg.ok) return avg
 
+    // Ação sobre o sentimento: falha no alerta não desfaz a classificação.
+    const alert = await WhatsAppSentimentAlertService.evaluate({
+      workspaceId: message.workspaceId,
+      conversationId: message.conversationId,
+      avgSentimentScore: avg.value,
+    })
+    if (!alert.ok) {
+      logger.error('whatsapp.sentiment_alert.failed', {
+        component: 'WhatsAppSentimentService',
+        conversationId: message.conversationId,
+        reason: alert.error.code,
+      })
+    }
+
     return ok({
       status: 'classified',
       sentiment: result.sentiment,
@@ -188,6 +209,7 @@ export const WhatsAppSentimentService = {
       conversationId: message.conversationId,
       workspaceId: message.workspaceId,
       avgSentimentScore: avg.value,
+      alert: alert.ok ? alert.value : null,
     })
   },
 }

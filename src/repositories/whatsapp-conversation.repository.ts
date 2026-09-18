@@ -174,6 +174,33 @@ export const WhatsAppConversationRepository = {
     }
   },
 
+  /**
+   * Reserva o alerta de sentimento da conversa: grava `sentimentAlertedAt`
+   * só se não houve alerta desde `cutoff`. Escrita condicional para dois
+   * jobs concorrentes não alertarem duas vezes. true = reservado.
+   */
+  async claimSentimentAlert(
+    id: string,
+    cutoff: Date,
+    now: Date,
+  ): Promise<Result<boolean>> {
+    try {
+      const result = await prisma.whatsAppConversation.updateMany({
+        where: {
+          id,
+          OR: [
+            { sentimentAlertedAt: null },
+            { sentimentAlertedAt: { lt: cutoff } },
+          ],
+        },
+        data: { sentimentAlertedAt: now },
+      })
+      return ok(result.count > 0)
+    } catch (error) {
+      return err(dbError('Failed to claim whatsapp sentiment alert', error))
+    }
+  },
+
   async create(
     data: Prisma.WhatsAppConversationUncheckedCreateInput,
   ): Promise<Result<WhatsAppConversation>> {
