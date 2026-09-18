@@ -46,55 +46,43 @@ function doc(id: string, filename: string, status: string) {
 }
 
 describe('<WhatsappSettingsAi />', () => {
+  const PROVIDER_HINT = /Provedor \(OpenAI ou Claude\), modelo e cota/
+
   it('hydrates the form from the saved configuration', async () => {
     mockFetch([{ match: CONFIG, data: savedConfig }])
     renderWithQuery(<WhatsappSettingsAi workspaceId='ws_1' />)
 
-    expect(await screen.findByText('Chave da OpenAI configurada')).toBeTruthy()
     await waitFor(() =>
-      expect((screen.getByLabelText('Modelo') as HTMLInputElement).value).toBe(
-        'gpt-4.1',
-      ),
+      expect(
+        (screen.getByLabelText('Instruções da IA') as HTMLTextAreaElement)
+          .value,
+      ).toBe('Responda sempre em português.'),
     )
-    expect(
-      (screen.getByLabelText('Instruções da IA') as HTMLTextAreaElement).value,
-    ).toBe('Responda sempre em português.')
-    // Existing key is masked, never echoed back.
-    const key = screen.getByLabelText('Chave da API OpenAI') as HTMLInputElement
-    expect(key.value).toBe('')
-    expect(key.placeholder).toBe('••••••••••••')
     const [activeSwitch, mediaSwitch] = screen.getAllByRole('switch')
     expect(activeSwitch.getAttribute('aria-checked')).toBe('true')
     expect(mediaSwitch.getAttribute('aria-checked')).toBe('false')
   })
 
-  it('uses defaults and hints a missing key when nothing is configured', async () => {
+  it('points provider/model choice to Steel IA instead of asking for a key', async () => {
     mockFetch([{ match: CONFIG, data: null }])
     renderWithQuery(<WhatsappSettingsAi workspaceId='ws_1' />)
 
-    expect(
-      await screen.findByText('Nenhuma chave configurada ainda'),
-    ).toBeTruthy()
-    expect((screen.getByLabelText('Modelo') as HTMLInputElement).value).toBe(
-      'gpt-4o-mini',
-    )
-    expect(
-      (screen.getByLabelText('Chave da API OpenAI') as HTMLInputElement)
-        .placeholder,
-    ).toBe('sk-...')
+    expect(await screen.findByText(PROVIDER_HINT)).toBeTruthy()
+    expect(screen.queryByLabelText('Chave da API OpenAI')).toBeNull()
+    expect(screen.queryByLabelText('Modelo')).toBeNull()
   })
 
-  it('saves toggles and omits an empty API key from the payload', async () => {
+  it('saves toggles and prompt without key or model', async () => {
     const fetchSpy = mockFetch([
       { method: 'PATCH', match: CONFIG, data: savedConfig },
       { match: CONFIG, data: savedConfig },
     ])
     renderWithQuery(<WhatsappSettingsAi workspaceId='ws_1' />)
-    await screen.findByText('Chave da OpenAI configurada')
     await waitFor(() =>
-      expect((screen.getByLabelText('Modelo') as HTMLInputElement).value).toBe(
-        'gpt-4.1',
-      ),
+      expect(
+        (screen.getByLabelText('Instruções da IA') as HTMLTextAreaElement)
+          .value,
+      ).toBe('Responda sempre em português.'),
     )
 
     fireEvent.click(screen.getAllByRole('switch')[1])
@@ -104,42 +92,24 @@ describe('<WhatsappSettingsAi />', () => {
       expect(notify.success).toHaveBeenCalledWith('Configuração de IA salva'),
     )
     expect(fetchBody(fetchSpy, CONFIG, 'PATCH')).toEqual({
-      model: 'gpt-4.1',
       systemPrompt: 'Responda sempre em português.',
       active: true,
       readMedia: true,
     })
   })
 
-  it('sends a new API key and clears the field after saving', async () => {
-    const fetchSpy = mockFetch([
-      { method: 'PATCH', match: CONFIG, data: savedConfig },
-      { match: CONFIG, data: savedConfig },
-    ])
-    renderWithQuery(<WhatsappSettingsAi workspaceId='ws_1' />)
-    await screen.findByText('Chave da OpenAI configurada')
-
-    const key = screen.getByLabelText('Chave da API OpenAI') as HTMLInputElement
-    fireEvent.change(key, { target: { value: 'sk-nova' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Salvar configuração' }))
-
-    await waitFor(() => expect(notify.success).toHaveBeenCalled())
-    expect(fetchBody(fetchSpy, CONFIG, 'PATCH').openaiApiKey).toBe('sk-nova')
-    expect(key.value).toBe('')
-  })
-
   it('reports save failures', async () => {
     mockFetch([
-      { method: 'PATCH', match: CONFIG, status: 400, error: 'Chave inválida' },
+      { method: 'PATCH', match: CONFIG, status: 400, error: 'Dados inválidos' },
       { match: CONFIG, data: savedConfig },
     ])
     renderWithQuery(<WhatsappSettingsAi workspaceId='ws_1' />)
-    await screen.findByText('Chave da OpenAI configurada')
+    await screen.findByText(PROVIDER_HINT)
 
     fireEvent.click(screen.getByRole('button', { name: 'Salvar configuração' }))
     await waitFor(() => expect(notify.error).toHaveBeenCalled())
     expect((notify.error.mock.calls[0][0] as Error).message).toBe(
-      'Chave inválida',
+      'Dados inválidos',
     )
   })
 })

@@ -25,6 +25,7 @@ import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useAiSettings, useUpdateAiSettings } from '@/src/hooks/use-ai-settings'
 import type { WorkspaceAiSettingsDTO } from '@/types/ai-settings'
+import { useIsWorkspaceAdmin } from '../workspace/workspace-permissions'
 import { AiModelPreferenceSelect } from './ai-model-preference-select'
 
 const usd = new Intl.NumberFormat('pt-BR', {
@@ -76,6 +77,9 @@ function toForm(settings: WorkspaceAiSettingsDTO): FormState {
 
 export function AiSettingsSection({ workspaceId }: { workspaceId: string }) {
   const { data: settings, isLoading, error } = useAiSettings(workspaceId)
+  // Papel resolvido no layout (WorkspacePermissionsProvider); fora dele,
+  // usa o que a API informou. A API recusa escrita de não-admin de todo modo.
+  const isAdmin = useIsWorkspaceAdmin()
 
   if (isLoading) {
     return (
@@ -98,7 +102,7 @@ export function AiSettingsSection({ workspaceId }: { workspaceId: string }) {
     <div className='grid max-w-4xl gap-6'>
       <UsageCard settings={settings} />
       <PreferenceCard workspaceId={workspaceId} settings={settings} />
-      {settings.canManage ? (
+      {(isAdmin ?? settings.canManage) ? (
         <AdminForm workspaceId={workspaceId} settings={settings} />
       ) : (
         <p className='text-muted-foreground text-sm'>

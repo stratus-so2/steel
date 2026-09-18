@@ -6,7 +6,7 @@ import { UserHeader } from '@/app/_components/header/header-layout-user'
 import { HeaderPromotionBanner } from '@/app/_components/header/header-promotion-banner'
 import { GlobalSidebarNavigation } from '@/app/_components/navigation/sidebar-global'
 import { WorkspacePermissionsProvider } from '@/app/_components/workspace/workspace-permissions'
-import { OPENAI_API_KEY } from '@/lib/env/server'
+import { ANTHROPIC_API_KEY, OPENAI_API_KEY } from '@/lib/env/server'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { assertMember } from '@/src/services/authz'
@@ -109,7 +109,7 @@ export default async function WorkspaceLayout({
           </WorkspacePermissionsProvider>
         </div>
       </div>
-      {OPENAI_API_KEY && userResult.ok ? (
+      {(OPENAI_API_KEY || ANTHROPIC_API_KEY) && userResult.ok ? (
         <CrmAiAssistantWidget
           workspaceId={membership.value.workspaceId}
           userName={userResult.value.name}

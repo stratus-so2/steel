@@ -34,6 +34,16 @@ export function WorkspacePermissionsProvider({
  * `true` (a API decide); OWNER/ADMIN sempre podem; os demais seguem a matriz
  * com negação por padrão.
  */
+/**
+ * O usuário é OWNER/ADMIN da workspace? Para controles só de administrador
+ * que não mapeiam para um recurso da matriz (ex.: ajustes de IA). Fora do
+ * provider devolve `null` (quem chama decide o fallback).
+ */
+export function useIsWorkspaceAdmin(): boolean | null {
+  const ctx = useContext(Ctx)
+  return ctx ? ctx.isPrivileged : null
+}
+
 export function useCan(resource: string, action: PermissionAction): boolean {
   const ctx = useContext(Ctx)
   if (!ctx) return true
