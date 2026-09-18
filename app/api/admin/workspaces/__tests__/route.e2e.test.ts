@@ -8,6 +8,7 @@ import {
   postJson,
 } from '@/src/__tests__/helpers/e2e'
 import { BASE_URL } from '@/src/__tests__/setup.e2e'
+import { SYSTEM_PROFILES } from '@/src/lib/permissions'
 import { prisma } from '@/src/lib/prisma'
 
 async function createPlatformAdmin() {
@@ -156,7 +157,7 @@ describe('GET/POST /api/admin/workspaces/[id]/profiles', () => {
     expect(res.status).toBe(403)
   })
 
-  it('should seed and list the 3 system profiles for a platform admin', async () => {
+  it('should seed and list every system profile for a platform admin', async () => {
     const admin = await createPlatformAdmin()
     const other = await createAuthenticatedUser()
     const ws = await createWorkspaceForUser(other.id)
@@ -168,8 +169,11 @@ describe('GET/POST /api/admin/workspaces/[id]/profiles', () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.data).toHaveLength(3)
+    expect(body.data).toHaveLength(SYSTEM_PROFILES.length)
     expect(body.data.every((p: { isSystem: boolean }) => p.isSystem)).toBe(true)
+    expect(body.data.map((p: { name: string }) => p.name)).toContain(
+      'Visualizador',
+    )
   })
 
   it('should create a custom profile as a platform admin', async () => {
