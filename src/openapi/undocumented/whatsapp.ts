@@ -9,7 +9,6 @@
  */
 export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'DELETE /workspaces/{id}/whatsapp/ai-config/knowledge-documents/{documentId}',
-  'DELETE /workspaces/{id}/whatsapp/connections/{connectionId}',
   'DELETE /workspaces/{id}/whatsapp/contacts/{contactId}',
   'DELETE /workspaces/{id}/whatsapp/conversations/{conversationId}',
   'DELETE /workspaces/{id}/whatsapp/conversations/{conversationId}/messages/{messageId}',
@@ -26,8 +25,6 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'GET /workspaces/{id}/whatsapp/assignable-members',
   'GET /workspaces/{id}/whatsapp/broadcasts',
   'GET /workspaces/{id}/whatsapp/broadcasts/{broadcastId}',
-  'GET /workspaces/{id}/whatsapp/connections',
-  'GET /workspaces/{id}/whatsapp/connections/{connectionId}/qr-code',
   'GET /workspaces/{id}/whatsapp/contacts',
   'GET /workspaces/{id}/whatsapp/conversations',
   'GET /workspaces/{id}/whatsapp/conversations/{conversationId}/events',
@@ -45,7 +42,6 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'GET /workspaces/{id}/whatsapp/settings',
   'GET /workspaces/{id}/whatsapp/templates',
   'PATCH /workspaces/{id}/whatsapp/ai-config',
-  'PATCH /workspaces/{id}/whatsapp/connections/{connectionId}',
   'PATCH /workspaces/{id}/whatsapp/contacts/{contactId}',
   'PATCH /workspaces/{id}/whatsapp/conversations/{conversationId}/ai',
   'PATCH /workspaces/{id}/whatsapp/conversations/{conversationId}/ai/resume',
@@ -65,7 +61,6 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'POST /workspaces/{id}/whatsapp/broadcasts',
   'POST /workspaces/{id}/whatsapp/broadcasts/import',
   'POST /workspaces/{id}/whatsapp/broadcasts/{broadcastId}/start',
-  'POST /workspaces/{id}/whatsapp/connections',
   'POST /workspaces/{id}/whatsapp/contacts',
   'POST /workspaces/{id}/whatsapp/contacts/find-or-create',
   'POST /workspaces/{id}/whatsapp/contacts/{contactId}/sync-avatar',
