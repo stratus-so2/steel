@@ -174,4 +174,87 @@ describe('CrmCompanyRepository', () => {
       expect(list.map((c) => c.id)).toEqual([b.id, a.id])
     })
   })
+
+  describe('conflicts and database failures', () => {
+    it('should return CRM_COMPANY_CONFLICT when updating to a taken domain', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      await seedCrmCompany(workspace.id, user.id, { domain: 'taken.com' })
+      const other = await seedCrmCompany(workspace.id, user.id)
+
+      expectErr(
+        await CrmCompanyRepository.update(other.id, { domain: 'taken.com' }),
+        'CRM_COMPANY_CONFLICT',
+      )
+    })
+
+    it('should free cnpj and domain on soft delete so they can be reused', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const seeded = await seedCrmCompany(workspace.id, user.id, {
+        domain: 'reuse.com',
+      })
+      expectOk(await CrmCompanyRepository.softDelete(seeded.id))
+
+      const again = expectOk(
+        await CrmCompanyRepository.create({
+          workspaceId: workspace.id,
+          createdById: user.id,
+          name: 'Nova',
+          domain: 'reuse.com',
+        }),
+      )
+      expect(again.domain).toBe('reuse.com')
+    })
+
+    it('should return DATABASE_ERROR when writes hit missing rows or FKs', async () => {
+      const user = await seedUser()
+      expectErr(
+        await CrmCompanyRepository.create({
+          workspaceId: 'missing',
+          createdById: user.id,
+          name: 'X',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await CrmCompanyRepository.update('missing', { name: 'X' }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await CrmCompanyRepository.softDelete('missing'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should not reorder companies of another workspace', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const foreign = await seedCrmCompany(other.id, user.id, { position: 5 })
+
+      expectErr(
+        await CrmCompanyRepository.reorder(workspace.id, [foreign.id]),
+        'DATABASE_ERROR',
+      )
+      const stored = await prisma.crmCompany.findUniqueOrThrow({
+        where: { id: foreign.id },
+      })
+      expect(stored.position).toBe(5)
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      vi.spyOn(prisma.crmCompany, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(prisma.crmCompany, 'findFirst').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await CrmCompanyRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(await CrmCompanyRepository.findById('c', 'w'), 'DATABASE_ERROR')
+    })
+  })
 })

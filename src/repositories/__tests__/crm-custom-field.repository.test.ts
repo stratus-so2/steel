@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   seedCrmCustomFieldDefinition,
   seedCrmCustomFieldValue,
@@ -6,6 +6,7 @@ import {
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import {
   CrmCustomFieldDefinitionRepository,
   CrmCustomFieldValueRepository,
@@ -172,5 +173,236 @@ describe('CrmCustomFieldValueRepository', () => {
       )
       expect(list).toHaveLength(2)
     })
+  })
+})
+
+describe('CrmCustomFieldDefinitionRepository (lifecycle)', () => {
+  describe('listByWorkspace()', () => {
+    it('should order by position, hide deleted and other workspaces', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const second = await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'second',
+        position: 1,
+      })
+      const first = await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'first',
+        entity: 'PERSON',
+        position: 0,
+      })
+      await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'gone',
+        deletedAt: new Date(),
+      })
+      await seedCrmCustomFieldDefinition(other.id, user.id)
+
+      const list = expectOk(
+        await CrmCustomFieldDefinitionRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((d) => d.id)).toEqual([first.id, second.id])
+    })
+
+    it('should return DATABASE_ERROR when the query throws', async () => {
+      vi.spyOn(
+        prisma.crmCustomFieldDefinition,
+        'findMany',
+      ).mockRejectedValueOnce(new Error('boom'))
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('findById()', () => {
+    it('should find within the workspace and not across workspaces', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const def = await seedCrmCustomFieldDefinition(workspace.id, user.id)
+
+      expect(
+        expectOk(
+          await CrmCustomFieldDefinitionRepository.findById(
+            def.id,
+            workspace.id,
+          ),
+        ).id,
+      ).toBe(def.id)
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.findById(def.id, other.id),
+        'RESOURCE_NOT_FOUND',
+      )
+    })
+
+    it('should return DATABASE_ERROR when the query throws', async () => {
+      vi.spyOn(
+        prisma.crmCustomFieldDefinition,
+        'findFirst',
+      ).mockRejectedValueOnce(new Error('boom'))
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.findById('d', 'w'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('create() failures', () => {
+    it('should return DATABASE_ERROR on non-unique failures (missing workspace)', async () => {
+      const user = await seedUser()
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.create({
+          workspaceId: 'missing',
+          createdById: user.id,
+          entity: 'COMPANY',
+          key: 'k',
+          label: 'K',
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('update() / softDelete()', () => {
+    it('should update the definition and then soft delete it', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const def = await seedCrmCustomFieldDefinition(workspace.id, user.id)
+
+      const updated = expectOk(
+        await CrmCustomFieldDefinitionRepository.update(def.id, {
+          label: 'Setor',
+          type: 'SELECT',
+          options: ['A', 'B'],
+          required: true,
+          updatedById: user.id,
+        }),
+      )
+      expect(updated).toMatchObject({
+        label: 'Setor',
+        type: 'SELECT',
+        options: ['A', 'B'],
+        required: true,
+      })
+
+      expectOk(await CrmCustomFieldDefinitionRepository.softDelete(def.id))
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.findById(def.id, workspace.id),
+        'RESOURCE_NOT_FOUND',
+      )
+    })
+
+    it('should return DATABASE_ERROR for a missing definition', async () => {
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.update('missing', {
+          label: 'x',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.softDelete('missing'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('reorder()', () => {
+    it('should rewrite positions in the given order', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const a = await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'a',
+        position: 0,
+      })
+      const b = await seedCrmCustomFieldDefinition(workspace.id, user.id, {
+        key: 'b',
+        position: 1,
+      })
+
+      expectOk(
+        await CrmCustomFieldDefinitionRepository.reorder(workspace.id, [
+          b.id,
+          a.id,
+        ]),
+      )
+      const list = expectOk(
+        await CrmCustomFieldDefinitionRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((d) => d.id)).toEqual([b.id, a.id])
+    })
+
+    it('should refuse to reorder a definition from another workspace', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const foreign = await seedCrmCustomFieldDefinition(other.id, user.id)
+      expectErr(
+        await CrmCustomFieldDefinitionRepository.reorder(workspace.id, [
+          foreign.id,
+        ]),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+})
+
+describe('CrmCustomFieldValueRepository (edge cases)', () => {
+  it('should store null values as JSON null', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const def = await seedCrmCustomFieldDefinition(workspace.id, user.id)
+
+    const stored = expectOk(
+      await CrmCustomFieldValueRepository.upsert(def.id, 'record-1', null),
+    )
+    expect(stored.value).toBeNull()
+
+    expectOk(
+      await CrmCustomFieldValueRepository.applyForRecord([
+        { definitionId: def.id, recordId: 'record-2', value: null },
+      ]),
+    )
+    const [value] = expectOk(
+      await CrmCustomFieldValueRepository.listByRecord('record-2'),
+    )
+    expect(value.value).toBeNull()
+  })
+
+  it('should be a no-op for an empty batch', async () => {
+    const spy = vi.spyOn(prisma, '$transaction')
+    expectOk(await CrmCustomFieldValueRepository.applyForRecord([]))
+    expect(spy).not.toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('should return DATABASE_ERROR when writes reference a missing definition', async () => {
+    expectErr(
+      await CrmCustomFieldValueRepository.upsert('missing', 'r', 'x'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmCustomFieldValueRepository.applyForRecord([
+        { definitionId: 'missing', recordId: 'r', value: 'x' },
+      ]),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.crmCustomFieldValue, 'findMany')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+    expectErr(
+      await CrmCustomFieldValueRepository.listByRecord('r'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmCustomFieldValueRepository.listByRecords(['r']),
+      'DATABASE_ERROR',
+    )
   })
 })

@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedCrmActivity } from '@/src/__tests__/factories/crm-activity.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import { CrmActivityRepository } from '../crm-activity.repository'
 
 describe('CrmActivityRepository', () => {
@@ -36,6 +37,74 @@ describe('CrmActivityRepository', () => {
         }),
       )
       expect(list.map((a) => a.id)).toEqual([matched.id])
+    })
+  })
+
+  describe('listByWorkspace() filters and ordering', () => {
+    it('should filter by personId and opportunityId and scope to the workspace', async () => {
+      const [workspace, other] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+      ])
+      const byPerson = await seedCrmActivity(workspace.id, { personId: 'p1' })
+      const byOpportunity = await seedCrmActivity(workspace.id, {
+        opportunityId: 'o1',
+      })
+      await seedCrmActivity(other.id, { personId: 'p1' })
+
+      expect(
+        expectOk(
+          await CrmActivityRepository.listByWorkspace(workspace.id, {
+            personId: 'p1',
+          }),
+        ).map((a) => a.id),
+      ).toEqual([byPerson.id])
+      expect(
+        expectOk(
+          await CrmActivityRepository.listByWorkspace(workspace.id, {
+            opportunityId: 'o1',
+          }),
+        ).map((a) => a.id),
+      ).toEqual([byOpportunity.id])
+    })
+
+    it('should list newest first without filters', async () => {
+      const workspace = await seedWorkspace()
+      const older = await seedCrmActivity(workspace.id)
+      await prisma.crmActivity.update({
+        where: { id: older.id },
+        data: { createdAt: new Date('2020-01-01') },
+      })
+      const newer = await seedCrmActivity(workspace.id)
+
+      const list = expectOk(
+        await CrmActivityRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((a) => a.id)).toEqual([newer.id, older.id])
+    })
+
+    it('should return DATABASE_ERROR when the query throws', async () => {
+      vi.spyOn(prisma.crmActivity, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await CrmActivityRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('record() failures', () => {
+    it('should return DATABASE_ERROR when the workspace does not exist', async () => {
+      expectErr(
+        await CrmActivityRepository.record({
+          workspaceId: 'missing',
+          action: 'CREATED',
+          entity: 'crm_company',
+          entityId: 'c1',
+        }),
+        'DATABASE_ERROR',
+      )
     })
   })
 })

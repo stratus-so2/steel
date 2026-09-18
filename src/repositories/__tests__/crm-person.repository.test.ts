@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedCrmCompany } from '@/src/__tests__/factories/crm-company.factory'
 import { seedCrmPerson } from '@/src/__tests__/factories/crm-person.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
@@ -147,6 +147,121 @@ describe('CrmPersonRepository', () => {
         await CrmPersonRepository.listByWorkspace(workspace.id),
       )
       expect(list.map((p) => p.id)).toEqual([b.id, a.id])
+    })
+  })
+
+  describe('update()', () => {
+    it('should update contact fields and unlink the company', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const company = await seedCrmCompany(workspace.id, user.id)
+      const seeded = await seedCrmPerson(workspace.id, user.id, {
+        companyId: company.id,
+      })
+
+      const person = expectOk(
+        await CrmPersonRepository.update(seeded.id, {
+          name: 'Renomeada',
+          emails: ['nova@example.com'],
+          jobTitle: null,
+          companyId: null,
+          updatedById: user.id,
+        }),
+      )
+      expect(person.name).toBe('Renomeada')
+      expect(person.emails).toEqual(['nova@example.com'])
+      expect(person.companyId).toBeNull()
+    })
+  })
+
+  describe('edge cases and database failures', () => {
+    it('should short-circuit findFirstByContacts when no contact is given', async () => {
+      const spy = vi.spyOn(prisma, '$queryRaw')
+      expect(
+        expectOk(
+          await CrmPersonRepository.findFirstByContacts('w', {
+            emails: [],
+            phones: [],
+          }),
+        ),
+      ).toBeNull()
+      expect(spy).not.toHaveBeenCalled()
+      spy.mockRestore()
+    })
+
+    it('should return null when no person matches the contacts', async () => {
+      const workspace = await seedWorkspace()
+      expect(
+        expectOk(
+          await CrmPersonRepository.findFirstByContacts(workspace.id, {
+            emails: ['ninguem@example.com'],
+            phones: [],
+          }),
+        ),
+      ).toBeNull()
+    })
+
+    it('should return DATABASE_ERROR when the contacts query throws', async () => {
+      const spy = vi
+        .spyOn(prisma, '$queryRaw')
+        .mockRejectedValueOnce(new Error('boom'))
+      expectErr(
+        await CrmPersonRepository.findFirstByContacts('w', {
+          emails: ['a@example.com'],
+          phones: [],
+        }),
+        'DATABASE_ERROR',
+      )
+      spy.mockRestore()
+    })
+
+    it('should return DATABASE_ERROR when writes hit missing rows or FKs', async () => {
+      const user = await seedUser()
+      expectErr(
+        await CrmPersonRepository.create({
+          workspaceId: 'missing',
+          createdById: user.id,
+          name: 'X',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await CrmPersonRepository.update('missing', { name: 'X' }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await CrmPersonRepository.softDelete('missing'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should not reorder people of another workspace', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const foreign = await seedCrmPerson(other.id, user.id)
+
+      expectErr(
+        await CrmPersonRepository.reorder(workspace.id, [foreign.id]),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      const list = vi
+        .spyOn(prisma.crmPerson, 'findMany')
+        .mockRejectedValueOnce(new Error('boom'))
+      const find = vi
+        .spyOn(prisma.crmPerson, 'findFirst')
+        .mockRejectedValueOnce(new Error('boom'))
+      expectErr(
+        await CrmPersonRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(await CrmPersonRepository.findById('p', 'w'), 'DATABASE_ERROR')
+      list.mockRestore()
+      find.mockRestore()
     })
   })
 })

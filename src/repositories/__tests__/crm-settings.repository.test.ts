@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedCrmSettings } from '@/src/__tests__/factories/crm-settings.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import { CrmSettingsRepository } from '../crm-settings.repository'
 
 describe('CrmSettingsRepository', () => {
@@ -62,6 +63,28 @@ describe('CrmSettingsRepository', () => {
 
       expect(updated.proposalValidityDays).toBe(45)
       expect(updated.leadReopenStage).toBe('IN_CONTACT')
+    })
+  })
+
+  describe('failures', () => {
+    it('should return DATABASE_ERROR when the lookup throws', async () => {
+      vi.spyOn(prisma.crmSettings, 'findUnique').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await CrmSettingsRepository.findByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when the workspace does not exist', async () => {
+      const user = await seedUser()
+      expectErr(
+        await CrmSettingsRepository.upsert('missing', {
+          updatedById: user.id,
+        }),
+        'DATABASE_ERROR',
+      )
     })
   })
 })
