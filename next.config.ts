@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
+// Headers estáticos aplicados a toda resposta (inclusive rotas fora do matcher
+// do proxy). CSP com nonce continua no proxy.ts; HSTS também é enviado lá, mas
+// fica aqui como defesa em profundidade caso o proxy não rode.
+// X-Frame-Options duplica o `frame-ancestors 'none'` da CSP para navegadores
+// antigos e scanners (job de headers do Security DAST).
 const securityHeaders = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  {
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
+  },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
