@@ -232,6 +232,10 @@ export const ERROR_CODES = {
     code: 'CRM_EMAIL_CAMPAIGN_ALREADY_SENT',
     status: 409,
   },
+  CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS: {
+    code: 'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
+    status: 422,
+  },
   CRM_MAILING_LIST_NOT_FOUND: {
     code: 'CRM_MAILING_LIST_NOT_FOUND',
     status: 404,

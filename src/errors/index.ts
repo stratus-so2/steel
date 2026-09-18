@@ -25,6 +25,7 @@ export {
   crmEmailAccountConflict,
   crmEmailAccountNotFound,
   crmEmailCampaignAlreadySent,
+  crmEmailCampaignNoRecipients,
   crmEmailCampaignNotFound,
   crmEmailMessageNotFound,
   crmEmailTemplateNotFound,

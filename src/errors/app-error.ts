@@ -398,6 +398,12 @@ export const crmEmailCampaignAlreadySent = (
   message = 'Esta campanha já foi enviada ou está em envio',
 ): AppError => appError('CRM_EMAIL_CAMPAIGN_ALREADY_SENT', message)
 
+/** Campanha sem destinatário elegível — seleção vazia em "Selecionados"
+ * ou todos descadastrados. Nunca cai para "todos" como fallback. */
+export const crmEmailCampaignNoRecipients = (
+  message = 'Selecione ao menos um destinatário para a campanha',
+): AppError => appError('CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS', message)
+
 export const crmMailingListNotFound = (): AppError =>
   appError('CRM_MAILING_LIST_NOT_FOUND', 'Lista de e-mail não encontrada')
 
