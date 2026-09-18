@@ -21,7 +21,7 @@ function message(overrides: Record<string, unknown>) {
 function fakeClient(...responses: unknown[]) {
   const create = vi.fn()
   for (const response of responses) create.mockResolvedValueOnce(response)
-  const client = { beta: { messages: { create } } } as unknown as Anthropic
+  const client = { messages: { create } } as unknown as Anthropic
   return { client, create }
 }
 
@@ -111,7 +111,7 @@ describe('createAnthropicProvider()', () => {
     ])
   })
 
-  it('should enable the server-side refusal fallback on Claude Opus 5', async () => {
+  it('should not enable any refusal fallback on Claude Opus 5', async () => {
     const { client, create } = fakeClient(
       message({ content: [{ type: 'text', text: 'ok' }] }),
     )
@@ -120,8 +120,9 @@ describe('createAnthropicProvider()', () => {
       messages: [{ role: 'user', content: 'x' }],
     })
     const args = create.mock.calls[0][0]
-    expect(args.betas).toEqual(['server-side-fallback-2026-06-01'])
-    expect(args.fallbacks).toEqual([{ model: 'claude-opus-4-8' }])
+    expect(args).not.toHaveProperty('betas')
+    expect(args).not.toHaveProperty('fallbacks')
+    expect(args.model).toBe('claude-opus-5')
   })
 
   it('should resume a pause_turn and accumulate content and usage', async () => {

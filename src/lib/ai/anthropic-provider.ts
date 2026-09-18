@@ -9,25 +9,16 @@ import {
   parseToolArguments,
 } from './types'
 
-type MessageParam = Anthropic.Beta.Messages.BetaMessageParam
-type ContentBlockParam = Anthropic.Beta.Messages.BetaContentBlockParam
-type ContentBlock = Anthropic.Beta.Messages.BetaContentBlock
-type ToolUnion = Anthropic.Beta.Messages.BetaToolUnion
-type CreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming
+type MessageParam = Anthropic.MessageParam
+type ContentBlockParam = Anthropic.ContentBlockParam
+type ContentBlock = Anthropic.ContentBlock
+type ToolUnion = Anthropic.ToolUnion
+type CreateParams = Anthropic.MessageCreateParamsNonStreaming
 
 /** Teto de saída padrão para requisições não-streaming (evita timeout HTTP). */
 const DEFAULT_MAX_TOKENS = 16_000
 /** Continuações de `pause_turn` (loop server-side da busca web). */
 const MAX_PAUSE_CONTINUATIONS = 5
-/**
- * Fallback server-side em caso de recusa pelos classificadores de segurança
- * do Claude Opus 5: a API refaz a mesma requisição no modelo abaixo dentro
- * da mesma chamada, em vez de devolver uma resposta vazia ao usuário.
- */
-const REFUSAL_FALLBACKS: Record<string, string> = {
-  'claude-opus-5': 'claude-opus-4-8',
-}
-const FALLBACK_BETA = 'server-side-fallback-2026-06-01'
 /** Modelos sem suporte à versão com filtragem dinâmica da busca web. */
 const BASIC_WEB_SEARCH_MODELS = new Set(['claude-haiku-4-5'])
 
@@ -108,8 +99,7 @@ function buildTools(request: AiChatRequest): ToolUnion[] {
   const tools: ToolUnion[] = (request.tools ?? []).map((tool) => ({
     name: tool.name,
     description: tool.description,
-    input_schema:
-      tool.parameters as Anthropic.Beta.Messages.BetaTool.InputSchema,
+    input_schema: tool.parameters as Anthropic.Tool.InputSchema,
   }))
   if (request.webSearch) {
     tools.unshift(
@@ -122,8 +112,10 @@ function buildTools(request: AiChatRequest): ToolUnion[] {
 }
 
 /**
- * Adaptador do Claude (Anthropic Messages API). Usa o namespace `beta` só
- * para poder ligar o fallback de recusa no Opus 5; o resto é a API padrão.
+ * Adaptador do Claude (Anthropic Messages API, sem betas). Recusas dos
+ * classificadores de segurança (`stop_reason: 'refusal'`) são devolvidas
+ * como `stopReason: 'refusal'` — sem fallback automático para outro modelo
+ * (decisão da ADR 0007: comportamento previsível, o chamador decide).
  */
 export function createAnthropicProvider(client: Anthropic): AiProvider {
   return {
@@ -131,7 +123,6 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
     async chat(request: AiChatRequest): Promise<AiChatResponse> {
       const tools = buildTools(request)
       const messages = toAnthropicMessages(request.messages)
-      const fallback = REFUSAL_FALLBACKS[request.model]
 
       const params: CreateParams = {
         model: request.model,
@@ -146,16 +137,12 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
             format: { type: 'json_schema', schema: request.jsonSchema.schema },
           },
         }),
-        ...(fallback && {
-          betas: [FALLBACK_BETA],
-          fallbacks: [{ model: fallback }],
-        }),
       }
 
       const content: ContentBlock[] = []
       let inputTokens = 0
       let outputTokens = 0
-      let response = await client.beta.messages.create(params)
+      let response = await client.messages.create(params)
 
       for (let i = 0; ; i++) {
         content.push(...response.content)
@@ -173,7 +160,7 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
         ) {
           break
         }
-        response = await client.beta.messages.create({
+        response = await client.messages.create({
           ...params,
           messages: [
             ...messages,
@@ -184,8 +171,7 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
 
       const toolCalls: AiToolCall[] = content
         .filter(
-          (block): block is Anthropic.Beta.Messages.BetaToolUseBlock =>
-            block.type === 'tool_use',
+          (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
         )
         .map((block) => ({
           id: block.id,
@@ -194,10 +180,7 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
         }))
 
       const text = content
-        .filter(
-          (block): block is Anthropic.Beta.Messages.BetaTextBlock =>
-            block.type === 'text',
-        )
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
         .map((block) => block.text)
         .join('')
         .trim()
