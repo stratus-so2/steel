@@ -290,6 +290,7 @@ model Workspace {
   moduleConnections WorkspaceModuleConnection[]
   moduleAccess      WorkspaceModuleAccess[]
   featureOverrides  WorkspaceFeatureOverride[]
+  moduleUsage       ModuleUsageDaily[]
 
   whatsappConnections          WhatsAppConnection[]
   whatsappContacts             WhatsAppContact[]
@@ -698,6 +699,30 @@ model WorkspaceFeatureOverride {
   @@unique([workspaceId, key])
   @@index([workspaceId])
   @@map("workspace_feature_overrides")
+}
+
+/// Agregado diário de uso por workspace × módulo, para o painel de métricas
+/// do admin global. Alimentado sem tocar nos services: o wrapper `withAxiom`
+/// conta cada resposta de sucesso das rotas `/api/workspaces/:id/{crm,whatsapp}`
+/// num hash do Redis e o job `usage-rollup` do worker grava aqui os totais do
+/// dia (valor absoluto, idempotente). `day` é a data em America/Sao_Paulo.
+model ModuleUsageDaily {
+  id          String     @id @default(cuid())
+  day         DateTime   @db.Date
+  workspaceId String     @map("workspace_id")
+  module      ModuleKind
+  /// Requisições bem-sucedidas (leitura + escrita).
+  requests    Int        @default(0)
+  /// Só as de escrita (POST/PUT/PATCH/DELETE) — as "ações" no módulo.
+  mutations   Int        @default(0)
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([day, workspaceId, module])
+  @@index([workspaceId])
+  @@index([day])
+  @@map("module_usage_daily")
 }
 
 // ─── Backups ────────────────────────────────────────────────────────────────
