@@ -76,6 +76,8 @@ resto exige o cookie `better-auth.session_token`).
   resolvido por `src/lib/module-db/resolver.ts`).
 - Planos (`FREE`, `PRO`, `BUSINESS`, `ENTERPRISE`) em `src/config/plans.ts` —
   ver [revisão de limites](../plans-review.md).
+- **Feature flags** por workspace (capacidades opcionais dentro de um módulo,
+  default por plano + override do admin): [feature-flags](../feature-flags.md).
 
 ## Módulos de domínio
 
@@ -115,6 +117,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `changelog` | e-mails de changelog | sob demanda |
 | `database-backup` | backup FULL (03:15), prune (03:30), backup por workspace, **cópia offsite** | cron + sob demanda |
 | `status-collect` | probes do `/status` ([ADR 0004](../adr/0004-status-collection-worker-jobs.md)) | core 1 min, periféricos 5 min |
+| `usage-rollup` | copia o uso por módulo do Redis para `module_usage_daily` ([métricas](../admin-metrics.md)) | a cada 15 min |
 
 Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
 
