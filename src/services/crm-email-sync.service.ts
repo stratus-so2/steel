@@ -21,14 +21,17 @@ import type {
   CrmEmailAccountDTO,
   CrmEmailMessageDTO,
 } from '@/types/crm-email-sync'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmEmailAccountService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmEmailAccountDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailAccountRepository.listByWorkspace(workspaceId)
@@ -42,7 +45,10 @@ export const CrmEmailAccountService = {
     workspaceId: string,
     dto: CreateCrmEmailAccountDTO,
   ): Promise<Result<CrmEmailAccountDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailAccountRepository.create({
@@ -78,7 +84,10 @@ export const CrmEmailAccountService = {
     workspaceId: string,
     accountId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmEmailAccountRepository.findById(
@@ -107,7 +116,10 @@ export const CrmEmailMessageService = {
     workspaceId: string,
     filters: { personId?: string; opportunityId?: string },
   ): Promise<Result<CrmEmailMessageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailMessageRepository.listByWorkspace(
@@ -124,7 +136,10 @@ export const CrmEmailMessageService = {
     workspaceId: string,
     dto: CreateCrmEmailMessageDTO,
   ): Promise<Result<CrmEmailMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailMessageRepository.create({
@@ -167,7 +182,10 @@ export const CrmEmailMessageService = {
     workspaceId: string,
     messageId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmEmailMessageRepository.findById(
@@ -196,7 +214,10 @@ export const CrmCalendarEventService = {
     workspaceId: string,
     filters: { personId?: string; opportunityId?: string },
   ): Promise<Result<CrmCalendarEventDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCalendarEventRepository.listByWorkspace(
@@ -213,7 +234,10 @@ export const CrmCalendarEventService = {
     workspaceId: string,
     dto: CreateCrmCalendarEventDTO,
   ): Promise<Result<CrmCalendarEventDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCalendarEventRepository.create({
@@ -256,7 +280,10 @@ export const CrmCalendarEventService = {
     eventId: string,
     dto: UpdateCrmCalendarEventDTO,
   ): Promise<Result<CrmCalendarEventDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmCalendarEventRepository.findById(
@@ -290,7 +317,10 @@ export const CrmCalendarEventService = {
     workspaceId: string,
     eventId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmCalendarEventRepository.findById(

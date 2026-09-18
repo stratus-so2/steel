@@ -42,7 +42,7 @@ import type {
   CrmScheduledPostDTO,
   CrmSocialConnectionDTO,
 } from '@/types/crm-social'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import {
   CRM_SCHEDULED_POST_BUCKET,
   publishScheduledPost,
@@ -164,7 +164,10 @@ export const CrmSocialConnectionService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmSocialConnectionDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result =
@@ -179,7 +182,10 @@ export const CrmSocialConnectionService = {
     workspaceId: string,
     dto: CreateCrmSocialConnectionDTO,
   ): Promise<Result<CrmSocialConnectionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmSocialConnectionRepository.create({
@@ -217,7 +223,10 @@ export const CrmSocialConnectionService = {
     workspaceId: string,
     connectionId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmSocialConnectionRepository.findById(
@@ -245,7 +254,10 @@ export const CrmSocialConnectionService = {
     workspaceId: string,
     platform: (typeof CRM_SOCIAL_PLATFORMS)[number],
   ): Promise<Result<{ authorizeUrl: string; pkceVerifier: string | null }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     if (!isTokenCryptoConfigured()) return err(crmSocialNotConfigured())
@@ -288,7 +300,10 @@ export const CrmSocialConnectionService = {
     if (!verified.ok) return err(crmSocialStateInvalid())
     const { workspaceId, slug, platform } = verified.value
 
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const provider = getProvider(platform)
@@ -358,7 +373,10 @@ export const CrmSocialConnectionService = {
     workspaceId: string,
     connectionId: string,
   ): Promise<Result<CrmSocialConnectionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmSocialConnectionRepository.findById(
@@ -391,7 +409,10 @@ export const CrmScheduledPostService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmScheduledPostDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmScheduledPostRepository.listByWorkspace(workspaceId)
@@ -405,7 +426,10 @@ export const CrmScheduledPostService = {
     workspaceId: string,
     postId: string,
   ): Promise<Result<CrmScheduledPostDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmScheduledPostRepository.findById(
@@ -423,7 +447,10 @@ export const CrmScheduledPostService = {
     dto: CreateCrmScheduledPostDTO,
     media: CrmScheduledUploadMedia[] = [],
   ): Promise<Result<CrmScheduledPostDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const title = dto.title?.trim() ? dto.title.trim() : undefined
@@ -521,7 +548,10 @@ export const CrmScheduledPostService = {
     postId: string,
     dto: UpdateCrmScheduledPostDTO,
   ): Promise<Result<CrmScheduledPostDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmScheduledPostRepository.findById(
@@ -559,7 +589,10 @@ export const CrmScheduledPostService = {
     workspaceId: string,
     postId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmScheduledPostRepository.findById(
@@ -587,7 +620,10 @@ export const CrmScheduledPostService = {
     workspaceId: string,
     postId: string,
   ): Promise<Result<CrmScheduledPostDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmScheduledPostRepository.findById(
@@ -633,7 +669,10 @@ export const CrmScheduledPostService = {
     postId: string,
     scheduledFor: Date,
   ): Promise<Result<CrmScheduledPostDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmScheduledPostRepository.findById(
@@ -679,7 +718,10 @@ export const CrmScheduledPostService = {
     workspaceId: string,
     postId: string,
   ): Promise<Result<CrmScheduledPostDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmScheduledPostRepository.findById(

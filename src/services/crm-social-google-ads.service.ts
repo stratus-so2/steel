@@ -12,7 +12,7 @@ import {
   type CrmSocialGoogleAdsOverviewDTO,
   GOOGLE_ADS_INSIGHTS_RANGE_DAYS,
 } from '@/src/schemas/crm-social-google-ads.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const BASE = 'https://googleads.googleapis.com/v23'
@@ -255,7 +255,10 @@ export async function getOverview(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmSocialGoogleAdsOverviewDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'GOOGLE_ADS')
@@ -274,7 +277,10 @@ export async function getInsights(
   workspaceId: string,
   range: CrmSocialGoogleAdsInsightsRange,
 ): Promise<Result<CrmSocialGoogleAdsInsightsDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'GOOGLE_ADS')

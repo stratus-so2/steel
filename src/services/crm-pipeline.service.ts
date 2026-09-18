@@ -16,14 +16,17 @@ import type {
   UpdateCrmPipelineStageDTO,
 } from '@/src/schemas/crm-pipeline.schema'
 import type { CrmPipelineDTO, CrmPipelineStageDTO } from '@/types/crm-pipeline'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmPipelineService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmPipelineDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmPipelineRepository.listByWorkspace(workspaceId)
@@ -37,7 +40,10 @@ export const CrmPipelineService = {
     workspaceId: string,
     dto: CreateCrmPipelineDTO,
   ): Promise<Result<CrmPipelineDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmPipelineRepository.create({
@@ -74,7 +80,10 @@ export const CrmPipelineService = {
     pipelineId: string,
     dto: UpdateCrmPipelineDTO,
   ): Promise<Result<CrmPipelineDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmPipelineRepository.findById(
@@ -106,7 +115,10 @@ export const CrmPipelineService = {
     workspaceId: string,
     pipelineId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmPipelineRepository.findById(
@@ -133,7 +145,10 @@ export const CrmPipelineService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmPipelineRepository.reorder(workspaceId, orderedIds)
@@ -173,7 +188,10 @@ export const CrmPipelineStageService = {
     workspaceId: string,
     pipelineId: string,
   ): Promise<Result<CrmPipelineStageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const pipeline = await CrmPipelineRepository.findById(
@@ -194,7 +212,10 @@ export const CrmPipelineStageService = {
     pipelineId: string,
     dto: CreateCrmPipelineStageDTO,
   ): Promise<Result<CrmPipelineStageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const pipeline = await CrmPipelineRepository.findById(
@@ -239,7 +260,10 @@ export const CrmPipelineStageService = {
     stageId: string,
     dto: UpdateCrmPipelineStageDTO,
   ): Promise<Result<CrmPipelineStageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const pipeline = await CrmPipelineRepository.findById(
@@ -274,7 +298,10 @@ export const CrmPipelineStageService = {
     pipelineId: string,
     stageId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const pipeline = await CrmPipelineRepository.findById(
@@ -308,7 +335,10 @@ export const CrmPipelineStageService = {
     pipelineId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'pipelines',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const pipeline = await CrmPipelineRepository.findById(

@@ -51,7 +51,7 @@ import type {
 } from '@/types/crm-lead'
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
-import { assertMember } from './authz'
+import { assertModuleEnabled, assertModuleMember } from './authz'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 /**
@@ -159,7 +159,10 @@ export const CrmLeadService = {
     workspaceId: string,
     filters: ListCrmLeadsDTO,
   ): Promise<Result<CrmLeadDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLeadRepository.listByWorkspace(workspaceId, {
@@ -175,7 +178,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmLeadDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -188,7 +194,8 @@ export const CrmLeadService = {
    * Porta de entrada única de leads — criação manual, API de integração e
    * formulário público. Aplica o mesmo contrato (`CreateCrmLeadSchema`),
    * dedupe contra leads em aberto, pontuação, roteamento de dono, auditoria
-   * e workflows. Não checa membership: quem chama já autenticou o canal.
+   * e workflows. Não checa membership (quem chama já autenticou o canal),
+   * mas recusa quando o módulo CRM está desabilitado para a workspace.
    */
   async intake(
     workspaceId: string,
@@ -200,6 +207,11 @@ export const CrmLeadService = {
       return err(validationError('Dados inválidos', parsed.error.issues))
     }
     const dto: CreateCrmLeadDTO = parsed.data
+
+    // Porta única de todos os canais (inclusive os públicos, sem sessão):
+    // nenhum lead entra numa workspace com o CRM desabilitado.
+    const moduleEnabled = await assertModuleEnabled(workspaceId, 'CRM')
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const createdById = actor.kind === 'user' ? actor.userId : actor.createdById
     const auditActorId = actor.kind === 'user' ? actor.userId : null
@@ -297,7 +309,10 @@ export const CrmLeadService = {
     workspaceId: string,
     dto: CrmLeadIntakeInput,
   ): Promise<Result<CrmLeadDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLeadService.intake(
@@ -318,7 +333,10 @@ export const CrmLeadService = {
     leadId: string,
     dto: UpdateCrmLeadDTO,
   ): Promise<Result<CrmLeadDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -393,7 +411,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -425,7 +446,10 @@ export const CrmLeadService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmLeadRepository.reorder(workspaceId, orderedIds)
@@ -442,7 +466,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmPersonDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -491,7 +518,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmProposalDTO | null>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -514,7 +544,10 @@ export const CrmLeadService = {
     leadId: string,
     dto: RegisterCrmLeadContactAttemptDTO,
   ): Promise<Result<{ lead: CrmLeadDTO; attempt: CrmLeadContactAttemptDTO }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -571,7 +604,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmLeadContactAttemptDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -591,7 +627,10 @@ export const CrmLeadService = {
     leadId: string,
     productIds: string[],
   ): Promise<Result<CrmLeadDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -624,7 +663,10 @@ export const CrmLeadService = {
   ): Promise<
     Result<{ lead: CrmLeadDTO; qualification: CrmLeadQualificationDTO }>
   > {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -683,7 +725,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmLeadQualificationDTO | null>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -703,7 +748,10 @@ export const CrmLeadService = {
     leadId: string,
     dto: RegisterCrmLeadMeetingDTO,
   ): Promise<Result<{ lead: CrmLeadDTO; meeting: CrmLeadMeetingDTO }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -748,7 +796,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmLeadMeetingDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -767,7 +818,10 @@ export const CrmLeadService = {
     leadId: string,
     dto: CreateCrmLeadProposalDTO,
   ): Promise<Result<{ lead: CrmLeadDTO; proposal: CrmProposalDTO }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -835,7 +889,10 @@ export const CrmLeadService = {
   ): Promise<
     Result<{ lead: CrmLeadDTO; presentation: CrmLeadProposalPresentationDTO }>
   > {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -888,7 +945,10 @@ export const CrmLeadService = {
     workspaceId: string,
     leadId: string,
   ): Promise<Result<CrmLeadProposalPresentationDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -908,7 +968,10 @@ export const CrmLeadService = {
     leadId: string,
     dto: CloseCrmLeadWonDTO,
   ): Promise<Result<CrmPersonDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
@@ -980,7 +1043,10 @@ export const CrmLeadService = {
     leadId: string,
     dto: CloseCrmLeadLostDTO,
   ): Promise<Result<CrmLeadDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)

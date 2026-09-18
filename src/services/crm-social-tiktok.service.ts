@@ -11,7 +11,7 @@ import type {
   CrmTiktokVideos,
   CrmTiktokWeeklyEngagement,
 } from '@/src/schemas/crm-social-tiktok.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const API = 'https://open.tiktokapis.com/v2'
@@ -298,7 +298,10 @@ export async function getOverview(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmTiktokCreatorOverview>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TIKTOK')
@@ -313,7 +316,10 @@ export async function getVideos(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmTiktokVideos>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TIKTOK')
@@ -361,7 +367,10 @@ export async function publishVideo(
   input: CrmPublishTiktokVideoInput,
   file: { bytes: ArrayBuffer; contentType: string },
 ): Promise<Result<CrmPublishTiktokVideoResult>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'CREATE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TIKTOK')

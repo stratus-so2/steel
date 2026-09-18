@@ -21,7 +21,7 @@ import {
   type CrmPublishInstagramPostInput,
   type CrmPublishInstagramPostResult,
 } from '@/src/schemas/crm-social-instagram.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 /** Graph API (Meta) — mesma versão usada no provider OAuth. */
@@ -431,7 +431,10 @@ export async function getOverview(
   workspaceId: string,
   connectionId?: string,
 ): Promise<Result<CrmInstagramProfileOverview>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(
@@ -456,7 +459,10 @@ export async function getInsights(
   range: CrmInstagramInsightsRange,
   connectionId?: string,
 ): Promise<Result<CrmInstagramInsights>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(
@@ -485,7 +491,10 @@ export async function getRecentMedia(
   workspaceId: string,
   connectionId?: string,
 ): Promise<Result<CrmInstagramMediaList>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(
@@ -513,7 +522,10 @@ export async function getWeeklyEngagement(
   workspaceId: string,
   connectionId?: string,
 ): Promise<Result<CrmInstagramWeeklyEngagement>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(
@@ -571,7 +583,10 @@ export async function publishPost(
   connectionId?: string,
   cover?: { bytes: ArrayBuffer; contentType: string } | null,
 ): Promise<Result<CrmPublishInstagramPostResult>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'CREATE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(
@@ -616,7 +631,10 @@ export async function getStories(
   workspaceId: string,
   connectionId?: string,
 ): Promise<Result<{ stories: CrmInstagramActiveStory[] }>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(
@@ -647,7 +665,10 @@ export async function deleteMedia(
   mediaId: string,
   connectionId?: string,
 ): Promise<Result<{ deletedId: string }>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'DELETE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(

@@ -1,6 +1,6 @@
 import { ok, type Result } from '@/src/lib/result'
 import type { TrendingItem } from '@/src/schemas/crm-social-trending.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import {
   fetchActiveStories,
   fetchEnrichedMediaSince,
@@ -119,7 +119,10 @@ export const CrmSocialTrendingService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<TrendingItem[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const [tiktok, instagram] = await Promise.all([

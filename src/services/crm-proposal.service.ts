@@ -24,7 +24,7 @@ import type {
   CrmProposalMetricsDTO,
   CrmProposalPublicDTO,
 } from '@/types/crm-proposal'
-import { assertMember } from './authz'
+import { assertMember, assertModuleEnabled, assertModuleMember } from './authz'
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
@@ -73,7 +73,10 @@ export const CrmProposalService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmProposalDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmProposalRepository.listByWorkspace(workspaceId)
@@ -87,7 +90,10 @@ export const CrmProposalService = {
     workspaceId: string,
     proposalId: string,
   ): Promise<Result<CrmProposalDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmProposalRepository.findById(proposalId, workspaceId)
@@ -101,7 +107,10 @@ export const CrmProposalService = {
     workspaceId: string,
     dto: CreateCrmProposalDTO,
   ): Promise<Result<CrmProposalDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const related = await assertRelatedEntities(workspaceId, dto)
@@ -172,7 +181,10 @@ export const CrmProposalService = {
     proposalId: string,
     dto: UpdateCrmProposalDTO,
   ): Promise<Result<CrmProposalDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmProposalRepository.findById(
@@ -218,7 +230,10 @@ export const CrmProposalService = {
     workspaceId: string,
     proposalId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmProposalRepository.findById(
@@ -245,7 +260,10 @@ export const CrmProposalService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmProposalRepository.reorder(workspaceId, orderedIds)
@@ -256,7 +274,10 @@ export const CrmProposalService = {
     workspaceId: string,
     proposalId: string,
   ): Promise<Result<CrmProposalMetricsDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmProposalRepository.findById(
@@ -277,6 +298,13 @@ export const CrmProposalService = {
     const result = await CrmProposalRepository.findByShareToken(shareToken)
     if (!result.ok) return result
 
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      result.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
+
     // A 1ª visualização pública marca a proposta como vista.
     if (result.value.status === 'SENT') {
       await CrmProposalRepository.setStatus(result.value.id, 'VIEWED')
@@ -292,6 +320,13 @@ export const CrmProposalService = {
   ): Promise<Result<void>> {
     const proposal = await CrmProposalRepository.findByShareToken(shareToken)
     if (!proposal.ok) return proposal
+
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      proposal.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmProposalViewRepository.record({
       proposalId: proposal.value.id,
@@ -312,7 +347,10 @@ export const CrmProposalService = {
     workspaceId: string,
     proposalId: string,
   ): Promise<Result<CrmProposalDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmProposalRepository.findById(

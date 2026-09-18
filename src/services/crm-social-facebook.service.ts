@@ -16,7 +16,7 @@ import {
   type CrmPublishFacebookPostInput,
   type CrmPublishFacebookPostResult,
 } from '@/src/schemas/crm-social-facebook.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 /** Graph API — mesma versão usada no provider OAuth. */
@@ -264,7 +264,10 @@ export async function getOverview(
   workspaceId: string,
   connectionId?: string,
 ): Promise<Result<CrmFacebookPageOverview>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
@@ -285,7 +288,10 @@ export async function getInsights(
   range: CrmFacebookInsightsRange,
   connectionId?: string,
 ): Promise<Result<CrmFacebookInsights>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
@@ -310,7 +316,10 @@ export async function getRecentPosts(
   workspaceId: string,
   connectionId?: string,
 ): Promise<Result<CrmFacebookPosts>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
@@ -336,7 +345,10 @@ export async function publishPost(
   } | null,
   connectionId?: string,
 ): Promise<Result<CrmPublishFacebookPostResult>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'CREATE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)
@@ -362,7 +374,10 @@ export async function deletePost(
   postId: string,
   connectionId?: string,
 ): Promise<Result<{ deletedId: string }>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'DELETE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'FACEBOOK', connectionId)

@@ -22,7 +22,7 @@ import type {
   CrmCompetitorPreviewDTO,
   CrmCompetitorTodayStatsDTO,
 } from '@/types/crm-competitor'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const RANGE_DAYS: Record<CrmCompetitorMetricsRange, number> = {
@@ -191,7 +191,10 @@ export const CrmCompetitorService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmCompetitorDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCompetitorRepository.listByWorkspace(workspaceId)
@@ -205,7 +208,10 @@ export const CrmCompetitorService = {
     workspaceId: string,
     dto: CreateCrmCompetitorDTO,
   ): Promise<Result<CrmCompetitorDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCompetitorRepository.create({
@@ -248,7 +254,10 @@ export const CrmCompetitorService = {
     competitorId: string,
     dto: UpdateCrmCompetitorDTO,
   ): Promise<Result<CrmCompetitorDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmCompetitorRepository.findById(
@@ -286,7 +295,10 @@ export const CrmCompetitorService = {
     workspaceId: string,
     competitorId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmCompetitorRepository.findById(
@@ -316,7 +328,10 @@ export const CrmCompetitorService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmCompetitorRepository.reorder(workspaceId, orderedIds)
@@ -333,7 +348,10 @@ export const CrmCompetitorService = {
     workspaceId: string,
     dto: PreviewCrmCompetitorDTO,
   ): Promise<Result<CrmCompetitorPreviewDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const fresh = await getFreshAccessToken(workspaceId, dto.platform)
@@ -367,7 +385,10 @@ export const CrmCompetitorService = {
     competitorId: string,
     range: CrmCompetitorMetricsRange,
   ): Promise<Result<CrmCompetitorMetricsDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const competitor = await CrmCompetitorRepository.findById(
@@ -505,7 +526,10 @@ export const CrmCompetitorService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<SyncResult>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const due = await CrmCompetitorRepository.listSyncable(workspaceId)

@@ -8,7 +8,7 @@ import type {
   UpdateCrmNoteDTO,
 } from '@/src/schemas/crm-note.schema'
 import type { CrmNoteDTO } from '@/types/crm-note'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
@@ -18,7 +18,10 @@ export const CrmNoteService = {
     workspaceId: string,
     filters: ListCrmNotesDTO,
   ): Promise<Result<CrmNoteDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'notes',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmNoteRepository.listByWorkspace(workspaceId, filters)
@@ -32,7 +35,10 @@ export const CrmNoteService = {
     workspaceId: string,
     dto: CreateCrmNoteDTO,
   ): Promise<Result<CrmNoteDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'notes',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmNoteRepository.create({
@@ -89,7 +95,10 @@ export const CrmNoteService = {
     noteId: string,
     dto: UpdateCrmNoteDTO,
   ): Promise<Result<CrmNoteDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'notes',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmNoteRepository.findById(noteId, workspaceId)
@@ -138,7 +147,10 @@ export const CrmNoteService = {
     workspaceId: string,
     noteId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'notes',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmNoteRepository.findById(noteId, workspaceId)
@@ -178,7 +190,10 @@ export const CrmNoteService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'notes',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmNoteRepository.reorder(workspaceId, orderedIds)

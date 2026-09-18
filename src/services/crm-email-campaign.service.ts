@@ -20,14 +20,17 @@ import type {
   CrmEmailCampaignDTO,
   CrmEmailCampaignRecipientDTO,
 } from '@/types/crm-email-marketing'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmEmailCampaignService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmEmailCampaignDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailCampaignRepository.listByWorkspace(workspaceId)
@@ -41,7 +44,10 @@ export const CrmEmailCampaignService = {
     workspaceId: string,
     campaignId: string,
   ): Promise<Result<CrmEmailCampaignDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailCampaignRepository.findById(
@@ -58,7 +64,10 @@ export const CrmEmailCampaignService = {
     workspaceId: string,
     dto: CreateCrmEmailCampaignDTO,
   ): Promise<Result<CrmEmailCampaignDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailCampaignRepository.create({
@@ -119,7 +128,10 @@ export const CrmEmailCampaignService = {
     campaignId: string,
     dto: UpdateCrmEmailCampaignDTO,
   ): Promise<Result<CrmEmailCampaignDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmEmailCampaignRepository.findById(
@@ -159,7 +171,10 @@ export const CrmEmailCampaignService = {
     workspaceId: string,
     campaignId: string,
   ): Promise<Result<CrmEmailCampaignRecipientDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const campaign = await CrmEmailCampaignRepository.findById(
@@ -180,7 +195,10 @@ export const CrmEmailCampaignService = {
     workspaceId: string,
     campaignId: string,
   ): Promise<Result<CrmEmailCampaignDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const campaign = await CrmEmailCampaignRepository.findById(

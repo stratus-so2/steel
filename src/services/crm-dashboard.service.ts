@@ -22,7 +22,7 @@ import type {
   CrmDashboardDTO,
   CrmDashboardWidgetDTO,
 } from '@/types/crm-dashboard'
-import { assertMember } from './authz'
+import { assertMember, assertModuleEnabled, assertModuleMember } from './authz'
 
 export const CrmDashboardService = {
   async list(
@@ -30,7 +30,10 @@ export const CrmDashboardService = {
     workspaceId: string,
     module: ModuleKind = 'CRM',
   ): Promise<Result<CrmDashboardDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, module, {
+      resource: 'dashboards',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmDashboardRepository.listByWorkspace(
@@ -48,7 +51,10 @@ export const CrmDashboardService = {
     dto: CreateCrmDashboardDTO,
     module: ModuleKind = 'CRM',
   ): Promise<Result<CrmDashboardDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, module, {
+      resource: 'dashboards',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmDashboardRepository.create({
@@ -85,7 +91,10 @@ export const CrmDashboardService = {
     dashboardId: string,
     dto: UpdateCrmDashboardDTO,
   ): Promise<Result<CrmDashboardDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmDashboardRepository.findById(
@@ -93,6 +102,12 @@ export const CrmDashboardService = {
       workspaceId,
     )
     if (!existing.ok) return existing
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      existing.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmDashboardRepository.update(dashboardId, {
       title: dto.title,
@@ -116,7 +131,10 @@ export const CrmDashboardService = {
     workspaceId: string,
     dashboardId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmDashboardRepository.findById(
@@ -124,6 +142,12 @@ export const CrmDashboardService = {
       workspaceId,
     )
     if (!existing.ok) return existing
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      existing.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmDashboardRepository.softDelete(dashboardId)
     if (!result.ok) return result
@@ -142,8 +166,12 @@ export const CrmDashboardService = {
     actorId: string,
     workspaceId: string,
     orderedIds: string[],
+    module: ModuleKind = 'CRM',
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, module, {
+      resource: 'dashboards',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmDashboardRepository.reorder(workspaceId, orderedIds)
@@ -156,7 +184,10 @@ export const CrmDashboardWidgetService = {
     workspaceId: string,
     dashboardId: string,
   ): Promise<Result<CrmDashboardWidgetDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const dashboard = await CrmDashboardRepository.findById(
@@ -164,6 +195,12 @@ export const CrmDashboardWidgetService = {
       workspaceId,
     )
     if (!dashboard.ok) return dashboard
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      dashboard.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result =
       await CrmDashboardWidgetRepository.listByDashboard(dashboardId)
@@ -178,7 +215,10 @@ export const CrmDashboardWidgetService = {
     dashboardId: string,
     dto: CreateCrmDashboardWidgetDTO,
   ): Promise<Result<CrmDashboardWidgetDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const dashboard = await CrmDashboardRepository.findById(
@@ -186,6 +226,12 @@ export const CrmDashboardWidgetService = {
       workspaceId,
     )
     if (!dashboard.ok) return dashboard
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      dashboard.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmDashboardWidgetRepository.create({
       dashboardId,
@@ -225,7 +271,10 @@ export const CrmDashboardWidgetService = {
     widgetId: string,
     dto: UpdateCrmDashboardWidgetDTO,
   ): Promise<Result<CrmDashboardWidgetDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const dashboard = await CrmDashboardRepository.findById(
@@ -233,6 +282,12 @@ export const CrmDashboardWidgetService = {
       workspaceId,
     )
     if (!dashboard.ok) return dashboard
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      dashboard.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const existing = await CrmDashboardWidgetRepository.findById(
       widgetId,
@@ -277,7 +332,10 @@ export const CrmDashboardWidgetService = {
     dashboardId: string,
     widgetId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const dashboard = await CrmDashboardRepository.findById(
@@ -285,6 +343,12 @@ export const CrmDashboardWidgetService = {
       workspaceId,
     )
     if (!dashboard.ok) return dashboard
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      dashboard.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const existing = await CrmDashboardWidgetRepository.findById(
       widgetId,
@@ -312,7 +376,10 @@ export const CrmDashboardWidgetService = {
     dashboardId: string,
     dto: CrmDashboardWidgetLayoutBatchDTO,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'dashboards',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const dashboard = await CrmDashboardRepository.findById(
@@ -320,6 +387,12 @@ export const CrmDashboardWidgetService = {
       workspaceId,
     )
     if (!dashboard.ok) return dashboard
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      dashboard.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     return CrmDashboardWidgetRepository.applyLayout(dashboardId, dto.items)
   },

@@ -21,7 +21,7 @@ import { CrmTaskService } from '@/src/services/crm-task.service'
 import { WhatsAppBroadcastService } from '@/src/services/whatsapp-broadcast.service'
 import { WhatsAppConversationService } from '@/src/services/whatsapp-conversation.service'
 import type { CrmReportDTO } from '@/types/crm-report'
-import { assertMember } from './authz'
+import { assertMember, assertModuleEnabled, assertModuleMember } from './authz'
 
 /** Busca as linhas brutas da fonte via o service correspondente (com VIEW). */
 async function fetchSourceRows(
@@ -77,7 +77,10 @@ export const CrmReportService = {
     workspaceId: string,
     module: ModuleKind = 'CRM',
   ): Promise<Result<CrmReportDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, module, {
+      resource: 'reports',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmReportRepository.listByWorkspace(
@@ -94,11 +97,20 @@ export const CrmReportService = {
     workspaceId: string,
     reportId: string,
   ): Promise<Result<CrmReportDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'reports',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const report = await CrmReportRepository.findById(reportId, workspaceId)
     if (!report.ok) return report
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      report.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     return ok(toCrmReportDTO(report.value))
   },
@@ -109,7 +121,10 @@ export const CrmReportService = {
     dto: CreateCrmReportDTO,
     module: ModuleKind = 'CRM',
   ): Promise<Result<CrmReportDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, module, {
+      resource: 'reports',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmReportRepository.create({
@@ -152,11 +167,20 @@ export const CrmReportService = {
     reportId: string,
     dto: UpdateCrmReportDTO,
   ): Promise<Result<CrmReportDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'reports',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmReportRepository.findById(reportId, workspaceId)
     if (!existing.ok) return existing
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      existing.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmReportRepository.update(reportId, {
       name: dto.name,
@@ -189,11 +213,20 @@ export const CrmReportService = {
     workspaceId: string,
     reportId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'reports',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmReportRepository.findById(reportId, workspaceId)
     if (!existing.ok) return existing
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      existing.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmReportRepository.softDelete(reportId)
     if (!result.ok) return result
@@ -212,8 +245,12 @@ export const CrmReportService = {
     actorId: string,
     workspaceId: string,
     orderedIds: string[],
+    module: ModuleKind = 'CRM',
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, module, {
+      resource: 'reports',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmReportRepository.reorder(workspaceId, orderedIds)
@@ -225,11 +262,21 @@ export const CrmReportService = {
     workspaceId: string,
     reportId: string,
   ): Promise<Result<CrmReportData>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertMember(actorId, workspaceId, {
+      resource: 'reports',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const found = await CrmReportRepository.findById(reportId, workspaceId)
     if (!found.ok) return found
+
+    const moduleEnabled = await assertModuleEnabled(
+      workspaceId,
+      found.value.module,
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
+
     const report = toCrmReportDTO(found.value)
 
     // Busca as linhas de cada dataset (uma vez por alias).

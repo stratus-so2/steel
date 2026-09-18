@@ -24,7 +24,7 @@ import type {
   CrmAiConversationDTO,
   CrmAiMessageDTO,
 } from '@/types/crm-ai'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import {
   classifyAttachment,
   getAttachmentDownloadUrl,
@@ -55,7 +55,7 @@ export const CrmAiConversationService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmAiConversationDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const result = await CrmAiConversationRepository.listByUser(
@@ -72,7 +72,7 @@ export const CrmAiConversationService = {
     workspaceId: string,
     dto: CreateCrmAiConversationDTO,
   ): Promise<Result<CrmAiConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const result = await CrmAiConversationRepository.create({
@@ -97,7 +97,7 @@ export const CrmAiConversationService = {
     workspaceId: string,
     conversationId: string,
   ): Promise<Result<CrmAiMessageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const conversation = await CrmAiConversationRepository.findById(
@@ -140,7 +140,7 @@ export const CrmAiConversationService = {
     conversationId: string,
     dto: SendCrmAiMessageDTO,
   ): Promise<Result<CrmAiMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const conversation = await CrmAiConversationRepository.findById(
@@ -303,7 +303,7 @@ export const CrmAiConversationService = {
     workspaceId: string,
     conversationId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const conversation = await CrmAiConversationRepository.findById(
@@ -337,7 +337,7 @@ export const CrmAiConversationService = {
       readBody: () => Promise<Buffer>
     },
   ): Promise<Result<CrmAiAttachmentDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const conversation = await CrmAiConversationRepository.findById(

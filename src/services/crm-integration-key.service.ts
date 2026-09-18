@@ -9,7 +9,7 @@ import type {
   CrmIntegrationKeyCreatedDTO,
   CrmIntegrationKeyDTO,
 } from '@/types/crm-integration-key'
-import { assertPrivileged } from './authz'
+import { assertModuleEnabled, assertModulePrivileged } from './authz'
 
 function hashKey(plaintext: string): string {
   return createHash('sha256').update(plaintext).digest('hex')
@@ -27,7 +27,7 @@ export const CrmIntegrationKeyService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmIntegrationKeyDTO[]>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const result =
@@ -42,7 +42,7 @@ export const CrmIntegrationKeyService = {
     workspaceId: string,
     dto: CreateCrmIntegrationKeyDTO,
   ): Promise<Result<CrmIntegrationKeyCreatedDTO>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const { plaintextKey, prefix } = generateKey()
@@ -81,7 +81,7 @@ export const CrmIntegrationKeyService = {
     workspaceId: string,
     keyId: string,
   ): Promise<Result<void>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const existing = await CrmIntegrationKeyRepository.findById(
@@ -113,6 +113,13 @@ export const CrmIntegrationKeyService = {
     )
     if (!result.ok) return result
     if (!result.value) return err(crmIntegrationKeyInvalid())
+
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      result.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     await CrmIntegrationKeyRepository.markUsed(result.value.id)
 

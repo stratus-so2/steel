@@ -7,14 +7,17 @@ import type {
   UpdateCrmHookVaultItemDTO,
 } from '@/src/schemas/crm-hook-vault.schema'
 import type { CrmHookVaultItemDTO } from '@/types/crm-hook-vault'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmHookVaultService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmHookVaultItemDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmHookVaultRepository.listByWorkspace(workspaceId)
@@ -28,7 +31,10 @@ export const CrmHookVaultService = {
     workspaceId: string,
     dto: CreateCrmHookVaultItemDTO,
   ): Promise<Result<CrmHookVaultItemDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmHookVaultRepository.create({
@@ -67,7 +73,10 @@ export const CrmHookVaultService = {
     itemId: string,
     dto: UpdateCrmHookVaultItemDTO,
   ): Promise<Result<CrmHookVaultItemDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmHookVaultRepository.findById(itemId, workspaceId)
@@ -98,7 +107,10 @@ export const CrmHookVaultService = {
     workspaceId: string,
     itemId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmHookVaultRepository.findById(itemId, workspaceId)
@@ -122,7 +134,10 @@ export const CrmHookVaultService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'social',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmHookVaultRepository.reorder(workspaceId, orderedIds)

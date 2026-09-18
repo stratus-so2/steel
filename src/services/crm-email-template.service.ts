@@ -8,7 +8,7 @@ import type {
   UpdateCrmEmailTemplateDTO,
 } from '@/src/schemas/crm-email-template.schema'
 import type { CrmEmailTemplateDTO } from '@/types/crm-email-marketing'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 /** Layout fixo informado: HTML é sempre recalculado a partir dele, ignorando
  * qualquer `contentHtml` vindo do editor de blocos livre. */
@@ -31,7 +31,10 @@ export const CrmEmailTemplateService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmEmailTemplateDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailTemplateRepository.listByWorkspace(workspaceId)
@@ -45,7 +48,10 @@ export const CrmEmailTemplateService = {
     workspaceId: string,
     dto: CreateCrmEmailTemplateDTO,
   ): Promise<Result<CrmEmailTemplateDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const contentHtml = await resolveContentHtml(dto)
@@ -88,7 +94,10 @@ export const CrmEmailTemplateService = {
     templateId: string,
     dto: UpdateCrmEmailTemplateDTO,
   ): Promise<Result<CrmEmailTemplateDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmEmailTemplateRepository.findById(
@@ -140,7 +149,10 @@ export const CrmEmailTemplateService = {
     workspaceId: string,
     templateId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmEmailTemplateRepository.findById(
@@ -169,7 +181,10 @@ export const CrmEmailTemplateService = {
     workspaceId: string,
     dto: { templateId: string; templateProps?: Record<string, string> },
   ): Promise<Result<{ html: string }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const html = await resolveContentHtml(dto)

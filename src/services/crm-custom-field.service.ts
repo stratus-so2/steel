@@ -1,5 +1,8 @@
+import type { CrmCustomFieldEntity } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { forbidden } from '@/src/errors'
+import { can, type PermissionResource } from '@/src/lib/permissions'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmCustomFieldDefinitionDTO,
   toCrmCustomFieldValueDTO,
@@ -17,7 +20,16 @@ import type {
   CrmCustomFieldDefinitionDTO,
   CrmCustomFieldValueDTO,
 } from '@/types/crm-custom-field'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
+
+const CUSTOM_FIELD_ENTITY_RESOURCE: Record<
+  CrmCustomFieldEntity,
+  PermissionResource
+> = {
+  COMPANY: 'companies',
+  PERSON: 'people',
+  OPPORTUNITY: 'opportunities',
+}
 
 export const CrmCustomFieldDefinitionService = {
   async list(
@@ -25,7 +37,10 @@ export const CrmCustomFieldDefinitionService = {
     workspaceId: string,
     filters: ListCrmCustomFieldsDTO,
   ): Promise<Result<CrmCustomFieldDefinitionDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCustomFieldDefinitionRepository.listByWorkspace(
@@ -42,7 +57,10 @@ export const CrmCustomFieldDefinitionService = {
     workspaceId: string,
     dto: CreateCrmCustomFieldDTO,
   ): Promise<Result<CrmCustomFieldDefinitionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCustomFieldDefinitionRepository.create({
@@ -83,7 +101,10 @@ export const CrmCustomFieldDefinitionService = {
     definitionId: string,
     dto: UpdateCrmCustomFieldDTO,
   ): Promise<Result<CrmCustomFieldDefinitionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmCustomFieldDefinitionRepository.findById(
@@ -114,7 +135,10 @@ export const CrmCustomFieldDefinitionService = {
     workspaceId: string,
     definitionId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmCustomFieldDefinitionRepository.findById(
@@ -142,7 +166,10 @@ export const CrmCustomFieldDefinitionService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmCustomFieldDefinitionRepository.reorder(workspaceId, orderedIds)
@@ -155,7 +182,10 @@ export const CrmCustomFieldValueService = {
     workspaceId: string,
     recordId: string,
   ): Promise<Result<CrmCustomFieldValueDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmCustomFieldValueRepository.listByRecord(recordId)
@@ -171,7 +201,10 @@ export const CrmCustomFieldValueService = {
     recordId: string,
     value: string | number | boolean | null,
   ): Promise<Result<CrmCustomFieldValueDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'custom-fields',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const definition = await CrmCustomFieldDefinitionRepository.findById(
@@ -179,6 +212,15 @@ export const CrmCustomFieldValueService = {
       workspaceId,
     )
     if (!definition.ok) return definition
+
+    // Preencher um campo é editar o registro dono dele (empresa/pessoa/
+    // oportunidade), não a definição — vale a permissão da entidade.
+    if (!membership.value.isPrivileged) {
+      const resource = CUSTOM_FIELD_ENTITY_RESOURCE[definition.value.entity]
+      if (!can(membership.value.permissions ?? {}, resource, 'EDIT')) {
+        return err(forbidden())
+      }
+    }
 
     const result = await CrmCustomFieldValueRepository.upsert(
       definitionId,

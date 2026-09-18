@@ -148,6 +148,21 @@ export async function assertModuleMember(
   return authorize(membership.value, require)
 }
 
+/**
+ * Ações de administração de um módulo (chaves de integração, metas, conexões
+ * e IA do WhatsApp): módulo habilitado + papel OWNER/ADMIN.
+ */
+export async function assertModulePrivileged(
+  actorId: string,
+  workspaceId: string,
+  module: ModuleKind,
+): Promise<Result<MembershipContext>> {
+  const membership = await assertModuleMember(actorId, workspaceId, module)
+  if (!membership.ok) return membership
+  if (!membership.value.isPrivileged) return err(forbidden())
+  return ok(membership.value)
+}
+
 export async function assertPrivileged(
   actorId: string,
   workspaceId: string,

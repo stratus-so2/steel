@@ -7,7 +7,7 @@ import type {
   CrmTweets,
   CrmTwitterProfileOverview,
 } from '@/src/schemas/crm-social-twitter.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const API = 'https://api.twitter.com/2'
@@ -208,7 +208,10 @@ export async function getOverview(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmTwitterProfileOverview>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TWITTER')
@@ -224,7 +227,10 @@ export async function getRecentTweets(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmTweets>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TWITTER')
@@ -245,7 +251,10 @@ export async function publishTweetPost(
   input: CrmPublishTweetInput,
   image: { bytes: ArrayBuffer; contentType: string } | null,
 ): Promise<Result<CrmPublishTweetResult>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'CREATE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TWITTER')
@@ -262,7 +271,10 @@ export async function deleteTweet(
   workspaceId: string,
   tweetId: string,
 ): Promise<Result<{ deletedId: string }>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'DELETE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'TWITTER')

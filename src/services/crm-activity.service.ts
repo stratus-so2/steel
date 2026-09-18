@@ -3,7 +3,7 @@ import { toCrmActivityDTO } from '@/src/mappers/crm-activity.mapper'
 import { CrmActivityRepository } from '@/src/repositories/crm-activity.repository'
 import type { ListCrmActivitiesDTO } from '@/src/schemas/crm-activity.schema'
 import type { CrmActivityDTO } from '@/types/crm-activity'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmActivityService = {
   async list(
@@ -11,7 +11,10 @@ export const CrmActivityService = {
     workspaceId: string,
     filters: ListCrmActivitiesDTO,
   ): Promise<Result<CrmActivityDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'audit-logs',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmActivityRepository.listByWorkspace(

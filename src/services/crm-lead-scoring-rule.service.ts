@@ -7,14 +7,17 @@ import type {
   UpdateCrmLeadScoringRuleDTO,
 } from '@/src/schemas/crm-lead.schema'
 import type { CrmLeadScoringRuleDTO } from '@/types/crm-lead'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmLeadScoringRuleService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmLeadScoringRuleDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result =
@@ -29,7 +32,10 @@ export const CrmLeadScoringRuleService = {
     workspaceId: string,
     dto: CreateCrmLeadScoringRuleDTO,
   ): Promise<Result<CrmLeadScoringRuleDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLeadScoringRuleRepository.create({
@@ -68,7 +74,10 @@ export const CrmLeadScoringRuleService = {
     ruleId: string,
     dto: UpdateCrmLeadScoringRuleDTO,
   ): Promise<Result<CrmLeadScoringRuleDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLeadScoringRuleRepository.findById(
@@ -96,7 +105,10 @@ export const CrmLeadScoringRuleService = {
     workspaceId: string,
     ruleId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLeadScoringRuleRepository.findById(

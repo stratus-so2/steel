@@ -8,7 +8,7 @@ import type {
   ForecastDTO,
   ForecastRow,
 } from '@/src/schemas/crm-forecast.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 /** Chave de agrupamento por responsável + período. */
 function rowKey(ownerId: string | null, periodKey: string): string {
@@ -28,7 +28,10 @@ export const CrmForecastService = {
     workspaceId: string,
     period: CrmQuotaPeriod,
   ): Promise<Result<ForecastDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const [members, opps, quotas] = await Promise.all([

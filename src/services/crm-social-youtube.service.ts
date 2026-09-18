@@ -12,7 +12,7 @@ import type {
   CrmSocialYoutubeVideosDTO,
 } from '@/src/schemas/crm-social-youtube.schema'
 import { YOUTUBE_INSIGHTS_RANGE_DAYS } from '@/src/schemas/crm-social-youtube.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const DATA_API = 'https://www.googleapis.com/youtube/v3'
@@ -333,7 +333,10 @@ export async function getOverview(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmSocialYoutubeOverviewDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'YOUTUBE')
@@ -350,7 +353,10 @@ export async function getInsights(
   workspaceId: string,
   range: CrmSocialYoutubeInsightsRange,
 ): Promise<Result<CrmSocialYoutubeInsightsDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'YOUTUBE')
@@ -371,7 +377,10 @@ export async function getRecentVideos(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmSocialYoutubeVideosDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'YOUTUBE')
@@ -389,7 +398,10 @@ export async function publishVideo(
   input: CrmSocialYoutubePublishVideoInput,
   file: { bytes: ArrayBuffer; contentType: string },
 ): Promise<Result<CrmSocialYoutubePublishVideoResultDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'CREATE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'YOUTUBE')
@@ -413,7 +425,10 @@ export async function deleteVideo(
   workspaceId: string,
   videoId: string,
 ): Promise<Result<{ deletedId: string }>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'DELETE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'YOUTUBE')

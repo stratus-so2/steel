@@ -8,14 +8,17 @@ import type {
 } from '@/src/schemas/crm-proposal-template.schema'
 import type { CrmProposalSectionDTO } from '@/types/crm-proposal'
 import type { CrmProposalTemplateDTO } from '@/types/crm-proposal-template'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmProposalTemplateService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmProposalTemplateDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result =
@@ -30,7 +33,10 @@ export const CrmProposalTemplateService = {
     workspaceId: string,
     templateId: string,
   ): Promise<Result<CrmProposalTemplateDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmProposalTemplateRepository.findById(
@@ -47,7 +53,10 @@ export const CrmProposalTemplateService = {
     workspaceId: string,
     dto: CreateCrmProposalTemplateDTO,
   ): Promise<Result<CrmProposalTemplateDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmProposalTemplateRepository.create({
@@ -86,7 +95,10 @@ export const CrmProposalTemplateService = {
     templateId: string,
     dto: UpdateCrmProposalTemplateDTO,
   ): Promise<Result<CrmProposalTemplateDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmProposalTemplateRepository.findById(
@@ -120,7 +132,10 @@ export const CrmProposalTemplateService = {
     workspaceId: string,
     templateId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'documents',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmProposalTemplateRepository.findById(

@@ -11,7 +11,7 @@ import {
   type CrmSocialGoogleAnalyticsOverviewDTO,
   GOOGLE_ANALYTICS_INSIGHTS_RANGE_DAYS,
 } from '@/src/schemas/crm-social-google-analytics.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const DATA_API = 'https://analyticsdata.googleapis.com/v1beta'
@@ -184,7 +184,10 @@ export async function getOverview(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmSocialGoogleAnalyticsOverviewDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'GOOGLE_ANALYTICS')
@@ -204,7 +207,10 @@ export async function getInsights(
   workspaceId: string,
   range: CrmSocialGoogleAnalyticsInsightsRange,
 ): Promise<Result<CrmSocialGoogleAnalyticsInsightsDTO>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'GOOGLE_ANALYTICS')

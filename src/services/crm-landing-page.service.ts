@@ -22,7 +22,7 @@ import type {
   CrmLandingPagePublicDTO,
   CrmLandingPageViewDTO,
 } from '@/types/crm-landing-page'
-import { assertMember } from './authz'
+import { assertModuleEnabled, assertModuleMember } from './authz'
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
@@ -33,7 +33,10 @@ export const CrmLandingPageService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmLandingPageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLandingPageRepository.listByWorkspace(workspaceId)
@@ -47,7 +50,10 @@ export const CrmLandingPageService = {
     workspaceId: string,
     pageId: string,
   ): Promise<Result<CrmLandingPageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLandingPageRepository.findById(pageId, workspaceId)
@@ -61,7 +67,10 @@ export const CrmLandingPageService = {
     workspaceId: string,
     dto: CreateCrmLandingPageDTO,
   ): Promise<Result<CrmLandingPageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     if (!getLandingPageTemplate(dto.templateKey)) {
@@ -110,7 +119,10 @@ export const CrmLandingPageService = {
     pageId: string,
     dto: UpdateCrmLandingPageDTO,
   ): Promise<Result<CrmLandingPageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLandingPageRepository.findById(
@@ -151,7 +163,10 @@ export const CrmLandingPageService = {
     pageId: string,
     published: boolean,
   ): Promise<Result<CrmLandingPageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLandingPageRepository.findById(
@@ -182,7 +197,10 @@ export const CrmLandingPageService = {
     workspaceId: string,
     pageId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLandingPageRepository.findById(
@@ -209,7 +227,10 @@ export const CrmLandingPageService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmLandingPageRepository.reorder(workspaceId, orderedIds)
@@ -220,7 +241,10 @@ export const CrmLandingPageService = {
     workspaceId: string,
     pageId: string,
   ): Promise<Result<CrmLandingPageViewDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'landing-pages',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const page = await CrmLandingPageRepository.findById(pageId, workspaceId)
@@ -238,6 +262,13 @@ export const CrmLandingPageService = {
     const result = await CrmLandingPageRepository.findByShareToken(shareToken)
     if (!result.ok) return result
 
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      result.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
+
     return ok(toCrmLandingPagePublicDTO(result.value))
   },
 
@@ -248,6 +279,13 @@ export const CrmLandingPageService = {
   ): Promise<Result<void>> {
     const page = await CrmLandingPageRepository.findByShareToken(shareToken)
     if (!page.ok) return page
+
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      page.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const result = await CrmLandingPageViewRepository.record({
       landingPageId: page.value.id,

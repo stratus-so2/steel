@@ -37,7 +37,7 @@ import {
   resumeCrmWorkflow,
   runCrmWorkflow,
 } from '@/src/services/crm-workflow-runner'
-import { assertMember } from './authz'
+import { assertModuleEnabled, assertModuleMember } from './authz'
 
 function emptyDefinition(): CrmWorkflowDefinition {
   return {
@@ -69,7 +69,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     dto: CreateCrmWorkflowDTO,
   ): Promise<Result<CrmWorkflowDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const created = await CrmWorkflowRepository.create({
@@ -103,7 +106,10 @@ export const CrmWorkflowService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmWorkflowDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const list = await CrmWorkflowRepository.listByWorkspace(workspaceId)
@@ -116,7 +122,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const wf = await loadInWorkspace(workspaceId, workflowId)
@@ -130,7 +139,10 @@ export const CrmWorkflowService = {
     workflowId: string,
     dto: UpdateCrmWorkflowDTO,
   ): Promise<Result<CrmWorkflowDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -159,7 +171,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -182,7 +197,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowVersionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -199,7 +217,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowVersionDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -217,7 +238,10 @@ export const CrmWorkflowService = {
     workflowId: string,
     dto: UpdateCrmWorkflowDraftDTO,
   ): Promise<Result<CrmWorkflowVersionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -248,7 +272,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -291,7 +318,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -319,7 +349,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowVersionDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -335,7 +368,10 @@ export const CrmWorkflowService = {
     workspaceId: string,
     workflowId: string,
   ): Promise<Result<CrmWorkflowRunDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -352,7 +388,10 @@ export const CrmWorkflowService = {
     workflowId: string,
     runId: string,
   ): Promise<Result<CrmWorkflowRunDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -376,7 +415,10 @@ export const CrmWorkflowService = {
     workflowId: string,
     dto: TriggerCrmWorkflowManualRunDTO,
   ): Promise<Result<CrmWorkflowRunDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -434,7 +476,10 @@ export const CrmWorkflowService = {
     runId: string,
     dto: ResumeCrmWorkflowRunDTO,
   ): Promise<Result<CrmWorkflowRunDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'workflows',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await loadInWorkspace(workspaceId, workflowId)
@@ -509,6 +554,10 @@ export const CrmWorkflowService = {
       return err(crmWorkflowWebhookInvalid())
     }
     const wf = match.value
+
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(wf.workspaceId, 'CRM')
+    if (!moduleEnabled.ok) return moduleEnabled
     const version = match.value.activeVersion
     const created = await CrmWorkflowRunRepository.create({
       workflowId: wf.id,

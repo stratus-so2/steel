@@ -3,7 +3,7 @@ import { withAxiom } from '@/lib/axiom/server'
 import { badRequest } from '@/src/errors'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { consume, uploadLimiter } from '@/src/lib/rate-limit'
-import { assertMember } from '@/src/services/authz'
+import { assertModuleMember } from '@/src/services/authz'
 import { persistCrmLandingPageImage } from '@/src/services/media/crm-landing-page-media.service'
 import { handleError, successResponse } from '@/utils/http-response'
 
@@ -20,7 +20,10 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
 
   const { id } = await ctx.params
 
-  const membership = await assertMember(auth.value.user.id, id)
+  const membership = await assertModuleMember(auth.value.user.id, id, 'CRM', {
+    resource: 'landing-pages',
+    action: 'EDIT',
+  })
   if (!membership.ok) return handleError(membership.error)
 
   const contentType = request.headers.get('content-type')

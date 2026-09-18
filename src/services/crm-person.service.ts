@@ -8,7 +8,7 @@ import type {
   UpdateCrmPersonDTO,
 } from '@/src/schemas/crm-person.schema'
 import type { CrmPersonDTO } from '@/types/crm-person'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
 import {
   applyCustomFieldValues,
@@ -23,7 +23,10 @@ export const CrmPersonService = {
     workspaceId: string,
     filters: ListCrmPeopleDTO,
   ): Promise<Result<CrmPersonDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'people',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmPersonRepository.listByWorkspace(workspaceId, {
@@ -39,7 +42,10 @@ export const CrmPersonService = {
     workspaceId: string,
     personId: string,
   ): Promise<Result<CrmPersonDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'people',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmPersonRepository.findById(personId, workspaceId)
@@ -53,7 +59,10 @@ export const CrmPersonService = {
     workspaceId: string,
     dto: CreateCrmPersonDTO,
   ): Promise<Result<CrmPersonDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'people',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmPersonRepository.create({
@@ -125,7 +134,10 @@ export const CrmPersonService = {
     personId: string,
     dto: UpdateCrmPersonDTO,
   ): Promise<Result<CrmPersonDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'people',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmPersonRepository.findById(personId, workspaceId)
@@ -201,7 +213,10 @@ export const CrmPersonService = {
     workspaceId: string,
     personId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'people',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmPersonRepository.findById(personId, workspaceId)
@@ -241,7 +256,10 @@ export const CrmPersonService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'people',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmPersonRepository.reorder(workspaceId, orderedIds)

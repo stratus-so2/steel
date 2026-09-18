@@ -23,7 +23,7 @@ import type {
   CrmOpportunityDTO,
   CrmOpportunityLineItemDTO,
 } from '@/types/crm-opportunity'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
 import {
   applyCustomFieldValues,
@@ -126,7 +126,10 @@ export const CrmOpportunityService = {
     workspaceId: string,
     filters: { pipelineId?: string; stageId?: string },
   ): Promise<Result<CrmOpportunityDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmOpportunityRepository.listByWorkspace(
@@ -143,7 +146,10 @@ export const CrmOpportunityService = {
     workspaceId: string,
     opportunityId: string,
   ): Promise<Result<CrmOpportunityDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmOpportunityRepository.findById(
@@ -160,7 +166,10 @@ export const CrmOpportunityService = {
     workspaceId: string,
     dto: CreateCrmOpportunityDTO,
   ): Promise<Result<CrmOpportunityDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const stageRefs = await resolveStageForCreate(workspaceId, {
@@ -240,7 +249,10 @@ export const CrmOpportunityService = {
     opportunityId: string,
     dto: UpdateCrmOpportunityDTO,
   ): Promise<Result<CrmOpportunityDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmOpportunityRepository.findById(
@@ -318,7 +330,10 @@ export const CrmOpportunityService = {
     workspaceId: string,
     opportunityId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmOpportunityRepository.findById(
@@ -362,7 +377,10 @@ export const CrmOpportunityService = {
     stageId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmOpportunityRepository.reorderInStage(stageId, orderedIds)
@@ -373,7 +391,10 @@ export const CrmOpportunityService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmOpportunityRepository.reorder(workspaceId, orderedIds)
@@ -386,7 +407,10 @@ export const CrmOpportunityLineItemService = {
     workspaceId: string,
     opportunityId: string,
   ): Promise<Result<CrmOpportunityLineItemDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const opportunity = await CrmOpportunityRepository.findById(
@@ -408,7 +432,10 @@ export const CrmOpportunityLineItemService = {
     opportunityId: string,
     dto: CreateCrmOpportunityLineItemDTO,
   ): Promise<Result<CrmOpportunityLineItemDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const opportunity = await CrmOpportunityRepository.findById(
@@ -455,7 +482,10 @@ export const CrmOpportunityLineItemService = {
     lineItemId: string,
     dto: UpdateCrmOpportunityLineItemDTO,
   ): Promise<Result<CrmOpportunityLineItemDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const opportunity = await CrmOpportunityRepository.findById(
@@ -493,7 +523,10 @@ export const CrmOpportunityLineItemService = {
     opportunityId: string,
     lineItemId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'opportunities',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const opportunity = await CrmOpportunityRepository.findById(

@@ -8,7 +8,7 @@ import type {
   UpdateCrmQuotaDTO,
 } from '@/src/schemas/crm-quota.schema'
 import type { CrmQuotaDTO } from '@/types/crm-quota'
-import { assertPrivileged } from './authz'
+import { assertModulePrivileged } from './authz'
 
 export const CrmQuotaService = {
   async list(
@@ -16,7 +16,7 @@ export const CrmQuotaService = {
     workspaceId: string,
     filters: ListCrmQuotasDTO,
   ): Promise<Result<CrmQuotaDTO[]>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const result = await CrmQuotaRepository.listByWorkspace(
@@ -33,7 +33,7 @@ export const CrmQuotaService = {
     workspaceId: string,
     dto: CreateCrmQuotaDTO,
   ): Promise<Result<CrmQuotaDTO>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const result = await CrmQuotaRepository.create({
@@ -72,7 +72,7 @@ export const CrmQuotaService = {
     quotaId: string,
     dto: UpdateCrmQuotaDTO,
   ): Promise<Result<CrmQuotaDTO>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const existing = await CrmQuotaRepository.findById(quotaId, workspaceId)
@@ -100,7 +100,7 @@ export const CrmQuotaService = {
     workspaceId: string,
     quotaId: string,
   ): Promise<Result<void>> {
-    const membership = await assertPrivileged(actorId, workspaceId)
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
 
     const existing = await CrmQuotaRepository.findById(quotaId, workspaceId)

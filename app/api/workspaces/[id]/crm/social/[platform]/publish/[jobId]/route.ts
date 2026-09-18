@@ -5,6 +5,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { getCrmSocialPublishQueue } from '@/src/lib/queue/queues'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { parseCrmPlatformSlug } from '@/src/schemas/crm-social.schema'
+import { assertModuleMember } from '@/src/services/authz'
 import { handleError, successResponse } from '@/utils/http-response'
 
 type Params = {
@@ -23,6 +24,12 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   if (!limit.ok) return handleError(limit.error)
 
   const { id, platform: platformSlug, jobId } = await ctx.params
+
+  const membership = await assertModuleMember(auth.value.user.id, id, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
+  if (!membership.ok) return handleError(membership.error)
   const platform = parseCrmPlatformSlug(platformSlug)
   if (
     platform !== 'YOUTUBE' &&

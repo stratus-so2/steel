@@ -9,7 +9,7 @@ import type {
   CrmLinkedinPublishInput,
   CrmLinkedinPublishResult,
 } from '@/src/schemas/crm-social-linkedin.schema'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { getFreshAccessToken } from './crm-social-token'
 
 const BASE = 'https://api.linkedin.com'
@@ -211,7 +211,10 @@ export async function getOverview(
   actorId: string,
   workspaceId: string,
 ): Promise<Result<CrmLinkedinOverview>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'VIEW',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'LINKEDIN')
@@ -228,7 +231,10 @@ export async function publishPost(
   input: CrmLinkedinPublishInput,
   image?: { bytes: ArrayBuffer; contentType: string } | null,
 ): Promise<Result<CrmLinkedinPublishResult>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'CREATE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'LINKEDIN')
@@ -261,7 +267,10 @@ export async function deletePost(
   workspaceId: string,
   postUrn: string,
 ): Promise<Result<{ deletedId: string }>> {
-  const membership = await assertMember(actorId, workspaceId)
+  const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+    resource: 'social',
+    action: 'DELETE',
+  })
   if (!membership.ok) return membership
 
   const fresh = await getFreshAccessToken(workspaceId, 'LINKEDIN')

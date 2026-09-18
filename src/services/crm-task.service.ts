@@ -8,7 +8,7 @@ import type {
   UpdateCrmTaskDTO,
 } from '@/src/schemas/crm-task.schema'
 import type { CrmTaskDTO } from '@/types/crm-task'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
@@ -18,7 +18,10 @@ export const CrmTaskService = {
     workspaceId: string,
     filters: ListCrmTasksDTO,
   ): Promise<Result<CrmTaskDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'tasks',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmTaskRepository.listByWorkspace(workspaceId, filters)
@@ -32,7 +35,10 @@ export const CrmTaskService = {
     workspaceId: string,
     dto: CreateCrmTaskDTO,
   ): Promise<Result<CrmTaskDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'tasks',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmTaskRepository.create({
@@ -92,7 +98,10 @@ export const CrmTaskService = {
     taskId: string,
     dto: UpdateCrmTaskDTO,
   ): Promise<Result<CrmTaskDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'tasks',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmTaskRepository.findById(taskId, workspaceId)
@@ -144,7 +153,10 @@ export const CrmTaskService = {
     workspaceId: string,
     taskId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'tasks',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmTaskRepository.findById(taskId, workspaceId)
@@ -184,7 +196,10 @@ export const CrmTaskService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'tasks',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmTaskRepository.reorder(workspaceId, orderedIds)

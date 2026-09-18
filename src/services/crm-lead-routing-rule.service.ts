@@ -7,14 +7,17 @@ import type {
   UpdateCrmLeadRoutingRuleDTO,
 } from '@/src/schemas/crm-lead.schema'
 import type { CrmLeadRoutingRuleDTO } from '@/types/crm-lead'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const CrmLeadRoutingRuleService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmLeadRoutingRuleDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result =
@@ -29,7 +32,10 @@ export const CrmLeadRoutingRuleService = {
     workspaceId: string,
     dto: CreateCrmLeadRoutingRuleDTO,
   ): Promise<Result<CrmLeadRoutingRuleDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmLeadRoutingRuleRepository.create({
@@ -68,7 +74,10 @@ export const CrmLeadRoutingRuleService = {
     ruleId: string,
     dto: UpdateCrmLeadRoutingRuleDTO,
   ): Promise<Result<CrmLeadRoutingRuleDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLeadRoutingRuleRepository.findById(
@@ -96,7 +105,10 @@ export const CrmLeadRoutingRuleService = {
     workspaceId: string,
     ruleId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'leads',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmLeadRoutingRuleRepository.findById(

@@ -27,7 +27,7 @@ import type {
   CrmFormPublicDTO,
   CrmFormSubmissionDTO,
 } from '@/types/crm-form'
-import { assertMember } from './authz'
+import { assertModuleEnabled, assertModuleMember } from './authz'
 import { CrmLeadService } from './crm-lead.service'
 
 /** Todo `phaseId` referenciado por um campo precisa existir em `phases`.
@@ -69,7 +69,10 @@ export const CrmFormService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmFormDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmFormRepository.listByWorkspace(workspaceId)
@@ -83,7 +86,10 @@ export const CrmFormService = {
     workspaceId: string,
     formId: string,
   ): Promise<Result<CrmFormDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmFormRepository.findById(formId, workspaceId)
@@ -97,7 +103,10 @@ export const CrmFormService = {
     workspaceId: string,
     dto: CreateCrmFormDTO,
   ): Promise<Result<CrmFormDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'CREATE',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmFormRepository.create({
@@ -139,7 +148,10 @@ export const CrmFormService = {
     formId: string,
     dto: UpdateCrmFormDTO,
   ): Promise<Result<CrmFormDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmFormRepository.findById(formId, workspaceId)
@@ -202,7 +214,10 @@ export const CrmFormService = {
     formId: string,
     published: boolean,
   ): Promise<Result<CrmFormDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmFormRepository.findById(formId, workspaceId)
@@ -227,7 +242,10 @@ export const CrmFormService = {
     workspaceId: string,
     formId: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'DELETE',
+    })
     if (!membership.ok) return membership
 
     const existing = await CrmFormRepository.findById(formId, workspaceId)
@@ -251,7 +269,10 @@ export const CrmFormService = {
     workspaceId: string,
     orderedIds: string[],
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'EDIT',
+    })
     if (!membership.ok) return membership
 
     return CrmFormRepository.reorder(workspaceId, orderedIds)
@@ -262,7 +283,10 @@ export const CrmFormService = {
     workspaceId: string,
     formId: string,
   ): Promise<Result<CrmFormSubmissionDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'forms',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const form = await CrmFormRepository.findById(formId, workspaceId)
@@ -281,6 +305,13 @@ export const CrmFormService = {
       await CrmFormRepository.findPublishedByPublicToken(publicToken)
     if (!result.ok) return result
 
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      result.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
+
     return ok(toCrmFormPublicDTO(result.value))
   },
 
@@ -292,6 +323,13 @@ export const CrmFormService = {
   ): Promise<Result<CrmFormSubmissionDTO>> {
     const form = await CrmFormRepository.findPublishedByPublicToken(publicToken)
     if (!form.ok) return form
+
+    // Rota pública: sem sessão, mas o módulo precisa estar habilitado.
+    const moduleEnabled = await assertModuleEnabled(
+      form.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
 
     const fields = (form.value.fields as unknown as CrmFormFieldDTO[]) ?? []
     const byTarget = groupByTarget(fields, dto.values)
