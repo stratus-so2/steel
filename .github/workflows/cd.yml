@@ -1,23 +1,173 @@
 name: CD
 
+# Deploy contínuo para HOMOLOGAÇÃO a cada CI verde em main. Produção é uma
+# promoção manual separada (promote-production.yml); rollback em rollback.yml.
+#
+# Ordem: version -> build (build + Trivy + push) -> migrate -> deploy -> release
+#
+# ADR — Migrations precisam ser compatíveis com a versão anterior do código
+# (expand/contract)
+#   Contexto: a migration roda ANTES do deploy, com a versão anterior ainda
+#   servindo tráfego; e o rollback (scripts/deploy.sh --rollback) só troca a
+#   imagem — Prisma não tem down migrations, o schema continua o novo.
+#   Decisão: toda migration tem que funcionar com o código N-1 e com o N.
+#     - Expand (neste deploy): só adicionar — tabela/coluna nullable ou com
+#       default, índice (CONCURRENTLY quando a tabela for grande), enum value.
+#     - Contract (em um deploy POSTERIOR, depois que nenhuma versão rodando
+#       depende do antigo): drop de coluna/tabela, NOT NULL sem default,
+#       rename (= add + backfill + drop em deploys separados), mudança de tipo.
+#   Consequência: se a migration falha o deploy não acontece (deploy needs
+#   migrate); se o deploy falha depois da migration, a versão anterior segue
+#   funcionando sobre o schema novo, e o rollback é sempre seguro.
+
 on:
   workflow_run:
     workflows: ['CI']
     types: [completed]
     branches: [main]
 
+# Um deploy de homologação por vez; runs novos esperam o anterior terminar
+# (e o pendente mais novo substitui um pendente mais antigo).
+concurrency:
+  group: cd-homologacao
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: stratus-so2/steel
+  DEPLOY_ENVIRONMENT: homologacao
+  DEPLOY_URL: https://homologacao.stratustelecom.com.br
+  DEPLOY_DIR: /var/www/steel
 
 jobs:
+  version:
+    name: Resolve Release Version
+    # Só pushes para main deste repositório: um PR de fork com branch chamada
+    # "main" também dispara workflow_run com head_branch == main.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.calver.outputs.version }}
+      short_sha: ${{ steps.calver.outputs.short_sha }}
+    steps:
+      - name: Checkout repository (tags only)
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Compute CalVer
+        id: calver
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          # CalVer YYYY.MM.DD[.N] (UTC). First release of the day has no suffix;
+          # subsequent deploys the same day get .1, .2, ... (see versioning doc).
+          # The same value tags the image, the deploy and the git release.
+          TODAY=$(date -u +%Y.%m.%d)
+          EXISTING=$(git tag --list "$TODAY" "$TODAY.*" | wc -l)
+          if [ "$EXISTING" -eq 0 ]; then VERSION="$TODAY"; else VERSION="$TODAY.$EXISTING"; fi
+          echo "Version $VERSION for $SHA"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build, Scan & Push Image
+    needs: version
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # Build do commit que o CI testou (head_sha), não do HEAD atual de main.
+      # Seguro: o job `version` restringe a pushes para main deste repositório.
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
+      - name: Checkout tested commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Imutáveis: CalVer (o que é deployado/rollbackado) + sha do commit.
+          # Sem :latest — o docker-compose.yml exige STEEL_IMAGE_TAG.
+          tags: |
+            type=raw,value=${{ needs.version.outputs.version }}
+            type=raw,value=sha-${{ needs.version.outputs.short_sha }}
+
+      - name: Build image for scanning
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:scan
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            NEXT_PUBLIC_URL=${{ env.DEPLOY_URL }}
+            NEXT_PUBLIC_AXIOM_TOKEN=${{ secrets.NEXT_PUBLIC_AXIOM_TOKEN }}
+            NEXT_PUBLIC_AXIOM_DATASET=${{ secrets.NEXT_PUBLIC_AXIOM_DATASET }}
+          secrets: |
+            hugeicons_token=${{ secrets.HUGEICONS_TOKEN }}
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:scan
+          format: table
+          # Block the deploy on CRITICAL only; HIGH stays visible in the log and
+          # is chased via Dependabot. Blocking deploys on transitive HIGH (often
+          # build-time DoS without a quick fix) is disproportionate.
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Push scanned image
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag "${IMAGE_NAME}:scan" "$tag"
+            docker push "$tag"
+          done <<< "$TAGS"
+
   migrate:
     name: Run Database Migrations
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Só migra depois que a imagem foi construída e passou no scan: uma
+    # migration aplicada sem imagem para acompanhar é o pior dos casos.
+    needs: [version, build]
     runs-on: self-hosted
     steps:
-      - name: Checkout repository
+      # Mesmo commit da imagem (ver comentário no job build).
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
+      - name: Checkout tested commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v3
@@ -41,21 +191,27 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATE }}
 
   deploy:
-    name: Build & Deploy
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: Deploy to Homologação
+    needs: [version, build, migrate]
     runs-on: self-hosted
     permissions:
       contents: read
-      packages: write
+      packages: read
+    concurrency:
+      group: deploy-homologacao
+      cancel-in-progress: false
     environment:
       name: homologacao
       url: https://homologacao.stratustelecom.com.br
     steps:
-      - name: Checkout repository
+      # Mesmo commit da imagem (docker-compose.yml, scripts/deploy.sh e o .env
+      # cifrado precisam casar com a versão deployada).
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
+      - name: Checkout tested commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
 
       - name: Log in to Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -64,70 +220,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - name: Build image for scanning
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
-        with:
-          context: .
-          push: false
-          load: true
-          tags: ${{ env.IMAGE_NAME }}:scan
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          build-args: |
-            NEXT_PUBLIC_URL=https://homologacao.stratustelecom.com.br
-            NEXT_PUBLIC_AXIOM_TOKEN=${{ secrets.NEXT_PUBLIC_AXIOM_TOKEN }}
-            NEXT_PUBLIC_AXIOM_DATASET=${{ secrets.NEXT_PUBLIC_AXIOM_DATASET }}
-          secrets: |
-            hugeicons_token=${{ secrets.HUGEICONS_TOKEN }}
-
-      - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:scan
-          format: table
-          # Block the deploy on CRITICAL only; HIGH stays visible in the log and
-          # is chased via Dependabot. Blocking deploys on transitive HIGH (often
-          # build-time DoS without a quick fix) is disproportionate.
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
-
-      - name: Push scanned image
+      - name: Decrypt homologação secrets
         run: |
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-            docker tag "${{ env.IMAGE_NAME }}:scan" "$tag"
-            docker push "$tag"
-          done <<< "${{ steps.meta.outputs.tags }}"
-
-      - name: Decrypt production secrets
-        run: |
-          sops --decrypt secrets/production.enc.env > /var/www/steel/.env
+          sops --decrypt secrets/homologacao.enc.env > "${DEPLOY_DIR}/.env"
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
-      - name: Deploy to server
+      - name: Deploy versioned image
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
         run: |
-          cp docker-compose.yml /var/www/steel/docker-compose.yml
-          cd /var/www/steel/
-          docker compose pull
-          docker compose up -d
-          docker image prune -f
+          cp docker-compose.yml "${DEPLOY_DIR}/docker-compose.yml"
+          scripts/deploy.sh "$VERSION"
 
   release:
     name: Tag & Release
-    needs: [migrate, deploy]
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: [version, deploy]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -136,8 +244,7 @@ jobs:
         # Checkout do branch padrão (main), não do head_sha do workflow_run:
         # o job roda com contents:write e o checkout do ref não-confiável do
         # evento é o padrão "pwn request" (Semgrep workflow-run-target-code-checkout).
-        # O release é fixado no commit certo via `gh release create --target "$SHA"`,
-        # e `git tag --list` só precisa das tags (presentes em qualquer checkout).
+        # O release é fixado no commit certo via `gh release create --target "$SHA"`.
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
@@ -147,25 +254,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SHA: ${{ github.event.workflow_run.head_sha }}
+          TAG: ${{ needs.version.outputs.version }}
         run: |
-          # CalVer YYYY.MM.DD[.N] (UTC). First release of the day has no suffix;
-          # subsequent deploys the same day get .1, .2, ... (see versioning doc).
-          TODAY=$(date -u +%Y.%m.%d)
-          EXISTING=$(git tag --list "$TODAY" "$TODAY.*" | wc -l)
-          if [ "$EXISTING" -eq 0 ]; then TAG="$TODAY"; else TAG="$TODAY.$EXISTING"; fi
-          echo "Releasing $TAG at $SHA (existing today: $EXISTING)"
+          # Same CalVer as the deployed image (computed once in `version`;
+          # the workflow-level concurrency group keeps it unique).
+          echo "Releasing $TAG at $SHA"
           # gh creates the tag at $SHA and the release together; --generate-notes
           # builds the body from merged PRs/commits since the previous release.
           gh release create "$TAG" --target "$SHA" --title "$TAG" --generate-notes
 
   notify-slack:
     name: Notify Slack
-    needs: [migrate, deploy]
-    if: always() && needs.migrate.result != 'skipped' && needs.deploy.result != 'skipped'
+    needs: [version, build, migrate, deploy]
+    if: always() && needs.version.result == 'success'
     runs-on: ubuntu-latest
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Prepare notification context
         id: ctx
+        if: env.SLACK_WEBHOOK_URL != ''
         env:
           COMMIT_MSG: ${{ github.event.workflow_run.head_commit.message || '' }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -189,9 +297,12 @@ jobs:
           fi
 
       - name: Send Slack notification
+        # Notificação é best-effort: nunca marca o CD como falho.
+        if: env.SLACK_WEBHOOK_URL != ''
+        continue-on-error: true
         uses: slackapi/slack-github-action@91efab103c0de0a537f72a35f6b8cda0ee76bf0a # v2
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook: ${{ env.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: |
             {
@@ -208,8 +319,10 @@ jobs:
                     {
                       "type": "section",
                       "fields": [
-                        { "type": "mrkdwn", "text": "*Environment*\nproduction" },
+                        { "type": "mrkdwn", "text": "*Environment*\n${{ env.DEPLOY_ENVIRONMENT }}" },
+                        { "type": "mrkdwn", "text": "*Version*\n`${{ needs.version.outputs.version }}`" },
                         { "type": "mrkdwn", "text": "*Branch*\n`${{ steps.ctx.outputs.branch }}`" },
+                        { "type": "mrkdwn", "text": "*Build*\n${{ needs.build.result }}" },
                         { "type": "mrkdwn", "text": "*Migrate*\n${{ needs.migrate.result }}" },
                         { "type": "mrkdwn", "text": "*Deploy*\n${{ needs.deploy.result }}" },
                         { "type": "mrkdwn", "text": "*Author*\n${{ steps.ctx.outputs.actor }}" },
