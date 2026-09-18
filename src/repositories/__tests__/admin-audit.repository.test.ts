@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import { AdminAuditLogRepository } from '../admin-audit-log.repository'
 import { AdminOperationRepository } from '../admin-operation.repository'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 const actor = { actorId: 'admin1', actorEmail: 'admin@stratustelecom.com.br' }
 
@@ -87,5 +92,74 @@ describe('AdminOperationRepository', () => {
         }),
       ),
     ).toHaveLength(1)
+  })
+})
+
+describe('admin repositories — database failures', () => {
+  it('AdminAuditLogRepository returns DATABASE_ERROR when queries throw', async () => {
+    vi.spyOn(prisma.adminAuditLog, 'create').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.adminAuditLog, 'findMany')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+
+    expectErr(
+      await AdminAuditLogRepository.create({
+        ...actor,
+        action: 'workspace.suspend',
+        targetType: 'workspace',
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(await AdminAuditLogRepository.listRecent(5), 'DATABASE_ERROR')
+    expectErr(
+      await AdminAuditLogRepository.listByTarget('workspace', 'ws1', 5),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('AdminOperationRepository returns DATABASE_ERROR when queries throw', async () => {
+    vi.spyOn(prisma.adminOperation, 'create').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.adminOperation, 'findUnique').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.adminOperation, 'findFirst').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.adminOperation, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await AdminOperationRepository.create({
+        kind: 'WORKSPACE_DELETE',
+        workspaceId: 'ws1',
+        workspaceSlug: 'acme',
+        workspaceName: 'Acme',
+        requestedById: 'admin1',
+        requestedByEmail: 'admin@stratustelecom.com.br',
+        reason: 'x',
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(await AdminOperationRepository.findById('op'), 'DATABASE_ERROR')
+    expectErr(
+      await AdminOperationRepository.findActiveByWorkspace('ws1'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await AdminOperationRepository.listRecent({ limit: 5 }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('markFailed() returns DATABASE_ERROR for an unknown operation', async () => {
+    expectErr(
+      await AdminOperationRepository.markFailed('missing', 'boom'),
+      'DATABASE_ERROR',
+    )
   })
 })
