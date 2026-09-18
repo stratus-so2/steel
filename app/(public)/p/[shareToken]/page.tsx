@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { connection } from 'next/server'
+import { ProposalAcceptPanel } from '@/app/_components/crm/proposal/proposal-accept-panel'
 import { ProposalWebPreview } from '@/app/_components/crm/proposal/proposal-preview-panel'
 import { ProposalTracker } from '@/app/_components/crm/proposal/proposal-tracker'
 import { CrmProposalService } from '@/src/services/crm-proposal.service'
@@ -40,6 +41,16 @@ export default async function PublicCrmProposalPage({ params }: PageProps) {
       <article className='flex flex-col gap-6'>
         <ProposalWebPreview sections={proposal.sections} />
       </article>
+      <ProposalAcceptPanel
+        token={shareToken}
+        initial={{
+          validUntil: proposal.validUntil,
+          isExpired: proposal.isExpired,
+          canAccept: proposal.canAccept,
+          acceptedAt: proposal.acceptedAt,
+          acceptedByName: proposal.acceptedByName,
+        }}
+      />
       <ProposalTracker token={shareToken} />
     </main>
   )

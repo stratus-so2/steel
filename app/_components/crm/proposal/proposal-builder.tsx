@@ -50,6 +50,7 @@ import type {
   CrmProposalStatusDTO,
 } from '@/types/crm-proposal'
 import type { CrmProposalTemplateDTO } from '@/types/crm-proposal-template'
+import { ProposalExpiredHint } from './proposal-expired-hint'
 import { ProposalMetricsDrawer } from './proposal-metrics-drawer'
 import { ProposalPreviewPanel } from './proposal-preview-panel'
 import { SECTION_ORDER, SECTION_REGISTRY } from './sections/registry'
@@ -291,8 +292,16 @@ export function ProposalBuilder({
         setSaving(false)
         if (res.ok && res.data) {
           baseline.current = key
-          setRealId(res.data.id)
-          setShareToken(res.data.shareToken)
+          const created = res.data
+          setRealId(created.id)
+          setShareToken(created.shareToken)
+          // Sem data escolhida, o servidor aplica a validade padrão da
+          // workspace — traz para o estado para o próximo PATCH não limpá-la.
+          if (created.validUntil) {
+            setMeta((m) =>
+              m.validUntil ? m : { ...m, validUntil: created.validUntil },
+            )
+          }
           hydrated.current = true
           router.replace(`/${slug}/crm/proposals/${res.data.id}`)
         } else {
@@ -303,8 +312,11 @@ export function ProposalBuilder({
 
       const res = await saveCrmProposal(workspaceId, realId, payload)
       setSaving(false)
-      if (res.ok) baseline.current = key
-      else notify.error(res.message ?? 'Não foi possível salvar.')
+      if (res.ok) {
+        baseline.current = key
+        // Nova validade de uma expirada (admin) a reativa no servidor.
+        if (res.data?.status) setStatus(res.data.status)
+      } else notify.error(res.message ?? 'Não foi possível salvar.')
     }, 800)
 
     return () => clearTimeout(timer)
@@ -435,6 +447,8 @@ export function ProposalBuilder({
             ) : null}
           </div>
         </div>
+
+        {status === 'EXPIRED' ? <ProposalExpiredHint /> : null}
 
         <div className='flex flex-wrap items-center gap-2'>
           <Select

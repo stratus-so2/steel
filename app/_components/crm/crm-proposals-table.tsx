@@ -158,8 +158,14 @@ export function CrmProposalsTable({
               </span>
             ) : null}
             {record.validUntil ? (
-              <span className='truncate text-muted-foreground text-xs'>
-                Válida até{' '}
+              <span
+                className={
+                  record.isExpired
+                    ? 'truncate text-amber-600 text-xs'
+                    : 'truncate text-muted-foreground text-xs'
+                }
+              >
+                {record.isExpired ? 'Expirou em' : 'Válida até'}{' '}
                 {new Date(record.validUntil).toLocaleDateString('pt-BR')}
               </span>
             ) : null}
