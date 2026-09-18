@@ -59,5 +59,4 @@ storybook-static
 # AI Agents & Skills
 .agents*
 .claude
-/docs
-CLAUDE.md
+# /docs e CLAUDE.md são versionados (documentação do projeto e guia de agentes)
