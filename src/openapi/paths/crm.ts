@@ -4,6 +4,7 @@ import { crmIntegrationsRoutes } from './crm/integrations'
 import { crmOpportunitiesRoutes } from './crm/opportunities'
 import { crmPeopleRoutes } from './crm/people'
 import { crmProductsRoutes } from './crm/products'
+import { crmProposalsRoutes } from './crm/proposals'
 import { crmSettingsRoutes } from './crm/settings'
 
 /**
