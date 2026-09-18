@@ -23,3 +23,14 @@ export function calVerToSemver(tag: string): string {
   const base = `${Number(year)}.${Number(month)}.${Number(day)}`
   return n ? `${base}-${Number(n)}` : base
 }
+
+const SEMVER_CALVER = /^(\d{4})\.(\d{1,2})\.(\d{1,2})(?:-(\d+))?$/
+
+/** Inverso de {@link calVerToSemver}: `2026.8.28-4` → `2026.08.28.4`. */
+export function semverToCalVer(version: string): string {
+  const match = SEMVER_CALVER.exec(version)
+  if (!match) throw new Error(`Not a CalVer-derived semver: "${version}"`)
+  const [, year, month, day, n] = match
+  const base = `${year}.${month.padStart(2, '0')}.${day.padStart(2, '0')}`
+  return n ? `${base}.${n}` : base
+}
