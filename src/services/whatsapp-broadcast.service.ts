@@ -1,4 +1,5 @@
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import {
   whatsappBroadcastLocked,
   whatsappBroadcastNoRecipients,
@@ -8,6 +9,13 @@ import {
 import { WhatsappBroadcastJob } from '@/src/lib/queue/jobs'
 import { getWhatsappBroadcastQueue } from '@/src/lib/queue/queues'
 import { err, ok, type Result } from '@/src/lib/result'
+import { WhatsAppSend } from '@/src/lib/whatsapp/send'
+import {
+  buildMetaSendComponents,
+  extractTemplateFillableFields,
+  parseMetaTemplateComponents,
+} from '@/src/lib/whatsapp/template-variables'
+import type { WhatsAppSendResult } from '@/src/lib/whatsapp/types'
 import {
   toWhatsAppBroadcastListDetailDTO,
   toWhatsAppBroadcastListDTO,
@@ -15,6 +23,7 @@ import {
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
+import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
 import type { CreateWhatsAppBroadcastDTO } from '@/src/schemas/whatsapp-broadcast.schema'
 import type {
   WhatsAppBroadcastListDetailDTO,
@@ -24,6 +33,45 @@ import { assertModuleMember } from './authz'
 import { assertFeature } from './feature-flag.service'
 
 const STAGGER_DELAY_MS = 4000
+
+interface TemplateVariableValues {
+  header?: Record<number, string>
+  body?: Record<number, string>
+  buttons?: Record<number, string>
+}
+
+/**
+ * Resultado do envio a um destinatário (job em background). `skipped` =
+ * nada enviado de propósito (destinatário sumiu, já processado ou
+ * descadastrado — LGPD); `failed` = o destinatário ficou FAILED.
+ */
+export type WhatsAppBroadcastSendOutcome =
+  | {
+      status: 'skipped'
+      reason: 'recipient_missing' | 'not_pending' | 'opted_out'
+    }
+  | { status: 'failed'; reason: string }
+  | { status: 'sent'; providerMessageId: string }
+
+/** Fecha a lista (DONE) quando não sobra destinatário PENDING. */
+async function completeIfDrained(broadcastListId: string): Promise<void> {
+  const pending =
+    await WhatsAppBroadcastRepository.countPendingRecipients(broadcastListId)
+  if (!pending.ok || pending.value > 0) return
+
+  const updated = await WhatsAppBroadcastRepository.updateStatus(
+    broadcastListId,
+    'DONE',
+  )
+  if (!updated.ok) return
+  auditMutation({
+    entity: 'whatsapp_broadcast_list',
+    action: 'update',
+    actorId: null,
+    targetId: broadcastListId,
+    meta: { status: 'DONE', actor: 'system', via: 'whatsapp_broadcast_job' },
+  })
+}
 
 export const WhatsAppBroadcastService = {
   async list(
@@ -189,5 +237,157 @@ export const WhatsAppBroadcastService = {
     if (!fresh.value) return err(whatsappBroadcastNotFound())
 
     return ok(toWhatsAppBroadcastListDetailDTO(fresh.value))
+  },
+  /**
+   * Envia a mensagem da lista a um destinatário. Fluxo de sistema (job em
+   * background, sem usuário): revalida o opt-out LGPD no momento do envio
+   * (quem respondeu SAIR depois de enfileirado vira SKIPPED) e fecha a lista
+   * quando não resta ninguém pendente.
+   */
+  async sendToRecipient(
+    broadcastListId: string,
+    recipientId: string,
+  ): Promise<Result<WhatsAppBroadcastSendOutcome>> {
+    const found =
+      await WhatsAppBroadcastRepository.findRecipientById(recipientId)
+    if (!found.ok) return found
+    const recipient = found.value
+    if (!recipient) {
+      return ok({ status: 'skipped', reason: 'recipient_missing' })
+    }
+    if (recipient.status !== 'PENDING') {
+      return ok({ status: 'skipped', reason: 'not_pending' })
+    }
+
+    // Opt-out LGPD: o contato pode ter respondido SAIR depois que o job foi
+    // enfileirado (inclusive nos agendados por planilha) — nunca envia.
+    if (recipient.contact.broadcastOptedOutAt) {
+      const skipped = await WhatsAppBroadcastRepository.markRecipientsSkipped([
+        recipientId,
+      ])
+      if (!skipped.ok) return skipped
+      await completeIfDrained(broadcastListId)
+      return ok({ status: 'skipped', reason: 'opted_out' })
+    }
+
+    const list = recipient.broadcastList
+    const connection = await WhatsAppConnectionRepository.findById(
+      list.connectionId,
+      list.workspaceId,
+    )
+    if (!connection.ok) return connection
+    if (!connection.value) {
+      const failed = await WhatsAppBroadcastRepository.updateRecipientStatus(
+        recipientId,
+        { status: 'FAILED', errorMessage: 'Conexão não encontrada' },
+      )
+      if (!failed.ok) return failed
+      return ok({ status: 'failed', reason: 'connection_missing' })
+    }
+
+    let sendResult: Result<WhatsAppSendResult>
+    if (list.templateId) {
+      const template = await WhatsAppTemplateRepository.findById(
+        list.templateId,
+        list.workspaceId,
+      )
+      if (!template.ok) return template
+      if (!template.value) {
+        const failed = await WhatsAppBroadcastRepository.updateRecipientStatus(
+          recipientId,
+          { status: 'FAILED', errorMessage: 'Template não encontrado' },
+        )
+        if (!failed.ok) return failed
+        return ok({ status: 'failed', reason: 'template_missing' })
+      }
+
+      const fields = extractTemplateFillableFields(
+        parseMetaTemplateComponents(template.value.components as unknown[]),
+      )
+      const values = (recipient.variableValues ?? {}) as TemplateVariableValues
+      const components = buildMetaSendComponents(fields, {
+        header: values.header ?? {},
+        body: values.body ?? {},
+        buttons: values.buttons ?? {},
+      })
+
+      sendResult = await WhatsAppSend.template(connection.value, {
+        to: recipient.contact.waId,
+        templateName: template.value.name,
+        language: template.value.language,
+        components,
+      })
+    } else {
+      sendResult = list.mediaUrl
+        ? await WhatsAppSend.media(connection.value, {
+            to: recipient.contact.waId,
+            mediaUrl: list.mediaUrl,
+            type: 'image',
+            caption: list.messageBody,
+          })
+        : await WhatsAppSend.text(connection.value, {
+            to: recipient.contact.waId,
+            text: list.messageBody,
+          })
+    }
+
+    const recorded = sendResult.ok
+      ? await WhatsAppBroadcastRepository.updateRecipientStatus(recipientId, {
+          status: 'SENT',
+          providerMessageId: sendResult.value.providerMessageId,
+          sentAt: new Date(),
+        })
+      : await WhatsAppBroadcastRepository.updateRecipientStatus(recipientId, {
+          status: 'FAILED',
+          errorMessage: sendResult.error.message,
+        })
+    // Já enviado: não devolve erro (o job tentaria de novo e duplicaria o
+    // envio) — só registra para investigação.
+    if (!recorded.ok) {
+      logger.error('whatsapp.broadcast.recipient_status_update_failed', {
+        component: 'WhatsAppBroadcastService',
+        recipientId,
+        reason: recorded.error.code,
+      })
+    }
+
+    await completeIfDrained(broadcastListId)
+
+    return ok(
+      sendResult.ok
+        ? {
+            status: 'sent',
+            providerMessageId: sendResult.value.providerMessageId,
+          }
+        : { status: 'failed', reason: sendResult.error.code },
+    )
+  },
+
+  /**
+   * Tick das transmissões agendadas (importadas por planilha): enfileira os
+   * destinatários vencidos. Fluxo de sistema.
+   */
+  async enqueueDueScheduledRecipients(
+    now: Date,
+  ): Promise<Result<{ due: number }>> {
+    const due =
+      await WhatsAppBroadcastRepository.listDueScheduledRecipients(now)
+    if (!due.ok) return due
+
+    await getWhatsappBroadcastQueue().addBulk(
+      due.value.map((recipient) => ({
+        name: WhatsappBroadcastJob.SendBroadcastMessage,
+        data: {
+          broadcastListId: recipient.broadcastListId,
+          recipientId: recipient.id,
+        },
+        // jobId determinístico: evita reenfileirar o mesmo destinatário se o
+        // tick rodar de novo antes do job anterior sair de PENDING (BullMQ
+        // recusa duplicar um jobId ainda ativo/esperando na fila).
+        opts: { jobId: `broadcast-recipient-${recipient.id}` },
+      })),
+    )
+
+    return ok({ due: due.value.length })
   },
 }
