@@ -70,9 +70,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/users/me', { method: 'DELETE' })
       if (!res.ok) {
         const json = await res.json().catch(() => null)
-        setDeleteError(
-          json?.error?.message ?? 'Não foi possível agendar a exclusão',
-        )
+        setDeleteError(json?.message ?? 'Não foi possível agendar a exclusão')
         setDeleteState('confirming')
         return
       }
@@ -94,9 +92,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/users/me/deletion', { method: 'DELETE' })
       if (!res.ok) {
         const json = await res.json().catch(() => null)
-        setDeleteError(
-          json?.error?.message ?? 'Não foi possível cancelar a exclusão',
-        )
+        setDeleteError(json?.message ?? 'Não foi possível cancelar a exclusão')
         setCancelState('idle')
         return
       }

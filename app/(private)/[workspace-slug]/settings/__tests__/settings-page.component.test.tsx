@@ -199,12 +199,10 @@ describe('<SettingsPage /> account deletion', () => {
     )
   })
 
-  // BUG: the page reads `json.error.message`, but the API error envelope
-  // (`errorResponse` in utils/http-response.ts) puts `message` at the top
-  // level — `error` only carries `code`/`details`. Server messages are
-  // therefore never shown; only the generic fallback. Flip to `it` once
-  // fixed.
-  it.fails('shows the API error message when deletion is refused', async () => {
+  // Regression: the page used to read `json.error.message`, but the API error
+  // envelope (`errorResponse` in utils/http-response.ts) puts `message` at
+  // the top level, so only the generic fallback was ever shown.
+  it('shows the API error message when deletion is refused', async () => {
     renderPage()
     mockFetch([
       {
