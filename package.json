@@ -1,6 +1,6 @@
 {
   "name": "steel",
-  "version": "0.1.0",
+  "version": "2026.8.31",
   "private": true,
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -34,6 +34,7 @@
     "worker:dev": "tsx --tsconfig tsconfig.worker.json --env-file=.env --watch worker/index.ts",
     "worker:build": "esbuild worker/index.ts --bundle --platform=node --target=node20 --alias:server-only=./worker/server-only.shim.ts --outfile=dist/worker.cjs --external:argon2 --external:@prisma/client --external:.prisma/client",
     "worker": "node dist/worker.cjs",
+    "version:sync": "tsx scripts/sync-version.ts",
     "seed:whatsapp-dashboards": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-whatsapp-dashboards.ts",
     "seed:crm-pipeline": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-crm-default-pipeline.ts",
     "seed:user-timezone": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-user-timezone.ts",
