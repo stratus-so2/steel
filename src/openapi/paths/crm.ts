@@ -1,4 +1,5 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
+import { crmActivitiesRoutes } from './crm/activities'
 import { crmForecastRoutes } from './crm/forecast'
 import { crmIntegrationsRoutes } from './crm/integrations'
 import { crmOpportunitiesRoutes } from './crm/opportunities'
