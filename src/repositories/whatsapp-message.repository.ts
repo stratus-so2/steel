@@ -43,6 +43,25 @@ export const WhatsAppMessageRepository = {
     }
   },
 
+  /** Scores de sentimento mais recentes da conversa (só mensagens já
+   * classificadas) — base da média exibida na conversa. */
+  async listRecentSentimentScores(
+    conversationId: string,
+    limit: number,
+  ): Promise<Result<number[]>> {
+    try {
+      const rows = await prisma.whatsAppMessage.findMany({
+        where: { conversationId, sentimentScore: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: { sentimentScore: true },
+      })
+      return ok(rows.map((row) => row.sentimentScore ?? 0))
+    } catch (error) {
+      return err(dbError('Failed to list whatsapp sentiment scores', error))
+    }
+  },
+
   async findByProviderMessageId(
     providerMessageId: string,
   ): Promise<Result<WhatsAppMessage | null>> {
