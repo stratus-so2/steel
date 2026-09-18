@@ -19017,7 +19017,7 @@
         "tags": ["CRM · Leads"],
         "summary": "Listar apresentações de proposta",
         "operationId": "getWorkspacesByIdCrmLeadsByLeadIdProposalByProposalIdPresentations",
-        "description": "Todas as apresentações do lead (mais recentes primeiro). O `proposalId` do path não filtra a lista.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `leads` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Apresentações da proposta `proposalId` (mais recentes primeiro). A proposta precisa ser do lead.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `leads` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -19074,7 +19074,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_LEAD_PROPOSAL_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"

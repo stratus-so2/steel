@@ -993,6 +993,7 @@ export const CrmLeadService = {
     actorId: string,
     workspaceId: string,
     leadId: string,
+    proposalId: string,
   ): Promise<Result<CrmLeadProposalPresentationDTO[]>> {
     const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
       resource: 'leads',
@@ -1003,7 +1004,19 @@ export const CrmLeadService = {
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
     if (!lead.ok) return lead
 
-    const result = await CrmLeadRepository.listProposalPresentations(leadId)
+    const proposal = await CrmProposalRepository.findById(
+      proposalId,
+      workspaceId,
+    )
+    if (!proposal.ok) return proposal
+    if (proposal.value.leadId !== leadId) {
+      return err(crmLeadProposalNotFound())
+    }
+
+    const result = await CrmLeadRepository.listProposalPresentations(
+      leadId,
+      proposalId,
+    )
     if (!result.ok) return result
 
     return ok(result.value.map(toCrmLeadProposalPresentationDTO))

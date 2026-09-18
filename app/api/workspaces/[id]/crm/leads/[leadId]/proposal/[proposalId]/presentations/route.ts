@@ -22,12 +22,13 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limit.ok) return handleError(limit.error)
 
-  const { id, leadId } = await ctx.params
+  const { id, leadId, proposalId } = await ctx.params
 
   const result = await CrmLeadService.listProposalPresentations(
     auth.value.user.id,
     id,
     leadId,
+    proposalId,
   )
   if (!result.ok) return handleError(result.error)
 

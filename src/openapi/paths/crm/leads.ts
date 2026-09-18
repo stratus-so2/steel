@@ -376,7 +376,7 @@ export const crmLeadsRoutes: RouteConfig[] = [
     tags: [TAG],
     summary: 'Listar apresentações de proposta',
     description: describe(
-      'Todas as apresentações do lead (mais recentes primeiro). O `proposalId` do path não filtra a lista.',
+      'Apresentações da proposta `proposalId` (mais recentes primeiro). A proposta precisa ser do lead.',
       crmAccess('leads', 'VIEW'),
     ),
     params: { ...LEAD_ID, proposalId: 'ID da proposta.' },
@@ -386,7 +386,15 @@ export const crmLeadsRoutes: RouteConfig[] = [
         schema: z.array(CrmLeadProposalPresentationDTO),
       },
     },
-    errors: [...CRM_ERRORS, LEAD_NOT_FOUND],
+    errors: [
+      ...CRM_ERRORS,
+      LEAD_NOT_FOUND,
+      { code: 'CRM_PROPOSAL_NOT_FOUND', when: 'Proposta inexistente' },
+      {
+        code: 'CRM_LEAD_PROPOSAL_NOT_FOUND',
+        when: 'A proposta é de outro lead',
+      },
+    ],
   },
   {
     method: 'post',

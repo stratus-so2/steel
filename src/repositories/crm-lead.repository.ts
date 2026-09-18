@@ -331,12 +331,14 @@ export const CrmLeadRepository = {
     }
   },
 
+  /** Apresentações do lead — só as da proposta `proposalId`, quando dado. */
   async listProposalPresentations(
     leadId: string,
+    proposalId?: string,
   ): Promise<Result<CrmLeadProposalPresentation[]>> {
     try {
       const presentations = await prisma.crmLeadProposalPresentation.findMany({
-        where: { leadId },
+        where: proposalId ? { leadId, proposalId } : { leadId },
         orderBy: { presentedAt: 'desc' },
       })
       return ok(presentations)

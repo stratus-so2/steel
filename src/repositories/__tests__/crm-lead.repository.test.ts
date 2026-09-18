@@ -276,6 +276,42 @@ describe('CrmLeadRepository', () => {
       expect(list).toHaveLength(1)
       expect(Number(list[0]?.amount)).toBe(1500)
     })
+
+    it('should list only the given proposal presentations', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const lead = await seedCrmLead(workspace.id, user.id)
+      const [first, second] = await Promise.all(
+        ['A', 'B'].map((suffix) =>
+          prisma.crmProposal.create({
+            data: {
+              name: `Proposta ${suffix}`,
+              leadId: lead.id,
+              responsibleId: user.id,
+              workspaceId: workspace.id,
+              createdById: user.id,
+              shareToken: `${lead.id}-${suffix}`,
+            },
+          }),
+        ),
+      )
+      for (const proposal of [first, second]) {
+        await CrmLeadRepository.createProposalPresentation({
+          leadId: lead.id,
+          proposalId: proposal.id,
+          createdById: user.id,
+          presentedAt: new Date(),
+          format: 'ONLINE',
+          amount: 1500,
+          interestLevel: 'HIGH',
+          interactionsCount: 3,
+        })
+      }
+
+      const list = expectOk(
+        await CrmLeadRepository.listProposalPresentations(lead.id, first.id),
+      )
+      expect(list.map((p) => p.proposalId)).toEqual([first.id])
+    })
   })
 
   describe('reopen()', () => {
