@@ -9,6 +9,7 @@ import HeaderInternalNavigation from '@/app/_components/header/header-internal-n
 import { WhatsappSettingsAi } from '@/app/_components/whatsapp/settings/whatsapp-settings-ai'
 import { WhatsappSettingsAiKnowledge } from '@/app/_components/whatsapp/settings/whatsapp-settings-ai-knowledge'
 import { WhatsappSettingsConnections } from '@/app/_components/whatsapp/settings/whatsapp-settings-connections'
+import { WhatsappSettingsService } from '@/app/_components/whatsapp/settings/whatsapp-settings-service'
 import { SteelIcon } from '@/components/icon/icon'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getAuthSession } from '@/src/lib/auth-session'
@@ -16,7 +17,7 @@ import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
   title: 'Configurações do WhatsApp | Steel',
-  description: 'Conexões e IA do WhatsApp',
+  description: 'Conexões, IA e atendimento do WhatsApp',
 }
 
 export default async function ZapSettingsPage({
@@ -55,6 +56,7 @@ export default async function ZapSettingsPage({
           <TabsList>
             <TabsTrigger value='connections'>Conexões</TabsTrigger>
             <TabsTrigger value='ai'>IA</TabsTrigger>
+            <TabsTrigger value='service'>Atendimento</TabsTrigger>
           </TabsList>
           <TabsContent value='connections' className='pt-4'>
             <WhatsappSettingsConnections workspaceId={workspaceId} />
@@ -62,6 +64,9 @@ export default async function ZapSettingsPage({
           <TabsContent value='ai' className='space-y-6 pt-4'>
             <WhatsappSettingsAi workspaceId={workspaceId} />
             <WhatsappSettingsAiKnowledge workspaceId={workspaceId} />
+          </TabsContent>
+          <TabsContent value='service' className='space-y-6 pt-4'>
+            <WhatsappSettingsService workspaceId={workspaceId} />
           </TabsContent>
         </Tabs>
       </div>

@@ -80,12 +80,19 @@ const active = [
 const archived = [
   conversation({ id: 'cv_9', contactName: 'Bruno Arquivado', archived: true }),
 ]
+const closed = [
+  conversation({ id: 'cv_8', contactName: 'Carla Fechada', status: 'CLOSED' }),
+]
 
 function setup(extra: FetchRoute[] = []) {
   return mockFetch([
     ...extra,
     { match: `${API}/conversations?archived=true`, data: archived },
-    { match: /\/conversations(\?connectionId=[^&]+)?$/, data: active },
+    { match: `${API}/conversations?status=CLOSED`, data: closed },
+    {
+      match: /\/conversations\?status=OPEN(&connectionId=[^&]+)?$/,
+      data: active,
+    },
     {
       match: `${API}/contacts`,
       data: [
@@ -194,13 +201,29 @@ describe('<WhatsappConversationSidebar />', () => {
     ).toBe(true)
   })
 
+  it('keeps closed conversations out of the active inbox, under "Fechadas"', async () => {
+    const fetchSpy = setup()
+    renderSidebar()
+    await screen.findByText('Ana Souza')
+    expect(screen.queryByText('Carla Fechada')).toBeNull()
+    expect(
+      fetchSpy.mock.calls.some(([url]) =>
+        String(url).endsWith('/conversations?status=OPEN'),
+      ),
+    ).toBe(true)
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Fechadas' }))
+    expect(await screen.findByText('Carla Fechada')).toBeTruthy()
+    expect(screen.queryByText('Ana Souza')).toBeNull()
+  })
+
   it('scopes the list to the selected connection', async () => {
     const fetchSpy = setup()
     renderSidebar({ connectionId: 'conn_1' })
     await screen.findByText('Ana Souza')
     expect(
       fetchSpy.mock.calls.some(([url]) =>
-        String(url).endsWith('/conversations?connectionId=conn_1'),
+        String(url).endsWith('/conversations?status=OPEN&connectionId=conn_1'),
       ),
     ).toBe(true)
   })

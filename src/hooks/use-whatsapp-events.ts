@@ -59,6 +59,17 @@ export function useWhatsAppRealtimeEvents(workspaceId: string) {
         })
       }
 
+      // Fechar/reabrir (inclusive automático) gera evento na linha do tempo.
+      if (parsed.type === 'conversation.updated') {
+        queryClient.invalidateQueries({
+          queryKey: [
+            'whatsapp-conversation-events',
+            workspaceId,
+            parsed.conversation.id,
+          ],
+        })
+      }
+
       if (parsed.type === 'group-message.created') {
         queryClient.invalidateQueries({
           queryKey: ['whatsapp-group-messages', workspaceId, parsed.groupId],

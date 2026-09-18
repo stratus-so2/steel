@@ -1,12 +1,15 @@
 'use client'
 
 import {
+  CheckmarkCircle02Icon,
   ComputerVideoCallIcon,
+  RefreshIcon,
   UserSwitchIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -28,11 +31,14 @@ import { useUser } from '@/src/hooks/use-user'
 import { useFindOrCreateWhatsAppContact } from '@/src/hooks/use-whatsapp-contacts'
 import {
   useAssignWhatsAppConversation,
+  useCloseWhatsAppConversation,
   useMarkWhatsAppConversationRead,
   useRemoveWhatsAppConversationFromAi,
+  useReopenWhatsAppConversation,
   useResumeWhatsAppConversationAi,
   useStartWhatsAppConversation,
   useWhatsAppAssignableMembers,
+  useWhatsAppConversationEvents,
 } from '@/src/hooks/use-whatsapp-conversations'
 import {
   useDeleteWhatsAppMessage,
@@ -40,12 +46,47 @@ import {
   useSendWhatsAppTextMessage,
   useWhatsAppMessages,
 } from '@/src/hooks/use-whatsapp-messages'
-import type { WhatsAppConversationDTO } from '@/types/whatsapp-conversation'
+import type {
+  WhatsAppConversationDTO,
+  WhatsAppConversationEventDTO,
+} from '@/types/whatsapp-conversation'
 import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
 import { WhatsappAiBanner } from './whatsapp-ai-banner'
+import { WhatsappCloseConversationDialog } from './whatsapp-close-conversation-dialog'
 import { WhatsappComposer } from './whatsapp-composer'
+import { WhatsappConversationEventChip } from './whatsapp-conversation-event-chip'
 import { WhatsappHandoffBanner } from './whatsapp-handoff-banner'
 import { WhatsappVideoCallDialog } from './whatsapp-video-call-dialog'
+
+const STATUS_LABEL: Record<WhatsAppConversationDTO['status'], string> = {
+  NEW: 'Nova',
+  IN_PROGRESS: 'Em atendimento',
+  CLOSED: 'Fechada',
+}
+
+type TimelineItem =
+  | { kind: 'message'; at: string; message: WhatsAppMessageDTO }
+  | { kind: 'event'; at: string; event: WhatsAppConversationEventDTO }
+
+/** Mensagens + eventos (fechada/reaberta) em ordem cronológica. Eventos
+ * anteriores à mensagem mais antiga carregada ficam de fora (paginação). */
+function buildTimeline(
+  messages: WhatsAppMessageDTO[],
+  events: WhatsAppConversationEventDTO[],
+): TimelineItem[] {
+  const oldest = messages[0]?.createdAt
+  const items: TimelineItem[] = [
+    ...messages.map((message) => ({
+      kind: 'message' as const,
+      at: message.createdAt,
+      message,
+    })),
+    ...events
+      .filter((event) => !oldest || event.createdAt >= oldest)
+      .map((event) => ({ kind: 'event' as const, at: event.createdAt, event })),
+  ]
+  return items.sort((a, b) => a.at.localeCompare(b.at))
+}
 
 export function WhatsappConversationView({
   workspaceId,
@@ -57,6 +98,7 @@ export function WhatsappConversationView({
   onSelectConversation?: (conversation: WhatsAppConversationDTO) => void
 }) {
   const [callOpen, setCallOpen] = useState(false)
+  const [closeOpen, setCloseOpen] = useState(false)
   const [replyTarget, setReplyTarget] = useState<WhatsAppMessageDTO | null>(
     null,
   )
@@ -64,6 +106,11 @@ export function WhatsappConversationView({
 
   const currentUser = useUser()
   const messages = useWhatsAppMessages(workspaceId, conversation.id)
+  const events = useWhatsAppConversationEvents(workspaceId, conversation.id)
+  const closeConversation = useCloseWhatsAppConversation(workspaceId)
+  const reopenConversation = useReopenWhatsAppConversation(workspaceId)
+  const canEdit = useCan('conversations', 'EDIT')
+  const isClosed = conversation.status === 'CLOSED'
   const markRead = useMarkWhatsAppConversationRead(workspaceId)
   const removeFromAi = useRemoveWhatsAppConversationFromAi(workspaceId)
   const resumeAi = useResumeWhatsAppConversationAi(workspaceId)
@@ -92,6 +139,37 @@ export function WhatsappConversationView({
     } catch {
       notify.error('Erro ao iniciar conversa com o contato')
     }
+  }
+
+  const timeline = useMemo(
+    () => buildTimeline(messages.data ?? [], events.data ?? []),
+    [messages.data, events.data],
+  )
+
+  function handleClose(reason: string | undefined) {
+    closeConversation.mutate(
+      { conversationId: conversation.id, reason },
+      {
+        onSuccess: (updated) => {
+          setCloseOpen(false)
+          notify.success('Conversa fechada')
+          onSelectConversation?.(updated)
+        },
+        onError: (error) =>
+          notify.error(error, 'Não foi possível fechar a conversa'),
+      },
+    )
+  }
+
+  function handleReopen() {
+    reopenConversation.mutate(conversation.id, {
+      onSuccess: (updated) => {
+        notify.success('Conversa reaberta')
+        onSelectConversation?.(updated)
+      },
+      onError: (error) =>
+        notify.error(error, 'Não foi possível reabrir a conversa'),
+    })
   }
 
   const messagesById = useMemo(() => {
@@ -178,12 +256,33 @@ export function WhatsappConversationView({
               </div>
               <div className='flex justify-between'>
                 <span className='text-muted-foreground'>Status</span>
-                <span>{conversation.status}</span>
+                <span>{STATUS_LABEL[conversation.status]}</span>
               </div>
             </div>
           </PopoverContent>
         </Popover>
         <div className='flex items-center gap-1'>
+          {canEdit &&
+            (isClosed ? (
+              <Button
+                variant='outline'
+                size='xs'
+                disabled={reopenConversation.isPending}
+                onClick={handleReopen}
+              >
+                <SteelIcon icon={RefreshIcon} size={14} />
+                Reabrir
+              </Button>
+            ) : (
+              <Button
+                variant='outline'
+                size='xs'
+                onClick={() => setCloseOpen(true)}
+              >
+                <SteelIcon icon={CheckmarkCircle02Icon} size={14} />
+                Fechar
+              </Button>
+            ))}
           <Button
             variant='ghost'
             size='icon-sm'
@@ -229,47 +328,57 @@ export function WhatsappConversationView({
         </div>
       </div>
 
-      {conversation.aiActive && (
+      {isClosed && (
+        <div className='border-b bg-muted px-4 py-2 text-muted-foreground text-sm'>
+          Conversa fechada
+          {conversation.closeReason ? ` — ${conversation.closeReason}` : ''}. A
+          IA não responde até a conversa ser reaberta.
+        </div>
+      )}
+
+      {!isClosed && conversation.aiActive && (
         <WhatsappAiBanner
           isRemoving={removeFromAi.isPending}
           onRemoveFromAi={() => removeFromAi.mutate(conversation.id)}
         />
       )}
 
-      {!conversation.aiActive && conversation.aiHandoff && (
+      {!isClosed && !conversation.aiActive && conversation.aiHandoff && (
         <WhatsappHandoffBanner
           isResuming={resumeAi.isPending}
           onResumeAi={() => resumeAi.mutate(conversation.id)}
         />
       )}
 
-      <MessageScroller dependencyKey={messages.data?.length}>
-        {(messages.data ?? []).map((message) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            replyToMessage={
-              message.replyToMessageId
-                ? messagesById.get(message.replyToMessageId)
-                : undefined
-            }
-            onReply={setReplyTarget}
-            onReact={(messageId, emoji) =>
-              reactToMessage.mutate({ messageId, emoji })
-            }
-            onDelete={(messageId) => deleteMessage.mutate(messageId)}
-            onStartConversationWithContact={handleStartConversationWithContact}
-          />
-        ))}
+      <MessageScroller dependencyKey={timeline.length}>
+        {timeline.map((item) =>
+          item.kind === 'event' ? (
+            <WhatsappConversationEventChip
+              key={`event-${item.event.id}`}
+              event={item.event}
+            />
+          ) : (
+            <Fragment key={item.message.id}>
+              {renderMessage(item.message)}
+            </Fragment>
+          ),
+        )}
       </MessageScroller>
 
       <WhatsappComposer
         workspaceId={workspaceId}
         conversationId={conversation.id}
         contactName={conversation.contactName ?? conversation.contactWaId}
-        disabled={conversation.aiActive}
+        disabled={conversation.aiActive || isClosed}
         replyTarget={replyTarget}
         onClearReply={() => setReplyTarget(null)}
+      />
+
+      <WhatsappCloseConversationDialog
+        open={closeOpen}
+        onOpenChange={setCloseOpen}
+        onConfirm={handleClose}
+        isPending={closeConversation.isPending}
       />
 
       <WhatsappVideoCallDialog
@@ -280,4 +389,24 @@ export function WhatsappConversationView({
       />
     </div>
   )
+
+  function renderMessage(message: WhatsAppMessageDTO) {
+    return (
+      <MessageBubble
+        key={message.id}
+        message={message}
+        replyToMessage={
+          message.replyToMessageId
+            ? messagesById.get(message.replyToMessageId)
+            : undefined
+        }
+        onReply={setReplyTarget}
+        onReact={(messageId, emoji) =>
+          reactToMessage.mutate({ messageId, emoji })
+        }
+        onDelete={(messageId) => deleteMessage.mutate(messageId)}
+        onStartConversationWithContact={handleStartConversationWithContact}
+      />
+    )
+  }
 }

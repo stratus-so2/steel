@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   WhatsAppAssignableMemberDTO,
   WhatsAppConversationDTO,
+  WhatsAppConversationEventDTO,
   WhatsAppConversationStatusDTO,
 } from '@/types/whatsapp-conversation'
 import { apiFetch } from './_fetch'
@@ -20,9 +21,14 @@ const CONVERSATIONS_KEY = (
     connectionId ?? '',
   ] as const
 
+/** `OPEN` = não fechadas (caixa de entrada ativa). */
+export type WhatsAppConversationListStatus =
+  | WhatsAppConversationStatusDTO
+  | 'OPEN'
+
 export function useWhatsAppConversations(
   workspaceId: string,
-  status?: WhatsAppConversationStatusDTO,
+  status?: WhatsAppConversationListStatus,
   archived?: boolean,
   connectionId?: string,
 ) {
@@ -238,6 +244,76 @@ export function useAssignWhatsAppConversation(
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['whatsapp-conversations', workspaceId],
+      })
+    },
+  })
+}
+
+export const WHATSAPP_CONVERSATION_EVENTS_KEY = (
+  workspaceId: string,
+  conversationId: string,
+) => ['whatsapp-conversation-events', workspaceId, conversationId] as const
+
+export function useWhatsAppConversationEvents(
+  workspaceId: string,
+  conversationId: string,
+) {
+  return useQuery({
+    queryKey: WHATSAPP_CONVERSATION_EVENTS_KEY(workspaceId, conversationId),
+    queryFn: () =>
+      apiFetch<WhatsAppConversationEventDTO[]>(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/events`,
+        undefined,
+        'Erro ao buscar o histórico da conversa',
+      ),
+    staleTime: 15 * 1000,
+  })
+}
+
+export function useCloseWhatsAppConversation(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: { conversationId: string; reason?: string }) =>
+      apiFetch<WhatsAppConversationDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${data.conversationId}/close`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: data.reason }),
+        },
+        'Erro ao fechar a conversa',
+      ),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-conversations', workspaceId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: WHATSAPP_CONVERSATION_EVENTS_KEY(
+          workspaceId,
+          variables.conversationId,
+        ),
+      })
+    },
+  })
+}
+
+export function useReopenWhatsAppConversation(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      apiFetch<WhatsAppConversationDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/conversations/${conversationId}/reopen`,
+        { method: 'POST' },
+        'Erro ao reabrir a conversa',
+      ),
+    onSuccess: (_data, conversationId) => {
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-conversations', workspaceId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: WHATSAPP_CONVERSATION_EVENTS_KEY(workspaceId, conversationId),
       })
     },
   })

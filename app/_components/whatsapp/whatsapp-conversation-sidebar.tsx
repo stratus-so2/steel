@@ -215,12 +215,13 @@ export function WhatsappConversationSidebar({
   onSelect: (conversation: WhatsAppConversationDTO) => void
 }) {
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<'active' | 'archived'>('active')
+  // Ativas = abertas (NEW/IN_PROGRESS); fechadas saem da caixa de entrada.
+  const [tab, setTab] = useState<'active' | 'closed' | 'archived'>('active')
   const [clearTargetId, setClearTargetId] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
   const conversations = useWhatsAppConversations(
     workspaceId,
-    undefined,
+    tab === 'active' ? 'OPEN' : tab === 'closed' ? 'CLOSED' : undefined,
     tab === 'archived',
     connectionId,
   )
@@ -286,12 +287,17 @@ export function WhatsappConversationSidebar({
       </div>
       <Tabs
         value={tab}
-        onValueChange={(value) => setTab(value as 'active' | 'archived')}
+        onValueChange={(value) =>
+          setTab(value as 'active' | 'closed' | 'archived')
+        }
         className='px-3'
       >
         <TabsList className='w-full'>
           <TabsTrigger value='active' className='flex-1'>
             Ativas
+          </TabsTrigger>
+          <TabsTrigger value='closed' className='flex-1'>
+            Fechadas
           </TabsTrigger>
           <TabsTrigger value='archived' className='flex-1'>
             Arquivadas

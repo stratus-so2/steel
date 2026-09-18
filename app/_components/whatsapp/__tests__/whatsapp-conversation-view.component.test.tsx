@@ -129,12 +129,106 @@ function setup(extra: FetchRoute[] = [], messages = thread) {
   return mockFetch([
     ...extra,
     { match: MESSAGES, data: messages },
+    { match: `${API}/conversations/cv_1/events`, data: [] },
     { match: `${API}/assignable-members`, data: members },
     { match: '/api/users/me', data: { id: 'u_1', name: 'Eu Mesmo' } },
   ])
 }
 
 describe('<WhatsappConversationView />', () => {
+  it('closes the conversation with an optional reason', async () => {
+    const onSelectConversation = vi.fn()
+    const fetchSpy = setup([
+      {
+        method: 'POST',
+        match: `${API}/conversations/cv_1/close`,
+        data: conversation({ status: 'CLOSED', closeReason: 'Resolvido' }),
+      },
+    ])
+    renderWithQuery(
+      <WhatsappConversationView
+        workspaceId='ws_1'
+        conversation={conversation()}
+        onSelectConversation={onSelectConversation}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }))
+    fireEvent.change(await screen.findByLabelText('Motivo (opcional)'), {
+      target: { value: 'Resolvido' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar conversa' }))
+
+    await waitFor(() =>
+      expect(onSelectConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'CLOSED' }),
+      ),
+    )
+    expect(
+      fetchBody(fetchSpy, `${API}/conversations/cv_1/close`, 'POST'),
+    ).toEqual({ reason: 'Resolvido' })
+  })
+
+  it('shows a closed conversation with its timeline and lets the agent reopen it', async () => {
+    const onSelectConversation = vi.fn()
+    const fetchSpy = mockFetch([
+      {
+        method: 'POST',
+        match: `${API}/conversations/cv_1/reopen`,
+        data: conversation({ status: 'IN_PROGRESS' }),
+      },
+      { match: MESSAGES, data: [message({ id: 'm1', text: 'Obrigada!' })] },
+      {
+        match: `${API}/conversations/cv_1/events`,
+        data: [
+          {
+            id: 'ev1',
+            conversationId: 'cv_1',
+            kind: 'CLOSED',
+            source: 'AGENT',
+            actorUserId: 'u_2',
+            actorName: 'Beatriz',
+            reason: 'Resolvido',
+            createdAt: '2026-01-01T13:00:00.000Z',
+          },
+        ],
+      },
+      { match: `${API}/assignable-members`, data: members },
+      { match: '/api/users/me', data: { id: 'u_1', name: 'Eu Mesmo' } },
+    ])
+    renderWithQuery(
+      <WhatsappConversationView
+        workspaceId='ws_1'
+        conversation={conversation({
+          status: 'CLOSED',
+          closeReason: 'Resolvido',
+          aiActive: true,
+        })}
+        onSelectConversation={onSelectConversation}
+      />,
+    )
+
+    expect(await screen.findByText(/Conversa fechada por Beatriz/)).toBeTruthy()
+    expect(screen.getByText('Motivo: Resolvido')).toBeTruthy()
+    // Fechada: composer travado e sem banner da IA.
+    expect(screen.getByTestId('composer').dataset.disabled).toBe('true')
+    expect(
+      screen.queryByRole('button', { name: /Remover do atendimento/i }),
+    ).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reabrir' }))
+    await waitFor(() =>
+      expect(onSelectConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'IN_PROGRESS' }),
+      ),
+    )
+    expect(
+      fetchSpy.mock.calls.some(([url]) =>
+        String(url).endsWith('/conversations/cv_1/reopen'),
+      ),
+    ).toBe(true)
+  })
+
   it('renders the contact header and the message thread', async () => {
     setup()
     renderWithQuery(
