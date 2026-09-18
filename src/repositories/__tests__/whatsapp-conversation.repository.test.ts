@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { WhatsAppConversationRepository } from '../whatsapp-conversation.repository'
 
@@ -413,6 +413,149 @@ describe('WhatsAppConversationRepository', () => {
           ),
         ),
       ).toBe(true)
+    })
+  })
+
+  describe('listByWorkspace() assignedUserId', () => {
+    it('should return only conversations assigned to the user', async () => {
+      const { workspace, user, connection, contact } = await seedFixtures()
+      const mine = await prisma.whatsAppConversation.create({
+        data: {
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+          assignedUserId: user.id,
+        },
+      })
+      await prisma.whatsAppConversation.create({
+        data: {
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        },
+      })
+
+      const list = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id, {
+          assignedUserId: user.id,
+        }),
+      )
+      expect(list.map((c) => c.id)).toEqual([mine.id])
+    })
+  })
+
+  describe('findByIdRaw() / findByIdWithConnection()', () => {
+    it('should load the raw row and the row with its connection', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      const conversation = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+        }),
+      )
+
+      expect(
+        expectOk(
+          await WhatsAppConversationRepository.findByIdRaw(conversation.id),
+        )?.id,
+      ).toBe(conversation.id)
+      const withConnection = expectOk(
+        await WhatsAppConversationRepository.findByIdWithConnection(
+          conversation.id,
+        ),
+      )
+      expect(withConnection?.connection.id).toBe(connection.id)
+      expect(
+        expectOk(await WhatsAppConversationRepository.findByIdRaw('missing')),
+      ).toBeNull()
+      expect(
+        expectOk(
+          await WhatsAppConversationRepository.findByIdWithConnection(
+            'missing',
+          ),
+        ),
+      ).toBeNull()
+    })
+  })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR for invalid writes', async () => {
+      expectErr(
+        await WhatsAppConversationRepository.create({
+          workspaceId: 'missing',
+          connectionId: 'missing',
+          contactId: 'missing',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.update('missing', {
+          unreadCount: 1,
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      const conversation = prisma.whatsAppConversation
+      vi.spyOn(conversation, 'findMany')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(conversation, 'findFirst')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(conversation, 'findUnique')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(conversation, 'updateMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+
+      expectErr(
+        await WhatsAppConversationRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.listInactiveOpen({
+          cutoff: new Date(),
+          workspaceIds: { in: ['w'] },
+          limit: 1,
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.findById('c', 'w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.findActiveByContact('w', 'c'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.findLatestClosedByContact(
+          'w',
+          'c',
+        ),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.findByIdRaw('c'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.findByIdWithConnection('c'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConversationRepository.claimSentimentAlert(
+          'c',
+          new Date(),
+          new Date(),
+        ),
+        'DATABASE_ERROR',
+      )
     })
   })
 })

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -236,6 +236,174 @@ describe('WhatsAppContactRepository', () => {
         ]),
       )
       expect(ids).toEqual([active.id])
+    })
+
+    it('should short-circuit an empty id list without querying', async () => {
+      const spy = vi.spyOn(prisma.whatsAppContact, 'findMany')
+      expect(
+        expectOk(
+          await WhatsAppContactRepository.listBroadcastEligibleIds('w', []),
+        ),
+      ).toEqual([])
+      expect(spy).not.toHaveBeenCalled()
+      spy.mockRestore()
+    })
+  })
+
+  describe('lookups', () => {
+    it('should find by id scoped to the workspace and by waId', async () => {
+      const [workspace, other] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+      ])
+      const contact = await prisma.whatsAppContact.create({
+        data: { workspaceId: workspace.id, waId: '5511911110001' },
+      })
+
+      expect(
+        expectOk(
+          await WhatsAppContactRepository.findById(contact.id, workspace.id),
+        )?.id,
+      ).toBe(contact.id)
+      expect(
+        expectOk(
+          await WhatsAppContactRepository.findById(contact.id, other.id),
+        ),
+      ).toBeNull()
+      expect(
+        expectOk(
+          await WhatsAppContactRepository.findByWaId(
+            workspace.id,
+            '5511911110001',
+          ),
+        )?.id,
+      ).toBe(contact.id)
+      expect(
+        expectOk(
+          await WhatsAppContactRepository.findByWaId(other.id, '5511911110001'),
+        ),
+      ).toBeNull()
+    })
+
+    it('should find many by waIds within the workspace only', async () => {
+      const [workspace, other] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+      ])
+      await prisma.whatsAppContact.createMany({
+        data: [
+          { workspaceId: workspace.id, waId: '5511922220001' },
+          { workspaceId: workspace.id, waId: '5511922220002' },
+          { workspaceId: other.id, waId: '5511922220003' },
+        ],
+      })
+
+      const found = expectOk(
+        await WhatsAppContactRepository.findManyByWaIds(workspace.id, [
+          '5511922220001',
+          '5511922220003',
+        ]),
+      )
+      expect(found.map((c) => c.waId)).toEqual(['5511922220001'])
+      expect(
+        expectOk(
+          await WhatsAppContactRepository.findManyByWaIds(workspace.id, []),
+        ),
+      ).toEqual([])
+    })
+  })
+
+  describe('upsertByWaId() without profile data', () => {
+    it('should keep the stored name and avatar when none are given', async () => {
+      const workspace = await seedWorkspace()
+      await prisma.whatsAppContact.create({
+        data: {
+          workspaceId: workspace.id,
+          waId: '5511933330001',
+          name: 'Maria',
+          avatarUrl: 'https://x.test/a.png',
+        },
+      })
+
+      const contact = expectOk(
+        await WhatsAppContactRepository.upsertByWaId({
+          workspaceId: workspace.id,
+          waId: '5511933330001',
+        }),
+      )
+      expect(contact.name).toBe('Maria')
+      expect(contact.avatarUrl).toBe('https://x.test/a.png')
+
+      const updated = expectOk(
+        await WhatsAppContactRepository.upsertByWaId({
+          workspaceId: workspace.id,
+          waId: '5511933330001',
+          avatarUrl: 'https://x.test/b.png',
+        }),
+      )
+      expect(updated.avatarUrl).toBe('https://x.test/b.png')
+    })
+  })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR for writes on missing rows or FKs', async () => {
+      expectErr(
+        await WhatsAppContactRepository.create({
+          workspaceId: 'missing',
+          waId: '1',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.upsertByWaId({
+          workspaceId: 'missing',
+          waId: '1',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.update('missing', { name: 'x' }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.setBroadcastOptOut('missing', null),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.delete('missing'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      const contact = prisma.whatsAppContact
+      vi.spyOn(contact, 'findMany')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(contact, 'findFirst').mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(contact, 'findUnique').mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppContactRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.findManyByWaIds('w', ['1']),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.listBroadcastEligibleIds('w', ['c']),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.findById('c', 'w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppContactRepository.findByWaId('w', '1'),
+        'DATABASE_ERROR',
+      )
     })
   })
 })

@@ -128,4 +128,165 @@ describe('WhatsAppConnectionRepository', () => {
       expect(found).toBeNull()
     })
   })
+
+  describe('listByWorkspace()', () => {
+    it('should list only the workspace connections, oldest first', async () => {
+      const { workspace, user } = await seedWorkspaceAndUser()
+      const other = await seedWorkspace()
+      const first = expectOk(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: workspace.id,
+          provider: 'ZAPI',
+          label: 'Primeira',
+          phoneNumber: '5511900000101',
+          zapiInstanceId: 'inst-list-1',
+          encryptedZapiToken: 'enc',
+          createdById: user.id,
+        }),
+      )
+      await prisma.whatsAppConnection.update({
+        where: { id: first.id },
+        data: { createdAt: new Date('2020-01-01') },
+      })
+      const second = expectOk(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: workspace.id,
+          provider: 'META',
+          label: 'Segunda',
+          phoneNumber: '5511900000102',
+          metaPhoneNumberId: 'phone-list-2',
+          metaWabaId: 'waba-list-2',
+          encryptedMetaAccessToken: 'enc',
+          createdById: user.id,
+        }),
+      )
+      expectOk(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: other.id,
+          provider: 'ZAPI',
+          label: 'Outra',
+          phoneNumber: '5511900000103',
+          zapiInstanceId: 'inst-list-3',
+          encryptedZapiToken: 'enc',
+          createdById: user.id,
+        }),
+      )
+
+      const list = expectOk(
+        await WhatsAppConnectionRepository.listByWorkspace(workspace.id),
+      )
+      expect(list.map((c) => c.id)).toEqual([first.id, second.id])
+    })
+  })
+
+  describe('findByMetaPhoneNumberId()', () => {
+    it('should resolve only META connections by phone number id', async () => {
+      const { workspace, user } = await seedWorkspaceAndUser()
+      const meta = expectOk(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: workspace.id,
+          provider: 'META',
+          label: 'Meta',
+          phoneNumber: '5511900000201',
+          metaPhoneNumberId: 'phone-201',
+          metaWabaId: 'waba-201',
+          encryptedMetaAccessToken: 'enc',
+          createdById: user.id,
+        }),
+      )
+
+      expect(
+        expectOk(
+          await WhatsAppConnectionRepository.findByMetaPhoneNumberId(
+            'phone-201',
+          ),
+        )?.id,
+      ).toBe(meta.id)
+      expect(
+        expectOk(
+          await WhatsAppConnectionRepository.findByMetaPhoneNumberId('unknown'),
+        ),
+      ).toBeNull()
+    })
+  })
+
+  describe('update()', () => {
+    it('should update the connection fields', async () => {
+      const { workspace, user } = await seedWorkspaceAndUser()
+      const connection = expectOk(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: workspace.id,
+          provider: 'ZAPI',
+          label: 'Antes',
+          phoneNumber: '5511900000301',
+          zapiInstanceId: 'inst-301',
+          encryptedZapiToken: 'enc',
+          createdById: user.id,
+        }),
+      )
+
+      const updated = expectOk(
+        await WhatsAppConnectionRepository.update(connection.id, {
+          label: 'Depois',
+        }),
+      )
+      expect(updated.label).toBe('Depois')
+    })
+
+    it('should return DATABASE_ERROR for a missing connection', async () => {
+      expectErr(
+        await WhatsAppConnectionRepository.update('missing', { label: 'x' }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConnectionRepository.delete('missing'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR on non-unique create failures', async () => {
+      const user = await seedUser()
+      expectErr(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: 'missing',
+          provider: 'ZAPI',
+          label: 'x',
+          phoneNumber: '5511900000401',
+          zapiInstanceId: 'inst-401',
+          encryptedZapiToken: 'enc',
+          createdById: user.id,
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      vi.spyOn(prisma.whatsAppConnection, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(prisma.whatsAppConnection, 'findFirst')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppConnectionRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConnectionRepository.findById('c', 'w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConnectionRepository.findByZapiInstanceId('i'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppConnectionRepository.findByMetaPhoneNumberId('p'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
 })

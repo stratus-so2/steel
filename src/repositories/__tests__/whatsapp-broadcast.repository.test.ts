@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { WhatsAppBroadcastRepository } from '../whatsapp-broadcast.repository'
 
@@ -261,6 +261,297 @@ describe('WhatsAppBroadcastRepository', () => {
       )
 
       expect(result).toBeNull()
+    })
+  })
+
+  describe('create() / listByWorkspace() / findById()', () => {
+    it('should create a list with recipients and list it scoped to the workspace, newest first', async () => {
+      const { workspace, connection, contact, user } = await seedFixtures()
+      const other = await seedFixtures()
+
+      const older = expectOk(
+        await WhatsAppBroadcastRepository.create(
+          {
+            workspaceId: workspace.id,
+            connectionId: connection.id,
+            name: 'Antiga',
+            messageBody: 'Oi',
+            createdById: user.id,
+          },
+          [contact.id],
+        ),
+      )
+      await prisma.whatsAppBroadcastList.update({
+        where: { id: older.id },
+        data: { createdAt: new Date('2020-01-01') },
+      })
+      const newer = expectOk(
+        await WhatsAppBroadcastRepository.create(
+          {
+            workspaceId: workspace.id,
+            connectionId: connection.id,
+            name: 'Nova',
+            messageBody: 'Oi',
+            createdById: user.id,
+          },
+          [],
+        ),
+      )
+      expectOk(
+        await WhatsAppBroadcastRepository.create(
+          {
+            workspaceId: other.workspace.id,
+            connectionId: other.connection.id,
+            name: 'Outra',
+            messageBody: 'Oi',
+            createdById: other.user.id,
+          },
+          [other.contact.id],
+        ),
+      )
+
+      expect(older.status).toBe('DRAFT')
+      expect(older.recipients.map((r) => r.contact.id)).toEqual([contact.id])
+
+      const lists = expectOk(
+        await WhatsAppBroadcastRepository.listByWorkspace(workspace.id),
+      )
+      expect(lists.map((l) => l.id)).toEqual([newer.id, older.id])
+      expect(lists[1].recipients).toEqual([{ status: 'PENDING' }])
+
+      const found = expectOk(
+        await WhatsAppBroadcastRepository.findById(older.id, workspace.id),
+      )
+      expect(found?.recipients[0].contact.waId).toBe(contact.waId)
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.findById(
+            older.id,
+            other.workspace.id,
+          ),
+        ),
+      ).toBeNull()
+
+      expect(
+        expectOk(await WhatsAppBroadcastRepository.findByIdRaw(older.id))?.name,
+      ).toBe('Antiga')
+      expect(
+        expectOk(await WhatsAppBroadcastRepository.findByIdRaw('missing')),
+      ).toBeNull()
+    })
+
+    it('should return DATABASE_ERROR when the connection does not exist', async () => {
+      const { workspace, user } = await seedFixtures()
+      const data = {
+        workspaceId: workspace.id,
+        connectionId: 'missing',
+        name: 'X',
+        messageBody: 'Oi',
+        createdById: user.id,
+      }
+      expectErr(
+        await WhatsAppBroadcastRepository.create(data, []),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.createScheduled(data, []),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('status and recipient updates', () => {
+    async function seedListWithRecipients() {
+      const fx = await seedFixtures()
+      const second = await prisma.whatsAppContact.create({
+        data: { workspaceId: fx.workspace.id, waId: `5511966665${suffix()}` },
+      })
+      const list = expectOk(
+        await WhatsAppBroadcastRepository.create(
+          {
+            workspaceId: fx.workspace.id,
+            connectionId: fx.connection.id,
+            name: 'Campanha',
+            messageBody: 'Oi',
+            createdById: fx.user.id,
+          },
+          [fx.contact.id, second.id],
+        ),
+      )
+      return { ...fx, list }
+    }
+
+    it('should update the list status', async () => {
+      const { list } = await seedListWithRecipients()
+      expectOk(
+        await WhatsAppBroadcastRepository.updateStatus(list.id, 'RUNNING'),
+      )
+      const stored = await prisma.whatsAppBroadcastList.findUniqueOrThrow({
+        where: { id: list.id },
+      })
+      expect(stored.status).toBe('RUNNING')
+    })
+
+    it('should list, find and update recipients and count pending/failed', async () => {
+      const { list } = await seedListWithRecipients()
+      const recipients = expectOk(
+        await WhatsAppBroadcastRepository.listRecipients(list.id),
+      )
+      expect(recipients).toHaveLength(2)
+      const [first, second] = recipients
+
+      const found = expectOk(
+        await WhatsAppBroadcastRepository.findRecipientById(first.id),
+      )
+      expect(found?.broadcastList.id).toBe(list.id)
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.findRecipientById('missing'),
+        ),
+      ).toBeNull()
+
+      expectOk(
+        await WhatsAppBroadcastRepository.updateRecipientStatus(first.id, {
+          status: 'SENT',
+          providerMessageId: 'wamid.1',
+          sentAt: new Date(),
+        }),
+      )
+      expectOk(
+        await WhatsAppBroadcastRepository.updateRecipientStatus(second.id, {
+          status: 'FAILED',
+          errorMessage: 'rejeitado',
+        }),
+      )
+
+      const stored = await prisma.whatsAppBroadcastRecipient.findUniqueOrThrow({
+        where: { id: first.id },
+      })
+      expect(stored.status).toBe('SENT')
+      expect(stored.providerMessageId).toBe('wamid.1')
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.countPendingRecipients(list.id),
+        ),
+      ).toBe(0)
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.countFailedRecipients(list.id),
+        ),
+      ).toBe(1)
+    })
+
+    it('should mark only PENDING recipients as SKIPPED', async () => {
+      const { list } = await seedListWithRecipients()
+      const [first, second] = expectOk(
+        await WhatsAppBroadcastRepository.listRecipients(list.id),
+      )
+      await prisma.whatsAppBroadcastRecipient.update({
+        where: { id: second.id },
+        data: { status: 'SENT' },
+      })
+
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.markRecipientsSkipped([
+            first.id,
+            second.id,
+          ]),
+        ),
+      ).toBe(1)
+      const skipped = await prisma.whatsAppBroadcastRecipient.findUniqueOrThrow(
+        { where: { id: first.id } },
+      )
+      expect(skipped.status).toBe('SKIPPED')
+      expect(skipped.errorMessage).toMatch(/opt-out/)
+    })
+
+    it('should short-circuit markRecipientsSkipped() with no ids', async () => {
+      const spy = vi.spyOn(prisma.whatsAppBroadcastRecipient, 'updateMany')
+      expect(
+        expectOk(await WhatsAppBroadcastRepository.markRecipientsSkipped([])),
+      ).toBe(0)
+      expect(spy).not.toHaveBeenCalled()
+      spy.mockRestore()
+    })
+
+    it('should return DATABASE_ERROR when updating missing rows', async () => {
+      expectErr(
+        await WhatsAppBroadcastRepository.updateStatus('missing', 'DONE'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.updateRecipientStatus('missing', {
+          status: 'SENT',
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('query failures', () => {
+    it('should map thrown list lookups to DATABASE_ERROR', async () => {
+      const list = prisma.whatsAppBroadcastList
+      vi.spyOn(list, 'findMany').mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(list, 'findFirst').mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(list, 'findUnique').mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppBroadcastRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.findById('b', 'w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.findByIdRaw('b'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should map thrown recipient queries to DATABASE_ERROR', async () => {
+      const recipient = prisma.whatsAppBroadcastRecipient
+      vi.spyOn(recipient, 'findMany')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(recipient, 'findUnique').mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(recipient, 'findFirst').mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(recipient, 'updateMany').mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(recipient, 'count')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppBroadcastRepository.listDueScheduledRecipients(
+          new Date(),
+        ),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.listRecipients('b'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.findRecipientById('r'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.findUpcomingAppointmentByContact('c'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.markRecipientsSkipped(['r']),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.countPendingRecipients('b'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.countFailedRecipients('b'),
+        'DATABASE_ERROR',
+      )
     })
   })
 })
