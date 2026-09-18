@@ -69,6 +69,41 @@ describe('POST /api/workspaces/[id]/crm/email-campaigns', () => {
   })
 })
 
+describe('POST /api/workspaces/[id]/crm/email-campaigns — empty selection', () => {
+  // Bug: "Selecionados" sem ninguém marcado ia para todo o workspace.
+  it('should reject SELECTED with nobody selected instead of sending to everyone', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/people`,
+      { name: 'Não selecionada', emails: ['nao-selecionada@example.com'] },
+      user.cookie,
+    )
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/email-campaigns`,
+      {
+        subject: 'Novidades',
+        contentHtml: '<p>Oi</p>',
+        fromAddress: 'contato@example.com',
+        recipientScope: 'SELECTED',
+        personIds: [],
+        mailingListIds: [],
+        extraEmails: [],
+      },
+      user.cookie,
+    )
+    expect(res.status).toBe(422)
+
+    const list = await (
+      await getJson(
+        `/api/workspaces/${workspace.id}/crm/email-campaigns`,
+        user.cookie,
+      )
+    ).json()
+    expect(list.data).toHaveLength(0)
+  })
+})
+
 describe('PATCH /api/workspaces/[id]/crm/email-campaigns/[campaignId]', () => {
   it('should update a draft campaign', async () => {
     const { user, workspace } = await authenticatedOwner()
@@ -80,7 +115,7 @@ describe('PATCH /api/workspaces/[id]/crm/email-campaigns/[campaignId]', () => {
           contentHtml: '<p>Oi</p>',
           fromAddress: 'contato@example.com',
           recipientScope: 'SELECTED',
-          personIds: [],
+          extraEmails: ['avulso@example.com'],
         },
         user.cookie,
       )
