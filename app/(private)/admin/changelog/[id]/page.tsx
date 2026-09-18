@@ -2,8 +2,21 @@
 
 import { Sent02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { use } from 'react'
+import {
+  AdminPage,
+  AdminPageHeader,
+} from '@/app/_components/admin/shell/admin-page'
+import {
+  AdminPanel,
+  DENSE_TABLE,
+  EmptyState,
+  ErrorState,
+  formatDateTime,
+  StatTile,
+  StatusPill,
+  TableSkeleton,
+} from '@/app/_components/admin/shell/admin-ui'
 import { SteelIcon } from '@/components/icon/icon'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -28,11 +41,25 @@ const STATUS_LABEL: Record<ChangelogStatusDTO, string> = {
   FAILED: 'Falhou',
 }
 
-const RECIPIENT_STATUS_LABEL: Record<ChangelogRecipientStatusDTO, string> = {
-  PENDING: 'Pendente',
-  SENT: 'Enviado',
-  FAILED: 'Falhou',
+const STATUS_TONE: Record<ChangelogStatusDTO, 'muted' | 'info' | 'ok' | 'bad'> =
+  {
+    DRAFT: 'muted',
+    QUEUED: 'muted',
+    RUNNING: 'info',
+    DONE: 'ok',
+    FAILED: 'bad',
+  }
+
+const RECIPIENT_STATUS: Record<
+  ChangelogRecipientStatusDTO,
+  ['muted' | 'ok' | 'bad', string]
+> = {
+  PENDING: ['muted', 'Pendente'],
+  SENT: ['ok', 'Enviado'],
+  FAILED: ['bad', 'Falhou'],
 }
+
+const CRUMBS = [{ label: 'Changelog', href: '/admin/changelog' }]
 
 export default function AdminChangelogDetailPage({
   params,
@@ -40,7 +67,7 @@ export default function AdminChangelogDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  const { data: changelog, isLoading } = useChangelog(id)
+  const { data: changelog, isLoading, isError } = useChangelog(id)
   const start = useStartChangelog()
 
   async function handleStart() {
@@ -52,87 +79,131 @@ export default function AdminChangelogDetailPage({
     }
   }
 
-  if (isLoading || !changelog) {
-    return <div className='w-full p-6 text-muted-foreground'>Carregando…</div>
+  if (isLoading) {
+    return (
+      <AdminPage>
+        <AdminPageHeader
+          title='Carregando…'
+          crumbs={[...CRUMBS, { label: '…' }]}
+        />
+        <div className='rounded-lg border border-border'>
+          <TableSkeleton rows={4} />
+        </div>
+      </AdminPage>
+    )
   }
 
+  if (isError || !changelog) {
+    return (
+      <AdminPage>
+        <AdminPageHeader
+          title='Changelog'
+          crumbs={[...CRUMBS, { label: 'Não encontrado' }]}
+        />
+        <ErrorState message='Não foi possível carregar este changelog.' />
+      </AdminPage>
+    )
+  }
+
+  const sent = changelog.recipients.filter((r) => r.status === 'SENT').length
+  const failed = changelog.recipients.filter(
+    (r) => r.status === 'FAILED',
+  ).length
+
   return (
-    <div className='w-full space-y-6 p-6'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='font-semibold text-lg'>{changelog.subject}</h1>
-          <Badge variant='secondary' className='mt-1'>
+    <AdminPage>
+      <AdminPageHeader
+        title={changelog.subject}
+        crumbs={[...CRUMBS, { label: changelog.subject }]}
+        meta={
+          <StatusPill
+            tone={STATUS_TONE[changelog.status]}
+            pulse={changelog.status === 'RUNNING'}
+          >
             {STATUS_LABEL[changelog.status]}
-          </Badge>
-        </div>
-        {changelog.status === 'DRAFT' && (
-          <Button size='sm' onClick={handleStart} disabled={start.isPending}>
-            <SteelIcon icon={Sent02Icon} strokeWidth={2} />
-            {start.isPending ? 'Enviando...' : 'Enviar agora'}
-          </Button>
-        )}
+          </StatusPill>
+        }
+        actions={
+          changelog.status === 'DRAFT' && (
+            <Button size='sm' onClick={handleStart} disabled={start.isPending}>
+              <SteelIcon icon={Sent02Icon} strokeWidth={2} />
+              {start.isPending ? 'Enviando...' : 'Enviar agora'}
+            </Button>
+          )
+        }
+      />
+
+      <div className='grid grid-cols-3 gap-3'>
+        <StatTile label='Destinatários' value={changelog.recipients.length} />
+        <StatTile label='Enviados' value={sent} />
+        <StatTile
+          label='Falhas'
+          value={failed}
+          tone={failed > 0 ? 'danger' : 'default'}
+        />
       </div>
 
-      <div>
-        <h2 className='mb-2 font-medium text-sm'>
-          Itens ({changelog.items.length})
-        </h2>
-        <div className='space-y-4'>
+      <AdminPanel title={`Itens (${changelog.items.length})`}>
+        <div className='space-y-3'>
           {changelog.items.map((item) => (
-            <div key={item.id} className='rounded-md border p-4'>
-              <p className='font-medium text-sm'>{item.title}</p>
+            <article
+              key={item.id}
+              className='min-w-0 space-y-2 rounded-md border border-border p-3'
+            >
+              <p className='wrap-break-word font-medium text-sm'>
+                {item.title}
+              </p>
               {item.imageUrl && (
                 <img
                   src={item.imageUrl}
                   alt={item.title}
-                  className='my-2 max-h-40 rounded-md'
+                  className='max-h-40 max-w-full rounded-md object-contain'
                 />
               )}
-              <p className='whitespace-pre-line text-muted-foreground text-sm'>
+              <p className='wrap-break-word whitespace-pre-line text-muted-foreground text-sm'>
                 {item.body}
               </p>
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      </AdminPanel>
 
-      <div>
-        <h2 className='mb-2 font-medium text-sm'>
-          Destinatários ({changelog.recipients.length})
-        </h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Enviado em</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {changelog.recipients.map((recipient) => (
-              <TableRow key={recipient.id}>
-                <TableCell>{recipient.email}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      recipient.status === 'FAILED'
-                        ? 'destructive'
-                        : 'secondary'
-                    }
-                  >
-                    {RECIPIENT_STATUS_LABEL[recipient.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {recipient.sentAt
-                    ? new Date(recipient.sentAt).toLocaleString('pt-BR')
-                    : '—'}
-                </TableCell>
+      <AdminPanel
+        title={`Destinatários (${changelog.recipients.length})`}
+        flush
+      >
+        {changelog.recipients.length === 0 ? (
+          <EmptyState title='Sem destinatários' />
+        ) : (
+          <Table className={DENSE_TABLE}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Enviado em</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+            </TableHeader>
+            <TableBody>
+              {changelog.recipients.map((recipient) => {
+                const [tone, label] = RECIPIENT_STATUS[recipient.status]
+                return (
+                  <TableRow key={recipient.id}>
+                    <TableCell className='max-w-80 truncate font-mono'>
+                      {recipient.email}
+                    </TableCell>
+                    <TableCell>
+                      <StatusPill tone={tone}>{label}</StatusPill>
+                    </TableCell>
+                    <TableCell className='font-mono text-muted-foreground'>
+                      {formatDateTime(recipient.sentAt)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </AdminPanel>
+    </AdminPage>
   )
 }

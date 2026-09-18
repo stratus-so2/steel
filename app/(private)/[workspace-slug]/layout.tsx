@@ -5,6 +5,7 @@ import { CrmAiAssistantWidget } from '@/app/_components/crm/crm-ai-assistant-wid
 import { UserHeader } from '@/app/_components/header/header-layout-user'
 import { HeaderPromotionBanner } from '@/app/_components/header/header-promotion-banner'
 import { GlobalSidebarNavigation } from '@/app/_components/navigation/sidebar-global'
+import { WorkspaceBlockedScreen } from '@/app/_components/workspace/workspace-blocked-screen'
 import { WorkspacePermissionsProvider } from '@/app/_components/workspace/workspace-permissions'
 import { ANTHROPIC_API_KEY, OPENAI_API_KEY } from '@/lib/env/server'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
@@ -65,6 +66,29 @@ export default async function WorkspaceLayout({
   }
 
   const workspace = membership.value.workspace
+
+  // Suspenso/em exclusão pelo admin global: tela de bloqueio no lugar do app
+  // (a API já responde WORKSPACE_SUSPENDED via `assertMember`).
+  if (workspace.status !== 'ACTIVE') {
+    const memberships = await MembershipService.listByUser(
+      session.value.user.id,
+    )
+    const otherWorkspaces = memberships.ok
+      ? memberships.value
+          .filter(
+            (m) =>
+              m.workspaceId !== workspace.id && m.workspace.status === 'ACTIVE',
+          )
+          .map((m) => ({ slug: m.workspace.slug, name: m.workspace.name }))
+      : []
+    return (
+      <WorkspaceBlockedScreen
+        workspaceName={workspace.name}
+        status={workspace.status}
+        otherWorkspaces={otherWorkspaces}
+      />
+    )
+  }
 
   // Matriz efetiva (papel/perfil) para a UI esconder ações negadas.
   const access = await assertMember(

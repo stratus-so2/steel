@@ -2,8 +2,19 @@ import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import {
+  AdminPage,
+  AdminPageHeader,
+} from '@/app/_components/admin/shell/admin-page'
+import {
+  AdminPanel,
+  DENSE_TABLE,
+  EmptyState,
+  ErrorState,
+  formatDate,
+  StatusPill,
+} from '@/app/_components/admin/shell/admin-ui'
 import { SteelIcon } from '@/components/icon/icon'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -13,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { AdminChangelogService } from '@/src/services/admin-changelog.service'
 import type { ChangelogStatusDTO } from '@/types/changelog'
@@ -30,16 +42,14 @@ const STATUS_LABEL: Record<ChangelogStatusDTO, string> = {
   FAILED: 'Falhou',
 }
 
-const STATUS_VARIANT: Record<
-  ChangelogStatusDTO,
-  'secondary' | 'default' | 'destructive'
-> = {
-  DRAFT: 'secondary',
-  QUEUED: 'secondary',
-  RUNNING: 'default',
-  DONE: 'default',
-  FAILED: 'destructive',
-}
+const STATUS_TONE: Record<ChangelogStatusDTO, 'muted' | 'info' | 'ok' | 'bad'> =
+  {
+    DRAFT: 'muted',
+    QUEUED: 'muted',
+    RUNNING: 'info',
+    DONE: 'ok',
+    FAILED: 'bad',
+  }
 
 export default async function AdminChangelogPage() {
   const session = await getAuthSession()
@@ -49,70 +59,89 @@ export default async function AdminChangelogPage() {
   const changelogs = result.ok ? result.value : []
 
   return (
-    <div className='w-full space-y-4 p-6'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='font-semibold text-lg'>Changelog</h1>
-          <p className='text-muted-foreground text-sm'>
-            {changelogs.length} envio(s) na plataforma
-          </p>
-        </div>
-        <Link href='/admin/changelog/new'>
-          <Button size='sm'>
+    <AdminPage>
+      <AdminPageHeader
+        title='Changelog'
+        crumbs={[{ label: 'Changelog' }]}
+        description={
+          result.ok ? `${changelogs.length} envio(s) na plataforma` : undefined
+        }
+        actions={
+          <Button
+            size='sm'
+            nativeButton={false}
+            render={<Link href='/admin/changelog/new' />}
+          >
             <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
             Novo changelog
           </Button>
-        </Link>
-      </div>
+        }
+      />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Assunto</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Destinatários</TableHead>
-            <TableHead>Enviados</TableHead>
-            <TableHead>Falhas</TableHead>
-            <TableHead>Criado em</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      {!result.ok ? (
+        <ErrorState message='Não foi possível carregar os changelogs.' />
+      ) : (
+        <AdminPanel flush>
           {changelogs.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={6}
-                className='text-center text-muted-foreground'
-              >
-                Nenhum changelog enviado ainda.
-              </TableCell>
-            </TableRow>
+            <EmptyState
+              title='Nenhum changelog enviado ainda'
+              description='Crie um rascunho, revise os itens e envie para os destinatários.'
+            />
           ) : (
-            changelogs.map((changelog) => (
-              <TableRow key={changelog.id}>
-                <TableCell>
-                  <Link
-                    href={`/admin/changelog/${changelog.id}`}
-                    className='font-medium text-sm hover:underline'
-                  >
-                    {changelog.subject}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_VARIANT[changelog.status]}>
-                    {STATUS_LABEL[changelog.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell>{changelog.recipientCount}</TableCell>
-                <TableCell>{changelog.sentCount}</TableCell>
-                <TableCell>{changelog.failedCount}</TableCell>
-                <TableCell>
-                  {new Date(changelog.createdAt).toLocaleDateString('pt-BR')}
-                </TableCell>
-              </TableRow>
-            ))
+            <Table className={DENSE_TABLE}>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Assunto</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className='text-right'>Destinatários</TableHead>
+                  <TableHead className='text-right'>Enviados</TableHead>
+                  <TableHead className='text-right'>Falhas</TableHead>
+                  <TableHead>Criado em</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {changelogs.map((changelog) => (
+                  <TableRow key={changelog.id}>
+                    <TableCell className='max-w-96'>
+                      <Link
+                        href={`/admin/changelog/${changelog.id}`}
+                        className='block truncate font-medium text-sm hover:underline'
+                        title={changelog.subject}
+                      >
+                        {changelog.subject}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <StatusPill tone={STATUS_TONE[changelog.status]}>
+                        {STATUS_LABEL[changelog.status]}
+                      </StatusPill>
+                    </TableCell>
+                    <TableCell className='text-right font-mono tabular-nums'>
+                      {changelog.recipientCount}
+                    </TableCell>
+                    <TableCell className='text-right font-mono tabular-nums'>
+                      {changelog.sentCount}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        'text-right font-mono tabular-nums',
+                        changelog.failedCount > 0
+                          ? 'text-destructive'
+                          : 'text-muted-foreground',
+                      )}
+                    >
+                      {changelog.failedCount}
+                    </TableCell>
+                    <TableCell className='font-mono text-muted-foreground'>
+                      {formatDate(changelog.createdAt)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
-        </TableBody>
-      </Table>
-    </div>
+        </AdminPanel>
+      )}
+    </AdminPage>
   )
 }

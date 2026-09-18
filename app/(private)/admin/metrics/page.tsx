@@ -1,6 +1,11 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { AdminMetricsDashboard } from '@/app/_components/admin/metrics/admin-metrics-dashboard'
+import {
+  AdminPage,
+  AdminPageHeader,
+} from '@/app/_components/admin/shell/admin-page'
+import { ErrorState } from '@/app/_components/admin/shell/admin-ui'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { recentUsageDays } from '@/src/lib/usage/module-usage'
 import { AdminMetricsService } from '@/src/services/admin-metrics.service'
@@ -17,13 +22,12 @@ export default async function AdminMetricsPage() {
   const result = await AdminMetricsService.getOverview(session.value.user.id)
 
   return (
-    <div className='w-full space-y-4 overflow-y-auto p-6'>
-      <div>
-        <h1 className='font-semibold text-lg'>Métricas</h1>
-        <p className='text-muted-foreground text-sm'>
-          Visão geral da plataforma
-        </p>
-      </div>
+    <AdminPage>
+      <AdminPageHeader
+        title='Métricas'
+        crumbs={[{ label: 'Métricas' }]}
+        description='Clientes ativos, MRR, cancelamentos e uso por módulo'
+      />
       {result.ok ? (
         <AdminMetricsDashboard
           metrics={result.value}
@@ -33,10 +37,8 @@ export default async function AdminMetricsPage() {
           )}
         />
       ) : (
-        <p className='text-muted-foreground text-sm'>
-          Não foi possível carregar as métricas.
-        </p>
+        <ErrorState message='Não foi possível carregar as métricas.' />
       )}
-    </div>
+    </AdminPage>
   )
 }

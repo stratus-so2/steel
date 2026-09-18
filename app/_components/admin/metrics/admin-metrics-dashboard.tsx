@@ -4,7 +4,6 @@ import { ResponsiveBar } from '@nivo/bar'
 import { ResponsiveLine } from '@nivo/line'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -15,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import type { AdminMetricsDTO } from '@/types/admin-metrics'
 import type { ModuleKind } from '@/types/workspace-connection'
+import { AdminPanel, DENSE_TABLE, MonoId, StatTile } from '../shell/admin-ui'
 
 /**
  * Mesmo tema nivo dos widgets do CRM (herda a cor do texto, claro/escuro).
@@ -99,28 +99,6 @@ const MISSING_SOURCES = [
     need: 'Não há pesquisa de satisfação. Precisa de uma coleta (e-mail/in-app) com nota 0–10 por usuário e workspace, gravada em tabela própria.',
   },
 ] as const
-
-function StatTile({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: string
-  hint: string
-}) {
-  return (
-    <Card>
-      <CardContent className='space-y-1'>
-        <p className='text-muted-foreground text-xs'>{label}</p>
-        <p className='font-heading font-semibold text-2xl tabular-nums'>
-          {value}
-        </p>
-        <p className='text-muted-foreground text-xs'>{hint}</p>
-      </CardContent>
-    </Card>
-  )
-}
 
 function Empty({ message }: { message: string }) {
   return (
@@ -226,7 +204,7 @@ export function AdminMetricsDashboard({
 
   return (
     <div className='space-y-6'>
-      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-3 xl:grid-cols-4'>
         <StatTile
           label='Clientes ativos'
           value={num.format(metrics.activeClients)}
@@ -252,9 +230,9 @@ export function AdminMetricsDashboard({
       </div>
 
       <div className='grid gap-4 xl:grid-cols-2'>
-        <Card>
-          <CardHeader>
-            <CardTitle>Uso por módulo (requisições/dia)</CardTitle>
+        <AdminPanel
+          title='Uso por módulo (requisições/dia)'
+          actions={
             <div className='flex gap-3 text-muted-foreground text-xs'>
               <span className='inline-flex items-center gap-1'>
                 <Swatch color={INDIGO} /> CRM
@@ -263,22 +241,21 @@ export function AdminMetricsDashboard({
                 <Swatch color={AMBER} /> WhatsApp
               </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className='h-64 text-muted-foreground'>
-              <UsageChart days={days} daily={metrics.usage.daily} />
-            </div>
-            <p className='mt-2 text-muted-foreground text-xs'>
-              {trackedSince
-                ? `Registrado desde ${dateLabel(trackedSince)} · atualizado a cada 15 min.`
-                : 'Coleta de uso ainda sem dados gravados (o worker consolida a cada 15 min).'}
-            </p>
-          </CardContent>
-        </Card>
+          }
+        >
+          <div className='h-56 min-w-0 text-muted-foreground sm:h-64'>
+            <UsageChart days={days} daily={metrics.usage.daily} />
+          </div>
+          <p className='mt-2 text-muted-foreground text-xs'>
+            {trackedSince
+              ? `Registrado desde ${dateLabel(trackedSince)} · atualizado a cada 15 min.`
+              : 'Coleta de uso ainda sem dados gravados (o worker consolida a cada 15 min).'}
+          </p>
+        </AdminPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Cancelamentos por mês</CardTitle>
+        <AdminPanel
+          title='Cancelamentos por mês'
+          actions={
             <div className='flex gap-3 text-muted-foreground text-xs'>
               <span className='inline-flex items-center gap-1'>
                 <Swatch color={INDIGO} /> Canceladas
@@ -287,117 +264,107 @@ export function AdminMetricsDashboard({
                 <Swatch color={AMBER} /> Expiradas
               </span>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className='h-64 text-muted-foreground'>
-              <ChurnChart data={metrics.churnByMonth} />
-            </div>
-            <p className='mt-2 text-muted-foreground text-xs'>
-              Assinaturas AbacatePay que terminaram como canceladas ou
-              expiradas, pelo mês da última atualização.
-            </p>
-          </CardContent>
-        </Card>
+          }
+        >
+          <div className='h-56 min-w-0 text-muted-foreground sm:h-64'>
+            <ChurnChart data={metrics.churnByMonth} />
+          </div>
+          <p className='mt-2 text-muted-foreground text-xs'>
+            Assinaturas AbacatePay que terminaram como canceladas ou expiradas,
+            pelo mês da última atualização.
+          </p>
+        </AdminPanel>
       </div>
 
       <div className='grid gap-4 xl:grid-cols-2'>
-        <Card>
-          <CardHeader>
-            <CardTitle>Uso por módulo ({metrics.windowDays} dias)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
+        <AdminPanel
+          title={`Uso por módulo (${metrics.windowDays} dias)`}
+          description='Ações = requisições de escrita. Service Desk ainda não tem API.'
+          flush
+        >
+          <Table className={DENSE_TABLE}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Módulo</TableHead>
+                <TableHead className='text-right'>Requisições</TableHead>
+                <TableHead className='text-right'>Ações</TableHead>
+                <TableHead className='text-right'>Workspaces</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {metrics.usage.totals.map((total) => (
+                <TableRow key={total.module}>
+                  <TableCell>{MODULE_LABEL[total.module]}</TableCell>
+                  <TableCell className='text-right tabular-nums'>
+                    {num.format(total.requests)}
+                  </TableCell>
+                  <TableCell className='text-right tabular-nums'>
+                    {num.format(total.mutations)}
+                  </TableCell>
+                  <TableCell className='text-right tabular-nums'>
+                    {num.format(total.workspaces)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </AdminPanel>
+
+        <AdminPanel title='Workspaces mais ativos' flush>
+          {metrics.usage.topWorkspaces.length === 0 ? (
+            <p className='p-4 text-muted-foreground text-sm'>
+              Ainda sem uso registrado.
+            </p>
+          ) : (
+            <Table className={DENSE_TABLE}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Módulo</TableHead>
+                  <TableHead>Workspace</TableHead>
                   <TableHead className='text-right'>Requisições</TableHead>
                   <TableHead className='text-right'>Ações</TableHead>
-                  <TableHead className='text-right'>Workspaces</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {metrics.usage.totals.map((total) => (
-                  <TableRow key={total.module}>
-                    <TableCell>{MODULE_LABEL[total.module]}</TableCell>
-                    <TableCell className='text-right tabular-nums'>
-                      {num.format(total.requests)}
+                {metrics.usage.topWorkspaces.map((ws) => (
+                  <TableRow key={ws.workspaceId}>
+                    <TableCell className='max-w-64'>
+                      <Link
+                        href={`/admin/workspaces/${ws.workspaceId}`}
+                        className='block truncate font-medium text-sm hover:underline'
+                        title={ws.name}
+                      >
+                        {ws.name}
+                      </Link>
+                      <MonoId value={ws.slug} />
                     </TableCell>
                     <TableCell className='text-right tabular-nums'>
-                      {num.format(total.mutations)}
+                      {num.format(ws.requests)}
                     </TableCell>
                     <TableCell className='text-right tabular-nums'>
-                      {num.format(total.workspaces)}
+                      {num.format(ws.mutations)}
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-            <p className='mt-2 text-muted-foreground text-xs'>
-              Ações = requisições de escrita. Service Desk ainda não tem API.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Workspaces mais ativos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {metrics.usage.topWorkspaces.length === 0 ? (
-              <p className='text-muted-foreground text-sm'>
-                Ainda sem uso registrado.
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Workspace</TableHead>
-                    <TableHead className='text-right'>Requisições</TableHead>
-                    <TableHead className='text-right'>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {metrics.usage.topWorkspaces.map((ws) => (
-                    <TableRow key={ws.workspaceId}>
-                      <TableCell>
-                        <Link
-                          href={`/admin/workspaces/${ws.workspaceId}`}
-                          className='font-medium text-sm hover:underline'
-                        >
-                          {ws.name}
-                        </Link>
-                        <p className='text-muted-foreground text-xs'>
-                          {ws.slug}
-                        </p>
-                      </TableCell>
-                      <TableCell className='text-right tabular-nums'>
-                        {num.format(ws.requests)}
-                      </TableCell>
-                      <TableCell className='text-right tabular-nums'>
-                        {num.format(ws.mutations)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </AdminPanel>
       </div>
 
       <div className='space-y-2'>
         <h2 className='font-medium text-sm'>Ainda sem fonte de dados</h2>
         <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
           {MISSING_SOURCES.map((metric) => (
-            <Card key={metric.title} className='border-dashed'>
-              <CardContent className='space-y-1.5'>
-                <div className='flex items-center justify-between gap-2'>
-                  <p className='font-medium text-sm'>{metric.title}</p>
-                  <Badge variant='secondary'>sem fonte de dados</Badge>
-                </div>
-                <p className='text-muted-foreground text-xs'>{metric.need}</p>
-              </CardContent>
-            </Card>
+            <div
+              key={metric.title}
+              className='min-w-0 space-y-1.5 rounded-lg border border-border border-dashed p-3.5'
+            >
+              <div className='flex flex-wrap items-center justify-between gap-2'>
+                <p className='font-medium text-sm'>{metric.title}</p>
+                <Badge variant='secondary'>sem fonte de dados</Badge>
+              </div>
+              <p className='text-muted-foreground text-xs'>{metric.need}</p>
+            </div>
           ))}
         </div>
       </div>

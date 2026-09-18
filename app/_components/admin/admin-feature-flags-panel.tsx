@@ -105,7 +105,7 @@ function FeatureRow({
           </p>
         </div>
         <Select value={mode} onValueChange={(value) => setMode(value as Mode)}>
-          <SelectTrigger size='sm' className='w-48'>
+          <SelectTrigger size='sm' className='w-full sm:w-48'>
             <span className='truncate'>{MODE_LABEL[mode]}</span>
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false}>
@@ -156,10 +156,26 @@ export function AdminFeatureFlagsPanel({
 }: {
   workspaceId: string
 }) {
-  const { data: features, isLoading } = useAdminWorkspaceFeatures(workspaceId)
+  const {
+    data: features,
+    isLoading,
+    isError,
+  } = useAdminWorkspaceFeatures(workspaceId)
+
+  if (isError) {
+    return (
+      <p role='alert' className='text-destructive text-sm'>
+        Não foi possível carregar as funcionalidades.
+      </p>
+    )
+  }
 
   if (isLoading || !features) {
     return <Muted>Carregando funcionalidades...</Muted>
+  }
+
+  if (features.length === 0) {
+    return <Muted>Nenhuma funcionalidade no catálogo.</Muted>
   }
 
   return (

@@ -31,13 +31,15 @@ export function AdminModuleAccessPanel({
   if (isLoading) return <Muted>Carregando módulos...</Muted>
 
   return (
-    <div className='space-y-2'>
+    <div className='divide-y rounded-md border border-border'>
       {access.map((item) => (
         <div
           key={item.module}
-          className='flex items-center justify-between rounded-md border p-3'
+          className='flex items-center justify-between gap-3 px-3 py-2.5'
         >
-          <p className='font-medium text-sm'>{MODULE_LABEL[item.module]}</p>
+          <p className='min-w-0 truncate font-medium text-sm'>
+            {MODULE_LABEL[item.module]}
+          </p>
           <Switch
             checked={item.enabled}
             onCheckedChange={(checked) => handleToggle(item.module, checked)}

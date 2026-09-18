@@ -7,6 +7,10 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState } from 'react'
+import {
+  AdminPage,
+  AdminPageHeader,
+} from '@/app/_components/admin/shell/admin-page'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -394,14 +398,15 @@ export default function NewChangelogPage() {
   }
 
   return (
-    <div className='mx-auto w-full max-w-2xl space-y-6 p-6'>
-      <div>
-        <h1 className='font-semibold text-lg'>Novo changelog</h1>
-        <p className='text-muted-foreground text-sm'>
-          Compõe um e-mail de novidades ou avisos e envia para um ou vários
-          destinatários.
-        </p>
-      </div>
+    <AdminPage className='max-w-3xl'>
+      <AdminPageHeader
+        title='Novo changelog'
+        crumbs={[
+          { label: 'Changelog', href: '/admin/changelog' },
+          { label: 'Novo' },
+        ]}
+        description='Compõe um e-mail de novidades ou avisos e envia para um ou vários destinatários.'
+      />
 
       <ReleaseDraftPanel onApply={applyReleaseDraft} />
 
@@ -486,7 +491,7 @@ export default function NewChangelogPage() {
         />
       </div>
 
-      <div className='flex items-center justify-between border-t pt-4'>
+      <div className='sticky bottom-0 -mx-4 flex flex-wrap items-center justify-between gap-2 border-t bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6'>
         <p className='text-muted-foreground text-sm'>
           {recipientCount} destinatário(s) selecionado(s)
         </p>
@@ -497,6 +502,6 @@ export default function NewChangelogPage() {
           {createChangelog.isPending ? 'Criando...' : 'Criar rascunho'}
         </Button>
       </div>
-    </div>
+    </AdminPage>
   )
 }
