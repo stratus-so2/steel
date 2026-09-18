@@ -106,21 +106,24 @@ describe('CrmEmailOptOutService', () => {
       expect(mockedAudit).not.toHaveBeenCalled()
     })
 
-    it('should return MODULE_DISABLED when the CRM is off for the token workspace', async () => {
+    it('should honor the opt-out even when the CRM is off for the token workspace', async () => {
+      // LGPD: o titular precisa conseguir se descadastrar a partir de qualquer
+      // e-mail já enviado, mesmo que o módulo tenha sido desligado depois.
       mockedRecipientRepo.findByIdWithCampaign.mockResolvedValue(
         ok(recipientWithCampaign()),
       )
-      mockedModuleAccess.isEnabled.mockResolvedValueOnce(ok(false))
+      mockedOptOutRepo.upsert.mockResolvedValue(
+        ok({ optOut: fakeOptOut('LINK'), created: true }),
+      )
 
-      expectErr(
+      expectOk(
         await CrmEmailOptOutService.unsubscribe(
           createCrmUnsubscribeToken('r1'),
           'LINK',
         ),
-        'MODULE_DISABLED',
       )
-      expect(mockedModuleAccess.isEnabled).toHaveBeenCalledWith('ws1', 'CRM')
-      expect(mockedOptOutRepo.upsert).not.toHaveBeenCalled()
+      expect(mockedOptOutRepo.upsert).toHaveBeenCalled()
+      expect(mockedModuleAccess.isEnabled).not.toHaveBeenCalled()
     })
 
     it('should reject a forged token without touching the database', async () => {

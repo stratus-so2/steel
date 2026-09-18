@@ -10,7 +10,7 @@ import type {
   CrmEmailOptOutDTO,
   CrmEmailUnsubscribeResultDTO,
 } from '@/types/crm-email-marketing'
-import { assertModuleEnabled, assertModuleMember } from './authz'
+import { assertModuleMember } from './authz'
 
 /** Resolve o token assinado para o destinatário. Qualquer falha vira o
  * mesmo erro genérico — não revela se o destinatário existe. */
@@ -28,14 +28,9 @@ async function resolveRecipient(token: string) {
       : recipient
   }
 
-  // Rota pública: a workspace vem do token, e o módulo CRM precisa estar
-  // habilitado nela (mesma regra dos formulários/propostas públicos).
-  const moduleEnabled = await assertModuleEnabled(
-    recipient.value.campaign.workspaceId,
-    'CRM',
-  )
-  if (!moduleEnabled.ok) return moduleEnabled
-
+  // Sem checagem de módulo, de propósito: o direito de descadastro (LGPD)
+  // vale para qualquer e-mail já enviado, mesmo que o CRM tenha sido
+  // desligado depois. O token assinado já limita o escopo ao destinatário.
   return ok(recipient.value)
 }
 

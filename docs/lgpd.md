@@ -19,8 +19,9 @@ transacionais (login, OTP, redefinição de senha, convites, avisos de conta)
 - **Confirmação.** O `GET` da página só mostra o endereço; o descadastro exige
   o clique (`POST`), para que scanners de link não descadastrem ninguém. O
   `POST` one-click do provedor (`List-Unsubscribe=One-Click`) descadastra
-  direto. As duas rotas estão em `PUBLIC_ROUTES` (`proxy.ts`) e exigem o
-  módulo CRM habilitado na workspace do token.
+  direto. As duas rotas estão em `PUBLIC_ROUTES` (`proxy.ts`) e funcionam
+  mesmo com o módulo CRM desligado: o direito de descadastro vale para todo
+  e-mail já enviado.
 - **Registro.** Tabela `crm_email_opt_outs` (workspace + e-mail em minúsculas,
   pessoa vinculada, campanha de origem, `source` = `LINK` ou `ONE_CLICK`,
   `created_at`). O primeiro descadastro prevalece. Auditoria:
