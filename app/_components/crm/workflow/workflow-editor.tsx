@@ -246,7 +246,9 @@ function TriggerNodeView({ data, selected }: NodeProps<TriggerXyNode>) {
             {meta?.label ?? 'Selecione um gatilho'}
           </div>
           <div className='truncate text-muted-foreground text-xs'>
-            {meta?.description ?? 'Clique para configurar'}
+            {(trigger && triggerSubtitle(trigger)) ??
+              meta?.description ??
+              'Clique para configurar'}
           </div>
         </div>
       </div>
@@ -482,9 +484,8 @@ function WorkflowEditorInner({
 
   /* ---------- actions ---------- */
 
-  const onPickTrigger = (type: CrmWorkflowTriggerType) => {
+  const onPickTrigger = (data: CrmWorkflowTriggerData) => {
     if (!definition) return
-    const data = defaultTriggerData(type)
     persist({ ...definition, trigger: { ...definition.trigger, data } })
     setSelected('trigger')
   }
@@ -679,7 +680,7 @@ function TopBar({
   onDiscard: () => void
   onTest: () => void
   onShowRuns: () => void
-  onPickTrigger: (type: CrmWorkflowTriggerType) => void
+  onPickTrigger: (data: CrmWorkflowTriggerData) => void
   onAddNode: (type: CrmWorkflowNodeType) => void
   triggerConfigured: boolean
 }) {
@@ -736,7 +737,7 @@ function AddMenu({
   onAddNode,
   triggerConfigured,
 }: {
-  onPickTrigger: (type: CrmWorkflowTriggerType) => void
+  onPickTrigger: (data: CrmWorkflowTriggerData) => void
   onAddNode: (type: CrmWorkflowNodeType) => void
   triggerConfigured: boolean
 }) {
@@ -773,7 +774,7 @@ function AddMenu({
                 return (
                   <DropdownMenuItem
                     key={type}
-                    onClick={() => onPickTrigger(type)}
+                    onClick={() => onPickTrigger(defaultTriggerData(type))}
                   >
                     <SteelIcon icon={meta.icon} strokeWidth={2} />
                     <span className='flex-1'>{meta.label}</span>
@@ -781,6 +782,21 @@ function AddMenu({
                 )
               },
             )}
+            <DropdownMenuSeparator />
+          </DropdownMenuGroup>
+        )}
+        {!triggerConfigured && (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Gatilhos de lead</DropdownMenuLabel>
+            {LEAD_TRIGGER_PRESETS.map((preset) => (
+              <DropdownMenuItem
+                key={preset.label}
+                onClick={() => onPickTrigger(preset.data)}
+              >
+                <SteelIcon icon={preset.icon} strokeWidth={2} />
+                <span className='flex-1'>{preset.label}</span>
+              </DropdownMenuItem>
+            ))}
             <DropdownMenuSeparator />
           </DropdownMenuGroup>
         )}
@@ -853,6 +869,61 @@ function buildEdges(def: CrmWorkflowDefinition): Edge[] {
 }
 
 /* ============================ defaults ================================= */
+
+/** Atalhos do painel de leads: mesmo contrato de trigger (entity `lead` +
+ * `leadEvent`), só pré-configurados para os eventos do pipeline. */
+const LEAD_TRIGGER_PRESETS: {
+  label: string
+  icon: IconType
+  data: CrmWorkflowTriggerData
+}[] = [
+  {
+    label: 'Lead criado',
+    icon: PlusSignIcon,
+    data: { type: 'record-is-created', entity: 'lead' },
+  },
+  {
+    label: 'Etapa do lead alterada',
+    icon: GitBranchIcon,
+    data: {
+      type: 'record-is-updated',
+      entity: 'lead',
+      fields: [],
+      leadEvent: 'stage-changed',
+    },
+  },
+  {
+    label: 'Lead ganho',
+    icon: CheckmarkCircle02Icon,
+    data: {
+      type: 'record-is-updated',
+      entity: 'lead',
+      fields: [],
+      leadEvent: 'won',
+    },
+  },
+  {
+    label: 'Lead perdido',
+    icon: Cancel01Icon,
+    data: {
+      type: 'record-is-updated',
+      entity: 'lead',
+      fields: [],
+      leadEvent: 'lost',
+    },
+  },
+]
+
+function triggerSubtitle(trigger: CrmWorkflowTriggerData): string | null {
+  if (!('entity' in trigger) || trigger.entity !== 'lead') return null
+  const preset = LEAD_TRIGGER_PRESETS.find(
+    (p) =>
+      p.data.type === trigger.type &&
+      ('leadEvent' in p.data ? p.data.leadEvent : undefined) ===
+        ('leadEvent' in trigger ? trigger.leadEvent : undefined),
+  )
+  return preset?.label ?? 'Lead'
+}
 
 function defaultTriggerData(
   type: CrmWorkflowTriggerType,

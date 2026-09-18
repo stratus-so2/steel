@@ -18,6 +18,9 @@ import {
   CRM_WORKFLOW_ENTITIES,
   CRM_WORKFLOW_FILTER_OPERATORS,
   CRM_WORKFLOW_FORM_FIELD_TYPES,
+  CRM_WORKFLOW_LEAD_EVENTS,
+  CRM_WORKFLOW_TRIGGER_ENTITIES,
+  type CrmWorkflowLeadEvent,
   type CrmWorkflowNode,
   type CrmWorkflowNodeData,
   type CrmWorkflowTrigger,
@@ -121,6 +124,24 @@ function PanelShell({
 
 /* ============================== trigger form =========================== */
 
+const TRIGGER_ENTITY_LABELS: Record<
+  (typeof CRM_WORKFLOW_TRIGGER_ENTITIES)[number],
+  string
+> = {
+  company: 'Empresa',
+  person: 'Pessoa',
+  opportunity: 'Oportunidade',
+  task: 'Tarefa',
+  note: 'Nota',
+  lead: 'Lead',
+}
+
+const LEAD_EVENT_LABELS: Record<CrmWorkflowLeadEvent, string> = {
+  'stage-changed': 'Etapa alterada',
+  won: 'Fechado como ganho',
+  lost: 'Fechado como perdido',
+}
+
 function TriggerForm({
   data,
   onChange,
@@ -145,12 +166,50 @@ function TriggerForm({
         data.type === 'record-is-updated' ||
         data.type === 'record-is-created-or-updated') && (
         <Field label='Entidade'>
-          <EntitySelect
+          <NativeSelect
             value={data.entity}
-            onChange={(entity) => onChange({ ...data, entity })}
+            options={CRM_WORKFLOW_TRIGGER_ENTITIES.map((e) => ({
+              value: e,
+              label: TRIGGER_ENTITY_LABELS[e],
+            }))}
+            onChange={(v) => {
+              const entity = v as (typeof CRM_WORKFLOW_TRIGGER_ENTITIES)[number]
+              // `leadEvent` só vale para lead — descarta ao trocar de entidade.
+              if ('leadEvent' in data && entity !== 'lead') {
+                const { leadEvent: _drop, ...rest } = data
+                onChange({ ...rest, entity })
+                return
+              }
+              onChange({ ...data, entity })
+            }}
           />
         </Field>
       )}
+      {(data.type === 'record-is-updated' ||
+        data.type === 'record-is-created-or-updated') &&
+        data.entity === 'lead' && (
+          <Field
+            label='Evento do lead'
+            hint='Filtra a atualização por um evento do painel de leads.'
+          >
+            <NativeSelect
+              value={data.leadEvent ?? ''}
+              options={[
+                { value: '', label: 'Qualquer atualização' },
+                ...CRM_WORKFLOW_LEAD_EVENTS.map((e) => ({
+                  value: e,
+                  label: LEAD_EVENT_LABELS[e],
+                })),
+              ]}
+              onChange={(v) =>
+                onChange({
+                  ...data,
+                  leadEvent: v ? (v as CrmWorkflowLeadEvent) : undefined,
+                })
+              }
+            />
+          </Field>
+        )}
       {(data.type === 'record-is-updated' ||
         data.type === 'record-is-created-or-updated') && (
         <Field
