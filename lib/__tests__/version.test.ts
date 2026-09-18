@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { calVerToSemver, isCalVerTag } from '@/lib/version'
+import { calVerToSemver, isCalVerTag, semverToCalVer } from '@/lib/version'
 
 const root = join(__dirname, '..', '..')
 
@@ -17,6 +17,23 @@ describe('calVerToSemver', () => {
   it('rejects non-CalVer tags', () => {
     expect(isCalVerTag('v2.2.0')).toBe(false)
     expect(() => calVerToSemver('2.2.0')).toThrow(/CalVer/)
+  })
+})
+
+describe('semverToCalVer', () => {
+  it('restores the zero-padded CalVer tag', () => {
+    expect(semverToCalVer('2026.8.31')).toBe('2026.08.31')
+    expect(semverToCalVer('2026.8.28-4')).toBe('2026.08.28.4')
+  })
+
+  it('round-trips with calVerToSemver', () => {
+    for (const tag of ['2026.01.02', '2026.12.31.7']) {
+      expect(semverToCalVer(calVerToSemver(tag))).toBe(tag)
+    }
+  })
+
+  it('rejects versions that did not come from a CalVer tag', () => {
+    expect(() => semverToCalVer('2.2.0')).toThrow(/CalVer/)
   })
 })
 

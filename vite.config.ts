@@ -15,6 +15,7 @@ export default defineConfig({
             'src/mappers/**/__tests__/*.test.ts',
             'src/schemas/**/__tests__/*.test.ts',
             'src/errors/**/__tests__/*.test.ts',
+            'src/openapi/**/__tests__/*.test.ts',
             'src/lib/__tests__/*.test.ts',
             'utils/__tests__/*.test.ts',
             'lib/__tests__/*.test.ts',
