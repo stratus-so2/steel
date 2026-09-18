@@ -53,6 +53,7 @@ describe('processCrmScheduledSend()', () => {
   it('should fail a due campaign with no recipients instead of fanning out or retrying forever', async () => {
     const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
     await seedMembership({ userId: user.id, workspaceId: workspace.id })
+    await seedWorkspaceModuleAccess(workspace.id, user.id, { module: 'CRM' })
     await prisma.crmPerson.create({
       data: {
         name: 'Não selecionada',
