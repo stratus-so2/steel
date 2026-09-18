@@ -51,10 +51,15 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
     // O runner de build self-hosted tem ~3.8GB de RAM total; sem controle o
     // Turbopack cresce até o OOM killer matar o processo (visto em duas runs
-    // de CD). O Next 16.3 removeu o turbopackMemoryLimit; 'full' descarta o
-    // máximo de memória após cada snapshot, deixando margem para prisma
-    // generate + esbuild do worker na mesma etapa do Dockerfile.
-    turbopackMemoryEviction: 'full',
+    // de CD). O Next 16.3 removeu o turbopackMemoryLimit. 'full' fez o
+    // Turbopack dar segfault/panic no docker build; 'auto' é estável e o pico
+    // de memória real vinha dos workers de page data (limitados abaixo).
+    turbopackMemoryEviction: 'auto',
+    // "Collecting page data" abre um worker por CPU (9 no runner) e cada um
+    // carrega o app inteiro: foi aí que o build do CD levou OOM kill. Dois
+    // workers cabem na RAM do runner sem alongar muito o build.
+    cpus: 2,
+    memoryBasedWorkersCount: true,
   },
   typescript: {
     ignoreBuildErrors: true
