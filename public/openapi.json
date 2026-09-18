@@ -57,6 +57,10 @@
       "description": "Planos pagos via AbacatePay, cupons e o webhook de cobrança."
     },
     {
+      "name": "CRM · Integrações",
+      "description": "Chaves de API de integração (gestão interna)."
+    },
+    {
       "name": "CRM · Configurações",
       "description": "Configurações e membros do módulo CRM."
     },
@@ -142,7 +146,7 @@
     },
     {
       "name": "CRM",
-      "tags": ["CRM · Configurações"]
+      "tags": ["CRM · Integrações", "CRM · Configurações"]
     },
     {
       "name": "Páginas públicas do CRM",
@@ -3829,7 +3833,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_4"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -3926,7 +3930,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -7156,6 +7160,201 @@
         ]
       }
     },
+    "/workspaces/{id}/crm/integration-keys": {
+      "get": {
+        "tags": ["CRM · Integrações"],
+        "summary": "Listar chaves de API",
+        "operationId": "getWorkspacesByIdCrmIntegrationKeys",
+        "description": "Chaves de integração do workspace, ativas e revogadas. O valor completo nunca é devolvido aqui — só o `prefix`.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado; restrito a **OWNER/ADMIN**.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chaves de API.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmIntegrationKey"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["CRM · Integrações"],
+        "summary": "Criar chave de API",
+        "operationId": "postWorkspacesByIdCrmIntegrationKeys",
+        "description": "Gera uma chave `crm_live_...` para a API pública de entrada de leads (`POST /crm/integrations/leads`). O valor em texto puro (`plaintextKey`) só aparece nesta resposta; o servidor guarda apenas o hash.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado; restrito a **OWNER/ADMIN**.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 150
+                  }
+                },
+                "required": ["name"]
+              },
+              "example": {
+                "name": "Site institucional"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chave criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmIntegrationKeyCreated"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/integration-keys/{keyId}": {
+      "delete": {
+        "tags": ["CRM · Integrações"],
+        "summary": "Revogar chave de API",
+        "operationId": "deleteWorkspacesByIdCrmIntegrationKeysByKeyId",
+        "description": "Marca a chave como revogada (`revokedAt`); chamadas com ela passam a responder `401 CRM_INTEGRATION_KEY_INVALID`. O registro continua na listagem.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado; restrito a **OWNER/ADMIN**.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "description": "ID da chave de integração.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chave revogada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_4"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/crm/members": {
       "get": {
         "tags": ["CRM · Configurações"],
@@ -7197,7 +7396,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7248,7 +7447,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7321,7 +7520,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -10106,7 +10305,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -10151,17 +10361,51 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
                   "statusCode": 403,
-                  "message": "Consentimento obrigatório",
+                  "message": "Permissão insuficiente",
                   "error": {
                     "code": "FORBIDDEN"
                   }
                 }
               },
-              "FORBIDDEN_2": {
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
@@ -11023,6 +11267,29 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Chave inexistente no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmIntegrationApiKey not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_5": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
                 "summary": "RESOURCE_NOT_FOUND — Token inexistente ou página em rascunho",
                 "value": {
                   "success": false,
@@ -11037,7 +11304,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_5": {
+      "404_RESOURCE_NOT_FOUND_6": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -14006,6 +14273,144 @@
           "createdLeadId",
           "referrer",
           "createdAt"
+        ]
+      },
+      "CrmIntegrationKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1key00000ab7d3k1e5xyz"
+          },
+          "name": {
+            "type": "string",
+            "example": "Site institucional"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Início da chave, para identificá-la na listagem (o valor completo não é recuperável).",
+            "example": "crm_live_a1b2"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Preenchido quando a chave foi revogada (deixa de autenticar)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "workspaceId",
+          "createdById",
+          "lastUsedAt",
+          "revokedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CrmIntegrationKeyCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1key00000ab7d3k1e5xyz"
+          },
+          "name": {
+            "type": "string",
+            "example": "Site institucional"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Início da chave, para identificá-la na listagem (o valor completo não é recuperável).",
+            "example": "crm_live_a1b2"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "createdById": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Preenchido quando a chave foi revogada (deixa de autenticar)."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "plaintextKey": {
+            "type": "string",
+            "description": "Chave completa em texto puro — **só é devolvida nesta resposta**. Use como `Authorization: Bearer <plaintextKey>`.",
+            "example": "crm_live_a1b2c3d4e5f6g7h8i9j0"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "workspaceId",
+          "createdById",
+          "lastUsedAt",
+          "revokedAt",
+          "createdAt",
+          "updatedAt",
+          "plaintextKey"
         ]
       },
       "CrmLandingPagePublic": {
