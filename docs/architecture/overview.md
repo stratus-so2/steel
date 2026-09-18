@@ -112,6 +112,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `crm-scheduled-send` | campanhas de e-mail agendadas | a cada 5 min |
 | `crm-workflow-schedule` | workflows `on-a-schedule` | a cada 1 min |
 | `crm-competitor-sync` | métricas de concorrentes | cron 04:00 |
+| `crm-proposal-expiry` | expira propostas com validade vencida e avisa o responsável | cron 00:05 |
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |
 | `changelog` | e-mails de changelog | sob demanda |

@@ -13,6 +13,7 @@ export const QueueName = {
   CrmCompetitorSync: 'crm-competitor-sync',
   CrmSocialPostsTick: 'crm-social-posts-tick',
   CrmSocialPublish: 'crm-social-publish',
+  CrmProposalExpiry: 'crm-proposal-expiry',
   Changelog: 'changelog',
   DatabaseBackup: 'database-backup',
   StatusCollect: 'status-collect',
@@ -162,6 +163,21 @@ export type CrmSocialPostsTickJob =
 
 export type CrmSocialPostsTickJobPayload = {
   [CrmSocialPostsTickJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Tick diário que marca como EXPIRED as propostas enviadas/vistas com a
+ * validade vencida e avisa o responsável (`CrmProposalService.expireDue`).
+ */
+export const CrmProposalExpiryJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type CrmProposalExpiryJob =
+  (typeof CrmProposalExpiryJob)[keyof typeof CrmProposalExpiryJob]
+
+export type CrmProposalExpiryJobPayload = {
+  [CrmProposalExpiryJob.RunTick]: Record<string, never>
 }
 
 export const CrmCompetitorSyncJob = {

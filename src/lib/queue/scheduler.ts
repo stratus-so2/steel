@@ -2,6 +2,7 @@ import { logger } from '@/lib/axiom/logger'
 import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
   CrmCompetitorSyncJob,
+  CrmProposalExpiryJob,
   CrmScheduledSendJob,
   CrmSocialPostsTickJob,
   CrmWorkflowScheduleJob,
@@ -14,6 +15,7 @@ import {
 } from './jobs'
 import {
   getCrmCompetitorSyncQueue,
+  getCrmProposalExpiryQueue,
   getCrmScheduledSendQueue,
   getCrmSocialPostsTickQueue,
   getCrmWorkflowScheduleQueue,
@@ -26,6 +28,7 @@ import {
 } from './queues'
 import {
   CrmCompetitorSyncCron,
+  CrmProposalExpiryCron,
   CrmScheduledSendCron,
   CrmSocialPostsTickCron,
   CrmWorkflowScheduleCron,
@@ -145,6 +148,21 @@ export async function scheduleCrmCompetitorSyncJobs(): Promise<void> {
   logger.info('queue.scheduler.crm_competitor_sync_registered', {
     component: 'Worker',
     pattern: CrmCompetitorSyncCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleCrmProposalExpiryJobs(): Promise<void> {
+  const queue = getCrmProposalExpiryQueue()
+  await queue.upsertJobScheduler(
+    CrmProposalExpiryJob.RunTick,
+    { pattern: CrmProposalExpiryCron, tz: RetentionTimezone },
+    { name: CrmProposalExpiryJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.crm_proposal_expiry_registered', {
+    component: 'Worker',
+    pattern: CrmProposalExpiryCron,
     timezone: RetentionTimezone,
   })
 }

@@ -9,6 +9,7 @@ import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
 import { processChangelog } from '../src/lib/queue/processors/changelog'
 import { processCrmCompetitorSync } from '../src/lib/queue/processors/crm-competitor-sync'
+import { processCrmProposalExpiry } from '../src/lib/queue/processors/crm-proposal-expiry'
 import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
 import { processCrmSocialPostsTick } from '../src/lib/queue/processors/crm-social-posts-tick'
 import { processCrmSocialPublish } from '../src/lib/queue/processors/crm-social-publish'
@@ -25,6 +26,7 @@ import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-s
 import { closeQueues } from '../src/lib/queue/queues'
 import {
   scheduleCrmCompetitorSyncJobs,
+  scheduleCrmProposalExpiryJobs,
   scheduleCrmScheduledSendJobs,
   scheduleCrmSocialPostsTickJobs,
   scheduleCrmWorkflowScheduleJobs,
@@ -134,6 +136,9 @@ async function main(): Promise<void> {
     registerWorker(QueueName.CrmCompetitorSync, processCrmCompetitorSync),
   )
   workers.push(
+    registerWorker(QueueName.CrmProposalExpiry, processCrmProposalExpiry),
+  )
+  workers.push(
     registerWorker(QueueName.CrmSocialPostsTick, processCrmSocialPostsTick),
   )
   workers.push(
@@ -149,6 +154,7 @@ async function main(): Promise<void> {
   await scheduleCrmScheduledSendJobs()
   await scheduleCrmWorkflowScheduleJobs()
   await scheduleCrmCompetitorSyncJobs()
+  await scheduleCrmProposalExpiryJobs()
   await scheduleCrmSocialPostsTickJobs()
   await scheduleWhatsappBroadcastJobs()
   await scheduleDatabaseBackupJobs()
