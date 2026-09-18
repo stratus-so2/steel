@@ -51,6 +51,15 @@ const serverEnv = {
   WORKBENCH_USER: process.env.WORKBENCH_USER,
   WORKBENCH_PASS: process.env.WORKBENCH_PASS,
   STATUS_APP_PROBE_URL: process.env.STATUS_APP_PROBE_URL,
+  BACKUP_OFFSITE_ENDPOINT: process.env.BACKUP_OFFSITE_ENDPOINT,
+  BACKUP_OFFSITE_REGION: process.env.BACKUP_OFFSITE_REGION,
+  BACKUP_OFFSITE_BUCKET: process.env.BACKUP_OFFSITE_BUCKET,
+  BACKUP_OFFSITE_ACCESS_KEY_ID: process.env.BACKUP_OFFSITE_ACCESS_KEY_ID,
+  BACKUP_OFFSITE_SECRET_ACCESS_KEY: process.env.BACKUP_OFFSITE_SECRET_ACCESS_KEY,
+  BACKUP_OFFSITE_PREFIX: process.env.BACKUP_OFFSITE_PREFIX,
+  BACKUP_OFFSITE_FORCE_PATH_STYLE: process.env.BACKUP_OFFSITE_FORCE_PATH_STYLE,
+  BACKUP_OFFSITE_SSE: process.env.BACKUP_OFFSITE_SSE,
+  BACKUP_OFFSITE_RETENTION_DAYS: process.env.BACKUP_OFFSITE_RETENTION_DAYS,
 }
 
 /** String opcional que trata `""` como ausente (não só `undefined`). */
@@ -161,6 +170,33 @@ const serverEnvSchema = z.object({
     (v) => (v === '' ? undefined : v),
     z.url().startsWith('http').optional(),
   ),
+  // Cópia offsite (fora do servidor) do backup FULL diário, em qualquer
+  // storage S3-compatível (Backblaze B2, Cloudflare R2, AWS S3, Wasabi...).
+  // Tudo opcional: sem ENDPOINT/BUCKET/chaves a cópia offsite fica inerte (só
+  // loga um aviso) — ver src/lib/storage/offsite-backup.ts.
+  BACKUP_OFFSITE_ENDPOINT: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.url().startsWith('http').optional(),
+  ),
+  BACKUP_OFFSITE_REGION: blankOptional,
+  BACKUP_OFFSITE_BUCKET: blankOptional,
+  BACKUP_OFFSITE_ACCESS_KEY_ID: blankOptional,
+  BACKUP_OFFSITE_SECRET_ACCESS_KEY: blankOptional,
+  BACKUP_OFFSITE_PREFIX: blankOptional,
+  BACKUP_OFFSITE_FORCE_PATH_STYLE: flag,
+  // Pede criptografia em repouso do lado do provedor (SSE-S3, `AES256`).
+  // Default ligado; use `'false'` se o provedor rejeitar o header — o
+  // conteúdo já sobe cifrado pela aplicação de qualquer forma.
+  BACKUP_OFFSITE_SSE: flag,
+  BACKUP_OFFSITE_RETENTION_DAYS: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .regex(/^[1-9]\d*$/, {
+        message: 'BACKUP_OFFSITE_RETENTION_DAYS must be a positive integer',
+      })
+      .optional(),
+  ),
 })
 
 const validatedServerEnv =
@@ -218,4 +254,13 @@ export const {
   WORKBENCH_USER,
   WORKBENCH_PASS,
   STATUS_APP_PROBE_URL,
+  BACKUP_OFFSITE_ENDPOINT,
+  BACKUP_OFFSITE_REGION,
+  BACKUP_OFFSITE_BUCKET,
+  BACKUP_OFFSITE_ACCESS_KEY_ID,
+  BACKUP_OFFSITE_SECRET_ACCESS_KEY,
+  BACKUP_OFFSITE_PREFIX,
+  BACKUP_OFFSITE_FORCE_PATH_STYLE,
+  BACKUP_OFFSITE_SSE,
+  BACKUP_OFFSITE_RETENTION_DAYS,
 } = validatedServerEnv

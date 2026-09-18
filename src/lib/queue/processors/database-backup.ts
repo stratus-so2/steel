@@ -11,8 +11,19 @@ import { logger } from '@/lib/axiom/logger'
 import { DATABASE_URL } from '@/lib/env/server'
 import { encryptConnectionSecret } from '@/src/lib/crypto'
 import { prisma } from '@/src/lib/prisma'
-import { deleteObject, ensureBucket, putObject } from '@/src/lib/storage/s3'
+import {
+  getOffsiteConfig,
+  pruneOffsiteObjects,
+  uploadAndVerifyOffsite,
+} from '@/src/lib/storage/offsite-backup'
+import {
+  deleteObject,
+  ensureBucket,
+  getObject,
+  putObject,
+} from '@/src/lib/storage/s3'
 import { DatabaseBackupJob, type DatabaseBackupJobPayload } from '../jobs'
+import { getDatabaseBackupQueue } from '../queues'
 import { BackupRetentionDays } from '../retention'
 
 const execFileAsync = promisify(execFile)
@@ -41,6 +52,96 @@ async function uploadEncrypted(params: {
 
 function expiresAt(): Date {
   return new Date(Date.now() + BackupRetentionDays * 24 * 60 * 60 * 1000)
+}
+
+function warnOffsiteDisabled(context: Record<string, unknown>): void {
+  logger.warn('queue.database_backup.offsite_not_configured', {
+    component: 'Worker',
+    message:
+      'BACKUP_OFFSITE_* não configurado — backup existe só no MinIO do próprio servidor',
+    ...context,
+  })
+}
+
+/**
+ * Job separado (e não um passo do full backup) pra que uma falha no provedor
+ * externo seja reprocessada sozinha pelo retry do BullMQ, sem refazer o
+ * pg_dump nem marcar o backup local como FAILED.
+ */
+async function enqueueOffsiteCopy(backupId: string): Promise<void> {
+  if (!getOffsiteConfig()) {
+    warnOffsiteDisabled({ backupId })
+    return
+  }
+  await getDatabaseBackupQueue().add(
+    DatabaseBackupJob.CopyToOffsite,
+    { backupId },
+    { jobId: `offsite-copy-${backupId}` },
+  )
+}
+
+async function runCopyToOffsite(
+  job: Job<DatabaseBackupJobPayload[typeof DatabaseBackupJob.CopyToOffsite]>,
+): Promise<void> {
+  const config = getOffsiteConfig()
+  if (!config) {
+    warnOffsiteDisabled({ jobId: job.id, backupId: job.data.backupId })
+    return
+  }
+
+  const { backupId } = job.data
+  const backup = await prisma.backup.findUnique({ where: { id: backupId } })
+  if (!backup || backup.status !== 'COMPLETED' || !backup.storageKey) {
+    logger.warn('queue.database_backup.offsite_skipped', {
+      component: 'Worker',
+      jobId: job.id,
+      backupId,
+      reason: backup ? `status ${backup.status}` : 'backup_not_found',
+    })
+    return
+  }
+
+  try {
+    const body = await getObject({
+      bucket: BACKUP_BUCKET,
+      key: backup.storageKey,
+    })
+    const result = await uploadAndVerifyOffsite(config, {
+      key: backup.storageKey,
+      body,
+      plainChecksum: backup.checksum,
+    })
+
+    auditMutation({
+      entity: 'backup',
+      action: 'update',
+      actorId: 'system',
+      targetId: backupId,
+      meta: {
+        offsiteKey: result.key,
+        offsiteSizeBytes: result.sizeBytes,
+        jobId: job.id,
+      },
+    })
+
+    logger.info('queue.database_backup.offsite_completed', {
+      component: 'Worker',
+      jobId: job.id,
+      backupId,
+      offsiteKey: result.key,
+      sizeBytes: result.sizeBytes,
+      verified: true,
+    })
+  } catch (error) {
+    logger.error('queue.database_backup.offsite_failed', {
+      component: 'Worker',
+      jobId: job.id,
+      backupId,
+      attemptsMade: job.attemptsMade,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    throw error
+  }
 }
 
 async function runFullBackup(job: Job): Promise<void> {
@@ -89,6 +190,8 @@ async function runFullBackup(job: Job): Promise<void> {
       backupId: record.id,
       sizeBytes,
     })
+
+    await enqueueOffsiteCopy(record.id)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await prisma.backup.update({
@@ -239,6 +342,24 @@ async function pruneExpiredBackups(): Promise<void> {
     component: 'Worker',
     count: expired.length,
   })
+
+  const offsite = getOffsiteConfig()
+  if (!offsite) return
+
+  try {
+    const offsiteCount = await pruneOffsiteObjects(offsite)
+    logger.info('queue.database_backup.offsite_pruned', {
+      component: 'Worker',
+      count: offsiteCount,
+      retentionDays: offsite.retentionDays,
+    })
+  } catch (error) {
+    logger.error('queue.database_backup.offsite_prune_failed', {
+      component: 'Worker',
+      message: error instanceof Error ? error.message : String(error),
+    })
+    throw error
+  }
 }
 
 export async function processDatabaseBackup(job: Job): Promise<void> {
@@ -253,6 +374,12 @@ export async function processDatabaseBackup(job: Job): Promise<void> {
       )
     case DatabaseBackupJob.PruneExpiredBackups:
       return pruneExpiredBackups()
+    case DatabaseBackupJob.CopyToOffsite:
+      return runCopyToOffsite(
+        job as Job<
+          DatabaseBackupJobPayload[typeof DatabaseBackupJob.CopyToOffsite]
+        >,
+      )
     default:
       throw new Error(
         `Unknown database-backup job: ${job.name} (id=${job.id ?? 'unknown'})`,

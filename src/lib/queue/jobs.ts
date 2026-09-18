@@ -244,6 +244,7 @@ export const DatabaseBackupJob = {
   RunFullBackup: 'run-full-backup',
   RunWorkspaceBackup: 'run-workspace-backup',
   PruneExpiredBackups: 'prune-expired-backups',
+  CopyToOffsite: 'copy-to-offsite',
 } as const
 
 export type DatabaseBackupJob =
@@ -253,6 +254,7 @@ export type DatabaseBackupJobPayload = {
   [DatabaseBackupJob.RunFullBackup]: Record<string, never>
   [DatabaseBackupJob.RunWorkspaceBackup]: { workspaceId: string }
   [DatabaseBackupJob.PruneExpiredBackups]: Record<string, never>
+  [DatabaseBackupJob.CopyToOffsite]: { backupId: string }
 }
 
 /**

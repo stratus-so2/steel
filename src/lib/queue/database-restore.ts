@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { prisma } from '@/src/lib/prisma'
+import {
+  getOffsiteConfig,
+  getOffsiteObject,
+  sha256,
+} from '@/src/lib/storage/offsite-backup'
 import { getObject } from '@/src/lib/storage/s3'
 import { BACKUP_BUCKET } from './processors/database-backup'
 
@@ -48,4 +53,44 @@ export async function fetchAndDecryptBackup(backupId: string): Promise<{
       storageKey: backup.storageKey,
     },
   }
+}
+
+/**
+ * Busca um backup FULL direto da cópia offsite, sem consultar a tabela
+ * `backups` (num desastre ela some junto com o banco). Precisa só das
+ * variáveis `BACKUP_OFFSITE_*` e do mesmo `CONNECTION_SECRETS` que cifrou o
+ * backup. Valida os SHA-256 (cifrado e em claro) gravados nos metadados.
+ */
+export async function fetchAndDecryptOffsiteBackup(
+  backupId: string,
+): Promise<{ buffer: Buffer; key: string }> {
+  const config = getOffsiteConfig()
+  if (!config) {
+    throw new Error(
+      'Cópia offsite não configurada (BACKUP_OFFSITE_ENDPOINT/BUCKET/ACCESS_KEY_ID/SECRET_ACCESS_KEY).',
+    )
+  }
+
+  const key = `full/${backupId}.dump.enc`
+  const object = await getOffsiteObject(config, key)
+
+  if (
+    object.encryptedChecksum &&
+    sha256(object.body) !== object.encryptedChecksum
+  ) {
+    throw new Error(`Cópia offsite "${key}" corrompida (SHA-256 cifrado).`)
+  }
+
+  const decryptedBase64 = await decryptConnectionSecret(
+    object.body.toString('utf-8'),
+  )
+  const buffer = Buffer.from(decryptedBase64, 'base64')
+
+  if (object.plainChecksum && sha256(buffer) !== object.plainChecksum) {
+    throw new Error(
+      `Checksum não bate para a cópia offsite "${key}" (esperado ${object.plainChecksum}).`,
+    )
+  }
+
+  return { buffer, key }
 }
