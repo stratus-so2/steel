@@ -42,3 +42,6 @@ export const StatusCollectCron = {
   core: '* * * * *',
   peripheral: '*/5 * * * *',
 } as const
+
+/** Rollup do uso por módulo (Redis → `module_usage_daily`). */
+export const UsageRollupCron = '*/15 * * * *'

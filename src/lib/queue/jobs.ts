@@ -16,6 +16,7 @@ export const QueueName = {
   Changelog: 'changelog',
   DatabaseBackup: 'database-backup',
   StatusCollect: 'status-collect',
+  UsageRollup: 'usage-rollup',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -274,4 +275,20 @@ export type StatusCollectJob =
 export type StatusCollectJobPayload = {
   [StatusCollectJob.CollectCore]: Record<string, never>
   [StatusCollectJob.CollectPeripheral]: Record<string, never>
+}
+
+/**
+ * Copia os contadores de uso por módulo do Redis (hash por dia, alimentado
+ * pelo `withAxiom`) para `module_usage_daily`. Grava valor absoluto, então
+ * reprocessar o mesmo dia é idempotente.
+ */
+export const UsageRollupJob = {
+  RollupModuleUsage: 'rollup-module-usage',
+} as const
+
+export type UsageRollupJob =
+  (typeof UsageRollupJob)[keyof typeof UsageRollupJob]
+
+export type UsageRollupJobPayload = {
+  [UsageRollupJob.RollupModuleUsage]: Record<string, never>
 }

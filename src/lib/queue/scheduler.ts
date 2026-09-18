@@ -9,6 +9,7 @@ import {
   DataRetentionJob,
   StatusCollectJob,
   TrialLifecycleJob,
+  UsageRollupJob,
   WhatsappBroadcastJob,
 } from './jobs'
 import {
@@ -20,6 +21,7 @@ import {
   getDataRetentionQueue,
   getStatusCollectQueue,
   getTrialLifecycleQueue,
+  getUsageRollupQueue,
   getWhatsappBroadcastQueue,
 } from './queues'
 import {
@@ -31,6 +33,7 @@ import {
   RetentionCron,
   RetentionTimezone,
   StatusCollectCron,
+  UsageRollupCron,
   WhatsappBroadcastScheduleCron,
 } from './retention'
 
@@ -203,6 +206,22 @@ export async function scheduleStatusCollectJobs(): Promise<void> {
     component: 'Worker',
     corePattern: StatusCollectCron.core,
     peripheralPattern: StatusCollectCron.peripheral,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleUsageRollupJobs(): Promise<void> {
+  const queue = getUsageRollupQueue()
+
+  await queue.upsertJobScheduler(
+    UsageRollupJob.RollupModuleUsage,
+    { pattern: UsageRollupCron, tz: RetentionTimezone },
+    { name: UsageRollupJob.RollupModuleUsage, data: {} },
+  )
+
+  logger.info('queue.scheduler.usage_rollup_registered', {
+    component: 'Worker',
+    pattern: UsageRollupCron,
     timezone: RetentionTimezone,
   })
 }

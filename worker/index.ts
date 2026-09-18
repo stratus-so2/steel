@@ -17,6 +17,7 @@ import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
 import { processDatabaseBackup } from '../src/lib/queue/processors/database-backup'
 import { processStatusCollect } from '../src/lib/queue/processors/status-collect'
+import { processUsageRollup } from '../src/lib/queue/processors/usage-rollup'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
 import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-broadcast'
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
@@ -31,6 +32,7 @@ import {
   scheduleDataRetentionJobs,
   scheduleStatusCollectJobs,
   scheduleTrialLifecycleJobs,
+  scheduleUsageRollupJobs,
   scheduleWhatsappBroadcastJobs,
 } from '../src/lib/queue/scheduler'
 
@@ -140,6 +142,7 @@ async function main(): Promise<void> {
   workers.push(registerWorker(QueueName.Changelog, processChangelog))
   workers.push(registerWorker(QueueName.DatabaseBackup, processDatabaseBackup))
   workers.push(registerWorker(QueueName.StatusCollect, processStatusCollect))
+  workers.push(registerWorker(QueueName.UsageRollup, processUsageRollup))
 
   await scheduleDataRetentionJobs()
   await scheduleTrialLifecycleJobs()
@@ -150,6 +153,7 @@ async function main(): Promise<void> {
   await scheduleWhatsappBroadcastJobs()
   await scheduleDatabaseBackupJobs()
   await scheduleStatusCollectJobs()
+  await scheduleUsageRollupJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

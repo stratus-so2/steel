@@ -26,6 +26,8 @@ import {
   type StatusCollectJobPayload,
   type TrialLifecycleJob,
   type TrialLifecycleJobPayload,
+  type UsageRollupJob,
+  type UsageRollupJobPayload,
   type WhatsappAiReplyJob,
   type WhatsappAiReplyJobPayload,
   type WhatsappBroadcastJob,
@@ -62,6 +64,7 @@ let crmSocialPublishQueue: Queue | null = null
 let changelogQueue: Queue | null = null
 let databaseBackupQueue: Queue | null = null
 let statusCollectQueue: Queue | null = null
+let usageRollupQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -380,6 +383,34 @@ export function getStatusCollectQueue(): Queue<
   >
 }
 
+/**
+ * Sem retry: o rollup é um tick idempotente — o próximo (15 min) regrava os
+ * mesmos dias.
+ */
+const usageRollupJobOptions = {
+  removeOnComplete: { age: 60 * 60 * 24, count: 100 },
+  removeOnFail: { age: 60 * 60 * 24 * 7 },
+  attempts: 1,
+} as const
+
+export function getUsageRollupQueue(): Queue<
+  UsageRollupJobPayload[UsageRollupJob],
+  unknown,
+  UsageRollupJob
+> {
+  if (!usageRollupQueue) {
+    usageRollupQueue = new Queue(QueueName.UsageRollup, {
+      connection: getQueueConnection(),
+      defaultJobOptions: usageRollupJobOptions,
+    })
+  }
+  return usageRollupQueue as Queue<
+    UsageRollupJobPayload[UsageRollupJob],
+    unknown,
+    UsageRollupJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -399,6 +430,7 @@ export async function closeQueues(): Promise<void> {
     changelogQueue?.close(),
     databaseBackupQueue?.close(),
     statusCollectQueue?.close(),
+    usageRollupQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -416,4 +448,5 @@ export async function closeQueues(): Promise<void> {
   changelogQueue = null
   databaseBackupQueue = null
   statusCollectQueue = null
+  usageRollupQueue = null
 }
