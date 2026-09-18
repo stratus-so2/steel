@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedCrmLead } from '@/src/__tests__/factories/crm-lead.factory'
 import { seedCrmProduct } from '@/src/__tests__/factories/crm-product.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
@@ -430,5 +430,214 @@ describe('CrmLeadRepository', () => {
       const history = expectOk(await CrmLeadRepository.listReopenings(lead.id))
       expect(history.map((r) => r.reason)).toEqual(['segunda', 'primeira'])
     })
+  })
+})
+
+describe('CrmLeadRepository (lifecycle and failures)', () => {
+  it('should find a lead of the workspace by id', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const lead = await seedCrmLead(workspace.id, user.id)
+
+    expect(
+      expectOk(await CrmLeadRepository.findById(lead.id, workspace.id)).id,
+    ).toBe(lead.id)
+  })
+
+  it('should update a lead and soft delete it', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const lead = await seedCrmLead(workspace.id, user.id)
+
+    const updated = expectOk(
+      await CrmLeadRepository.update(lead.id, {
+        stage: 'QUALIFIED',
+        score: 40,
+        emails: ['novo@example.com'],
+        updatedById: user.id,
+      }),
+    )
+    expect(updated).toMatchObject({
+      stage: 'QUALIFIED',
+      score: 40,
+      emails: ['novo@example.com'],
+    })
+
+    expectOk(await CrmLeadRepository.softDelete(lead.id))
+    expectErr(
+      await CrmLeadRepository.findById(lead.id, workspace.id),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should reorder leads of the workspace', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const a = await seedCrmLead(workspace.id, user.id, { position: 0 })
+    const b = await seedCrmLead(workspace.id, user.id, { position: 1 })
+
+    expectOk(await CrmLeadRepository.reorder(workspace.id, [b.id, a.id]))
+
+    const list = expectOk(await CrmLeadRepository.listByWorkspace(workspace.id))
+    expect(list.map((l) => l.id)).toEqual([b.id, a.id])
+  })
+
+  it('should refuse to reorder a lead from another workspace', async () => {
+    const [workspace, other, user] = await Promise.all([
+      seedWorkspace(),
+      seedWorkspace(),
+      seedUser(),
+    ])
+    const foreign = await seedCrmLead(other.id, user.id, { position: 5 })
+
+    expectErr(
+      await CrmLeadRepository.reorder(workspace.id, [foreign.id]),
+      'DATABASE_ERROR',
+    )
+    const stored = await prisma.crmLead.findUniqueOrThrow({
+      where: { id: foreign.id },
+    })
+    expect(stored.position).toBe(5)
+  })
+
+  it('should return DATABASE_ERROR when writes hit missing rows or FKs', async () => {
+    const user = await seedUser()
+
+    expectErr(
+      await CrmLeadRepository.create({
+        workspaceId: 'missing',
+        createdById: user.id,
+        name: 'X',
+        score: 0,
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLeadRepository.update('missing', { name: 'x' }),
+      'DATABASE_ERROR',
+    )
+    expectErr(await CrmLeadRepository.softDelete('missing'), 'DATABASE_ERROR')
+    expectErr(
+      await CrmLeadRepository.createContactAttempt({
+        leadId: 'missing',
+        workspaceId: 'missing',
+        createdById: user.id,
+        contactedWith: 'x',
+        channel: 'PHONE',
+        outcome: 'ATTEMPTED',
+        occurredAt: new Date(),
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLeadRepository.setInterestProducts('missing', ['missing']),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLeadRepository.upsertQualification({
+        leadId: 'missing',
+        qualifiedById: user.id,
+        decisionMakerName: 'x',
+        decisionMakerRole: 'y',
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLeadRepository.createMeeting({
+        leadId: 'missing',
+        workspaceId: 'missing',
+        createdById: user.id,
+        scheduledAt: new Date(),
+        format: 'ONLINE',
+        interestDetails: 'x',
+        identifiedNeed: 'y',
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLeadRepository.createProposalPresentation({
+        leadId: 'missing',
+        proposalId: 'missing',
+        createdById: user.id,
+        presentedAt: new Date(),
+        format: 'ONLINE',
+        amount: 1,
+        interestLevel: 'LOW',
+        interactionsCount: 0,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should keep the previous interest products when the replacement fails', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const lead = await seedCrmLead(workspace.id, user.id)
+    const product = await seedCrmProduct(workspace.id, user.id)
+    expectOk(await CrmLeadRepository.setInterestProducts(lead.id, [product.id]))
+
+    expectErr(
+      await CrmLeadRepository.setInterestProducts(lead.id, ['missing']),
+      'DATABASE_ERROR',
+    )
+    expect(
+      await prisma.crmLeadInterestProduct.count({ where: { leadId: lead.id } }),
+    ).toBe(1)
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.crmLead, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.crmLead, 'findFirst').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(prisma.crmLeadContactAttempt, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.crmLeadQualification, 'findUnique').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.crmLeadMeeting, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(
+      prisma.crmLeadProposalPresentation,
+      'findMany',
+    ).mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(prisma.crmLeadReopening, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(await CrmLeadRepository.listByWorkspace('w'), 'DATABASE_ERROR')
+    expectErr(await CrmLeadRepository.findById('l', 'w'), 'DATABASE_ERROR')
+    expectErr(
+      await CrmLeadRepository.findOpenByContacts('w', {
+        emails: ['a@example.com'],
+        phones: [],
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmLeadRepository.listContactAttempts('l'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await CrmLeadRepository.findQualification('l'), 'DATABASE_ERROR')
+    expectErr(await CrmLeadRepository.listMeetings('l'), 'DATABASE_ERROR')
+    expectErr(
+      await CrmLeadRepository.listProposalPresentations('l'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await CrmLeadRepository.listReopenings('l'), 'DATABASE_ERROR')
+  })
+
+  it('should return DATABASE_ERROR when the reopen transaction fails', async () => {
+    vi.spyOn(prisma, '$transaction').mockRejectedValueOnce(new Error('boom'))
+    expectErr(
+      await CrmLeadRepository.reopen('l', {
+        workspaceId: 'w',
+        toStage: 'IN_CONTACT',
+        reason: 'x',
+        reopenedById: 'u',
+      }),
+      'DATABASE_ERROR',
+    )
   })
 })
