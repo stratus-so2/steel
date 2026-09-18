@@ -68,3 +68,20 @@ export function mockFetch(handler: FetchHandler) {
 export function headerOf(call: FetchCall, name: string): string | null {
   return new Headers(call.init?.headers).get(name)
 }
+
+/**
+ * Resposta cujo corpo não pode ser lido (stream abortado no meio): `text()` e
+ * `json()` rejeitam. Exercita os `.catch()` de leitura de corpo dos services.
+ */
+export function unreadableResponse(
+  init: { status?: number; headers?: Record<string, string> } = {},
+): Response {
+  const status = init.status ?? 200
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: new Headers(init.headers),
+    text: () => Promise.reject(new Error('body stream aborted')),
+    json: () => Promise.reject(new Error('body stream aborted')),
+  } as unknown as Response
+}
