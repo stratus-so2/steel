@@ -72,4 +72,45 @@ describe('toWhatsAppConversationDTO()', () => {
       0.42,
     )
   })
+
+  it.each([
+    ['IMAGE', '📷 Imagem'],
+    ['AUDIO', '🎤 Áudio'],
+    ['VIDEO', '🎥 Vídeo'],
+    ['DOCUMENT', '📄 Documento'],
+    ['STICKER', 'Figurinha'],
+    ['LOCATION', '📍 Localização'],
+    ['TEMPLATE', 'Template'],
+    ['BUTTON', 'Botão'],
+    ['CONTACT', ''],
+  ] as const)('should label a text-less %s message as "%s"', (type, label) => {
+    const conversation = createFakeWhatsAppConversationWithPreview({
+      messages: [createFakeWhatsAppMessage({ type, text: null })],
+    })
+
+    expect(toWhatsAppConversationDTO(conversation).lastMessagePreview).toBe(
+      label,
+    )
+  })
+
+  it('should serialize lifecycle flags and timestamps', () => {
+    const closedAt = new Date('2026-09-01T10:00:00.000Z')
+    const lastMessageAt = new Date('2026-09-01T09:00:00.000Z')
+    const conversation = createFakeWhatsAppConversationWithPreview({
+      pinnedAt: new Date(),
+      archivedAt: new Date(),
+      closedAt,
+      lastMessageAt,
+      closeReason: 'RESOLVED',
+      messages: [],
+    })
+
+    const dto = toWhatsAppConversationDTO(conversation)
+
+    expect(dto.pinned).toBe(true)
+    expect(dto.archived).toBe(true)
+    expect(dto.closedAt).toBe(closedAt.toISOString())
+    expect(dto.lastMessageAt).toBe(lastMessageAt.toISOString())
+    expect(dto.closeReason).toBe('RESOLVED')
+  })
 })

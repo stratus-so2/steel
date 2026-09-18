@@ -57,4 +57,33 @@ describe('toWhatsAppGroupDTO()', () => {
 
     expect(dto.lastMessagePreview).toBeNull()
   })
+
+  it.each([
+    ['IMAGE', '📷 Imagem'],
+    ['AUDIO', '🎤 Áudio'],
+    ['VIDEO', '🎥 Vídeo'],
+    ['DOCUMENT', '📄 Documento'],
+    ['STICKER', 'Figurinha'],
+    ['CONTACT', 'Contato'],
+    ['LOCATION', ''],
+  ] as const)('should label a text-less %s message as "%s"', (type, label) => {
+    const group = createFakeWhatsAppGroupWithParticipants({
+      messages: [createFakeWhatsAppGroupMessage({ type, text: null })],
+    })
+
+    expect(toWhatsAppGroupDTO(group).lastMessagePreview).toBe(label)
+  })
+
+  it('should prefer the message text and serialize lastMessageAt', () => {
+    const lastMessageAt = new Date('2026-09-01T09:00:00.000Z')
+    const group = createFakeWhatsAppGroupWithParticipants({
+      lastMessageAt,
+      messages: [createFakeWhatsAppGroupMessage({ type: 'TEXT', text: 'Oi' })],
+    })
+
+    const dto = toWhatsAppGroupDTO(group)
+
+    expect(dto.lastMessagePreview).toBe('Oi')
+    expect(dto.lastMessageAt).toBe(lastMessageAt.toISOString())
+  })
 })
