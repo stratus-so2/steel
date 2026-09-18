@@ -1,5 +1,6 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import {
+  validationError,
   whatsappContactNotFound,
   whatsappContactPhotoUnavailable,
   whatsappProviderError,
@@ -14,10 +15,11 @@ import type {
   CreateWhatsAppContactDTO,
   FindOrCreateWhatsAppContactDTO,
   ListWhatsAppContactsDTO,
+  UpdateWhatsAppContactBroadcastOptOutDTO,
   UpdateWhatsAppContactDTO,
 } from '@/src/schemas/whatsapp-contact.schema'
 import type { WhatsAppContactDTO } from '@/types/whatsapp-contact'
-import { assertModuleMember } from './authz'
+import { assertModuleMember, assertModulePrivileged } from './authz'
 
 export const WhatsAppContactService = {
   async list(
@@ -205,6 +207,66 @@ export const WhatsAppContactService = {
       actorId,
       targetId: id,
       meta: { fields: Object.keys(dto) },
+    })
+
+    return ok(toWhatsAppContactDTO(result.value))
+  },
+
+  /**
+   * Opt-out LGPD de transmissões pelo admin (OWNER/ADMIN). Descadastrar é
+   * livre (ex: pedido por telefone/e-mail); reinscrever exige que o próprio
+   * contato tenha pedido explicitamente (`contactRequested`) — o admin não
+   * pode reverter um "SAIR" por conta própria. Tudo auditado.
+   */
+  async setBroadcastOptOut(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+    dto: UpdateWhatsAppContactBroadcastOptOutDTO,
+  ): Promise<Result<WhatsAppContactDTO>> {
+    const membership = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
+    if (!membership.ok) return membership
+
+    if (!dto.optedOut && dto.contactRequested !== true) {
+      return err(
+        validationError(
+          'Reinscrição só é permitida a pedido explícito do contato',
+        ),
+      )
+    }
+
+    const existing = await WhatsAppContactRepository.findById(id, workspaceId)
+    if (!existing.ok) return existing
+    if (!existing.value) return err(whatsappContactNotFound())
+
+    const result = await WhatsAppContactRepository.setBroadcastOptOut(
+      id,
+      dto.optedOut ? { at: new Date(), source: 'ADMIN' } : null,
+    )
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'whatsapp_contact',
+      action: dto.optedOut ? 'opt_out' : 'opt_in',
+      actorId,
+      targetId: id,
+      meta: {
+        workspaceId,
+        channel: 'whatsapp',
+        source: 'ADMIN',
+        ...(dto.optedOut
+          ? {}
+          : {
+              contactRequested: true,
+              previousOptOutAt:
+                existing.value.broadcastOptedOutAt?.toISOString() ?? null,
+              previousOptOutSource: existing.value.broadcastOptOutSource,
+            }),
+      },
     })
 
     return ok(toWhatsAppContactDTO(result.value))

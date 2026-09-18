@@ -24,6 +24,7 @@ import { getZapiContactProfilePicture } from '@/src/lib/whatsapp/zapi-client'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { WhatsAppContactService } from '../whatsapp-contact.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -262,6 +263,118 @@ describe('WhatsAppContactService', () => {
       const result = await WhatsAppContactService.remove('u1', 'ws1', 'ct1')
 
       expectErr(result, 'DATABASE_ERROR')
+    })
+  })
+
+  describe('setBroadcastOptOut()', () => {
+    it('should return MODULE_DISABLED when Comunicação is off', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      vi.mocked(
+        WorkspaceModuleAccessRepository.isEnabled,
+      ).mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await WhatsAppContactService.setBroadcastOptOut('u1', 'ws1', 'ct1', {
+          optedOut: true,
+        }),
+        'MODULE_DISABLED',
+      )
+      expect(mockedContactRepo.setBroadcastOptOut).not.toHaveBeenCalled()
+    })
+
+    it('should return FORBIDDEN for a non-admin member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+
+      expectErr(
+        await WhatsAppContactService.setBroadcastOptOut('u1', 'ws1', 'ct1', {
+          optedOut: true,
+        }),
+        'FORBIDDEN',
+      )
+      expect(mockedContactRepo.setBroadcastOptOut).not.toHaveBeenCalled()
+    })
+
+    it('should return WHATSAPP_CONTACT_NOT_FOUND for a contact of another workspace', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      mockedContactRepo.findById.mockResolvedValue(ok(null))
+
+      expectErr(
+        await WhatsAppContactService.setBroadcastOptOut('u1', 'ws1', 'ct1', {
+          optedOut: true,
+        }),
+        'WHATSAPP_CONTACT_NOT_FOUND',
+      )
+    })
+
+    it('should record an admin opt-out', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      const contact = createFakeWhatsAppContact({ id: 'ct1' })
+      mockedContactRepo.findById.mockResolvedValue(ok(contact))
+      mockedContactRepo.setBroadcastOptOut.mockResolvedValue(
+        ok({
+          ...contact,
+          broadcastOptedOutAt: new Date(),
+          broadcastOptOutSource: 'ADMIN',
+        }),
+      )
+
+      const dto = expectOk(
+        await WhatsAppContactService.setBroadcastOptOut('u1', 'ws1', 'ct1', {
+          optedOut: true,
+        }),
+      )
+      expect(dto.broadcastOptOutSource).toBe('ADMIN')
+      expect(mockedContactRepo.setBroadcastOptOut).toHaveBeenCalledWith('ct1', {
+        at: expect.any(Date),
+        source: 'ADMIN',
+      })
+    })
+
+    it('should re-subscribe only when the contact requested it', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      const contact = createFakeWhatsAppContact({
+        id: 'ct1',
+        broadcastOptedOutAt: new Date(),
+        broadcastOptOutSource: 'KEYWORD',
+      })
+      mockedContactRepo.findById.mockResolvedValue(ok(contact))
+      mockedContactRepo.setBroadcastOptOut.mockResolvedValue(
+        ok({
+          ...contact,
+          broadcastOptedOutAt: null,
+          broadcastOptOutSource: null,
+        }),
+      )
+
+      expectErr(
+        await WhatsAppContactService.setBroadcastOptOut('u1', 'ws1', 'ct1', {
+          optedOut: false,
+        }),
+        'VALIDATION_ERROR',
+      )
+      expect(mockedContactRepo.setBroadcastOptOut).not.toHaveBeenCalled()
+
+      const dto = expectOk(
+        await WhatsAppContactService.setBroadcastOptOut('u1', 'ws1', 'ct1', {
+          optedOut: false,
+          contactRequested: true,
+        }),
+      )
+      expect(dto.broadcastOptedOutAt).toBeNull()
+      expect(mockedContactRepo.setBroadcastOptOut).toHaveBeenCalledWith(
+        'ct1',
+        null,
+      )
     })
   })
 })
