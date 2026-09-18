@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedInvitation } from '@/src/__tests__/factories/invitation.factory'
+import { seedProject } from '@/src/__tests__/factories/project.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { InvitationRepository } from '../invitation.repository'
 
@@ -234,6 +235,141 @@ describe('InvitationRepository', () => {
       expect(
         expectOk(await InvitationRepository.countPendingByWorkspace(ws.id)),
       ).toBe(1)
+    })
+  })
+
+  describe('findById() / listByWorkspace() / updateStatus()', () => {
+    it('should find by id, list the workspace invites newest first and update status', async () => {
+      const { inviter, ws } = await seedInviterAndWorkspace()
+      const other = await seedWorkspace()
+      const older = await seedInvitation({
+        invitedById: inviter.id,
+        workspaceId: ws.id,
+      })
+      await prisma.workspaceInvitation.update({
+        where: { id: older.id },
+        data: { createdAt: new Date('2020-01-01') },
+      })
+      const newer = await seedInvitation({
+        invitedById: inviter.id,
+        workspaceId: ws.id,
+      })
+      await seedInvitation({ invitedById: inviter.id, workspaceId: other.id })
+
+      expect(expectOk(await InvitationRepository.findById(older.id))?.id).toBe(
+        older.id,
+      )
+      expect(
+        expectOk(await InvitationRepository.findById('missing')),
+      ).toBeNull()
+
+      const list = expectOk(await InvitationRepository.listByWorkspace(ws.id))
+      expect(list.map((i) => i.id)).toEqual([newer.id, older.id])
+
+      const revoked = expectOk(
+        await InvitationRepository.updateStatus(newer.id, 'REVOKED'),
+      )
+      expect(revoked.status).toBe('REVOKED')
+    })
+  })
+
+  describe('accept() with a project invite', () => {
+    it('should also add the user to the project, idempotently', async () => {
+      const { inviter, ws } = await seedInviterAndWorkspace()
+      const invitee = await seedUser({ email: `invitee-${Date.now()}@x.com` })
+      const project = await seedProject(ws.id, inviter.id)
+      const invitation = await seedInvitation({
+        invitedById: inviter.id,
+        workspaceId: ws.id,
+        projectId: project.id,
+      })
+      const params = {
+        invitationId: invitation.id,
+        userId: invitee.id,
+        workspaceId: ws.id,
+        role: 'MEMBER' as const,
+        projectId: project.id,
+      }
+
+      expectOk(await InvitationRepository.accept(params))
+      expectOk(await InvitationRepository.accept(params))
+
+      expect(
+        await prisma.projectMember.count({
+          where: { projectId: project.id, userId: invitee.id },
+        }),
+      ).toBe(1)
+    })
+  })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR when writes hit missing rows or FKs', async () => {
+      expectErr(
+        await InvitationRepository.create({
+          email: 'x@example.com',
+          role: 'MEMBER',
+          expiresAt: new Date(),
+          invitedById: 'missing',
+          workspaceId: 'missing',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await InvitationRepository.updateStatus('missing', 'REVOKED'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await InvitationRepository.refreshToken('missing', 't', new Date()),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should roll back accept() when the invitation does not exist', async () => {
+      const { inviter, ws } = await seedInviterAndWorkspace()
+
+      expectErr(
+        await InvitationRepository.accept({
+          invitationId: 'missing',
+          userId: inviter.id,
+          workspaceId: ws.id,
+          role: 'MEMBER',
+        }),
+        'DATABASE_ERROR',
+      )
+      expect(
+        await prisma.membership.count({ where: { workspaceId: ws.id } }),
+      ).toBe(0)
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      vi.spyOn(prisma.workspaceInvitation, 'findUnique')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(prisma.workspaceInvitation, 'findFirst').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      vi.spyOn(prisma.workspaceInvitation, 'findMany')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(prisma.workspaceInvitation, 'count').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+
+      expectErr(await InvitationRepository.findByToken('t'), 'DATABASE_ERROR')
+      expectErr(await InvitationRepository.findById('i'), 'DATABASE_ERROR')
+      expectErr(
+        await InvitationRepository.findPendingByWorkspaceAndEmail('w', 'e'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await InvitationRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(await InvitationRepository.listByProject('p'), 'DATABASE_ERROR')
+      expectErr(
+        await InvitationRepository.countPendingByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
     })
   })
 })

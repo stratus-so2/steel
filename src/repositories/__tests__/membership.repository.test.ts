@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedMembership } from '@/src/__tests__/factories/membership.factory'
+import { seedProfile } from '@/src/__tests__/factories/profile.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -214,6 +215,95 @@ describe('MembershipRepository', () => {
         new Error('boom'),
       )
       expectErr(await MembershipRepository.listByUser('u'), 'DATABASE_ERROR')
+    })
+  })
+
+  describe('listUserByWorkspace()', () => {
+    it('should return the user ids of the workspace members only', async () => {
+      const [ws, other, a, b] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser({ email: 'lu-a@example.com' }),
+        seedUser({ email: 'lu-b@example.com' }),
+      ])
+      await seedMembership({ userId: a.id, workspaceId: ws.id })
+      await seedMembership({ userId: b.id, workspaceId: other.id })
+
+      expect(
+        expectOk(await MembershipRepository.listUserByWorkspace(ws.id)),
+      ).toEqual([a.id])
+    })
+
+    it('should return DATABASE_ERROR when the query throws', async () => {
+      vi.spyOn(prisma.membership, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await MembershipRepository.listUserByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('setProfile()', () => {
+    it('should link and unlink a profile', async () => {
+      const [ws, user] = await Promise.all([seedWorkspace(), seedUser()])
+      await seedMembership({ userId: user.id, workspaceId: ws.id })
+      const profile = await seedProfile(ws.id)
+
+      const linked = expectOk(
+        await MembershipRepository.setProfile(user.id, ws.id, profile.id),
+      )
+      expect(linked.profileId).toBe(profile.id)
+
+      const unlinked = expectOk(
+        await MembershipRepository.setProfile(user.id, ws.id, null),
+      )
+      expect(unlinked.profileId).toBeNull()
+    })
+
+    it('should return DATABASE_ERROR when the membership does not exist', async () => {
+      expectErr(
+        await MembershipRepository.setProfile('u', 'w', null),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('listWithUserByWorkspace()', () => {
+    it('should list members oldest first with their public user fields', async () => {
+      const [ws, first, second] = await Promise.all([
+        seedWorkspace(),
+        seedUser({ name: 'Primeiro', email: 'first@example.com' }),
+        seedUser({ name: 'Segundo', email: 'second@example.com' }),
+      ])
+      const m1 = await seedMembership({ userId: first.id, workspaceId: ws.id })
+      await prisma.membership.update({
+        where: { id: m1.id },
+        data: { createdAt: new Date('2020-01-01') },
+      })
+      await seedMembership({ userId: second.id, workspaceId: ws.id })
+
+      const members = expectOk(
+        await MembershipRepository.listWithUserByWorkspace(ws.id),
+      )
+      expect(members.map((m) => m.user.name)).toEqual(['Primeiro', 'Segundo'])
+      expect(members[0].user).toEqual({
+        id: first.id,
+        name: 'Primeiro',
+        email: 'first@example.com',
+        image: null,
+      })
+    })
+
+    it('should return DATABASE_ERROR when the query throws', async () => {
+      vi.spyOn(prisma.membership, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await MembershipRepository.listWithUserByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
     })
   })
 })
