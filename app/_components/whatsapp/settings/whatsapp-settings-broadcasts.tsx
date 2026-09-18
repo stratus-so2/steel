@@ -1,6 +1,7 @@
 'use client'
 
 import { type FormEvent, useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -378,6 +379,8 @@ export function WhatsappSettingsBroadcasts({
 }) {
   const broadcasts = useWhatsAppBroadcasts(workspaceId)
   const startBroadcast = useStartWhatsAppBroadcast(workspaceId)
+  // Criar, importar e disparar transmissões é restrito a admins.
+  const canManage = useCan('broadcasts', 'CREATE')
 
   return (
     <div className='space-y-4'>
@@ -390,8 +393,12 @@ export function WhatsappSettingsBroadcasts({
           </p>
         </div>
         <div className='flex items-center gap-2'>
-          <ImportBroadcastDialog workspaceId={workspaceId} />
-          <CreateBroadcastDialog workspaceId={workspaceId} />
+          {canManage ? (
+            <>
+              <ImportBroadcastDialog workspaceId={workspaceId} />
+              <CreateBroadcastDialog workspaceId={workspaceId} />
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -421,7 +428,7 @@ export function WhatsappSettingsBroadcasts({
                     : ''}
                 </TableCell>
                 <TableCell>
-                  {broadcast.status === 'DRAFT' && (
+                  {canManage && broadcast.status === 'DRAFT' && (
                     <Button
                       size='xs'
                       disabled={startBroadcast.isPending}

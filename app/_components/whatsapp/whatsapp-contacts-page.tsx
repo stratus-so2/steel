@@ -4,6 +4,7 @@ import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { type FormEvent, useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   AlertDialog,
@@ -227,6 +228,7 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
     useState<WhatsAppContactDTO | null>(null)
   const contacts = useWhatsAppContacts(workspaceId, search)
   const deleteContact = useDeleteWhatsAppContact(workspaceId)
+  const canDelete = useCan('contacts', 'DELETE')
   const syncAvatar = useSyncWhatsAppContactAvatar(workspaceId)
 
   return (
@@ -316,13 +318,15 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
                     >
                       Editar
                     </Button>
-                    <Button
-                      size='xs'
-                      variant='destructive'
-                      onClick={() => setDeletingContact(contact)}
-                    >
-                      Remover
-                    </Button>
+                    {canDelete ? (
+                      <Button
+                        size='xs'
+                        variant='destructive'
+                        onClick={() => setDeletingContact(contact)}
+                      >
+                        Remover
+                      </Button>
+                    ) : null}
                   </div>
                 </TableCell>
               </TableRow>

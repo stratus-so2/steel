@@ -29,6 +29,7 @@ export function RecordPanel<T extends WithId>({
   title,
   lookups,
   renderExtra,
+  canDelete = true,
   onSaved,
   onDeleted,
 }: {
@@ -46,6 +47,8 @@ export function RecordPanel<T extends WithId>({
   lookups: Lookups
   /** Conteúdo extra abaixo dos campos (ex.: line items da oportunidade). */
   renderExtra?: (record: T) => React.ReactNode
+  /** false esconde "Excluir" (sem permissão de DELETE no recurso). */
+  canDelete?: boolean
   onSaved: (updated: T) => void
   onDeleted: (id: string) => void
 }) {
@@ -172,15 +175,17 @@ export function RecordPanel<T extends WithId>({
 
         {/* Ações: Delete + Salvar lado a lado */}
         <div className='flex items-center gap-2 border-t p-3'>
-          <Button
-            variant='destructive'
-            className='flex-1'
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-            {confirmDelete ? 'Confirmar exclusão' : 'Excluir'}
-          </Button>
+          {canDelete ? (
+            <Button
+              variant='destructive'
+              className='flex-1'
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+              {confirmDelete ? 'Confirmar exclusão' : 'Excluir'}
+            </Button>
+          ) : null}
           <Button className='flex-1' onClick={handleSave} disabled={saving}>
             {saving ? 'Salvando…' : 'Salvar'}
           </Button>

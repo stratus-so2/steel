@@ -2,6 +2,7 @@
 
 import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { useEffect, useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,6 +29,8 @@ import type { CrmPipelineStageDTO } from '@/types/crm-pipeline'
 export function CrmPipelinesPanel({ workspaceId }: { workspaceId: string }) {
   const { data: pipelines, isLoading } = useCrmPipelines(workspaceId)
   const deletePipeline = useDeleteCrmPipeline(workspaceId)
+  const canCreate = useCan('pipelines', 'CREATE')
+  const canDelete = useCan('pipelines', 'DELETE')
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -50,7 +53,9 @@ export function CrmPipelinesPanel({ workspaceId }: { workspaceId: string }) {
     <div className='grid grid-cols-1 gap-4 sm:grid-cols-3'>
       <div className='flex flex-col gap-3 sm:col-span-1'>
         <div className='flex justify-end'>
-          <CreateCrmPipelineDialog workspaceId={workspaceId} />
+          {canCreate ? (
+            <CreateCrmPipelineDialog workspaceId={workspaceId} />
+          ) : null}
         </div>
         <div className='flex flex-col gap-1'>
           {!isLoading && pipelines?.length === 0 && (
@@ -69,16 +74,18 @@ export function CrmPipelinesPanel({ workspaceId }: { workspaceId: string }) {
               )}
             >
               {pipeline.name}
-              <Button
-                variant='ghost'
-                size='icon-xs'
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleDelete(pipeline.id)
-                }}
-              >
-                <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-              </Button>
+              {canDelete ? (
+                <Button
+                  variant='ghost'
+                  size='icon-xs'
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete(pipeline.id)
+                  }}
+                >
+                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                </Button>
+              ) : null}
             </button>
           ))}
         </div>
@@ -187,6 +194,10 @@ function CrmPipelineStagesList({
   const createStage = useCreateCrmPipelineStage(workspaceId, pipelineId)
   const updateStage = useUpdateCrmPipelineStage(workspaceId, pipelineId)
   const deleteStage = useDeleteCrmPipelineStage(workspaceId, pipelineId)
+  // Etapas são configuração: Membro/Visualizador só leem (a API negaria).
+  const canCreate = useCan('pipelines', 'CREATE')
+  const canEdit = useCan('pipelines', 'EDIT')
+  const canDelete = useCan('pipelines', 'DELETE')
   const [stageName, setStageName] = useState('')
 
   async function handleCreateStage(e: React.SubmitEvent<HTMLFormElement>) {
@@ -209,21 +220,23 @@ function CrmPipelineStagesList({
 
   return (
     <div className='flex flex-col gap-3'>
-      <form onSubmit={handleCreateStage} className='flex gap-2'>
-        <Input
-          placeholder='Nova etapa'
-          value={stageName}
-          onChange={(e) => setStageName(e.target.value)}
-          required
-        />
-        <Button
-          type='submit'
-          size='sm'
-          disabled={createStage.isPending || !stageName}
-        >
-          Adicionar
-        </Button>
-      </form>
+      {canCreate ? (
+        <form onSubmit={handleCreateStage} className='flex gap-2'>
+          <Input
+            placeholder='Nova etapa'
+            value={stageName}
+            onChange={(e) => setStageName(e.target.value)}
+            required
+          />
+          <Button
+            type='submit'
+            size='sm'
+            disabled={createStage.isPending || !stageName}
+          >
+            Adicionar
+          </Button>
+        </form>
+      ) : null}
       <div className='flex flex-col gap-1'>
         {!isLoading && stages?.length === 0 && (
           <p className='text-sm text-muted-foreground'>
@@ -235,7 +248,8 @@ function CrmPipelineStagesList({
             key={stage.id}
             stage={stage}
             onUpdate={updateStage}
-            onDelete={() => handleDeleteStage(stage.id)}
+            canEdit={canEdit}
+            onDelete={canDelete ? () => handleDeleteStage(stage.id) : undefined}
           />
         ))}
       </div>
@@ -246,11 +260,14 @@ function CrmPipelineStagesList({
 function CrmPipelineStageRow({
   stage,
   onUpdate,
+  canEdit,
   onDelete,
 }: {
   stage: CrmPipelineStageDTO
   onUpdate: ReturnType<typeof useUpdateCrmPipelineStage>
-  onDelete: () => void
+  canEdit: boolean
+  /** Ausente = sem permissão de excluir (botão escondido). */
+  onDelete?: () => void
 }) {
   const [editingField, setEditingField] = useState<
     'name' | 'probability' | null
@@ -258,6 +275,7 @@ function CrmPipelineStageRow({
   const [draft, setDraft] = useState('')
 
   function startEdit(field: 'name' | 'probability') {
+    if (!canEdit) return
     setDraft(field === 'name' ? stage.name : String(stage.probability))
     setEditingField(field)
   }
@@ -299,7 +317,8 @@ function CrmPipelineStageRow({
         <button
           type='button'
           onClick={() => startEdit('name')}
-          className='rounded px-1.5 py-0.5 text-left hover:bg-muted/50'
+          disabled={!canEdit}
+          className='rounded px-1.5 py-0.5 text-left enabled:hover:bg-muted/50 disabled:cursor-default'
         >
           {stage.name}
         </button>
@@ -324,14 +343,17 @@ function CrmPipelineStageRow({
           <button
             type='button'
             onClick={() => startEdit('probability')}
-            className='rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted/50'
+            disabled={!canEdit}
+            className='rounded px-1.5 py-0.5 text-xs text-muted-foreground enabled:hover:bg-muted/50 disabled:cursor-default'
           >
             {stage.probability}%
           </button>
         )}
-        <Button variant='ghost' size='icon-xs' onClick={onDelete}>
-          <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-        </Button>
+        {onDelete ? (
+          <Button variant='ghost' size='icon-xs' onClick={onDelete}>
+            <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+          </Button>
+        ) : null}
       </div>
     </div>
   )

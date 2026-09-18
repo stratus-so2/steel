@@ -67,6 +67,7 @@ import {
   CrmKanbanView,
 } from '@/app/_components/crm/table/kanban-view'
 import { RecordPanel } from '@/app/_components/crm/table/record-panel'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -112,6 +113,7 @@ import {
   updateCrmResource,
 } from '@/src/hooks/use-crm-resource-list'
 import type { Lookups } from '@/src/hooks/use-crm-workspace-lookups'
+import { CRM_ROUTE_RESOURCE } from '@/src/lib/permissions'
 
 type CalcType =
   | 'none'
@@ -322,10 +324,12 @@ function DragHandle({ handle }: { handle: SortableHandle }) {
 function DraggableRow<TData extends WithId>({
   row,
   onDelete,
+  canDelete,
   primaryKey,
 }: {
   row: Row<TData>
   onDelete: (id: string) => void
+  canDelete: boolean
   primaryKey: string | null
 }) {
   const {
@@ -359,15 +363,17 @@ function DraggableRow<TData extends WithId>({
                 handle={{ attributes, listeners, setActivatorNodeRef }}
               />
             ) : cell.column.id === 'actions' ? (
-              <Button
-                variant='ghost'
-                size='icon-sm'
-                className='size-7 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover/row:opacity-100'
-                onClick={() => onDelete(row.original.id)}
-                aria-label='Excluir'
-              >
-                <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-              </Button>
+              canDelete ? (
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  className='size-7 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover/row:opacity-100'
+                  onClick={() => onDelete(row.original.id)}
+                  aria-label='Excluir'
+                >
+                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                </Button>
+              ) : null
             ) : (
               flexRender(cell.column.columnDef.cell, cell.getContext())
             )}
@@ -658,6 +664,9 @@ export function DataTable<TData extends WithId>({
     renderCard: (record: TData) => React.ReactNode
   }
 }) {
+  // Esconde a exclusão para quem não tem DELETE no recurso (a API negaria).
+  const canDelete = useCan(CRM_ROUTE_RESOURCE[resource] ?? resource, 'DELETE')
+
   const [rows, setRows] = React.useState(() => data)
   React.useEffect(() => setRows(data), [data])
 
@@ -1301,6 +1310,7 @@ export function DataTable<TData extends WithId>({
                           key={row.id}
                           row={row}
                           onDelete={removeRow}
+                          canDelete={canDelete}
                           primaryKey={primaryKey}
                         />
                       ))}
@@ -1493,6 +1503,7 @@ export function DataTable<TData extends WithId>({
           title={createTitle}
           lookups={lookups}
           renderExtra={renderRecordExtra}
+          canDelete={canDelete}
           onSaved={(updated) =>
             setRows((cur) =>
               cur.map((row) => (row.id === updated.id ? updated : row)),

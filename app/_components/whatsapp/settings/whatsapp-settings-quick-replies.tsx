@@ -1,6 +1,7 @@
 'use client'
 
 import { type FormEvent, useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -150,6 +151,7 @@ export function WhatsappSettingsQuickReplies({
     useState<WhatsAppQuickReplyDTO | null>(null)
   const quickReplies = useWhatsAppQuickReplies(workspaceId)
   const deleteQuickReply = useDeleteWhatsAppQuickReply(workspaceId)
+  const canDelete = useCan('quick-replies', 'DELETE')
 
   return (
     <div className='space-y-4'>
@@ -182,13 +184,15 @@ export function WhatsappSettingsQuickReplies({
                   {quickReply.body}
                 </TableCell>
                 <TableCell>
-                  <Button
-                    size='xs'
-                    variant='destructive'
-                    onClick={() => setDeletingQuickReply(quickReply)}
-                  >
-                    Remover
-                  </Button>
+                  {canDelete ? (
+                    <Button
+                      size='xs'
+                      variant='destructive'
+                      onClick={() => setDeletingQuickReply(quickReply)}
+                    >
+                      Remover
+                    </Button>
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))}

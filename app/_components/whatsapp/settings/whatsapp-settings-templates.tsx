@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -40,6 +41,8 @@ export function WhatsappSettingsTemplates({
 
   const templates = useWhatsAppTemplates(workspaceId)
   const syncTemplates = useSyncWhatsAppTemplates(workspaceId)
+  // Criar/sincronizar templates é restrito a admins.
+  const canManage = useCan('message-templates', 'CREATE')
 
   return (
     <div className='space-y-4'>
@@ -70,21 +73,28 @@ export function WhatsappSettingsTemplates({
               </SelectGroup>
             </SelectContent>
           </Select>
-          <Button
-            size='sm'
-            variant='outline'
-            disabled={!selectedConnectionId || syncTemplates.isPending}
-            onClick={() => {
-              if (!selectedConnectionId) return
-              syncTemplates.mutate(selectedConnectionId, {
-                onSuccess: () => notify.success('Templates sincronizados'),
-                onError: (error) => notify.error(error, 'Falha ao sincronizar'),
-              })
-            }}
-          >
-            {syncTemplates.isPending ? 'Sincronizando...' : 'Sincronizar agora'}
-          </Button>
-          <CreateTemplateDialog workspaceId={workspaceId} />
+          {canManage ? (
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={!selectedConnectionId || syncTemplates.isPending}
+              onClick={() => {
+                if (!selectedConnectionId) return
+                syncTemplates.mutate(selectedConnectionId, {
+                  onSuccess: () => notify.success('Templates sincronizados'),
+                  onError: (error) =>
+                    notify.error(error, 'Falha ao sincronizar'),
+                })
+              }}
+            >
+              {syncTemplates.isPending
+                ? 'Sincronizando...'
+                : 'Sincronizar agora'}
+            </Button>
+          ) : null}
+          {canManage ? (
+            <CreateTemplateDialog workspaceId={workspaceId} />
+          ) : null}
         </div>
       </div>
 

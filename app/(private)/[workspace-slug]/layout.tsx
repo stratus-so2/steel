@@ -5,9 +5,11 @@ import { CrmAiAssistantWidget } from '@/app/_components/crm/crm-ai-assistant-wid
 import { UserHeader } from '@/app/_components/header/header-layout-user'
 import { HeaderPromotionBanner } from '@/app/_components/header/header-promotion-banner'
 import { GlobalSidebarNavigation } from '@/app/_components/navigation/sidebar-global'
+import { WorkspacePermissionsProvider } from '@/app/_components/workspace/workspace-permissions'
 import { OPENAI_API_KEY } from '@/lib/env/server'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
 import { getAuthSession } from '@/src/lib/auth-session'
+import { assertMember } from '@/src/services/authz'
 import { MembershipService } from '@/src/services/membership.service'
 import { SubscriptionService } from '@/src/services/subscription.service'
 import { UserService } from '@/src/services/user.service'
@@ -63,6 +65,18 @@ export default async function WorkspaceLayout({
 
   const workspace = membership.value.workspace
 
+  // Matriz efetiva (papel/perfil) para a UI esconder ações negadas.
+  const access = await assertMember(
+    session.value.user.id,
+    membership.value.workspaceId,
+  )
+  const permissions = access.ok
+    ? {
+        isPrivileged: access.value.isPrivileged,
+        permissions: access.value.permissions,
+      }
+    : { isPrivileged: false, permissions: null }
+
   // Banner só nos últimos TRIAL_BANNER_DAYS dias do trial.
   const now = Date.now()
   const trialEndingSoon =
@@ -90,7 +104,9 @@ export default async function WorkspaceLayout({
       <div className='flex gap-x-1.5 flex-1 overflow-hidden min-h-0 pr-2 pb-2'>
         <GlobalSidebarNavigation slug={slug} />
         <div className='flex-1 w-full min-h-0 min-w-0 flex items-start bg-primary-foreground rounded-lg border border-border overflow-hidden [&>*]:min-h-0 [&>*]:min-w-0'>
-          {children}
+          <WorkspacePermissionsProvider value={permissions}>
+            {children}
+          </WorkspacePermissionsProvider>
         </div>
       </div>
       {OPENAI_API_KEY && userResult.ok ? (

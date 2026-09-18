@@ -138,6 +138,33 @@ export const ROLE_TO_SYSTEM_KEY: Record<string, string> = {
   VIEWER: 'VIEWER',
 }
 
+/**
+ * Recurso de permissão de cada segmento de rota/tabela do CRM (o nome usado
+ * nas URLs e no `DataTable` nem sempre é o do catálogo).
+ */
+export const CRM_ROUTE_RESOURCE: Record<string, PermissionResource> = {
+  companies: 'companies',
+  people: 'people',
+  opportunities: 'opportunities',
+  products: 'products',
+  pipelines: 'pipelines',
+  tasks: 'tasks',
+  notes: 'notes',
+  proposals: 'documents',
+  'proposal-templates': 'documents',
+  forms: 'forms',
+  'landing-pages': 'landing-pages',
+  'email-campaigns': 'email',
+  'email-templates': 'email',
+  'mailing-lists': 'email',
+  dashboards: 'dashboards',
+  reports: 'reports',
+  workflows: 'workflows',
+  competitors: 'social',
+  'hook-vault': 'social',
+  leads: 'leads',
+}
+
 /** O perfil concede a ação no recurso? */
 export function can(
   permissions: PermissionMap,

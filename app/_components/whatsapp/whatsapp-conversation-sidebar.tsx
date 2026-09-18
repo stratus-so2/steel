@@ -10,6 +10,7 @@ import {
   UserSwitchIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useEffect, useState } from 'react'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   AlertDialog,
@@ -227,6 +228,8 @@ export function WhatsappConversationSidebar({
   const archiveConversation = useArchiveWhatsAppConversation(workspaceId)
   const deleteConversation = useDeleteWhatsAppConversation(workspaceId)
   const clearChat = useClearWhatsAppChat(workspaceId)
+  // Limpar/excluir conversa é ação de admin (a API negaria ao Membro).
+  const canDeleteConversation = useCan('conversations', 'DELETE')
 
   const filtered = (conversations.data ?? []).filter((conversation) => {
     if (!search) return true
@@ -396,20 +399,24 @@ export function WhatsappConversationSidebar({
                     <SteelIcon icon={ArchiveIcon} size={14} />
                     {conversation.archived ? 'Desarquivar' : 'Arquivar'}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setClearTargetId(conversation.id)}
-                  >
-                    <SteelIcon icon={Delete02Icon} size={14} />
-                    Limpar conversa
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant='destructive'
-                    onClick={() => setDeleteTargetId(conversation.id)}
-                  >
-                    <SteelIcon icon={Delete02Icon} size={14} />
-                    Excluir conversa
-                  </DropdownMenuItem>
+                  {canDeleteConversation ? (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => setClearTargetId(conversation.id)}
+                      >
+                        <SteelIcon icon={Delete02Icon} size={14} />
+                        Limpar conversa
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant='destructive'
+                        onClick={() => setDeleteTargetId(conversation.id)}
+                      >
+                        <SteelIcon icon={Delete02Icon} size={14} />
+                        Excluir conversa
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
