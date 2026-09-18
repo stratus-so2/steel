@@ -79,3 +79,16 @@ describe('UpdateCrmProductSchema — clearing optional fields', () => {
     expect(result.data).not.toHaveProperty('sku')
   })
 })
+
+describe('ListCrmProductsSchema — no filter', () => {
+  it('should leave active undefined when the query param is absent', () => {
+    const result = ListCrmProductsSchema.safeParse({})
+    expect(result.success).toBe(true)
+    expect(result.data?.active).toBeUndefined()
+  })
+
+  it('should treat any value other than "true" as false', () => {
+    expect(ListCrmProductsSchema.parse({ active: 'true' }).active).toBe(true)
+    expect(ListCrmProductsSchema.parse({ active: 'yes' }).active).toBe(false)
+  })
+})

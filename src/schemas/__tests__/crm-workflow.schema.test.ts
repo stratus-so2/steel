@@ -195,3 +195,25 @@ describe('UpdateCrmWorkflowDraftSchema', () => {
     expect(UpdateCrmWorkflowDraftSchema.safeParse({}).success).toBe(false)
   })
 })
+
+describe('CrmWorkflowDefinitionSchema — edge sources', () => {
+  it('should reject an edge whose source node does not exist', () => {
+    const result = CrmWorkflowDefinitionSchema.safeParse({
+      trigger: {
+        id: 'trigger',
+        position: { x: 0, y: 0 },
+        data: { type: 'launch-manually', inputs: [] },
+      },
+      nodes: [
+        {
+          id: 'n1',
+          position: { x: 0, y: 0 },
+          data: { type: 'delay', amount: 1, unit: 'minutes' },
+        },
+      ],
+      edges: [{ id: 'e1', source: 'ghost', target: 'n1' }],
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toContain('source desconhecido')
+  })
+})

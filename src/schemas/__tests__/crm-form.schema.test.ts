@@ -270,3 +270,37 @@ describe('SubmitCrmFormSchema', () => {
     ).toBe(true)
   })
 })
+
+describe('UpdateCrmFormSchema — cross validation', () => {
+  it('should reject a field pointing to a phase missing from the same PATCH', () => {
+    const result = UpdateCrmFormSchema.safeParse({
+      phases: [{ id: 'p1', title: 'Fase 1' }],
+      fields: [
+        {
+          key: 'x',
+          label: 'X',
+          type: 'text',
+          mapping: { target: 'lead', attribute: 'name' },
+          phaseId: 'ghost-phase',
+        },
+      ],
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('should accept fields and phases that reference each other', () => {
+    const result = UpdateCrmFormSchema.safeParse({
+      phases: [{ id: 'p1', title: 'Fase 1' }],
+      fields: [
+        {
+          key: 'x',
+          label: 'X',
+          type: 'text',
+          mapping: { target: 'lead', attribute: 'name' },
+          phaseId: 'p1',
+        },
+      ],
+    })
+    expect(result.success).toBe(true)
+  })
+})

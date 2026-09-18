@@ -4,6 +4,7 @@ import {
   CreateCrmDashboardSchema,
   CreateCrmDashboardWidgetSchema,
   IframeConfigSchema,
+  RichTextConfigSchema,
   UpdateCrmDashboardSchema,
   UpdateCrmDashboardWidgetSchema,
   ViewConfigSchema,
@@ -113,5 +114,6 @@ describe('widgetConfigSchema()', () => {
     expect(widgetConfigSchema('CHART')).toBe(ChartConfigSchema)
     expect(widgetConfigSchema('VIEW')).toBe(ViewConfigSchema)
     expect(widgetConfigSchema('IFRAME')).toBe(IframeConfigSchema)
+    expect(widgetConfigSchema('RICH_TEXT')).toBe(RichTextConfigSchema)
   })
 })
