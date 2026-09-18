@@ -121,6 +121,8 @@ export default defineConfig({
         'src/lib/result.ts',
         'utils/**',
         'lib/abacatepay.ts',
+        'src/lib/ai/**',
+        'src/lib/queue/processors/**',
       ],
       exclude: [
         'node_modules/**',
