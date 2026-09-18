@@ -37,7 +37,9 @@ secrets/
 .claude
 biome.json
 commitlint.config.js
-proxy.ts
+# NUNCA ignore proxy.ts: é o middleware do Next 16 (CSP/HSTS + gate de auth).
+# Fora do contexto de build, a imagem sobe sem proxy e toda rota privada
+# fica aberta sem redirect para /sign-in.
 
 # Docs
 docs
