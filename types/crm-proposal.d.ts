@@ -30,6 +30,11 @@ export interface CrmProposalDTO {
   responsibleId: string
   validUntil: string | null
   status: CrmProposalStatusDTO
+  /** Validade vencida (status EXPIRED ou data passada ainda não processada). */
+  isExpired: boolean
+  acceptedAt: string | null
+  acceptedByName: string | null
+  expiredAt: string | null
   shareToken: string
   viewsCount: number
   sections: CrmProposalSectionDTO[]
@@ -46,6 +51,12 @@ export interface CrmProposalPublicDTO {
   name: string
   status: CrmProposalStatusDTO
   validUntil: string | null
+  /** Validade vencida — o aceite fica bloqueado. */
+  isExpired: boolean
+  /** Pode ser aceita agora (enviada/vista e dentro da validade). */
+  canAccept: boolean
+  acceptedAt: string | null
+  acceptedByName: string | null
   sections: CrmProposalSectionDTO[]
 }
 

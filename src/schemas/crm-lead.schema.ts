@@ -200,6 +200,19 @@ export const CloseCrmLeadLostSchema = z.object({
 
 export type CloseCrmLeadLostDTO = z.infer<typeof CloseCrmLeadLostSchema>
 
+// Reabre um lead perdido: volta para a etapa configurada em CrmSettings. O
+// motivo é obrigatório — fica no histórico de reaberturas junto com o
+// snapshot da perda desfeita.
+export const ReopenCrmLeadSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'Informe o motivo da reabertura')
+    .max(1000, 'O motivo pode ter no máximo 1000 caracteres'),
+})
+
+export type ReopenCrmLeadDTO = z.infer<typeof ReopenCrmLeadSchema>
+
 const LeadRuleFieldEnum = z.enum([
   'name',
   'email',

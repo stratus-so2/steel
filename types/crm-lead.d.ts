@@ -153,3 +153,17 @@ export interface CrmLeadRoutingRuleDTO {
   createdAt: string
   updatedAt: string
 }
+
+/** Reabertura de um lead perdido (com o snapshot da perda desfeita). */
+export interface CrmLeadReopeningDTO {
+  id: string
+  leadId: string
+  toStage: CrmLeadStageDTO
+  reason: string
+  previousLostReason: string | null
+  previousLostNote: string | null
+  previousClosedAt: string | null
+  previousRetryAt: string | null
+  reopenedById: string
+  createdAt: string
+}

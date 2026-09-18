@@ -158,6 +158,26 @@ export const UpdateCrmProposalSchema = z.object({
 
 export type UpdateCrmProposalDTO = z.infer<typeof UpdateCrmProposalSchema>
 
+/** Admin estende a validade (inclusive de uma proposta já expirada). */
+export const ExtendCrmProposalValiditySchema = z.object({
+  validUntil: z.coerce.date({ message: 'Informe a nova data de validade' }),
+})
+
+export type ExtendCrmProposalValidityDTO = z.infer<
+  typeof ExtendCrmProposalValiditySchema
+>
+
+/** Aceite do cliente na página pública da proposta (`/p/[shareToken]`). */
+export const AcceptCrmProposalSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Informe seu nome para aceitar a proposta')
+    .max(200),
+})
+
+export type AcceptCrmProposalDTO = z.infer<typeof AcceptCrmProposalSchema>
+
 export const ReorderCrmProposalsSchema = z.object({
   orderedIds: z.array(z.string()).min(1),
 })

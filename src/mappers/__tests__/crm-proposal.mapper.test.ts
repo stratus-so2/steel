@@ -66,6 +66,10 @@ describe('toCrmProposalPublicDTO()', () => {
       name: proposal.name,
       status: proposal.status,
       validUntil: null,
+      isExpired: false,
+      canAccept: false,
+      acceptedAt: null,
+      acceptedByName: null,
       sections: [
         {
           id: enabled.id,
@@ -76,5 +80,50 @@ describe('toCrmProposalPublicDTO()', () => {
         },
       ],
     })
+  })
+})
+
+describe('proposal validity mapping', () => {
+  const past = new Date('2020-01-01T12:00:00.000Z')
+  const future = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)
+
+  it('should flag a sent proposal past its validity as expired', () => {
+    const proposal = createFakeCrmProposal({ status: 'SENT', validUntil: past })
+    expect(toCrmProposalDTO(proposal).isExpired).toBe(true)
+    const pub = toCrmProposalPublicDTO({ ...proposal, sections: [] })
+    expect(pub.isExpired).toBe(true)
+    expect(pub.canAccept).toBe(false)
+  })
+
+  it('should allow accepting a viewed proposal within its validity', () => {
+    const proposal = createFakeCrmProposal({
+      status: 'VIEWED',
+      validUntil: future,
+    })
+    const pub = toCrmProposalPublicDTO({ ...proposal, sections: [] })
+    expect(pub.isExpired).toBe(false)
+    expect(pub.canAccept).toBe(true)
+  })
+
+  it('should keep legacy proposals without validity acceptable', () => {
+    const proposal = createFakeCrmProposal({ status: 'SENT', validUntil: null })
+    expect(
+      toCrmProposalPublicDTO({ ...proposal, sections: [] }).canAccept,
+    ).toBe(true)
+  })
+
+  it('should expose the acceptance record', () => {
+    const acceptedAt = new Date('2026-09-18T15:00:00.000Z')
+    const proposal = createFakeCrmProposal({
+      status: 'ACCEPTED',
+      acceptedAt,
+      acceptedByName: 'Maria',
+    })
+    const dto = toCrmProposalDTO(proposal)
+    expect(dto.acceptedAt).toBe(acceptedAt.toISOString())
+    expect(dto.acceptedByName).toBe('Maria')
+    expect(
+      toCrmProposalPublicDTO({ ...proposal, sections: [] }).canAccept,
+    ).toBe(false)
   })
 })

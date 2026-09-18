@@ -72,6 +72,8 @@ model User {
   crmLeadMeetingsCreated             CrmLeadMeeting[]              @relation("CrmLeadMeetingCreatedBy")
   crmLeadProposalPresentationsLogged CrmLeadProposalPresentation[] @relation("CrmLeadProposalPresentationCreatedBy")
   crmLeadRoutingRulesOwned           CrmLeadRoutingRule[]          @relation("CrmLeadRoutingOwner")
+  crmLeadReopeningsLogged            CrmLeadReopening[]            @relation("CrmLeadReopeningReopenedBy")
+  crmSettingsUpdated                 CrmSettings[]                 @relation("CrmSettingsUpdatedBy")
   crmCustomFieldsCreated             CrmCustomFieldDefinition[]    @relation("CrmCustomFieldCreatedBy")
   crmCustomFieldsUpdated             CrmCustomFieldDefinition[]    @relation("CrmCustomFieldUpdatedBy")
   crmTasksAssigned                   CrmTask[]                     @relation("CrmTaskAssignee")
@@ -312,6 +314,8 @@ model Workspace {
   crmLeads                  CrmLead[]
   crmLeadScoringRules       CrmLeadScoringRule[]
   crmLeadRoutingRules       CrmLeadRoutingRule[]
+  crmLeadReopenings         CrmLeadReopening[]
+  crmSettings               CrmSettings?
   crmCustomFieldDefinitions CrmCustomFieldDefinition[]
   crmTasks                  CrmTask[]
   crmNotes                  CrmNote[]
@@ -1566,6 +1570,7 @@ model CrmLead {
   meetings              CrmLeadMeeting[]
   proposals             CrmProposal[]
   proposalPresentations CrmLeadProposalPresentation[]
+  reopenings            CrmLeadReopening[]
   notes                 CrmNote[]
 
   @@index([workspaceId])
@@ -1676,6 +1681,53 @@ model CrmLeadProposalPresentation {
   @@index([leadId, presentedAt])
   @@index([proposalId])
   @@map("crm_lead_proposal_presentations")
+}
+
+/// Reabertura de um lead perdido (CLOSED/LOST -> etapa aberta). Guarda o
+/// snapshot do fechamento desfeito para o histórico: o lead em si volta ao
+/// funil com os campos de perda limpos, mas nada da perda anterior se perde.
+model CrmLeadReopening {
+  id                 String       @id @default(cuid())
+  leadId             String       @map("lead_id")
+  workspaceId        String       @map("workspace_id")
+  toStage            CrmLeadStage @map("to_stage")
+  reason             String
+  previousLostReason String?      @map("previous_lost_reason")
+  previousLostNote   String?      @map("previous_lost_note")
+  previousClosedAt   DateTime?    @map("previous_closed_at")
+  previousRetryAt    DateTime?    @map("previous_retry_at")
+  reopenedById       String       @map("reopened_by_id")
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  lead       CrmLead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  reopenedBy User      @relation("CrmLeadReopeningReopenedBy", fields: [reopenedById], references: [id])
+
+  @@index([leadId, createdAt])
+  @@index([workspaceId])
+  @@map("crm_lead_reopenings")
+}
+
+/// Configurações do CRM por workspace, editáveis por OWNER/ADMIN. No máximo
+/// uma linha por workspace; sem linha valem os padrões (`CRM_SETTINGS_DEFAULTS`
+/// em src/schemas/crm-settings.schema.ts, espelhados nos @default abaixo).
+model CrmSettings {
+  id                   String       @id @default(cuid())
+  workspaceId          String       @unique @map("workspace_id")
+  /// Etapa para onde um lead perdido volta ao ser reaberto.
+  leadReopenStage      CrmLeadStage @default(RECEIVED) @map("lead_reopen_stage")
+  /// Validade padrão (dias) aplicada às propostas novas.
+  proposalValidityDays Int          @default(15) @map("proposal_validity_days")
+  /// Avisar o responsável por e-mail quando a proposta expira.
+  notifyProposalExpiry Boolean      @default(true) @map("notify_proposal_expiry")
+  updatedById          String?      @map("updated_by_id")
+  createdAt            DateTime     @default(now()) @map("created_at")
+  updatedAt            DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  updatedBy User?     @relation("CrmSettingsUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("crm_settings")
 }
 
 /// Regra de pontuação de leads: condição → pontos somados ao score.
@@ -2067,24 +2119,31 @@ model CrmProposalTemplateSection {
 /// workspace e opcionalmente vinculado a cliente/contato/oportunidade.
 /// `shareToken` opaco serve a página pública sem autenticação.
 model CrmProposal {
-  id            String            @id @default(cuid())
-  name          String
-  templateId    String?           @map("template_id")
-  companyId     String?           @map("company_id")
-  contactId     String?           @map("contact_id")
-  opportunityId String?           @map("opportunity_id")
-  leadId        String?           @map("lead_id")
-  responsibleId String            @map("responsible_id")
-  validUntil    DateTime?         @map("valid_until")
-  status        CrmProposalStatus @default(DRAFT)
-  shareToken    String            @unique @map("share_token")
-  workspaceId   String            @map("workspace_id")
-  createdById   String            @map("created_by_id")
-  updatedById   String?           @map("updated_by_id")
-  position      Int               @default(0)
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt @map("updated_at")
-  deletedAt     DateTime?         @map("deleted_at")
+  id             String            @id @default(cuid())
+  name           String
+  templateId     String?           @map("template_id")
+  companyId      String?           @map("company_id")
+  contactId      String?           @map("contact_id")
+  opportunityId  String?           @map("opportunity_id")
+  leadId         String?           @map("lead_id")
+  responsibleId  String            @map("responsible_id")
+  /// Fim da validade (vale até o fim desse dia, America/Sao_Paulo). `null` =
+  /// sem validade — inclusive as propostas legadas, anteriores à validade padrão.
+  validUntil     DateTime?         @map("valid_until")
+  status         CrmProposalStatus @default(DRAFT)
+  /// Aceite registrado pelo cliente na página pública.
+  acceptedAt     DateTime?         @map("accepted_at")
+  acceptedByName String?           @map("accepted_by_name")
+  /// Quando o job diário marcou a proposta como EXPIRED.
+  expiredAt      DateTime?         @map("expired_at")
+  shareToken     String            @unique @map("share_token")
+  workspaceId    String            @map("workspace_id")
+  createdById    String            @map("created_by_id")
+  updatedById    String?           @map("updated_by_id")
+  position       Int               @default(0)
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  deletedAt      DateTime?         @map("deleted_at")
 
   workspace         Workspace                     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   template          CrmProposalTemplate?          @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -2105,6 +2164,7 @@ model CrmProposal {
   @@index([opportunityId])
   @@index([leadId])
   @@index([status])
+  @@index([status, validUntil])
   @@index([deletedAt])
   @@index([workspaceId, position])
   @@map("crm_proposals")

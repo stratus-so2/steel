@@ -3,6 +3,10 @@ import type {
   CrmProposalSection,
   CrmProposalView,
 } from '@prisma/client'
+import {
+  CRM_PROPOSAL_EXPIRABLE_STATUSES,
+  isCrmProposalExpired,
+} from '@/src/lib/crm-proposal-validity'
 import type { CrmProposalMetricsRaw } from '@/src/repositories/crm-proposal.repository'
 import type { CrmProposalSectionContent } from '@/src/schemas/crm-proposal.schema'
 import type {
@@ -42,6 +46,10 @@ export function toCrmProposalDTO(
     responsibleId: proposal.responsibleId,
     validUntil: proposal.validUntil ? proposal.validUntil.toISOString() : null,
     status: proposal.status,
+    isExpired: isCrmProposalExpired(proposal),
+    acceptedAt: proposal.acceptedAt ? proposal.acceptedAt.toISOString() : null,
+    acceptedByName: proposal.acceptedByName,
+    expiredAt: proposal.expiredAt ? proposal.expiredAt.toISOString() : null,
     shareToken: proposal.shareToken,
     viewsCount: proposal._count?.views ?? 0,
     sections: (proposal.sections ?? []).map(toCrmProposalSectionDTO),
@@ -57,11 +65,20 @@ export function toCrmProposalDTO(
 export function toCrmProposalPublicDTO(
   proposal: CrmProposal & { sections: CrmProposalSection[] },
 ): CrmProposalPublicDTO {
+  const isExpired = isCrmProposalExpired(proposal)
   return {
     id: proposal.id,
     name: proposal.name,
     status: proposal.status,
     validUntil: proposal.validUntil ? proposal.validUntil.toISOString() : null,
+    isExpired,
+    canAccept:
+      !isExpired &&
+      (CRM_PROPOSAL_EXPIRABLE_STATUSES as readonly string[]).includes(
+        proposal.status,
+      ),
+    acceptedAt: proposal.acceptedAt ? proposal.acceptedAt.toISOString() : null,
+    acceptedByName: proposal.acceptedByName,
     sections: proposal.sections
       .filter((section) => section.enabled)
       .map(toCrmProposalSectionDTO),

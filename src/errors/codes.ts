@@ -174,6 +174,10 @@ export const ERROR_CODES = {
     status: 404,
   },
   CRM_LEAD_DUPLICATE: { code: 'CRM_LEAD_DUPLICATE', status: 409 },
+  CRM_LEAD_REOPEN_NOT_ALLOWED: {
+    code: 'CRM_LEAD_REOPEN_NOT_ALLOWED',
+    status: 409,
+  },
   CRM_CUSTOM_FIELD_NOT_FOUND: {
     code: 'CRM_CUSTOM_FIELD_NOT_FOUND',
     status: 404,
@@ -201,6 +205,11 @@ export const ERROR_CODES = {
     status: 404,
   },
   CRM_PROPOSAL_NOT_FOUND: { code: 'CRM_PROPOSAL_NOT_FOUND', status: 404 },
+  CRM_PROPOSAL_EXPIRED: { code: 'CRM_PROPOSAL_EXPIRED', status: 409 },
+  CRM_PROPOSAL_NOT_ACCEPTABLE: {
+    code: 'CRM_PROPOSAL_NOT_ACCEPTABLE',
+    status: 409,
+  },
   CRM_PROPOSAL_TEMPLATE_NOT_FOUND: {
     code: 'CRM_PROPOSAL_TEMPLATE_NOT_FOUND',
     status: 404,

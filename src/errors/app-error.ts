@@ -330,6 +330,10 @@ export const crmLeadDuplicate = (
   message = 'Já existe um lead em aberto com este e-mail ou telefone',
 ): AppError => appError('CRM_LEAD_DUPLICATE', message)
 
+export const crmLeadReopenNotAllowed = (
+  message = 'Apenas leads perdidos podem ser reabertos',
+): AppError => appError('CRM_LEAD_REOPEN_NOT_ALLOWED', message)
+
 export const crmCustomFieldNotFound = (): AppError =>
   appError('CRM_CUSTOM_FIELD_NOT_FOUND', 'Campo customizado não encontrado')
 
@@ -368,6 +372,14 @@ export const crmDashboardWidgetNotFound = (): AppError =>
 
 export const crmProposalNotFound = (): AppError =>
   appError('CRM_PROPOSAL_NOT_FOUND', 'Proposta não encontrada')
+
+export const crmProposalExpired = (
+  message = 'A validade desta proposta expirou',
+): AppError => appError('CRM_PROPOSAL_EXPIRED', message)
+
+export const crmProposalNotAcceptable = (
+  message = 'Esta proposta não está disponível para aceite',
+): AppError => appError('CRM_PROPOSAL_NOT_ACCEPTABLE', message)
 
 export const crmProposalTemplateNotFound = (): AppError =>
   appError(

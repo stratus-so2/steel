@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  AcceptCrmProposalSchema,
   CreateCrmProposalSchema,
   CrmProposalSectionContentSchema,
+  ExtendCrmProposalValiditySchema,
   RecordCrmProposalViewSchema,
   UpdateCrmProposalSchema,
 } from '../crm-proposal.schema'
@@ -119,5 +121,33 @@ describe('CrmProposalSectionContentSchema — pt-BR messages', () => {
     expect(
       messages({ type: 'SCOPE', items: [{ title: '', description: '' }] }),
     ).toEqual(['Título do item é obrigatório'])
+  })
+})
+
+describe('ExtendCrmProposalValiditySchema', () => {
+  it('should coerce an ISO date', () => {
+    const result = ExtendCrmProposalValiditySchema.safeParse({
+      validUntil: '2026-12-31T12:00:00.000Z',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data?.validUntil).toBeInstanceOf(Date)
+  })
+
+  it('should require the new date', () => {
+    expect(ExtendCrmProposalValiditySchema.safeParse({}).success).toBe(false)
+  })
+})
+
+describe('AcceptCrmProposalSchema', () => {
+  it('should require the name of who accepts', () => {
+    expect(AcceptCrmProposalSchema.safeParse({}).success).toBe(false)
+    expect(AcceptCrmProposalSchema.safeParse({ name: '  ' }).success).toBe(
+      false,
+    )
+  })
+
+  it('should trim the name', () => {
+    const result = AcceptCrmProposalSchema.safeParse({ name: ' Maria ' })
+    expect(result.data?.name).toBe('Maria')
   })
 })

@@ -9,6 +9,7 @@ import {
   RegisterCrmLeadContactAttemptSchema,
   RegisterCrmLeadMeetingSchema,
   RegisterCrmLeadProposalPresentationSchema,
+  ReopenCrmLeadSchema,
   ReorderCrmLeadsSchema,
   SetCrmLeadInterestProductsSchema,
   UpdateCrmLeadRoutingRuleSchema,
@@ -245,5 +246,26 @@ describe('CreateCrmLeadRoutingRuleSchema', () => {
 describe('UpdateCrmLeadRoutingRuleSchema', () => {
   it('should accept an empty payload', () => {
     expect(UpdateCrmLeadRoutingRuleSchema.safeParse({}).success).toBe(true)
+  })
+})
+
+describe('ReopenCrmLeadSchema', () => {
+  it('should require a non-blank reason', () => {
+    expect(ReopenCrmLeadSchema.safeParse({}).success).toBe(false)
+    expect(ReopenCrmLeadSchema.safeParse({ reason: '   ' }).success).toBe(false)
+  })
+
+  it('should trim the reason', () => {
+    const result = ReopenCrmLeadSchema.safeParse({
+      reason: '  Cliente voltou a responder  ',
+    })
+    expect(result.success).toBe(true)
+    expect(result.data?.reason).toBe('Cliente voltou a responder')
+  })
+
+  it('should reject a reason longer than 1000 characters', () => {
+    expect(
+      ReopenCrmLeadSchema.safeParse({ reason: 'x'.repeat(1001) }).success,
+    ).toBe(false)
   })
 })
