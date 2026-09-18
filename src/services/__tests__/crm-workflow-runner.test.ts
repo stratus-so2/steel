@@ -35,7 +35,7 @@ vi.mock('@/src/repositories/crm-workflow.repository', () => ({
 }))
 
 import { CrmWorkflowRunRepository } from '@/src/repositories/crm-workflow.repository'
-import { runCrmWorkflow } from '../crm-workflow-runner'
+import { resumeCrmWorkflow, runCrmWorkflow } from '../crm-workflow-runner'
 
 const mockedSendEmail = vi.mocked(sendEmail)
 const mockedRunRepo = vi.mocked(CrmWorkflowRunRepository)
@@ -331,5 +331,920 @@ describe('runCrmWorkflow()', () => {
       'FAILED',
       expect.objectContaining({ error: expect.stringContaining('boom') }),
     )
+  })
+})
+
+/* ======================= cobertura ampliada ======================= */
+
+type NodeSpec = { id: string; data: Record<string, unknown> }
+
+/**
+ * Monta uma definition. Sem `edges`, encadeia trigger → n[0] → n[1] → ...
+ * O runner não revalida o schema, então aceitamos dados crus.
+ */
+function def(
+  nodes: NodeSpec[],
+  edges?: Array<{ source: string; target: string; sourceHandle?: string }>,
+): CrmWorkflowDefinition {
+  const chain =
+    edges ??
+    nodes.map((n, i) => ({
+      source: i === 0 ? 'trigger' : nodes[i - 1].id,
+      target: n.id,
+    }))
+  return {
+    trigger: {
+      id: 'trigger',
+      position: { x: 0, y: 0 },
+      data: { type: 'launch-manually', inputs: [] },
+    },
+    nodes: nodes.map((n) => ({ ...n, position: { x: 0, y: 0 } })),
+    edges: chain.map((e, i) => ({ id: `e${i}`, ...e })),
+  } as unknown as CrmWorkflowDefinition
+}
+
+/** Output gravado no step N (ordem das chamadas COMPLETED/SKIPPED). */
+function stepOutputs(): unknown[] {
+  return mockedRunRepo.updateStep.mock.calls.map(
+    (call) => (call[1] as { output?: unknown }).output,
+  )
+}
+
+function stepStatuses(): string[] {
+  return mockedRunRepo.updateStep.mock.calls.map(
+    (call) => (call[1] as { status: string }).status,
+  )
+}
+
+function lastSetStatus() {
+  return mockedRunRepo.setStatus.mock.calls.at(-1)
+}
+
+describe('runCrmWorkflow() — node executors', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedRunRepo.setStatus.mockResolvedValue(ok({} as never))
+    mockedRunRepo.createStep.mockResolvedValue(ok({ id: 'step-1' } as never))
+    mockedRunRepo.updateStep.mockResolvedValue(ok({} as never))
+    mockedRunRepo.pause.mockResolvedValue(ok({} as never))
+    mockedRunRepo.clearPause.mockResolvedValue(ok({} as never))
+  })
+
+  describe('create-record', () => {
+    it('should drop empty values and inject workspace/creator', async () => {
+      crmTask.create.mockResolvedValue({ id: 'task-9' })
+      await runCrmWorkflow(
+        baseParams(
+          def([
+            {
+              id: 'n1',
+              data: {
+                type: 'create-record',
+                entity: 'task',
+                fields: {
+                  title: 'Oi',
+                  empty: '',
+                  missing: '{{trigger.record.nope}}',
+                  nested: '{{trigger.record.id.deep}}',
+                },
+              },
+            },
+          ]),
+        ),
+      )
+      expect(crmTask.create).toHaveBeenCalledWith({
+        data: { title: 'Oi', workspaceId: 'ws-1', createdById: 'user-1' },
+      })
+      expect(stepOutputs()[0]).toMatchObject({ id: 'task-9', title: 'Oi' })
+    })
+
+    it('should interpolate objects as JSON and nullish values as empty strings', async () => {
+      crmTask.create.mockResolvedValue({ id: 'task-1' })
+      await runCrmWorkflow({
+        ...baseParams(
+          def([
+            {
+              id: 'n1',
+              data: {
+                type: 'create-record',
+                entity: 'task',
+                fields: {
+                  title: 'rec={{trigger.record}} nada={{trigger.record.x}}',
+                },
+              },
+            },
+          ]),
+        ),
+        triggerPayload: { record: { x: null } },
+      })
+      expect(crmTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ title: 'rec={"x":null} nada=' }),
+      })
+    })
+
+    it('should use the whole payload as the record when there is no `record` key', async () => {
+      crmTask.create.mockResolvedValue({ id: 'task-1' })
+      await runCrmWorkflow({
+        ...baseParams(
+          def([
+            {
+              id: 'n1',
+              data: {
+                type: 'create-record',
+                entity: 'task',
+                fields: { title: '{{trigger.record.name}}' },
+              },
+            },
+          ]),
+        ),
+        triggerPayload: { name: 'Direto' },
+      })
+      expect(crmTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ title: 'Direto' }),
+      })
+    })
+
+    it('should only simulate in test mode', async () => {
+      await runCrmWorkflow({
+        ...baseParams(
+          def([
+            {
+              id: 'n1',
+              data: {
+                type: 'create-record',
+                entity: 'task',
+                fields: { title: 'x' },
+              },
+            },
+          ]),
+        ),
+        testMode: true,
+      })
+      expect(crmTask.create).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        simulated: true,
+        fields: { title: 'x' },
+      })
+    })
+  })
+
+  describe('update-record', () => {
+    const node = (recordId: string) => ({
+      id: 'n1',
+      data: {
+        type: 'update-record',
+        entity: 'task',
+        recordId,
+        fields: { title: 'Atualizado' },
+      },
+    })
+
+    it('should update the resolved record id stamping updatedById', async () => {
+      crmTask.update.mockResolvedValue({ id: 'lead-1' })
+      await runCrmWorkflow(baseParams(def([node('{{trigger.record.id}}')])))
+      expect(crmTask.update).toHaveBeenCalledWith({
+        where: { id: 'lead-1' },
+        data: { title: 'Atualizado', updatedById: 'user-1' },
+      })
+      expect(stepOutputs()[0]).toEqual({ id: 'lead-1', title: 'Atualizado' })
+    })
+
+    it('should skip when the record id resolves empty', async () => {
+      await runCrmWorkflow(baseParams(def([node('{{trigger.record.none}}')])))
+      expect(crmTask.update).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        skipped: true,
+        reason: 'no recordId',
+      })
+    })
+
+    it('should only simulate in test mode', async () => {
+      await runCrmWorkflow({
+        ...baseParams(def([node('abc')])),
+        testMode: true,
+      })
+      expect(crmTask.update).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        simulated: true,
+        id: 'abc',
+        fields: { title: 'Atualizado' },
+      })
+    })
+  })
+
+  describe('delete-record', () => {
+    const node = (recordId: string) => ({
+      id: 'n1',
+      data: { type: 'delete-record', entity: 'task', recordId },
+    })
+
+    it('should soft delete the record', async () => {
+      crmTask.update.mockResolvedValue({ id: 't1' })
+      await runCrmWorkflow(baseParams(def([node('t1')])))
+      expect(crmTask.update).toHaveBeenCalledWith({
+        where: { id: 't1' },
+        data: { deletedAt: expect.any(Date), updatedById: 'user-1' },
+      })
+      expect(stepOutputs()[0]).toEqual({ id: 't1', deleted: true })
+    })
+
+    it('should skip without a record id', async () => {
+      await runCrmWorkflow(baseParams(def([node('')])))
+      expect(crmTask.update).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        skipped: true,
+        reason: 'no recordId',
+      })
+    })
+
+    it('should only simulate in test mode', async () => {
+      await runCrmWorkflow({ ...baseParams(def([node('t1')])), testMode: true })
+      expect(crmTask.update).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({ simulated: true, id: 't1' })
+    })
+  })
+
+  describe('search-records + iterator', () => {
+    it('should translate every condition operator into a Prisma where and feed the iterator', async () => {
+      crmTask.findMany.mockResolvedValue([{ id: 'a' }, { id: 'b' }])
+      await runCrmWorkflow(
+        baseParams(
+          def([
+            {
+              id: 's1',
+              data: {
+                type: 'search-records',
+                entity: 'task',
+                limit: 10,
+                outputAlias: 'found',
+                conditions: [
+                  { field: 'status', operator: 'equals', value: 'OPEN' },
+                  { field: 'title', operator: 'not_equals', value: 'x' },
+                  {
+                    field: 'description',
+                    operator: 'contains',
+                    value: '{{trigger.record.email}}',
+                  },
+                  { field: 'priority', operator: 'gt', value: '2' },
+                  { field: 'order', operator: 'lt', value: '9' },
+                  { field: 'dueAt', operator: 'is_empty', value: '' },
+                  { field: 'ownerId', operator: 'is_not_empty', value: '' },
+                  { field: 'ignored', operator: 'gte', value: '1' },
+                  { field: '', operator: 'equals', value: 'skip' },
+                ],
+              },
+            },
+            {
+              id: 'it1',
+              data: {
+                type: 'iterator',
+                source: '{{steps.found.output}}',
+                itemAlias: 'item',
+              },
+            },
+          ]),
+        ),
+      )
+
+      expect(crmTask.findMany).toHaveBeenCalledWith({
+        where: {
+          workspaceId: 'ws-1',
+          deletedAt: null,
+          status: 'OPEN',
+          title: { not: 'x' },
+          description: { contains: 'lead@acme.com', mode: 'insensitive' },
+          priority: { gt: 2 },
+          order: { lt: 9 },
+          dueAt: null,
+          ownerId: { not: null },
+        },
+        take: 10,
+      })
+      expect(stepOutputs()[1]).toEqual({
+        items: 2,
+        sample: [{ id: 'a' }, { id: 'b' }],
+      })
+    })
+
+    it('should report an empty iterator when the source is not an array', async () => {
+      await runCrmWorkflow(
+        baseParams(
+          def([
+            {
+              id: 'it1',
+              data: {
+                type: 'iterator',
+                source: '{{trigger.record.email}}',
+                itemAlias: 'item',
+              },
+            },
+          ]),
+        ),
+      )
+      expect(stepOutputs()[0]).toEqual({ items: 0, sample: [] })
+    })
+  })
+
+  describe('create-or-update-record', () => {
+    const node = {
+      id: 'n1',
+      data: {
+        type: 'create-or-update-record',
+        entity: 'task',
+        lookupField: 'externalId',
+        lookupValue: '{{trigger.record.id}}',
+        fields: { title: 'Upsert' },
+      },
+    }
+
+    it('should update the existing record found by the lookup', async () => {
+      crmTask.findFirst.mockResolvedValue({ id: 'existing' })
+      crmTask.update.mockResolvedValue({ id: 'existing' })
+      await runCrmWorkflow(baseParams(def([node])))
+      expect(crmTask.findFirst).toHaveBeenCalledWith({
+        where: { workspaceId: 'ws-1', deletedAt: null, externalId: 'lead-1' },
+      })
+      expect(crmTask.update).toHaveBeenCalledWith({
+        where: { id: 'existing' },
+        data: { title: 'Upsert', updatedById: 'user-1' },
+      })
+      expect(crmTask.create).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toMatchObject({ action: 'updated' })
+    })
+
+    it('should create with the lookup field when nothing matches', async () => {
+      crmTask.findFirst.mockResolvedValue(null)
+      crmTask.create.mockResolvedValue({ id: 'new' })
+      await runCrmWorkflow(baseParams(def([node])))
+      expect(crmTask.create).toHaveBeenCalledWith({
+        data: {
+          title: 'Upsert',
+          externalId: 'lead-1',
+          workspaceId: 'ws-1',
+          createdById: 'user-1',
+        },
+      })
+      expect(stepOutputs()[0]).toMatchObject({ id: 'new', action: 'created' })
+    })
+
+    it('should only simulate the write in test mode', async () => {
+      crmTask.findFirst.mockResolvedValue({ id: 'existing' })
+      await runCrmWorkflow({ ...baseParams(def([node])), testMode: true })
+      expect(crmTask.update).not.toHaveBeenCalled()
+      expect(crmTask.create).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        simulated: true,
+        lookupValue: 'lead-1',
+        fields: { title: 'Upsert' },
+      })
+    })
+  })
+
+  describe('filter operators', () => {
+    const cases: Array<[string, unknown, string, boolean]> = [
+      ['equals', 'a', 'a', true],
+      ['not_equals', 'a', 'b', true],
+      ['not_equals', 'a', 'a', false],
+      ['contains', 'hello world', 'world', true],
+      ['contains', 42, '4', false],
+      ['not_contains', 'hello', 'x', true],
+      ['not_contains', 42, 'x', false],
+      ['is_empty', null, '', true],
+      ['is_empty', '', '', true],
+      ['is_empty', [], '', true],
+      ['is_empty', 'x', '', false],
+      ['is_not_empty', 'x', '', true],
+      ['is_not_empty', [], '', false],
+      ['gt', 5, '3', true],
+      ['gte', 3, '3', true],
+      ['lt', 2, '3', true],
+      ['lte', 4, '3', false],
+    ]
+
+    it.each(cases)('%s(%j, %j) → %s', async (operator, left, right, passes) => {
+      crmTask.create.mockResolvedValue({ id: 't' })
+      await runCrmWorkflow({
+        ...baseParams(
+          def([
+            {
+              id: 'f1',
+              data: {
+                type: 'filter',
+                conditions: [
+                  { field: '{{trigger.record.v}}', operator, value: right },
+                ],
+              },
+            },
+            {
+              id: 'n1',
+              data: {
+                type: 'create-record',
+                entity: 'task',
+                fields: { title: 'passou' },
+              },
+            },
+          ]),
+        ),
+        triggerPayload: { record: { v: left } },
+      })
+      expect(stepStatuses()[0]).toBe(passes ? 'COMPLETED' : 'SKIPPED')
+      expect(crmTask.create).toHaveBeenCalledTimes(passes ? 1 : 0)
+    })
+
+    it('should treat a missing condition value as empty string', async () => {
+      await runCrmWorkflow({
+        ...baseParams(
+          def([
+            {
+              id: 'f1',
+              data: {
+                type: 'filter',
+                conditions: [
+                  { field: '{{trigger.record.v}}', operator: 'equals' },
+                ],
+              },
+            },
+          ]),
+        ),
+        triggerPayload: { record: { v: '' } },
+      })
+      expect(stepOutputs()[0]).toEqual({ passes: true })
+    })
+
+    it('should resolve paths through primitives as undefined', async () => {
+      await runCrmWorkflow(
+        baseParams(
+          def([
+            {
+              id: 'f1',
+              data: {
+                type: 'filter',
+                conditions: [
+                  {
+                    field: '{{trigger.type.length}}',
+                    operator: 'is_empty',
+                    value: '',
+                  },
+                ],
+              },
+            },
+          ]),
+        ),
+      )
+      expect(stepOutputs()[0]).toEqual({ passes: true })
+    })
+  })
+
+  describe('if-else', () => {
+    it('should follow only the false branch when conditions fail', async () => {
+      crmTask.create.mockResolvedValue({ id: 't' })
+      await runCrmWorkflow(
+        baseParams(
+          def(
+            [
+              {
+                id: 'if1',
+                data: {
+                  type: 'if-else',
+                  conditions: [
+                    {
+                      field: '{{trigger.record.email}}',
+                      operator: 'equals',
+                      value: 'other@x.com',
+                    },
+                  ],
+                },
+              },
+              {
+                id: 'yes',
+                data: {
+                  type: 'create-record',
+                  entity: 'task',
+                  fields: { title: 'yes' },
+                },
+              },
+              {
+                id: 'no',
+                data: {
+                  type: 'create-record',
+                  entity: 'task',
+                  fields: { title: 'no' },
+                },
+              },
+              {
+                id: 'unlabeled',
+                data: {
+                  type: 'create-record',
+                  entity: 'task',
+                  fields: { title: 'unlabeled' },
+                },
+              },
+            ],
+            [
+              { source: 'trigger', target: 'if1' },
+              { source: 'if1', target: 'yes', sourceHandle: 'true' },
+              { source: 'if1', target: 'no', sourceHandle: 'false' },
+              { source: 'if1', target: 'unlabeled' },
+            ],
+          ),
+        ),
+      )
+      expect(crmTask.create).toHaveBeenCalledTimes(1)
+      expect(crmTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ title: 'no' }),
+      })
+      expect(stepOutputs()[0]).toEqual({ branch: 'false' })
+    })
+  })
+
+  describe('delay', () => {
+    it.each([
+      ['test mode', { amount: 1, unit: 'seconds' }, true, 1000],
+      ['longer than a minute', { amount: 2, unit: 'hours' }, false, 7_200_000],
+      ['days', { amount: 1, unit: 'days' }, false, 86_400_000],
+      [
+        'unknown unit (defaults to minutes)',
+        { amount: 2, unit: 'weeks' },
+        false,
+        120_000,
+      ],
+    ])('should only schedule for %s', async (_label, data, testMode, ms) => {
+      await runCrmWorkflow({
+        ...baseParams(def([{ id: 'd1', data: { type: 'delay', ...data } }])),
+        testMode,
+      })
+      expect(stepOutputs()[0]).toEqual({ scheduledMs: ms })
+    })
+
+    it('should actually wait for short delays', async () => {
+      vi.useFakeTimers()
+      try {
+        const done = runCrmWorkflow(
+          baseParams(
+            def([
+              { id: 'd1', data: { type: 'delay', amount: 2, unit: 'seconds' } },
+            ]),
+          ),
+        )
+        await vi.advanceTimersByTimeAsync(2000)
+        await done
+      } finally {
+        vi.useRealTimers()
+      }
+      expect(stepOutputs()[0]).toEqual({ waitedMs: 2000 })
+      expect(lastSetStatus()?.[1]).toBe('COMPLETED')
+    })
+  })
+
+  describe('send-email / draft-email', () => {
+    const mail = (to: string, body = '<p>x</p>') => ({
+      id: 'm1',
+      data: {
+        type: 'send-email',
+        to,
+        subject: 'Olá {{trigger.record.id}}',
+        body,
+      },
+    })
+
+    it('should simulate in test mode', async () => {
+      await runCrmWorkflow({
+        ...baseParams(def([mail('a@b.com')])),
+        testMode: true,
+      })
+      expect(mockedSendEmail).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        simulated: true,
+        to: 'a@b.com',
+        subject: 'Olá lead-1',
+      })
+    })
+
+    it('should skip when the recipient resolves empty', async () => {
+      await runCrmWorkflow(baseParams(def([mail('{{trigger.record.none}}')])))
+      expect(mockedSendEmail).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        skipped: true,
+        reason: 'no recipient',
+      })
+    })
+
+    it('should send a placeholder body and a null messageId when absent', async () => {
+      mockedSendEmail.mockResolvedValue({} as never)
+      await runCrmWorkflow(baseParams(def([mail('a@b.com', '')])))
+      expect(mockedSendEmail).toHaveBeenCalledWith({
+        to: 'a@b.com',
+        subject: 'Olá lead-1',
+        html: '<p></p>',
+      })
+      expect(stepOutputs()[0]).toEqual({
+        messageId: null,
+        to: 'a@b.com',
+        subject: 'Olá lead-1',
+      })
+    })
+
+    it('should stringify a non-Error send failure', async () => {
+      mockedSendEmail.mockRejectedValue('smtp down')
+      await runCrmWorkflow(baseParams(def([mail('a@b.com')])))
+      expect(lastSetStatus()).toEqual([
+        'run-1',
+        'FAILED',
+        expect.objectContaining({ error: 'sendEmail: smtp down' }),
+      ])
+    })
+
+    it('should resolve a draft without sending', async () => {
+      await runCrmWorkflow(
+        baseParams(
+          def([
+            {
+              id: 'dr1',
+              data: {
+                type: 'draft-email',
+                to: '{{trigger.record.email}}',
+                subject: 'Rascunho',
+                body: 'Oi {{trigger.record.id}}',
+              },
+            },
+          ]),
+        ),
+      )
+      expect(mockedSendEmail).not.toHaveBeenCalled()
+      expect(stepOutputs()[0]).toEqual({
+        drafted: true,
+        to: 'lead@acme.com',
+        subject: 'Rascunho',
+        body: 'Oi lead-1',
+      })
+    })
+  })
+})
+
+describe('runCrmWorkflow() — graph traversal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedRunRepo.setStatus.mockResolvedValue(ok({} as never))
+    mockedRunRepo.createStep.mockResolvedValue(ok({ id: 'step-1' } as never))
+    mockedRunRepo.updateStep.mockResolvedValue(ok({} as never))
+    mockedRunRepo.pause.mockResolvedValue(ok({} as never))
+  })
+
+  const task = (id: string, title = id, extra = {}) => ({
+    id,
+    data: {
+      type: 'create-record',
+      entity: 'task',
+      fields: { title },
+      ...extra,
+    },
+  })
+
+  it('should run a diamond join node only once and ignore edges to unknown nodes', async () => {
+    crmTask.create.mockResolvedValue({ id: 't' })
+    await runCrmWorkflow(
+      baseParams(
+        def(
+          [task('a'), task('b'), task('join')],
+          [
+            { source: 'trigger', target: 'a' },
+            { source: 'trigger', target: 'b' },
+            { source: 'trigger', target: 'ghost' },
+            { source: 'a', target: 'join' },
+            { source: 'b', target: 'join' },
+          ],
+        ),
+      ),
+    )
+    expect(crmTask.create.mock.calls.map((c) => c[0].data.title)).toEqual([
+      'a',
+      'b',
+      'join',
+    ])
+    expect(lastSetStatus()?.[1]).toBe('COMPLETED')
+  })
+
+  it('should expose a node output under its outputAlias to later nodes', async () => {
+    crmTask.create
+      .mockResolvedValueOnce({ id: 'first-id' })
+      .mockResolvedValueOnce({ id: 'second-id' })
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          task('a', 'primeira', { outputAlias: 'primeira' }),
+          task('b', 'ref {{steps.primeira.output.id}}'),
+        ]),
+      ),
+    )
+    expect(crmTask.create).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({ title: 'ref first-id' }),
+    })
+  })
+
+  it('should keep the first error, continue sibling branches and fail the run', async () => {
+    crmTask.create
+      .mockRejectedValueOnce(new Error('first'))
+      .mockRejectedValueOnce('second')
+      .mockResolvedValueOnce({ id: 'ok' })
+    await runCrmWorkflow(
+      baseParams(
+        def(
+          [task('a'), task('b'), task('c')],
+          [
+            { source: 'trigger', target: 'a' },
+            { source: 'trigger', target: 'b' },
+            { source: 'trigger', target: 'c' },
+          ],
+        ),
+      ),
+    )
+    expect(stepStatuses()).toEqual(['FAILED', 'FAILED', 'COMPLETED'])
+    expect(mockedRunRepo.updateStep.mock.calls[1][1]).toMatchObject({
+      error: 'second',
+    })
+    expect(lastSetStatus()).toEqual([
+      'run-1',
+      'FAILED',
+      expect.objectContaining({ error: 'first', finishedAt: expect.any(Date) }),
+    ])
+  })
+
+  it('should still execute and finish when step rows cannot be created', async () => {
+    mockedRunRepo.createStep.mockResolvedValue({
+      ok: false,
+      error: { code: 'DATABASE_ERROR', message: 'x' },
+    } as never)
+    crmTask.create.mockRejectedValueOnce(new Error('nope'))
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          {
+            id: 'f1',
+            data: {
+              type: 'filter',
+              conditions: [{ field: 'a', operator: 'equals', value: 'a' }],
+            },
+          },
+          task('a'),
+        ]),
+      ),
+    )
+    expect(mockedRunRepo.updateStep).not.toHaveBeenCalled()
+    expect(lastSetStatus()).toEqual([
+      'run-1',
+      'FAILED',
+      expect.objectContaining({ error: 'nope' }),
+    ])
+  })
+
+  it('should not pause on a form when its step row could not be created', async () => {
+    mockedRunRepo.createStep.mockResolvedValue({
+      ok: false,
+      error: { code: 'DATABASE_ERROR', message: 'x' },
+    } as never)
+    crmTask.create.mockResolvedValue({ id: 't' })
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          {
+            id: 'form1',
+            data: {
+              type: 'form',
+              title: 'F',
+              fields: [{ name: 'ok', type: 'boolean', required: false }],
+            },
+          },
+          task('after'),
+        ]),
+      ),
+    )
+    expect(mockedRunRepo.pause).not.toHaveBeenCalled()
+    expect(crmTask.create).toHaveBeenCalledTimes(1)
+    expect(lastSetStatus()?.[1]).toBe('COMPLETED')
+  })
+
+  it('should persist the scope and a PENDING form step when pausing', async () => {
+    await runCrmWorkflow(
+      baseParams(
+        def([
+          {
+            id: 'form1',
+            data: {
+              type: 'form',
+              title: 'F',
+              fields: [
+                { name: 'ok', type: 'boolean', required: false },
+                { name: 'nota', type: 'text', required: false },
+              ],
+            },
+          },
+        ]),
+      ),
+    )
+    expect(mockedRunRepo.updateStep).toHaveBeenCalledWith('step-1', {
+      status: 'PENDING',
+      output: { paused: true, fields: ['ok', 'nota'] },
+      startedAt: expect.any(Date),
+    })
+    expect(mockedRunRepo.pause).toHaveBeenCalledWith('run-1', {
+      state: expect.objectContaining({
+        trigger: expect.objectContaining({ type: 'launch-manually' }),
+      }),
+      waitingStepId: 'step-1',
+    })
+  })
+
+  it('should complete immediately a workflow with no nodes', async () => {
+    await runCrmWorkflow(baseParams(def([])))
+    expect(mockedRunRepo.createStep).not.toHaveBeenCalled()
+    expect(mockedRunRepo.setStatus.mock.calls.map((c) => c[1])).toEqual([
+      'RUNNING',
+      'COMPLETED',
+    ])
+  })
+})
+
+describe('resumeCrmWorkflow()', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedRunRepo.setStatus.mockResolvedValue(ok({} as never))
+    mockedRunRepo.createStep.mockResolvedValue(ok({ id: 'step-2' } as never))
+    mockedRunRepo.updateStep.mockResolvedValue(ok({} as never))
+    mockedRunRepo.clearPause.mockResolvedValue(ok({} as never))
+  })
+
+  const definition = def(
+    [
+      {
+        id: 'form1',
+        data: {
+          type: 'form',
+          title: 'F',
+          fields: [{ name: 'nome', type: 'text', required: true }],
+        },
+      },
+      {
+        id: 'after',
+        data: {
+          type: 'create-record',
+          entity: 'task',
+          fields: {
+            title: 'Olá {{steps.aprov.output.nome}} ({{steps.prev.output}})',
+          },
+        },
+      },
+    ],
+    [
+      { source: 'trigger', target: 'form1' },
+      { source: 'form1', target: 'after' },
+      // ciclo de volta ao form — não deve reexecutar o node pausado
+      { source: 'after', target: 'form1' },
+    ],
+  )
+
+  function resumeParams(scope: Record<string, unknown>) {
+    return {
+      runId: 'run-1',
+      workspaceId: 'ws-1',
+      actingUserId: 'user-1',
+      definition,
+      triggerType: 'launch-manually' as const,
+      triggerPayload: {},
+      waitingStepId: 'step-1',
+      pausedNodeId: 'form1',
+      scope,
+      submission: { nome: 'Ana' },
+      outputAlias: 'aprov',
+    }
+  }
+
+  it('should complete the waiting step, clear the pause and run the children with the submission', async () => {
+    crmTask.create.mockResolvedValue({ id: 't' })
+    await resumeCrmWorkflow(
+      resumeParams({ trigger: {}, steps: { prev: { output: 'antes' } } }),
+    )
+
+    expect(mockedRunRepo.updateStep).toHaveBeenCalledWith('step-1', {
+      status: 'COMPLETED',
+      output: { nome: 'Ana' },
+      finishedAt: expect.any(Date),
+    })
+    expect(mockedRunRepo.clearPause).toHaveBeenCalledWith('run-1')
+    expect(crmTask.create).toHaveBeenCalledTimes(1)
+    expect(crmTask.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ title: 'Olá Ana (antes)' }),
+    })
+    expect(mockedRunRepo.setStatus.mock.calls.map((c) => c[1])).toEqual([
+      'RUNNING',
+      'COMPLETED',
+    ])
+  })
+
+  it('should tolerate a persisted scope without steps', async () => {
+    crmTask.create.mockResolvedValue({ id: 't' })
+    await resumeCrmWorkflow(resumeParams({ trigger: {} }))
+    expect(crmTask.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ title: 'Olá Ana ()' }),
+    })
   })
 })

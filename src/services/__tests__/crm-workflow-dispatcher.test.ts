@@ -98,3 +98,167 @@ describe('dispatchCrmWorkflowRecordEvent() — lead triggers', () => {
     expect(mockedRunRepo.create).not.toHaveBeenCalled()
   })
 })
+
+describe('dispatchCrmWorkflowRecordEvent() — matching and resilience', () => {
+  const companyBase = {
+    workspaceId: 'ws1',
+    actorUserId: 'u1',
+    entity: 'company' as const,
+    record: { id: 'c1', name: 'Acme' },
+  }
+
+  it('should do nothing when loading workflows fails', async () => {
+    mockedWorkflowRepo.findActiveByWorkspace.mockResolvedValue({
+      ok: false,
+      error: { code: 'DATABASE_ERROR', message: 'boom' },
+    } as never)
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'created' })
+
+    expect(mockedRunRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should do nothing when the workspace has no active workflow', async () => {
+    mockedWorkflowRepo.findActiveByWorkspace.mockResolvedValue(ok([]))
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'created' })
+
+    expect(mockedRunRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should skip workflows without an active version or trigger, and wrong trigger types', async () => {
+    mockedWorkflowRepo.findActiveByWorkspace.mockResolvedValue(
+      ok([
+        { id: 'no-version', activeVersion: null },
+        {
+          id: 'no-trigger',
+          activeVersion: {
+            id: 'v0',
+            definition: {
+              trigger: { id: 'trigger', position: { x: 0, y: 0 }, data: null },
+              nodes: [],
+              edges: [],
+            },
+          },
+        },
+        activeWorkflow({ type: 'launch-manually', inputs: [] }),
+        activeWorkflow({ type: 'record-is-deleted', entity: 'company' }),
+      ] as never),
+    )
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'created' })
+
+    expect(mockedRunRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should fire a created-or-updated trigger on created and create the run with the payload', async () => {
+    setup({ type: 'record-is-created-or-updated', entity: 'company' })
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'created' })
+
+    expect(mockedRunRepo.create).toHaveBeenCalledWith({
+      workflowId: 'wf1',
+      versionId: 'v1',
+      triggerType: 'RECORD_IS_CREATED_OR_UPDATED',
+      triggerPayload: {
+        event: 'created',
+        record: companyBase.record,
+        changedFields: [],
+      },
+      startedById: 'u1',
+    })
+    expect(mockedRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runId: 'run1',
+        workspaceId: 'ws1',
+        actingUserId: 'u1',
+        triggerType: 'record-is-created-or-updated',
+        testMode: false,
+      }),
+    )
+  })
+
+  it('should fire a deleted trigger only on delete events', async () => {
+    setup({ type: 'record-is-deleted', entity: 'company' })
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'updated' })
+    expect(mockedRunRepo.create).not.toHaveBeenCalled()
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'deleted' })
+    expect(mockedRunRepo.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('should require an intersection with the watched fields', async () => {
+    setup({ type: 'record-is-updated', entity: 'company', fields: ['name'] })
+
+    await dispatchCrmWorkflowRecordEvent({
+      ...companyBase,
+      event: 'updated',
+      changedFields: ['domain'],
+    })
+    expect(mockedRunRepo.create).not.toHaveBeenCalled()
+
+    await dispatchCrmWorkflowRecordEvent({
+      ...companyBase,
+      event: 'updated',
+      changedFields: ['domain', 'name'],
+    })
+    expect(mockedRunRepo.create).toHaveBeenCalledTimes(1)
+    expect(mockedRunRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        triggerPayload: expect.objectContaining({
+          changedFields: ['domain', 'name'],
+        }),
+      }),
+    )
+  })
+
+  it('should fire a field-scoped trigger when the caller does not report changed fields', async () => {
+    setup({ type: 'record-is-updated', entity: 'company', fields: ['name'] })
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'updated' })
+    await dispatchCrmWorkflowRecordEvent({
+      ...companyBase,
+      event: 'updated',
+      changedFields: [],
+    })
+
+    expect(mockedRunRepo.create).toHaveBeenCalledTimes(2)
+  })
+
+  it('should keep going to the next workflow when creating a run fails', async () => {
+    mockedWorkflowRepo.findActiveByWorkspace.mockResolvedValue(
+      ok([
+        activeWorkflow({ type: 'record-is-created', entity: 'company' }),
+        activeWorkflow({ type: 'record-is-created', entity: 'company' }),
+      ]),
+    )
+    mockedRunRepo.create
+      .mockResolvedValueOnce({
+        ok: false,
+        error: { code: 'DATABASE_ERROR', message: 'boom' },
+      } as never)
+      .mockResolvedValueOnce(ok({ id: 'run2' } as never))
+    mockedRun.mockResolvedValue(undefined as never)
+
+    await dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'created' })
+
+    expect(mockedRunRepo.create).toHaveBeenCalledTimes(2)
+    expect(mockedRun).toHaveBeenCalledTimes(1)
+    expect(mockedRun).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: 'run2' }),
+    )
+  })
+
+  it('should swallow a runner rejection (best-effort dispatch)', async () => {
+    setup({ type: 'record-is-created', entity: 'company' })
+    mockedRun.mockRejectedValue(new Error('runner down'))
+
+    await expect(
+      dispatchCrmWorkflowRecordEvent({ ...companyBase, event: 'created' }),
+    ).resolves.toBeUndefined()
+    // deixa a rejeição (e o `.catch`) assentarem sem unhandled rejection
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(mockedRun).toHaveBeenCalledTimes(1)
+  })
+})
