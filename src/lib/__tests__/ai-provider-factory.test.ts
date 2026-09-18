@@ -5,7 +5,7 @@ vi.mock('@/lib/env/server', () => ({
   ANTHROPIC_API_KEY: undefined,
 }))
 
-import { getAiProvider, isAiProviderConfigured } from '../ai'
+import { getAiProvider, getOpenAiClient, isAiProviderConfigured } from '../ai'
 
 describe('AI provider factory', () => {
   it('should report a provider as configured only when its key exists', () => {
@@ -21,5 +21,11 @@ describe('AI provider factory', () => {
     const provider = getAiProvider('openai')
     expect(provider?.id).toBe('openai')
     expect(getAiProvider('openai')).toBe(provider)
+  })
+
+  it('should expose a raw OpenAI client (Whisper) when its key exists', () => {
+    const client = getOpenAiClient()
+    expect(client).not.toBeNull()
+    expect(client?.apiKey).toBe('sk-test')
   })
 })
