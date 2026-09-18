@@ -4,6 +4,7 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { BETTER_AUTH_URL } from '@/lib/env/server'
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
+import { WorkspaceFeaturesCache } from '@/src/cache/workspace-features.cache'
 import { forbidden, paymentError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { toSubscriptionDTO } from '@/src/mappers/subscription.mapper'
@@ -197,7 +198,10 @@ export const SubscriptionService = {
           return result
         }
 
-        await WorkspaceCache.invalidate(subscription.value.workspaceId)
+        await Promise.all([
+          WorkspaceCache.invalidate(subscription.value.workspaceId),
+          WorkspaceFeaturesCache.invalidate(subscription.value.workspaceId),
+        ])
         auditMutation({
           entity: 'subscription',
           action: 'activate',
@@ -234,7 +238,10 @@ export const SubscriptionService = {
           return result
         }
 
-        await WorkspaceCache.invalidate(subscription.value.workspaceId)
+        await Promise.all([
+          WorkspaceCache.invalidate(subscription.value.workspaceId),
+          WorkspaceFeaturesCache.invalidate(subscription.value.workspaceId),
+        ])
         auditMutation({
           entity: 'subscription',
           action: 'cancel',

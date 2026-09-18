@@ -16,6 +16,7 @@ vi.mock('@/lib/abacatepay', () => ({
 vi.mock('@/src/repositories/subscription.repository')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/cache/workspace.cache')
+vi.mock('@/src/cache/workspace-features.cache')
 vi.mock('@/src/services/coupon.service')
 
 import { AbacatePayClient } from '@/lib/abacatepay'

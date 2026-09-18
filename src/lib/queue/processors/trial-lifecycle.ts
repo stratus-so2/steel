@@ -1,6 +1,7 @@
 import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
+import { WorkspaceFeaturesCache } from '@/src/cache/workspace-features.cache'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
 import { TrialLifecycleJob } from '../jobs'
 
@@ -15,9 +16,11 @@ export async function processTrialLifecycle(
       }
 
       await Promise.all(
-        result.value.map((workspaceId) =>
+        result.value.flatMap((workspaceId) => [
           WorkspaceCache.invalidate(workspaceId),
-        ),
+          // Plano mudou → o default das feature flags também.
+          WorkspaceFeaturesCache.invalidate(workspaceId),
+        ]),
       )
 
       logger.info('queue.trial_lifecycle.trials_reverted', {
