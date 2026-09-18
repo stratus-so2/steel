@@ -1,6 +1,6 @@
 'use client'
 
-import { type FormEvent, useState } from 'react'
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -41,8 +41,17 @@ import {
 } from '@/src/hooks/use-whatsapp-broadcasts'
 import { useWhatsAppConnections } from '@/src/hooks/use-whatsapp-connections'
 import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
+import { useUploadWhatsAppMedia } from '@/src/hooks/use-whatsapp-media-upload'
 import { useWhatsAppTemplates } from '@/src/hooks/use-whatsapp-templates'
+import {
+  BROADCAST_MEDIA_ACCEPT,
+  BROADCAST_MEDIA_KIND_LABEL,
+  type BroadcastMediaKind,
+  mediaKindFromMime,
+  validateBroadcastMedia,
+} from '@/src/lib/whatsapp/broadcast-media'
 import type { WhatsAppBroadcastImportResultDTO } from '@/types/whatsapp-broadcast-import'
+import { BroadcastMediaPreview } from './broadcast-media-preview'
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT: 'Rascunho',
@@ -52,8 +61,15 @@ const STATUS_LABEL: Record<string, string> = {
   FAILED: 'Falhou',
 }
 
+interface StagedMedia {
+  file: File
+  kind: BroadcastMediaKind
+  previewUrl: string
+}
+
 function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
   const [open, setOpen] = useState(false)
+  const [media, setMedia] = useState<StagedMedia | null>(null)
   const [name, setName] = useState('')
   const [connectionId, setConnectionId] = useState<string>()
   const [messageBody, setMessageBody] = useState('')
@@ -64,6 +80,31 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
   const connections = useWhatsAppConnections(workspaceId)
   const contacts = useWhatsAppContacts(workspaceId)
   const createBroadcast = useCreateWhatsAppBroadcast(workspaceId)
+  const uploadMedia = useUploadWhatsAppMedia(workspaceId)
+
+  // Libera o blob da prévia ao trocar/remover o arquivo.
+  useEffect(
+    () => () => {
+      if (media) URL.revokeObjectURL(media.previewUrl)
+    },
+    [media],
+  )
+
+  function handleMediaSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    const problem = validateBroadcastMedia({
+      mimeType: file.type,
+      sizeBytes: file.size,
+    })
+    const kind = mediaKindFromMime(file.type)
+    if (problem || !kind) {
+      notify.error(problem ?? 'Tipo de arquivo não suportado')
+      return
+    }
+    setMedia({ file, kind, previewUrl: URL.createObjectURL(file) })
+  }
 
   // Opt-out LGPD: o servidor já exclui descadastrados ao criar a lista; aqui
   // eles aparecem desabilitados e fora da contagem.
@@ -86,11 +127,21 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
     })
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!connectionId || selectedEligibleCount === 0) {
       notify.error('Selecione a conexão e ao menos um contato')
       return
+    }
+
+    let uploaded: { url: string } | null = null
+    if (media) {
+      try {
+        uploaded = await uploadMedia.mutateAsync(media.file)
+      } catch (error) {
+        notify.error(error, 'Não foi possível enviar a mídia')
+        return
+      }
     }
 
     createBroadcast.mutate(
@@ -98,6 +149,14 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
         name,
         connectionId,
         messageBody,
+        ...(uploaded && media
+          ? {
+              mediaUrl: uploaded.url,
+              mediaMimeType: media.file.type,
+              mediaFileName: media.file.name,
+              mediaSizeBytes: media.file.size,
+            }
+          : {}),
         contactIds: Array.from(selectedContactIds).filter(
           (id) => !optedOutIds.has(id),
         ),
@@ -107,6 +166,7 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
           notify.success('Lista de transmissão criada')
           setName('')
           setMessageBody('')
+          setMedia(null)
           setSelectedContactIds(new Set())
           setOpen(false)
         },
@@ -166,6 +226,41 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
           </div>
 
           <div className='space-y-1.5'>
+            <Label htmlFor='broadcastMedia'>Mídia (opcional)</Label>
+            {media ? (
+              <div className='space-y-2'>
+                <BroadcastMediaPreview
+                  kind={media.kind}
+                  src={media.previewUrl}
+                  fileName={media.file.name}
+                />
+                <Button
+                  type='button'
+                  size='xs'
+                  variant='outline'
+                  onClick={() => setMedia(null)}
+                >
+                  Remover {BROADCAST_MEDIA_KIND_LABEL[media.kind].toLowerCase()}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Input
+                  id='broadcastMedia'
+                  type='file'
+                  accept={BROADCAST_MEDIA_ACCEPT}
+                  onChange={handleMediaSelected}
+                />
+                <p className='text-muted-foreground text-xs'>
+                  Imagem JPG/PNG até 5 MB; vídeo MP4/3GP, áudio ou documento
+                  (PDF, Word, Excel, PowerPoint, TXT) até 16 MB. A mensagem vai
+                  como legenda.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className='space-y-1.5'>
             <Label>Contatos ({selectedEligibleCount} selecionados)</Label>
             <div className='max-h-48 space-y-1 overflow-y-auto rounded-md border p-2'>
               {(contacts.data ?? []).map((contact) => {
@@ -214,8 +309,15 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
           </div>
 
           <DialogFooter>
-            <Button type='submit' disabled={createBroadcast.isPending}>
-              {createBroadcast.isPending ? 'Criando...' : 'Criar lista'}
+            <Button
+              type='submit'
+              disabled={createBroadcast.isPending || uploadMedia.isPending}
+            >
+              {uploadMedia.isPending
+                ? 'Enviando mídia...'
+                : createBroadcast.isPending
+                  ? 'Criando...'
+                  : 'Criar lista'}
             </Button>
           </DialogFooter>
         </form>
@@ -452,7 +554,14 @@ export function WhatsappSettingsBroadcasts({
           <TableBody>
             {(broadcasts.data ?? []).map((broadcast) => (
               <TableRow key={broadcast.id}>
-                <TableCell>{broadcast.name}</TableCell>
+                <TableCell>
+                  {broadcast.name}
+                  {broadcast.mediaType ? (
+                    <Badge variant='secondary' className='ml-2'>
+                      {BROADCAST_MEDIA_KIND_LABEL[broadcast.mediaType]}
+                    </Badge>
+                  ) : null}
+                </TableCell>
                 <TableCell>
                   <Badge variant='outline'>
                     {STATUS_LABEL[broadcast.status] ?? broadcast.status}

@@ -243,6 +243,95 @@ describe('<WhatsappSettingsBroadcasts /> create dialog', () => {
   })
 })
 
+describe('<WhatsappSettingsBroadcasts /> media', () => {
+  function stubObjectUrl() {
+    vi.stubGlobal(
+      'URL',
+      Object.assign(URL, {
+        createObjectURL: vi.fn(() => 'blob:preview'),
+        revokeObjectURL: vi.fn(),
+      }),
+    )
+  }
+
+  async function openCreateDialog() {
+    renderWithQuery(<WhatsappSettingsBroadcasts workspaceId='ws_1' />)
+    await screen.findByText('Promo de setembro')
+    fireEvent.click(screen.getByRole('button', { name: 'Nova lista' }))
+    return screen.findByRole('dialog')
+  }
+
+  it('previews a video and sends its type and name with the broadcast', async () => {
+    stubObjectUrl()
+    const fetchSpy = setup([
+      {
+        method: 'POST',
+        match: `${API}/media/upload`,
+        data: { url: 'https://cdn/media/ws_1/abc.mp4' },
+      },
+      { method: 'POST', match: `${API}/broadcasts`, data: broadcast() },
+    ])
+    const dialog = await openCreateDialog()
+
+    const video = new File(['v'], 'promo.mp4', { type: 'video/mp4' })
+    fireEvent.change(within(dialog).getByLabelText('Mídia (opcional)'), {
+      target: { files: [video] },
+    })
+    expect(within(dialog).getByLabelText('promo.mp4').tagName).toBe('VIDEO')
+    expect(
+      within(dialog).getByRole('button', { name: 'Remover vídeo' }),
+    ).toBeTruthy()
+
+    fireEvent.change(within(dialog).getByLabelText('Nome'), {
+      target: { value: 'Lançamento' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Mensagem'), {
+      target: { value: 'Assista!' },
+    })
+    fireEvent.click(within(dialog).getByRole('combobox'))
+    await pickOption('Vendas')
+    const [ana] = await within(dialog).findAllByRole('checkbox')
+    fireEvent.click(ana)
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Criar lista' }))
+
+    await waitFor(() =>
+      expect(fetchBody(fetchSpy, `${API}/broadcasts`)).toEqual(
+        expect.objectContaining({
+          mediaUrl: 'https://cdn/media/ws_1/abc.mp4',
+          mediaMimeType: 'video/mp4',
+          mediaFileName: 'promo.mp4',
+          mediaSizeBytes: 1,
+        }),
+      ),
+    )
+  })
+
+  it('rejects unsupported files with a pt-BR message', async () => {
+    stubObjectUrl()
+    setup()
+    const dialog = await openCreateDialog()
+
+    const zip = new File(['z'], 'arquivos.zip', { type: 'application/zip' })
+    fireEvent.change(within(dialog).getByLabelText('Mídia (opcional)'), {
+      target: { files: [zip] },
+    })
+
+    expect(notify.error).toHaveBeenCalledWith(
+      expect.stringMatching(/Tipo de arquivo não suportado/),
+    )
+    expect(within(dialog).queryByRole('button', { name: /Remover/ })).toBeNull()
+  })
+
+  it('shows the media type badge in the list', async () => {
+    setup(
+      [],
+      [broadcast({ mediaType: 'DOCUMENT', mediaUrl: 'https://x/a.pdf' })],
+    )
+    renderWithQuery(<WhatsappSettingsBroadcasts workspaceId='ws_1' />)
+    expect(await screen.findByText('Documento')).toBeTruthy()
+  })
+})
+
 describe('<WhatsappSettingsBroadcasts /> CSV import', () => {
   async function openImport() {
     renderWithQuery(<WhatsappSettingsBroadcasts workspaceId='ws_1' />)

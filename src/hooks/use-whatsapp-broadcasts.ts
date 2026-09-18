@@ -14,6 +14,9 @@ interface CreateBroadcastInput {
   name: string
   messageBody: string
   mediaUrl?: string
+  mediaMimeType?: string
+  mediaFileName?: string
+  mediaSizeBytes?: number
   contactIds: string[]
 }
 
