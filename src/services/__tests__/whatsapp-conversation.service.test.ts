@@ -472,9 +472,21 @@ describe('WhatsAppConversationService', () => {
   })
 
   describe('remove()', () => {
-    it('should soft-delete the conversation', async () => {
+    it('should forbid a MEMBER from deleting a conversation (admin-only)', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+
+      expectErr(
+        await WhatsAppConversationService.remove('u1', 'ws1', 'conv1'),
+        'FORBIDDEN',
+      )
+      expect(mockedConversationRepo.update).not.toHaveBeenCalled()
+    })
+
+    it('should soft-delete the conversation', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const conversation = createFakeWhatsAppConversationWithPreview({
         id: 'conv1',
@@ -497,7 +509,7 @@ describe('WhatsAppConversationService', () => {
 
     it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedConversationRepo.findById.mockResolvedValue(ok(null))
 
@@ -514,7 +526,7 @@ describe('WhatsAppConversationService', () => {
   describe('clear()', () => {
     it('should set a clearedAt cursor and reset lastMessageAt', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const conversation = createFakeWhatsAppConversationWithPreview({
         id: 'conv1',

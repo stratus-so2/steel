@@ -69,7 +69,7 @@ describe('WhatsAppQuickReplyService', () => {
   describe('remove()', () => {
     it('should return WHATSAPP_QUICK_REPLY_NOT_FOUND when missing', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedQuickReplyRepo.findById.mockResolvedValue(ok(null))
 
@@ -80,7 +80,7 @@ describe('WhatsAppQuickReplyService', () => {
 
     it('should delete an existing quick reply', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const existing = createFakeWhatsAppQuickReply({ id: 'qr1' })
       mockedQuickReplyRepo.findById.mockResolvedValue(ok(existing))

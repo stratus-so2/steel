@@ -228,7 +228,7 @@ describe('WhatsAppContactService', () => {
   describe('remove()', () => {
     it('should delete an existing contact', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const existing = createFakeWhatsAppContact({ id: 'ct1' })
       mockedContactRepo.findById.mockResolvedValue(ok(existing))
@@ -242,7 +242,7 @@ describe('WhatsAppContactService', () => {
 
     it('should return WHATSAPP_CONTACT_NOT_FOUND when missing', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedContactRepo.findById.mockResolvedValue(ok(null))
 
@@ -253,7 +253,7 @@ describe('WhatsAppContactService', () => {
 
     it('should propagate a database error', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const existing = createFakeWhatsAppContact({ id: 'ct1' })
       mockedContactRepo.findById.mockResolvedValue(ok(existing))

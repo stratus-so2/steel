@@ -19,6 +19,7 @@ vi.mock('@/src/lib/queue/queues', () => ({
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { WhatsAppBroadcastService } from '../whatsapp-broadcast.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -27,9 +28,39 @@ const mockedBroadcastRepo = vi.mocked(WhatsAppBroadcastRepository)
 
 describe('WhatsAppBroadcastService', () => {
   describe('create()', () => {
-    it('should create the broadcast with deduplicated contact ids', async () => {
+    it('should forbid a MEMBER from creating a broadcast (admin-only)', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+
+      const result = await WhatsAppBroadcastService.create('u1', 'ws1', {
+        connectionId: 'conn1',
+        name: 'Promoção',
+        messageBody: 'Aproveite!',
+        contactIds: ['c1'],
+      })
+
+      expectErr(result, 'FORBIDDEN')
+      expect(mockedBroadcastRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should return MODULE_DISABLED when Comunicação is off for the workspace', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      vi.mocked(
+        WorkspaceModuleAccessRepository.isEnabled,
+      ).mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await WhatsAppBroadcastService.list('u1', 'ws1'),
+        'MODULE_DISABLED',
+      )
+    })
+
+    it('should create the broadcast with deduplicated contact ids', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedConnectionRepo.findById.mockResolvedValue(
         ok(createFakeWhatsAppConnection({ id: 'conn1' })),
@@ -56,7 +87,7 @@ describe('WhatsAppBroadcastService', () => {
 
     it('should return WHATSAPP_CONNECTION_NOT_FOUND for an unknown connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedConnectionRepo.findById.mockResolvedValue(ok(null))
 
@@ -74,7 +105,7 @@ describe('WhatsAppBroadcastService', () => {
   describe('start()', () => {
     it('should enqueue one staggered job per recipient and mark the list RUNNING', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const draft = createFakeWhatsAppBroadcastListWithRecipients(
         { id: 'b1', status: 'DRAFT' },
@@ -104,7 +135,7 @@ describe('WhatsAppBroadcastService', () => {
 
     it('should reject starting a broadcast that already left DRAFT status', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const running = createFakeWhatsAppBroadcastListWithRecipients(
         { id: 'b1', status: 'RUNNING' },

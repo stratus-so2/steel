@@ -51,7 +51,7 @@ describe('WhatsAppTemplateService', () => {
   describe('sync()', () => {
     it('should sync templates for a META connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -75,7 +75,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should reject syncing a Z-API connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -91,7 +91,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should return WHATSAPP_CONNECTION_NOT_FOUND for an unknown connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       mockedConnectionRepo.findById.mockResolvedValue(ok(null))
 
@@ -110,9 +110,21 @@ describe('WhatsAppTemplateService', () => {
       body: 'Olá {{1}}, confirmando seu exame de {{2}}.',
     }
 
-    it('should submit to Meta and persist the template as PENDING', async () => {
+    it('should forbid a MEMBER from creating a template (admin-only)', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+
+      expectErr(
+        await WhatsAppTemplateService.create('u1', 'ws1', input),
+        'FORBIDDEN',
+      )
+      expect(mockedCreateMetaTemplate).not.toHaveBeenCalled()
+    })
+
+    it('should submit to Meta and persist the template as PENDING', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -150,7 +162,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should attach a body example (required by Meta, or INVALID_FORMAT)', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -182,7 +194,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should fall back to a placeholder example when none is provided', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -211,7 +223,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should not attach an example when the body has no variables', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -238,7 +250,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should reject creating on a Z-API connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',
@@ -254,7 +266,7 @@ describe('WhatsAppTemplateService', () => {
 
     it('should surface Meta API errors as BAD_REQUEST', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+        ok(createFakeMembership({ role: 'ADMIN' })),
       )
       const connection = createFakeWhatsAppConnection({
         id: 'conn1',

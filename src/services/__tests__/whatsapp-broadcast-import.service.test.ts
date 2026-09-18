@@ -33,7 +33,7 @@ const validCsv = [
 
 function mockHappyPathDeps() {
   mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-    ok(createFakeMembership({ role: 'MEMBER' })),
+    ok(createFakeMembership({ role: 'ADMIN' })),
   )
   mockedConnectionRepo.findById.mockResolvedValue(
     ok(createFakeWhatsAppConnection({ id: 'conn1' })),
@@ -84,7 +84,7 @@ describe('WhatsAppBroadcastImportService.import()', () => {
 
   it('should return WHATSAPP_CONNECTION_NOT_FOUND when the connection does not exist', async () => {
     mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-      ok(createFakeMembership({ role: 'MEMBER' })),
+      ok(createFakeMembership({ role: 'ADMIN' })),
     )
     mockedConnectionRepo.findById.mockResolvedValue(ok(null))
 
@@ -101,7 +101,7 @@ describe('WhatsAppBroadcastImportService.import()', () => {
 
   it('should return WHATSAPP_TEMPLATE_NOT_FOUND when the template does not exist', async () => {
     mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-      ok(createFakeMembership({ role: 'MEMBER' })),
+      ok(createFakeMembership({ role: 'ADMIN' })),
     )
     mockedConnectionRepo.findById.mockResolvedValue(
       ok(createFakeWhatsAppConnection({ id: 'conn1' })),
@@ -121,7 +121,7 @@ describe('WhatsAppBroadcastImportService.import()', () => {
 
   it('should return WHATSAPP_TEMPLATE_NOT_APPROVED for a non-approved template', async () => {
     mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-      ok(createFakeMembership({ role: 'MEMBER' })),
+      ok(createFakeMembership({ role: 'ADMIN' })),
     )
     mockedConnectionRepo.findById.mockResolvedValue(
       ok(createFakeWhatsAppConnection({ id: 'conn1' })),
@@ -143,7 +143,7 @@ describe('WhatsAppBroadcastImportService.import()', () => {
 
   it('should return BAD_REQUEST when the csv is malformed', async () => {
     mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-      ok(createFakeMembership({ role: 'MEMBER' })),
+      ok(createFakeMembership({ role: 'ADMIN' })),
     )
     mockedConnectionRepo.findById.mockResolvedValue(
       ok(createFakeWhatsAppConnection({ id: 'conn1' })),
@@ -165,7 +165,7 @@ describe('WhatsAppBroadcastImportService.import()', () => {
 
   it('should return a partial result (no broadcast created) when every row is rejected', async () => {
     mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-      ok(createFakeMembership({ role: 'MEMBER' })),
+      ok(createFakeMembership({ role: 'ADMIN' })),
     )
     mockedConnectionRepo.findById.mockResolvedValue(
       ok(createFakeWhatsAppConnection({ id: 'conn1' })),
