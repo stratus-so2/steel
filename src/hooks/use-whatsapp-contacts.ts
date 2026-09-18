@@ -135,3 +135,37 @@ export function useDeleteWhatsAppContact(workspaceId: string) {
     },
   })
 }
+
+/**
+ * Opt-out LGPD de transmissões (somente OWNER/ADMIN — o servidor valida).
+ * Reinscrever exige `contactRequested: true`: só a pedido explícito do
+ * próprio contato.
+ */
+export function useSetWhatsAppContactBroadcastOptOut(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      contactId,
+      ...data
+    }: {
+      contactId: string
+      optedOut: boolean
+      contactRequested?: boolean
+    }) =>
+      apiFetch<WhatsAppContactDTO>(
+        `/api/workspaces/${workspaceId}/whatsapp/contacts/${contactId}/broadcast-opt-out`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        },
+        'Erro ao atualizar descadastro',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['whatsapp-contacts', workspaceId],
+      })
+    },
+  })
+}

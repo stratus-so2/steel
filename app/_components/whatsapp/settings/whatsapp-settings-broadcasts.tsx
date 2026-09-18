@@ -65,7 +65,19 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
   const contacts = useWhatsAppContacts(workspaceId)
   const createBroadcast = useCreateWhatsAppBroadcast(workspaceId)
 
+  // Opt-out LGPD: o servidor já exclui descadastrados ao criar a lista; aqui
+  // eles aparecem desabilitados e fora da contagem.
+  const optedOutIds = new Set(
+    (contacts.data ?? [])
+      .filter((contact) => contact.broadcastOptedOutAt)
+      .map((contact) => contact.id),
+  )
+  const selectedEligibleCount = Array.from(selectedContactIds).filter(
+    (id) => !optedOutIds.has(id),
+  ).length
+
   function toggleContact(contactId: string) {
+    if (optedOutIds.has(contactId)) return
     setSelectedContactIds((prev) => {
       const next = new Set(prev)
       if (next.has(contactId)) next.delete(contactId)
@@ -76,7 +88,7 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!connectionId || selectedContactIds.size === 0) {
+    if (!connectionId || selectedEligibleCount === 0) {
       notify.error('Selecione a conexão e ao menos um contato')
       return
     }
@@ -86,7 +98,9 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
         name,
         connectionId,
         messageBody,
-        contactIds: Array.from(selectedContactIds),
+        contactIds: Array.from(selectedContactIds).filter(
+          (id) => !optedOutIds.has(id),
+        ),
       },
       {
         onSuccess: () => {
@@ -152,22 +166,45 @@ function CreateBroadcastDialog({ workspaceId }: { workspaceId: string }) {
           </div>
 
           <div className='space-y-1.5'>
-            <Label>Contatos ({selectedContactIds.size} selecionados)</Label>
+            <Label>Contatos ({selectedEligibleCount} selecionados)</Label>
             <div className='max-h-48 space-y-1 overflow-y-auto rounded-md border p-2'>
-              {(contacts.data ?? []).map((contact) => (
-                <label
-                  key={contact.id}
-                  htmlFor={`broadcast-contact-${contact.id}`}
-                  className='flex items-center gap-2 py-1 text-sm'
-                >
-                  <Checkbox
-                    id={`broadcast-contact-${contact.id}`}
-                    checked={selectedContactIds.has(contact.id)}
-                    onCheckedChange={() => toggleContact(contact.id)}
-                  />
-                  {contact.name ?? contact.waId}
-                </label>
-              ))}
+              {(contacts.data ?? []).map((contact) => {
+                const optedOut = optedOutIds.has(contact.id)
+                return (
+                  <label
+                    key={contact.id}
+                    htmlFor={`broadcast-contact-${contact.id}`}
+                    className={
+                      optedOut
+                        ? 'flex cursor-not-allowed items-center gap-2 py-1 text-sm opacity-60'
+                        : 'flex items-center gap-2 py-1 text-sm'
+                    }
+                    title={
+                      optedOut
+                        ? 'Contato descadastrado das transmissões (LGPD) — não receberá'
+                        : undefined
+                    }
+                  >
+                    <Checkbox
+                      id={`broadcast-contact-${contact.id}`}
+                      checked={!optedOut && selectedContactIds.has(contact.id)}
+                      disabled={optedOut}
+                      onCheckedChange={() => toggleContact(contact.id)}
+                    />
+                    <span className='min-w-0 flex-1 truncate'>
+                      {contact.name ?? contact.waId}
+                    </span>
+                    {optedOut ? (
+                      <Badge
+                        variant='outline'
+                        className='border-amber-500/40 bg-amber-500/10 text-amber-700'
+                      >
+                        Descadastrado
+                      </Badge>
+                    ) : null}
+                  </label>
+                )
+              })}
               {contacts.data?.length === 0 && (
                 <p className='text-muted-foreground text-xs'>
                   Cadastre contatos antes de criar uma lista
@@ -425,6 +462,9 @@ export function WhatsappSettingsBroadcasts({
                   {broadcast.sentCount}/{broadcast.recipientCount} enviados
                   {broadcast.failedCount > 0
                     ? ` · ${broadcast.failedCount} falhas`
+                    : ''}
+                  {broadcast.skippedCount > 0
+                    ? ` · ${broadcast.skippedCount} descadastrados`
                     : ''}
                 </TableCell>
                 <TableCell>

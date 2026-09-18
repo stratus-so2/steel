@@ -19,6 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ import { notify } from '@/lib/notify'
 import {
   useCreateWhatsAppContact,
   useDeleteWhatsAppContact,
+  useSetWhatsAppContactBroadcastOptOut,
   useSyncWhatsAppContactAvatar,
   useUpdateWhatsAppContact,
   useWhatsAppContacts,
@@ -220,12 +222,145 @@ function EditContactDialog({
   )
 }
 
+const OPT_OUT_SOURCE_LABEL: Record<'KEYWORD' | 'ADMIN', string> = {
+  KEYWORD: 'pediu pelo WhatsApp (SAIR/PARAR/STOP/CANCELAR)',
+  ADMIN: 'registrado por um administrador',
+}
+
+function BroadcastOptOutBadge({ contact }: { contact: WhatsAppContactDTO }) {
+  if (!contact.broadcastOptedOutAt) {
+    return <Badge variant='outline'>Recebe</Badge>
+  }
+  const when = format(new Date(contact.broadcastOptedOutAt), 'dd/MM/yyyy', {
+    locale: ptBR,
+  })
+  const how = contact.broadcastOptOutSource
+    ? OPT_OUT_SOURCE_LABEL[contact.broadcastOptOutSource]
+    : ''
+  return (
+    <Badge
+      variant='outline'
+      className='border-amber-500/40 bg-amber-500/10 text-amber-700'
+      title={`Descadastrado em ${when}${how ? ` — ${how}` : ''}`}
+    >
+      Descadastrado
+    </Badge>
+  )
+}
+
+/**
+ * Descadastrar/reinscrever um contato nas transmissões (LGPD). Reinscrever
+ * só é permitido quando o próprio contato pediu explicitamente para voltar a
+ * receber — o admin precisa confirmar isso, e o evento é auditado.
+ */
+function BroadcastOptOutDialog({
+  workspaceId,
+  contact,
+  onClose,
+}: {
+  workspaceId: string
+  contact: WhatsAppContactDTO | null
+  onClose: () => void
+}) {
+  const [contactRequested, setContactRequested] = useState(false)
+  const setOptOut = useSetWhatsAppContactBroadcastOptOut(workspaceId)
+  const resubscribe = Boolean(contact?.broadcastOptedOutAt)
+  const label = contact?.name ?? contact?.waId
+
+  function close() {
+    setContactRequested(false)
+    onClose()
+  }
+
+  return (
+    <AlertDialog
+      open={contact !== null}
+      onOpenChange={(open) => {
+        if (!open) close()
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {resubscribe
+              ? 'Reinscrever nas transmissões'
+              : 'Descadastrar das transmissões'}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {resubscribe
+              ? `${label} pediu para não receber transmissões. Só reinscreva se o próprio contato solicitou explicitamente voltar a receber (LGPD). A ação fica registrada na auditoria.`
+              : `${label} deixará de receber listas de transmissão. Conversas individuais não são afetadas.`}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {resubscribe ? (
+          <label
+            htmlFor='optout-contact-requested'
+            className='flex items-start gap-2 text-sm'
+          >
+            <Checkbox
+              id='optout-contact-requested'
+              checked={contactRequested}
+              onCheckedChange={(checked) =>
+                setContactRequested(checked === true)
+              }
+            />
+            <span>O contato pediu explicitamente para voltar a receber</span>
+          </label>
+        ) : null}
+        <p className='text-muted-foreground text-xs'>
+          Somente administradores podem alterar esta opção.
+        </p>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={setOptOut.isPending}>
+            Cancelar
+          </AlertDialogCancel>
+          <AlertDialogAction
+            variant={resubscribe ? 'default' : 'destructive'}
+            disabled={setOptOut.isPending || (resubscribe && !contactRequested)}
+            onClick={() => {
+              if (!contact) return
+              setOptOut.mutate(
+                {
+                  contactId: contact.id,
+                  optedOut: !resubscribe,
+                  ...(resubscribe ? { contactRequested: true } : {}),
+                },
+                {
+                  onSuccess: () => {
+                    notify.success(
+                      resubscribe
+                        ? 'Contato reinscrito nas transmissões'
+                        : 'Contato descadastrado das transmissões',
+                    )
+                    close()
+                  },
+                  onError: (error) =>
+                    notify.error(error, 'Não foi possível atualizar'),
+                },
+              )
+            }}
+          >
+            {setOptOut.isPending
+              ? 'Salvando...'
+              : resubscribe
+                ? 'Reinscrever'
+                : 'Descadastrar'}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
   const [search, setSearch] = useState('')
   const [editingContact, setEditingContact] =
     useState<WhatsAppContactDTO | null>(null)
   const [deletingContact, setDeletingContact] =
     useState<WhatsAppContactDTO | null>(null)
+  const [optOutContact, setOptOutContact] = useState<WhatsAppContactDTO | null>(
+    null,
+  )
   const contacts = useWhatsAppContacts(workspaceId, search)
   const deleteContact = useDeleteWhatsAppContact(workspaceId)
   const canDelete = useCan('contacts', 'DELETE')
@@ -252,8 +387,9 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
               <TableHead>Número</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead>Conversas</TableHead>
+              <TableHead>Transmissões</TableHead>
               <TableHead>Cadastrado em</TableHead>
-              <TableHead className='w-32' />
+              <TableHead className='w-56' />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -304,6 +440,9 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
                 <TableCell>
                   <Badge variant='secondary'>{contact.conversationCount}</Badge>
                 </TableCell>
+                <TableCell>
+                  <BroadcastOptOutBadge contact={contact} />
+                </TableCell>
                 <TableCell className='text-muted-foreground text-xs'>
                   {format(new Date(contact.createdAt), 'dd/MM/yyyy', {
                     locale: ptBR,
@@ -311,6 +450,15 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
                 </TableCell>
                 <TableCell>
                   <div className='flex justify-end gap-1.5'>
+                    <Button
+                      size='xs'
+                      variant='ghost'
+                      onClick={() => setOptOutContact(contact)}
+                    >
+                      {contact.broadcastOptedOutAt
+                        ? 'Reinscrever'
+                        : 'Descadastrar'}
+                    </Button>
                     <Button
                       size='xs'
                       variant='outline'
@@ -334,7 +482,7 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
             {contacts.data?.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className='text-muted-foreground text-sm'
                 >
                   Nenhum contato cadastrado.
@@ -355,6 +503,12 @@ export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
           }}
         />
       )}
+
+      <BroadcastOptOutDialog
+        workspaceId={workspaceId}
+        contact={optOutContact}
+        onClose={() => setOptOutContact(null)}
+      />
 
       <AlertDialog
         open={deletingContact !== null}
