@@ -148,11 +148,8 @@ describe('<ProductsPricingEditor />', () => {
     expect(last().total).toBe(0)
   })
 
-  // BUG: `updateDiscount` spreads `recompute(...)`, which returns only
-  // `{ items, total }` — the new `discount` is never written back, so the
-  // input snaps to 0 and the discount is lost on save / next item edit.
-  // Flip to `it` once products-pricing-section.tsx persists `discount`.
-  it.fails('persists the typed discount in the emitted content', () => {
+  // Regression: the typed discount used to be dropped from the emitted content.
+  it('persists the typed discount in the emitted content', () => {
     const { last } = harness(ProductsPricingEditor, priced())
     const discount = numberInputs().at(-1) as HTMLInputElement
 

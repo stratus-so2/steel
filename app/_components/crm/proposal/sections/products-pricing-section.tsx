@@ -68,7 +68,7 @@ export function ProductsPricingEditor({
   }
 
   function updateDiscount(discount: number) {
-    onChange({ ...content, ...recompute(content.items, discount) })
+    onChange({ ...content, discount, ...recompute(content.items, discount) })
   }
 
   return (
