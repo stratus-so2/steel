@@ -236,6 +236,10 @@ export const ERROR_CODES = {
     code: 'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
     status: 422,
   },
+  CRM_EMAIL_UNSUBSCRIBE_INVALID: {
+    code: 'CRM_EMAIL_UNSUBSCRIBE_INVALID',
+    status: 400,
+  },
   CRM_MAILING_LIST_NOT_FOUND: {
     code: 'CRM_MAILING_LIST_NOT_FOUND',
     status: 404,

@@ -404,6 +404,14 @@ export const crmEmailCampaignNoRecipients = (
   message = 'Selecione ao menos um destinatário para a campanha',
 ): AppError => appError('CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS', message)
 
+/** Token de descadastro com assinatura inválida ou destinatário inexistente.
+ * Mensagem genérica — não revela se o endereço existe. */
+export const crmEmailUnsubscribeInvalid = (): AppError =>
+  appError(
+    'CRM_EMAIL_UNSUBSCRIBE_INVALID',
+    'Link de descadastro inválido. Verifique se copiou o endereço completo.',
+  )
+
 export const crmMailingListNotFound = (): AppError =>
   appError('CRM_MAILING_LIST_NOT_FOUND', 'Lista de e-mail não encontrada')
 

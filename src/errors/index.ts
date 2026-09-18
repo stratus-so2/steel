@@ -29,6 +29,7 @@ export {
   crmEmailCampaignNotFound,
   crmEmailMessageNotFound,
   crmEmailTemplateNotFound,
+  crmEmailUnsubscribeInvalid,
   crmFormNotFound,
   crmFormNotPublished,
   crmHookVaultItemNotFound,

@@ -27,6 +27,27 @@ export type UpdateWhatsAppContactDTO = z.infer<
   typeof UpdateWhatsAppContactSchema
 >
 
+/**
+ * Opt-out LGPD de transmissões, operado por admin no cadastro do contato.
+ * Reinscrever (`optedOut: false`) só é permitido mediante pedido explícito do
+ * próprio contato — o admin precisa confirmar isso (`contactRequested`), e o
+ * evento vai para a auditoria.
+ */
+export const UpdateWhatsAppContactBroadcastOptOutSchema = z
+  .object({
+    optedOut: z.boolean(),
+    contactRequested: z.boolean().optional(),
+  })
+  .refine((data) => data.optedOut || data.contactRequested === true, {
+    message:
+      'Reinscrição só é permitida a pedido explícito do contato — confirme o pedido',
+    path: ['contactRequested'],
+  })
+
+export type UpdateWhatsAppContactBroadcastOptOutDTO = z.infer<
+  typeof UpdateWhatsAppContactBroadcastOptOutSchema
+>
+
 export const FindOrCreateWhatsAppContactSchema = z.object({
   waId: WaIdField,
   name: z.string().min(1).max(120).optional(),

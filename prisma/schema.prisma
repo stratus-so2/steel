@@ -328,6 +328,7 @@ model Workspace {
   crmEmailTemplates         CrmEmailTemplate[]
   crmEmailCampaigns         CrmEmailCampaign[]
   crmMailingLists           CrmMailingList[]
+  crmEmailOptOuts           CrmEmailOptOut[]
   crmWorkflows              CrmWorkflow[]
   crmLandingPages           CrmLandingPage[]
   crmSocialConnections      CrmSocialConnection[]
@@ -758,15 +759,20 @@ model WhatsAppConnection {
 }
 
 model WhatsAppContact {
-  id          String   @id @default(cuid())
-  workspaceId String   @map("workspace_id")
-  waId        String   @map("wa_id")
-  name        String?
-  avatarUrl   String?  @map("avatar_url")
+  id                    String                @id @default(cuid())
+  workspaceId           String                @map("workspace_id")
+  waId                  String                @map("wa_id")
+  name                  String?
+  avatarUrl             String?               @map("avatar_url")
   // Freeform "about"/bio text — manually entered, no provider API exposes this.
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  description           String?
+  // Descadastro LGPD de transmissões (opt-out). Preenchido quando o contato
+  // responde uma palavra-chave (SAIR/PARAR/STOP/CANCELAR) ou quando um admin
+  // registra o pedido; nulo = recebe transmissões.
+  broadcastOptedOutAt   DateTime?             @map("broadcast_opted_out_at")
+  broadcastOptOutSource WhatsAppOptOutSource? @map("broadcast_opt_out_source")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @updatedAt @map("updated_at")
 
   workspace           Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   conversations       WhatsAppConversation[]
@@ -775,6 +781,11 @@ model WhatsAppContact {
   @@unique([workspaceId, waId])
   @@index([workspaceId])
   @@map("whatsapp_contacts")
+}
+
+enum WhatsAppOptOutSource {
+  KEYWORD
+  ADMIN
 }
 
 enum WhatsAppConversationStatus {
@@ -942,6 +953,8 @@ enum WhatsAppBroadcastRecipientStatus {
   PENDING
   SENT
   FAILED
+  // Contato descadastrado (opt-out LGPD) antes do disparo — não enviado.
+  SKIPPED
 }
 
 model WhatsAppBroadcastRecipient {
@@ -2302,6 +2315,8 @@ enum CrmCampaignRecipientStatus {
   PENDING
   SENT
   FAILED
+  // Endereço descadastrado (opt-out LGPD) entre a criação e o envio.
+  SKIPPED
 }
 
 model CrmEmailCampaign {
@@ -2348,6 +2363,34 @@ model CrmEmailCampaignRecipient {
   @@index([personId])
   @@index([status])
   @@map("crm_email_campaign_recipients")
+}
+
+enum CrmEmailOptOutSource {
+  // Clique no link de descadastro do rodapé (página pública de confirmação)
+  LINK
+  // POST RFC 8058 disparado pelo provedor (List-Unsubscribe-Post)
+  ONE_CLICK
+}
+
+/// Descadastro LGPD de campanhas de e-mail do CRM — por endereço e workspace.
+/// Registra quando/como o titular saiu; campanhas futuras excluem o endereço
+/// (e a pessoa vinculada). E-mails transacionais não consultam esta tabela.
+model CrmEmailOptOut {
+  id          String               @id @default(cuid())
+  workspaceId String               @map("workspace_id")
+  // Sempre minúsculo — chave de exclusão.
+  email       String
+  personId    String?              @map("person_id")
+  campaignId  String?              @map("campaign_id")
+  source      CrmEmailOptOutSource
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+  @@index([personId])
+  @@map("crm_email_opt_outs")
 }
 
 model CrmMailingList {

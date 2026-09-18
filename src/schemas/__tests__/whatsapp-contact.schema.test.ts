@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   CreateWhatsAppContactSchema,
   ListWhatsAppContactsSchema,
+  UpdateWhatsAppContactBroadcastOptOutSchema,
   UpdateWhatsAppContactSchema,
 } from '../whatsapp-contact.schema'
 
@@ -53,6 +54,37 @@ describe('ListWhatsAppContactsSchema', () => {
     expect(ListWhatsAppContactsSchema.safeParse({}).success).toBe(true)
     expect(
       ListWhatsAppContactsSchema.safeParse({ search: 'maria' }).success,
+    ).toBe(true)
+  })
+})
+
+describe('UpdateWhatsAppContactBroadcastOptOutSchema', () => {
+  it('should accept an admin opt-out', () => {
+    expect(
+      UpdateWhatsAppContactBroadcastOptOutSchema.safeParse({ optedOut: true })
+        .success,
+    ).toBe(true)
+  })
+
+  it('should reject a re-subscribe without an explicit contact request', () => {
+    expect(
+      UpdateWhatsAppContactBroadcastOptOutSchema.safeParse({ optedOut: false })
+        .success,
+    ).toBe(false)
+    expect(
+      UpdateWhatsAppContactBroadcastOptOutSchema.safeParse({
+        optedOut: false,
+        contactRequested: false,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('should accept a re-subscribe confirmed as requested by the contact', () => {
+    expect(
+      UpdateWhatsAppContactBroadcastOptOutSchema.safeParse({
+        optedOut: false,
+        contactRequested: true,
+      }).success,
     ).toBe(true)
   })
 })
