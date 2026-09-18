@@ -111,8 +111,8 @@ describe('PATCH & DELETE /api/workspaces/[id]/crm/leads/[leadId]', () => {
   })
 })
 
-describe('POST /api/workspaces/[id]/crm/leads/[leadId]/convert', () => {
-  it('should convert a lead into a CRM person', async () => {
+describe('POST /api/workspaces/[id]/crm/leads/[leadId]/convert (legacy)', () => {
+  it('should return 409 for a lead that was not closed as won', async () => {
     const { user, workspace } = await authenticatedOwner()
     const lead = await (
       await postJson(
@@ -121,39 +121,6 @@ describe('POST /api/workspaces/[id]/crm/leads/[leadId]/convert', () => {
         user.cookie,
       )
     ).json()
-
-    const res = await postJson(
-      `/api/workspaces/${workspace.id}/crm/leads/${lead.data.id}/convert`,
-      {},
-      user.cookie,
-    )
-    expect(res.status).toBe(201)
-    const body = await res.json()
-    expect(body.data.name).toBe('Jane Doe')
-
-    const leadAfter = await getJson(
-      `/api/workspaces/${workspace.id}/crm/leads/${lead.data.id}`,
-      user.cookie,
-    )
-    const leadAfterBody = await leadAfter.json()
-    expect(leadAfterBody.data.convertedPersonId).toBe(body.data.id)
-  })
-
-  it('should return 409 when converting an already converted lead', async () => {
-    const { user, workspace } = await authenticatedOwner()
-    const lead = await (
-      await postJson(
-        `/api/workspaces/${workspace.id}/crm/leads`,
-        { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
-        user.cookie,
-      )
-    ).json()
-
-    await postJson(
-      `/api/workspaces/${workspace.id}/crm/leads/${lead.data.id}/convert`,
-      {},
-      user.cookie,
-    )
 
     const res = await postJson(
       `/api/workspaces/${workspace.id}/crm/leads/${lead.data.id}/convert`,
@@ -161,6 +128,28 @@ describe('POST /api/workspaces/[id]/crm/leads/[leadId]/convert', () => {
       user.cookie,
     )
     expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.error.code).toBe('CRM_LEAD_STAGE_TRANSITION_INVALID')
+  })
+})
+
+describe('CRM lead intake dedupe', () => {
+  it('should return 409 CRM_LEAD_DUPLICATE for an open lead with the same e-mail', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/leads`,
+      { name: 'Jane Doe', emails: ['jane@acme.com'], source: 'ads' },
+      user.cookie,
+    )
+
+    const res = await postJson(
+      `/api/workspaces/${workspace.id}/crm/leads`,
+      { name: 'Jane D.', emails: ['JANE@acme.com'], source: 'site' },
+      user.cookie,
+    )
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.error.code).toBe('CRM_LEAD_DUPLICATE')
   })
 })
 
@@ -264,6 +253,20 @@ describe('CRM lead 6-stage pipeline', () => {
     expect(leadAfter.data.stage).toBe('CLOSED')
     expect(leadAfter.data.closeResult).toBe('WON')
     expect(leadAfter.data.convertedPersonId).toBe(closedBody.data.id)
+
+    // Rota legada de conversão: idempotente, devolve a mesma pessoa.
+    const converted = await postJson(
+      `/api/workspaces/${workspace.id}/crm/leads/${leadId}/convert`,
+      {},
+      user.cookie,
+    )
+    expect(converted.status).toBe(200)
+    expect((await converted.json()).data.id).toBe(closedBody.data.id)
+
+    const people = await (
+      await getJson(`/api/workspaces/${workspace.id}/crm/people`, user.cookie)
+    ).json()
+    expect(people.data).toHaveLength(1)
   })
 
   it('should not allow skipping a stage', async () => {

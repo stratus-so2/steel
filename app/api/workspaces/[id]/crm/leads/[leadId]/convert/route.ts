@@ -23,8 +23,11 @@ export const POST = withAxiom(async (_request: NextRequest, ctx: Params) => {
 
   const { id, leadId } = await ctx.params
 
+  // Legado: a conversão agora acontece em `close-won`. Para um lead ganho
+  // devolve (idempotente) a pessoa vinculada; para os demais, 409
+  // CRM_LEAD_STAGE_TRANSITION_INVALID com o caminho correto na mensagem.
   const result = await CrmLeadService.convert(auth.value.user.id, id, leadId)
   if (!result.ok) return handleError(result.error)
 
-  return successResponse(result.value, 201)
+  return successResponse(result.value, 200)
 })
