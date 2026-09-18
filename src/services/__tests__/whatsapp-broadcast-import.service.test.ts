@@ -1,13 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWhatsAppBroadcastListWithRecipients } from '@/src/__tests__/factories/whatsapp-broadcast.factory'
 import { createFakeWhatsAppConnection } from '@/src/__tests__/factories/whatsapp-connection.factory'
 import { createFakeWhatsAppContact } from '@/src/__tests__/factories/whatsapp-contact.factory'
 import { createFakeWhatsAppTemplate } from '@/src/__tests__/factories/whatsapp-template.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { featureNotEnabled } from '@/src/errors'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
+vi.mock('@/src/services/feature-flag.service')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/src/repositories/whatsapp-template.repository')
 vi.mock('@/src/repositories/whatsapp-contact.repository')
@@ -18,6 +20,7 @@ import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadca
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
+import { assertFeature } from '../feature-flag.service'
 import { WhatsAppBroadcastImportService } from '../whatsapp-broadcast-import.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -25,6 +28,11 @@ const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
 const mockedTemplateRepo = vi.mocked(WhatsAppTemplateRepository)
 const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
 const mockedBroadcastRepo = vi.mocked(WhatsAppBroadcastRepository)
+const mockedAssertFeature = vi.mocked(assertFeature)
+
+beforeEach(() => {
+  mockedAssertFeature.mockResolvedValue(ok(true))
+})
 
 const validCsv = [
   'telefone,nome,data_referencia,var_1',
@@ -228,5 +236,24 @@ describe('WhatsAppBroadcastImportService.import()', () => {
     expect(dto.createdCount).toBe(0)
     expect(dto.rejectedRows).toHaveLength(1)
     expect(mockedBroadcastRepo.createScheduled).not.toHaveBeenCalled()
+  })
+
+  describe('feature flag communication.broadcasts', () => {
+    it('should block the import when broadcasts are off for the workspace', async () => {
+      mockHappyPathDeps()
+      mockedAssertFeature.mockResolvedValue(err(featureNotEnabled()))
+
+      expectErr(
+        await WhatsAppBroadcastImportService.import('u1', 'ws1', {
+          name: 'Lembretes',
+          connectionId: 'conn1',
+          templateId: 'tmpl1',
+          sendOffsetHours: 24,
+          csv: validCsv,
+        }),
+        'FEATURE_NOT_ENABLED',
+      )
+      expect(mockedBroadcastRepo.createScheduled).not.toHaveBeenCalled()
+    })
   })
 })

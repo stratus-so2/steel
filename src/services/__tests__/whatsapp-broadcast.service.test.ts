@@ -1,11 +1,13 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWhatsAppBroadcastListWithRecipients } from '@/src/__tests__/factories/whatsapp-broadcast.factory'
 import { createFakeWhatsAppConnection } from '@/src/__tests__/factories/whatsapp-connection.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { featureNotEnabled } from '@/src/errors'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
+vi.mock('@/src/services/feature-flag.service')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/src/repositories/whatsapp-broadcast.repository')
 vi.mock('@/src/repositories/whatsapp-contact.repository')
@@ -22,12 +24,18 @@ import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadca
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { assertFeature } from '../feature-flag.service'
 import { WhatsAppBroadcastService } from '../whatsapp-broadcast.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
 const mockedBroadcastRepo = vi.mocked(WhatsAppBroadcastRepository)
 const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
+const mockedAssertFeature = vi.mocked(assertFeature)
+
+beforeEach(() => {
+  mockedAssertFeature.mockResolvedValue(ok(true))
+})
 
 describe('WhatsAppBroadcastService', () => {
   describe('create()', () => {
@@ -231,6 +239,40 @@ describe('WhatsAppBroadcastService', () => {
       const result = await WhatsAppBroadcastService.start('u1', 'ws1', 'b1')
 
       expectErr(result, 'WHATSAPP_BROADCAST_LOCKED')
+      expect(addBulk).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('feature flag communication.broadcasts', () => {
+    beforeEach(() => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      mockedAssertFeature.mockResolvedValue(err(featureNotEnabled()))
+    })
+
+    it('should block create() when broadcasts are off for the workspace', async () => {
+      expectErr(
+        await WhatsAppBroadcastService.create('u1', 'ws1', {
+          connectionId: 'conn1',
+          name: 'Promoção',
+          messageBody: 'Aproveite!',
+          contactIds: ['c1'],
+        }),
+        'FEATURE_NOT_ENABLED',
+      )
+      expect(mockedAssertFeature).toHaveBeenCalledWith(
+        'ws1',
+        'communication.broadcasts',
+      )
+      expect(mockedBroadcastRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should block start() when broadcasts are off for the workspace', async () => {
+      expectErr(
+        await WhatsAppBroadcastService.start('u1', 'ws1', 'b1'),
+        'FEATURE_NOT_ENABLED',
+      )
       expect(addBulk).not.toHaveBeenCalled()
     })
   })

@@ -47,6 +47,7 @@ import {
   CRM_SCHEDULED_POST_BUCKET,
   publishScheduledPost,
 } from './crm-social-scheduler'
+import { assertFeature } from './feature-flag.service'
 
 /** Mídia recebida na criação (já lida como bytes, antes de ir ao MinIO). */
 export type CrmScheduledUploadMedia = {
@@ -452,6 +453,8 @@ export const CrmScheduledPostService = {
       action: 'CREATE',
     })
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'crm.socialPublishing')
+    if (!feature.ok) return feature
 
     const title = dto.title?.trim() ? dto.title.trim() : undefined
 
@@ -674,6 +677,8 @@ export const CrmScheduledPostService = {
       action: 'EDIT',
     })
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'crm.socialPublishing')
+    if (!feature.ok) return feature
 
     const existing = await CrmScheduledPostRepository.findById(
       postId,
@@ -723,6 +728,8 @@ export const CrmScheduledPostService = {
       action: 'CREATE',
     })
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'crm.socialPublishing')
+    if (!feature.ok) return feature
 
     const existing = await CrmScheduledPostRepository.findById(
       postId,

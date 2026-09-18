@@ -22,6 +22,7 @@ import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template
 import type { CreateWhatsAppBroadcastImportDTO } from '@/src/schemas/whatsapp-broadcast-import.schema'
 import type { WhatsAppBroadcastImportResultDTO } from '@/types/whatsapp-broadcast-import'
 import { assertModuleMember } from './authz'
+import { assertFeature } from './feature-flag.service'
 
 export const WhatsAppBroadcastImportService = {
   async import(
@@ -36,6 +37,8 @@ export const WhatsAppBroadcastImportService = {
       { resource: 'broadcasts', action: 'CREATE' },
     )
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'communication.broadcasts')
+    if (!feature.ok) return feature
 
     const connection = await WhatsAppConnectionRepository.findById(
       dto.connectionId,

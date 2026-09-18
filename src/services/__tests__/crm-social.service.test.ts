@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeCrmScheduledPost,
   createFakeCrmScheduledPostTarget,
@@ -7,9 +7,12 @@ import {
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { featureNotEnabled } from '@/src/errors'
+import { err, ok } from '@/src/lib/result'
+import type { CreateCrmScheduledPostDTO } from '@/src/schemas/crm-social.schema'
 
 vi.mock('@/src/repositories/membership.repository')
+vi.mock('@/src/services/feature-flag.service')
 vi.mock('@/src/repositories/crm-social.repository')
 vi.mock('@/src/repositories/workspace.repository')
 vi.mock('@/src/lib/social/crypto', () => ({
@@ -47,6 +50,7 @@ import {
   CrmScheduledPostService,
   CrmSocialConnectionService,
 } from '../crm-social.service'
+import { assertFeature } from '../feature-flag.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedPostRepo = vi.mocked(CrmScheduledPostRepository)
@@ -54,6 +58,11 @@ const mockedTargetRepo = vi.mocked(CrmScheduledPostTargetRepository)
 const mockedConnectionRepo = vi.mocked(CrmSocialConnectionRepository)
 const mockedWorkspaceRepo = vi.mocked(WorkspaceRepository)
 const mockedGetProvider = vi.mocked(getProvider)
+const mockedAssertFeature = vi.mocked(assertFeature)
+
+beforeEach(() => {
+  mockedAssertFeature.mockResolvedValue(ok(true))
+})
 
 describe('CrmScheduledPostService', () => {
   describe('publish()', () => {
@@ -279,5 +288,51 @@ describe('CrmSocialConnectionService', () => {
         'conn1',
       )
     })
+  })
+})
+
+describe('CrmScheduledPostService feature flag crm.socialPublishing', () => {
+  beforeEach(() => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'MEMBER' })),
+    )
+    mockedAssertFeature.mockResolvedValue(err(featureNotEnabled()))
+  })
+
+  it('should block create() when social publishing is off', async () => {
+    const dto = {
+      platforms: ['FACEBOOK'],
+      content: 'Novidade!',
+      mode: 'schedule',
+      scheduledFor: new Date(Date.now() + 3_600_000),
+      options: {},
+    } as unknown as CreateCrmScheduledPostDTO
+
+    expectErr(
+      await CrmScheduledPostService.create('u1', 'ws1', dto),
+      'FEATURE_NOT_ENABLED',
+    )
+    expect(mockedAssertFeature).toHaveBeenCalledWith(
+      'ws1',
+      'crm.socialPublishing',
+    )
+    expect(mockedPostRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('should block publish() and reschedule() when social publishing is off', async () => {
+    expectErr(
+      await CrmScheduledPostService.publish('u1', 'ws1', 'p1'),
+      'FEATURE_NOT_ENABLED',
+    )
+    expectErr(
+      await CrmScheduledPostService.reschedule(
+        'u1',
+        'ws1',
+        'p1',
+        new Date(Date.now() + 3_600_000),
+      ),
+      'FEATURE_NOT_ENABLED',
+    )
+    expect(mockedPostRepo.findById).not.toHaveBeenCalled()
   })
 })

@@ -1,13 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeCrmAiConversation,
   createFakeCrmAiMessage,
 } from '@/src/__tests__/factories/crm-ai.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { featureNotEnabled } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
+vi.mock('@/src/services/feature-flag.service')
 vi.mock('@/src/repositories/crm-ai.repository')
 vi.mock('@/src/services/ai-usage.service')
 vi.mock('@/src/services/crm-ai-tools', () => ({
@@ -29,12 +31,18 @@ import {
 } from '@/src/services/ai-usage.service'
 import { executeAiTool } from '@/src/services/crm-ai-tools'
 import { CrmAiConversationService } from '../crm-ai.service'
+import { assertFeature } from '../feature-flag.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedConversationRepo = vi.mocked(CrmAiConversationRepository)
 const mockedMessageRepo = vi.mocked(CrmAiMessageRepository)
 const mockedUsageRepo = vi.mocked(CrmAiUsageRepository)
 const mockedAiUsage = vi.mocked(AiUsageService)
+const mockedAssertFeature = vi.mocked(assertFeature)
+
+beforeEach(() => {
+  mockedAssertFeature.mockResolvedValue(ok(true))
+})
 
 function asMemberWithConversation() {
   mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
@@ -205,6 +213,39 @@ describe('CrmAiConversationService', () => {
         'AI_PROVIDER_UNAVAILABLE',
       )
       expect(mockedAiUsage.record).toHaveBeenCalled()
+    })
+  })
+
+  describe('feature flag crm.aiAssistant', () => {
+    beforeEach(() => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      mockedAssertFeature.mockResolvedValue(err(featureNotEnabled()))
+    })
+
+    it('should block create() when the feature is off for the workspace', async () => {
+      expectErr(
+        await CrmAiConversationService.create('u1', 'ws1', { title: 'Nova' }),
+        'FEATURE_NOT_ENABLED',
+      )
+      expect(mockedAssertFeature).toHaveBeenCalledWith('ws1', 'crm.aiAssistant')
+      expect(mockedConversationRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should block sendMessage() when the feature is off for the workspace', async () => {
+      expectErr(
+        await CrmAiConversationService.sendMessage('u1', 'ws1', 'c1', {
+          content: 'Oi',
+        }),
+        'FEATURE_NOT_ENABLED',
+      )
+      expect(mockedConversationRepo.findById).not.toHaveBeenCalled()
+    })
+
+    it('should still list past conversations when the feature is off', async () => {
+      mockedConversationRepo.listByUser.mockResolvedValue(ok([]))
+      expectOk(await CrmAiConversationService.list('u1', 'ws1'))
     })
   })
 })

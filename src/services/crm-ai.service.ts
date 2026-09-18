@@ -31,6 +31,7 @@ import {
   storeAttachment,
 } from './crm-ai-attachment'
 import { CRM_AI_TOOLS, executeAiTool } from './crm-ai-tools'
+import { assertFeature } from './feature-flag.service'
 
 const REFUSAL_REPLY =
   'Não posso ajudar com esse pedido. Tente reformular a pergunta.'
@@ -75,6 +76,8 @@ export const CrmAiConversationService = {
   ): Promise<Result<CrmAiConversationDTO>> {
     const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'crm.aiAssistant')
+    if (!feature.ok) return feature
 
     const result = await CrmAiConversationRepository.create({
       workspaceId,
@@ -143,6 +146,8 @@ export const CrmAiConversationService = {
   ): Promise<Result<CrmAiMessageDTO>> {
     const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'crm.aiAssistant')
+    if (!feature.ok) return feature
 
     const conversation = await CrmAiConversationRepository.findById(
       conversationId,
@@ -352,6 +357,8 @@ export const CrmAiConversationService = {
   ): Promise<Result<CrmAiAttachmentDTO>> {
     const membership = await assertModuleMember(actorId, workspaceId, 'CRM')
     if (!membership.ok) return membership
+    const feature = await assertFeature(workspaceId, 'crm.aiAssistant')
+    if (!feature.ok) return feature
 
     const conversation = await CrmAiConversationRepository.findById(
       conversationId,
