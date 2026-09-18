@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
 import type {
   CrmCampaignRecipientScopeDTO,
   CrmEmailCampaignDTO,
   CrmEmailCampaignRecipientDTO,
+  CrmEmailOptOutDTO,
   CrmMailingListDTO,
   CrmMailingListMemberDTO,
 } from '@/types/crm-email-marketing'
@@ -22,6 +24,41 @@ function emailCampaignsKey(workspaceId: string) {
 
 function emailCampaignRecipientsKey(workspaceId: string, campaignId: string) {
   return ['crm-email-campaign-recipients', workspaceId, campaignId] as const
+}
+
+function emailOptOutsKey(workspaceId: string) {
+  return ['crm-email-opt-outs', workspaceId] as const
+}
+
+/** Descadastros LGPD do workspace — só para exibir quem será excluído; a
+ * exclusão real acontece no servidor ao montar/enviar a campanha. */
+export function useCrmEmailOptOuts(workspaceId: string) {
+  const query = useQuery({
+    queryKey: emailOptOutsKey(workspaceId),
+    queryFn: () =>
+      apiFetch<CrmEmailOptOutDTO[]>(
+        `/api/workspaces/${workspaceId}/crm/email-opt-outs`,
+        undefined,
+        'Erro ao buscar descadastros',
+      ),
+    staleTime: 30 * 1000,
+  })
+  const { emails, personIds } = useMemo(() => {
+    const optOuts = query.data ?? []
+    return {
+      emails: new Set(optOuts.map((o) => o.email.toLowerCase())),
+      personIds: new Set(
+        optOuts.flatMap((o) => (o.personId ? [o.personId] : [])),
+      ),
+    }
+  }, [query.data])
+  const isOptedOut = useCallback(
+    (email: string | undefined, personId?: string | null) =>
+      (email ? emails.has(email.trim().toLowerCase()) : false) ||
+      (personId ? personIds.has(personId) : false),
+    [emails, personIds],
+  )
+  return { ...query, isOptedOut }
 }
 
 export function useCreateCrmMailingList(workspaceId: string) {

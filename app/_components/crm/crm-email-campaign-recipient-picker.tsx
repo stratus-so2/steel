@@ -10,6 +10,7 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useCrmEmailOptOuts } from '@/src/hooks/use-crm-email-marketing'
 import { useCrmResourceList } from '@/src/hooks/use-crm-resource-list'
 import type { CrmMailingListDTO } from '@/types/crm-email-marketing'
 import type { CrmPersonDTO } from '@/types/crm-person'
@@ -65,7 +66,11 @@ export function CrmEmailCampaignRecipientPicker({
       </TabsContent>
 
       <TabsContent value='extra'>
-        <ExtraEmailsTab value={value} onChange={onChange} />
+        <ExtraEmailsTab
+          workspaceId={workspaceId}
+          value={value}
+          onChange={onChange}
+        />
       </TabsContent>
     </Tabs>
   )
@@ -77,10 +82,26 @@ function ContactsTab({ workspaceId, value, onChange }: Props) {
     'people',
   )
   const [search, setSearch] = useState('')
+  const { isOptedOut } = useCrmEmailOptOuts(workspaceId)
 
   const peopleWithEmail = useMemo(
     () => people.filter((p) => p.emails.length > 0),
     [people],
+  )
+  // Opt-out LGPD: o servidor exclui na montagem da campanha; aqui só
+  // refletimos para a contagem bater com o que será enviado.
+  const optedOutIds = useMemo(
+    () =>
+      new Set(
+        peopleWithEmail
+          .filter((p) => isOptedOut(p.emails[0], p.id))
+          .map((p) => p.id),
+      ),
+    [peopleWithEmail, isOptedOut],
+  )
+  const eligible = useMemo(
+    () => peopleWithEmail.filter((p) => !optedOutIds.has(p.id)),
+    [peopleWithEmail, optedOutIds],
   )
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -92,17 +113,24 @@ function ContactsTab({ workspaceId, value, onChange }: Props) {
     )
   }, [peopleWithEmail, search])
 
-  const totalWithEmail = peopleWithEmail.length
+  const totalWithEmail = eligible.length
   const selectedIds = new Set(value.personIds)
   const isChecked = (id: string) =>
-    value.scope === 'ALL' ? true : selectedIds.has(id)
+    optedOutIds.has(id)
+      ? false
+      : value.scope === 'ALL'
+        ? true
+        : selectedIds.has(id)
   const selectedCount =
-    value.scope === 'ALL' ? totalWithEmail : value.personIds.length
+    value.scope === 'ALL'
+      ? totalWithEmail
+      : value.personIds.filter((id) => !optedOutIds.has(id)).length
   const allMarked = value.scope === 'ALL' || selectedCount === totalWithEmail
 
   function toggle(id: string) {
+    if (optedOutIds.has(id)) return
     if (value.scope === 'ALL') {
-      const next = peopleWithEmail.map((p) => p.id).filter((x) => x !== id)
+      const next = eligible.map((p) => p.id).filter((x) => x !== id)
       onChange({ ...value, scope: 'SELECTED', personIds: next })
       return
     }
@@ -150,6 +178,9 @@ function ContactsTab({ workspaceId, value, onChange }: Props) {
       <div className='flex items-center justify-between text-muted-foreground text-xs'>
         <span>
           {selectedCount} de {totalWithEmail} selecionada(s)
+          {optedOutIds.size > 0
+            ? ` · ${optedOutIds.size} descadastrada(s) excluída(s)`
+            : ''}
         </span>
         {value.scope === 'ALL' ? (
           <span>Inclui pessoas adicionadas depois</span>
@@ -165,24 +196,46 @@ function ContactsTab({ workspaceId, value, onChange }: Props) {
           </div>
         ) : (
           <ul className='divide-y divide-border'>
-            {filtered.map((p) => (
-              <li key={p.id}>
-                <label className='flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted/40'>
-                  <input
-                    type='checkbox'
-                    className='size-4 accent-primary'
-                    checked={isChecked(p.id)}
-                    onChange={() => toggle(p.id)}
-                  />
-                  <div className='min-w-0 flex-1'>
-                    <div className='truncate font-medium text-sm'>{p.name}</div>
-                    <div className='truncate text-muted-foreground text-xs'>
-                      {p.emails.join(', ')}
+            {filtered.map((p) => {
+              const optedOut = optedOutIds.has(p.id)
+              return (
+                <li key={p.id}>
+                  <label
+                    className={
+                      optedOut
+                        ? 'flex cursor-not-allowed items-center gap-3 px-3 py-2 opacity-60'
+                        : 'flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-muted/40'
+                    }
+                    title={
+                      optedOut
+                        ? 'Descadastrado das campanhas (LGPD) — não receberá'
+                        : undefined
+                    }
+                  >
+                    <input
+                      type='checkbox'
+                      className='size-4 accent-primary'
+                      checked={isChecked(p.id)}
+                      disabled={optedOut}
+                      onChange={() => toggle(p.id)}
+                    />
+                    <div className='min-w-0 flex-1'>
+                      <div className='truncate font-medium text-sm'>
+                        {p.name}
+                      </div>
+                      <div className='truncate text-muted-foreground text-xs'>
+                        {p.emails.join(', ')}
+                      </div>
                     </div>
-                  </div>
-                </label>
-              </li>
-            ))}
+                    {optedOut ? (
+                      <span className='shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-600'>
+                        Descadastrado
+                      </span>
+                    ) : null}
+                  </label>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
@@ -251,13 +304,8 @@ function MailingListsTab({ workspaceId, value, onChange }: Props) {
   )
 }
 
-function ExtraEmailsTab({
-  value,
-  onChange,
-}: {
-  value: RecipientSelection
-  onChange: (next: RecipientSelection) => void
-}) {
+function ExtraEmailsTab({ workspaceId, value, onChange }: Props) {
+  const { isOptedOut } = useCrmEmailOptOuts(workspaceId)
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
 
@@ -322,7 +370,16 @@ function ExtraEmailsTab({
           {value.extraEmails.map((email) => (
             <span
               key={email}
-              className='inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs'
+              className={
+                isOptedOut(email)
+                  ? 'inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-amber-700 text-xs line-through'
+                  : 'inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2.5 py-1 text-xs'
+              }
+              title={
+                isOptedOut(email)
+                  ? 'Descadastrado das campanhas (LGPD) — não receberá'
+                  : undefined
+              }
             >
               {email}
               <button

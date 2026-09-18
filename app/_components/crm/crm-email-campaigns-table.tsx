@@ -107,6 +107,12 @@ const COLUMNS: GridColumn[] = [
   },
   { key: 'sentCount', header: 'Enviados', kind: 'number', readonly: true },
   { key: 'failedCount', header: 'Falhas', kind: 'number', readonly: true },
+  {
+    key: 'skippedCount',
+    header: 'Descadastrados',
+    kind: 'number',
+    readonly: true,
+  },
   { key: 'scheduledAt', header: 'Agendada para', kind: 'readonly-date' },
   { key: 'sentAt', header: 'Enviada em', kind: 'readonly-date' },
   {
@@ -510,7 +516,7 @@ function CampaignDetail({
             </Field>
 
             <Field label='Resumo'>
-              <dl className='grid grid-cols-3 gap-2 text-sm'>
+              <dl className='grid grid-cols-2 gap-2 text-sm sm:grid-cols-4'>
                 <Metric label='Destinatários' value={campaign.recipientCount} />
                 <Metric
                   label='Enviados'
@@ -521,6 +527,11 @@ function CampaignDetail({
                   label='Falhas'
                   value={campaign.failedCount}
                   tone='destructive'
+                />
+                <Metric
+                  label='Descadastrados'
+                  value={campaign.skippedCount}
+                  tone='amber'
                 />
               </dl>
             </Field>
@@ -571,14 +582,16 @@ function Metric({
 }: {
   label: string
   value: number
-  tone?: 'emerald' | 'destructive'
+  tone?: 'emerald' | 'destructive' | 'amber'
 }) {
   const toneClass =
     tone === 'emerald'
       ? 'text-emerald-500'
       : tone === 'destructive'
         ? 'text-destructive'
-        : ''
+        : tone === 'amber'
+          ? 'text-amber-600'
+          : ''
   return (
     <div className='rounded-lg border border-border bg-card p-3'>
       <dt className='text-muted-foreground text-xs'>{label}</dt>
