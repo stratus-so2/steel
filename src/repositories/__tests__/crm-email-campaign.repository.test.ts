@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   seedCrmEmailCampaign,
   seedCrmEmailCampaignRecipient,
@@ -6,6 +6,7 @@ import {
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import {
   CrmEmailCampaignRecipientRepository,
   CrmEmailCampaignRepository,
@@ -149,5 +150,200 @@ describe('CrmEmailCampaignRecipientRepository', () => {
       expect(list[0].status).toBe('SKIPPED')
       expect(list[0].errorMessage).toMatch(/descadastrado/i)
     })
+  })
+})
+
+describe('CrmEmailCampaignRepository (reads, drafts and failures)', () => {
+  it('should create a DRAFT campaign when no schedule is given', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+
+    const campaign = expectOk(
+      await CrmEmailCampaignRepository.create({
+        workspaceId: workspace.id,
+        createdById: user.id,
+        subject: 'Newsletter',
+        contentHtml: '<p>Oi</p>',
+        fromAddress: 'crm@acme.com',
+        recipientScope: 'ALL',
+      }),
+    )
+    expect(campaign.status).toBe('DRAFT')
+    expect(campaign.scheduledAt).toBeNull()
+  })
+
+  it('should list the workspace campaigns newest first with recipient statuses', async () => {
+    const [workspace, other, user] = await Promise.all([
+      seedWorkspace(),
+      seedWorkspace(),
+      seedUser(),
+    ])
+    const older = await seedCrmEmailCampaign(workspace.id, user.id)
+    await prisma.crmEmailCampaign.update({
+      where: { id: older.id },
+      data: { createdAt: new Date('2020-01-01') },
+    })
+    const newer = await seedCrmEmailCampaign(workspace.id, user.id)
+    await seedCrmEmailCampaignRecipient(older.id, { status: 'SENT' })
+    await seedCrmEmailCampaign(other.id, user.id)
+
+    const list = expectOk(
+      await CrmEmailCampaignRepository.listByWorkspace(workspace.id),
+    )
+    expect(list.map((c) => c.id)).toEqual([newer.id, older.id])
+    expect(list[1]._count.recipients).toBe(1)
+    expect(list[1].recipients).toEqual([{ status: 'SENT' }])
+  })
+
+  it('should find a campaign only inside its workspace', async () => {
+    const [workspace, other, user] = await Promise.all([
+      seedWorkspace(),
+      seedWorkspace(),
+      seedUser(),
+    ])
+    const campaign = await seedCrmEmailCampaign(workspace.id, user.id)
+
+    expect(
+      expectOk(
+        await CrmEmailCampaignRepository.findById(campaign.id, workspace.id),
+      ).id,
+    ).toBe(campaign.id)
+    expectErr(
+      await CrmEmailCampaignRepository.findById(campaign.id, other.id),
+      'RESOURCE_NOT_FOUND',
+    )
+  })
+
+  it('should update the campaign content', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const campaign = await seedCrmEmailCampaign(workspace.id, user.id)
+
+    const updated = expectOk(
+      await CrmEmailCampaignRepository.update(campaign.id, {
+        subject: 'Novo assunto',
+        fromAddress: 'news@acme.com',
+      }),
+    )
+    expect(updated).toMatchObject({
+      subject: 'Novo assunto',
+      fromAddress: 'news@acme.com',
+    })
+  })
+
+  it('should return DATABASE_ERROR on failing reads and writes', async () => {
+    const user = await seedUser()
+    vi.spyOn(prisma.crmEmailCampaign, 'findMany')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(prisma.crmEmailCampaign, 'findFirst').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await CrmEmailCampaignRepository.listByWorkspace('w'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRepository.listDueScheduled(new Date()),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRepository.findById('c', 'w'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRepository.create({
+        workspaceId: 'missing',
+        createdById: user.id,
+        subject: 'x',
+        contentHtml: 'x',
+        fromAddress: 'x@x.com',
+        recipientScope: 'ALL',
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRepository.update('missing', { subject: 'x' }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRepository.setStatus('missing', 'SENT'),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('CrmEmailCampaignRecipientRepository (listing and failures)', () => {
+  it('should list the campaign recipients oldest first and mark one failed', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const campaign = await seedCrmEmailCampaign(workspace.id, user.id)
+    const otherCampaign = await seedCrmEmailCampaign(workspace.id, user.id)
+    const first = await seedCrmEmailCampaignRecipient(campaign.id, {
+      email: 'a@x.com',
+    })
+    await prisma.crmEmailCampaignRecipient.update({
+      where: { id: first.id },
+      data: { createdAt: new Date('2020-01-01') },
+    })
+    const second = await seedCrmEmailCampaignRecipient(campaign.id, {
+      email: 'b@x.com',
+    })
+    await seedCrmEmailCampaignRecipient(otherCampaign.id)
+
+    const list = expectOk(
+      await CrmEmailCampaignRecipientRepository.listByCampaign(campaign.id),
+    )
+    expect(list.map((r) => r.id)).toEqual([first.id, second.id])
+
+    expectOk(
+      await CrmEmailCampaignRecipientRepository.markFailed(
+        second.id,
+        'Caixa cheia',
+      ),
+    )
+    const stored = await prisma.crmEmailCampaignRecipient.findUniqueOrThrow({
+      where: { id: second.id },
+    })
+    expect(stored).toMatchObject({
+      status: 'FAILED',
+      errorMessage: 'Caixa cheia',
+    })
+  })
+
+  it('should return DATABASE_ERROR on failing reads and writes', async () => {
+    vi.spyOn(
+      prisma.crmEmailCampaignRecipient,
+      'findMany',
+    ).mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(
+      prisma.crmEmailCampaignRecipient,
+      'findUnique',
+    ).mockRejectedValueOnce(new Error('boom'))
+
+    expectErr(
+      await CrmEmailCampaignRecipientRepository.listByCampaign('c'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRecipientRepository.findByIdWithCampaign('r'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRecipientRepository.createMany('missing', [
+        { email: 'x@x.com' },
+      ]),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRecipientRepository.markSkipped('missing'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRecipientRepository.markSent('missing'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await CrmEmailCampaignRecipientRepository.markFailed('missing', 'x'),
+      'DATABASE_ERROR',
+    )
   })
 })
