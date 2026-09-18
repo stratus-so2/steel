@@ -22,9 +22,20 @@ import { crmWorkflowsRoutes } from './crm/workflows'
  * resposta ficam em `../schemas/crm/`.
  */
 const routes: RouteConfig[] = [
+  ...crmActivitiesRoutes,
+  ...crmEmailRoutes,
+  ...crmForecastRoutes,
+  ...crmFormsRoutes,
   ...crmIntegrationsRoutes,
-  ...crmSettingsRoutes,
+  ...crmLeadsRoutes,
+  ...crmOpportunitiesRoutes,
   ...crmPeopleRoutes,
+  ...crmProductsRoutes,
+  ...crmProposalsRoutes,
+  ...crmReportsRoutes,
+  ...crmSettingsRoutes,
+  ...crmSocialRoutes,
+  ...crmWorkflowsRoutes,
 ]
 
 export function registerCrmPaths(registry: OpenApiRegistry): void {

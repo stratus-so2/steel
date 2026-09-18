@@ -124,6 +124,16 @@ export function zodToJsonSchema(
         ctx.jsonSchema.type = 'string'
         ctx.jsonSchema.format = 'date-time'
       }
+      // `.default(() => new Date())` seria avaliado na geração e deixaria o
+      // spec não determinístico: um default de data vira "agora" no texto.
+      if (
+        ctx.jsonSchema.default instanceof Date ||
+        (typeof ctx.jsonSchema.default === 'string' &&
+          ctx.jsonSchema.format === 'date-time')
+      ) {
+        delete ctx.jsonSchema.default
+        ctx.jsonSchema.description ??= 'Omitido = o instante da requisição.'
+      }
     },
   }) as JsonSchema
 
