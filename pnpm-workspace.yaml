@@ -10,6 +10,9 @@ trustPolicyExclude:
 blockExoticSubdeps: true
 
 overrides:
+  # GHSA-p293-qw3h-jr36 / GHSA-2xp9-vwfh-vxw4 (RCE): @react-email/ui pulls its
+  # own next@16.2.x; force every copy to the patched release.
+  next: '>=16.3.3'
   effect: '^3.21.0'
   ioredis: '5.10.1'
   esbuild: '>=0.28.1'
