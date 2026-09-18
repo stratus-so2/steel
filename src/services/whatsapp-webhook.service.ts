@@ -1,4 +1,9 @@
-import type { WhatsAppConnection, WhatsAppMessageStatus } from '@prisma/client'
+import type {
+  WhatsAppConnection,
+  WhatsAppContact,
+  WhatsAppMessageStatus,
+} from '@prisma/client'
+import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import {
   WhatsappAiReplyJob,
@@ -11,7 +16,12 @@ import {
   getWhatsappSentimentQueue,
 } from '@/src/lib/queue/queues'
 import { ok, type Result } from '@/src/lib/result'
+import {
+  isWhatsAppOptOutKeyword,
+  WHATSAPP_OPT_OUT_CONFIRMATION,
+} from '@/src/lib/whatsapp/opt-out'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
+import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
 import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
@@ -59,6 +69,67 @@ async function publishConversationSnapshot(
     type: 'conversation.updated',
     conversation: toWhatsAppConversationDTO(fresh.value),
   })
+}
+
+/**
+ * Opt-out LGPD por palavra-chave (SAIR/PARAR/STOP/CANCELAR…): marca o contato
+ * como descadastrado de transmissões (só na primeira vez — preserva quando e
+ * como aconteceu) e confirma na própria conversa. Falha no envio da
+ * confirmação não desfaz o descadastro.
+ */
+async function handleOptOutKeyword(input: {
+  connection: WhatsAppConnection
+  contact: WhatsAppContact
+  conversationId: string
+}): Promise<void> {
+  const { connection, contact, conversationId } = input
+  const workspaceId = connection.workspaceId
+
+  if (!contact.broadcastOptedOutAt) {
+    const updated = await WhatsAppContactRepository.setBroadcastOptOut(
+      contact.id,
+      { at: new Date(), source: 'KEYWORD' },
+    )
+    auditMutation({
+      entity: 'whatsapp_contact',
+      action: 'opt_out',
+      actorId: null,
+      targetId: contact.id,
+      outcome: updated.ok ? 'success' : 'failure',
+      reason: updated.ok ? undefined : updated.error.code,
+      meta: { workspaceId, channel: 'whatsapp', source: 'KEYWORD' },
+    })
+  }
+
+  const sent = await WhatsAppSend.text(connection, {
+    to: contact.waId,
+    text: WHATSAPP_OPT_OUT_CONFIRMATION,
+  })
+  if (!sent.ok) {
+    logger.warn('whatsapp.opt_out.confirmation_failed', {
+      workspaceId,
+      contactId: contact.id,
+      reason: sent.error.code,
+    })
+    return
+  }
+
+  const confirmation = await WhatsAppMessageRepository.create({
+    workspaceId,
+    conversationId,
+    direction: 'OUT',
+    type: 'TEXT',
+    text: WHATSAPP_OPT_OUT_CONFIRMATION,
+    providerMessageId: sent.value.providerMessageId,
+    status: 'SENT',
+  })
+  if (confirmation.ok) {
+    await publishWhatsAppEvent(workspaceId, {
+      type: 'message.created',
+      conversationId,
+      message: toWhatsAppMessageDTO(confirmation.value),
+    })
+  }
 }
 
 export const WhatsAppWebhookService = {
@@ -161,7 +232,18 @@ export const WhatsAppWebhookService = {
     })
     await publishConversationSnapshot(workspaceId, conversationId)
 
-    if (aiActive) {
+    const isOptOut =
+      input.type === 'TEXT' && isWhatsAppOptOutKeyword(input.text)
+    if (isOptOut) {
+      await handleOptOutKeyword({
+        connection,
+        contact: contact.value,
+        conversationId,
+      })
+    }
+
+    // A confirmação do descadastro já é a resposta — a IA não responde.
+    if (aiActive && !isOptOut) {
       await getWhatsappAiReplyQueue().add(WhatsappAiReplyJob.GenerateAiReply, {
         conversationId,
         messageId: message.value.id,

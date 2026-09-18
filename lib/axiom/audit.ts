@@ -53,6 +53,7 @@ type AuditEntity =
   | 'crm_integration_api_key'
   | 'crm_email_template'
   | 'crm_email_campaign'
+  | 'crm_email_opt_out'
   | 'crm_mailing_list'
   | 'crm_workflow'
   | 'crm_landing_page'
@@ -96,6 +97,8 @@ type AuditAction =
   | 'start'
   | 'connect'
   | 'disconnect'
+  | 'opt_out'
+  | 'opt_in'
 
 type AuditOutcome = 'success' | 'failure'
 

@@ -18,6 +18,9 @@ vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/repositories/whatsapp-group.repository')
 vi.mock('@/src/repositories/whatsapp-group-message.repository')
 vi.mock('@/src/repositories/whatsapp-message.repository')
+vi.mock('@/src/lib/whatsapp/send', () => ({
+  WhatsAppSend: { text: vi.fn() },
+}))
 vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
 }))
@@ -33,6 +36,7 @@ vi.mock('@/src/lib/queue/queues', () => ({
   getWhatsappSentimentQueue: vi.fn(() => ({ add: sentimentAdd })),
 }))
 
+import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
@@ -47,6 +51,7 @@ const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
 const mockedGroupRepo = vi.mocked(WhatsAppGroupRepository)
 const mockedGroupMessageRepo = vi.mocked(WhatsAppGroupMessageRepository)
 const mockedMessageRepo = vi.mocked(WhatsAppMessageRepository)
+const mockedSend = vi.mocked(WhatsAppSend)
 
 const connection = createFakeWhatsAppConnection({
   id: 'conn1',
@@ -122,6 +127,91 @@ describe('WhatsAppWebhookService', () => {
         'analyze-message',
         expect.objectContaining({ messageId: expect.any(String) }),
       )
+    })
+
+    describe('LGPD opt-out keyword', () => {
+      function mockInboundPipeline(
+        contact = createFakeWhatsAppContact({ id: 'contact1' }),
+      ) {
+        mockedMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+        mockedContactRepo.upsertByWaId.mockResolvedValue(ok(contact))
+        mockedContactRepo.setBroadcastOptOut.mockResolvedValue(
+          ok({ ...contact, broadcastOptedOutAt: new Date() }),
+        )
+        mockedAiConfigRepo.findByWorkspace.mockResolvedValue(
+          ok(createFakeWhatsAppAiConfig({ active: true })),
+        )
+        mockedConversationRepo.findActiveByContact.mockResolvedValue(ok(null))
+        const created = createFakeWhatsAppConversationWithPreview({
+          id: 'conv1',
+          contactId: 'contact1',
+          aiActive: true,
+        })
+        mockedConversationRepo.create.mockResolvedValue(ok(created))
+        mockedConversationRepo.findById.mockResolvedValue(ok(created))
+        mockedConversationRepo.update.mockResolvedValue(ok(created))
+        mockedMessageRepo.create.mockResolvedValue(
+          ok(createFakeWhatsAppMessage({ conversationId: 'conv1' })),
+        )
+        mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'wamid.x' }))
+      }
+
+      it('should opt the contact out, confirm and skip the AI reply', async () => {
+        mockInboundPipeline()
+
+        expectOk(
+          await WhatsAppWebhookService.ingestInboundMessage(
+            baseInbound({ text: '  Sáir! ' }),
+          ),
+        )
+
+        expect(mockedContactRepo.setBroadcastOptOut).toHaveBeenCalledWith(
+          'contact1',
+          { at: expect.any(Date), source: 'KEYWORD' },
+        )
+        expect(mockedSend.text).toHaveBeenCalledWith(connection, {
+          to: '5511988887777',
+          text: expect.stringMatching(/não receberá mais/),
+        })
+        expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+          expect.objectContaining({ direction: 'OUT', status: 'SENT' }),
+        )
+        expect(aiReplyAdd).not.toHaveBeenCalled()
+      })
+
+      it('should not re-record an opt-out for a contact already opted out', async () => {
+        const at = new Date('2026-01-01T00:00:00.000Z')
+        mockInboundPipeline(
+          createFakeWhatsAppContact({
+            id: 'contact1',
+            broadcastOptedOutAt: at,
+            broadcastOptOutSource: 'ADMIN',
+          }),
+        )
+
+        expectOk(
+          await WhatsAppWebhookService.ingestInboundMessage(
+            baseInbound({ text: 'STOP' }),
+          ),
+        )
+
+        expect(mockedContactRepo.setBroadcastOptOut).not.toHaveBeenCalled()
+        expect(mockedSend.text).toHaveBeenCalledTimes(1)
+      })
+
+      it('should not treat a sentence containing the keyword as opt-out', async () => {
+        mockInboundPipeline()
+
+        expectOk(
+          await WhatsAppWebhookService.ingestInboundMessage(
+            baseInbound({ text: 'quero cancelar minha consulta' }),
+          ),
+        )
+
+        expect(mockedContactRepo.setBroadcastOptOut).not.toHaveBeenCalled()
+        expect(mockedSend.text).not.toHaveBeenCalled()
+        expect(aiReplyAdd).toHaveBeenCalled()
+      })
     })
 
     it('should not enqueue sentiment analysis for a text-less message', async () => {
