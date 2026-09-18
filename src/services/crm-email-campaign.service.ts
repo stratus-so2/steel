@@ -1,8 +1,15 @@
 import { auditMutation } from '@/lib/axiom/audit'
+import { BETTER_AUTH_URL } from '@/lib/env/server'
 import {
   crmEmailCampaignAlreadySent,
   crmEmailCampaignNoRecipients,
 } from '@/src/errors'
+import {
+  buildCrmUnsubscribeHeaders,
+  buildCrmUnsubscribeUrls,
+  createCrmUnsubscribeToken,
+  withCrmUnsubscribeFooter,
+} from '@/src/lib/crm-email-unsubscribe'
 import { sendEmail } from '@/src/lib/mail/send'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
@@ -13,6 +20,10 @@ import {
   CrmEmailCampaignRecipientRepository,
   CrmEmailCampaignRepository,
 } from '@/src/repositories/crm-email-campaign.repository'
+import {
+  type CrmEmailOptOutIndex,
+  CrmEmailOptOutRepository,
+} from '@/src/repositories/crm-email-opt-out.repository'
 import { CrmMailingListMemberRepository } from '@/src/repositories/crm-mailing-list.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import type {
@@ -94,7 +105,11 @@ export const CrmEmailCampaignService = {
         reason: 'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS',
         meta: { recipientScope: dto.recipientScope },
       })
-      return err(crmEmailCampaignNoRecipients())
+      return err(
+        crmEmailCampaignNoRecipients(
+          'Nenhum destinatário elegível: a seleção está vazia ou todos se descadastraram',
+        ),
+      )
     }
 
     const result = await CrmEmailCampaignRepository.create({
@@ -235,16 +250,37 @@ export const CrmEmailCampaignService = {
       return err(crmEmailCampaignNoRecipients())
     }
 
+    // Revalida o opt-out no envio: alguém pode ter se descadastrado entre a
+    // criação (ou o agendamento) e o disparo.
+    const optOuts = await CrmEmailOptOutRepository.indexByWorkspace(workspaceId)
+    if (!optOuts.ok) return optOuts
+
     await CrmEmailCampaignRepository.setStatus(campaignId, 'SENDING')
 
     let failures = 0
+    let skipped = 0
     for (const recipient of recipients.value) {
+      if (isOptedOut(optOuts.value, recipient)) {
+        skipped += 1
+        await CrmEmailCampaignRecipientRepository.markSkipped(recipient.id)
+        continue
+      }
       try {
+        // Todo e-mail de campanha leva link de descadastro + cabeçalhos
+        // RFC 8058 (one-click). Transacionais não passam por aqui.
+        const urls = buildCrmUnsubscribeUrls(
+          BETTER_AUTH_URL,
+          createCrmUnsubscribeToken(recipient.id),
+        )
         const response = await sendEmail({
           from: campaign.value.fromAddress,
           to: recipient.email,
           subject: campaign.value.subject,
-          html: campaign.value.contentHtml,
+          html: withCrmUnsubscribeFooter(
+            campaign.value.contentHtml,
+            urls.pageUrl,
+          ),
+          headers: buildCrmUnsubscribeHeaders(urls),
         })
         await CrmEmailCampaignRecipientRepository.markSent(
           recipient.id,
@@ -259,11 +295,10 @@ export const CrmEmailCampaignService = {
       }
     }
 
+    const attempted = recipients.value.length - skipped
     const result = await CrmEmailCampaignRepository.setStatus(
       campaignId,
-      failures === recipients.value.length && recipients.value.length > 0
-        ? 'FAILED'
-        : 'SENT',
+      attempted > 0 && failures === attempted ? 'FAILED' : 'SENT',
       new Date(),
     )
     if (!result.ok) return result
@@ -273,7 +308,7 @@ export const CrmEmailCampaignService = {
       action: 'update',
       actorId,
       targetId: campaignId,
-      meta: { sent: recipients.value.length - failures, failed: failures },
+      meta: { sent: attempted - failures, failed: failures, skipped },
     })
 
     return ok(toCrmEmailCampaignDTO(result.value))
@@ -281,6 +316,18 @@ export const CrmEmailCampaignService = {
 }
 
 type Recipient = { email: string; name?: string; personId?: string }
+
+/** Opt-out LGPD: vale tanto o endereço quanto a pessoa vinculada (quem saiu
+ * por um e-mail não volta a receber por outro endereço cadastrado). */
+function isOptedOut(
+  index: CrmEmailOptOutIndex,
+  recipient: { email: string; personId?: string | null },
+) {
+  return (
+    index.emails.has(recipient.email.trim().toLowerCase()) ||
+    (recipient.personId ? index.personIds.has(recipient.personId) : false)
+  )
+}
 
 /** Une candidatos por e-mail (case-insensitive), mantendo o primeiro
  * personId/nome encontrado para cada endereço. */
@@ -295,6 +342,28 @@ function dedupeByEmail(candidates: Recipient[]): Recipient[] {
 }
 
 async function resolveRecipients(
+  workspaceId: string,
+  scope: 'ALL' | 'SELECTED',
+  input: {
+    mailingListIds?: string[]
+    personIds?: string[]
+    extraEmails?: string[]
+  },
+): Promise<Result<Recipient[]>> {
+  const candidates = await collectCandidates(workspaceId, scope, input)
+  if (!candidates.ok) return candidates
+
+  const optOuts = await CrmEmailOptOutRepository.indexByWorkspace(workspaceId)
+  if (!optOuts.ok) return optOuts
+
+  return ok(
+    candidates.value.filter(
+      (recipient) => !isOptedOut(optOuts.value, recipient),
+    ),
+  )
+}
+
+async function collectCandidates(
   workspaceId: string,
   scope: 'ALL' | 'SELECTED',
   input: {
