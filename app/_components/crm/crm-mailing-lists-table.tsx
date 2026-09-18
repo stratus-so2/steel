@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import {
   useAddCrmMailingListMember,
   useCreateCrmMailingList,
+  useCrmEmailOptOuts,
   useDeleteCrmMailingList,
   useRemoveCrmMailingListMember,
 } from '@/src/hooks/use-crm-email-marketing'
@@ -431,6 +432,10 @@ function ListDetailPanel({
     `mailing-lists/${id}/members`,
   )
 
+  const { isOptedOut } = useCrmEmailOptOuts(workspaceId)
+  const optedOutCount = members.filter((m) =>
+    isOptedOut(m.email, m.personId),
+  ).length
   const addMember = useAddCrmMailingListMember(workspaceId, id)
   const removeMember = useRemoveCrmMailingListMember(workspaceId, id)
   const deleteList = useDeleteCrmMailingList(workspaceId)
@@ -490,6 +495,9 @@ function ListDetailPanel({
           <div className='grid gap-1.5'>
             <Label className='text-muted-foreground text-xs'>
               Membros ({members.length})
+              {optedOutCount > 0
+                ? ` · ${optedOutCount} descadastrado(s), não recebem campanhas`
+                : ''}
             </Label>
             {isLoading ? null : members.length === 0 ? (
               <div className='rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground text-xs'>
@@ -509,6 +517,14 @@ function ListDetailPanel({
                         {m.email}
                       </div>
                     </div>
+                    {isOptedOut(m.email, m.personId) ? (
+                      <span
+                        className='shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-600'
+                        title='Descadastrado das campanhas (LGPD) — não receberá'
+                      >
+                        Descadastrado
+                      </span>
+                    ) : null}
                     <Button
                       variant='ghost'
                       size='icon-sm'
