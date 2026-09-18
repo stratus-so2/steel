@@ -1,12 +1,19 @@
 import type { Job } from 'bullmq'
-import OpenAI from 'openai'
 import { logger } from '@/lib/axiom/logger'
-import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { prisma } from '@/src/lib/prisma'
+import { AiUsageService } from '@/src/services/ai-usage.service'
 import { WhatsappSentimentJob, type WhatsappSentimentJobPayload } from '../jobs'
 
-const MODEL = 'gpt-4o-mini'
 const SENTIMENT_HISTORY_SAMPLE = 50
+const SENTIMENT_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    sentiment: { type: 'string', enum: ['NEGATIVE', 'NEUTRAL', 'POSITIVE'] },
+    score: { type: 'number' },
+  },
+  required: ['sentiment', 'score'],
+  additionalProperties: false,
+}
 
 const SYSTEM_PROMPT = `Classifique o sentimento da mensagem de um cliente em uma conversa de atendimento via WhatsApp. Responda só com um JSON no formato {"sentiment": "NEGATIVE"|"NEUTRAL"|"POSITIVE", "score": number}, onde score vai de -1 (muito negativo) a 1 (muito positivo).`
 
@@ -90,27 +97,49 @@ async function processAnalyzeMessage(
     return
   }
 
-  const apiKey = await decryptConnectionSecret(aiConfig.encryptedOpenaiApiKey)
-  const client = new OpenAI({ apiKey })
-
-  let result: SentimentResult | null
-  try {
-    const completion = await client.chat.completions.create({
-      model: MODEL,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: message.text },
-      ],
-    })
-    result = parseSentimentResponse(
-      completion.choices[0]?.message?.content ?? '',
-    )
-  } catch (error) {
-    logger.error('queue.whatsapp_sentiment.openai_failed', {
+  // Job em background: usa o modelo padrão do workspace para sentimento e
+  // respeita a cota — esgotada, só registra e segue sem classificar.
+  const prepared = await AiUsageService.prepare(
+    message.workspaceId,
+    'WHATSAPP_SENTIMENT',
+  )
+  if (!prepared.ok) {
+    logger.warn('queue.whatsapp_sentiment.skipped', {
       component: 'WhatsappSentiment',
       jobId: job.id,
       messageId,
+      reason:
+        prepared.error.code === 'AI_QUOTA_EXCEEDED'
+          ? 'ai_quota_exceeded'
+          : prepared.error.code === 'AI_PROVIDER_UNAVAILABLE'
+            ? 'ai_provider_unavailable'
+            : 'ai_prepare_failed',
+    })
+    return
+  }
+  const call = prepared.value
+
+  let result: SentimentResult | null
+  try {
+    const response = await call.provider.chat({
+      model: call.model.model,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: message.text }],
+      jsonSchema: { name: 'sentiment', schema: SENTIMENT_JSON_SCHEMA },
+    })
+    await AiUsageService.record(call, {
+      workspaceId: message.workspaceId,
+      userId: null,
+      usage: response.usage,
+    })
+    result = parseSentimentResponse(response.text)
+  } catch (error) {
+    logger.error('queue.whatsapp_sentiment.provider_failed', {
+      component: 'WhatsappSentiment',
+      jobId: job.id,
+      messageId,
+      provider: call.model.provider,
+      model: call.model.model,
       message: error instanceof Error ? error.message : String(error),
     })
     return

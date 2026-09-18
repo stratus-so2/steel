@@ -1007,7 +1007,10 @@ model WhatsAppTemplate {
 model WhatsAppAiConfig {
   id                    String   @id @default(cuid())
   workspaceId           String   @unique @map("workspace_id")
-  encryptedOpenaiApiKey String   @map("encrypted_openai_api_key")
+  // Legado: a IA agora usa as chaves da plataforma (env) e o provedor/modelo
+  // de WorkspaceAiSettings. `encryptedOpenaiApiKey` e `model` não são mais
+  // lidos; ficam só para não descartar dados já salvos.
+  encryptedOpenaiApiKey String?  @map("encrypted_openai_api_key")
   model                 String   @default("gpt-4o-mini")
   systemPrompt          String   @map("system_prompt")
   active                Boolean  @default(false)

@@ -1,7 +1,12 @@
 import type { Job } from 'bullmq'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  seedAiUsage,
+  seedWorkspaceAiSettings,
+} from '@/src/__tests__/factories/ai-settings.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
+import type { AiChatRequest, AiChatResponse } from '@/src/lib/ai/types'
 import { prisma } from '@/src/lib/prisma'
 import { ok } from '@/src/lib/result'
 import { WhatsappAiReplyJob } from '../../jobs'
@@ -10,19 +15,18 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
   WhatsAppSend: { text: vi.fn() },
 }))
 
-vi.mock('@/src/lib/crypto', () => ({
-  decryptConnectionSecret: vi.fn(async (envelope: string) =>
-    envelope.replace(/^enc:/, ''),
-  ),
-}))
-
-const mockCreate = vi.fn()
-vi.mock('openai', () => ({
-  default: vi.fn().mockImplementation(function MockOpenAI() {
-    return { chat: { completions: { create: mockCreate } } }
-  }),
-  toFile: vi.fn(),
-}))
+// Provedores de IA fake: o resto (settings, cota, livro-razão) roda de
+// verdade contra o Postgres.
+const mockChat = vi.fn<(request: AiChatRequest) => Promise<AiChatResponse>>()
+vi.mock('@/src/lib/ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/src/lib/ai')>()
+  return {
+    ...actual,
+    isAiProviderConfigured: () => true,
+    getAiProvider: (id: 'openai' | 'anthropic') => ({ id, chat: mockChat }),
+    getOpenAiClient: () => null,
+  }
+})
 
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { processWhatsappAiReply } from '../whatsapp-ai-reply'
@@ -36,6 +40,25 @@ function job(conversationId: string, messageId: string): Job {
     data: { conversationId, messageId },
   } as unknown as Job
 }
+
+function reply(overrides: Partial<AiChatResponse>): AiChatResponse {
+  return {
+    text: '',
+    toolCalls: [],
+    message: { role: 'assistant', content: overrides.text ?? '' },
+    usage: { inputTokens: 300, outputTokens: 200 },
+    stopReason: 'end',
+    ...overrides,
+  }
+}
+
+const toolTurn = () =>
+  reply({
+    stopReason: 'tool_use',
+    toolCalls: [
+      { id: 'call_1', name: 'consultar_exame_agendado', arguments: {} },
+    ],
+  })
 
 async function seedFixtures(overrides?: { systemPrompt?: string }) {
   const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
@@ -65,7 +88,6 @@ async function seedFixtures(overrides?: { systemPrompt?: string }) {
   await prisma.whatsAppAiConfig.create({
     data: {
       workspaceId: workspace.id,
-      encryptedOpenaiApiKey: 'enc:fake-api-key',
       systemPrompt:
         overrides?.systemPrompt ?? 'Você é o assistente da clínica.',
       active: true,
@@ -83,6 +105,12 @@ async function seedFixtures(overrides?: { systemPrompt?: string }) {
     },
   })
   return { workspace, user, connection, contact, conversation, message }
+}
+
+function toolMessageOf(request: AiChatRequest) {
+  return request.messages.find((m) => m.role === 'tool') as
+    | { content: string }
+    | undefined
 }
 
 describe('processWhatsappAiReply() — tool calling', () => {
@@ -112,50 +140,22 @@ describe('processWhatsappAiReply() — tool calling', () => {
       },
     })
 
-    mockCreate
-      .mockResolvedValueOnce({
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: null,
-              tool_calls: [
-                {
-                  id: 'call_1',
-                  type: 'function',
-                  function: {
-                    name: 'consultar_exame_agendado',
-                    arguments: '{}',
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Sim! Você tem exame marcado para 15/08 às 09h.',
-            },
-          },
-        ],
-      })
+    mockChat
+      .mockResolvedValueOnce(toolTurn())
+      .mockResolvedValueOnce(
+        reply({ text: 'Sim! Você tem exame marcado para 15/08 às 09h.' }),
+      )
     mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'sent-1' }))
 
     await processWhatsappAiReply(job(conversation.id, message.id))
 
-    expect(mockCreate).toHaveBeenCalledTimes(2)
+    expect(mockChat).toHaveBeenCalledTimes(2)
 
-    const secondCallArgs = mockCreate.mock.calls[1][0]
-    const toolMessage = secondCallArgs.messages.find(
-      (m: { role: string }) => m.role === 'tool',
-    )
+    const secondCallArgs = mockChat.mock.calls[1][0]
+    expect(secondCallArgs.toolChoice).toBe('none')
+    const toolMessage = toolMessageOf(secondCallArgs)
     expect(toolMessage).toBeDefined()
-    const toolPayload = JSON.parse(toolMessage.content)
-    expect(toolPayload).toEqual({
+    expect(JSON.parse(toolMessage?.content ?? '')).toEqual({
       hasAppointment: true,
       appointmentAt: appointmentAt.toISOString(),
       description: 'Confirmação de exames',
@@ -179,66 +179,85 @@ describe('processWhatsappAiReply() — tool calling', () => {
   it('should tell the tool there is no appointment when none exists', async () => {
     const { conversation, message } = await seedFixtures()
 
-    mockCreate
-      .mockResolvedValueOnce({
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: null,
-              tool_calls: [
-                {
-                  id: 'call_1',
-                  type: 'function',
-                  function: {
-                    name: 'consultar_exame_agendado',
-                    arguments: '{}',
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: 'Não encontrei nenhum exame agendado no seu nome.',
-            },
-          },
-        ],
-      })
+    mockChat
+      .mockResolvedValueOnce(toolTurn())
+      .mockResolvedValueOnce(
+        reply({ text: 'Não encontrei nenhum exame agendado no seu nome.' }),
+      )
     mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'sent-2' }))
 
     await processWhatsappAiReply(job(conversation.id, message.id))
 
-    const secondCallArgs = mockCreate.mock.calls[1][0]
-    const toolMessage = secondCallArgs.messages.find(
-      (m: { role: string }) => m.role === 'tool',
-    )
-    expect(JSON.parse(toolMessage.content)).toEqual({ hasAppointment: false })
+    const toolMessage = toolMessageOf(mockChat.mock.calls[1][0])
+    expect(JSON.parse(toolMessage?.content ?? '')).toEqual({
+      hasAppointment: false,
+    })
   })
 
   it('should not call the tool when the model answers directly', async () => {
     const { conversation, message } = await seedFixtures()
 
-    mockCreate.mockResolvedValueOnce({
-      choices: [
-        {
-          message: { role: 'assistant', content: 'Olá! Como posso ajudar?' },
-        },
-      ],
-    })
+    mockChat.mockResolvedValueOnce(reply({ text: 'Olá! Como posso ajudar?' }))
     mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'sent-3' }))
 
     await processWhatsappAiReply(job(conversation.id, message.id))
 
-    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect(mockChat).toHaveBeenCalledTimes(1)
     expect(mockedSend.text).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ text: 'Olá! Como posso ajudar?' }),
     )
+  })
+})
+
+describe('processWhatsappAiReply() — provider and quota', () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should use the workspace default model and charge the ledger', async () => {
+    const { workspace, conversation, message } = await seedFixtures()
+    await seedWorkspaceAiSettings(workspace.id, {
+      enabledModels: ['openai:gpt-4o-mini', 'anthropic:claude-haiku-4-5'],
+      whatsappReplyModel: 'anthropic:claude-haiku-4-5',
+    })
+
+    mockChat.mockResolvedValueOnce(reply({ text: 'Olá!' }))
+    mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'sent-4' }))
+
+    await processWhatsappAiReply(job(conversation.id, message.id))
+
+    expect(mockChat.mock.calls[0][0].model).toBe('claude-haiku-4-5')
+    const usage = await prisma.aiUsage.findMany({
+      where: { workspaceId: workspace.id },
+    })
+    expect(usage).toHaveLength(1)
+    expect(usage[0]).toEqual(
+      expect.objectContaining({
+        feature: 'WHATSAPP_REPLY',
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5',
+        userId: null,
+        inputTokens: 300,
+        outputTokens: 200,
+      }),
+    )
+    // 500 tokens × US$ 4 / 1000 = US$ 2
+    expect(usage[0].costUsd.toNumber()).toBe(2)
+  })
+
+  it('should skip gracefully (no AI call, no reply) when the quota is exhausted', async () => {
+    const { workspace, conversation, message } = await seedFixtures()
+    await seedWorkspaceAiSettings(workspace.id, { monthlyQuotaUsd: 10 })
+    await seedAiUsage(workspace.id, { costUsd: 10 })
+
+    await processWhatsappAiReply(job(conversation.id, message.id))
+
+    expect(mockChat).not.toHaveBeenCalled()
+    expect(mockedSend.text).not.toHaveBeenCalled()
+    const out = await prisma.whatsAppMessage.count({
+      where: { conversationId: conversation.id, direction: 'OUT' },
+    })
+    expect(out).toBe(0)
   })
 })

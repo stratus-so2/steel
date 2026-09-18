@@ -90,18 +90,30 @@ describe('WhatsAppAiConfigService', () => {
       )
     })
 
-    it('should reject activating the AI without ever having configured a key', async () => {
+    it('should activate the AI without a workspace key (platform keys are used)', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'OWNER' })),
       )
       mockedAiConfigRepo.findByWorkspace.mockResolvedValue(ok(null))
+      mockedAiConfigRepo.upsert.mockResolvedValue(
+        ok(
+          createFakeWhatsAppAiConfig({
+            workspaceId: 'ws1',
+            encryptedOpenaiApiKey: null,
+            active: true,
+          }),
+        ),
+      )
 
       const result = await WhatsAppAiConfigService.save('u1', 'ws1', {
         active: true,
       })
 
-      expectErr(result, 'BAD_REQUEST')
-      expect(mockedAiConfigRepo.upsert).not.toHaveBeenCalled()
+      expect(expectOk(result).active).toBe(true)
+      expect(mockedAiConfigRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ encryptedOpenaiApiKey: null, active: true }),
+      )
     })
   })
 })

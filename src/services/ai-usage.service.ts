@@ -115,6 +115,10 @@ export const AiUsageService = {
       usage: AiUsageTokens
     },
   ): Promise<void> {
+    // Chamada que falhou antes de consumir qualquer token: nada a lançar.
+    if (input.usage.inputTokens === 0 && input.usage.outputTokens === 0) {
+      return
+    }
     const costUsd = tokensToUsd(
       input.usage.inputTokens,
       input.usage.outputTokens,

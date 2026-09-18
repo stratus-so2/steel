@@ -1,14 +1,15 @@
 import type { WhatsAppMessage } from '@prisma/client'
 import type { Job } from 'bullmq'
-import OpenAI, { toFile } from 'openai'
-import type {
-  ChatCompletionContentPart,
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-} from 'openai/resources/chat/completions'
+import { toFile } from 'openai'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
-import { decryptConnectionSecret } from '@/src/lib/crypto'
+import {
+  type AiContentPart,
+  type AiMessage,
+  type AiToolSpec,
+  type AiUsageTokens,
+  getOpenAiClient,
+} from '@/src/lib/ai'
 import { prisma } from '@/src/lib/prisma'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
@@ -17,6 +18,7 @@ import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppAiKnowledgeDocumentRepository } from '@/src/repositories/whatsapp-ai-knowledge-document.repository'
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
+import { AiUsageService } from '@/src/services/ai-usage.service'
 import { WhatsappAiReplyJob, type WhatsappAiReplyJobPayload } from '../jobs'
 
 const HISTORY_LIMIT = 20
@@ -60,14 +62,11 @@ const HANDOFF_FALLBACK_MESSAGE =
   'Vou te transferir para um de nossos atendentes, só um momento.'
 
 const CHECK_APPOINTMENT_TOOL_NAME = 'consultar_exame_agendado'
-const CHECK_APPOINTMENT_TOOL: ChatCompletionTool = {
-  type: 'function',
-  function: {
-    name: CHECK_APPOINTMENT_TOOL_NAME,
-    description:
-      'Consulta se o cliente atual tem algum exame ou compromisso agendado, incluindo data e hora. Use sempre que o cliente perguntar se tem algo marcado, quando é o próximo exame, ou pedir para confirmar/saber o horário — não invente ou assuma uma data sem chamar essa ferramenta primeiro.',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-  },
+const CHECK_APPOINTMENT_TOOL: AiToolSpec = {
+  name: CHECK_APPOINTMENT_TOOL_NAME,
+  description:
+    'Consulta se o cliente atual tem algum exame ou compromisso agendado, incluindo data e hora. Use sempre que o cliente perguntar se tem algo marcado, quando é o próximo exame, ou pedir para confirmar/saber o horário — não invente ou assuma uma data sem chamar essa ferramenta primeiro.',
+  parameters: { type: 'object', properties: {}, additionalProperties: false },
 }
 
 interface AppointmentToolResult {
@@ -108,10 +107,11 @@ function previewForNonText(type: string): string {
   }
 }
 
-async function transcribeAudio(
-  client: OpenAI,
-  mediaUrl: string,
-): Promise<string | null> {
+// Transcrição usa o Whisper da OpenAI independentemente do provedor do chat
+// (o Claude não transcreve áudio). Sem chave da OpenAI, cai no placeholder.
+async function transcribeAudio(mediaUrl: string): Promise<string | null> {
+  const client = getOpenAiClient()
+  if (!client) return null
   try {
     const response = await fetch(mediaUrl)
     if (!response.ok) return null
@@ -136,11 +136,10 @@ async function transcribeAudio(
 // customer-sent (IN) messages are eligible: past assistant image/audio
 // output doesn't need re-reading to stay in context.
 async function describeMessageContent(
-  client: OpenAI,
   message: WhatsAppMessage,
   triggerMessageId: string,
   readMedia: boolean,
-): Promise<string | ChatCompletionContentPart[]> {
+): Promise<string | AiContentPart[]> {
   const isTrigger = message.id === triggerMessageId
   if (
     !readMedia ||
@@ -154,12 +153,12 @@ async function describeMessageContent(
   if (message.type === 'IMAGE') {
     return [
       { type: 'text', text: message.text || 'Imagem enviada pelo cliente' },
-      { type: 'image_url', image_url: { url: message.mediaUrl } },
+      { type: 'image', url: message.mediaUrl },
     ]
   }
 
   if (message.type === 'AUDIO') {
-    const transcribed = await transcribeAudio(client, message.mediaUrl)
+    const transcribed = await transcribeAudio(message.mediaUrl)
     return transcribed
       ? `[áudio transcrito] ${transcribed}`
       : previewForNonText(message.type)
@@ -200,20 +199,39 @@ async function processGenerateAiReply(
     return
   }
 
+  // Provedor/modelo = padrão do workspace para a resposta automática (job
+  // em background, sem usuário). Cota esgotada ou nenhum provedor
+  // disponível: não responde — a conversa fica para um atendente humano.
+  const prepared = await AiUsageService.prepare(
+    conversation.workspaceId,
+    'WHATSAPP_REPLY',
+  )
+  if (!prepared.ok) {
+    logger.warn('queue.whatsapp_ai_reply.skipped', {
+      component: 'WhatsappAiReply',
+      jobId: job.id,
+      conversationId,
+      reason:
+        prepared.error.code === 'AI_QUOTA_EXCEEDED'
+          ? 'ai_quota_exceeded'
+          : prepared.error.code === 'AI_PROVIDER_UNAVAILABLE'
+            ? 'ai_provider_unavailable'
+            : 'ai_prepare_failed',
+    })
+    return
+  }
+  const call = prepared.value
+
   const history = await prisma.whatsAppMessage.findMany({
     where: { conversationId },
     orderBy: { createdAt: 'desc' },
     take: HISTORY_LIMIT,
   })
 
-  const apiKey = await decryptConnectionSecret(aiConfig.encryptedOpenaiApiKey)
-  const client = new OpenAI({ apiKey })
-
   const orderedHistory = history.slice().reverse()
-  const historyMessages = await Promise.all(
-    orderedHistory.map(async (message) => {
+  const messages: AiMessage[] = await Promise.all(
+    orderedHistory.map(async (message): Promise<AiMessage> => {
       const content = await describeMessageContent(
-        client,
         message,
         messageId,
         aiConfig.readMedia,
@@ -222,69 +240,73 @@ async function processGenerateAiReply(
       // describeMessageContent), so the 'assistant' branch is always a
       // plain string at runtime.
       return message.direction === 'IN'
-        ? ({ role: 'user', content } as ChatCompletionMessageParam)
-        : ({
-            role: 'assistant',
-            content: content as string,
-          } as ChatCompletionMessageParam)
+        ? { role: 'user', content }
+        : { role: 'assistant', content: content as string }
     }),
   )
   const knowledgeBaseSection = await buildKnowledgeBaseSection(
     conversation.workspaceId,
   )
-  const messages: ChatCompletionMessageParam[] = [
-    {
-      role: 'system',
-      content:
-        aiConfig.systemPrompt +
-        HANDOFF_SYSTEM_INSTRUCTION +
-        knowledgeBaseSection,
-    },
-    ...historyMessages,
-  ]
+  const system =
+    aiConfig.systemPrompt + HANDOFF_SYSTEM_INSTRUCTION + knowledgeBaseSection
 
   let replyText: string
+  const usage: AiUsageTokens = { inputTokens: 0, outputTokens: 0 }
   try {
-    let completion = await client.chat.completions.create({
-      model: aiConfig.model,
+    let response = await call.provider.chat({
+      model: call.model.model,
+      system,
       messages,
       tools: [CHECK_APPOINTMENT_TOOL],
     })
-    let responseMessage = completion.choices[0]?.message
+    usage.inputTokens += response.usage.inputTokens
+    usage.outputTokens += response.usage.outputTokens
 
-    if (responseMessage?.tool_calls?.length) {
-      messages.push(responseMessage)
-      for (const toolCall of responseMessage.tool_calls) {
-        if (toolCall.type !== 'function') continue
+    if (response.stopReason === 'tool_use') {
+      messages.push(response.message)
+      for (const toolCall of response.toolCalls) {
         const toolResult =
-          toolCall.function.name === CHECK_APPOINTMENT_TOOL_NAME
+          toolCall.name === CHECK_APPOINTMENT_TOOL_NAME
             ? await lookupUpcomingAppointment(conversation.contactId)
-            : { error: `Ferramenta desconhecida: ${toolCall.function.name}` }
+            : { error: `Ferramenta desconhecida: ${toolCall.name}` }
         messages.push({
           role: 'tool',
-          tool_call_id: toolCall.id,
+          toolCallId: toolCall.id,
+          name: toolCall.name,
           content: JSON.stringify(toolResult),
         })
       }
 
-      // Segunda chamada sem `tools`: força uma resposta final em texto em
-      // vez de permitir outra rodada de tool calls (evita loop).
-      completion = await client.chat.completions.create({
-        model: aiConfig.model,
+      // Segunda chamada com `toolChoice: 'none'`: força uma resposta final
+      // em texto em vez de permitir outra rodada de tool calls (evita loop).
+      response = await call.provider.chat({
+        model: call.model.model,
+        system,
         messages,
+        tools: [CHECK_APPOINTMENT_TOOL],
+        toolChoice: 'none',
       })
-      responseMessage = completion.choices[0]?.message
+      usage.inputTokens += response.usage.inputTokens
+      usage.outputTokens += response.usage.outputTokens
     }
 
-    replyText = responseMessage?.content?.trim() ?? ''
+    replyText = response.text.trim()
   } catch (error) {
-    logger.error('queue.whatsapp_ai_reply.openai_failed', {
+    logger.error('queue.whatsapp_ai_reply.provider_failed', {
       component: 'WhatsappAiReply',
       jobId: job.id,
       conversationId,
+      provider: call.model.provider,
+      model: call.model.model,
       message: error instanceof Error ? error.message : String(error),
     })
     return
+  } finally {
+    await AiUsageService.record(call, {
+      workspaceId: conversation.workspaceId,
+      userId: null,
+      usage,
+    })
   }
 
   if (!replyText) {

@@ -1,7 +1,6 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { badRequest } from '@/src/errors'
 import { encryptConnectionSecret } from '@/src/lib/crypto'
-import { err, ok, type Result } from '@/src/lib/result'
+import { ok, type Result } from '@/src/lib/result'
 import { toWhatsAppAiConfigDTO } from '@/src/mappers/whatsapp-ai-config.mapper'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import type { SaveWhatsAppAiConfigDTO } from '@/src/schemas/whatsapp-ai-config.schema'
@@ -46,13 +45,12 @@ export const WhatsAppAiConfigService = {
       await WhatsAppAiConfigRepository.findByWorkspace(workspaceId)
     if (!existing.ok) return existing
 
+    // A IA usa as chaves da plataforma e o provedor/modelo definidos em
+    // Ajustes > Steel IA; uma chave própria enviada por clientes antigos
+    // ainda é guardada (criptografada), mas não é mais obrigatória.
     const encryptedOpenaiApiKey = dto.openaiApiKey
       ? await encryptConnectionSecret(dto.openaiApiKey)
-      : existing.value?.encryptedOpenaiApiKey
-
-    if (!encryptedOpenaiApiKey) {
-      return err(badRequest('Informe a chave da OpenAI para configurar a IA'))
-    }
+      : (existing.value?.encryptedOpenaiApiKey ?? null)
 
     const result = await WhatsAppAiConfigRepository.upsert(workspaceId, {
       encryptedOpenaiApiKey,
