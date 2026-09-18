@@ -7,6 +7,7 @@ import {
 import { seedMembership } from '@/src/__tests__/factories/membership.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
+import { seedWorkspaceModuleAccess } from '@/src/__tests__/factories/workspace-module-access.factory'
 import { prisma } from '@/src/lib/prisma'
 import { CrmScheduledSendJob } from '../../jobs'
 import { processCrmScheduledSend } from '../crm-scheduled-send'
@@ -22,6 +23,8 @@ describe('processCrmScheduledSend()', () => {
   it('should send due SCHEDULED campaigns and leave future ones alone', async () => {
     const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
     await seedMembership({ userId: user.id, workspaceId: workspace.id })
+    // O envio passa pelo service, que exige o módulo CRM habilitado.
+    await seedWorkspaceModuleAccess(workspace.id, user.id, { module: 'CRM' })
     const due = await seedCrmEmailCampaign(workspace.id, user.id, {
       status: 'SCHEDULED',
       scheduledAt: new Date(Date.now() - 60_000),
