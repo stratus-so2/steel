@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ChangelogDetailDTO,
+  ChangelogReleaseDraftDTO,
   ChangelogSummaryDTO,
   ChangelogUserSearchResultDTO,
 } from '@/types/changelog'
@@ -90,5 +91,25 @@ export function useSearchChangelogUsers(query: string) {
       ),
     enabled: query.trim().length >= 2,
     staleTime: 30 * 1000,
+  })
+}
+
+export type ReleaseDraftInput =
+  | { source: 'github' }
+  | { source: 'manual'; markdown: string }
+
+/** Rascunho do e-mail a partir da última release do GitHub ou de notas coladas. */
+export function useReleaseDraft() {
+  return useMutation({
+    mutationFn: (input: ReleaseDraftInput) =>
+      apiFetch<ChangelogReleaseDraftDTO>(
+        '/api/admin/changelog/release-draft',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        },
+        'Erro ao gerar o rascunho a partir da release',
+      ),
   })
 }

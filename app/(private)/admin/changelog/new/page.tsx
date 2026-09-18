@@ -16,10 +16,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import {
   useCreateChangelog,
+  useReleaseDraft,
   useSearchChangelogUsers,
 } from '@/src/hooks/use-changelog'
 import { useUploadChangelogImage } from '@/src/hooks/use-changelog-image-upload'
-import type { ChangelogUserSearchResultDTO } from '@/types/changelog'
+import type {
+  ChangelogReleaseDraftDTO,
+  ChangelogUserSearchResultDTO,
+} from '@/types/changelog'
 
 interface DraftItem {
   key: string
@@ -216,6 +220,120 @@ function RecipientPicker({
   )
 }
 
+/**
+ * Pré-preenche o e-mail a partir da última release do GitHub ou de notas
+ * coladas. Só gera rascunho — nada é enviado sem o admin revisar e criar.
+ */
+function ReleaseDraftPanel({
+  onApply,
+}: {
+  onApply: (draft: ChangelogReleaseDraftDTO) => void
+}) {
+  const releaseDraft = useReleaseDraft()
+  const [pasting, setPasting] = useState(false)
+  const [markdown, setMarkdown] = useState('')
+  const [summary, setSummary] = useState<ChangelogReleaseDraftDTO | null>(null)
+
+  async function generate(
+    input: { source: 'github' } | { source: 'manual'; markdown: string },
+  ) {
+    try {
+      const draft = await releaseDraft.mutateAsync(input)
+      setSummary(draft)
+      if (draft.items.length === 0) {
+        notify.error(
+          'Nenhuma novidade para clientes nessas notas — só itens internos.',
+        )
+        return
+      }
+      onApply(draft)
+      notify.success('Rascunho preenchido — revise antes de criar')
+    } catch (error) {
+      notify.error(error)
+    }
+  }
+
+  return (
+    <div className='space-y-3 rounded-md border border-dashed p-4'>
+      <div className='flex flex-wrap items-center justify-between gap-2'>
+        <div>
+          <p className='font-medium text-sm'>Preencher a partir de release</p>
+          <p className='text-muted-foreground text-xs'>
+            Converte as notas em itens do e-mail, sem commits internos (ci,
+            chore, test...).
+          </p>
+        </div>
+        <div className='flex gap-2'>
+          <Button
+            type='button'
+            size='xs'
+            variant='outline'
+            disabled={releaseDraft.isPending}
+            onClick={() => generate({ source: 'github' })}
+          >
+            {releaseDraft.isPending
+              ? 'Buscando...'
+              : 'Última release do GitHub'}
+          </Button>
+          <Button
+            type='button'
+            size='xs'
+            variant='ghost'
+            onClick={() => setPasting((v) => !v)}
+          >
+            {pasting ? 'Fechar' : 'Colar notas'}
+          </Button>
+        </div>
+      </div>
+
+      {pasting && (
+        <div className='space-y-2'>
+          <Textarea
+            placeholder={'## Novidades\n- feat(crm): ...\n- fix(whatsapp): ...'}
+            value={markdown}
+            onChange={(e) => setMarkdown(e.target.value)}
+            rows={6}
+          />
+          <div className='flex justify-end'>
+            <Button
+              type='button'
+              size='xs'
+              disabled={!markdown.trim() || releaseDraft.isPending}
+              onClick={() => generate({ source: 'manual', markdown })}
+            >
+              Converter
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {summary && (
+        <p className='text-muted-foreground text-xs'>
+          {summary.release ? (
+            <>
+              Release{' '}
+              <a
+                href={summary.release.url}
+                target='_blank'
+                rel='noreferrer'
+                className='underline'
+              >
+                {summary.release.tag}
+              </a>
+              {summary.release.fromCommits
+                ? ' (notas vazias — itens montados a partir dos commits)'
+                : ''}
+              {' · '}
+            </>
+          ) : null}
+          {summary.items.length} item(ns) gerado(s), {summary.skipped} linha(s)
+          interna(s) removida(s).
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function NewChangelogPage() {
   const router = useRouter()
   const createChangelog = useCreateChangelog()
@@ -230,6 +348,17 @@ export default function NewChangelogPage() {
   function updateItem(key: string, patch: Partial<DraftItem>) {
     setItems((prev) =>
       prev.map((item) => (item.key === key ? { ...item, ...patch } : item)),
+    )
+  }
+
+  function applyReleaseDraft(draft: ChangelogReleaseDraftDTO) {
+    setSubject((prev) => prev.trim() || draft.subject)
+    const drafted = draft.items.map((item) => ({ ...newDraftItem(), ...item }))
+    // Substitui só se o admin ainda não escreveu nada; senão acrescenta.
+    setItems((prev) =>
+      prev.every((item) => !item.title.trim() && !item.body.trim())
+        ? drafted
+        : [...prev, ...drafted],
     )
   }
 
@@ -273,6 +402,8 @@ export default function NewChangelogPage() {
           destinatários.
         </p>
       </div>
+
+      <ReleaseDraftPanel onApply={applyReleaseDraft} />
 
       <Field>
         <FieldLabel>Assunto do e-mail</FieldLabel>
