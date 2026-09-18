@@ -15,6 +15,7 @@ export const QueueName = {
   CrmSocialPublish: 'crm-social-publish',
   Changelog: 'changelog',
   DatabaseBackup: 'database-backup',
+  StatusCollect: 'status-collect',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -252,4 +253,23 @@ export type DatabaseBackupJobPayload = {
   [DatabaseBackupJob.RunFullBackup]: Record<string, never>
   [DatabaseBackupJob.RunWorkspaceBackup]: { workspaceId: string }
   [DatabaseBackupJob.PruneExpiredBackups]: Record<string, never>
+}
+
+/**
+ * Coleta periódica do status page (`/status`). Cada job roda os probes de um
+ * tier e grava `HealthCheck`/`ComponentDaily`/incidentes via `StatusService`.
+ * As rotas `POST /api/status/collect/{core,peripheral}` seguem existindo para
+ * disparo manual.
+ */
+export const StatusCollectJob = {
+  CollectCore: 'collect-core',
+  CollectPeripheral: 'collect-peripheral',
+} as const
+
+export type StatusCollectJob =
+  (typeof StatusCollectJob)[keyof typeof StatusCollectJob]
+
+export type StatusCollectJobPayload = {
+  [StatusCollectJob.CollectCore]: Record<string, never>
+  [StatusCollectJob.CollectPeripheral]: Record<string, never>
 }

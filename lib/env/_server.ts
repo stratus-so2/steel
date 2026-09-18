@@ -50,6 +50,7 @@ const serverEnv = {
   MAIL_DRY_RUN: process.env.MAIL_DRY_RUN,
   WORKBENCH_USER: process.env.WORKBENCH_USER,
   WORKBENCH_PASS: process.env.WORKBENCH_PASS,
+  STATUS_APP_PROBE_URL: process.env.STATUS_APP_PROBE_URL,
 }
 
 /** String opcional que trata `""` como ausente (não só `undefined`). */
@@ -153,6 +154,13 @@ const serverEnvSchema = z.object({
   // Basic auth do dashboard de filas (`/jobs`, Workbench).
   WORKBENCH_USER: blankOptional,
   WORKBENCH_PASS: blankOptional,
+  // URL que o worker usa pra sondar a aplicação na coleta do status page
+  // (componente "app"). Sem ela, cai em BETTER_AUTH_URL. Em produção, dentro
+  // da rede Docker, use o nome do container (ex.: http://nextjs-app:3000).
+  STATUS_APP_PROBE_URL: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.url().startsWith('http').optional(),
+  ),
 })
 
 const validatedServerEnv =
@@ -209,4 +217,5 @@ export const {
   MAIL_DRY_RUN,
   WORKBENCH_USER,
   WORKBENCH_PASS,
+  STATUS_APP_PROBE_URL,
 } = validatedServerEnv

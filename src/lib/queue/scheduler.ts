@@ -7,6 +7,7 @@ import {
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
   DataRetentionJob,
+  StatusCollectJob,
   TrialLifecycleJob,
   WhatsappBroadcastJob,
 } from './jobs'
@@ -17,6 +18,7 @@ import {
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
   getDataRetentionQueue,
+  getStatusCollectQueue,
   getTrialLifecycleQueue,
   getWhatsappBroadcastQueue,
 } from './queues'
@@ -28,6 +30,7 @@ import {
   DatabaseBackupCron,
   RetentionCron,
   RetentionTimezone,
+  StatusCollectCron,
   WhatsappBroadcastScheduleCron,
 } from './retention'
 
@@ -177,6 +180,29 @@ export async function scheduleDatabaseBackupJobs(): Promise<void> {
     component: 'Worker',
     fullBackupPattern: DatabaseBackupCron.fullBackup,
     prunePattern: DatabaseBackupCron.pruneExpired,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleStatusCollectJobs(): Promise<void> {
+  const queue = getStatusCollectQueue()
+
+  await queue.upsertJobScheduler(
+    StatusCollectJob.CollectCore,
+    { pattern: StatusCollectCron.core, tz: RetentionTimezone },
+    { name: StatusCollectJob.CollectCore, data: {} },
+  )
+
+  await queue.upsertJobScheduler(
+    StatusCollectJob.CollectPeripheral,
+    { pattern: StatusCollectCron.peripheral, tz: RetentionTimezone },
+    { name: StatusCollectJob.CollectPeripheral, data: {} },
+  )
+
+  logger.info('queue.scheduler.status_collect_registered', {
+    component: 'Worker',
+    corePattern: StatusCollectCron.core,
+    peripheralPattern: StatusCollectCron.peripheral,
     timezone: RetentionTimezone,
   })
 }

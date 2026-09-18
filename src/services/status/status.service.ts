@@ -26,7 +26,12 @@ import {
   STATUS_RANK,
   worstStatus,
 } from './components'
-import { componentsForTier, type ProbeResult, runProbesForTier } from './probes'
+import {
+  componentsForTier,
+  type ProbeOptions,
+  type ProbeResult,
+  runProbesForTier,
+} from './probes'
 import { STATUS_META } from './status-map'
 
 const HISTORY_WINDOW_DAYS = 90
@@ -268,8 +273,11 @@ function toIncidentSummaryDTO(row: {
 }
 
 export const StatusService = {
-  async collect(tier: ComponentTier): Promise<Result<void>> {
-    const probeMap = await runProbesForTier(tier)
+  async collect(
+    tier: ComponentTier,
+    options: ProbeOptions = {},
+  ): Promise<Result<void>> {
+    const probeMap = await runProbesForTier(tier, options)
     const tierKeys = componentsForTier(tier)
 
     const rows = tierKeys.flatMap((key) => {

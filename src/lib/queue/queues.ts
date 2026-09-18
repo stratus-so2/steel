@@ -22,6 +22,8 @@ import {
   type DataRetentionJob,
   type DataRetentionJobPayload,
   QueueName,
+  type StatusCollectJob,
+  type StatusCollectJobPayload,
   type TrialLifecycleJob,
   type TrialLifecycleJobPayload,
   type WhatsappAiReplyJob,
@@ -59,6 +61,7 @@ let crmSocialPostsTickQueue: Queue | null = null
 let crmSocialPublishQueue: Queue | null = null
 let changelogQueue: Queue | null = null
 let databaseBackupQueue: Queue | null = null
+let statusCollectQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -348,6 +351,35 @@ export function getDatabaseBackupQueue(): Queue<
   >
 }
 
+/**
+ * Sem retry: a coleta é um tick — se um probe falhar, o próximo tick (1–5 min)
+ * já coleta de novo, e repetir só empilharia checks atrasados. Guarda poucos
+ * jobs concluídos porque o core roda a cada minuto.
+ */
+const statusCollectJobOptions = {
+  removeOnComplete: { age: 60 * 60, count: 100 },
+  removeOnFail: { age: 60 * 60 * 24 * 7 },
+  attempts: 1,
+} as const
+
+export function getStatusCollectQueue(): Queue<
+  StatusCollectJobPayload[StatusCollectJob],
+  unknown,
+  StatusCollectJob
+> {
+  if (!statusCollectQueue) {
+    statusCollectQueue = new Queue(QueueName.StatusCollect, {
+      connection: getQueueConnection(),
+      defaultJobOptions: statusCollectJobOptions,
+    })
+  }
+  return statusCollectQueue as Queue<
+    StatusCollectJobPayload[StatusCollectJob],
+    unknown,
+    StatusCollectJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -366,6 +398,7 @@ export async function closeQueues(): Promise<void> {
     crmSocialPublishQueue?.close(),
     changelogQueue?.close(),
     databaseBackupQueue?.close(),
+    statusCollectQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -382,4 +415,5 @@ export async function closeQueues(): Promise<void> {
   crmSocialPublishQueue = null
   changelogQueue = null
   databaseBackupQueue = null
+  statusCollectQueue = null
 }

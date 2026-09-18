@@ -46,8 +46,27 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}) {
   }
 }
 
-export async function probeApp(): Promise<ProbeResult> {
-  return { status: 'OPERATIONAL', latencyMs: 0, error: null }
+export interface ProbeOptions {
+  /**
+   * Base URL da aplicação Next. Quando presente (coleta disparada pelo
+   * worker, que roda fora do Next), o probe "app" faz um GET real em
+   * `/api/status`; sem ela (coleta via rota HTTP) a própria requisição já
+   * prova que o servidor respondeu.
+   */
+  appUrl?: string
+}
+
+export async function probeApp(
+  options: ProbeOptions = {},
+): Promise<ProbeResult> {
+  if (!options.appUrl) {
+    return { status: 'OPERATIONAL', latencyMs: 0, error: null }
+  }
+  const url = `${options.appUrl.replace(/\/$/, '')}/api/status`
+  return timed(async () => {
+    const res = await fetchWithTimeout(url, { method: 'GET' })
+    if (res.status >= 500) throw new Error(`App HTTP ${res.status}`)
+  })
 }
 
 export async function probeDatabase(): Promise<ProbeResult> {
@@ -100,7 +119,10 @@ async function probePayment(): Promise<ProbeResult> {
   })
 }
 
-const PROBES: Record<ComponentKey, () => Promise<ProbeResult>> = {
+const PROBES: Record<
+  ComponentKey,
+  (options: ProbeOptions) => Promise<ProbeResult>
+> = {
   app: probeApp,
   database: probeDatabase,
   cache: probeCache,
@@ -112,9 +134,10 @@ const PROBES: Record<ComponentKey, () => Promise<ProbeResult>> = {
 
 async function runForKeys(
   keys: ReadonlyArray<ComponentKey>,
+  options: ProbeOptions,
 ): Promise<Partial<ProbeMap>> {
   const entries = await Promise.all(
-    keys.map(async (key) => [key, await PROBES[key]()] as const),
+    keys.map(async (key) => [key, await PROBES[key](options)] as const),
   )
   return Object.fromEntries(entries) as Partial<ProbeMap>
 }
@@ -131,6 +154,7 @@ export function componentsForTier(
 
 export async function runProbesForTier(
   tier: ComponentTier,
+  options: ProbeOptions = {},
 ): Promise<Partial<ProbeMap>> {
-  return runForKeys(componentsForTier(tier))
+  return runForKeys(componentsForTier(tier), options)
 }

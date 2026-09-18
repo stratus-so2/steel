@@ -32,3 +32,13 @@ export const DatabaseBackupCron = {
   fullBackup: '15 3 * * *',
   pruneExpired: '30 3 * * *',
 } as const
+
+/**
+ * Coleta do status page. Core (app, banco, Redis, auth) a cada minuto — é o
+ * que define "fora do ar"; periféricos (pagamento, e-mail, storage) a cada 5
+ * min, porque batem em APIs externas com quota.
+ */
+export const StatusCollectCron = {
+  core: '* * * * *',
+  peripheral: '*/5 * * * *',
+} as const
