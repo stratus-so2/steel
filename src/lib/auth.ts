@@ -8,6 +8,7 @@ import { NODE_ENV } from '@/lib/env/env'
 import {
   BETTER_AUTH_SECRET,
   BETTER_AUTH_URL,
+  DISABLE_AUTH_RATE_LIMIT,
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
   GOOGLE_CLIENT_ID,
@@ -36,9 +37,7 @@ export const auth = betterAuth({
   // produção real e desliga apenas quando o e2e seta o flag.
   rateLimit: {
     enabled:
-      process.env.DISABLE_AUTH_RATE_LIMIT === 'true'
-        ? false
-        : NODE_ENV === 'production',
+      DISABLE_AUTH_RATE_LIMIT === 'true' ? false : NODE_ENV === 'production',
   },
   baseURL: BETTER_AUTH_URL,
   trustedOrigins: [BETTER_AUTH_URL],

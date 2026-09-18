@@ -5,7 +5,7 @@ import {
   type Transport,
 } from '@axiomhq/logging'
 import axiomClient from '@/lib/axiom/axiom'
-import { NEXT_PUBLIC_AXIOM_DATASET } from '@/lib/env/env'
+import { NEXT_PUBLIC_AXIOM_DATASET, NODE_ENV } from '@/lib/env/env'
 
 const transports: [Transport, ...Transport[]] = [
   new AxiomJSTransport({
@@ -14,7 +14,7 @@ const transports: [Transport, ...Transport[]] = [
   }),
 ]
 
-if (process.env.NODE_ENV !== 'production') {
+if (NODE_ENV !== 'production') {
   transports.push(new ConsoleTransport({ prettyPrint: true }))
 }
 

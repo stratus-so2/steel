@@ -46,12 +46,27 @@ const serverEnv = {
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID,
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET,
   GOOGLE_ADS_DEVELOPER_TOKEN: process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+  DISABLE_AUTH_RATE_LIMIT: process.env.DISABLE_AUTH_RATE_LIMIT,
+  MAIL_DRY_RUN: process.env.MAIL_DRY_RUN,
+  WORKBENCH_USER: process.env.WORKBENCH_USER,
+  WORKBENCH_PASS: process.env.WORKBENCH_PASS,
 }
 
 /** String opcional que trata `""` como ausente (não só `undefined`). */
 const blankOptional = z.preprocess(
   (v) => (v === '' ? undefined : v),
   z.string().min(1).optional(),
+)
+
+/**
+ * Flag booleana mantida como string literal (`'true'`/`'false'`). Não usa
+ * `.transform` de propósito: com `SKIP_ENV_VALIDATION`/`NODE_ENV=test` o
+ * objeto cru é devolvido sem passar pelo schema, então o consumidor compara
+ * `=== 'true'` e o comportamento é idêntico nos dois caminhos.
+ */
+const flag = z.preprocess(
+  (v) => (v === '' ? undefined : v),
+  z.enum(['true', 'false']).optional(),
 )
 
 const serverEnvSchema = z.object({
@@ -130,6 +145,14 @@ const serverEnvSchema = z.object({
   LINKEDIN_CLIENT_ID: blankOptional,
   LINKEDIN_CLIENT_SECRET: blankOptional,
   GOOGLE_ADS_DEVELOPER_TOKEN: blankOptional,
+  // Desliga só o rate limiter embutido do better-auth (o app mantém o próprio,
+  // Redis). Usado pelo e2e, que roda `next start` em modo produção.
+  DISABLE_AUTH_RATE_LIMIT: flag,
+  // Kill-switch de envio de e-mail: nada sai pelo Resend quando `'true'`.
+  MAIL_DRY_RUN: flag,
+  // Basic auth do dashboard de filas (`/jobs`, Workbench).
+  WORKBENCH_USER: blankOptional,
+  WORKBENCH_PASS: blankOptional,
 })
 
 const validatedServerEnv =
@@ -182,4 +205,8 @@ export const {
   LINKEDIN_CLIENT_ID,
   LINKEDIN_CLIENT_SECRET,
   GOOGLE_ADS_DEVELOPER_TOKEN,
+  DISABLE_AUTH_RATE_LIMIT,
+  MAIL_DRY_RUN,
+  WORKBENCH_USER,
+  WORKBENCH_PASS,
 } = validatedServerEnv

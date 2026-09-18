@@ -1,6 +1,8 @@
 import 'server-only'
 import type { CreateEmailOptions, CreateEmailResponseSuccess } from 'resend'
 import { logger } from '@/lib/axiom/logger'
+import { NODE_ENV } from '@/lib/env/env'
+import { MAIL_DRY_RUN } from '@/lib/env/server'
 import { defaultFrom, resend } from '@/src/lib/mail/client'
 import { consume, emailLimiter } from '@/src/lib/rate-limit'
 
@@ -12,8 +14,7 @@ export type SendEmailParams = Omit<CreateEmailOptions, 'from'> & {
 // @example.com, wich would otherwise fire a real verification OTP per test and
 // drain the daily limit - starving real user' 2FA emails. MAIL_DRY_RUN is an
 // explicit kill-switch for any environment (set it on the e2e server).
-const FORCE_DRY_RUN =
-  process.env.MAIL_DRY_RUN === 'true' || process.env.NODE_ENV === 'test'
+const FORCE_DRY_RUN = MAIL_DRY_RUN === 'true' || NODE_ENV === 'test'
 const TEST_RECIPIENT = /@(example\.(com|org|net)|[^@]*\.test)$/i
 
 function isDryRun(recipient: string): boolean {

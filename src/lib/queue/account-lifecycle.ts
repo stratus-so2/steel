@@ -1,5 +1,6 @@
 import { logger } from '@/lib/axiom/logger'
 import { ACCOUNT_DELETION_GRACE_OVERRIDE_MS } from '@/lib/env/_server'
+import { NODE_ENV } from '@/lib/env/env'
 import { AccountLifecycleJob } from './jobs'
 import { getAccountLifecycleQueue } from './queues'
 
@@ -11,7 +12,7 @@ export const ACCOUNT_DELETION_GRACE_MS =
 // (e.g. ACCOUNT_DELETION_GRACE_OVERRIDE_MS=60000 → 1 minute).
 // Ignored in tests so the constant-based assertions stay deterministic.
 export function getAccountDeletionGraceMs(): number {
-  if (process.env.NODE_ENV === 'test') return ACCOUNT_DELETION_GRACE_MS
+  if (NODE_ENV === 'test') return ACCOUNT_DELETION_GRACE_MS
   return ACCOUNT_DELETION_GRACE_OVERRIDE_MS ?? ACCOUNT_DELETION_GRACE_MS
 }
 

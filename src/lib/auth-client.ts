@@ -15,8 +15,10 @@ const consentFieldsSchema = {
   },
 } as const
 
+// Sem `baseURL`: o client fala com a mesma origem que serviu a página. A
+// versão anterior lia `NEXT_PUBLIC_APP_URL`, variável que não existe em
+// nenhum ambiente — ou seja, já caía nesse default.
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
   plugins: [
     emailOTPClient(),
     twoFactorClient(),

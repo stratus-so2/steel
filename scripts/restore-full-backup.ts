@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
+import { DATABASE_URL } from '@/lib/env/server'
 import { prisma } from '@/src/lib/prisma'
 import { fetchAndDecryptBackup } from '@/src/lib/queue/database-restore'
 
@@ -64,9 +65,7 @@ async function runPgRestore(dumpPath: string, target: string): Promise<void> {
 async function main() {
   const backupId = process.argv[2]
   const targetArg = process.argv.find((arg) => arg.startsWith('--target='))
-  const target = targetArg
-    ? targetArg.slice('--target='.length)
-    : process.env.DATABASE_URL
+  const target = targetArg ? targetArg.slice('--target='.length) : DATABASE_URL
 
   if (!backupId || !target) {
     console.error('Uso: pnpm restore:full <backupId> [--target=<databaseUrl>]')
