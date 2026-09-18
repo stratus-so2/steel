@@ -145,6 +145,10 @@
       "description": "Atendimento por IA e base de conhecimento."
     },
     {
+      "name": "Comunicação · Configurações",
+      "description": "Configurações de atendimento, mídia e membros atribuíveis."
+    },
+    {
       "name": "CRM público · Formulários",
       "description": "Formulários publicados — leitura e envio por visitantes, sem sessão (o `publicToken` é o acesso)."
     },
@@ -253,7 +257,8 @@
         "Comunicação · Transmissões",
         "Comunicação · Templates e respostas rápidas",
         "Comunicação · Conexões",
-        "Comunicação · IA"
+        "Comunicação · IA",
+        "Comunicação · Configurações"
       ]
     },
     {
@@ -914,7 +919,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_13"
+            "$ref": "#/components/responses/400_BAD_REQUEST_14"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -3883,7 +3888,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7185,7 +7190,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_CONNECTION_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7255,7 +7260,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7683,7 +7688,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_2"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_3"
           }
         },
         "security": [
@@ -9458,7 +9463,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11092,7 +11097,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20231,7 +20236,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_12"
+            "$ref": "#/components/responses/400_BAD_REQUEST_13"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24255,7 +24260,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+            "$ref": "#/components/responses/400_BAD_REQUEST_10"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -24749,7 +24754,7 @@
             "$ref": "#/components/responses/409_CRM_PROPOSAL_EXPIRED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -24901,7 +24906,7 @@
             "$ref": "#/components/responses/409_CONFLICT_4"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26927,7 +26932,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_10"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28090,7 +28095,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28277,7 +28282,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_10"
+            "$ref": "#/components/responses/400_BAD_REQUEST_11"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -28499,7 +28504,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -32295,7 +32300,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33692,7 +33697,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_3"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_2"
           }
         },
         "security": [
@@ -33753,6 +33758,60 @@
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/assignable-members": {
+      "get": {
+        "tags": ["Comunicação · Configurações"],
+        "summary": "Membros atribuíveis",
+        "operationId": "getWorkspacesByIdWhatsappAssignableMembers",
+        "description": "Membros do workspace que podem receber conversas (para `PATCH .../conversations/{conversationId}/assign` e o supervisor do alerta de sentimento). Módulo **Comunicação** habilitado e permissão `conversations` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membros.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppAssignableMember"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -35645,7 +35704,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_11"
+            "$ref": "#/components/responses/400_BAD_REQUEST_12"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -37636,6 +37695,75 @@
         ]
       }
     },
+    "/workspaces/{id}/whatsapp/media/upload": {
+      "post": {
+        "tags": ["Comunicação · Configurações"],
+        "summary": "Enviar mídia para mensagens",
+        "operationId": "postWorkspacesByIdWhatsappMediaUpload",
+        "description": "Hospeda um arquivo no MinIO (bucket `whatsapp-media`) e devolve a URL pública para usar em `POST .../messages/media`, transmissões e respostas rápidas. O corpo é o **binário cru** do arquivo (não multipart), com o `Content-Type` real (ex.: `image/jpeg`, `application/pdf`); máximo 16 MB, o limite do próprio WhatsApp. Módulo **Comunicação** habilitado e permissão `conversations` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário (limite de upload); ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Bytes do arquivo; o header `Content-Type` define o tipo e a extensão.",
+          "content": {
+            "*/*": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Arquivo hospedado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/MediaUrl"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR_2"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/whatsapp/quick-replies": {
       "get": {
         "tags": ["Comunicação · Templates e respostas rápidas"],
@@ -37933,6 +38061,164 @@
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/settings": {
+      "get": {
+        "tags": ["Comunicação · Configurações"],
+        "summary": "Configurações de atendimento",
+        "operationId": "getWorkspacesByIdWhatsappSettings",
+        "description": "Fechamento automático por inatividade e alerta de sentimento. Workspace que nunca salvou recebe os padrões (fechamento após 24 h). Módulo **Comunicação** habilitado; restrito a OWNER/ADMIN do workspace.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configurações.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppSettings"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["Comunicação · Configurações"],
+        "summary": "Atualizar configurações de atendimento",
+        "operationId": "patchWorkspacesByIdWhatsappSettings",
+        "description": "Upsert parcial (omitido = mantém). `autoCloseAfterHours`: 0 desliga, máximo 720 (30 dias) — o worker fecha conversas sem mensagem além dessa janela. Alerta de sentimento: quando a média da conversa cai abaixo de `sentimentAlertThreshold` (-1 a 0), avisa os destinatários (in-app e/ou e-mail; vazio = todos os OWNER/ADMIN), opcionalmente atribui a conversa a `sentimentAlertAssignToId` e respeita `sentimentAlertCooldownHours` (1–168) por conversa. Destinatários e supervisor precisam ser membros do workspace. Auditado. Módulo **Comunicação** habilitado; restrito a OWNER/ADMIN do workspace.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "autoCloseAfterHours": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 720
+                  },
+                  "sentimentAlertEnabled": {
+                    "type": "boolean"
+                  },
+                  "sentimentAlertThreshold": {
+                    "type": "number",
+                    "minimum": -1,
+                    "maximum": 0
+                  },
+                  "sentimentAlertNotifyInApp": {
+                    "type": "boolean"
+                  },
+                  "sentimentAlertNotifyEmail": {
+                    "type": "boolean"
+                  },
+                  "sentimentAlertRecipientIds": {
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "sentimentAlertAssignToId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sentimentAlertCooldownHours": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 168
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configurações salvas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppSettings"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_10"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -38612,6 +38898,51 @@
                 }
               },
               "BAD_REQUEST_2": {
+                "summary": "BAD_REQUEST — Corpo vazio",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Arquivo vazio",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_3": {
+                "summary": "BAD_REQUEST — Arquivo acima de 16 MB",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Arquivo muito grande. Máximo 16 MB",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_10": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Sem header `Content-Type`",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Content-Type é obrigatório",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_2": {
                 "summary": "BAD_REQUEST — `Content-Length` acima de 5 MB",
                 "value": {
                   "success": false,
@@ -38626,7 +38957,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_10": {
+      "400_BAD_REQUEST_11": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -38660,7 +38991,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_11": {
+      "400_BAD_REQUEST_12": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -38683,7 +39014,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_12": {
+      "400_BAD_REQUEST_13": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -38706,7 +39037,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_13": {
+      "400_BAD_REQUEST_14": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -45125,6 +45456,47 @@
                 }
               },
               "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — Destinatário ou supervisor não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Selecione apenas membros deste workspace para o alerta de sentimento",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_11": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
                 "summary": "VALIDATION_ERROR — Mídia acima de 64 MB (multipart)",
                 "value": {
                   "success": false,
@@ -45139,7 +45511,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_11": {
+      "422_VALIDATION_ERROR_12": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45180,7 +45552,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_12": {
+      "422_VALIDATION_ERROR_13": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45221,7 +45593,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_13": {
+      "422_VALIDATION_ERROR_14": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45269,7 +45641,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_14": {
+      "422_VALIDATION_ERROR_15": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45310,7 +45682,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_15": {
+      "422_VALIDATION_ERROR_16": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45351,7 +45723,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_16": {
+      "422_VALIDATION_ERROR_17": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45385,7 +45757,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_17": {
+      "422_VALIDATION_ERROR_18": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45419,7 +45791,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_18": {
+      "422_VALIDATION_ERROR_19": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45442,7 +45814,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_19": {
+      "422_VALIDATION_ERROR_20": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -45465,7 +45837,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_20": {
+      "422_VALIDATION_ERROR_21": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -46665,7 +47037,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 500,
-                  "message": "Falha ao armazenar o anexo",
+                  "message": "Falha ao armazenar o arquivo",
                   "error": {
                     "code": "STORAGE_ERROR"
                   }
@@ -46688,7 +47060,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 500,
-                  "message": "Falha ao armazenar o arquivo",
+                  "message": "Falha ao armazenar o anexo",
                   "error": {
                     "code": "STORAGE_ERROR"
                   }
@@ -60505,6 +60877,32 @@
           "updatedAt"
         ]
       },
+      "WhatsAppAssignableMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["id", "name", "email", "image"]
+      },
       "WhatsAppBroadcast": {
         "type": "object",
         "properties": {
@@ -61815,6 +62213,66 @@
           "mediaUrl",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "WhatsAppSettings": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string"
+          },
+          "autoCloseAfterHours": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Fecha conversas sem mensagem após N horas (0 = desligado; padrão 24)."
+          },
+          "sentimentAlertEnabled": {
+            "type": "boolean"
+          },
+          "sentimentAlertThreshold": {
+            "type": "number",
+            "description": "Média da conversa (-1 a 0) a partir da qual o alerta dispara."
+          },
+          "sentimentAlertNotifyInApp": {
+            "type": "boolean"
+          },
+          "sentimentAlertNotifyEmail": {
+            "type": "boolean"
+          },
+          "sentimentAlertRecipientIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Vazio = todos os OWNER/ADMIN."
+          },
+          "sentimentAlertAssignToId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sentimentAlertCooldownHours": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "workspaceId",
+          "autoCloseAfterHours",
+          "sentimentAlertEnabled",
+          "sentimentAlertThreshold",
+          "sentimentAlertNotifyInApp",
+          "sentimentAlertNotifyEmail",
+          "sentimentAlertRecipientIds",
+          "sentimentAlertAssignToId",
+          "sentimentAlertCooldownHours"
         ]
       },
       "WhatsAppTemplate": {
