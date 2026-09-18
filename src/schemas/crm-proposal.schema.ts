@@ -38,7 +38,7 @@ const CompanyPresentationContentSchema = z.object({
 })
 
 const ListItemSchema = z.object({
-  title: z.string().min(1).max(200),
+  title: z.string().min(1, 'Título do item é obrigatório').max(200),
   description: z.string().max(2_000).default(''),
 })
 
@@ -59,10 +59,10 @@ const ScopeContentSchema = z.object({
 })
 
 const ProductLineItemSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().min(1, 'Nome do item é obrigatório').max(200),
   description: z.string().max(500).optional(),
-  quantity: z.number().positive(),
-  unitPrice: z.number().nonnegative(),
+  quantity: z.number().positive('Quantidade deve ser maior que zero'),
+  unitPrice: z.number().nonnegative('Valor unitário não pode ser negativo'),
   total: z.number().nonnegative(),
 })
 

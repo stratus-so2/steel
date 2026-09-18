@@ -226,6 +226,28 @@ describe('<ProposalBuilder /> new proposal', () => {
     expect(screen.getByText('enabled:SCOPE')).toBeTruthy()
   })
 
+  it('does not create the proposal just because a template was applied', async () => {
+    const spy = mockFetch([
+      {
+        match: '/proposal-templates/tpl1',
+        data: { id: 'tpl1', name: 'Consultoria padrão', sections: [] },
+      },
+      { method: 'POST', match: /crm\/proposals$/, data: { id: 'p1' } },
+    ])
+    renderBuilder({ initialTemplateId: 'tpl1' })
+    await waitFor(() =>
+      expect(
+        (screen.getByPlaceholderText('Nome da proposta') as HTMLInputElement)
+          .value,
+      ).toBe('Consultoria padrão'),
+    )
+
+    await new Promise((r) => setTimeout(r, 1200))
+    expect(spy.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(
+      false,
+    )
+  })
+
   it('notifies when the template cannot be loaded', async () => {
     mockFetch([{ match: '/proposal-templates/x', status: 404, error: 'nf' }])
     renderBuilder({ initialTemplateId: 'x' })
@@ -302,6 +324,51 @@ describe('<ProposalBuilder /> existing proposal', () => {
       expect(notify.success).toHaveBeenCalledWith(
         'Template salvo. Disponível ao criar novas propostas.',
       ),
+    )
+  })
+
+  it('does not autosave just by opening the proposal', async () => {
+    const spy = mockFetch([
+      { method: 'PATCH', match: '/crm/proposals/pr1', data: {} },
+      { match: '/crm/proposals/pr1', data: EXISTING },
+    ])
+    renderBuilder({ proposalId: 'pr1' })
+    await screen.findByDisplayValue('Implantação ERP')
+
+    await new Promise((r) => setTimeout(r, 1200))
+    expect(spy.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(
+      false,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('Nome da proposta'), {
+      target: { value: 'Implantação ERP v2' },
+    })
+    await waitFor(
+      () =>
+        expect(fetchBody(spy, '/crm/proposals/pr1', 'PATCH')).toMatchObject({
+          name: 'Implantação ERP v2',
+        }),
+      { timeout: 3000 },
+    )
+  })
+
+  it('blocks the autosave and explains why when a section is invalid', async () => {
+    const spy = mockFetch([
+      { method: 'PATCH', match: '/crm/proposals/pr1', data: {} },
+      { match: '/crm/proposals/pr1', data: EXISTING },
+    ])
+    renderBuilder({ proposalId: 'pr1' })
+    const title = await screen.findByDisplayValue('Capa ERP')
+
+    fireEvent.change(title, { target: { value: '' } })
+    expect(
+      (await screen.findByText(/Não salvo — Capa: Título é obrigatório/))
+        .textContent,
+    ).toBeTruthy()
+
+    await new Promise((r) => setTimeout(r, 1200))
+    expect(spy.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(
+      false,
     )
   })
 })

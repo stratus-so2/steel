@@ -3,6 +3,7 @@
 import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -50,11 +51,16 @@ export function ListItemsEditor({
               variant='ghost'
               size='icon-sm'
               aria-label='Remover item'
+              // A API exige ao menos um item: não deixa remover o último.
+              disabled={items.length <= 1}
               onClick={() => remove(index)}
             >
               <SteelIcon icon={Delete02Icon} strokeWidth={2} />
             </Button>
           </div>
+          {item.title === '' ? (
+            <FieldError>Título do item é obrigatório</FieldError>
+          ) : null}
           <Textarea
             value={item.description}
             onChange={(e) => update(index, { description: e.target.value })}

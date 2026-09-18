@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CreateCrmProposalSchema,
+  CrmProposalSectionContentSchema,
   RecordCrmProposalViewSchema,
   UpdateCrmProposalSchema,
 } from '../crm-proposal.schema'
@@ -90,5 +91,33 @@ describe('RecordCrmProposalViewSchema', () => {
       RecordCrmProposalViewSchema.safeParse({ viewId: 'v1', scrolledPct: 150 })
         .success,
     ).toBe(false)
+  })
+})
+
+describe('CrmProposalSectionContentSchema — pt-BR messages', () => {
+  function messages(content: unknown) {
+    const result = CrmProposalSectionContentSchema.safeParse(content)
+    return result.success ? [] : result.error.issues.map((i) => i.message)
+  }
+
+  it('explains invalid product lines in pt-BR', () => {
+    expect(
+      messages({
+        type: 'PRODUCTS_PRICING',
+        items: [{ name: '', quantity: 0, unitPrice: -1, total: 0 }],
+        discount: 0,
+        total: 0,
+      }),
+    ).toEqual([
+      'Nome do item é obrigatório',
+      'Quantidade deve ser maior que zero',
+      'Valor unitário não pode ser negativo',
+    ])
+  })
+
+  it('explains an empty list item title in pt-BR', () => {
+    expect(
+      messages({ type: 'SCOPE', items: [{ title: '', description: '' }] }),
+    ).toEqual(['Título do item é obrigatório'])
   })
 })

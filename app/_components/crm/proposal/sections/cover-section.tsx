@@ -1,7 +1,7 @@
 'use client'
 
 import { ImageUploadField } from '@/app/_components/crm/proposal/proposal-image-upload'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import type { CrmProposalSectionContent } from '@/src/schemas/crm-proposal.schema'
 
@@ -31,7 +31,11 @@ export function CoverEditor({
           value={content.title}
           onChange={(e) => onChange({ ...content, title: e.target.value })}
           placeholder='Proposta Comercial'
+          aria-invalid={content.title === '' || undefined}
         />
+        {content.title === '' ? (
+          <FieldError>Título é obrigatório</FieldError>
+        ) : null}
       </Field>
       <Field>
         <FieldLabel htmlFor='cover-subtitle'>Subtítulo</FieldLabel>

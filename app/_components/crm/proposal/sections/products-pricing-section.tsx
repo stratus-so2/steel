@@ -3,7 +3,7 @@
 import { Delete02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import type { CrmProposalSectionContent } from '@/src/schemas/crm-proposal.schema'
 
@@ -87,11 +87,16 @@ export function ProductsPricingEditor({
               variant='ghost'
               size='icon-sm'
               aria-label='Remover item'
+              // A API exige ao menos um item: não deixa remover o último.
+              disabled={content.items.length <= 1}
               onClick={() => removeItem(index)}
             >
               <SteelIcon icon={Delete02Icon} strokeWidth={2} />
             </Button>
           </div>
+          {item.name === '' ? (
+            <FieldError>Nome do item é obrigatório</FieldError>
+          ) : null}
           <Input
             value={item.description ?? ''}
             onChange={(e) =>
@@ -104,12 +109,16 @@ export function ProductsPricingEditor({
               <FieldLabel>Quantidade</FieldLabel>
               <Input
                 type='number'
-                min={0}
+                min={1}
                 value={item.quantity}
+                aria-invalid={item.quantity <= 0 || undefined}
                 onChange={(e) =>
                   updateItem(index, { quantity: Number(e.target.value) || 0 })
                 }
               />
+              {item.quantity <= 0 ? (
+                <FieldError>Quantidade deve ser maior que zero</FieldError>
+              ) : null}
             </Field>
             <Field>
               <FieldLabel>Valor unitário</FieldLabel>

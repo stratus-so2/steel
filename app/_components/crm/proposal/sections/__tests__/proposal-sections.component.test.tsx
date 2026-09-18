@@ -106,6 +106,19 @@ describe('<ListItemsEditor />', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Remover item' })[0])
     expect(last()).toEqual([{ title: 'B', description: 'detalhe B' }])
   })
+  it('keeps at least one item and flags an empty title like the API', () => {
+    const last = setup([{ title: 'A', description: '' }])
+    const remove = screen.getByRole('button', {
+      name: 'Remover item',
+    }) as HTMLButtonElement
+    expect(remove.disabled).toBe(true)
+
+    fireEvent.change(screen.getByPlaceholderText('Necessidade'), {
+      target: { value: '' },
+    })
+    expect(last()).toEqual([{ title: '', description: '' }])
+    expect(screen.getByText('Título do item é obrigatório')).toBeTruthy()
+  })
 })
 
 describe('<ProductsPricingEditor />', () => {
@@ -173,6 +186,25 @@ describe('<ProductsPricingEditor />', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Remover item' })[0])
     expect(last().items.map((i) => i.name)).toEqual(['Produto ou serviço'])
     expect(last().total).toBe(0)
+  })
+
+  it('flags zero quantity and an empty name with the API messages', () => {
+    harness(ProductsPricingEditor, productsPricingDefaultContent())
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Remover item',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true)
+
+    fireEvent.change(numberInputs()[0], { target: { value: '0' } })
+    expect(screen.getByText('Quantidade deve ser maior que zero')).toBeTruthy()
+
+    fireEvent.change(screen.getByPlaceholderText('Nome do produto/serviço'), {
+      target: { value: '' },
+    })
+    expect(screen.getByText('Nome do item é obrigatório')).toBeTruthy()
   })
 
   it('treats non-numeric input as zero', () => {

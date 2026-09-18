@@ -40,9 +40,10 @@ import {
   useCrmProposal,
 } from '@/src/hooks/use-crm-proposal'
 import { useCrmWorkspaceLookups } from '@/src/hooks/use-crm-workspace-lookups'
-import type {
-  CrmProposalSectionContent,
-  CrmProposalSectionType,
+import {
+  type CrmProposalSectionContent,
+  CrmProposalSectionContentSchema,
+  type CrmProposalSectionType,
 } from '@/src/schemas/crm-proposal.schema'
 import type {
   CrmProposalSectionDTO,
@@ -105,6 +106,27 @@ function toSectionState(
   }).sort((a, b) => a.order - b.order)
 }
 
+/**
+ * Valida o rascunho com o mesmo schema da API antes do autosave, para não
+ * disparar requisições que seriam rejeitadas. Retorna a 1ª mensagem (pt-BR)
+ * prefixada pela seção, ou null quando está tudo válido.
+ */
+function validateDraft(sections: SectionState[]): string | null {
+  for (const section of sections) {
+    const parsed = CrmProposalSectionContentSchema.safeParse(section.content)
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message ?? 'Conteúdo inválido'
+      return `${SECTION_REGISTRY[section.type].label}: ${message}`
+    }
+  }
+  return null
+}
+
+/** Chave estável do que é persistido — base para detectar mudanças reais. */
+function draftKey(meta: Meta, sections: SectionState[]): string {
+  return JSON.stringify([meta, sections])
+}
+
 type Meta = {
   name: string
   companyId: string | null
@@ -162,6 +184,11 @@ export function ProposalBuilder({
   const [metricsOpen, setMetricsOpen] = useState(false)
 
   const hydrated = useRef(false)
+  // Snapshot do último estado carregado/salvo: o autosave só dispara quando o
+  // rascunho difere dele (nunca ao abrir a proposta ou aplicar o template).
+  const baseline = useRef<string | null>(null)
+  const captureBaseline = useRef(false)
+  const [draftError, setDraftError] = useState<string | null>(null)
 
   // Nova proposta a partir de um template: pré-carrega as seções padrão.
   useEffect(() => {
@@ -188,6 +215,7 @@ export function ProposalBuilder({
           ),
         )
         hydrated.current = true
+        captureBaseline.current = true
       })
       .catch(() => notify.error('Não foi possível carregar o template.'))
   }, [isNew, initialTemplateId, workspaceId])
@@ -209,6 +237,7 @@ export function ProposalBuilder({
     setStatus(proposal.status)
     setShareToken(proposal.shareToken)
     hydrated.current = true
+    captureBaseline.current = true
   }, [isNew, proposal])
 
   const responsibleName = lookups.maps.users[meta.responsibleId]
@@ -216,7 +245,22 @@ export function ProposalBuilder({
   // Persiste (cria na 1ª mudança, depois só faz PATCH) com debounce.
   useEffect(() => {
     if (!hydrated.current && !isNew) return
+    const key = draftKey(meta, sections)
+    if (captureBaseline.current) {
+      // Estado recém-hidratado (proposta ou template): não é mudança do usuário.
+      captureBaseline.current = false
+      baseline.current = key
+      return
+    }
+    if (key === baseline.current) {
+      setDraftError(null)
+      return
+    }
     if (isNew && !meta.name && sections.every((s) => !s.enabled)) return
+
+    const invalid = validateDraft(sections)
+    setDraftError(invalid)
+    if (invalid) return
 
     const timer = setTimeout(async () => {
       setSaving(true)
@@ -246,6 +290,7 @@ export function ProposalBuilder({
         })
         setSaving(false)
         if (res.ok && res.data) {
+          baseline.current = key
           setRealId(res.data.id)
           setShareToken(res.data.shareToken)
           hydrated.current = true
@@ -258,7 +303,8 @@ export function ProposalBuilder({
 
       const res = await saveCrmProposal(workspaceId, realId, payload)
       setSaving(false)
-      if (!res.ok) notify.error(res.message ?? 'Não foi possível salvar.')
+      if (res.ok) baseline.current = key
+      else notify.error(res.message ?? 'Não foi possível salvar.')
     }, 800)
 
     return () => clearTimeout(timer)
@@ -346,9 +392,15 @@ export function ProposalBuilder({
           <Badge className={cn(STATUS_STYLES[status])}>
             {STATUS_LABEL[status]}
           </Badge>
-          <span className='text-muted-foreground text-xs'>
-            {saving ? 'Salvando…' : ''}
-          </span>
+          {draftError ? (
+            <span role='alert' className='text-destructive text-xs'>
+              Não salvo — {draftError}
+            </span>
+          ) : (
+            <span className='text-muted-foreground text-xs'>
+              {saving ? 'Salvando…' : ''}
+            </span>
+          )}
           <div className='ml-auto flex items-center gap-2'>
             {realId ? (
               <Button
