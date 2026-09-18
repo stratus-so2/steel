@@ -111,6 +111,28 @@ describe('CrmSettingsService', () => {
       }
       expect(mockedSettingsRepo.upsert).not.toHaveBeenCalled()
     })
+
+    it('should propagate an upsert failure', async () => {
+      mockRole('OWNER')
+      mockedSettingsRepo.upsert.mockResolvedValue(err(databaseError('boom')))
+
+      expectErr(
+        await CrmSettingsService.update('u1', 'ws1', {
+          notifyProposalExpiry: false,
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('get() failures', () => {
+    it('should propagate a database failure', async () => {
+      mockRole('MEMBER')
+      mockedSettingsRepo.findByWorkspace.mockResolvedValue(
+        err(databaseError('boom')),
+      )
+      expectErr(await CrmSettingsService.get('u1', 'ws1'), 'DATABASE_ERROR')
+    })
   })
 
   describe('resolve()', () => {
