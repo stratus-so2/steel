@@ -7,12 +7,17 @@ import { ok } from '@/src/lib/result'
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-form.repository')
 vi.mock('@/src/repositories/crm-lead.repository')
+vi.mock('@/src/repositories/crm-lead-scoring-rule.repository')
+vi.mock('@/src/repositories/crm-lead-routing-rule.repository')
+vi.mock('@/src/services/crm-workflow-dispatcher')
 
 import {
   CrmFormRepository,
   CrmFormSubmissionRepository,
 } from '@/src/repositories/crm-form.repository'
 import { CrmLeadRepository } from '@/src/repositories/crm-lead.repository'
+import { CrmLeadRoutingRuleRepository } from '@/src/repositories/crm-lead-routing-rule.repository'
+import { CrmLeadScoringRuleRepository } from '@/src/repositories/crm-lead-scoring-rule.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmFormService } from '../crm-form.service'
 
@@ -20,6 +25,38 @@ const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedFormRepo = vi.mocked(CrmFormRepository)
 const mockedSubmissionRepo = vi.mocked(CrmFormSubmissionRepository)
 const mockedLeadRepo = vi.mocked(CrmLeadRepository)
+const mockedScoringRepo = vi.mocked(CrmLeadScoringRuleRepository)
+const mockedRoutingRepo = vi.mocked(CrmLeadRoutingRuleRepository)
+
+function mockLeadIntake() {
+  mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
+  mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+  mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+}
+
+function fakeSubmission(createdLeadId: string | null) {
+  return {
+    id: 's1',
+    formId: 'f1',
+    values: {},
+    action: 'LEAD' as const,
+    createdPersonId: null,
+    createdCompanyId: null,
+    createdLeadId,
+    ipHash: 'hashed',
+    referrer: null,
+    createdAt: new Date(),
+  }
+}
+
+const leadForm = (fields: unknown[]) =>
+  createFakeCrmForm({
+    id: 'f1',
+    action: 'LEAD',
+    workspaceId: 'ws1',
+    createdById: 'owner1',
+    fields: fields as never,
+  })
 
 describe('CrmFormService', () => {
   describe('list()', () => {
@@ -113,6 +150,7 @@ describe('CrmFormService', () => {
           }),
         ),
       )
+      mockLeadIntake()
       mockedLeadRepo.create.mockResolvedValue(
         ok(createFakeCrmLead({ id: 'lead1' })),
       )
@@ -150,40 +188,142 @@ describe('CrmFormService', () => {
     it('should fall back to a default name when no name mapping matched', async () => {
       mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
         ok(
-          createFakeCrmForm({
-            id: 'f1',
-            action: 'LEAD',
-            workspaceId: 'ws1',
-            createdById: 'owner1',
-            fields: [],
-          }),
+          leadForm([
+            {
+              key: 'tel',
+              label: 'Telefone',
+              type: 'text',
+              required: true,
+              mapping: { target: 'lead', attribute: 'phone' },
+            },
+          ]),
         ),
+      )
+      mockLeadIntake()
+      mockedLeadRepo.create.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'lead1' })),
+      )
+      mockedSubmissionRepo.create.mockResolvedValue(ok(fakeSubmission('lead1')))
+
+      expectOk(
+        await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+          values: { tel: '81999990000' },
+        }),
+      )
+      expect(mockedLeadRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Sem nome', source: 'form' }),
+      )
+    })
+
+    it('should reject a lead submission without e-mail or phone', async () => {
+      mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
+        ok(leadForm([])),
+      )
+
+      expectErr(
+        await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+          values: {},
+        }),
+        'VALIDATION_ERROR',
+      )
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+      expect(mockedSubmissionRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should link the submission to an existing open lead (dedupe)', async () => {
+      mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
+        ok(
+          leadForm([
+            {
+              key: 'email',
+              label: 'E-mail',
+              type: 'email',
+              required: true,
+              mapping: { target: 'lead', attribute: 'email' },
+            },
+          ]),
+        ),
+      )
+      mockLeadIntake()
+      mockedLeadRepo.findOpenByContacts.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'lead0' })),
+      )
+      mockedSubmissionRepo.create.mockResolvedValue(ok(fakeSubmission('lead0')))
+
+      expectOk(
+        await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+          values: { email: 'jane@acme.com' },
+        }),
+      )
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+      expect(mockedSubmissionRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ createdLeadId: 'lead0' }),
+      )
+    })
+
+    it('should score and route form leads like manual creation', async () => {
+      mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
+        ok(
+          leadForm([
+            {
+              key: 'email',
+              label: 'E-mail',
+              type: 'email',
+              required: true,
+              mapping: { target: 'lead', attribute: 'email' },
+            },
+          ]),
+        ),
+      )
+      mockLeadIntake()
+      mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(
+        ok([
+          {
+            id: 'r1',
+            workspaceId: 'ws1',
+            field: 'email',
+            operator: 'is_not_empty',
+            value: null,
+            points: 20,
+            active: true,
+            position: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]),
+      )
+      mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(
+        ok([
+          {
+            id: 'rr1',
+            workspaceId: 'ws1',
+            field: 'source',
+            operator: 'equals',
+            value: 'form',
+            ownerId: 'seller1',
+            active: true,
+            position: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]),
       )
       mockedLeadRepo.create.mockResolvedValue(
         ok(createFakeCrmLead({ id: 'lead1' })),
       )
-      mockedSubmissionRepo.create.mockResolvedValue(
-        ok({
-          id: 's1',
-          formId: 'f1',
-          values: {},
-          action: 'LEAD',
-          createdPersonId: null,
-          createdCompanyId: null,
-          createdLeadId: 'lead1',
-          ipHash: 'hashed',
-          referrer: null,
-          createdAt: new Date(),
-        }),
-      )
+      mockedSubmissionRepo.create.mockResolvedValue(ok(fakeSubmission('lead1')))
 
       expectOk(
         await CrmFormService.submit('tok', '1.2.3.4', undefined, {
-          values: {},
+          values: { email: 'jane@acme.com' },
         }),
       )
       expect(mockedLeadRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Sem nome' }),
+        expect.objectContaining({
+          score: 20,
+          ownerId: 'seller1',
+          createdById: 'owner1',
+        }),
       )
     })
   })

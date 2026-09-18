@@ -13,7 +13,7 @@ import {
   CrmFormRepository,
   CrmFormSubmissionRepository,
 } from '@/src/repositories/crm-form.repository'
-import { CrmLeadRepository } from '@/src/repositories/crm-lead.repository'
+
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import type {
   CreateCrmFormDTO,
@@ -28,6 +28,7 @@ import type {
   CrmFormSubmissionDTO,
 } from '@/types/crm-form'
 import { assertMember } from './authz'
+import { CrmLeadService } from './crm-lead.service'
 
 /** Todo `phaseId` referenciado por um campo precisa existir em `phases`.
  * Usada no update quando o PATCH manda só `fields` ou só `phases` — o Zod
@@ -330,19 +331,29 @@ export const CrmFormService = {
       createdPersonId = created.value.id
     } else {
       const attrs = byTarget.lead ?? {}
-      const created = await CrmLeadRepository.create({
-        workspaceId: form.value.workspaceId,
-        createdById: form.value.createdById,
-        name: String(attrs.name ?? attrs.email ?? 'Sem nome'),
-        emails: attrs.email ? [String(attrs.email)] : [],
-        phones: attrs.phone ? [String(attrs.phone)] : [],
-        company: attrs.company ? String(attrs.company) : undefined,
-        jobTitle: attrs.jobTitle ? String(attrs.jobTitle) : undefined,
-        source: attrs.source ? String(attrs.source) : 'form',
-        score: 0,
-      })
-      if (!created.ok) return created
-      createdLeadId = created.value.id
+      // Mesma porta de entrada da criação manual: validação (e-mail ou
+      // telefone), dedupe, score e roteamento. Um lead em aberto com o mesmo
+      // contato é reaproveitado e a submissão aponta para ele.
+      const intake = await CrmLeadService.intake(
+        form.value.workspaceId,
+        {
+          kind: 'system',
+          createdById: form.value.createdById,
+          via: 'form',
+          refId: form.value.id,
+        },
+        {
+          name: String(attrs.name ?? attrs.email ?? 'Sem nome'),
+          emails: attrs.email ? [String(attrs.email)] : [],
+          phones: attrs.phone ? [String(attrs.phone)] : [],
+          company: attrs.company ? String(attrs.company) : undefined,
+          jobTitle: attrs.jobTitle ? String(attrs.jobTitle) : undefined,
+          source: attrs.source ? String(attrs.source) : 'form',
+          channel: 'Formulário',
+        },
+      )
+      if (!intake.ok) return intake
+      createdLeadId = intake.value.lead.id
     }
 
     const result = await CrmFormSubmissionRepository.create({

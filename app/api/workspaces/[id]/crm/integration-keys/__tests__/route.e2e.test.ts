@@ -63,6 +63,44 @@ describe('CRM integration keys', () => {
     expect(ingestAfterRevoke.status).toBe(401)
   })
 
+  it('should score, validate and dedupe ingested leads like manual creation', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    await postJson(
+      `/api/workspaces/${workspace.id}/crm/lead-scoring-rules`,
+      { field: 'email', operator: 'is_not_empty', points: 15 },
+      user.cookie,
+    )
+    const key = await (
+      await postJson(
+        `/api/workspaces/${workspace.id}/crm/integration-keys`,
+        { name: 'Zapier' },
+        user.cookie,
+      )
+    ).json()
+    const ingest = (payload: unknown) =>
+      fetch(`${BASE_URL}/api/crm/integrations/leads`, {
+        method: 'POST',
+        headers: {
+          ...defaultHeaders,
+          Authorization: `Bearer ${key.data.plaintextKey}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+    const first = await ingest({ name: 'Jane', emails: ['jane@acme.com'] })
+    expect(first.status).toBe(201)
+    const firstBody = await first.json()
+    expect(firstBody.data.score).toBe(15)
+    expect(firstBody.data.source).toBe('integration')
+
+    const again = await ingest({ name: 'Jane', emails: ['JANE@acme.com'] })
+    expect(again.status).toBe(200)
+    expect((await again.json()).data.id).toBe(firstBody.data.id)
+
+    const noContact = await ingest({ name: 'Sem contato' })
+    expect(noContact.status).toBe(422)
+  })
+
   it('should return 403 for a plain member trying to list keys', async () => {
     const { workspace } = await authenticatedOwner()
     const member = await addMember(workspace.id, 'MEMBER')

@@ -1,12 +1,10 @@
 import type { NextRequest } from 'next/server'
-import { auditMutation } from '@/lib/axiom/audit'
 import { withAxiom } from '@/lib/axiom/server'
 import { unauthorized } from '@/src/errors'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { toCrmLeadDTO } from '@/src/mappers/crm-lead.mapper'
-import { CrmLeadRepository } from '@/src/repositories/crm-lead.repository'
 import { IngestCrmLeadSchema } from '@/src/schemas/crm-integration-key.schema'
 import { CrmIntegrationKeyService } from '@/src/services/crm-integration-key.service'
+import { CrmLeadService } from '@/src/services/crm-lead.service'
 import {
   handleError,
   standardError,
@@ -38,25 +36,23 @@ export const POST = withAxiom(async (request: NextRequest) => {
     )
   }
 
-  const result = await CrmLeadRepository.create({
-    workspaceId: context.value.workspaceId,
-    createdById: context.value.createdById,
-    name: parsed.data.name,
-    emails: parsed.data.emails,
-    phones: parsed.data.phones,
-    company: parsed.data.company,
-    source: parsed.data.source,
-    score: 0,
-  })
+  // Mesmo pipeline da criação manual: validação, dedupe, score e roteamento.
+  const result = await CrmLeadService.intake(
+    context.value.workspaceId,
+    {
+      kind: 'system',
+      createdById: context.value.createdById,
+      via: 'integration_api_key',
+      refId: context.value.keyId,
+    },
+    {
+      ...parsed.data,
+      source: parsed.data.source ?? 'integration',
+      channel: parsed.data.channel ?? 'API',
+    },
+  )
   if (!result.ok) return handleError(result.error)
 
-  auditMutation({
-    entity: 'crm_lead',
-    action: 'create',
-    actorId: context.value.createdById,
-    targetId: result.value.id,
-    meta: { via: 'integration_api_key', keyId: context.value.keyId },
-  })
-
-  return successResponse(toCrmLeadDTO(result.value), 201)
+  // 200 = lead em aberto já existente (dedupe); 201 = lead novo.
+  return successResponse(result.value.lead, result.value.created ? 201 : 200)
 })
