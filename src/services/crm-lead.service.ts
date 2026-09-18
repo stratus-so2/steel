@@ -1,11 +1,12 @@
-import type { CrmLead, CrmLeadStage } from '@prisma/client'
+import type { CrmLead, CrmLeadStage, CrmPerson } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import {
   crmLeadAlreadyClosed,
-  crmLeadAlreadyConverted,
+  crmLeadDuplicate,
   crmLeadProposalNotFound,
   crmLeadStageRequirementsNotMet,
   crmLeadStageTransitionInvalid,
+  validationError,
 } from '@/src/errors'
 import {
   computeLeadScore,
@@ -26,18 +27,21 @@ import { CrmLeadRoutingRuleRepository } from '@/src/repositories/crm-lead-routin
 import { CrmLeadScoringRuleRepository } from '@/src/repositories/crm-lead-scoring-rule.repository'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { CrmProposalRepository } from '@/src/repositories/crm-proposal.repository'
-import type {
-  CloseCrmLeadLostDTO,
-  CloseCrmLeadWonDTO,
-  CreateCrmLeadDTO,
-  CreateCrmLeadProposalDTO,
-  ListCrmLeadsDTO,
-  RegisterCrmLeadContactAttemptDTO,
-  RegisterCrmLeadMeetingDTO,
-  RegisterCrmLeadProposalPresentationDTO,
-  UpdateCrmLeadDTO,
-  UpsertCrmLeadQualificationDTO,
+import {
+  type CloseCrmLeadLostDTO,
+  type CloseCrmLeadWonDTO,
+  type CreateCrmLeadDTO,
+  type CreateCrmLeadProposalDTO,
+  CreateCrmLeadSchema,
+  type CrmLeadIntakeInput,
+  type ListCrmLeadsDTO,
+  type RegisterCrmLeadContactAttemptDTO,
+  type RegisterCrmLeadMeetingDTO,
+  type RegisterCrmLeadProposalPresentationDTO,
+  type UpdateCrmLeadDTO,
+  type UpsertCrmLeadQualificationDTO,
 } from '@/src/schemas/crm-lead.schema'
+import type { CrmWorkflowLeadEvent } from '@/src/schemas/crm-workflow.schema'
 import type {
   CrmLeadContactAttemptDTO,
   CrmLeadDTO,
@@ -48,13 +52,69 @@ import type {
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
 import { assertMember } from './authz'
+import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
-async function createPersonFromLead(
+/**
+ * Quem está criando o lead. Canais públicos (API de integração, formulário)
+ * não têm usuário autenticado: o registro é atribuído ao dono do canal
+ * (`createdById` da chave/form) e a auditoria registra `actorId: null` com o
+ * canal em `meta`, para não se passar por uma ação humana.
+ */
+export type CrmLeadIntakeActor =
+  | { kind: 'user'; userId: string }
+  | {
+      kind: 'system'
+      createdById: string
+      via: 'integration_api_key' | 'form'
+      refId: string
+    }
+
+export interface CrmLeadIntakeResult {
+  lead: CrmLeadDTO
+  /** false = já existia um lead em aberto com o mesmo e-mail/telefone. */
+  created: boolean
+}
+
+/** Chaves de comparação: e-mail sem caixa/espaços, telefone só com dígitos. */
+function contactKeys(emails: string[], phones: string[]) {
+  return {
+    emails: [
+      ...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean)),
+    ],
+    phones: [
+      ...new Set(phones.map((p) => p.replace(/\D/g, '')).filter(Boolean)),
+    ],
+  }
+}
+
+/**
+ * Pessoa que representa o lead convertido. Idempotente: reaproveita a já
+ * vinculada ao lead; senão uma pessoa existente da workspace com o mesmo
+ * e-mail/telefone; só então cria uma nova.
+ */
+async function resolvePersonForLead(
   workspaceId: string,
   actorId: string,
   lead: CrmLead,
-) {
-  return CrmPersonRepository.create({
+): Promise<Result<{ person: CrmPerson; created: boolean }>> {
+  if (lead.convertedPersonId) {
+    const linked = await CrmPersonRepository.findById(
+      lead.convertedPersonId,
+      workspaceId,
+    )
+    if (linked.ok) return ok({ person: linked.value, created: false })
+    // Pessoa vinculada foi excluída: segue para o dedupe/criação.
+    if (linked.error.code !== 'RESOURCE_NOT_FOUND') return linked
+  }
+
+  const existing = await CrmPersonRepository.findFirstByContacts(
+    workspaceId,
+    contactKeys(lead.emails, lead.phones),
+  )
+  if (!existing.ok) return existing
+  if (existing.value) return ok({ person: existing.value, created: false })
+
+  const created = await CrmPersonRepository.create({
     workspaceId,
     createdById: actorId,
     name: lead.name,
@@ -63,6 +123,33 @@ async function createPersonFromLead(
     city: lead.city ?? undefined,
     jobTitle: lead.jobTitle ?? undefined,
     linkedin: lead.linkedin ?? undefined,
+  })
+  if (!created.ok) return created
+  return ok({ person: created.value, created: true })
+}
+
+/** Dispara os workflows de lead para um update (best-effort, não bloqueia). */
+function emitLeadUpdated(
+  workspaceId: string,
+  actorUserId: string,
+  before: CrmLead,
+  after: CrmLead,
+  changedFields: string[],
+): void {
+  const leadEvents: CrmWorkflowLeadEvent[] = []
+  if (before.stage !== after.stage) leadEvents.push('stage-changed')
+  if (before.closeResult !== after.closeResult) {
+    if (after.closeResult === 'WON') leadEvents.push('won')
+    if (after.closeResult === 'LOST') leadEvents.push('lost')
+  }
+  void dispatchCrmWorkflowRecordEvent({
+    workspaceId,
+    actorUserId,
+    entity: 'lead',
+    event: 'updated',
+    record: toCrmLeadDTO(after),
+    changedFields,
+    leadEvents,
   })
 }
 
@@ -97,13 +184,45 @@ export const CrmLeadService = {
     return ok(toCrmLeadDTO(result.value))
   },
 
-  async create(
-    actorId: string,
+  /**
+   * Porta de entrada única de leads — criação manual, API de integração e
+   * formulário público. Aplica o mesmo contrato (`CreateCrmLeadSchema`),
+   * dedupe contra leads em aberto, pontuação, roteamento de dono, auditoria
+   * e workflows. Não checa membership: quem chama já autenticou o canal.
+   */
+  async intake(
     workspaceId: string,
-    dto: CreateCrmLeadDTO,
-  ): Promise<Result<CrmLeadDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
+    actor: CrmLeadIntakeActor,
+    input: CrmLeadIntakeInput,
+  ): Promise<Result<CrmLeadIntakeResult>> {
+    const parsed = CreateCrmLeadSchema.safeParse(input)
+    if (!parsed.success) {
+      return err(validationError('Dados inválidos', parsed.error.issues))
+    }
+    const dto: CreateCrmLeadDTO = parsed.data
+
+    const createdById = actor.kind === 'user' ? actor.userId : actor.createdById
+    const auditActorId = actor.kind === 'user' ? actor.userId : null
+    const channelMeta =
+      actor.kind === 'system'
+        ? { actor: 'system', via: actor.via, refId: actor.refId }
+        : {}
+
+    const duplicate = await CrmLeadRepository.findOpenByContacts(
+      workspaceId,
+      contactKeys(dto.emails, dto.phones),
+    )
+    if (!duplicate.ok) return duplicate
+    if (duplicate.value) {
+      auditMutation({
+        entity: 'crm_lead',
+        action: 'create',
+        actorId: auditActorId,
+        targetId: duplicate.value.id,
+        meta: { ...channelMeta, deduplicated: true },
+      })
+      return ok({ lead: toCrmLeadDTO(duplicate.value), created: false })
+    }
 
     const subject = {
       name: dto.name,
@@ -127,7 +246,7 @@ export const CrmLeadService = {
 
     const result = await CrmLeadRepository.create({
       workspaceId,
-      createdById: actorId,
+      createdById,
       name: dto.name,
       emails: dto.emails,
       phones: dto.phones,
@@ -145,9 +264,10 @@ export const CrmLeadService = {
       auditMutation({
         entity: 'crm_lead',
         action: 'create',
-        actorId,
+        actorId: auditActorId,
         outcome: 'failure',
         reason: result.error.code,
+        meta: channelMeta,
       })
       return result
     }
@@ -155,12 +275,41 @@ export const CrmLeadService = {
     auditMutation({
       entity: 'crm_lead',
       action: 'create',
-      actorId,
+      actorId: auditActorId,
       targetId: result.value.id,
-      meta: { score, ownerId },
+      meta: { ...channelMeta, score, ownerId },
     })
 
-    return ok(toCrmLeadDTO(result.value))
+    const lead = toCrmLeadDTO(result.value)
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: createdById,
+      entity: 'lead',
+      event: 'created',
+      record: lead,
+    })
+
+    return ok({ lead, created: true })
+  },
+
+  async create(
+    actorId: string,
+    workspaceId: string,
+    dto: CrmLeadIntakeInput,
+  ): Promise<Result<CrmLeadDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const result = await CrmLeadService.intake(
+      workspaceId,
+      { kind: 'user', userId: actorId },
+      dto,
+    )
+    if (!result.ok) return result
+    // Na criação manual o usuário precisa saber que o lead já existe.
+    if (!result.value.created) return err(crmLeadDuplicate())
+
+    return ok(result.value.lead)
   },
 
   async update(
@@ -228,6 +377,14 @@ export const CrmLeadService = {
       meta: { fields: Object.keys(dto) },
     })
 
+    emitLeadUpdated(
+      workspaceId,
+      actorId,
+      existing.value,
+      result.value,
+      Object.keys(dto),
+    )
+
     return ok(toCrmLeadDTO(result.value))
   },
 
@@ -252,6 +409,14 @@ export const CrmLeadService = {
       targetId: leadId,
     })
 
+    void dispatchCrmWorkflowRecordEvent({
+      workspaceId,
+      actorUserId: actorId,
+      entity: 'lead',
+      event: 'deleted',
+      record: toCrmLeadDTO(existing.value),
+    })
+
     return ok(undefined)
   },
 
@@ -266,6 +431,12 @@ export const CrmLeadService = {
     return CrmLeadRepository.reorder(workspaceId, orderedIds)
   },
 
+  /**
+   * Rota legada `POST .../convert`. A conversão em pessoa faz parte do
+   * pipeline: só acontece ao fechar como ganho (`closeWon`). Aqui apenas
+   * devolvemos, de forma idempotente, a pessoa de um lead já ganho — para
+   * leads ainda abertos o cliente recebe um erro explicando o caminho.
+   */
   async convert(
     actorId: string,
     workspaceId: string,
@@ -277,28 +448,42 @@ export const CrmLeadService = {
     const lead = await CrmLeadRepository.findById(leadId, workspaceId)
     if (!lead.ok) return lead
 
-    if (lead.value.convertedPersonId) {
-      return err(crmLeadAlreadyConverted())
+    if (lead.value.closeResult !== 'WON') {
+      return err(
+        crmLeadStageTransitionInvalid(
+          'A conversão em pessoa acontece ao fechar o lead como ganho na etapa "Proposta"',
+        ),
+      )
     }
 
-    const person = await createPersonFromLead(workspaceId, actorId, lead.value)
-    if (!person.ok) return person
-
-    const updated = await CrmLeadRepository.update(leadId, {
-      convertedPersonId: person.value.id,
-      updatedById: actorId,
-    })
-    if (!updated.ok) return updated
-
-    auditMutation({
-      entity: 'crm_lead',
-      action: 'update',
+    const resolved = await resolvePersonForLead(
+      workspaceId,
       actorId,
-      targetId: leadId,
-      meta: { converted: true, personId: person.value.id },
-    })
+      lead.value,
+    )
+    if (!resolved.ok) return resolved
 
-    return ok(toCrmPersonDTO(person.value))
+    if (lead.value.convertedPersonId !== resolved.value.person.id) {
+      const linked = await CrmLeadRepository.update(leadId, {
+        convertedPersonId: resolved.value.person.id,
+        updatedById: actorId,
+      })
+      if (!linked.ok) return linked
+
+      auditMutation({
+        entity: 'crm_lead',
+        action: 'update',
+        actorId,
+        targetId: leadId,
+        meta: {
+          converted: true,
+          personId: resolved.value.person.id,
+          personCreated: resolved.value.created,
+        },
+      })
+    }
+
+    return ok(toCrmPersonDTO(resolved.value.person))
   },
 
   async getActiveProposal(
@@ -370,6 +555,10 @@ export const CrmLeadService = {
       targetId: leadId,
       meta: { contactAttempt: dto.outcome, stage: updatedLead.stage },
     })
+
+    if (nextStage) {
+      emitLeadUpdated(workspaceId, actorId, lead.value, updatedLead, ['stage'])
+    }
 
     return ok({
       lead: toCrmLeadDTO(updatedLead),
@@ -478,6 +667,10 @@ export const CrmLeadService = {
       targetId: leadId,
       meta: { qualification: true, stage: updatedLead.stage },
     })
+
+    if (updatedLead.stage !== lead.value.stage) {
+      emitLeadUpdated(workspaceId, actorId, lead.value, updatedLead, ['stage'])
+    }
 
     return ok({
       lead: toCrmLeadDTO(updatedLead),
@@ -623,6 +816,8 @@ export const CrmLeadService = {
       meta: { proposalCreated: proposal.value.id },
     })
 
+    emitLeadUpdated(workspaceId, actorId, lead.value, advanced.value, ['stage'])
+
     return ok({
       lead: toCrmLeadDTO(advanced.value),
       proposal: toCrmProposalDTO(proposal.value),
@@ -738,8 +933,13 @@ export const CrmLeadService = {
       )
     }
 
-    const person = await createPersonFromLead(workspaceId, actorId, lead.value)
-    if (!person.ok) return person
+    const resolved = await resolvePersonForLead(
+      workspaceId,
+      actorId,
+      lead.value,
+    )
+    if (!resolved.ok) return resolved
+    const person = resolved.value.person
 
     const updated = await CrmLeadRepository.update(leadId, {
       stage: 'CLOSED',
@@ -748,7 +948,7 @@ export const CrmLeadService = {
       contractSignedAt: dto.contractSignedAt,
       billingType: dto.billingType,
       closedAmount: dto.closedAmount,
-      convertedPersonId: person.value.id,
+      convertedPersonId: person.id,
       updatedById: actorId,
     })
     if (!updated.ok) return updated
@@ -758,10 +958,20 @@ export const CrmLeadService = {
       action: 'update',
       actorId,
       targetId: leadId,
-      meta: { closed: 'WON', personId: person.value.id },
+      meta: {
+        closed: 'WON',
+        personId: person.id,
+        personCreated: resolved.value.created,
+      },
     })
 
-    return ok(toCrmPersonDTO(person.value))
+    emitLeadUpdated(workspaceId, actorId, lead.value, updated.value, [
+      'stage',
+      'closeResult',
+      'convertedPersonId',
+    ])
+
+    return ok(toCrmPersonDTO(person))
   },
 
   async closeLost(
@@ -808,6 +1018,12 @@ export const CrmLeadService = {
       targetId: leadId,
       meta: { closed: 'LOST', reason: dto.lostReason },
     })
+
+    emitLeadUpdated(workspaceId, actorId, lead.value, updated.value, [
+      'stage',
+      'closeResult',
+      'lostReason',
+    ])
 
     return ok(toCrmLeadDTO(updated.value))
   },

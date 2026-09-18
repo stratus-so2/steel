@@ -16,6 +16,7 @@ vi.mock('@/src/repositories/crm-lead-scoring-rule.repository')
 vi.mock('@/src/repositories/crm-lead-routing-rule.repository')
 vi.mock('@/src/repositories/crm-person.repository')
 vi.mock('@/src/repositories/crm-proposal.repository')
+vi.mock('@/src/services/crm-workflow-dispatcher')
 
 import { createFakeCrmPerson } from '@/src/__tests__/factories/crm-person.factory'
 import { createFakeCrmProposal } from '@/src/__tests__/factories/crm-proposal.factory'
@@ -26,6 +27,7 @@ import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { CrmProposalRepository } from '@/src/repositories/crm-proposal.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { CrmLeadService } from '../crm-lead.service'
+import { dispatchCrmWorkflowRecordEvent } from '../crm-workflow-dispatcher'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedLeadRepo = vi.mocked(CrmLeadRepository)
@@ -33,6 +35,19 @@ const mockedScoringRepo = vi.mocked(CrmLeadScoringRuleRepository)
 const mockedRoutingRepo = vi.mocked(CrmLeadRoutingRuleRepository)
 const mockedPersonRepo = vi.mocked(CrmPersonRepository)
 const mockedProposalRepo = vi.mocked(CrmProposalRepository)
+const mockedDispatch = vi.mocked(dispatchCrmWorkflowRecordEvent)
+
+function mockNoRules() {
+  mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+  mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+}
+
+const wonDto = {
+  contractSignedAt: new Date(),
+  billingType: 'MONTHLY' as const,
+  closedAmount: 1500,
+  contractSignedConfirmed: true as const,
+}
 
 function mockMember() {
   mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
@@ -43,9 +58,8 @@ function mockMember() {
 describe('CrmLeadService', () => {
   describe('create()', () => {
     it('should compute score and owner from active rules', async () => {
-      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
-      )
+      mockMember()
+      mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
       mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(
         ok([
           {
@@ -77,48 +91,182 @@ describe('CrmLeadService', () => {
       )
       expect(dto.score).toBe(10)
       expect(mockedLeadRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({ score: 10 }),
+        expect.objectContaining({ score: 10, createdById: 'u1' }),
+      )
+    })
+
+    it('should reject a duplicate of an open lead with CRM_LEAD_DUPLICATE', async () => {
+      mockMember()
+      mockedLeadRepo.findOpenByContacts.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l0', emails: ['jane@acme.com'] })),
+      )
+
+      expectErr(
+        await CrmLeadService.create('u1', 'ws1', {
+          name: 'Jane',
+          emails: ['Jane@Acme.com'],
+          phones: [],
+          source: 'ads',
+        }),
+        'CRM_LEAD_DUPLICATE',
+      )
+      expect(mockedLeadRepo.findOpenByContacts).toHaveBeenCalledWith('ws1', {
+        emails: ['jane@acme.com'],
+        phones: [],
+      })
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+      expectErr(
+        await CrmLeadService.create('u1', 'ws1', {
+          name: 'Jane',
+          emails: ['a@b.com'],
+          source: 'ads',
+        }),
+        'FORBIDDEN',
+      )
+    })
+
+    it('should fire the lead "created" workflow trigger', async () => {
+      mockMember()
+      mockNoRules()
+      mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
+      mockedLeadRepo.create.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', workspaceId: 'ws1' })),
+      )
+
+      expectOk(
+        await CrmLeadService.create('u1', 'ws1', {
+          name: 'Jane',
+          emails: ['a@b.com'],
+          source: 'ads',
+        }),
+      )
+      expect(mockedDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws1',
+          actorUserId: 'u1',
+          entity: 'lead',
+          event: 'created',
+        }),
       )
     })
   })
 
-  describe('convert()', () => {
-    it('should create a person and mark the lead as converted', async () => {
-      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+  describe('intake()', () => {
+    const system = {
+      kind: 'system' as const,
+      createdById: 'owner1',
+      via: 'form' as const,
+      refId: 'f1',
+    }
+
+    it('should score, route and attribute a system intake to the channel owner', async () => {
+      mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
+      mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+      mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(
+        ok([
+          {
+            id: 'rr1',
+            workspaceId: 'ws1',
+            field: 'source',
+            operator: 'equals',
+            value: 'form',
+            ownerId: 'seller1',
+            active: true,
+            position: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]),
       )
-      mockedLeadRepo.findById.mockResolvedValue(
-        ok(createFakeCrmLead({ id: 'l1', stage: 'QUALIFIED' })),
-      )
-      mockedPersonRepo.create.mockResolvedValue(
-        ok(createFakeCrmPerson({ id: 'p1' })),
-      )
-      mockedLeadRepo.update.mockResolvedValue(
-        ok(createFakeCrmLead({ id: 'l1', convertedPersonId: 'p1' })),
+      mockedLeadRepo.create.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', ownerId: 'seller1' })),
       )
 
-      const dto = expectOk(await CrmLeadService.convert('u1', 'ws1', 'l1'))
-      expect(dto.id).toBe('p1')
-      expect(mockedLeadRepo.update).toHaveBeenCalledWith(
-        'l1',
-        expect.objectContaining({
-          convertedPersonId: 'p1',
+      const result = expectOk(
+        await CrmLeadService.intake('ws1', system, {
+          name: 'Jane',
+          phones: ['81 99999-0000'],
+          source: 'form',
         }),
       )
+      expect(result.created).toBe(true)
+      expect(mockedLeadRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ createdById: 'owner1', ownerId: 'seller1' }),
+      )
+      expect(mockedLeadRepo.findOpenByContacts).toHaveBeenCalledWith('ws1', {
+        emails: [],
+        phones: ['81999990000'],
+      })
+      expect(mockedMembershipRepo.findByUserAndWorkspace).not.toHaveBeenCalled()
     })
 
-    it('should reject converting an already converted lead', async () => {
-      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
-        ok(createFakeMembership({ role: 'MEMBER' })),
+    it('should return the existing open lead instead of duplicating', async () => {
+      mockedLeadRepo.findOpenByContacts.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l0' })),
       )
+
+      const result = expectOk(
+        await CrmLeadService.intake('ws1', system, {
+          name: 'Jane',
+          emails: ['jane@acme.com'],
+          source: 'form',
+        }),
+      )
+      expect(result).toMatchObject({ created: false, lead: { id: 'l0' } })
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+      expect(mockedDispatch).not.toHaveBeenCalled()
+    })
+
+    it('should apply the manual-creation validation (e-mail or phone required)', async () => {
+      expectErr(
+        await CrmLeadService.intake('ws1', system, {
+          name: 'Jane',
+          source: 'form',
+        }),
+        'VALIDATION_ERROR',
+      )
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('convert() (legacy route)', () => {
+    it('should reject converting a lead that was not closed as won', async () => {
+      mockMember()
       mockedLeadRepo.findById.mockResolvedValue(
-        ok(createFakeCrmLead({ id: 'l1', convertedPersonId: 'p0' })),
+        ok(createFakeCrmLead({ id: 'l1', stage: 'QUALIFIED' })),
       )
 
       expectErr(
         await CrmLeadService.convert('u1', 'ws1', 'l1'),
-        'CRM_LEAD_ALREADY_CONVERTED',
+        'CRM_LEAD_STAGE_TRANSITION_INVALID',
       )
+      expect(mockedPersonRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should idempotently return the person linked to a won lead', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmLead({
+            id: 'l1',
+            stage: 'CLOSED',
+            closeResult: 'WON',
+            convertedPersonId: 'p1',
+          }),
+        ),
+      )
+      mockedPersonRepo.findById.mockResolvedValue(
+        ok(createFakeCrmPerson({ id: 'p1' })),
+      )
+
+      const dto = expectOk(await CrmLeadService.convert('u1', 'ws1', 'l1'))
+      expect(dto.id).toBe('p1')
+      expect(mockedPersonRepo.create).not.toHaveBeenCalled()
+      expect(mockedLeadRepo.update).not.toHaveBeenCalled()
     })
   })
 
@@ -397,6 +545,7 @@ describe('CrmLeadService', () => {
       mockedLeadRepo.listProposalPresentations.mockResolvedValue(
         ok([createFakeCrmLeadProposalPresentation({ leadId: 'l1' })]),
       )
+      mockedPersonRepo.findFirstByContacts.mockResolvedValue(ok(null))
       mockedPersonRepo.create.mockResolvedValue(
         ok(createFakeCrmPerson({ id: 'p1' })),
       )
@@ -416,6 +565,102 @@ describe('CrmLeadService', () => {
       expect(mockedLeadRepo.update).toHaveBeenCalledWith(
         'l1',
         expect.objectContaining({ stage: 'CLOSED', closeResult: 'WON' }),
+      )
+    })
+
+    it('should reuse the person already linked to the lead (no duplicate)', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmLead({
+            id: 'l1',
+            stage: 'PROPOSAL',
+            convertedPersonId: 'p1',
+          }),
+        ),
+      )
+      mockedLeadRepo.listProposalPresentations.mockResolvedValue(
+        ok([createFakeCrmLeadProposalPresentation({ leadId: 'l1' })]),
+      )
+      mockedPersonRepo.findById.mockResolvedValue(
+        ok(createFakeCrmPerson({ id: 'p1' })),
+      )
+      mockedLeadRepo.update.mockResolvedValue(
+        ok(
+          createFakeCrmLead({ id: 'l1', stage: 'CLOSED', closeResult: 'WON' }),
+        ),
+      )
+
+      const dto = expectOk(
+        await CrmLeadService.closeWon('u1', 'ws1', 'l1', wonDto),
+      )
+      expect(dto.id).toBe('p1')
+      expect(mockedPersonRepo.create).not.toHaveBeenCalled()
+      expect(mockedLeadRepo.update).toHaveBeenCalledWith(
+        'l1',
+        expect.objectContaining({ convertedPersonId: 'p1' }),
+      )
+    })
+
+    it('should link an existing workspace person with the same e-mail', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(
+          createFakeCrmLead({
+            id: 'l1',
+            stage: 'PROPOSAL',
+            emails: ['Jane@Acme.com'],
+          }),
+        ),
+      )
+      mockedLeadRepo.listProposalPresentations.mockResolvedValue(
+        ok([createFakeCrmLeadProposalPresentation({ leadId: 'l1' })]),
+      )
+      mockedPersonRepo.findFirstByContacts.mockResolvedValue(
+        ok(createFakeCrmPerson({ id: 'p9' })),
+      )
+      mockedLeadRepo.update.mockResolvedValue(
+        ok(
+          createFakeCrmLead({ id: 'l1', stage: 'CLOSED', closeResult: 'WON' }),
+        ),
+      )
+
+      const dto = expectOk(
+        await CrmLeadService.closeWon('u1', 'ws1', 'l1', wonDto),
+      )
+      expect(dto.id).toBe('p9')
+      expect(mockedPersonRepo.findFirstByContacts).toHaveBeenCalledWith('ws1', {
+        emails: ['jane@acme.com'],
+        phones: [],
+      })
+      expect(mockedPersonRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should fire stage-changed and won lead workflow events', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'PROPOSAL' })),
+      )
+      mockedLeadRepo.listProposalPresentations.mockResolvedValue(
+        ok([createFakeCrmLeadProposalPresentation({ leadId: 'l1' })]),
+      )
+      mockedPersonRepo.findFirstByContacts.mockResolvedValue(ok(null))
+      mockedPersonRepo.create.mockResolvedValue(
+        ok(createFakeCrmPerson({ id: 'p1' })),
+      )
+      mockedLeadRepo.update.mockResolvedValue(
+        ok(
+          createFakeCrmLead({ id: 'l1', stage: 'CLOSED', closeResult: 'WON' }),
+        ),
+      )
+
+      expectOk(await CrmLeadService.closeWon('u1', 'ws1', 'l1', wonDto))
+      expect(mockedDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: 'lead',
+          event: 'updated',
+          leadEvents: ['stage-changed', 'won'],
+        }),
       )
     })
 
@@ -477,6 +722,31 @@ describe('CrmLeadService', () => {
         }),
       )
       expect(dto.closeResult).toBe('LOST')
+    })
+
+    it('should fire stage-changed and lost lead workflow events', async () => {
+      mockMember()
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'IN_CONTACT' })),
+      )
+      mockedLeadRepo.update.mockResolvedValue(
+        ok(
+          createFakeCrmLead({ id: 'l1', stage: 'CLOSED', closeResult: 'LOST' }),
+        ),
+      )
+
+      expectOk(
+        await CrmLeadService.closeLost('u1', 'ws1', 'l1', {
+          lostReason: 'Preço',
+        }),
+      )
+      expect(mockedDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: 'lead',
+          event: 'updated',
+          leadEvents: ['stage-changed', 'lost'],
+        }),
+      )
     })
 
     it('should reject closing an already closed lead', async () => {
