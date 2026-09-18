@@ -167,6 +167,64 @@ describe('WhatsAppBroadcastService', () => {
     })
   })
 
+  describe('create() with media', () => {
+    it('should store the media type, mime and file name', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      mockedConnectionRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppConnection({ id: 'conn1' })),
+      )
+      mockedContactRepo.listBroadcastEligibleIds.mockResolvedValue(ok(['c1']))
+      mockedBroadcastRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppBroadcastListWithRecipients()),
+      )
+
+      expectOk(
+        await WhatsAppBroadcastService.create('u1', 'ws1', {
+          connectionId: 'conn1',
+          name: 'Catálogo',
+          messageBody: 'Confira',
+          mediaUrl: 'https://cdn/abc.bin',
+          mediaMimeType: 'application/pdf',
+          mediaFileName: 'catalogo.pdf',
+          contactIds: ['c1'],
+        }),
+      )
+
+      expect(mockedBroadcastRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mediaType: 'DOCUMENT',
+          mediaMimeType: 'application/pdf',
+          mediaFileName: 'catalogo.pdf',
+        }),
+        ['c1'],
+      )
+    })
+
+    it('should reject media whose type cannot be identified', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      mockedConnectionRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppConnection({ id: 'conn1' })),
+      )
+      mockedContactRepo.listBroadcastEligibleIds.mockResolvedValue(ok(['c1']))
+
+      expectErr(
+        await WhatsAppBroadcastService.create('u1', 'ws1', {
+          connectionId: 'conn1',
+          name: 'X',
+          messageBody: 'Y',
+          mediaUrl: 'https://cdn/abc.bin',
+          contactIds: ['c1'],
+        }),
+        'WHATSAPP_BROADCAST_MEDIA_INVALID',
+      )
+      expect(mockedBroadcastRepo.create).not.toHaveBeenCalled()
+    })
+  })
+
   describe('start()', () => {
     it('should enqueue one staggered job per recipient and mark the list RUNNING', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(

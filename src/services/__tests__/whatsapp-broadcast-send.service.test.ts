@@ -149,6 +149,80 @@ describe('WhatsAppBroadcastService.sendToRecipient()', () => {
     expect(mockedBroadcastRepo.updateStatus).not.toHaveBeenCalled()
   })
 
+  it('should send video media as video with the message as caption', async () => {
+    const { connection } = arrangeRecipient({
+      list: {
+        mediaUrl: 'https://cdn/promo.mp4',
+        mediaType: 'VIDEO',
+        mediaMimeType: 'video/mp4',
+      },
+    })
+    mockedSend.media.mockResolvedValue(ok({ providerMessageId: 'wamid-v' }))
+
+    expectOk(await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'))
+
+    expect(mockedSend.media).toHaveBeenCalledWith(connection, {
+      to: '5511988887777',
+      mediaUrl: 'https://cdn/promo.mp4',
+      type: 'video',
+      caption: 'Aproveite nossas ofertas!',
+    })
+  })
+
+  it('should send a document with its original file name', async () => {
+    arrangeRecipient({
+      list: {
+        mediaUrl: 'https://cdn/abc.bin',
+        mediaType: 'DOCUMENT',
+        mediaMimeType: 'application/pdf',
+        mediaFileName: 'catalogo.pdf',
+      },
+    })
+    mockedSend.media.mockResolvedValue(ok({ providerMessageId: 'wamid-d' }))
+
+    expectOk(await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'))
+
+    expect(mockedSend.media).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ type: 'document', fileName: 'catalogo.pdf' }),
+    )
+  })
+
+  it('should send audio without caption and the message as a follow-up text', async () => {
+    arrangeRecipient({
+      list: { mediaUrl: 'https://cdn/a.ogg', mediaType: 'AUDIO' },
+    })
+    mockedSend.media.mockResolvedValue(ok({ providerMessageId: 'wamid-a' }))
+    mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'wamid-t' }))
+
+    const outcome = expectOk(
+      await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'),
+    )
+
+    expect(outcome).toEqual({ status: 'sent', providerMessageId: 'wamid-a' })
+    expect(mockedSend.media).toHaveBeenCalledWith(expect.anything(), {
+      to: '5511988887777',
+      mediaUrl: 'https://cdn/a.ogg',
+      type: 'audio',
+    })
+    expect(mockedSend.text).toHaveBeenCalledWith(expect.anything(), {
+      to: '5511988887777',
+      text: 'Aproveite nossas ofertas!',
+    })
+  })
+
+  it('should infer the media type from the URL on legacy lists', async () => {
+    arrangeRecipient({ list: { mediaUrl: 'https://cdn/old.mp4' } })
+    mockedSend.media.mockResolvedValue(ok({ providerMessageId: 'wamid-l' }))
+
+    await WhatsAppBroadcastService.sendToRecipient('list1', 'r1')
+
+    expect(mockedSend.media).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ type: 'video' }),
+    )
+  })
+
   it('should send a template broadcast with the recipient variables', async () => {
     arrangeRecipient({ list: { templateId: 'tpl1' } })
     mockedTemplateRepo.findById.mockResolvedValue(

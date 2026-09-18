@@ -86,8 +86,15 @@ export function createMetaClient(
       mediaUrl,
       caption,
       type,
+      fileName,
       quotedProviderMessageId,
     }: WhatsAppOutboundMedia): Promise<WhatsAppSendResult> {
+      // Cloud API: áudio não aceita legenda; documento leva o nome do arquivo.
+      const media = {
+        link: mediaUrl,
+        ...(caption && type !== 'audio' ? { caption } : {}),
+        ...(fileName && type === 'document' ? { filename: fileName } : {}),
+      }
       const result = await metaRequest<{ messages: { id: string }[] }>(
         credentials,
         messagesPath,
@@ -97,7 +104,7 @@ export function createMetaClient(
             messaging_product: 'whatsapp',
             to,
             type,
-            [type]: { link: mediaUrl, ...(caption ? { caption } : {}) },
+            [type]: media,
             ...(quotedProviderMessageId
               ? { context: { message_id: quotedProviderMessageId } }
               : {}),

@@ -2,6 +2,7 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import {
   whatsappBroadcastLocked,
+  whatsappBroadcastMediaInvalid,
   whatsappBroadcastNoRecipients,
   whatsappBroadcastNotFound,
   whatsappConnectionNotFound,
@@ -9,13 +10,20 @@ import {
 import { WhatsappBroadcastJob } from '@/src/lib/queue/jobs'
 import { getWhatsappBroadcastQueue } from '@/src/lib/queue/queues'
 import { err, ok, type Result } from '@/src/lib/result'
+import {
+  type BroadcastMediaKind,
+  resolveBroadcastMediaKind,
+} from '@/src/lib/whatsapp/broadcast-media'
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import {
   buildMetaSendComponents,
   extractTemplateFillableFields,
   parseMetaTemplateComponents,
 } from '@/src/lib/whatsapp/template-variables'
-import type { WhatsAppSendResult } from '@/src/lib/whatsapp/types'
+import type {
+  WhatsAppOutboundMediaType,
+  WhatsAppSendResult,
+} from '@/src/lib/whatsapp/types'
 import {
   toWhatsAppBroadcastListDetailDTO,
   toWhatsAppBroadcastListDTO,
@@ -52,6 +60,68 @@ export type WhatsAppBroadcastSendOutcome =
     }
   | { status: 'failed'; reason: string }
   | { status: 'sent'; providerMessageId: string }
+
+const OUTBOUND_MEDIA_TYPE: Record<
+  BroadcastMediaKind,
+  WhatsAppOutboundMediaType
+> = {
+  IMAGE: 'image',
+  VIDEO: 'video',
+  AUDIO: 'audio',
+  DOCUMENT: 'document',
+}
+
+/**
+ * Envia a mídia da lista com o tipo certo (imagem/vídeo/áudio/documento).
+ * Listas antigas sem tipo salvo deduzem pela extensão; sem pista, seguem
+ * como imagem (comportamento anterior). Áudio não tem legenda em nenhum
+ * provedor: a mensagem vai logo depois, como texto.
+ */
+async function sendBroadcastMedia(
+  connection: Parameters<typeof WhatsAppSend.media>[0],
+  to: string,
+  list: {
+    mediaUrl: string
+    mediaType: BroadcastMediaKind | null
+    mediaMimeType: string | null
+    mediaFileName: string | null
+    messageBody: string
+  },
+): Promise<Result<WhatsAppSendResult>> {
+  const kind =
+    list.mediaType ??
+    resolveBroadcastMediaKind({
+      mimeType: list.mediaMimeType,
+      fileName: list.mediaFileName,
+      url: list.mediaUrl,
+    }) ??
+    'IMAGE'
+  const type = OUTBOUND_MEDIA_TYPE[kind]
+
+  const sent = await WhatsAppSend.media(connection, {
+    to,
+    mediaUrl: list.mediaUrl,
+    type,
+    ...(type === 'audio' ? {} : { caption: list.messageBody }),
+    ...(type === 'document' && list.mediaFileName
+      ? { fileName: list.mediaFileName }
+      : {}),
+  })
+  if (!sent.ok || type !== 'audio' || !list.messageBody.trim()) return sent
+
+  const text = await WhatsAppSend.text(connection, {
+    to,
+    text: list.messageBody,
+  })
+  if (!text.ok) {
+    // O áudio já foi entregue: não marca o destinatário como falha.
+    logger.warn('whatsapp.broadcast.audio_caption_failed', {
+      component: 'WhatsAppBroadcastService',
+      reason: text.error.code,
+    })
+  }
+  return sent
+}
 
 /** Fecha a lista (DONE) quando não sobra destinatário PENDING. */
 async function completeIfDrained(broadcastListId: string): Promise<void> {
@@ -148,6 +218,21 @@ export const WhatsAppBroadcastService = {
       return err(whatsappBroadcastNoRecipients())
     }
 
+    const mediaType = dto.mediaUrl
+      ? resolveBroadcastMediaKind({
+          mimeType: dto.mediaMimeType,
+          fileName: dto.mediaFileName,
+          url: dto.mediaUrl,
+        })
+      : null
+    if (dto.mediaUrl && !mediaType) {
+      return err(
+        whatsappBroadcastMediaInvalid(
+          'Não foi possível identificar o tipo da mídia. Envie imagem, vídeo, áudio ou documento.',
+        ),
+      )
+    }
+
     const result = await WhatsAppBroadcastRepository.create(
       {
         workspaceId,
@@ -155,6 +240,9 @@ export const WhatsAppBroadcastService = {
         name: dto.name,
         messageBody: dto.messageBody,
         mediaUrl: dto.mediaUrl,
+        mediaType,
+        mediaMimeType: dto.mediaUrl ? (dto.mediaMimeType ?? null) : null,
+        mediaFileName: dto.mediaUrl ? (dto.mediaFileName ?? null) : null,
         createdById: actorId,
       },
       uniqueContactIds,
@@ -169,6 +257,7 @@ export const WhatsAppBroadcastService = {
       meta: {
         recipients: uniqueContactIds.length,
         excluded: requestedIds.length - uniqueContactIds.length,
+        mediaType,
       },
     })
 
@@ -319,11 +408,12 @@ export const WhatsAppBroadcastService = {
       })
     } else {
       sendResult = list.mediaUrl
-        ? await WhatsAppSend.media(connection.value, {
-            to: recipient.contact.waId,
+        ? await sendBroadcastMedia(connection.value, recipient.contact.waId, {
             mediaUrl: list.mediaUrl,
-            type: 'image',
-            caption: list.messageBody,
+            mediaType: list.mediaType,
+            mediaMimeType: list.mediaMimeType,
+            mediaFileName: list.mediaFileName,
+            messageBody: list.messageBody,
           })
         : await WhatsAppSend.text(connection.value, {
             to: recipient.contact.waId,

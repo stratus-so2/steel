@@ -66,6 +66,20 @@ const MEDIA_PAYLOAD_KEY_BY_TYPE: Record<WhatsAppOutboundMedia['type'], string> =
     document: 'document',
   }
 
+/** Extensão do documento (a Z-API exige em `/send-document/{extensão}`). */
+function documentExtension(fileName?: string, mediaUrl?: string): string {
+  for (const source of [fileName, mediaUrl]) {
+    const path = source?.split(/[?#]/)[0] ?? ''
+    const last = path.split('/').pop() ?? ''
+    const dot = last.lastIndexOf('.')
+    if (dot > 0 && dot < last.length - 1) {
+      const ext = last.slice(dot + 1).toLowerCase()
+      if (/^[a-z0-9]{1,8}$/.test(ext) && ext !== 'bin') return ext
+    }
+  }
+  return 'pdf'
+}
+
 export function createZapiClient(
   credentials: ZapiCredentials,
 ): ZapiProviderClient {
@@ -102,15 +116,20 @@ export function createZapiClient(
       fileName,
       quotedProviderMessageId,
     }: WhatsAppOutboundMedia): Promise<WhatsAppSendResult> {
+      const endpoint =
+        type === 'document'
+          ? `${MEDIA_ENDPOINT_BY_TYPE.document}/${documentExtension(fileName, mediaUrl)}`
+          : MEDIA_ENDPOINT_BY_TYPE[type]
       const result = await zapiRequest<{ messageId: string }>(
         credentials,
-        MEDIA_ENDPOINT_BY_TYPE[type],
+        endpoint,
         {
           method: 'POST',
           body: JSON.stringify({
             phone: to,
             [MEDIA_PAYLOAD_KEY_BY_TYPE[type]]: mediaUrl,
-            ...(caption ? { caption } : {}),
+            // Áudio não tem legenda na Z-API.
+            ...(caption && type !== 'audio' ? { caption } : {}),
             ...(fileName ? { fileName } : {}),
             ...(quotedProviderMessageId
               ? { messageId: quotedProviderMessageId }
