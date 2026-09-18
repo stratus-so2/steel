@@ -1,28 +1,14 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
+import { crmSettingsRoutes } from './crm/settings'
 
 /**
  * CRM interno — `app/api/workspaces/[id]/crm/**` (sessão + membro do
- * workspace + módulo CRM habilitado; use `MODULE_MEMBER_ERRORS` de
- * `../common`). As APIs públicas do CRM (`/crm/*`) ficam em `./public.ts`.
- *
- * Ainda a documentar: as operações pendentes estão em
- * `../undocumented/crm.ts`. Ao registrar uma rota aqui, remova a linha
- * correspondente de lá (o teste de cobertura falha se ela ficar nos dois
- * lugares) e rode `pnpm openapi:generate`. Tags `CRM · ...` em `../tags.ts`.
- *
- * Exemplo:
- *
- *   {
- *     method: 'get',
- *     path: '/workspaces/{id}/crm/leads',
- *     tags: ['CRM · Leads'],
- *     summary: 'Listar leads',
- *     query: ListCrmLeadsQuerySchema,
- *     responses: { 200: { description: 'Leads.', schema: z.array(CrmLeadDTO) } },
- *     errors: MODULE_MEMBER_ERRORS,
- *   },
+ * workspace + módulo CRM habilitado + permissão recurso × ação; peças comuns
+ * em `./crm/shared.ts`). As APIs públicas do CRM (`/crm/*`) ficam em
+ * `./public.ts`. Cada grupo de tags tem seu arquivo em `./crm/`; os DTOs de
+ * resposta ficam em `../schemas/crm/`.
  */
-const routes: RouteConfig[] = []
+const routes: RouteConfig[] = [...crmSettingsRoutes]
 
 export function registerCrmPaths(registry: OpenApiRegistry): void {
   for (const route of routes) registry.registerRoute(route)

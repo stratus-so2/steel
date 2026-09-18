@@ -57,6 +57,10 @@
       "description": "Planos pagos via AbacatePay, cupons e o webhook de cobrança."
     },
     {
+      "name": "CRM · Configurações",
+      "description": "Configurações e membros do módulo CRM."
+    },
+    {
       "name": "CRM público · Formulários",
       "description": "Formulários publicados — leitura e envio por visitantes, sem sessão (o `publicToken` é o acesso)."
     },
@@ -135,6 +139,10 @@
     {
       "name": "Cobrança",
       "tags": ["Assinaturas"]
+    },
+    {
+      "name": "CRM",
+      "tags": ["CRM · Configurações"]
     },
     {
       "name": "Páginas públicas do CRM",
@@ -7148,6 +7156,187 @@
         ]
       }
     },
+    "/workspaces/{id}/crm/members": {
+      "get": {
+        "tags": ["CRM · Configurações"],
+        "summary": "Listar membros atribuíveis",
+        "operationId": "getWorkspacesByIdCrmMembers",
+        "description": "Membros do workspace para os seletores de responsável (leads, oportunidades, tarefas...).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membros.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/CrmMember"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/settings": {
+      "get": {
+        "tags": ["CRM · Configurações"],
+        "summary": "Obter configurações do CRM",
+        "operationId": "getWorkspacesByIdCrmSettings",
+        "description": "Configurações do módulo (reabertura de leads e validade padrão de propostas). Sem registro salvo, devolve os valores padrão com `isDefault: true`.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado (sem permissão específica).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configurações.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmSettings"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["CRM · Configurações"],
+        "summary": "Atualizar configurações do CRM",
+        "operationId": "patchWorkspacesByIdCrmSettings",
+        "description": "Atualização parcial — informe ao menos um campo.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado; restrito a **OWNER/ADMIN**.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "leadReopenStage": {
+                    "type": "string",
+                    "enum": ["RECEIVED", "IN_CONTACT", "QUALIFIED", "OPPORTUNITY", "PROPOSAL"]
+                  },
+                  "proposalValidityDays": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 365
+                  },
+                  "notifyProposalExpiry": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configurações atualizadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmSettings"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/features": {
       "get": {
         "tags": ["Configurações do workspace"],
@@ -9901,6 +10090,107 @@
                   "message": "Apenas OWNER ou ADMIN podem gerenciar conexões",
                   "error": {
                     "code": "CONNECTION_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo CRM desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
                   }
                 }
               }
@@ -14820,6 +15110,35 @@
           "updatedAt"
         ]
       },
+      "CrmMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckv9x2p0h0000us7d3k1e5abc"
+          },
+          "name": {
+            "type": "string",
+            "example": "Maria Souza"
+          },
+          "email": {
+            "type": "string",
+            "example": "maria@acme.com.br"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["id", "name", "email", "image"],
+        "description": "Membro do workspace, para atribuição no CRM."
+      },
       "CrmProposalPublic": {
         "type": "object",
         "properties": {
@@ -15175,6 +15494,64 @@
           "sections"
         ],
         "description": "Proposta como o cliente a vê pelo link compartilhado."
+      },
+      "CrmSettings": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string"
+          },
+          "leadReopenStage": {
+            "type": "string",
+            "enum": ["RECEIVED", "IN_CONTACT", "QUALIFIED", "OPPORTUNITY", "PROPOSAL"],
+            "description": "Etapa para onde um lead perdido volta ao ser reaberto."
+          },
+          "proposalValidityDays": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Validade padrão (dias) das propostas novas.",
+            "example": 15
+          },
+          "notifyProposalExpiry": {
+            "type": "boolean",
+            "description": "Avisar o responsável por e-mail quando a proposta expira."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "`true` enquanto o workspace nunca salvou configurações (valores padrão)."
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "workspaceId",
+          "leadReopenStage",
+          "proposalValidityDays",
+          "notifyProposalExpiry",
+          "isDefault",
+          "updatedById",
+          "updatedAt"
+        ]
       },
       "CrmWorkflowRun": {
         "type": "object",
