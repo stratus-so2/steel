@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
+import type { WhatsAppConversationStatusFilter } from '@/src/repositories/whatsapp-conversation.repository'
 import { StartWhatsAppConversationSchema } from '@/src/schemas/whatsapp-conversation.schema'
 import { WhatsAppConversationService } from '@/src/services/whatsapp-conversation.service'
 import {
@@ -12,7 +13,8 @@ import {
 
 type Params = { params: Promise<{ id: string }> }
 
-const VALID_STATUSES = new Set(['NEW', 'IN_PROGRESS', 'CLOSED'])
+// OPEN = não fechadas (NEW + IN_PROGRESS): a caixa de entrada ativa.
+const VALID_STATUSES = new Set(['NEW', 'IN_PROGRESS', 'CLOSED', 'OPEN'])
 
 export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
@@ -33,7 +35,7 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
     {
       status:
         status && VALID_STATUSES.has(status)
-          ? (status as 'NEW' | 'IN_PROGRESS' | 'CLOSED')
+          ? (status as WhatsAppConversationStatusFilter)
           : undefined,
       archived,
       connectionId,
