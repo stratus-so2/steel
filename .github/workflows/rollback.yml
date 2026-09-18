@@ -1,0 +1,72 @@
+name: Rollback
+
+# Volta um ambiente para uma imagem já publicada, sem rebuild e sem migration.
+# Seguro porque migrations são expand/contract (ver ADR em cd.yml).
+#
+#   version vazio -> tag anterior ao atual (histórico em $DEPLOY_DIR/.deploy-history)
+#   version = 2026.09.18 -> esse release (em produção vira 2026.09.18-production)
+#
+# Equivalente no host: DEPLOY_DIR=/var/www/steel scripts/deploy.sh --rollback [tag]
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente
+        type: choice
+        options: [homologacao, production]
+        default: homologacao
+      version:
+        description: Release CalVer (ex. 2026.09.18.1). Vazio = versão anterior à atual
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  rollback:
+    name: Rollback ${{ inputs.environment }}
+    # Produção fica inerte até o host existir (vars.PRODUCTION_ENABLED).
+    if: inputs.environment == 'homologacao' || vars.PRODUCTION_ENABLED == 'true'
+    runs-on: ${{ inputs.environment == 'production' && fromJSON(vars.PRODUCTION_RUNNER_LABELS || '["self-hosted","production"]') || fromJSON('["self-hosted"]') }}
+    environment:
+      name: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Roll back
+        env:
+          TARGET_ENV: ${{ inputs.environment }}
+          VERSION: ${{ inputs.version }}
+          DEPLOY_DIR: ${{ inputs.environment == 'production' && (vars.PRODUCTION_DEPLOY_DIR || '/var/www/steel') || '/var/www/steel' }}
+        run: |
+          # Imagens de produção são buildadas com as NEXT_PUBLIC_* de produção
+          # e publicadas como <versão>-production.
+          if [[ -n "$VERSION" && "$TARGET_ENV" == production && "$VERSION" != *-production ]]; then
+            VERSION="${VERSION}-production"
+          fi
+          if [[ -n "$VERSION" ]]; then
+            scripts/deploy.sh --rollback "$VERSION"
+          else
+            scripts/deploy.sh --rollback
+          fi
