@@ -185,4 +185,38 @@ describe('<CrmOpportunityLineItems />', () => {
     expect(methods).not.toContain('DELETE')
     expect(methods).not.toContain('POST')
   })
+
+  it('re-enables the buttons and warns when the network fails', async () => {
+    mockFetch([
+      { match: /line-items$/, data: [item({})] },
+      {
+        method: 'DELETE',
+        match: `${BASE}/li1`,
+        handler: () => {
+          throw new TypeError('Failed to fetch')
+        },
+      },
+    ])
+    const { onChanged } = renderItems()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remover item' }))
+
+    await waitFor(() =>
+      expect(notify.error).toHaveBeenCalledWith(
+        'Falha de conexão. Verifique sua internet e tente novamente.',
+      ),
+    )
+    expect(onChanged).not.toHaveBeenCalled()
+    expect(
+      (screen.getByRole('button', { name: 'Adicionar' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false)
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Remover item',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false)
+  })
 })

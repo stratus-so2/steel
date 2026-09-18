@@ -174,4 +174,31 @@ describe('<CrmForecastBoard />', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(notify.success).not.toHaveBeenCalled()
   })
+
+  it('warns and re-enables the quota button when the network fails', async () => {
+    mockFetch([
+      forecastRoute([row({ quotaAmount: 0, attainmentPct: null })]),
+      {
+        method: 'POST',
+        match: '/crm/quotas',
+        handler: () => {
+          throw new TypeError('Failed to fetch')
+        },
+      },
+    ])
+    render(<CrmForecastBoard workspaceId='ws1' />)
+
+    fireEvent.click(await screen.findByText('definir'))
+    const input = screen.getByRole('spinbutton')
+    fireEvent.change(input, { target: { value: '30000' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() =>
+      expect(notify.error).toHaveBeenCalledWith(
+        'Falha de conexão. Verifique sua internet e tente novamente.',
+      ),
+    )
+    const trigger = screen.getByText('definir').closest('button')
+    await waitFor(() => expect(trigger?.disabled).toBe(false))
+  })
 })

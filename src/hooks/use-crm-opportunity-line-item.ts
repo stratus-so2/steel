@@ -37,7 +37,27 @@ export function useCrmOpportunityLineItems(
   return { items, isLoading, refetch }
 }
 
-export async function createCrmOpportunityLineItem(
+type MutationResult = { ok: boolean; message?: string }
+
+/**
+ * Executa a mutação sem nunca lançar: falha de rede ou resposta não-JSON
+ * viram `{ ok: false }`, para a UI liberar os botões e avisar o usuário.
+ */
+async function send(url: string, init: RequestInit): Promise<MutationResult> {
+  try {
+    const res = await fetch(url, init)
+    const json = (await res.json().catch(() => ({}))) as ApiResponse<unknown>
+    const ok = init.method === 'DELETE' ? res.ok : res.ok && json.success
+    return { ok, message: json.message }
+  } catch {
+    return {
+      ok: false,
+      message: 'Falha de conexão. Verifique sua internet e tente novamente.',
+    }
+  }
+}
+
+export function createCrmOpportunityLineItem(
   workspaceId: string,
   opportunityId: string,
   input: {
@@ -47,14 +67,12 @@ export async function createCrmOpportunityLineItem(
     unitPrice?: number
     discountPct?: number
   },
-): Promise<{ ok: boolean; message?: string }> {
-  const res = await fetch(baseUrl(workspaceId, opportunityId), {
+): Promise<MutationResult> {
+  return send(baseUrl(workspaceId, opportunityId), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name: 'Novo item', ...input }),
   })
-  const json = (await res.json()) as ApiResponse<CrmOpportunityLineItemDTO>
-  return { ok: res.ok && json.success, message: json.message }
 }
 
 export type CrmOpportunityLineItemPatch = Partial<
@@ -67,29 +85,25 @@ export type CrmOpportunityLineItemPatch = Partial<
   productId?: string | null
 }
 
-export async function updateCrmOpportunityLineItem(
+export function updateCrmOpportunityLineItem(
   workspaceId: string,
   opportunityId: string,
   id: string,
   patch: CrmOpportunityLineItemPatch,
-): Promise<{ ok: boolean; message?: string }> {
-  const res = await fetch(`${baseUrl(workspaceId, opportunityId)}/${id}`, {
+): Promise<MutationResult> {
+  return send(`${baseUrl(workspaceId, opportunityId)}/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(patch),
   })
-  const json = (await res.json()) as ApiResponse<CrmOpportunityLineItemDTO>
-  return { ok: res.ok && json.success, message: json.message }
 }
 
-export async function deleteCrmOpportunityLineItem(
+export function deleteCrmOpportunityLineItem(
   workspaceId: string,
   opportunityId: string,
   id: string,
-): Promise<{ ok: boolean; message?: string }> {
-  const res = await fetch(`${baseUrl(workspaceId, opportunityId)}/${id}`, {
+): Promise<MutationResult> {
+  return send(`${baseUrl(workspaceId, opportunityId)}/${id}`, {
     method: 'DELETE',
   })
-  const json = (await res.json().catch(() => ({}))) as ApiResponse<unknown>
-  return { ok: res.ok, message: json.message }
 }

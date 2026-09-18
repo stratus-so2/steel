@@ -48,13 +48,36 @@ export async function setCrmQuota(
     targetAmount: number
   },
 ): Promise<{ ok: boolean; message?: string }> {
+  // Nunca lança: falha de rede vira `{ ok: false }` para a UI sair do estado
+  // "salvando" e avisar o usuário.
+  try {
+    return await upsertQuota(workspaceId, input)
+  } catch {
+    return {
+      ok: false,
+      message: 'Falha de conexão. Verifique sua internet e tente novamente.',
+    }
+  }
+}
+
+async function upsertQuota(
+  workspaceId: string,
+  input: {
+    ownerId: string
+    period: Period
+    periodKey: string
+    targetAmount: number
+  },
+): Promise<{ ok: boolean; message?: string }> {
   const base = `/api/workspaces/${workspaceId}/crm/quotas`
   const created = await fetch(base, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })
-  const createdJson = (await created.json()) as ApiResponse<CrmQuotaDTO>
+  const createdJson = (await created
+    .json()
+    .catch(() => ({}))) as ApiResponse<CrmQuotaDTO>
   if (created.ok && createdJson.success) return { ok: true }
 
   if (created.status !== 409) {
@@ -64,7 +87,9 @@ export async function setCrmQuota(
   const list = await fetch(
     `${base}?ownerId=${input.ownerId}&period=${input.period}`,
   )
-  const listJson = (await list.json()) as ApiResponse<CrmQuotaDTO[]>
+  const listJson = (await list.json().catch(() => ({}))) as ApiResponse<
+    CrmQuotaDTO[]
+  >
   const existing = listJson.data?.find((q) => q.periodKey === input.periodKey)
   if (!existing) {
     return { ok: false, message: 'Meta em conflito não encontrada.' }
@@ -75,7 +100,9 @@ export async function setCrmQuota(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ targetAmount: input.targetAmount }),
   })
-  const updatedJson = (await updated.json()) as ApiResponse<CrmQuotaDTO>
+  const updatedJson = (await updated
+    .json()
+    .catch(() => ({}))) as ApiResponse<CrmQuotaDTO>
   return {
     ok: updated.ok && updatedJson.success,
     message: updatedJson.message,
