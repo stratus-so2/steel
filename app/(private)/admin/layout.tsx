@@ -8,6 +8,10 @@ import {
 } from '@/app/_components/admin/shell/admin-nav'
 import { hasPlatformAdminAccess } from '@/src/lib/platform-admin-guard'
 
+// Todo o painel depende da sessão (e do gate de admin): navegar para ele
+// bloqueia de propósito; o `loading.tsx` cobre a espera.
+export const instant = false
+
 export const metadata: Metadata = {
   title: 'Admin | Steel',
   description: 'Painel admin global da plataforma',

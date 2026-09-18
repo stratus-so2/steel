@@ -9,6 +9,9 @@ import {
 import { getAuthSession } from '@/src/lib/auth-session'
 import { AdminWorkspaceService } from '@/src/services/admin-workspace.service'
 
+// Página de sessão (admin): bloqueia de propósito; `loading.tsx` cobre.
+export const instant = false
+
 export const metadata: Metadata = {
   title: 'Backups | Admin | Steel',
   description: 'Backups completos e por workspace, download e restauração',
