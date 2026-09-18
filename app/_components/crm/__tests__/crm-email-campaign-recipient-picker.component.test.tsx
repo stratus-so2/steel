@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { mockFetch } from '@/src/__tests__/component-utils'
+import { mockFetch, renderWithQuery } from '@/src/__tests__/component-utils'
 import {
   CrmEmailCampaignRecipientPicker,
   crmDefaultRecipientSelection,
@@ -26,11 +26,19 @@ const LISTS = [
 
 function setup(
   initial: RecipientSelection = crmDefaultRecipientSelection(),
-  routes = { people: PEOPLE as unknown[], lists: LISTS as unknown[] },
+  routes: {
+    people: unknown[]
+    lists: unknown[]
+    optOuts?: unknown[]
+  } = { people: PEOPLE, lists: LISTS },
 ) {
   mockFetch([
     { match: `/api/workspaces/${WS}/crm/people`, data: routes.people },
     { match: `/api/workspaces/${WS}/crm/mailing-lists`, data: routes.lists },
+    {
+      match: `/api/workspaces/${WS}/crm/email-opt-outs`,
+      data: routes.optOuts ?? [],
+    },
   ])
   const onChange = vi.fn()
   function Harness() {
@@ -46,7 +54,7 @@ function setup(
       />
     )
   }
-  render(<Harness />)
+  renderWithQuery(<Harness />)
   return { onChange, last: () => onChange.mock.lastCall?.[0] }
 }
 
@@ -58,6 +66,37 @@ function checkboxFor(name: string) {
 }
 
 describe('<CrmEmailCampaignRecipientPicker /> contacts tab', () => {
+  it('disables opted-out people and leaves them out of the counts (LGPD)', async () => {
+    const { last } = setup(crmDefaultRecipientSelection(), {
+      people: PEOPLE,
+      lists: LISTS,
+      optOuts: [
+        {
+          id: 'o1',
+          email: 'bruno@acme.com',
+          personId: null,
+          campaignId: 'c1',
+          source: 'LINK',
+          createdAt: '2026-09-01T12:00:00.000Z',
+        },
+      ],
+    })
+
+    expect(await screen.findByText('Descadastrado')).toBeTruthy()
+    expect(
+      screen.getByText(
+        '1 de 1 selecionada(s) · 1 descadastrada(s) excluída(s)',
+      ),
+    ).toBeTruthy()
+    expect(checkboxFor('Bruno Lima').disabled).toBe(true)
+    expect(checkboxFor('Bruno Lima').checked).toBe(false)
+
+    fireEvent.click(checkboxFor('Ana Souza'))
+    await waitFor(() =>
+      expect(last()).toMatchObject({ scope: 'SELECTED', personIds: [] }),
+    )
+  })
+
   it('lists only people with e-mail and starts in ALL scope', async () => {
     setup()
     expect(await screen.findByText('Ana Souza')).toBeTruthy()
