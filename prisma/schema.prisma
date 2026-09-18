@@ -40,6 +40,7 @@ model User {
   sentInvitations          WorkspaceInvitation[]       @relation("SentInvitations")
   moduleConnectionsCreated WorkspaceModuleConnection[]
   moduleAccessGranted      WorkspaceModuleAccess[]
+  featureOverridesSet      WorkspaceFeatureOverride[]
 
   changelogsCreated  Changelog[]
   changelogRecipient ChangelogRecipient[]
@@ -288,6 +289,7 @@ model Workspace {
   invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
   moduleAccess      WorkspaceModuleAccess[]
+  featureOverrides  WorkspaceFeatureOverride[]
 
   whatsappConnections          WhatsAppConnection[]
   whatsappContacts             WhatsAppContact[]
@@ -671,6 +673,31 @@ model WorkspaceModuleAccess {
   @@unique([workspaceId, module])
   @@index([workspaceId])
   @@map("workspace_module_access")
+}
+
+/// Override de feature flag por workspace (catálogo em src/config/features.ts),
+/// definido pelo admin global. Sem registro, vale o default do plano. `key`
+/// é texto livre de propósito: chaves aposentadas do catálogo ficam órfãs e
+/// são ignoradas, sem precisar de migration.
+model WorkspaceFeatureOverride {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  key         String
+  enabled     Boolean
+  note        String?
+  expiresAt   DateTime? @map("expires_at")
+  /// Admin que fez a última alteração. SetNull: a customização do cliente
+  /// sobrevive à exclusão da conta do admin.
+  updatedById String?   @map("updated_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  updatedBy User?     @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@map("workspace_feature_overrides")
 }
 
 // ─── Backups ────────────────────────────────────────────────────────────────

@@ -87,6 +87,7 @@ export {
   crmWorkflowVersionNotFound,
   crmWorkflowWebhookInvalid,
   databaseError,
+  featureNotEnabled,
   featureNotInPlan,
   forbidden,
   invalidCredentials,

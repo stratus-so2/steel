@@ -200,6 +200,14 @@ export const changelogLocked = (
   message = 'Este changelog já foi enviado e não pode ser editado',
 ): AppError => appError('CHANGELOG_LOCKED', message)
 
+/**
+ * Feature opcional desligada para o workspace (default do plano ou override
+ * do admin global — ver src/config/features.ts).
+ */
+export const featureNotEnabled = (
+  message = 'Esta funcionalidade não está disponível para este workspace',
+): AppError => appError('FEATURE_NOT_ENABLED', message)
+
 export const whatsappProviderError = (
   message = 'Falha ao comunicar com o provedor do WhatsApp',
 ): AppError => appError('WHATSAPP_PROVIDER_ERROR', message)

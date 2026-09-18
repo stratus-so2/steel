@@ -357,6 +357,7 @@ export const ERROR_CODES = {
   AI_QUOTA_EXCEEDED: { code: 'AI_QUOTA_EXCEEDED', status: 402 },
   AI_MODEL_NOT_ENABLED: { code: 'AI_MODEL_NOT_ENABLED', status: 422 },
   AI_PROVIDER_UNAVAILABLE: { code: 'AI_PROVIDER_UNAVAILABLE', status: 503 },
+  FEATURE_NOT_ENABLED: { code: 'FEATURE_NOT_ENABLED', status: 403 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
