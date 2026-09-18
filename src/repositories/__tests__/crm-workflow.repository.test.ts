@@ -7,6 +7,7 @@ import {
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import {
   CrmWorkflowRepository,
   CrmWorkflowRunRepository,
@@ -139,7 +140,19 @@ describe('CrmWorkflowVersionRepository', () => {
       const discarded = expectOk(
         await CrmWorkflowVersionRepository.discardDraft(workflow.id),
       )
-      expect(discarded.definition).toEqual(activated.activated.definition)
+      expect(discarded?.definition).toEqual(activated.activated.definition)
+    })
+
+    it('should return null when the workflow has no draft', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const workflow = await seedCrmWorkflow(workspace.id, user.id)
+      await prisma.crmWorkflowVersion.deleteMany({
+        where: { workflowId: workflow.id },
+      })
+
+      expect(
+        expectOk(await CrmWorkflowVersionRepository.discardDraft(workflow.id)),
+      ).toBeNull()
     })
   })
 })

@@ -165,13 +165,7 @@ export const crmWorkflowsRoutes: RouteConfig[] = [
     responses: {
       200: { description: 'Draft restaurado.', schema: CrmWorkflowVersionDTO },
     },
-    errors: [
-      ...ON_WORKFLOW,
-      {
-        code: 'DATABASE_ERROR',
-        when: 'O workflow não tem versão DRAFT',
-      },
-    ],
+    errors: [...ON_WORKFLOW, NO_DRAFT],
   },
   {
     method: 'get',

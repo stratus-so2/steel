@@ -17867,7 +17867,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_DATABASE_ERROR_4"
+            "$ref": "#/components/responses/500_DATABASE_ERROR_3"
           }
         },
         "security": [
@@ -30299,11 +30299,11 @@
           "404": {
             "$ref": "#/components/responses/404_CRM_WORKFLOW_NOT_FOUND"
           },
+          "409": {
+            "$ref": "#/components/responses/409_CRM_WORKFLOW_VERSION_NOT_DRAFT"
+          },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
-          },
-          "500": {
-            "$ref": "#/components/responses/500_DATABASE_ERROR_3"
           }
         },
         "security": [
@@ -50434,29 +50434,6 @@
         }
       },
       "500_DATABASE_ERROR_3": {
-        "description": "Erro interno: `DATABASE_ERROR`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "DATABASE_ERROR": {
-                "summary": "DATABASE_ERROR — O workflow não tem versão DRAFT",
-                "value": {
-                  "success": false,
-                  "statusCode": 500,
-                  "message": "Database error",
-                  "error": {
-                    "code": "DATABASE_ERROR"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "500_DATABASE_ERROR_4": {
         "description": "Erro interno: `DATABASE_ERROR`",
         "content": {
           "application/json": {

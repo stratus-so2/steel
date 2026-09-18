@@ -298,8 +298,13 @@ export const CrmWorkflowVersionRepository = {
     }
   },
 
-  /** Discard: descarta as alterações no draft, copiando de volta da versão ACTIVE. */
-  async discardDraft(workflowId: string): Promise<Result<CrmWorkflowVersion>> {
+  /**
+   * Discard: descarta as alterações no draft, copiando de volta da versão
+   * ACTIVE. `null` quando o workflow não tem draft.
+   */
+  async discardDraft(
+    workflowId: string,
+  ): Promise<Result<CrmWorkflowVersion | null>> {
     try {
       const result = await prisma.$transaction(async (tx) => {
         const active = await tx.crmWorkflowVersion.findFirst({
@@ -309,7 +314,7 @@ export const CrmWorkflowVersionRepository = {
           where: { workflowId, status: 'DRAFT' },
           orderBy: { version: 'desc' },
         })
-        if (!draft) throw new Error('draft-missing')
+        if (!draft) return null
         const definition = active
           ? (active.definition as Prisma.InputJsonValue)
           : ({

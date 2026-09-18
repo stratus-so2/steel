@@ -767,6 +767,16 @@ describe('CrmWorkflowService — versions', () => {
     expect(mockedVersionRepo.discardDraft).toHaveBeenCalledWith(WF)
   })
 
+  it('discard() should return CRM_WORKFLOW_VERSION_NOT_DRAFT when there is no draft', async () => {
+    asMember()
+    withWorkflow()
+    mockedVersionRepo.discardDraft.mockResolvedValue(ok(null))
+    expectErr(
+      await CrmWorkflowService.discard('u1', WS, WF),
+      'CRM_WORKFLOW_VERSION_NOT_DRAFT',
+    )
+  })
+
   it('discard() should propagate a repository error', async () => {
     asMember()
     withWorkflow()

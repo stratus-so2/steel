@@ -360,6 +360,7 @@ export const CrmWorkflowService = {
 
     const result = await CrmWorkflowVersionRepository.discardDraft(workflowId)
     if (!result.ok) return result
+    if (!result.value) return err(crmWorkflowVersionNotDraft())
     return ok(toCrmWorkflowVersionDTO(result.value))
   },
 
