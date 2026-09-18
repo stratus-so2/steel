@@ -7,6 +7,12 @@ trustPolicyExclude:
   - 'semver@6.3.1'
   # esbuild 0.28.0 kept only for the react-email preview (see overrides below).
   - 'esbuild@0.28.0'
+  # eslint-config-next -> eslint-import-resolver-typescript@3.10.1: backport on
+  # the 3.x line published after provenance-attested 4.x releases, so the
+  # date-based trust check flags it on every fresh resolution. Frozen installs
+  # never re-check it, but Dependabot re-resolves the whole tree for each update
+  # and every job died on ERR_PNPM_TRUST_DOWNGRADE until the 55 min timeout.
+  - 'eslint-import-resolver-typescript@3.10.1'
 blockExoticSubdeps: true
 
 overrides:
