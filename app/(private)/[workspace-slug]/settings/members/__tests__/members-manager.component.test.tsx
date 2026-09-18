@@ -196,11 +196,9 @@ describe('<MembersManager />', () => {
     ).toBe(true)
   })
 
-  // BUG: `handleRevoke` in members-manager.tsx calls
-  // `resendInvitation.mutate` instead of `revokeInvitation.mutate`, so
-  // clicking "Revogar" re-sends the e-mail and never issues the DELETE.
-  // `it.fails` documents the defect; flip it to `it` once it is fixed.
-  it.fails('revokes a pending invitation via DELETE', async () => {
+  // Regression: "Revogar" used to call the resend mutation, re-sending the
+  // e-mail instead of issuing the DELETE.
+  it('revokes a pending invitation via DELETE', async () => {
     const spy = mockFetch([
       { method: 'DELETE', match: `${BASE}/inv_1`, data: null },
       { method: 'POST', match: `${BASE}/inv_1/resend`, data: null },
@@ -218,5 +216,8 @@ describe('<MembersManager />', () => {
         ).toBe(true),
       { timeout: 500 },
     )
+    expect(
+      spy.mock.calls.some(([url]) => String(url).endsWith('/inv_1/resend')),
+    ).toBe(false)
   })
 })

@@ -76,14 +76,14 @@ export function MembersManager({ workspaceId }: { workspaceId: string }) {
 
   function handleResend(invitationId: string) {
     resendInvitation.mutate(invitationId, {
-      onSuccess: () => notify.success('Convite reenviando'),
+      onSuccess: () => notify.success('Convite reenviado'),
       onError: (error) =>
         notify.error(error, 'Não foi possível reenviar o convite'),
     })
   }
 
   function handleRevoke(invitationId: string) {
-    resendInvitation.mutate(invitationId, {
+    revokeInvitation.mutate(invitationId, {
       onSuccess: () => notify.success('Convite revogado'),
       onError: (error) =>
         notify.error(error, 'Não foi possível revogar o convite'),
