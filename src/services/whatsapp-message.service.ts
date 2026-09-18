@@ -30,7 +30,7 @@ import type {
   WhatsAppMessageDTO,
   WhatsAppMessageTypeDTO,
 } from '@/types/whatsapp-message'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 async function loadSendableConversation(
   workspaceId: string,
@@ -132,7 +132,12 @@ export const WhatsAppMessageService = {
     conversationId: string,
     options: ListWhatsAppMessagesDTO,
   ): Promise<Result<WhatsAppMessageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const conversation = await WhatsAppConversationRepository.findById(
@@ -161,7 +166,12 @@ export const WhatsAppMessageService = {
     conversationId: string,
     dto: SendWhatsAppTextMessageDTO,
   ): Promise<Result<WhatsAppMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadSendableConversation(workspaceId, conversationId)
@@ -195,7 +205,12 @@ export const WhatsAppMessageService = {
     conversationId: string,
     dto: SendWhatsAppMediaMessageDTO,
   ): Promise<Result<WhatsAppMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadSendableConversation(workspaceId, conversationId)
@@ -239,7 +254,12 @@ export const WhatsAppMessageService = {
     conversationId: string,
     dto: SendWhatsAppTemplateMessageDTO,
   ): Promise<Result<WhatsAppMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadSendableConversation(workspaceId, conversationId)
@@ -269,7 +289,12 @@ export const WhatsAppMessageService = {
     conversationId: string,
     dto: SendWhatsAppContactMessageDTO,
   ): Promise<Result<WhatsAppMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadSendableConversation(workspaceId, conversationId)
@@ -310,7 +335,12 @@ export const WhatsAppMessageService = {
     conversationId: string,
     messageId: string,
   ): Promise<Result<{ id: string }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const conversation = await WhatsAppConversationRepository.findById(
@@ -354,7 +384,12 @@ export const WhatsAppMessageService = {
     messageId: string,
     dto: ReactToWhatsAppMessageDTO,
   ): Promise<Result<WhatsAppMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadSendableConversation(workspaceId, conversationId)

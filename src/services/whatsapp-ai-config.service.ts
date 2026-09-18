@@ -6,7 +6,7 @@ import { toWhatsAppAiConfigDTO } from '@/src/mappers/whatsapp-ai-config.mapper'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import type { SaveWhatsAppAiConfigDTO } from '@/src/schemas/whatsapp-ai-config.schema'
 import type { WhatsAppAiConfigDTO } from '@/types/whatsapp-ai-config'
-import { assertPrivileged } from './authz'
+import { assertModulePrivileged } from './authz'
 
 const DEFAULT_MODEL = 'gpt-4o-mini'
 const DEFAULT_PROMPT =
@@ -17,7 +17,11 @@ export const WhatsAppAiConfigService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppAiConfigDTO | null>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const result = await WhatsAppAiConfigRepository.findByWorkspace(workspaceId)
@@ -31,7 +35,11 @@ export const WhatsAppAiConfigService = {
     workspaceId: string,
     dto: SaveWhatsAppAiConfigDTO,
   ): Promise<Result<WhatsAppAiConfigDTO>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const existing =

@@ -8,14 +8,19 @@ import type {
   UpdateWhatsAppQuickReplyDTO,
 } from '@/src/schemas/whatsapp-quick-reply.schema'
 import type { WhatsAppQuickReplyDTO } from '@/types/whatsapp-quick-reply'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const WhatsAppQuickReplyService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppQuickReplyDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'quick-replies', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result =
@@ -30,7 +35,12 @@ export const WhatsAppQuickReplyService = {
     workspaceId: string,
     dto: CreateWhatsAppQuickReplyDTO,
   ): Promise<Result<WhatsAppQuickReplyDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'quick-replies', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppQuickReplyRepository.create({
@@ -67,7 +77,12 @@ export const WhatsAppQuickReplyService = {
     id: string,
     dto: UpdateWhatsAppQuickReplyDTO,
   ): Promise<Result<WhatsAppQuickReplyDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'quick-replies', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppQuickReplyRepository.findById(
@@ -96,7 +111,12 @@ export const WhatsAppQuickReplyService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'quick-replies', action: 'DELETE' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppQuickReplyRepository.findById(

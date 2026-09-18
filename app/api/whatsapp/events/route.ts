@@ -2,7 +2,7 @@ import type { NextRequest } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { subscribeWhatsAppEvents } from '@/src/lib/whatsapp/realtime'
-import { assertMember } from '@/src/services/authz'
+import { assertModuleMember } from '@/src/services/authz'
 import { handleError } from '@/utils/http-response'
 
 export const GET = withAxiom(async (request: NextRequest) => {
@@ -15,7 +15,12 @@ export const GET = withAxiom(async (request: NextRequest) => {
     return new Response('workspaceId é obrigatório', { status: 400 })
   }
 
-  const membership = await assertMember(auth.value.user.id, workspaceId)
+  const membership = await assertModuleMember(
+    auth.value.user.id,
+    workspaceId,
+    'COMMUNICATION',
+    { resource: 'conversations', action: 'VIEW' },
+  )
   if (!membership.ok) return handleError(membership.error)
 
   const encoder = new TextEncoder()

@@ -10,7 +10,7 @@ import {
 import { toWhatsAppAiKnowledgeDocumentDTO } from '@/src/mappers/whatsapp-ai-knowledge-document.mapper'
 import { WhatsAppAiKnowledgeDocumentRepository } from '@/src/repositories/whatsapp-ai-knowledge-document.repository'
 import type { WhatsAppAiKnowledgeDocumentDTO } from '@/types/whatsapp-ai-knowledge-document'
-import { assertPrivileged } from './authz'
+import { assertModulePrivileged } from './authz'
 
 const BUCKET = 'whatsapp-ai-knowledge'
 
@@ -19,7 +19,11 @@ export const WhatsAppAiKnowledgeDocumentService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppAiKnowledgeDocumentDTO[]>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const result =
@@ -39,7 +43,11 @@ export const WhatsAppAiKnowledgeDocumentService = {
       readBody: () => Promise<Buffer>
     },
   ): Promise<Result<WhatsAppAiKnowledgeDocumentDTO>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const classification = classifyKnowledgeDocument(
@@ -102,7 +110,11 @@ export const WhatsAppAiKnowledgeDocumentService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<void>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const existing = await WhatsAppAiKnowledgeDocumentRepository.findById(

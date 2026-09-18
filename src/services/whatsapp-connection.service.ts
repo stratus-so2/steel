@@ -19,14 +19,18 @@ import type {
   WhatsAppConnectionCreatedDTO,
   WhatsAppConnectionDTO,
 } from '@/types/whatsapp-connection'
-import { assertMember, assertPrivileged } from './authz'
+import { assertModuleMember, assertModulePrivileged } from './authz'
 
 export const WhatsAppConnectionService = {
   async list(
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppConnectionDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!membership.ok) return membership
 
     const result =
@@ -41,7 +45,11 @@ export const WhatsAppConnectionService = {
     workspaceId: string,
     dto: CreateWhatsAppConnectionDTO,
   ): Promise<Result<WhatsAppConnectionCreatedDTO>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) {
       auditMutation({
         entity: 'whatsapp_connection',
@@ -109,7 +117,11 @@ export const WhatsAppConnectionService = {
     id: string,
     dto: UpdateWhatsAppConnectionDTO,
   ): Promise<Result<WhatsAppConnectionDTO>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const existing = await WhatsAppConnectionRepository.findById(
@@ -164,7 +176,11 @@ export const WhatsAppConnectionService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<void>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const existing = await WhatsAppConnectionRepository.findById(
@@ -192,7 +208,11 @@ export const WhatsAppConnectionService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<{ status: string; qrCodeBase64?: string }>> {
-    const privileged = await assertPrivileged(actorId, workspaceId)
+    const privileged = await assertModulePrivileged(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+    )
     if (!privileged.ok) return privileged
 
     const existing = await WhatsAppConnectionRepository.findById(

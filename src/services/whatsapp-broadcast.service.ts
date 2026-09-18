@@ -18,7 +18,7 @@ import type {
   WhatsAppBroadcastListDetailDTO,
   WhatsAppBroadcastListDTO,
 } from '@/types/whatsapp-broadcast'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 const STAGGER_DELAY_MS = 4000
 
@@ -27,7 +27,12 @@ export const WhatsAppBroadcastService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppBroadcastListDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'broadcasts', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result =
@@ -42,7 +47,12 @@ export const WhatsAppBroadcastService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppBroadcastListDetailDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'broadcasts', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppBroadcastRepository.findById(id, workspaceId)
@@ -57,7 +67,12 @@ export const WhatsAppBroadcastService = {
     workspaceId: string,
     dto: CreateWhatsAppBroadcastDTO,
   ): Promise<Result<WhatsAppBroadcastListDetailDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'broadcasts', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const connection = await WhatsAppConnectionRepository.findById(
@@ -98,7 +113,12 @@ export const WhatsAppBroadcastService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppBroadcastListDetailDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'broadcasts', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppBroadcastRepository.findById(id, workspaceId)

@@ -16,7 +16,7 @@ import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connec
 import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
 import type { CreateWhatsAppTemplateInput } from '@/src/schemas/whatsapp-template.schema'
 import type { WhatsAppTemplateDTO } from '@/types/whatsapp-template'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 const STATUS_MAP: Record<string, 'APPROVED' | 'PENDING' | 'REJECTED'> = {
   APPROVED: 'APPROVED',
@@ -63,7 +63,12 @@ export const WhatsAppTemplateService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppTemplateDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'message-templates', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppTemplateRepository.listByWorkspace(workspaceId)
@@ -77,7 +82,12 @@ export const WhatsAppTemplateService = {
     workspaceId: string,
     connectionId: string,
   ): Promise<Result<WhatsAppTemplateDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'message-templates', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const connection = await WhatsAppConnectionRepository.findById(
@@ -148,7 +158,12 @@ export const WhatsAppTemplateService = {
     workspaceId: string,
     input: CreateWhatsAppTemplateInput,
   ): Promise<Result<WhatsAppTemplateDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'message-templates', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const connection = await WhatsAppConnectionRepository.findById(

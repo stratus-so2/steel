@@ -17,7 +17,7 @@ import type {
   UpdateWhatsAppContactDTO,
 } from '@/src/schemas/whatsapp-contact.schema'
 import type { WhatsAppContactDTO } from '@/types/whatsapp-contact'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const WhatsAppContactService = {
   async list(
@@ -25,7 +25,12 @@ export const WhatsAppContactService = {
     workspaceId: string,
     options: ListWhatsAppContactsDTO,
   ): Promise<Result<WhatsAppContactDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'contacts', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppContactRepository.listByWorkspace(
@@ -42,7 +47,12 @@ export const WhatsAppContactService = {
     workspaceId: string,
     dto: CreateWhatsAppContactDTO,
   ): Promise<Result<WhatsAppContactDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'contacts', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppContactRepository.create({
@@ -78,7 +88,12 @@ export const WhatsAppContactService = {
     workspaceId: string,
     dto: FindOrCreateWhatsAppContactDTO,
   ): Promise<Result<WhatsAppContactDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'contacts', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppContactRepository.upsertByWaId({
@@ -96,7 +111,12 @@ export const WhatsAppContactService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppContactDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'contacts', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppContactRepository.findById(id, workspaceId)
@@ -164,7 +184,12 @@ export const WhatsAppContactService = {
     id: string,
     dto: UpdateWhatsAppContactDTO,
   ): Promise<Result<WhatsAppContactDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'contacts', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppContactRepository.findById(id, workspaceId)
@@ -190,7 +215,12 @@ export const WhatsAppContactService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<void>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'contacts', action: 'DELETE' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppContactRepository.findById(id, workspaceId)

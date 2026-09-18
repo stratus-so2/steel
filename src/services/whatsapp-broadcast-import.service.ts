@@ -21,7 +21,7 @@ import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.r
 import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
 import type { CreateWhatsAppBroadcastImportDTO } from '@/src/schemas/whatsapp-broadcast-import.schema'
 import type { WhatsAppBroadcastImportResultDTO } from '@/types/whatsapp-broadcast-import'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 export const WhatsAppBroadcastImportService = {
   async import(
@@ -29,7 +29,12 @@ export const WhatsAppBroadcastImportService = {
     workspaceId: string,
     dto: CreateWhatsAppBroadcastImportDTO,
   ): Promise<Result<WhatsAppBroadcastImportResultDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'broadcasts', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const connection = await WhatsAppConnectionRepository.findById(

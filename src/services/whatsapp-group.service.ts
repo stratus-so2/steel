@@ -37,7 +37,7 @@ import type {
 } from '@/src/schemas/whatsapp-group.schema'
 import type { WhatsAppGroupDTO } from '@/types/whatsapp-group'
 import type { WhatsAppGroupMessageDTO } from '@/types/whatsapp-group-message'
-import { assertMember } from './authz'
+import { assertModuleMember } from './authz'
 
 async function resolveZapiConnection(
   workspaceId: string,
@@ -115,7 +115,12 @@ export const WhatsAppGroupService = {
     workspaceId: string,
     filters: { archived?: boolean } = {},
   ): Promise<Result<WhatsAppGroupDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppGroupRepository.listByWorkspace(
@@ -132,7 +137,12 @@ export const WhatsAppGroupService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppGroupDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const group = await WhatsAppGroupRepository.findById(id, workspaceId)
@@ -147,7 +157,12 @@ export const WhatsAppGroupService = {
     workspaceId: string,
     dto: CreateWhatsAppGroupDTO,
   ): Promise<Result<WhatsAppGroupDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const resolved = await resolveZapiConnection(workspaceId, dto.connectionId)
@@ -218,7 +233,12 @@ export const WhatsAppGroupService = {
     id: string,
     dto: UpdateWhatsAppGroupDTO,
   ): Promise<Result<WhatsAppGroupDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, id)
@@ -272,7 +292,12 @@ export const WhatsAppGroupService = {
     id: string,
     dto: GroupParticipantsDTO,
   ): Promise<Result<WhatsAppGroupDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, id)
@@ -302,7 +327,12 @@ export const WhatsAppGroupService = {
     id: string,
     dto: GroupParticipantsDTO,
   ): Promise<Result<WhatsAppGroupDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, id)
@@ -332,7 +362,12 @@ export const WhatsAppGroupService = {
     id: string,
     dto: SetGroupAdminDTO,
   ): Promise<Result<WhatsAppGroupDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, id)
@@ -362,7 +397,12 @@ export const WhatsAppGroupService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<{ inviteLink: string }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, id)
@@ -391,7 +431,12 @@ export const WhatsAppGroupService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<{ id: string }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, id)
@@ -426,7 +471,12 @@ export const WhatsAppGroupService = {
     groupId: string,
     options: { cursor?: string; limit: number },
   ): Promise<Result<WhatsAppGroupMessageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const group = await WhatsAppGroupRepository.findById(groupId, workspaceId)
@@ -448,7 +498,12 @@ export const WhatsAppGroupService = {
     groupId: string,
     dto: SendWhatsAppGroupTextMessageDTO,
   ): Promise<Result<WhatsAppGroupMessageDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'groups', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const loaded = await loadGroupWithZapi(workspaceId, groupId)

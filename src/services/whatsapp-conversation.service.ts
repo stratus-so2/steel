@@ -17,7 +17,7 @@ import type {
   WhatsAppAssignableMemberDTO,
   WhatsAppConversationDTO,
 } from '@/types/whatsapp-conversation'
-import { assertMember } from './authz'
+import { assertMember, assertModuleMember } from './authz'
 
 export const WhatsAppConversationService = {
   async list(
@@ -29,7 +29,12 @@ export const WhatsAppConversationService = {
       connectionId?: string
     } = {},
   ): Promise<Result<WhatsAppConversationDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppConversationRepository.listByWorkspace(
@@ -46,7 +51,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     dto: StartWhatsAppConversationDTO,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'CREATE' },
+    )
     if (!membership.ok) return membership
 
     const contact = await WhatsAppContactRepository.findById(
@@ -111,7 +121,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result = await WhatsAppConversationRepository.findById(
@@ -129,7 +144,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -166,7 +186,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -209,7 +234,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -252,7 +282,12 @@ export const WhatsAppConversationService = {
     id: string,
     pinned: boolean,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -286,7 +321,12 @@ export const WhatsAppConversationService = {
     id: string,
     archived: boolean,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -327,7 +367,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<{ id: string }>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'DELETE' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -362,7 +407,12 @@ export const WhatsAppConversationService = {
     workspaceId: string,
     id: string,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'DELETE' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(
@@ -403,7 +453,12 @@ export const WhatsAppConversationService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppAssignableMemberDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'VIEW' },
+    )
     if (!membership.ok) return membership
 
     const result =
@@ -426,7 +481,12 @@ export const WhatsAppConversationService = {
     id: string,
     assignedUserId: string | null,
   ): Promise<Result<WhatsAppConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
     if (!membership.ok) return membership
 
     const existing = await WhatsAppConversationRepository.findById(

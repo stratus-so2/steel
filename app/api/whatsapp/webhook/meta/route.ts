@@ -7,6 +7,7 @@ import {
 } from '@/lib/env/server'
 import { consume, whatsappWebhookLimiter } from '@/src/lib/rate-limit'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { assertModuleEnabled } from '@/src/services/authz'
 import { WhatsAppWebhookService } from '@/src/services/whatsapp-webhook.service'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
 
@@ -183,6 +184,16 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const connection = connectionResult.value
   if (!connection) {
     return new Response('Número não encontrado', { status: 404 })
+  }
+
+  // Webhook público: a workspace vem da conexão, e o módulo precisa estar
+  // habilitado para ela — senão nada é ingerido.
+  const moduleEnabled = await assertModuleEnabled(
+    connection.workspaceId,
+    'COMMUNICATION',
+  )
+  if (!moduleEnabled.ok) {
+    return new Response('Módulo desabilitado', { status: 403 })
   }
 
   const limit = await consume(whatsappWebhookLimiter, connection.id)
