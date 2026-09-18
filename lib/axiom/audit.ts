@@ -27,6 +27,7 @@ type AuditEntity =
   | 'whatsapp_broadcast_list'
   | 'whatsapp_template'
   | 'whatsapp_ai_config'
+  | 'whatsapp_settings'
   | 'whatsapp_ai_knowledge_document'
   | 'whatsapp_group'
   | 'whatsapp_group_message'
@@ -101,6 +102,8 @@ type AuditAction =
   | 'disconnect'
   | 'opt_out'
   | 'opt_in'
+  | 'close'
+  | 'reopen'
 
 type AuditOutcome = 'success' | 'failure'
 

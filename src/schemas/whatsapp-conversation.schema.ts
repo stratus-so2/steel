@@ -18,6 +18,6 @@ export const CloseWhatsAppConversationSchema = z.object({
     .transform((value) => value || undefined),
 })
 
-export type CloseWhatsAppConversationDTO = z.infer<
+export type CloseWhatsAppConversationDTO = z.input<
   typeof CloseWhatsAppConversationSchema
 >

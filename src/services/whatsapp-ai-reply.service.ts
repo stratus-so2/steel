@@ -62,6 +62,7 @@ export type WhatsAppAiReplyOutcome =
       reason:
         | 'conversation_not_found'
         | 'ai_inactive'
+        | 'conversation_closed'
         | 'ai_config_inactive'
         | 'ai_quota_exceeded'
         | 'ai_provider_unavailable'
@@ -228,6 +229,10 @@ export const WhatsAppAiReplyService = {
     }
     if (!conversation.aiActive) {
       return ok({ status: 'skipped', reason: 'ai_inactive' })
+    }
+    // Conversa fechada: a IA só volta a responder depois de reaberta.
+    if (conversation.status === 'CLOSED') {
+      return ok({ status: 'skipped', reason: 'conversation_closed' })
     }
     const workspaceId = conversation.workspaceId
 

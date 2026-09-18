@@ -168,6 +168,23 @@ describe('WhatsAppAiReplyService.generateReply()', () => {
     expect(mockedAiUsage.prepare).not.toHaveBeenCalled()
   })
 
+  it('should not reply on a closed conversation until it is reopened', async () => {
+    arrange({ conversation: { status: 'CLOSED' } })
+
+    const outcome = expectOk(
+      await WhatsAppAiReplyService.generateReply({
+        conversationId: CONV,
+        messageId: 'm1',
+      }),
+    )
+    expect(outcome).toEqual({
+      status: 'skipped',
+      reason: 'conversation_closed',
+    })
+    expect(mockedAiUsage.prepare).not.toHaveBeenCalled()
+    expect(mockedSend.text).not.toHaveBeenCalled()
+  })
+
   it('should skip when the workspace AI config is inactive', async () => {
     arrange({ aiConfigActive: false })
 

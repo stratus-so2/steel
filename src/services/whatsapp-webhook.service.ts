@@ -31,6 +31,7 @@ import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repos
 import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
+import { reopenWhatsAppConversation } from './whatsapp-conversation.service'
 
 export interface InboundWhatsAppMessage {
   connection: WhatsAppConnection
@@ -186,19 +187,45 @@ export const WhatsAppWebhookService = {
       if (!updated.ok) return updated
       conversationId = updated.value.id
     } else {
-      const created = await WhatsAppConversationRepository.create({
-        workspaceId,
-        connectionId: connection.id,
-        contactId: contact.value.id,
-        status: 'NEW',
-        aiActive: aiConfigActive,
-        aiHandoff: false,
-        unreadCount: 1,
-        lastMessageAt: new Date(),
-      })
-      if (!created.ok) return created
-      conversationId = created.value.id
-      aiActive = aiConfigActive
+      // Contato voltou a escrever numa conversa fechada: reabre a mesma
+      // conversa (histórico junto) em vez de abrir outra. A IA volta ao
+      // padrão do workspace, como numa conversa nova.
+      const closed =
+        await WhatsAppConversationRepository.findLatestClosedByContact(
+          workspaceId,
+          contact.value.id,
+        )
+      if (!closed.ok) return closed
+
+      if (closed.value) {
+        const reopened = await reopenWhatsAppConversation(closed.value, {
+          actorUserId: null,
+          source: 'CONTACT',
+          extra: {
+            unreadCount: { increment: 1 },
+            lastMessageAt: new Date(),
+            aiActive: aiConfigActive,
+            aiHandoff: false,
+          },
+        })
+        if (!reopened.ok) return reopened
+        conversationId = reopened.value.id
+        aiActive = aiConfigActive
+      } else {
+        const created = await WhatsAppConversationRepository.create({
+          workspaceId,
+          connectionId: connection.id,
+          contactId: contact.value.id,
+          status: 'NEW',
+          aiActive: aiConfigActive,
+          aiHandoff: false,
+          unreadCount: 1,
+          lastMessageAt: new Date(),
+        })
+        if (!created.ok) return created
+        conversationId = created.value.id
+        aiActive = aiConfigActive
+      }
     }
 
     const replyToMessageId = await resolveReplyToMessageId(
@@ -308,18 +335,41 @@ export const WhatsAppWebhookService = {
       if (!updated.ok) return updated
       conversationId = updated.value.id
     } else {
-      const created = await WhatsAppConversationRepository.create({
-        workspaceId,
-        connectionId: connection.id,
-        contactId: contact.value.id,
-        status: 'IN_PROGRESS',
-        aiActive: false,
-        aiHandoff: true,
-        unreadCount: 0,
-        lastMessageAt: new Date(),
-      })
-      if (!created.ok) return created
-      conversationId = created.value.id
+      // Atendente escreveu pelo celular para um contato com conversa
+      // fechada: reabre a mesma conversa, já em atendimento humano.
+      const closed =
+        await WhatsAppConversationRepository.findLatestClosedByContact(
+          workspaceId,
+          contact.value.id,
+        )
+      if (!closed.ok) return closed
+
+      if (closed.value) {
+        const reopened = await reopenWhatsAppConversation(closed.value, {
+          actorUserId: null,
+          source: 'AGENT',
+          extra: {
+            lastMessageAt: new Date(),
+            aiActive: false,
+            aiHandoff: true,
+          },
+        })
+        if (!reopened.ok) return reopened
+        conversationId = reopened.value.id
+      } else {
+        const created = await WhatsAppConversationRepository.create({
+          workspaceId,
+          connectionId: connection.id,
+          contactId: contact.value.id,
+          status: 'IN_PROGRESS',
+          aiActive: false,
+          aiHandoff: true,
+          unreadCount: 0,
+          lastMessageAt: new Date(),
+        })
+        if (!created.ok) return created
+        conversationId = created.value.id
+      }
     }
 
     const replyToMessageId = await resolveReplyToMessageId(

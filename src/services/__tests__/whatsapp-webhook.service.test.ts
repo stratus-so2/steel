@@ -1,8 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeWhatsAppAiConfig } from '@/src/__tests__/factories/whatsapp-ai-config.factory'
 import { createFakeWhatsAppConnection } from '@/src/__tests__/factories/whatsapp-connection.factory'
 import { createFakeWhatsAppContact } from '@/src/__tests__/factories/whatsapp-contact.factory'
-import { createFakeWhatsAppConversationWithPreview } from '@/src/__tests__/factories/whatsapp-conversation.factory'
+import {
+  createFakeWhatsAppConversation,
+  createFakeWhatsAppConversationWithPreview,
+} from '@/src/__tests__/factories/whatsapp-conversation.factory'
 import { createFakeWhatsAppGroupWithParticipants } from '@/src/__tests__/factories/whatsapp-group.factory'
 import { createFakeWhatsAppGroupMessage } from '@/src/__tests__/factories/whatsapp-group-message.factory'
 import { createFakeWhatsAppMessage } from '@/src/__tests__/factories/whatsapp-message.factory'
@@ -15,6 +18,8 @@ vi.mock('@/lib/axiom/logger', () => ({
 vi.mock('@/src/repositories/whatsapp-ai-config.repository')
 vi.mock('@/src/repositories/whatsapp-contact.repository')
 vi.mock('@/src/repositories/whatsapp-conversation.repository')
+vi.mock('@/src/repositories/whatsapp-conversation-event.repository')
+vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 vi.mock('@/src/repositories/whatsapp-group.repository')
 vi.mock('@/src/repositories/whatsapp-group-message.repository')
 vi.mock('@/src/repositories/whatsapp-message.repository')
@@ -40,6 +45,7 @@ import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
+import { WhatsAppConversationEventRepository } from '@/src/repositories/whatsapp-conversation-event.repository'
 import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repository'
 import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
@@ -48,6 +54,7 @@ import { WhatsAppWebhookService } from '../whatsapp-webhook.service'
 const mockedAiConfigRepo = vi.mocked(WhatsAppAiConfigRepository)
 const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
 const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
+const mockedEventRepo = vi.mocked(WhatsAppConversationEventRepository)
 const mockedGroupRepo = vi.mocked(WhatsAppGroupRepository)
 const mockedGroupMessageRepo = vi.mocked(WhatsAppGroupMessageRepository)
 const mockedMessageRepo = vi.mocked(WhatsAppMessageRepository)
@@ -75,6 +82,129 @@ function baseInbound(
 }
 
 describe('WhatsAppWebhookService', () => {
+  beforeEach(() => {
+    // Padrão: contato sem conversa fechada para reabrir.
+    mockedConversationRepo.findLatestClosedByContact.mockResolvedValue(ok(null))
+  })
+
+  describe('closed conversation reopening', () => {
+    function arrangeClosed(options: { aiConfigActive: boolean }) {
+      mockedMessageRepo.findByProviderMessageId.mockResolvedValue(ok(null))
+      mockedContactRepo.upsertByWaId.mockResolvedValue(
+        ok(createFakeWhatsAppContact({ id: 'contact1', workspaceId: 'ws1' })),
+      )
+      mockedAiConfigRepo.findByWorkspace.mockResolvedValue(
+        ok(
+          createFakeWhatsAppAiConfig({
+            workspaceId: 'ws1',
+            active: options.aiConfigActive,
+          }),
+        ),
+      )
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(ok(null))
+      const closed = createFakeWhatsAppConversation({
+        id: 'closed1',
+        workspaceId: 'ws1',
+        contactId: 'contact1',
+        status: 'CLOSED',
+        assignedUserId: 'agent1',
+        aiActive: false,
+        aiHandoff: true,
+        closedAt: new Date(),
+      })
+      mockedConversationRepo.findLatestClosedByContact.mockResolvedValue(
+        ok(closed),
+      )
+      mockedConversationRepo.update.mockResolvedValue(
+        ok({ ...closed, status: 'IN_PROGRESS' }),
+      )
+      mockedEventRepo.create.mockResolvedValue(
+        ok({
+          id: 'ev1',
+          workspaceId: 'ws1',
+          conversationId: 'closed1',
+          kind: 'REOPENED',
+          source: 'CONTACT',
+          actorUserId: null,
+          reason: null,
+          createdAt: new Date(),
+        }),
+      )
+      mockedMessageRepo.create.mockResolvedValue(
+        ok(
+          createFakeWhatsAppMessage({ id: 'msg1', conversationId: 'closed1' }),
+        ),
+      )
+      mockedConversationRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppConversationWithPreview({ id: 'closed1' })),
+      )
+    }
+
+    it('should reopen the closed conversation instead of creating a new one', async () => {
+      arrangeClosed({ aiConfigActive: true })
+
+      expectOk(await WhatsAppWebhookService.ingestInboundMessage(baseInbound()))
+
+      expect(mockedConversationRepo.create).not.toHaveBeenCalled()
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith(
+        'closed1',
+        expect.objectContaining({
+          status: 'IN_PROGRESS',
+          closedAt: null,
+          closeReason: null,
+          aiActive: true,
+          aiHandoff: false,
+          unreadCount: { increment: 1 },
+        }),
+      )
+      expect(mockedEventRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: 'closed1',
+          kind: 'REOPENED',
+          source: 'CONTACT',
+          actorUserId: null,
+        }),
+      )
+      expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ conversationId: 'closed1' }),
+      )
+      // Reaberta com a IA ligada no workspace: a IA volta a responder.
+      expect(aiReplyAdd).toHaveBeenCalledWith(
+        'generate-ai-reply',
+        expect.objectContaining({ conversationId: 'closed1' }),
+      )
+    })
+
+    it('should reopen without AI when the workspace AI is off', async () => {
+      arrangeClosed({ aiConfigActive: false })
+
+      expectOk(await WhatsAppWebhookService.ingestInboundMessage(baseInbound()))
+
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith(
+        'closed1',
+        expect.objectContaining({ aiActive: false }),
+      )
+      expect(aiReplyAdd).not.toHaveBeenCalled()
+    })
+
+    it('should reopen a closed conversation when the agent writes from the phone', async () => {
+      arrangeClosed({ aiConfigActive: true })
+
+      expectOk(
+        await WhatsAppWebhookService.ingestOutboundDeviceMessage(baseInbound()),
+      )
+
+      expect(mockedConversationRepo.create).not.toHaveBeenCalled()
+      expect(mockedConversationRepo.update).toHaveBeenCalledWith(
+        'closed1',
+        expect.objectContaining({ aiActive: false, aiHandoff: true }),
+      )
+      expect(mockedEventRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'REOPENED', source: 'AGENT' }),
+      )
+    })
+  })
+
   describe('ingestInboundMessage()', () => {
     it('should be a no-op when the message was already ingested (dedupe)', async () => {
       mockedMessageRepo.findByProviderMessageId.mockResolvedValue(

@@ -272,4 +272,103 @@ describe('WhatsAppConversationRepository', () => {
       expect(updated.unreadCount).toBe(2)
     })
   })
+
+  describe('listByWorkspace() status OPEN', () => {
+    it('should return only NEW/IN_PROGRESS conversations', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      for (const status of ['NEW', 'IN_PROGRESS', 'CLOSED'] as const) {
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+          status,
+        })
+      }
+
+      const open = expectOk(
+        await WhatsAppConversationRepository.listByWorkspace(workspace.id, {
+          status: 'OPEN',
+        }),
+      )
+      expect(open.map((c) => c.status).sort()).toEqual(['IN_PROGRESS', 'NEW'])
+    })
+  })
+
+  describe('findLatestClosedByContact()', () => {
+    it('should return the closed, non-deleted conversation of the contact', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      await WhatsAppConversationRepository.create({
+        workspaceId: workspace.id,
+        connectionId: connection.id,
+        contactId: contact.id,
+        status: 'CLOSED',
+        deletedAt: new Date(),
+      })
+      const closed = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+          status: 'CLOSED',
+        }),
+      )
+
+      const found = expectOk(
+        await WhatsAppConversationRepository.findLatestClosedByContact(
+          workspace.id,
+          contact.id,
+        ),
+      )
+      expect(found?.id).toBe(closed.id)
+    })
+  })
+
+  describe('listInactiveOpen()', () => {
+    it('should list open conversations idle since the cutoff, scoped by workspace', async () => {
+      const { workspace, connection, contact } = await seedFixtures()
+      const old = new Date('2026-01-01T00:00:00Z')
+      const stale = expectOk(
+        await WhatsAppConversationRepository.create({
+          workspaceId: workspace.id,
+          connectionId: connection.id,
+          contactId: contact.id,
+          status: 'NEW',
+          lastMessageAt: old,
+        }),
+      )
+      await WhatsAppConversationRepository.create({
+        workspaceId: workspace.id,
+        connectionId: connection.id,
+        contactId: contact.id,
+        status: 'IN_PROGRESS',
+        lastMessageAt: new Date(),
+      })
+      await WhatsAppConversationRepository.create({
+        workspaceId: workspace.id,
+        connectionId: connection.id,
+        contactId: contact.id,
+        status: 'CLOSED',
+        lastMessageAt: old,
+      })
+      const cutoff = new Date('2026-06-01T00:00:00Z')
+
+      const scoped = expectOk(
+        await WhatsAppConversationRepository.listInactiveOpen({
+          cutoff,
+          workspaceIds: { in: [workspace.id] },
+          limit: 10,
+        }),
+      )
+      expect(scoped.map((c) => c.id)).toEqual([stale.id])
+
+      const excluded = expectOk(
+        await WhatsAppConversationRepository.listInactiveOpen({
+          cutoff,
+          workspaceIds: { notIn: [workspace.id] },
+          limit: 10,
+        }),
+      )
+      expect(excluded).toEqual([])
+    })
+  })
 })

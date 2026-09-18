@@ -1,30 +1,156 @@
+import type {
+  Prisma,
+  WhatsAppConversation,
+  WhatsAppConversationEventSource,
+} from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import {
   badRequest,
   whatsappConnectionNotFound,
   whatsappContactNotFound,
+  whatsappConversationAlreadyClosed,
+  whatsappConversationNotClosed,
   whatsappConversationNotFound,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
+import { toWhatsAppConversationEventDTO } from '@/src/mappers/whatsapp-conversation-event.mapper'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
-import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
-import type { StartWhatsAppConversationDTO } from '@/src/schemas/whatsapp-conversation.schema'
+import {
+  WhatsAppConversationRepository,
+  type WhatsAppConversationStatusFilter,
+} from '@/src/repositories/whatsapp-conversation.repository'
+import { WhatsAppConversationEventRepository } from '@/src/repositories/whatsapp-conversation-event.repository'
+import type {
+  CloseWhatsAppConversationDTO,
+  StartWhatsAppConversationDTO,
+} from '@/src/schemas/whatsapp-conversation.schema'
 import type {
   WhatsAppAssignableMemberDTO,
   WhatsAppConversationDTO,
+  WhatsAppConversationEventDTO,
 } from '@/types/whatsapp-conversation'
 import { assertMember, assertModuleMember } from './authz'
+import { WhatsAppSettingsService } from './whatsapp-settings.service'
+
+/** Máximo de conversas fechadas por inatividade a cada tick do job. */
+const AUTO_CLOSE_BATCH = 500
+const HOUR_MS = 60 * 60 * 1000
+
+async function publishConversation(
+  workspaceId: string,
+  id: string,
+): Promise<Result<WhatsAppConversationDTO>> {
+  const fresh = await WhatsAppConversationRepository.findById(id, workspaceId)
+  if (!fresh.ok) return fresh
+  if (!fresh.value) return err(whatsappConversationNotFound())
+
+  const dto = toWhatsAppConversationDTO(fresh.value)
+  await publishWhatsAppEvent(workspaceId, {
+    type: 'conversation.updated',
+    conversation: dto,
+  })
+  return ok(dto)
+}
+
+/**
+ * Fecha uma conversa: status CLOSED + data/motivo, evento na linha do tempo
+ * e auditoria. `actorUserId` nulo = sistema (inatividade).
+ */
+async function applyClose(
+  conversation: WhatsAppConversation,
+  input: {
+    actorUserId: string | null
+    source: WhatsAppConversationEventSource
+    reason?: string
+  },
+): Promise<Result<void>> {
+  const updated = await WhatsAppConversationRepository.update(conversation.id, {
+    status: 'CLOSED',
+    closedAt: new Date(),
+    closeReason: input.reason ?? null,
+  })
+  if (!updated.ok) return updated
+
+  const event = await WhatsAppConversationEventRepository.create({
+    workspaceId: conversation.workspaceId,
+    conversationId: conversation.id,
+    kind: 'CLOSED',
+    source: input.source,
+    actorUserId: input.actorUserId,
+    reason: input.reason ?? null,
+  })
+  if (!event.ok) return event
+
+  auditMutation({
+    entity: 'whatsapp_conversation',
+    action: 'close',
+    actorId: input.actorUserId,
+    targetId: conversation.id,
+    meta: {
+      workspaceId: conversation.workspaceId,
+      source: input.source,
+      hasReason: Boolean(input.reason),
+      ...(input.actorUserId ? {} : { actor: 'system' }),
+    },
+  })
+  return ok(undefined)
+}
+
+/**
+ * Reabre uma conversa fechada. Volta para IN_PROGRESS se já tem atendente,
+ * senão NEW; `extra` permite ajustar outros campos na mesma escrita (ex.: o
+ * webhook reativa a IA e soma a mensagem não lida).
+ */
+export async function reopenWhatsAppConversation(
+  conversation: WhatsAppConversation,
+  input: {
+    actorUserId: string | null
+    source: WhatsAppConversationEventSource
+    extra?: Prisma.WhatsAppConversationUncheckedUpdateInput
+  },
+): Promise<Result<WhatsAppConversation>> {
+  const updated = await WhatsAppConversationRepository.update(conversation.id, {
+    ...input.extra,
+    status: conversation.assignedUserId ? 'IN_PROGRESS' : 'NEW',
+    closedAt: null,
+    closeReason: null,
+  })
+  if (!updated.ok) return updated
+
+  const event = await WhatsAppConversationEventRepository.create({
+    workspaceId: conversation.workspaceId,
+    conversationId: conversation.id,
+    kind: 'REOPENED',
+    source: input.source,
+    actorUserId: input.actorUserId,
+  })
+  if (!event.ok) return event
+
+  auditMutation({
+    entity: 'whatsapp_conversation',
+    action: 'reopen',
+    actorId: input.actorUserId,
+    targetId: conversation.id,
+    meta: {
+      workspaceId: conversation.workspaceId,
+      source: input.source,
+      ...(input.actorUserId ? {} : { actor: 'system' }),
+    },
+  })
+  return ok(updated.value)
+}
 
 export const WhatsAppConversationService = {
   async list(
     actorId: string,
     workspaceId: string,
     filters: {
-      status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED'
+      status?: WhatsAppConversationStatusFilter
       archived?: boolean
       connectionId?: string
     } = {},
@@ -530,5 +656,151 @@ export const WhatsAppConversationService = {
     })
 
     return ok(dto)
+  },
+  /** Fecha a conversa (atendente/admin), com motivo opcional. */
+  async close(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+    dto: CloseWhatsAppConversationDTO,
+  ): Promise<Result<WhatsAppConversationDTO>> {
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value || existing.value.deletedAt) {
+      return err(whatsappConversationNotFound())
+    }
+    if (existing.value.status === 'CLOSED') {
+      return err(whatsappConversationAlreadyClosed())
+    }
+
+    const closed = await applyClose(existing.value, {
+      actorUserId: actorId,
+      source: 'AGENT',
+      reason: dto.reason,
+    })
+    if (!closed.ok) return closed
+
+    return publishConversation(workspaceId, id)
+  },
+
+  /** Reabre manualmente uma conversa fechada. */
+  async reopen(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+  ): Promise<Result<WhatsAppConversationDTO>> {
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'EDIT' },
+    )
+    if (!membership.ok) return membership
+
+    const existing = await WhatsAppConversationRepository.findById(
+      id,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    if (!existing.value || existing.value.deletedAt) {
+      return err(whatsappConversationNotFound())
+    }
+    if (existing.value.status !== 'CLOSED') {
+      return err(whatsappConversationNotClosed())
+    }
+
+    const reopened = await reopenWhatsAppConversation(existing.value, {
+      actorUserId: actorId,
+      source: 'AGENT',
+    })
+    if (!reopened.ok) return reopened
+
+    return publishConversation(workspaceId, id)
+  },
+
+  /** Linha do tempo (fechada/reaberta...) da conversa. */
+  async listEvents(
+    actorId: string,
+    workspaceId: string,
+    id: string,
+  ): Promise<Result<WhatsAppConversationEventDTO[]>> {
+    const membership = await assertModuleMember(
+      actorId,
+      workspaceId,
+      'COMMUNICATION',
+      { resource: 'conversations', action: 'VIEW' },
+    )
+    if (!membership.ok) return membership
+
+    const events = await WhatsAppConversationEventRepository.listByConversation(
+      id,
+      workspaceId,
+    )
+    if (!events.ok) return events
+    return ok(events.value.map(toWhatsAppConversationEventDTO))
+  },
+
+  /**
+   * Fecha conversas abertas sem mensagem há mais que a janela configurada do
+   * workspace (padrão 24h; 0 = desligado). Fluxo de sistema (job repetível).
+   */
+  async closeInactive(now: Date): Promise<Result<{ closed: number }>> {
+    const windows = await WhatsAppSettingsService.listAutoCloseWindows()
+    if (!windows.ok) return windows
+
+    const batches: {
+      cutoff: Date
+      workspaceIds: { in: string[] } | { notIn: string[] }
+    }[] = [
+      // Workspaces que nunca salvaram configuração: janela padrão.
+      {
+        cutoff: new Date(now.getTime() - windows.value.defaultHours * HOUR_MS),
+        workspaceIds: { notIn: windows.value.configuredWorkspaceIds },
+      },
+      ...windows.value.configured.map((window) => ({
+        cutoff: new Date(now.getTime() - window.hours * HOUR_MS),
+        workspaceIds: { in: [window.workspaceId] },
+      })),
+    ]
+
+    let closed = 0
+    for (const batch of batches) {
+      if (closed >= AUTO_CLOSE_BATCH) break
+      const inactive = await WhatsAppConversationRepository.listInactiveOpen({
+        ...batch,
+        limit: AUTO_CLOSE_BATCH - closed,
+      })
+      if (!inactive.ok) return inactive
+
+      for (const conversation of inactive.value) {
+        const result = await applyClose(conversation, {
+          actorUserId: null,
+          source: 'INACTIVITY',
+        })
+        if (!result.ok) {
+          logger.error('whatsapp.conversation.auto_close_failed', {
+            component: 'WhatsAppConversationService',
+            conversationId: conversation.id,
+            reason: result.error.code,
+          })
+          continue
+        }
+        closed += 1
+        await publishConversation(conversation.workspaceId, conversation.id)
+      }
+    }
+
+    return ok({ closed })
   },
 }
