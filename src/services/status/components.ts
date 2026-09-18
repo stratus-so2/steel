@@ -57,8 +57,8 @@ export const COMPONENTS = [
   },
   {
     key: 'storage',
-    name: 'Armazenamento (AWS S3)',
-    description: 'Armazenamento de objetos',
+    name: 'Armazenamento (MinIO)',
+    description: 'Armazenamento de objetos (S3-compatível)',
     tier: 'peripheral',
   },
 ] as const satisfies ReadonlyArray<ComponentDefinition>
