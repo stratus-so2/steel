@@ -79,7 +79,7 @@ export function useAcceptInvitation() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         },
-        'Erro ao reenviar convite',
+        'Erro ao aceitar convite',
       ),
   })
 }
