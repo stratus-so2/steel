@@ -146,6 +146,24 @@ describe('WorkspaceModuleAccessRepository', () => {
       expect(expectOk(result)).toBe(false)
     })
 
+    it('should return false for an enabled module of a suspended workspace', async () => {
+      const [workspace, user] = await Promise.all([
+        seedWorkspace({ status: 'SUSPENDED' }),
+        seedUser(),
+      ])
+      await seedWorkspaceModuleAccess(workspace.id, user.id, {
+        module: 'CRM',
+        enabled: true,
+      })
+
+      const result = await WorkspaceModuleAccessRepository.isEnabled(
+        workspace.id,
+        'CRM',
+      )
+
+      expect(expectOk(result)).toBe(false)
+    })
+
     it('should return false when no access row exists (opt-in default)', async () => {
       const workspace = await seedWorkspace()
 

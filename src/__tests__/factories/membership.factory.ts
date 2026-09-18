@@ -1,13 +1,20 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { Membership, Profile, Role } from '@prisma/client'
+import type { Membership, Profile, Role, WorkspaceStatus } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import type { MembershipWithProfile } from '@/src/repositories/membership.repository'
 
 export function createFakeMembership(
-  overrides?: Partial<Membership> & { profile?: Profile | null },
+  overrides?: Partial<Membership> & {
+    profile?: Profile | null
+    workspaceStatus?: WorkspaceStatus
+  },
 ): MembershipWithProfile {
   const now = new Date()
-  const { profile = null, ...membershipOverrides } = overrides ?? {}
+  const {
+    profile = null,
+    workspaceStatus = 'ACTIVE',
+    ...membershipOverrides
+  } = overrides ?? {}
   return {
     id: createId(),
     userId: createId(),
@@ -18,6 +25,7 @@ export function createFakeMembership(
     updatedAt: now,
     ...membershipOverrides,
     profile,
+    workspace: { status: workspaceStatus },
   }
 }
 

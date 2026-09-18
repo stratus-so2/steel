@@ -11,6 +11,12 @@ export const ERROR_CODES = {
   FEATURE_NOT_IN_PLAN: { code: 'FEATURE_NOT_IN_PLAN', status: 403 },
   CONNECTION_FORBIDDEN: { code: 'CONNECTION_FORBIDDEN', status: 403 },
   MODULE_DISABLED: { code: 'MODULE_DISABLED', status: 403 },
+  // Workspace suspenso (ou em exclusão) pelo admin global: bloqueia membros.
+  WORKSPACE_SUSPENDED: { code: 'WORKSPACE_SUSPENDED', status: 403 },
+  BACKUP_DOWNLOAD_LINK_INVALID: {
+    code: 'BACKUP_DOWNLOAD_LINK_INVALID',
+    status: 403,
+  },
 
   // Client Errors (400, 404, 409, 422, 429)
   BAD_REQUEST: { code: 'BAD_REQUEST', status: 400 },
@@ -372,6 +378,16 @@ export const ERROR_CODES = {
   CHANGELOG_NOT_FOUND: { code: 'CHANGELOG_NOT_FOUND', status: 404 },
   CHANGELOG_LOCKED: { code: 'CHANGELOG_LOCKED', status: 409 },
   BACKUP_NOT_FOUND: { code: 'BACKUP_NOT_FOUND', status: 404 },
+  BACKUP_NOT_RESTORABLE: { code: 'BACKUP_NOT_RESTORABLE', status: 409 },
+  WORKSPACE_STATUS_CONFLICT: { code: 'WORKSPACE_STATUS_CONFLICT', status: 409 },
+  WORKSPACE_OPERATION_IN_PROGRESS: {
+    code: 'WORKSPACE_OPERATION_IN_PROGRESS',
+    status: 409,
+  },
+  WORKSPACE_CONFIRMATION_MISMATCH: {
+    code: 'WORKSPACE_CONFIRMATION_MISMATCH',
+    status: 422,
+  },
   // IA multi-provedor: 402 (não 429) porque a cota mensal é orçamento
   // esgotado, não limite de taxa — tentar de novo não resolve até o admin
   // aumentar a cota ou virar o mês (e não deve disparar `Retry-After`).

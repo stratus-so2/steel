@@ -19,6 +19,7 @@ import type {
   TestWorkspaceConnectionDTO,
 } from '@/src/schemas/workspace-connection.schema'
 import type { WorkspaceConnectionDTO } from '@/types/workspace-connection'
+import { assertWorkspaceActive } from './authz'
 
 const PRIVILEGED_ROLES = ['OWNER', 'ADMIN'] as const
 
@@ -32,6 +33,9 @@ async function requirePrivilegedMembership(
   )
   if (!membership.ok) return membership
   if (!membership.value) return err(forbidden())
+
+  const active = assertWorkspaceActive(membership.value.workspace?.status)
+  if (!active.ok) return active
 
   if (!PRIVILEGED_ROLES.includes(membership.value.role as never)) {
     return err(connectionForbidden())

@@ -4,7 +4,11 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export type MembershipWithWorkspace = Membership & { workspace: Workspace }
-export type MembershipWithProfile = Membership & { profile: Profile | null }
+export type MembershipWithProfile = Membership & {
+  profile: Profile | null
+  /** Status do workspace, para o gate de suspensão (`assertMember`). */
+  workspace?: Pick<Workspace, 'status'>
+}
 
 export const MembershipRepository = {
   async findByUserAndWorkspace(
@@ -14,7 +18,7 @@ export const MembershipRepository = {
     try {
       const membership = await prisma.membership.findUnique({
         where: { userId_workspaceId: { userId, workspaceId } },
-        include: { profile: true },
+        include: { profile: true, workspace: { select: { status: true } } },
       })
       return ok(membership)
     } catch (error) {

@@ -2,6 +2,9 @@ export {
   aiModelNotEnabled,
   aiProviderUnavailable,
   aiQuotaExceeded,
+  backupDownloadLinkInvalid,
+  backupNotFound,
+  backupNotRestorable,
   badRequest,
   changelogLocked,
   changelogNotFound,
@@ -146,4 +149,8 @@ export {
   whatsappTemplateNotApproved,
   whatsappTemplateNotFound,
   whatsappWebhookUnauthorized,
+  workspaceConfirmationMismatch,
+  workspaceOperationInProgress,
+  workspaceStatusConflict,
+  workspaceSuspended,
 } from './app-error'

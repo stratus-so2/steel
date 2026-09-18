@@ -42,9 +42,13 @@ export const WorkspaceModuleAccessRepository = {
     try {
       const access = await prisma.workspaceModuleAccess.findUnique({
         where: { workspaceId_module: { workspaceId, module } },
-        select: { enabled: true },
+        select: { enabled: true, workspace: { select: { status: true } } },
       })
-      return ok(access?.enabled ?? false)
+      // Workspace suspenso/em exclusão: módulo fechado também para as rotas
+      // públicas (formulários, propostas, landing pages, webhooks).
+      return ok(
+        (access?.enabled ?? false) && access?.workspace.status === 'ACTIVE',
+      )
     } catch (error) {
       return err(dbError('Failed to check workspace module access', error))
     }

@@ -11,6 +11,10 @@ export function createFakeWorkspace(overrides?: Partial<Workspace>): Workspace {
     slug: `ws-${createId().slice(0, 8)}`,
     activePlan: 'FREE' as Plan,
     trialEndsAt: null,
+    status: 'ACTIVE',
+    suspendedAt: null,
+    suspendedReason: null,
+    suspendedById: null,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -35,7 +39,7 @@ export function createFakeWorkspaceDTO(
 
 export async function seedWorkspace(
   overrides?: Partial<
-    Pick<Workspace, 'name' | 'slug' | 'activePlan' | 'trialEndsAt'>
+    Pick<Workspace, 'name' | 'slug' | 'activePlan' | 'trialEndsAt' | 'status'>
   >,
 ) {
   return prisma.workspace.create({

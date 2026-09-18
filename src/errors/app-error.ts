@@ -629,3 +629,31 @@ export const aiModelNotEnabled = (): AppError =>
 export const aiProviderUnavailable = (
   message = 'Nenhum provedor de IA habilitado está disponível neste ambiente',
 ): AppError => appError('AI_PROVIDER_UNAVAILABLE', message)
+
+/** Workspace suspenso ou em exclusão pelo admin global. */
+export const workspaceSuspended = (
+  message = 'Este workspace está suspenso. Fale com o suporte da Stratus Telecom.',
+): AppError => appError('WORKSPACE_SUSPENDED', message)
+
+/** Suspender o que já está suspenso, reativar o que está ativo etc. */
+export const workspaceStatusConflict = (message: string): AppError =>
+  appError('WORKSPACE_STATUS_CONFLICT', message)
+
+export const workspaceOperationInProgress = (
+  message = 'Já existe uma exclusão ou restauração em andamento para este workspace',
+): AppError => appError('WORKSPACE_OPERATION_IN_PROGRESS', message)
+
+/** O slug digitado na confirmação não bate com o do workspace. */
+export const workspaceConfirmationMismatch = (
+  message = 'O slug digitado não confere com o do workspace',
+): AppError => appError('WORKSPACE_CONFIRMATION_MISMATCH', message)
+
+export const backupNotFound = (): AppError =>
+  appError('BACKUP_NOT_FOUND', 'Backup não encontrado')
+
+export const backupNotRestorable = (message: string): AppError =>
+  appError('BACKUP_NOT_RESTORABLE', message)
+
+export const backupDownloadLinkInvalid = (
+  message = 'Link de download inválido ou expirado',
+): AppError => appError('BACKUP_DOWNLOAD_LINK_INVALID', message)

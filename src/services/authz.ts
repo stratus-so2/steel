@@ -1,5 +1,5 @@
-import type { ModuleKind, Profile, Role } from '@prisma/client'
-import { forbidden, moduleDisabled } from '../errors'
+import type { ModuleKind, Profile, Role, WorkspaceStatus } from '@prisma/client'
+import { forbidden, moduleDisabled, workspaceSuspended } from '../errors'
 import {
   can,
   type PermissionAction,
@@ -62,6 +62,21 @@ export function resolvePermissions(
 }
 
 /**
+ * Gate central de suspensão: workspace `SUSPENDED` (ou `DELETING`, exclusão em
+ * andamento) bloqueia todo membro, em toda API que passa por `assertMember`.
+ * Status ausente (mocks antigos, selects parciais) conta como ativo.
+ */
+export function assertWorkspaceActive(
+  status: WorkspaceStatus | null | undefined,
+): Result<true> {
+  if (!status || status === 'ACTIVE') return ok(true)
+  if (status === 'DELETING') {
+    return err(workspaceSuspended('Este workspace está sendo excluído.'))
+  }
+  return err(workspaceSuspended())
+}
+
+/**
  * Verifica associação ao workspace e, opcionalmente, uma permissão específica
  * (recurso × ação). Sem `require`, só confirma associação. Com `require`, a
  * regra é **negação por padrão**: se a matriz efetiva não conceder a ação
@@ -79,6 +94,10 @@ export async function assertMember(
   )
   if (!membership.ok) return membership
   if (!membership.value) return err(forbidden())
+
+  // Depois da associação: não revela a um não-membro que o workspace existe.
+  const active = assertWorkspaceActive(membership.value.workspace?.status)
+  if (!active.ok) return active
 
   const isPrivileged = isPrivilegedRole(membership.value.role)
   const permissions = resolvePermissions(

@@ -16,6 +16,7 @@ import {
   assertModuleEnabled,
   assertModuleMember,
   assertPlatformAdmin,
+  assertWorkspaceActive,
 } from '../authz'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -170,6 +171,47 @@ describe('assertMember() — Visualizador e negação por padrão', () => {
         action: 'CREATE',
       }),
     )
+  })
+})
+
+describe('assertMember() — workspace suspenso', () => {
+  it('should return WORKSPACE_SUSPENDED for a member of a suspended workspace, even OWNER', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'OWNER', workspaceStatus: 'SUSPENDED' })),
+    )
+    expectErr(await assertMember('u1', 'ws1'), 'WORKSPACE_SUSPENDED')
+  })
+
+  it('should return WORKSPACE_SUSPENDED while the workspace is being deleted', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ workspaceStatus: 'DELETING' })),
+    )
+    const error = expectErr(
+      await assertMember('u1', 'ws1'),
+      'WORKSPACE_SUSPENDED',
+    )
+    expect(error.message).toContain('excluído')
+  })
+
+  it('should keep FORBIDDEN for a non-member (does not reveal the suspension)', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+    expectErr(await assertMember('u1', 'ws1'), 'FORBIDDEN')
+  })
+
+  it('should block module services too (assertModuleMember)', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ workspaceStatus: 'SUSPENDED' })),
+    )
+    expectErr(
+      await assertModuleMember('u1', 'ws1', 'CRM'),
+      'WORKSPACE_SUSPENDED',
+    )
+  })
+
+  it('assertWorkspaceActive() treats a missing status as active', () => {
+    expectOk(assertWorkspaceActive(undefined))
+    expectOk(assertWorkspaceActive('ACTIVE'))
+    expectErr(assertWorkspaceActive('SUSPENDED'), 'WORKSPACE_SUSPENDED')
   })
 })
 

@@ -278,17 +278,22 @@ model Verification {
 }
 
 model Workspace {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  activePlan    Plan           @default(FREE) @map("active_plan")
-  trialEndsAt   DateTime?      @map("trial_ends_at")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  memberships   Membership[]
-  subscriptions Subscription[]
-  projects      Project[]
-  backups       Backup[]
+  id              String          @id @default(cuid())
+  name            String
+  slug            String          @unique
+  activePlan      Plan            @default(FREE) @map("active_plan")
+  trialEndsAt     DateTime?       @map("trial_ends_at")
+  /// Ciclo de vida controlado pelo admin global: SUSPENDED bloqueia membros
+  /// (UI e API) e DELETING marca a exclusão em andamento (backup → purge).
+  status          WorkspaceStatus @default(ACTIVE)
+  suspendedAt     DateTime?       @map("suspended_at")
+  suspendedReason String?         @map("suspended_reason")
+  suspendedById   String?         @map("suspended_by_id")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  memberships     Membership[]
+  subscriptions   Subscription[]
+  projects        Project[]
 
   invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
@@ -355,7 +360,16 @@ model Workspace {
   crmLeadContactAttempts CrmLeadContactAttempt[]
   crmLeadMeetings        CrmLeadMeeting[]
 
+  @@index([status])
   @@map("workspaces")
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  SUSPENDED
+  DELETING
+
+  @@map("workspace_status")
 }
 
 model Membership {
@@ -752,24 +766,100 @@ enum BackupStatus {
 }
 
 model Backup {
-  id           String       @id @default(cuid())
-  scope        BackupScope
-  workspaceId  String?      @map("workspace_id")
-  status       BackupStatus @default(RUNNING)
-  storageKey   String?      @map("storage_key")
-  sizeBytes    Int?         @map("size_bytes")
-  checksum     String?
-  errorMessage String?      @map("error_message")
-  startedAt    DateTime     @default(now()) @map("started_at")
-  completedAt  DateTime?    @map("completed_at")
-  expiresAt    DateTime?    @map("expires_at")
-
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  scope           BackupScope
+  /// Sem FK de propósito: o registro (e o objeto no MinIO) precisa sobreviver
+  /// à exclusão do workspace — é justamente o ponto de restauração dela.
+  workspaceId     String?      @map("workspace_id")
+  /// Snapshot do slug na hora do backup (o workspace pode não existir mais).
+  workspaceSlug   String?      @map("workspace_slug")
+  /// Admin que disparou pelo painel (`null` = cron/CLI/sistema).
+  triggeredById   String?      @map("triggered_by_id")
+  status          BackupStatus @default(RUNNING)
+  storageKey      String?      @map("storage_key")
+  sizeBytes       Int?         @map("size_bytes")
+  checksum        String?
+  errorMessage    String?      @map("error_message")
+  /// Chave da cópia offsite, gravada quando o `copy-to-offsite` confirma.
+  offsiteKey      String?      @map("offsite_key")
+  offsiteCopiedAt DateTime?    @map("offsite_copied_at")
+  startedAt       DateTime     @default(now()) @map("started_at")
+  completedAt     DateTime?    @map("completed_at")
+  expiresAt       DateTime?    @map("expires_at")
 
   @@index([scope, startedAt])
   @@index([workspaceId])
   @@index([expiresAt])
   @@map("backups")
+}
+
+// ─── Painel admin global ────────────────────────────────────────────────────
+
+/// Registro append-only das ações do admin global. Sem FK para workspace ou
+/// usuário: precisa sobreviver à exclusão do alvo (trilha LGPD). Espelha o
+/// `auditMutation` (Axiom) para o painel poder listar sem depender do Axiom.
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorId     String   @map("actor_id")
+  actorEmail  String   @map("actor_email")
+  /// `<alvo>.<ação>`, ex.: `workspace.suspend`, `backup.restore_requested`.
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String?  @map("target_id")
+  /// Nome/slug legível do alvo na hora da ação.
+  targetLabel String?  @map("target_label")
+  reason      String?
+  meta        Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([targetType, targetId, createdAt])
+  @@map("admin_audit_logs")
+}
+
+enum AdminOperationKind {
+  WORKSPACE_DELETE
+  WORKSPACE_RESTORE
+
+  @@map("admin_operation_kind")
+}
+
+enum AdminOperationStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("admin_operation_status")
+}
+
+/// Operação longa disparada pelo admin e executada pelo worker (exclusão e
+/// restauração de workspace). Guarda o progresso (`step`) para a UI e
+/// sobrevive ao workspace (sem FK).
+model AdminOperation {
+  id               String               @id @default(cuid())
+  kind             AdminOperationKind
+  status           AdminOperationStatus @default(QUEUED)
+  /// Passo atual: `queued` → `backup` → `purge_database` → `purge_files` → `done`
+  /// (exclusão) ou `queued` → `safety_backup` → `restore` → `done` (restore).
+  step             String               @default("queued")
+  workspaceId      String               @map("workspace_id")
+  workspaceSlug    String               @map("workspace_slug")
+  workspaceName    String               @map("workspace_name")
+  backupId         String?              @map("backup_id")
+  requestedById    String               @map("requested_by_id")
+  requestedByEmail String               @map("requested_by_email")
+  reason           String
+  error            String?
+  meta             Json?
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  completedAt      DateTime?            @map("completed_at")
+
+  @@index([workspaceId, createdAt])
+  @@index([status])
+  @@index([createdAt])
+  @@map("admin_operations")
 }
 
 // ─── WhatsApp domain ───────────────────────────────────────────────────────
