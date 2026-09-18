@@ -113,4 +113,45 @@ describe('recordCrmActivity()', () => {
       expect.objectContaining({ summary: 'criou Anotação' }),
     )
   })
+
+  it('should ignore a non-string or empty id', async () => {
+    await recordCrmActivity({
+      workspaceId: 'ws1',
+      actorUserId: 'u1',
+      entity: 'task',
+      event: 'created',
+      record: { id: 42 },
+    })
+    await recordCrmActivity({
+      workspaceId: 'ws1',
+      actorUserId: 'u1',
+      entity: 'task',
+      event: 'created',
+      record: { id: '' },
+    })
+
+    expect(mockedActivityRepo.record).not.toHaveBeenCalled()
+  })
+
+  it('should link a person to itself and ignore blank FKs', async () => {
+    mockedActivityRepo.record.mockResolvedValue(ok({} as never))
+
+    await recordCrmActivity({
+      workspaceId: 'ws1',
+      actorUserId: 'u1',
+      entity: 'person',
+      event: 'updated',
+      record: { id: 'p1', name: '', companyId: '', opportunityId: null },
+    })
+
+    expect(mockedActivityRepo.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'person',
+        personId: 'p1',
+        companyId: undefined,
+        opportunityId: undefined,
+        summary: 'atualizou Pessoa',
+      }),
+    )
+  })
 })
