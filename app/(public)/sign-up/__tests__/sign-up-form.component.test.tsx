@@ -175,8 +175,20 @@ describe('<SignUpForm />', () => {
     const signInLinks = screen
       .getAllByRole('link', { name: 'Entre' })
       .map((a) => a.getAttribute('href'))
-    expect(signInLinks).toContain(
-      `/sign-in?redirect=${encodeURIComponent('/convite')}`,
-    )
+    // Todos os links "Entre" (inclusive o do cabeçalho) são absolutos e
+    // preservam o destino do redirect.
+    expect(signInLinks.length).toBeGreaterThan(1)
+    for (const href of signInLinks) {
+      expect(href).toBe(`/sign-in?redirect=${encodeURIComponent('/convite')}`)
+    }
+  })
+
+  it('points the header sign-in link to /sign-in without a redirect by default', () => {
+    render(<SignUpForm />)
+
+    expect(screen.getAllByText(/Já tem conta\?/)).toHaveLength(2)
+    for (const link of screen.getAllByRole('link', { name: 'Entre' })) {
+      expect(link.getAttribute('href')).toBe('/sign-in')
+    }
   })
 })
