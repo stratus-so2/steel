@@ -26,6 +26,11 @@ export const invalidCredentials = (
 export const forbidden = (message = 'Permissão insuficiente'): AppError =>
   appError('FORBIDDEN', message)
 
+/** Módulo (CRM, Comunicação…) não habilitado para a workspace. */
+export const moduleDisabled = (
+  message = 'Módulo não habilitado para esta workspace',
+): AppError => appError('MODULE_DISABLED', message)
+
 export const notFound = (resource: string): AppError =>
   appError('RESOURCE_NOT_FOUND', `${resource} not found`)
 

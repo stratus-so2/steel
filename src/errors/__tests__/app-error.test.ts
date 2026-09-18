@@ -6,6 +6,7 @@ import {
   databaseError,
   forbidden,
   invalidCredentials,
+  moduleDisabled,
   notFound,
   rateLimited,
   unauthorized,
@@ -73,6 +74,15 @@ describe('AppError factories', () => {
 
       expect(error.code).toBe('FORBIDDEN')
       expect(error.message).toBe('Permissão insuficiente')
+    })
+  })
+
+  describe('moduleDisabled()', () => {
+    it('should map to MODULE_DISABLED with a pt-BR default message', () => {
+      const error = moduleDisabled()
+
+      expect(error.code).toBe('MODULE_DISABLED')
+      expect(error.message).toBe('Módulo não habilitado para esta workspace')
     })
   })
 

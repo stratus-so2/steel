@@ -92,6 +92,7 @@ export {
   invitationNotFound,
   invitationNotPending,
   mailError,
+  moduleDisabled,
   notFound,
   paymentError,
   profileInUse,

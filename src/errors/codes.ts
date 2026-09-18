@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   SEAT_LIMIT_REACHED: { code: 'SEAT_LIMIT_REACHED', status: 403 },
   FEATURE_NOT_IN_PLAN: { code: 'FEATURE_NOT_IN_PLAN', status: 403 },
   CONNECTION_FORBIDDEN: { code: 'CONNECTION_FORBIDDEN', status: 403 },
+  MODULE_DISABLED: { code: 'MODULE_DISABLED', status: 403 },
 
   // Client Errors (400, 404, 409, 422, 429)
   BAD_REQUEST: { code: 'BAD_REQUEST', status: 400 },
