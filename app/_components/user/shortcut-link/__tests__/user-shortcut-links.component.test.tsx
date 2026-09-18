@@ -54,6 +54,12 @@ describe('<UserShortcutLinkList />', () => {
       'https://example.com/vendas',
     )
     expect(screen.getByText('anteontem')).toBeTruthy()
+    // Nenhum controle interativo aninhado dentro do link.
+    const link = title.closest('a') as HTMLAnchorElement
+    expect(link.querySelector('button, a')).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Mais opções de Painel de vendas' }),
+    ).toBeTruthy()
   })
 })
 

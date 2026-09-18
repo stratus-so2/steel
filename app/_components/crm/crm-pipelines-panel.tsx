@@ -64,29 +64,35 @@ export function CrmPipelinesPanel({ workspaceId }: { workspaceId: string }) {
             </p>
           )}
           {pipelines?.map((pipeline) => (
-            <button
-              type='button'
+            // Linha = botão de seleção + botão de remover lado a lado:
+            // <button> aninhado em <button> é HTML inválido.
+            <div
               key={pipeline.id}
-              onClick={() => setSelectedId(pipeline.id)}
               className={cn(
-                'flex items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-muted',
+                'flex items-center justify-between gap-1 rounded-md text-sm hover:bg-muted',
                 selectedId === pipeline.id && 'bg-muted font-medium',
               )}
             >
-              {pipeline.name}
+              <button
+                type='button'
+                onClick={() => setSelectedId(pipeline.id)}
+                aria-pressed={selectedId === pipeline.id}
+                className='min-w-0 flex-1 truncate px-3 py-2 text-left'
+              >
+                {pipeline.name}
+              </button>
               {canDelete ? (
                 <Button
                   variant='ghost'
                   size='icon-xs'
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDelete(pipeline.id)
-                  }}
+                  className='mr-2'
+                  aria-label={`Remover pipeline ${pipeline.name}`}
+                  onClick={() => handleDelete(pipeline.id)}
                 >
                   <SteelIcon icon={Delete02Icon} strokeWidth={2} />
                 </Button>
               ) : null}
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -350,7 +356,12 @@ function CrmPipelineStageRow({
           </button>
         )}
         {onDelete ? (
-          <Button variant='ghost' size='icon-xs' onClick={onDelete}>
+          <Button
+            variant='ghost'
+            size='icon-xs'
+            aria-label={`Remover etapa ${stage.name}`}
+            onClick={onDelete}
+          >
             <SteelIcon icon={Delete02Icon} strokeWidth={2} />
           </Button>
         ) : null}

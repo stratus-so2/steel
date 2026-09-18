@@ -37,32 +37,33 @@ interface LinkProps {
 }
 
 export function UserShortcutLink({ title, url, createdAt }: LinkProps) {
+  // O botão de opções fica ao lado do link (não dentro): <button> dentro de
+  // <a> é HTML inválido e o clique no botão navegaria.
   return (
-    <a
-      href={url}
-      rel='noopener noreferrer'
-      className='group min-h-14 w-57.5 flex justify-between items-center px-4 border border-border rounded-md'
-    >
-      <div className='flex items-center gap-2'>
+    <div className='group min-h-14 w-57.5 flex justify-between items-center gap-2 px-4 border border-border rounded-md'>
+      <a
+        href={url}
+        rel='noopener noreferrer'
+        className='flex min-w-0 flex-1 items-center gap-2 self-stretch'
+      >
         <div className='size-8 rounded-sm p-2 bg-secondary'>
           <SteelIcon icon={Link02Icon} />
         </div>
-        <div>
+        <div className='min-w-0'>
           <Muted className='text-primary'>{title}</Muted>
           <Muted className='text-[0.75rem]'>
             {formatRelativeTime(createdAt)}
           </Muted>
         </div>
-      </div>
-      <div>
-        <Button
-          size='icon-xs'
-          variant='ghost'
-          className='hidden group-hover:flex'
-        >
-          <SteelIcon icon={MoreVerticalCircle01Icon} />
-        </Button>
-      </div>
-    </a>
+      </a>
+      <Button
+        size='icon-xs'
+        variant='ghost'
+        aria-label={`Mais opções de ${title}`}
+        className='hidden group-hover:flex group-focus-within:flex'
+      >
+        <SteelIcon icon={MoreVerticalCircle01Icon} />
+      </Button>
+    </div>
   )
 }

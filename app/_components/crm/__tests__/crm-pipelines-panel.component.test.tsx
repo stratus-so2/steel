@@ -145,10 +145,14 @@ describe('<CrmPipelinesPanel />', () => {
 
   it('deletes a pipeline', async () => {
     const spy = setup()
-    const row = (await screen.findByText('Parcerias')).closest(
+    const select = (await screen.findByText('Parcerias')).closest(
       'button',
     ) as HTMLElement
-    fireEvent.click(row.querySelector('button') as HTMLElement)
+    // Sem <button> aninhado: selecionar e remover são botões irmãos.
+    expect(select.querySelector('button')).toBeNull()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remover pipeline Parcerias' }),
+    )
     await waitFor(() =>
       expect(notify.success).toHaveBeenCalledWith('Pipeline removido'),
     )
