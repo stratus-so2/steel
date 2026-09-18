@@ -39,6 +39,7 @@ jobs:
     # Produção fica inerte até o host existir (vars.PRODUCTION_ENABLED).
     if: inputs.environment == 'homologacao' || vars.PRODUCTION_ENABLED == 'true'
     runs-on: ${{ inputs.environment == 'production' && fromJSON(vars.PRODUCTION_RUNNER_LABELS || '["self-hosted","production"]') || fromJSON('["self-hosted"]') }}
+    timeout-minutes: 15
     environment:
       name: ${{ inputs.environment }}
     steps:

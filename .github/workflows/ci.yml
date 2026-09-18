@@ -16,6 +16,7 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
     steps:
@@ -51,6 +52,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
     steps:
@@ -86,6 +88,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -145,6 +148,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -263,6 +267,7 @@ jobs:
   coverage-tests:
     name: Coverage Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -327,6 +332,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16
@@ -389,6 +395,7 @@ jobs:
   audit:
     name: Dependency Audit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -420,6 +427,7 @@ jobs:
   snyk:
     name: Snyk Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       security-events: write
@@ -462,6 +470,7 @@ jobs:
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       security-events: write
@@ -486,6 +495,7 @@ jobs:
   redis-tls-smoke:
     name: Redis TLS Smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       REDIS_URL: rediss://:testpassword@localhost:6379
       REDIS_PASSWORD: testpassword
@@ -551,6 +561,7 @@ jobs:
   gitleaks:
     name: Secret Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -567,6 +578,7 @@ jobs:
     name: PR Title Convention
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       pull-requests: read
     steps:
@@ -590,6 +602,7 @@ jobs:
       - redis-tls-smoke
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Fail if any required job failed or was cancelled
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
@@ -606,6 +619,7 @@ jobs:
     needs: [gate]
     if: failure()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Prepare notification context
         id: ctx

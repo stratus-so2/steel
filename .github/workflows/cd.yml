@@ -52,6 +52,7 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       version: ${{ steps.calver.outputs.version }}
       short_sha: ${{ steps.calver.outputs.short_sha }}
@@ -81,6 +82,7 @@ jobs:
     name: Build, Scan & Push Image
     needs: version
     runs-on: self-hosted
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
@@ -160,6 +162,7 @@ jobs:
     # migration aplicada sem imagem para acompanhar é o pior dos casos.
     needs: [version, build]
     runs-on: self-hosted
+    timeout-minutes: 15
     steps:
       # Mesmo commit da imagem (ver comentário no job build).
       # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
@@ -194,6 +197,7 @@ jobs:
     name: Deploy to Homologação
     needs: [version, build, migrate]
     runs-on: self-hosted
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: read
@@ -237,6 +241,7 @@ jobs:
     name: Tag & Release
     needs: [version, deploy]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
@@ -268,6 +273,7 @@ jobs:
     needs: [version, build, migrate, deploy]
     if: always() && needs.version.result == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
