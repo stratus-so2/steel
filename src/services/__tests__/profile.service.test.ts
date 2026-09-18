@@ -38,6 +38,30 @@ describe('ProfileService', () => {
     })
   })
 
+  describe('Visualizador (VIEWER)', () => {
+    it('should forbid a VIEWER from creating, updating or deleting profiles', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'VIEWER' })),
+      )
+
+      expectErr(
+        await ProfileService.create('u1', 'ws1', {
+          name: 'Vendedor',
+          permissions: {},
+        }),
+        'FORBIDDEN',
+      )
+      expectErr(
+        await ProfileService.update('u1', 'ws1', 'p1', { name: 'X' }),
+        'FORBIDDEN',
+      )
+      expectErr(await ProfileService.remove('u1', 'ws1', 'p1'), 'FORBIDDEN')
+      expect(mockedProfileRepo.create).not.toHaveBeenCalled()
+      expect(mockedProfileRepo.update).not.toHaveBeenCalled()
+      expect(mockedProfileRepo.delete).not.toHaveBeenCalled()
+    })
+  })
+
   describe('create()', () => {
     it('should return PROFILE_NAME_TAKEN when the name already exists', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(

@@ -71,3 +71,25 @@ describe('MembershipService', () => {
     })
   })
 })
+
+describe('setProfile() — Visualizador', () => {
+  it('should forbid a VIEWER from changing another member profile', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'VIEWER' })),
+    )
+
+    expectErr(
+      await MembershipService.setProfile('viewer', 'ws1', 'other', null),
+      'FORBIDDEN',
+    )
+    expect(mockedMembership.setProfile).not.toHaveBeenCalled()
+  })
+
+  it('should forbid a VIEWER from listing members with their access', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'VIEWER' })),
+    )
+
+    expectErr(await MembershipService.listMembers('viewer', 'ws1'), 'FORBIDDEN')
+  })
+})
