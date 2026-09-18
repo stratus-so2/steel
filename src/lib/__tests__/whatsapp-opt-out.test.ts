@@ -10,9 +10,8 @@ describe('isWhatsAppOptOutKeyword()', () => {
     'Sair.',
     'PARAR!',
     'Stop',
-    'cancelar',
-    'CÁNCELAR',
     'descadastrar',
+    'DESCADASTRAR!',
     'sáir',
   ])('should match %j', (text) => {
     expect(isWhatsAppOptOutKeyword(text)).toBe(true)
@@ -26,6 +25,10 @@ describe('isWhatsAppOptOutKeyword()', () => {
     'sair do grupo',
     'pode parar de mandar?',
     'não quero cancelar',
+    // Fora da lista de propósito: responder "Cancelar" a um lembrete de
+    // consulta não pode descadastrar o contato das transmissões.
+    'cancelar',
+    'CANCELAR',
     'saira',
     'stopped',
   ])('should not match %j', (text) => {

@@ -72,7 +72,7 @@ async function publishConversationSnapshot(
 }
 
 /**
- * Opt-out LGPD por palavra-chave (SAIR/PARAR/STOP/CANCELAR…): marca o contato
+ * Opt-out LGPD por palavra-chave (SAIR/PARAR/STOP/DESCADASTRAR): marca o contato
  * como descadastrado de transmissões (só na primeira vez — preserva quando e
  * como aconteceu) e confirma na própria conversa. Falha no envio da
  * confirmação não desfaz o descadastro.

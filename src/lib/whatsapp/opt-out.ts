@@ -4,12 +4,15 @@
  * Só a mensagem inteira conta (ignorando caixa, acentos, espaços e pontuação
  * nas pontas): "Sair", " parar! ", "STOP" descadastram; "quero sair do grupo"
  * não — evita descadastrar alguém que só usou a palavra numa frase.
+ *
+ * CANCELAR fica de fora de propósito: é a resposta natural a um lembrete de
+ * consulta/agendamento (broadcasts importados por planilha) e não deve
+ * descadastrar o contato.
  */
 export const WHATSAPP_OPT_OUT_KEYWORDS = [
   'SAIR',
   'PARAR',
   'STOP',
-  'CANCELAR',
   'DESCADASTRAR',
 ] as const
 

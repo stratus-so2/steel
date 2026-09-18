@@ -223,7 +223,7 @@ function EditContactDialog({
 }
 
 const OPT_OUT_SOURCE_LABEL: Record<'KEYWORD' | 'ADMIN', string> = {
-  KEYWORD: 'pediu pelo WhatsApp (SAIR/PARAR/STOP/CANCELAR)',
+  KEYWORD: 'pediu pelo WhatsApp (SAIR/PARAR/STOP/DESCADASTRAR)',
   ADMIN: 'registrado por um administrador',
 }
 

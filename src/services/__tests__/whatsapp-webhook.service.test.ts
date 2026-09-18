@@ -199,6 +199,19 @@ describe('WhatsAppWebhookService', () => {
         expect(mockedSend.text).toHaveBeenCalledTimes(1)
       })
 
+      it('should not treat a bare CANCELAR (e.g. reply to a reminder) as opt-out', async () => {
+        mockInboundPipeline()
+
+        expectOk(
+          await WhatsAppWebhookService.ingestInboundMessage(
+            baseInbound({ text: 'Cancelar' }),
+          ),
+        )
+
+        expect(mockedContactRepo.setBroadcastOptOut).not.toHaveBeenCalled()
+        expect(mockedSend.text).not.toHaveBeenCalled()
+      })
+
       it('should not treat a sentence containing the keyword as opt-out', async () => {
         mockInboundPipeline()
 
