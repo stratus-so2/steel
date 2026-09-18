@@ -58,7 +58,7 @@ export function ConsentForm() {
             htmlFor='accept-privacy'
             className='text-sm leading-5 text-muted-foreground'
           >
-            Li e aceito os{' '}
+            Li e aceito a{' '}
             <Link
               href='/legals/privacy'
               target='_blank'

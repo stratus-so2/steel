@@ -603,6 +603,24 @@ function Chip({
   )
 }
 
+/** Substantivos femininos usados como `createTitle` nas grades do CRM. */
+const FEMININE_TITLES = new Set([
+  'campanha',
+  'empresa',
+  'lista',
+  'nota',
+  'oportunidade',
+  'página',
+  'pessoa',
+  'proposta',
+  'tarefa',
+])
+
+/** Rótulo do botão de criação com concordância de gênero ("Nova pessoa"). */
+export function newRecordLabel(title: string): string {
+  return `${FEMININE_TITLES.has(title.toLowerCase()) ? 'Nova' : 'Novo'} ${title}`
+}
+
 export function DataTable<TData extends WithId>({
   columns,
   data,
@@ -1153,7 +1171,7 @@ export function DataTable<TData extends WithId>({
           (disableInlineCreate ? null : (
             <Button size='sm' onClick={addRow}>
               <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-              Novo {createTitle}
+              {newRecordLabel(createTitle)}
             </Button>
           ))}
       </div>
@@ -1361,7 +1379,7 @@ export function DataTable<TData extends WithId>({
                         {disableInlineCreate ? null : (
                           <Button size='sm' className='mt-1' onClick={addRow}>
                             <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-                            Novo {createTitle}
+                            {newRecordLabel(createTitle)}
                           </Button>
                         )}
                       </div>

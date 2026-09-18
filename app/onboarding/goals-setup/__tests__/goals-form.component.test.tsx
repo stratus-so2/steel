@@ -26,6 +26,13 @@ describe('<GoalsForm /> (onboarding)', () => {
     expect(continueButton().disabled).toBe(true)
   })
 
+  it('styles the hint with the muted foreground token', () => {
+    render(<GoalsForm />)
+    expect(screen.getByText('Selecione uma ou várias opções').className).toBe(
+      'text-sm text-muted-foreground',
+    )
+  })
+
   it('enables continue once a goal is checked and disables it again when unchecked', () => {
     render(<GoalsForm />)
     const [first] = screen.getAllByRole('checkbox')

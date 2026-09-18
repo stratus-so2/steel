@@ -30,7 +30,7 @@ export function GoalsForm() {
 
   return (
     <form action={formAction} className='flex flex-col gap-4'>
-      <p className='text-sm text-mutedtext-muted-foreground'>
+      <p className='text-sm text-muted-foreground'>
         Selecione uma ou várias opções
       </p>
 

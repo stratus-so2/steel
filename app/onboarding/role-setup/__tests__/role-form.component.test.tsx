@@ -41,6 +41,13 @@ describe('<RoleForm /> (onboarding)', () => {
     ).toBe(false)
   })
 
+  it('styles the hint with the muted foreground token', () => {
+    render(<RoleForm />)
+    expect(screen.getByText('Selecione uma opção').className).toBe(
+      'text-sm text-muted-foreground',
+    )
+  })
+
   it('submits the selected role with the continue intent', async () => {
     actions.saveRoleSetup.mockResolvedValue({ ok: true })
     render(<RoleForm />)

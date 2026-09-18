@@ -40,6 +40,17 @@ describe('<ConsentForm /> (onboarding)', () => {
     ).toBe('/legals/privacy')
   })
 
+  it('uses the right article before each document', () => {
+    render(<ConsentForm />)
+    const labels = screen
+      .getAllByText(/Li e aceito/)
+      .map((l) => l.textContent?.replace(/\s+/g, ' ').trim())
+    expect(labels).toEqual([
+      'Li e aceito os Termos de Serviço',
+      'Li e aceito a Política de Privacidade',
+    ])
+  })
+
   it('submits both consent flags to the server action', async () => {
     actions.acceptOnboardingConsent.mockResolvedValue({ ok: true })
     render(<ConsentForm />)

@@ -48,9 +48,7 @@ export function RoleForm() {
 
   return (
     <form action={formAction} className='flex flex-col gap-4'>
-      <p className='text-sm text-mutedtext-muted-foreground'>
-        Selecione uma opção
-      </p>
+      <p className='text-sm text-muted-foreground'>Selecione uma opção</p>
 
       <div className='flex flex-col gap-3'>
         {ROLES.map((role) => (

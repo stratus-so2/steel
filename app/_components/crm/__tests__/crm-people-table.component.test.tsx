@@ -89,7 +89,8 @@ describe('<CrmPeopleTable />', { timeout: 15_000 }, () => {
     renderTable()
 
     expect(await screen.findByText('Nada por aqui ainda')).toBeTruthy()
-    expect(screen.getAllByText(/^Nov[oa] pessoa$/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Nova pessoa').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Novo pessoa')).toBeNull()
   })
 
   it('filters rows through the global search', async () => {
