@@ -15,12 +15,14 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { CrmEmailCampaignRecipientRepository } from '@/src/repositories/crm-email-campaign.repository'
 import { CrmEmailOptOutRepository } from '@/src/repositories/crm-email-opt-out.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmEmailOptOutService } from '../crm-email-opt-out.service'
 
 const mockedRecipientRepo = vi.mocked(CrmEmailCampaignRecipientRepository)
 const mockedOptOutRepo = vi.mocked(CrmEmailOptOutRepository)
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedAudit = vi.mocked(auditMutation)
+const mockedModuleAccess = vi.mocked(WorkspaceModuleAccessRepository)
 
 function recipientWithCampaign() {
   return {
@@ -104,6 +106,23 @@ describe('CrmEmailOptOutService', () => {
       expect(mockedAudit).not.toHaveBeenCalled()
     })
 
+    it('should return MODULE_DISABLED when the CRM is off for the token workspace', async () => {
+      mockedRecipientRepo.findByIdWithCampaign.mockResolvedValue(
+        ok(recipientWithCampaign()),
+      )
+      mockedModuleAccess.isEnabled.mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await CrmEmailOptOutService.unsubscribe(
+          createCrmUnsubscribeToken('r1'),
+          'LINK',
+        ),
+        'MODULE_DISABLED',
+      )
+      expect(mockedModuleAccess.isEnabled).toHaveBeenCalledWith('ws1', 'CRM')
+      expect(mockedOptOutRepo.upsert).not.toHaveBeenCalled()
+    })
+
     it('should reject a forged token without touching the database', async () => {
       const [, signature] = createCrmUnsubscribeToken('r1').split('.')
       const forged = `${Buffer.from('r2').toString('base64url')}.${signature}`
@@ -150,6 +169,18 @@ describe('CrmEmailOptOutService', () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
 
       expectErr(await CrmEmailOptOutService.list('u1', 'ws1'), 'FORBIDDEN')
+    })
+
+    it('should return MODULE_DISABLED when the CRM is off', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      mockedModuleAccess.isEnabled.mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await CrmEmailOptOutService.list('u1', 'ws1'),
+        'MODULE_DISABLED',
+      )
     })
 
     it('should list the workspace opt-outs for a member', async () => {

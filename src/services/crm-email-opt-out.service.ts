@@ -10,7 +10,7 @@ import type {
   CrmEmailOptOutDTO,
   CrmEmailUnsubscribeResultDTO,
 } from '@/types/crm-email-marketing'
-import { assertMember } from './authz'
+import { assertModuleEnabled, assertModuleMember } from './authz'
 
 /** Resolve o token assinado para o destinatário. Qualquer falha vira o
  * mesmo erro genérico — não revela se o destinatário existe. */
@@ -27,6 +27,15 @@ async function resolveRecipient(token: string) {
       ? err(crmEmailUnsubscribeInvalid())
       : recipient
   }
+
+  // Rota pública: a workspace vem do token, e o módulo CRM precisa estar
+  // habilitado nela (mesma regra dos formulários/propostas públicos).
+  const moduleEnabled = await assertModuleEnabled(
+    recipient.value.campaign.workspaceId,
+    'CRM',
+  )
+  if (!moduleEnabled.ok) return moduleEnabled
+
   return ok(recipient.value)
 }
 
@@ -100,7 +109,10 @@ export const CrmEmailOptOutService = {
     actorId: string,
     workspaceId: string,
   ): Promise<Result<CrmEmailOptOutDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
     if (!membership.ok) return membership
 
     const result = await CrmEmailOptOutRepository.listByWorkspace(workspaceId)
