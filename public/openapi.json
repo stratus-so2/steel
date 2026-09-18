@@ -121,6 +121,10 @@
       "description": "Conversas e mensagens do WhatsApp, atribuição e fechamento."
     },
     {
+      "name": "Comunicação · Contatos",
+      "description": "Contatos do WhatsApp."
+    },
+    {
       "name": "Comunicação · Conexões",
       "description": "Conexões com a Meta Cloud API e a Z-API."
     },
@@ -226,7 +230,7 @@
     },
     {
       "name": "Comunicação",
-      "tags": ["Comunicação · Conversas", "Comunicação · Conexões"]
+      "tags": ["Comunicação · Conversas", "Comunicação · Contatos", "Comunicação · Conexões"]
     },
     {
       "name": "Páginas públicas do CRM",
@@ -438,7 +442,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_2"
           },
           "409": {
-            "$ref": "#/components/responses/409_CONFLICT_2"
+            "$ref": "#/components/responses/409_CONFLICT_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -5840,7 +5844,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "409": {
-            "$ref": "#/components/responses/409_CONFLICT_4"
+            "$ref": "#/components/responses/409_CONFLICT_5"
           }
         },
         "security": [
@@ -24712,7 +24716,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -24870,7 +24874,7 @@
             "$ref": "#/components/responses/404_CRM_PROPOSAL_NOT_FOUND"
           },
           "409": {
-            "$ref": "#/components/responses/409_CONFLICT_3"
+            "$ref": "#/components/responses/409_CONFLICT_4"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
@@ -33445,7 +33449,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33583,7 +33587,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
           },
           "409": {
             "$ref": "#/components/responses/409_WHATSAPP_CONNECTION_CONFLICT"
@@ -33680,7 +33684,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -33749,7 +33753,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -33815,13 +33819,577 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/contacts": {
+      "get": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Listar contatos",
+        "operationId": "getWorkspacesByIdWhatsappContacts",
+        "description": "Contatos do workspace em ordem alfabética, com o número de conversas. `search` filtra por nome (sem diferenciar maiúsculas) ou trecho do número. Sem paginação. Módulo **Comunicação** habilitado e permissão `contacts` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contatos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppContact"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Criar contato",
+        "operationId": "postWorkspacesByIdWhatsappContacts",
+        "description": "Cadastra um contato pelo número (`waId`, só dígitos com DDI e DDD). Auditado. Módulo **Comunicação** habilitado e permissão `contacts` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "waId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 20,
+                    "pattern": "^\\d+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "avatarUrl": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "format": "uri"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": ["waId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Contato criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppContact"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_CONFLICT_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/contacts/find-or-create": {
+      "post": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Buscar ou criar contato",
+        "operationId": "postWorkspacesByIdWhatsappContactsFindOrCreate",
+        "description": "Upsert pelo número: devolve o contato existente com esse `waId` ou cria um novo — útil para iniciar conversa a partir de um número digitado. Módulo **Comunicação** habilitado e permissão `contacts` × `CREATE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "waId": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 20,
+                    "pattern": "^\\d+$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  }
+                },
+                "required": ["waId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contato existente ou recém-criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppContact"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/contacts/{contactId}": {
+      "patch": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Atualizar contato",
+        "operationId": "patchWorkspacesByIdWhatsappContactsByContactId",
+        "description": "Atualização parcial de nome, avatar e descrição. Campo omitido = sem alteração; `null` ou `\"\"` apaga o valor. O número não muda. Auditado. Módulo **Comunicação** habilitado e permissão `contacts` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contato do WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 120
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "avatarUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contato atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppContact"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Excluir contato",
+        "operationId": "deleteWorkspacesByIdWhatsappContactsByContactId",
+        "description": "Exclui o contato e, em cascata, suas conversas (com as mensagens) e participações em transmissões. Auditado. Módulo **Comunicação** habilitado e permissão `contacts` × `DELETE` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contato do WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contato excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/contacts/{contactId}/broadcast-opt-out": {
+      "put": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Descadastrar/reinscrever em transmissões (LGPD)",
+        "operationId": "putWorkspacesByIdWhatsappContactsByContactIdBroadcastOptOut",
+        "description": "Opt-out LGPD das transmissões, operado pelo admin (origem `ADMIN`). Descadastrar (`optedOut: true`) é livre — ex.: pedido por telefone ou e-mail. **Reinscrever** (`optedOut: false`) só a pedido explícito do próprio contato: exige `contactRequested: true` (senão `422`), e o opt-out anterior fica registrado na auditoria. Contatos descadastrados são pulados (`SKIPPED`) nos disparos. Auditado (`opt_out`/`opt_in`). Módulo **Comunicação** habilitado; restrito a OWNER/ADMIN do workspace.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contato do WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "optedOut": {
+                    "type": "boolean"
+                  },
+                  "contactRequested": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["optedOut"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contato atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppContact"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/whatsapp/contacts/{contactId}/sync-avatar": {
+      "post": {
+        "tags": ["Comunicação · Contatos"],
+        "summary": "Sincronizar foto de perfil",
+        "operationId": "postWorkspacesByIdWhatsappContactsByContactIdSyncAvatar",
+        "description": "Busca a foto de perfil do contato no WhatsApp e salva em `avatarUrl`. Usa a primeira conexão **Z-API** do workspace — a API oficial da Meta não expõe fotos de contatos. Sem corpo. Módulo **Comunicação** habilitado e permissão `contacts` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contactId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contato do WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contato com a foto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppContact"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_WHATSAPP_CONTACT_PHOTO_UNAVAILABLE"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_2"
           }
         },
         "security": [
@@ -33901,7 +34469,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34037,7 +34605,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -34402,7 +34970,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -34554,7 +35122,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34636,7 +35204,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -35336,7 +35904,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_7"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -36546,7 +37114,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `VIEW`",
+                "summary": "FORBIDDEN — Não é membro ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -36591,7 +37159,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro ou não é OWNER/ADMIN",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -36681,7 +37249,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `DELETE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -36718,6 +37286,96 @@
         }
       },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `conversations` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -36784,7 +37442,97 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `contacts` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -39374,6 +40122,29 @@
           }
         }
       },
+      "404_WHATSAPP_CONTACT_NOT_FOUND": {
+        "description": "Não encontrado: `WHATSAPP_CONTACT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONTACT_NOT_FOUND": {
+                "summary": "WHATSAPP_CONTACT_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Contato não encontrado",
+                  "error": {
+                    "code": "WHATSAPP_CONTACT_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_WHATSAPP_CONVERSATION_NOT_FOUND": {
         "description": "Não encontrado: `WHATSAPP_CONVERSATION_NOT_FOUND`",
         "content": {
@@ -39529,6 +40300,29 @@
             },
             "examples": {
               "CONFLICT": {
+                "summary": "CONFLICT — Já existe contato com este número no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este contato já existe",
+                  "error": {
+                    "code": "CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_CONFLICT_3": {
+        "description": "Conflito com o estado atual: `CONFLICT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "CONFLICT": {
                 "summary": "CONFLICT — Já há backup em andamento",
                 "value": {
                   "success": false,
@@ -39542,7 +40336,7 @@
           }
         }
       },
-      "409_CONFLICT_3": {
+      "409_CONFLICT_4": {
         "description": "Conflito com o estado atual: `CONFLICT`",
         "content": {
           "application/json": {
@@ -39565,7 +40359,7 @@
           }
         }
       },
-      "409_CONFLICT_4": {
+      "409_CONFLICT_5": {
         "description": "Conflito com o estado atual: `CONFLICT`",
         "content": {
           "application/json": {
@@ -41933,6 +42727,40 @@
           }
         }
       },
+      "422_WHATSAPP_CONTACT_PHOTO_UNAVAILABLE": {
+        "description": "Dados inválidos: `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONTACT_PHOTO_UNAVAILABLE": {
+                "summary": "WHATSAPP_CONTACT_PHOTO_UNAVAILABLE — Workspace sem conexão Z-API",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Buscar foto de perfil exige uma conexão Z-API — a API oficial da Meta não expõe fotos de contato",
+                  "error": {
+                    "code": "WHATSAPP_CONTACT_PHOTO_UNAVAILABLE"
+                  }
+                }
+              },
+              "WHATSAPP_CONTACT_PHOTO_UNAVAILABLE_2": {
+                "summary": "WHATSAPP_CONTACT_PHOTO_UNAVAILABLE — Contato sem foto (ou foto privada)",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Este contato não tem foto de perfil disponível no WhatsApp",
+                  "error": {
+                    "code": "WHATSAPP_CONTACT_PHOTO_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "429_RATE_LIMITED": {
         "description": "Limite de requisições excedido: `RATE_LIMITED`",
         "content": {
@@ -42469,6 +43297,29 @@
             "examples": {
               "WHATSAPP_PROVIDER_ERROR": {
                 "summary": "WHATSAPP_PROVIDER_ERROR — O provedor (Z-API/Meta) recusou ou falhou o envio",
+                "value": {
+                  "success": false,
+                  "statusCode": 502,
+                  "message": "Falha ao comunicar com o provedor do WhatsApp",
+                  "error": {
+                    "code": "WHATSAPP_PROVIDER_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "502_WHATSAPP_PROVIDER_ERROR_2": {
+        "description": "Falha em serviço externo: `WHATSAPP_PROVIDER_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_PROVIDER_ERROR": {
+                "summary": "WHATSAPP_PROVIDER_ERROR — Falha na consulta à Z-API",
                 "value": {
                   "success": false,
                   "statusCode": 502,
@@ -56124,6 +56975,103 @@
           "createdAt",
           "updatedAt",
           "webhookSecret"
+        ]
+      },
+      "WhatsAppContact": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckv9x2p0h0000ct7d3k1e5abc"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "waId": {
+            "type": "string",
+            "description": "Número do WhatsApp só com dígitos (DDI + DDD + número).",
+            "example": "5511987654321"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatarUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "broadcastOptedOutAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opt-out LGPD de transmissões: data do descadastro, `null` se inscrito."
+          },
+          "broadcastOptOutSource": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["KEYWORD", "ADMIN"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`KEYWORD` = o contato respondeu uma palavra de descadastro; `ADMIN` = marcado no cadastro."
+          },
+          "conversationCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "waId",
+          "name",
+          "avatarUrl",
+          "description",
+          "broadcastOptedOutAt",
+          "broadcastOptOutSource",
+          "conversationCount",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "WhatsAppConversation": {

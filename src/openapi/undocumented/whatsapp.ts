@@ -9,7 +9,6 @@
  */
 export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'DELETE /workspaces/{id}/whatsapp/ai-config/knowledge-documents/{documentId}',
-  'DELETE /workspaces/{id}/whatsapp/contacts/{contactId}',
   'DELETE /workspaces/{id}/whatsapp/dashboards/{dashboardId}',
   'DELETE /workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets/{widgetId}',
   'DELETE /workspaces/{id}/whatsapp/groups/{groupId}/participants',
@@ -23,7 +22,6 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'GET /workspaces/{id}/whatsapp/assignable-members',
   'GET /workspaces/{id}/whatsapp/broadcasts',
   'GET /workspaces/{id}/whatsapp/broadcasts/{broadcastId}',
-  'GET /workspaces/{id}/whatsapp/contacts',
   'GET /workspaces/{id}/whatsapp/dashboards',
   'GET /workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets',
   'GET /workspaces/{id}/whatsapp/groups',
@@ -37,7 +35,6 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'GET /workspaces/{id}/whatsapp/settings',
   'GET /workspaces/{id}/whatsapp/templates',
   'PATCH /workspaces/{id}/whatsapp/ai-config',
-  'PATCH /workspaces/{id}/whatsapp/contacts/{contactId}',
   'PATCH /workspaces/{id}/whatsapp/dashboards/{dashboardId}',
   'PATCH /workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets/{widgetId}',
   'PATCH /workspaces/{id}/whatsapp/groups/{groupId}',
@@ -51,9 +48,6 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'POST /workspaces/{id}/whatsapp/broadcasts',
   'POST /workspaces/{id}/whatsapp/broadcasts/import',
   'POST /workspaces/{id}/whatsapp/broadcasts/{broadcastId}/start',
-  'POST /workspaces/{id}/whatsapp/contacts',
-  'POST /workspaces/{id}/whatsapp/contacts/find-or-create',
-  'POST /workspaces/{id}/whatsapp/contacts/{contactId}/sync-avatar',
   'POST /workspaces/{id}/whatsapp/dashboards',
   'POST /workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets',
   'POST /workspaces/{id}/whatsapp/dashboards/{dashboardId}/widgets/layout',
@@ -67,5 +61,4 @@ export const UNDOCUMENTED_WHATSAPP: readonly string[] = [
   'POST /workspaces/{id}/whatsapp/reports',
   'POST /workspaces/{id}/whatsapp/templates',
   'POST /workspaces/{id}/whatsapp/templates/sync',
-  'PUT /workspaces/{id}/whatsapp/contacts/{contactId}/broadcast-opt-out',
 ]
