@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { AdminFeatureFlagsPanel } from '@/app/_components/admin/admin-feature-flags-panel'
 import { AdminModuleAccessPanel } from '@/app/_components/admin/admin-module-access-panel'
 import { CrmMembersSection } from '@/app/_components/settings/crm-members-section'
 import { CrmProfilesSection } from '@/app/_components/settings/crm-profiles-section'
@@ -9,7 +10,7 @@ import { AdminWorkspaceService } from '@/src/services/admin-workspace.service'
 
 export const metadata: Metadata = {
   title: 'Workspace | Admin | Steel',
-  description: 'Membros, perfis e módulos de um workspace',
+  description: 'Membros, perfis, módulos e funcionalidades de um workspace',
 }
 
 const ADMIN_BASE_PATH = '/api/admin/workspaces'
@@ -45,6 +46,15 @@ export default async function AdminWorkspaceDetailPage({
         </CardHeader>
         <CardContent>
           <AdminModuleAccessPanel workspaceId={workspace.id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Funcionalidades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AdminFeatureFlagsPanel workspaceId={workspace.id} />
         </CardContent>
       </Card>
 

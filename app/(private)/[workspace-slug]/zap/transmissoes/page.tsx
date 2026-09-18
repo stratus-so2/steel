@@ -1,6 +1,7 @@
 import { Megaphone01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { FeatureGate, FeatureUnavailable } from '@/app/_components/feature-gate'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -46,9 +47,15 @@ export default async function ZapBroadcastsPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='w-full p-6'>
-        <WhatsappSettingsBroadcasts
+        <FeatureGate
           workspaceId={membership.value.workspaceId}
-        />
+          feature='communication.broadcasts'
+          fallback={<FeatureUnavailable title='Transmissões' />}
+        >
+          <WhatsappSettingsBroadcasts
+            workspaceId={membership.value.workspaceId}
+          />
+        </FeatureGate>
       </div>
     </div>
   )
