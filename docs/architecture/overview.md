@@ -90,7 +90,7 @@ resto exige o cookie `better-auth.session_token`).
 | **CRM** | `[workspace-slug]/crm/*` — leads, pessoas, empresas, oportunidades, pipelines, propostas, produtos, forecast, cotas, relatórios, dashboards, campanhas de e-mail, listas, landing pages, formulários, workflows, redes sociais, IA | `src/services/crm-*.service.ts`, `app/api/crm/*` (forms, landing pages, propostas, integrações, workflows) |
 | **Comunicação (WhatsApp)** | `[workspace-slug]/zap/*` — conversas, contatos, grupos, templates, respostas rápidas, transmissões, dashboards, relatórios, configurações | `src/services/whatsapp-*.service.ts`, `src/lib/whatsapp/*` (Meta Cloud API e Z-API), webhooks em `app/api/whatsapp/webhook/{meta,zapi}`, tempo real via SSE `app/api/whatsapp/events` (Redis pub/sub) |
 | **ServiceDesk** | `[workspace-slug]/servicedesk` | casca; domínio ainda em construção |
-| **Base (Nexo)** | auth, onboarding, settings (membros, billing, conexões), wiki, IA, sticky notes, short links, `/status`, `/docs` (Scalar) | `src/services/{workspace,membership,invitation,subscription,user,...}.service.ts` |
+| **Base (Nexo)** | auth, onboarding, settings (membros, billing, conexões), wiki, IA, sticky notes, short links, `/status`, referência da API (Scalar em `/reference`, gerada de `src/openapi/` — ver [API](../api.md)) | `src/services/{workspace,membership,invitation,subscription,user,...}.service.ts` |
 
 Campanhas de e-mail e transmissões do WhatsApp respeitam o descadastro LGPD
 (link + `List-Unsubscribe` no e-mail, palavras-chave no WhatsApp) — regras,

@@ -58,7 +58,7 @@ Two ways to run Steel:
 - **Billing.** Plans (`FREE`, `PRO`, `BUSINESS`, `ENTERPRISE`) with AbacatePay integration and a webhook-driven subscription lifecycle.
 - **Status page.** Built-in `/status` with proactive probes across seven components (app, database, cache, auth, payment, email, storage), incident timelines, post-mortems, and uptime history.
 - **Transactional email.** React Email templates for welcome, OTP, password reset, account deletion, data export, invites, trial promotions, and incident post-mortems.
-- **API documentation.** OpenAPI reference rendered with Scalar at `/docs`.
+- **API documentation.** OpenAPI 3.1 reference generated from the Zod schemas (`pnpm openapi:generate`, see `docs/api.md`) and rendered with Scalar at `/reference` in development.
 
 ## Roadmap
 
