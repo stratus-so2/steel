@@ -47,6 +47,48 @@ export const CrmLeadRepository = {
     }
   },
 
+  /**
+   * Lead em aberto (não fechado, não excluído) mais antigo da workspace que
+   * compartilha ao menos um e-mail (case-insensitive) ou telefone (só
+   * dígitos). Base do dedupe de entrada de leads em todos os canais.
+   * Espera `emails` em minúsculas e `phones` só com dígitos.
+   */
+  async findOpenByContacts(
+    workspaceId: string,
+    contacts: { emails: string[]; phones: string[] },
+  ): Promise<Result<CrmLead | null>> {
+    if (contacts.emails.length === 0 && contacts.phones.length === 0) {
+      return ok(null)
+    }
+    try {
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM crm_leads
+        WHERE workspace_id = ${workspaceId}
+          AND deleted_at IS NULL
+          AND stage <> 'CLOSED'
+          AND (
+            EXISTS (
+              SELECT 1 FROM unnest(emails) e
+              WHERE lower(trim(e)) = ANY(${contacts.emails}::text[])
+            )
+            OR EXISTS (
+              SELECT 1 FROM unnest(phones) p
+              WHERE regexp_replace(p, '[^0-9]', '', 'g') = ANY(${contacts.phones}::text[])
+            )
+          )
+        ORDER BY created_at ASC
+        LIMIT 1
+      `
+      if (rows.length === 0) return ok(null)
+      const lead = await prisma.crmLead.findUnique({
+        where: { id: rows[0].id },
+      })
+      return ok(lead)
+    } catch (error) {
+      return err(dbError('Failed to find open CRM lead by contacts', error))
+    }
+  },
+
   async create(data: {
     workspaceId: string
     createdById: string

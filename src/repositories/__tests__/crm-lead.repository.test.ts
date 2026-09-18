@@ -25,6 +25,72 @@ describe('CrmLeadRepository', () => {
     })
   })
 
+  describe('findOpenByContacts()', () => {
+    it('should match an open lead by e-mail ignoring case', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const seeded = await seedCrmLead(workspace.id, user.id, {
+        emails: ['Jane@Acme.com'],
+      })
+
+      const found = expectOk(
+        await CrmLeadRepository.findOpenByContacts(workspace.id, {
+          emails: ['jane@acme.com'],
+          phones: [],
+        }),
+      )
+      expect(found?.id).toBe(seeded.id)
+    })
+
+    it('should match by phone digits regardless of formatting', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const seeded = await seedCrmLead(workspace.id, user.id, {
+        phones: ['(81) 99999-0000'],
+      })
+
+      const found = expectOk(
+        await CrmLeadRepository.findOpenByContacts(workspace.id, {
+          emails: [],
+          phones: ['81999990000'],
+        }),
+      )
+      expect(found?.id).toBe(seeded.id)
+    })
+
+    it('should ignore closed, deleted and other-workspace leads', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const emails = ['jane@acme.com']
+      await seedCrmLead(workspace.id, user.id, { emails, stage: 'CLOSED' })
+      await seedCrmLead(workspace.id, user.id, {
+        emails,
+        deletedAt: new Date(),
+      })
+      await seedCrmLead(other.id, user.id, { emails })
+
+      const found = expectOk(
+        await CrmLeadRepository.findOpenByContacts(workspace.id, {
+          emails,
+          phones: [],
+        }),
+      )
+      expect(found).toBeNull()
+    })
+
+    it('should return null without contacts', async () => {
+      const workspace = await seedWorkspace()
+      const found = expectOk(
+        await CrmLeadRepository.findOpenByContacts(workspace.id, {
+          emails: [],
+          phones: [],
+        }),
+      )
+      expect(found).toBeNull()
+    })
+  })
+
   describe('listByWorkspace()', () => {
     it('should filter by stage when provided', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])

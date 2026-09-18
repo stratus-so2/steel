@@ -38,6 +38,47 @@ export const CrmPersonRepository = {
     }
   },
 
+  /**
+   * Pessoa mais antiga da workspace que compartilha ao menos um e-mail
+   * (case-insensitive) ou telefone (só dígitos) com os informados. Usado na
+   * conversão de lead para não duplicar contatos já cadastrados.
+   * Espera `emails` em minúsculas e `phones` só com dígitos.
+   */
+  async findFirstByContacts(
+    workspaceId: string,
+    contacts: { emails: string[]; phones: string[] },
+  ): Promise<Result<CrmPerson | null>> {
+    if (contacts.emails.length === 0 && contacts.phones.length === 0) {
+      return ok(null)
+    }
+    try {
+      const rows = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM crm_people
+        WHERE workspace_id = ${workspaceId}
+          AND deleted_at IS NULL
+          AND (
+            EXISTS (
+              SELECT 1 FROM unnest(emails) e
+              WHERE lower(trim(e)) = ANY(${contacts.emails}::text[])
+            )
+            OR EXISTS (
+              SELECT 1 FROM unnest(phones) p
+              WHERE regexp_replace(p, '[^0-9]', '', 'g') = ANY(${contacts.phones}::text[])
+            )
+          )
+        ORDER BY created_at ASC
+        LIMIT 1
+      `
+      if (rows.length === 0) return ok(null)
+      const person = await prisma.crmPerson.findUnique({
+        where: { id: rows[0].id },
+      })
+      return ok(person)
+    } catch (error) {
+      return err(dbError('Failed to find CRM person by contacts', error))
+    }
+  },
+
   async create(data: {
     workspaceId: string
     createdById: string

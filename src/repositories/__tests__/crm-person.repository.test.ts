@@ -32,6 +32,61 @@ describe('CrmPersonRepository', () => {
     })
   })
 
+  describe('findFirstByContacts()', () => {
+    it('should return the oldest person sharing an e-mail (case-insensitive)', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const oldest = await seedCrmPerson(workspace.id, user.id, {
+        emails: ['JANE@acme.com'],
+      })
+      await seedCrmPerson(workspace.id, user.id, { emails: ['jane@acme.com'] })
+
+      const found = expectOk(
+        await CrmPersonRepository.findFirstByContacts(workspace.id, {
+          emails: ['jane@acme.com'],
+          phones: [],
+        }),
+      )
+      expect(found?.id).toBe(oldest.id)
+    })
+
+    it('should match by phone digits', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const seeded = await seedCrmPerson(workspace.id, user.id, {
+        phones: ['+55 81 99999-0000'],
+      })
+
+      const found = expectOk(
+        await CrmPersonRepository.findFirstByContacts(workspace.id, {
+          emails: [],
+          phones: ['5581999990000'],
+        }),
+      )
+      expect(found?.id).toBe(seeded.id)
+    })
+
+    it('should ignore deleted people and other workspaces', async () => {
+      const [workspace, other, user] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+        seedUser(),
+      ])
+      const emails = ['jane@acme.com']
+      await seedCrmPerson(workspace.id, user.id, {
+        emails,
+        deletedAt: new Date(),
+      })
+      await seedCrmPerson(other.id, user.id, { emails })
+
+      const found = expectOk(
+        await CrmPersonRepository.findFirstByContacts(workspace.id, {
+          emails,
+          phones: [],
+        }),
+      )
+      expect(found).toBeNull()
+    })
+  })
+
   describe('listByWorkspace()', () => {
     it('should filter by companyId when provided', async () => {
       const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])

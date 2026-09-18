@@ -97,6 +97,7 @@ export async function seedCrmLead(
       CrmLead,
       | 'name'
       | 'emails'
+      | 'phones'
       | 'company'
       | 'source'
       | 'stage'
