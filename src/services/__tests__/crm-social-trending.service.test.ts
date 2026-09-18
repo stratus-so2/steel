@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeCrmSocialConnection } from '@/src/__tests__/factories/crm-social.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -22,6 +22,17 @@ const mockedFetchEnrichedMediaSince = vi.mocked(fetchEnrichedMediaSince)
 const mockedFetchActiveStories = vi.mocked(fetchActiveStories)
 
 describe('CrmSocialTrendingService', () => {
+  // "Hoje" depende do relógio: fixa às 23h locais para que posts de até
+  // 10h atrás continuem no mesmo dia, independente da hora do CI.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 15, 23, 0, 0))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   describe('getTodayRanking()', () => {
     it('should return FORBIDDEN for a non-member', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
