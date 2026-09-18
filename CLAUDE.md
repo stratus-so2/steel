@@ -1,0 +1,207 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+**Steel** is Stratus Telecom's multi-tenant platform that bundles **ServiceDesk**, **CRM** and **Comunicação (WhatsApp Business)** in one workspace. It was bootstrapped from the **Nexo** base (project management) — auth, workspaces, billing, status page, e-mails and the layered architecture come from there; the CRM and WhatsApp modules are built on top. Stack: Next.js 16 (App Router), PostgreSQL 17 / Prisma 7, Redis 8 (TLS), BullMQ, MinIO (S3), Better Auth, Axiom. Package manager is **pnpm**. License is proprietary.
+
+## Working mode (MUST follow)
+
+Act as a **code assistant**: deliver the code to write directly in the text of your reply (fenced blocks + explanation). Only modify, create, or delete a file when the user **explicitly asks** for that file change in the current message. A general task description is not standing permission to touch the filesystem — do not call Edit/Write or mutating Bash commands without an explicit request.
+
+## Project docs
+
+Documentation lives **in this repo** under `docs/` (pt-BR with EN technical terms):
+
+- `docs/architecture/overview.md` — macro architecture (layers, modules, worker queues, infra, backups, delivery). Start here.
+- `docs/adr/` — Architecture Decision Records (trunk-based `main`, `Result` type, CalVer, status collection via worker, self-hosted runner, AI assistant/provider policy). New decisions get a new ADR from `docs/adr/template.md`; never rewrite an accepted one.
+- `docs/runbooks/` — step-by-step operations for the IT team (health check, restart a service, restore a backup, red CI / failed deploy). Keep them in sync when infra or scripts change.
+- `docs/plans-review.md` — current plan limits, where they are enforced, and open decisions.
+
+## Commands
+
+```bash
+pnpm dev                  # start infra (docker + migrations) then `next dev` on :3001
+pnpm infra                # docker:start + prisma:migrate:dev (no dev server)
+pnpm docker:create        # first run only — create & start infra containers
+pnpm build                # prisma generate + next build
+pnpm start                # next start on :3001
+pnpm check                # biome check --fix (lint + format + organize imports)
+pnpm check:ci             # biome check, no writes (use this to verify CI will pass)
+pnpm version:sync [tag]   # stamp package.json/openapi.json from a CalVer tag (ADR 0003)
+```
+
+**Ports:** local app **3001**, React Email preview **3002**. Port **3000** is only the production container (behind nginx) and is reserved for another project on the dev machine — never bind to it locally.
+
+### Tests (Vitest — projects in `vite.config.ts`)
+
+```bash
+pnpm test:unit            # services, mappers, schemas, errors, lib/utils — node, fast, mocked
+pnpm test:integration     # repositories + cache — hits a real Postgres + Redis (serial, forks)
+pnpm test:e2e             # app/**/__tests__/*.e2e.test.ts — runs against `next start` (BASE_URL defaults to :3001)
+pnpm test:component       # app/**/__tests__/*.component.test.tsx — jsdom
+pnpm test:all             # every project, --run
+pnpm test:coverage        # unit + integration with coverage
+
+# single test:
+pnpm vitest --project unit src/services/__tests__/sticky-note.service.test.ts
+pnpm vitest --project unit -t "creates a sticky note"   # by test name
+```
+
+Test file location determines which project runs it (see `include` globs in `vite.config.ts`), so place new tests accordingly:
+- `*.test.ts` under `src/services|mappers|schemas|errors`, `src/lib/__tests__`, `lib/__tests__`, `utils/__tests__` → **unit** (worker processors are unit-tested here with mocks, e.g. `src/lib/__tests__/status-collect-processor.test.ts`)
+- `*.test.ts` under `src/repositories|cache` and `*.integration.test.ts` under `src/lib` → **integration** (needs DB/Redis up via `pnpm infra`)
+- `app/**/__tests__/*.e2e.test.ts` → **e2e**; `app/**/__tests__/*.component.test.tsx` → **component**
+- `src/lib/__tests__/*.smoke.test.ts` → **redis-tls** smoke
+- Integration tests truncate all tables `afterEach` (`src/__tests__/setup.integration.ts`), so they require a disposable dev database.
+
+### Worker (BullMQ background jobs — separate process from Next)
+
+```bash
+pnpm worker:dev           # tsx watch worker/index.ts
+pnpm worker:build         # esbuild bundle → dist/worker.cjs
+pnpm worker               # run the built bundle
+```
+
+### Backups & scripts
+
+```bash
+pnpm backup:full                       # enqueue a FULL backup now (worker runs pg_dump)
+pnpm backup:workspace <idOrSlug>       # enqueue a single-workspace backup
+pnpm restore:full <backupId> [--target=<dbUrl>]          # restore from local MinIO
+pnpm restore:full --list-offsite                         # list off-site copies
+pnpm restore:full <backupId> --offsite [--target=<dbUrl>] # restore from the off-site copy
+pnpm restore:workspace <backupId>
+pnpm seed:crm-pipeline | seed:whatsapp-dashboards | seed:user-timezone   # backfills
+```
+
+### Other
+
+```bash
+pnpm prisma:studio        # browse the DB
+pnpm prisma:migrate:dev   # create/apply a migration in dev
+pnpm email                # preview React Email templates (components/emails) on :3002
+```
+
+## Architecture
+
+See `docs/architecture/overview.md` for the full picture; the essentials:
+
+### Layered request flow
+
+API routes are thin; business logic lives in services, data access in repositories. The chain for a typical endpoint:
+
+```
+app/api/**/route.ts  →  Service  →  Repository  →  Prisma
+   (withAxiom)          (Result)     (Result)
+```
+
+A route handler (`app/api/sticky-notes/route.ts` is the canonical example) always:
+1. wraps the handler in `withAxiom` (from `lib/axiom/server`) for logging,
+2. resolves the session via `getAuthSession()` — returns a `Result`, bail with `handleError` on `!ok`,
+3. consumes a rate limiter (`consume(apiLimiter, \`user:${id}\`)`),
+4. validates the body with a Zod schema (`safeParse`, return `standardError('VALIDATION_ERROR', ...)` on failure),
+5. calls the service and returns `successResponse(...)` or `handleError(result.error)`.
+
+### Result type — no thrown errors across layers
+
+Services and repositories never throw; they return `Result<T, AppError>` (`src/lib/result.ts`: `ok(value)` / `err(error)`). Repositories wrap Prisma calls in try/catch and return `err(databaseError(...))` or `err(notFound(...))`. Callers narrow with `if (!result.ok) return result`. This propagates cleanly up to the route, where `handleError` maps the `AppError` to an HTTP response (ADR 0002).
+
+`AppError` (`src/errors/app-error.ts`) is a plain object with a `code` from the central `ERROR_CODES` registry (`src/errors/codes.ts`), which is the single source of truth mapping each code to an HTTP status. Construct errors with the factory helpers (`unauthorized()`, `forbidden()`, `notFound('Resource')`, `validationError()`, `rateLimited()`, etc.) — do not invent new codes inline; add them to `codes.ts` first.
+
+HTTP envelope helpers live in `utils/http-response.ts`: `successResponse`, `errorResponse`, `standardError` (by `ErrorCode`), and `handleError` (by `AppError`, also sets `Retry-After` for rate limits). All responses use the `{ success, statusCode, data | error }` shape from `types/http-response`.
+
+### The per-layer files for an entity
+
+Each domain entity has a parallel file in each layer:
+- `src/schemas/*.schema.ts` — Zod input schemas + inferred DTO types
+- `src/services/*.service.ts` — business rules, authorization checks, audit logging
+- `src/repositories/*.repository.ts` — Prisma access, returns `Result`
+- `src/mappers/*.mapper.ts` — Prisma model → API DTO (`toXDTO`)
+- `src/cache/*.cache.ts` — Redis read-through caching (workspace, user, user-preference, notification-setting, status)
+
+Services own authorization (ownership checks like `value.userId !== actorId → err(forbidden())`, workspace role via `src/services/authz.ts` / `src/lib/permissions.ts`) and emit audit events via `auditMutation` / `auditAuth` from `lib/axiom/audit`.
+
+### Domains
+
+- **Base (from Nexo):** user, workspace, membership, invitation, subscription/coupon (AbacatePay), sticky-note, short-link, project, wiki, changelog, talk-to-sales, consent, status.
+- **CRM** (`src/services/crm-*.service.ts`, UI `app/(private)/[workspace-slug]/crm/*`, public/integration APIs under `app/api/crm/*`): leads (with pipeline/stage gating, scoring and routing rules), people, companies, opportunities, pipelines, proposals + templates, products, forecast, quotas, tasks, notes, activities, custom fields, reports, dashboards, e-mail campaigns/templates/sync, mailing lists, landing pages, forms, workflows, integration keys, competitors, social (Facebook/Instagram/TikTok/X/LinkedIn/YouTube/Google Ads/Analytics) and the CRM AI assistant (OpenAI today; multi-provider per ADR 0007).
+- **Comunicação / WhatsApp** (`src/services/whatsapp-*.service.ts`, `src/lib/whatsapp/*`, UI `app/(private)/[workspace-slug]/zap/*`): connections (Meta Cloud API and Z-API), conversations, messages, contacts, groups, templates, quick replies, broadcasts (+ CSV import), dashboards, AI config + knowledge documents, AI auto-reply and sentiment. Webhooks at `app/api/whatsapp/webhook/{meta,zapi}`; realtime via SSE `app/api/whatsapp/events` over Redis pub/sub (`src/lib/whatsapp/realtime.ts`).
+- **ServiceDesk:** shell only (`[workspace-slug]/servicedesk`), domain not built yet.
+
+### Module access (multi-tenancy)
+
+Everything is scoped by workspace (slug in the URL). Modules (`enum ModuleKind`: `SERVICE_DESK`, `CRM`, `COMMUNICATION`) are enabled per workspace by `WorkspaceModuleAccessService`; each module layout calls `hasModuleAccess(slug, module)` (`src/lib/module-access-guard.ts`) and must call `notFound()` **directly in the layout/page body** (not inside a helper — Cache Components won't see it). A workspace can point a module at its own external Postgres (`WorkspaceModuleConnection`, credentials encrypted with `CONNECTION_SECRETS`, resolved by `src/lib/module-db/resolver.ts`). Plan limits live in `src/config/plans.ts` (only `seats` is enforced today — see `docs/plans-review.md`).
+
+### Auth
+
+Better Auth (`src/lib/auth.ts`) with the Prisma adapter, argon2 hashing, email+password, Google/GitHub OAuth, email-OTP and two-factor plugins. IDs are cuid2. Lifecycle hooks (`sendResetPassword`, `afterEmailVerification`, etc.) trigger transactional emails and audit logging. `getAuthSession()` (`src/lib/auth-session.ts`) is the server-side accessor that returns a `Result`.
+
+The app runs **its own Redis-backed rate limiting** (`src/lib/rate-limit.ts`) on auth routes; Better Auth's built-in limiter is enabled only in production and disabled when `DISABLE_AUTH_RATE_LIMIT=true` (set during e2e, which runs `next start` in production mode). `MAIL_DRY_RUN=true` stops all Resend sends.
+
+### Request middleware — `proxy.ts`
+
+`proxy.ts` (not `middleware.ts`) is the edge entry point. It injects a per-request CSP nonce (`x-nonce` header), sets security headers (CSP, HSTS), logs via Axiom, and gates auth: routes in `PUBLIC_ROUTES` pass through; otherwise it checks the `better-auth.session_token` cookie and either 401s (for `/api/*`) or redirects to `/sign-in`. Additional static-asset security headers are set in `next.config.ts`.
+
+### Background jobs (BullMQ + Redis)
+
+The worker (`worker/index.ts`) is a standalone Node process (same Docker image, container `steel-worker`, `node dist/worker.cjs`). It registers one BullMQ `Worker` per queue and schedules repeatable jobs on boot (`src/lib/queue/scheduler.ts`, crons in `src/lib/queue/retention.ts`, timezone `America/Sao_Paulo`).
+- Queue names & typed job payloads: `src/lib/queue/jobs.ts`
+- Queue singletons (lazy, shared `defaultJobOptions` — 3 attempts, exponential backoff): `src/lib/queue/queues.ts`
+- Processors (`src/lib/queue/processors/`): `data-retention` (03:00 cleanup of sessions/tokens/invitations), `account-lifecycle` (scheduled account deletion), `data-export` (LGPD export), `trial-lifecycle` (hourly trial revert), `whatsapp-media`, `whatsapp-ai-reply`, `whatsapp-sentiment`, `whatsapp-broadcast` (+ 5-min schedule tick), `crm-scheduled-send` (5 min), `crm-workflow-schedule` (1 min), `crm-competitor-sync` (04:00), `crm-social-posts-tick` (1 min), `crm-social-publish` (interactive large-media publish, no retry), `changelog`, `database-backup` (FULL 03:15, prune 03:30, per-workspace, `copy-to-offsite`), `status-collect` (core 1 min, peripheral 5 min — ADR 0004).
+- Queue dashboard: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
+- The worker imports server-only modules via a shim (`worker/server-only.shim.ts`) since it runs outside Next; the build aliases `server-only` to it (and `tsconfig.worker.json` maps it for `tsx` scripts).
+
+### Backups
+
+Daily FULL `pg_dump` (03:15), app-encrypted with `CONNECTION_SECRETS`, stored in MinIO bucket `database-backups`, tracked in the `backups` table, 90-day retention. Each FULL is then copied off-server by `copy-to-offsite` to an S3-compatible remote (`BACKUP_OFFSITE_*`, SSE + read-back verification, own retention); inert with a warning log when not configured (`src/lib/storage/offsite-backup.ts`). Restore procedures: `docs/runbooks/restore-backup.md`.
+
+### Status page
+
+`/status` is backed by proactive probes (`src/services/status/probes.ts`, `components.ts`) across seven components (app, database, cache, auth, payment, email, storage/MinIO), persisted to `HealthCheck` / `ComponentDaily` and surfaced with incident timelines. The worker collects them on a schedule; `POST /api/status/collect/{core,peripheral}` (header `x-status-secret`) stays for manual triggers. From the worker, the app probe hits `STATUS_APP_PROBE_URL` (fallback `BETTER_AUTH_URL`).
+
+### App Router layout
+
+`app/(public)` (sign-in/up, status, docs, legal), `app/(web)` (marketing: pricing, marketplace, talk-to-sales), `app/(private)/[workspace-slug]` (workspace-scoped UI: home, crm, zap, servicedesk, wiki, ai, settings), `app/onboarding`, `app/upgrade`, `app/jobs` (queue dashboard) and `app/api/**`. Shared UI in `app/_components` and `components/` (shadcn/Base UI). API reference is rendered with Scalar at `/docs` from `public/openapi.json`.
+
+## Infrastructure
+
+| Service | Container | Host port | Notes |
+| ------- | --------- | --------- | ----- |
+| PostgreSQL 17 | `steel-db` | 5433 | `docker-compose.infra.yml`, volume `pgdata` |
+| Redis 8 (TLS) | `steel-redis` | 6380 | bitnami pinned by digest (do not switch to `:latest`); certs in `redis-tls/`; URL is `rediss://` |
+| MinIO | `steel-minio` | 127.0.0.1:9002 (API), 127.0.0.1:9003 (console) | image from `quay.io/minio/minio`; API never public (nginx proxies `/media/`) |
+| App | `nextjs-app` | 3000 | `docker-compose.yml` on the server (`/var/www/steel`), behind nginx |
+| Worker | `steel-worker` | — | same image, `node dist/worker.cjs` |
+
+All on the Docker network `steel_default`. Production secrets are SOPS-encrypted in `secrets/production.enc.env` and decrypted by the CD into `/var/www/steel/.env`.
+
+## Creating a new feature
+
+Vertical-slice features follow a fixed, three-block order — **SDD → TDD → Code**. The block sequence never changes; some phases collapse when the domain is trivial. Key rules:
+
+- **Block 1 — SDD (contract first).** Design the public contract before any implementation: (0) domain contract bullets (fields, invariants, ownership scope, pagination, domain errors, LGPD sensitivity) → (1) Zod schema in `src/schemas/<feature>.schema.ts` (`Create`/`Update`/output) → (2) Prisma model + migration (`pnpm prisma migrate dev --name <slug>`) → (3) specific error codes in `src/errors/codes.ts` (`<FEATURE>_NOT_FOUND`, `_FORBIDDEN`, `_LIMIT_REACHED`). Zod first, Prisma second — decide what the API exposes before how it's stored. Only the schema tests go green in this block; the schema *is* the code.
+- **Block 2 — TDD (all tests red before any implementation).** Write the whole suite, importing files that don't exist yet, so it's entirely **red**: (4) test factory in `src/__tests__/factories/` → (5) repository integration tests → (6) mapper tests → (7) service tests (happy path, authz with wrong `userId`, domain limits, the Phase-3 codes) → (8) route e2e tests. No implementation file exists yet. The pre-commit hook runs `pnpm check && pnpm tsc --noEmit`, so keep the tree type-clean as you go.
+- **Block 3 — Code (implement layer by layer until green).** Write only what's needed to pass: (9) repository (pure Prisma, no business rules) → (10) mapper (`Prisma.<X> → <X>DTO`) → (11) service (business rules, `Result`) → (12) HTTP routes + `[id]` route → (13) hook + frontend wiring → (14) observability + manual smoke.
+- **Authorization lives in the service**, not the route (ownership checks like session `userId == resource userId`; module access for CRM/WhatsApp features).
+- **Frontend wiring is part of "done":** creating `src/hooks/use-<feature>.ts` without integrating the existing component does not close the feature.
+- **Observability before the final smoke:** Axiom logs at critical service points, plus `auditMutation`/`auditAuth` for LGPD-sensitive events. Type-check and tests verify code correctness, not feature behavior — always smoke the golden path + a few edge cases in the browser (local app on :3001).
+- Phases 9–11 collapse into near-one block for trivial domains; cache (`src/cache/`) is optional, slotted between the mapper and service when reads become a bottleneck.
+
+## Git workflow
+
+The project follows **trunk-based development with direct commits to `main`** (ADR 0001):
+
+- **`main` is the trunk and the only working branch** — commit directly to it. There is no `dev` branch and no per-feature/per-version PR in the standard flow.
+- **The CI gate is the safety net, not a PR review window.** `ci.yml` runs on `push: [main]` (lint, typecheck, unit, integration, e2e, coverage, build, and the security jobs — audit, snyk, semgrep, gitleaks). `cd.yml` deploys only via `workflow_run` of a **successful** CI run on `main` (self-hosted runner on the production server — ADR 0005), so a red CI never reaches production. Locally, the pre-commit hook (`pnpm check && pnpm tsc --noEmit`) and `commit-msg` (commitlint) fail fast before code leaves the machine.
+- **Releases are CalVer** (`YYYY.MM.DD[.N]`, UTC) tagged by the CD after a successful deploy (ADR 0003). The tag is the source of truth; `package.json`/`openapi.json` carry the last synced release (`pnpm version:sync`).
+- **Commit granularity is the unit of integration** — small, thematic Conventional Commits. Never `git push --force` to `main` (release tags are immutable).
+- **PRs are the exception, not the rule** — reserved for Dependabot and external contributors.
+
+## Conventions
+
+- **Path alias `@/`** maps to repo root (e.g. `@/src/services/...`, `@/lib/...`, `@/components/...`). Note there are two `lib` dirs: root `lib/` (axiom, env, abacatepay, legal, version) and `src/lib/` (auth, prisma, redis, queue, rate-limit, result, storage, mail, whatsapp, social, module-db, crypto).
+- **Env vars** are validated with Zod and split into `lib/env/env.ts` (public) and `lib/env/server.ts` (server; `_server.ts` holds the schema). Always import the typed export — never read `process.env` directly (only exceptions: the env modules themselves and vendored UI in `components/ui`). New vars go into the schema **and** `.env.example`. Boolean flags are kept as `'true'`/`'false'` strings (compare `=== 'true'`) so `SKIP_ENV_VALIDATION=true` / `NODE_ENV=test`, which bypass validation, behave the same.
+- **Biome** is the linter/formatter (config in `biome.json`). Note the deliberate split: 2-space indent + single quotes + no semicolons for JS/TS via the `javascript.formatter` block, but the top-level `formatter.indentStyle` is `tab`. Run `pnpm check` before committing; `noParameterAssign` and several `style` rules are errors.
+- **Commits** follow Conventional Commits, enforced by commitlint + Husky pre-commit hooks.
+- User-facing strings, docs and some comments are in **Portuguese (pt-BR)** — match the surrounding language.
+- Prisma models use `@map`/`@@map` to snake_case DB names while keeping camelCase in code.
