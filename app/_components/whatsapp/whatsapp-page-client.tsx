@@ -7,8 +7,16 @@ import type { WhatsAppConversationDTO } from '@/types/whatsapp-conversation'
 import { WhatsappConversationSidebar } from './whatsapp-conversation-sidebar'
 import { WhatsappConversationView } from './whatsapp-conversation-view'
 
-export function WhatsappPageClient({ workspaceId }: { workspaceId: string }) {
-  const [selected, setSelected] = useState<WhatsAppConversationDTO | null>(null)
+export function WhatsappPageClient({
+  workspaceId,
+  initialConversation = null,
+}: {
+  workspaceId: string
+  initialConversation?: WhatsAppConversationDTO | null
+}) {
+  const [selected, setSelected] = useState<WhatsAppConversationDTO | null>(
+    initialConversation,
+  )
   const [connectionId, setConnectionId] = useState<string | undefined>(
     undefined,
   )

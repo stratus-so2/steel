@@ -1,15 +1,19 @@
 'use client'
 
-import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
-import { SteelIcon } from '@/components/icon/icon'
-import { ShortCutButton } from '@/components/shortcut-button'
 import { Button } from '@/components/ui/button'
 import { UserDropdownHelper } from '../user/user-dropdown-helper'
 import { UserDropdownProfile } from '../user/user-dropdown-profile'
 import { WorkSpaceDropdown } from '../workspace/workspace-dropdown/workspace-dropdown-selector'
+import { HeaderInboxButton } from './header-inbox-button'
 
-export function UserHeader({ slug }: { slug: string }) {
+export function UserHeader({
+  slug,
+  workspaceId,
+}: {
+  slug: string
+  workspaceId: string
+}) {
   return (
     <div className='w-full flex justify-between items-center px-3.5'>
       <WorkSpaceDropdown currentSlug={slug} />
@@ -19,9 +23,7 @@ export function UserHeader({ slug }: { slug: string }) {
             Comece agora
           </Button>
         </Link>
-        <ShortCutButton href={`/${slug}/inbox`}>
-          <SteelIcon icon={InboxIcon} strokeWidth={2} size={20} />
-        </ShortCutButton>
+        <HeaderInboxButton slug={slug} workspaceId={workspaceId} />
         <UserDropdownHelper />
         <UserDropdownProfile />
       </div>

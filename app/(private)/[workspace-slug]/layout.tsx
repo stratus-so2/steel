@@ -109,7 +109,7 @@ export default async function WorkspaceLayout({
           slug={slug}
         />
       )}
-      <UserHeader slug={slug} />
+      <UserHeader slug={slug} workspaceId={membership.value.workspaceId} />
       <div className='flex gap-x-1.5 flex-1 overflow-hidden min-h-0 pr-2 pb-2'>
         <GlobalSidebarNavigation slug={slug} />
         <div className='flex-1 w-full min-h-0 min-w-0 flex items-start bg-primary-foreground rounded-lg border border-border overflow-hidden [&>*]:min-h-0 [&>*]:min-w-0'>

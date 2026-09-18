@@ -5,6 +5,9 @@ import { ptBR } from 'date-fns/locale'
 import type { WhatsAppConversationEventDTO } from '@/types/whatsapp-conversation'
 
 function describeEvent(event: WhatsAppConversationEventDTO): string {
+  if (event.kind === 'SENTIMENT_ALERT') {
+    return 'Sentimento negativo: supervisores avisados'
+  }
   if (event.kind === 'CLOSED') {
     if (event.source === 'INACTIVITY') {
       return 'Conversa fechada automaticamente por inatividade'
@@ -33,7 +36,11 @@ export function WhatsappConversationEventChip({
           })}
         </p>
         {event.reason ? (
-          <p className='mt-0.5 italic'>Motivo: {event.reason}</p>
+          <p className='mt-0.5 italic'>
+            {event.kind === 'SENTIMENT_ALERT'
+              ? event.reason
+              : `Motivo: ${event.reason}`}
+          </p>
         ) : null}
       </div>
     </div>

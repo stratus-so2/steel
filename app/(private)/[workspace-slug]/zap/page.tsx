@@ -10,6 +10,7 @@ import { WhatsappPageClient } from '@/app/_components/whatsapp/whatsapp-page-cli
 import { SteelIcon } from '@/components/icon/icon'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { MembershipService } from '@/src/services/membership.service'
+import { WhatsAppConversationService } from '@/src/services/whatsapp-conversation.service'
 
 export const metadata: Metadata = {
   title: 'WhatsApp | Steel',
@@ -18,10 +19,15 @@ export const metadata: Metadata = {
 
 export default async function ZapPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ 'workspace-slug': string }>
+  searchParams: Promise<{ conversa?: string }>
 }) {
-  const { 'workspace-slug': slug } = await params
+  const [{ 'workspace-slug': slug }, { conversa }] = await Promise.all([
+    params,
+    searchParams,
+  ])
 
   const session = await getAuthSession()
   if (!session.ok) redirect('/sign-in')
@@ -31,6 +37,15 @@ export default async function ZapPage({
     slug,
   )
   if (!membership.ok || !membership.value) notFound()
+
+  // Link de notificação (?conversa=<id>): abre a conversa já selecionada.
+  const initial = conversa
+    ? await WhatsAppConversationService.get(
+        session.value.user.id,
+        membership.value.workspaceId,
+        conversa,
+      )
+    : null
 
   return (
     <div className='flex h-full w-full flex-col'>
@@ -46,7 +61,10 @@ export default async function ZapPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='min-h-0 flex-1'>
-        <WhatsappPageClient workspaceId={membership.value.workspaceId} />
+        <WhatsappPageClient
+          workspaceId={membership.value.workspaceId}
+          initialConversation={initial?.ok ? initial.value : null}
+        />
       </div>
     </div>
   )
