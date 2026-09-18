@@ -339,6 +339,12 @@ export const ERROR_CODES = {
   CHANGELOG_NOT_FOUND: { code: 'CHANGELOG_NOT_FOUND', status: 404 },
   CHANGELOG_LOCKED: { code: 'CHANGELOG_LOCKED', status: 409 },
   BACKUP_NOT_FOUND: { code: 'BACKUP_NOT_FOUND', status: 404 },
+  // IA multi-provedor: 402 (não 429) porque a cota mensal é orçamento
+  // esgotado, não limite de taxa — tentar de novo não resolve até o admin
+  // aumentar a cota ou virar o mês (e não deve disparar `Retry-After`).
+  AI_QUOTA_EXCEEDED: { code: 'AI_QUOTA_EXCEEDED', status: 402 },
+  AI_MODEL_NOT_ENABLED: { code: 'AI_MODEL_NOT_ENABLED', status: 422 },
+  AI_PROVIDER_UNAVAILABLE: { code: 'AI_PROVIDER_UNAVAILABLE', status: 503 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

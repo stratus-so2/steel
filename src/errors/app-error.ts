@@ -554,3 +554,23 @@ export const crmHookVaultItemNotFound = (): AppError =>
 
 export const crmTrackedCompetitorNotFound = (): AppError =>
   appError('CRM_TRACKED_COMPETITOR_NOT_FOUND', 'Concorrente não encontrado')
+
+const formatUsd = (value: number): string =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'USD' })
+
+export const aiQuotaExceeded = (usedUsd: number, quotaUsd: number): AppError =>
+  appError(
+    'AI_QUOTA_EXCEEDED',
+    `A cota mensal de IA do workspace foi atingida (${formatUsd(usedUsd)} de ${formatUsd(quotaUsd)}). Peça a um administrador para ajustá-la em Ajustes > Steel IA ou aguarde o próximo mês.`,
+    { usedUsd, quotaUsd },
+  )
+
+export const aiModelNotEnabled = (): AppError =>
+  appError(
+    'AI_MODEL_NOT_ENABLED',
+    'Este modelo de IA não está habilitado para o workspace',
+  )
+
+export const aiProviderUnavailable = (
+  message = 'Nenhum provedor de IA habilitado está disponível neste ambiente',
+): AppError => appError('AI_PROVIDER_UNAVAILABLE', message)

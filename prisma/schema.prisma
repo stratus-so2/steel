@@ -94,6 +94,8 @@ model User {
   crmFormsCreated                    CrmForm[]                     @relation("CrmFormCreatedBy")
   crmFormsUpdated                    CrmForm[]                     @relation("CrmFormUpdatedBy")
   crmAiConversationsOwned            CrmAiConversation[]           @relation("CrmAiConversationUser")
+  aiPreferences                      UserAiPreference[]
+  aiUsage                            AiUsage[]
   crmIntegrationApiKeysCreated       CrmIntegrationApiKey[]        @relation("CrmIntegrationApiKeyCreatedBy")
   crmEmailTemplatesCreated           CrmEmailTemplate[]            @relation("CrmEmailTemplateCreatedBy")
   crmEmailTemplatesUpdated           CrmEmailTemplate[]            @relation("CrmEmailTemplateUpdatedBy")
@@ -319,6 +321,9 @@ model Workspace {
   crmForms                  CrmForm[]
   crmAiConversations        CrmAiConversation[]
   crmAiUsage                CrmAiUsage[]
+  aiSettings                WorkspaceAiSettings?
+  aiUserPreferences         UserAiPreference[]
+  aiUsage                   AiUsage[]
   crmIntegrationApiKeys     CrmIntegrationApiKey[]
   crmEmailTemplates         CrmEmailTemplate[]
   crmEmailCampaigns         CrmEmailCampaign[]
@@ -3022,4 +3027,72 @@ model ChangelogRecipient {
   @@unique([changelogId, email])
   @@index([changelogId, status])
   @@map("changelog_recipients")
+}
+
+/// Ajustes de IA do workspace: modelos habilitados (chaves
+/// `"<provider>:<model>"` do catálogo em `src/lib/ai/models.ts`), modelo
+/// padrão por funcionalidade e cota mensal de consumo. Sem linha = padrões
+/// da plataforma (tudo habilitado, `openai:gpt-4o-mini`, US$ 50/mês).
+/// `usdPer1kTokens` é a regra de custo (1000 tokens = US$ 4,00) — definida
+/// pela plataforma, não editável pelo admin do workspace.
+model WorkspaceAiSettings {
+  id                     String   @id @default(cuid())
+  workspaceId            String   @unique @map("workspace_id")
+  enabledModels          String[] @map("enabled_models")
+  crmAssistantModel      String   @map("crm_assistant_model")
+  whatsappReplyModel     String   @map("whatsapp_reply_model")
+  whatsappSentimentModel String   @map("whatsapp_sentiment_model")
+  monthlyQuotaUsd        Decimal  @default(50) @map("monthly_quota_usd") @db.Decimal(12, 2)
+  usdPer1kTokens         Decimal  @default(4) @map("usd_per_1k_tokens") @db.Decimal(12, 4)
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_ai_settings")
+}
+
+/// Modelo de IA escolhido pelo usuário dentro de um workspace (assistente do
+/// CRM). Só vale se continuar habilitado no workspace — senão cai no padrão.
+model UserAiPreference {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  modelKey    String   @map("model_key")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("user_ai_preferences")
+}
+
+enum AiUsageFeature {
+  CRM_ASSISTANT
+  WHATSAPP_REPLY
+  WHATSAPP_SENTIMENT
+}
+
+/// Livro-razão de consumo de IA de todas as funcionalidades — base da cota
+/// mensal. `costUsd` é congelado no momento da chamada (tokens × regra de
+/// custo vigente). `userId` nulo para jobs em background.
+model AiUsage {
+  id           String         @id @default(cuid())
+  workspaceId  String         @map("workspace_id")
+  userId       String?        @map("user_id")
+  feature      AiUsageFeature
+  provider     String
+  model        String
+  inputTokens  Int            @default(0) @map("input_tokens")
+  outputTokens Int            @default(0) @map("output_tokens")
+  costUsd      Decimal        @map("cost_usd") @db.Decimal(14, 6)
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@map("ai_usage")
 }

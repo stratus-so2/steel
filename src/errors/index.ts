@@ -1,4 +1,7 @@
 export {
+  aiModelNotEnabled,
+  aiProviderUnavailable,
+  aiQuotaExceeded,
   badRequest,
   changelogLocked,
   changelogNotFound,

@@ -1,0 +1,44 @@
+import { z } from 'zod'
+import { AI_MODEL_KEYS, MAX_MONTHLY_QUOTA_USD } from '@/src/lib/ai/models'
+
+const AiModelKeySchema = z.enum(AI_MODEL_KEYS, {
+  error: 'Modelo de IA desconhecido',
+})
+
+/**
+ * Ajustes de IA do workspace (só OWNER/ADMIN). Todos os campos são
+ * opcionais — PATCH parcial. A consistência entre os modelos padrão e a
+ * lista de habilitados é validada no service (depende do estado salvo).
+ */
+export const UpdateWorkspaceAiSettingsSchema = z.object({
+  enabledModels: z
+    .array(AiModelKeySchema)
+    .min(1, 'Habilite ao menos um modelo')
+    .refine((keys) => new Set(keys).size === keys.length, {
+      message: 'Modelos duplicados',
+    })
+    .optional(),
+  crmAssistantModel: AiModelKeySchema.optional(),
+  whatsappReplyModel: AiModelKeySchema.optional(),
+  whatsappSentimentModel: AiModelKeySchema.optional(),
+  monthlyQuotaUsd: z
+    .number()
+    .min(0, 'A cota não pode ser negativa')
+    .max(MAX_MONTHLY_QUOTA_USD, 'Cota acima do limite permitido')
+    .multipleOf(0.01, 'Use no máximo duas casas decimais')
+    .optional(),
+})
+
+export type UpdateWorkspaceAiSettingsDTO = z.infer<
+  typeof UpdateWorkspaceAiSettingsSchema
+>
+
+/**
+ * Preferência pessoal de modelo (qualquer membro). `null` volta a seguir o
+ * padrão do workspace.
+ */
+export const SetUserAiPreferenceSchema = z.object({
+  modelKey: AiModelKeySchema.nullable(),
+})
+
+export type SetUserAiPreferenceDTO = z.infer<typeof SetUserAiPreferenceSchema>
