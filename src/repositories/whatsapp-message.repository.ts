@@ -25,6 +25,24 @@ export const WhatsAppMessageRepository = {
     }
   },
 
+  /** Últimas `limit` mensagens da conversa, da mais nova para a mais antiga
+   * (contexto da resposta automática da IA). */
+  async listLatestByConversation(
+    conversationId: string,
+    limit: number,
+  ): Promise<Result<WhatsAppMessage[]>> {
+    try {
+      const messages = await prisma.whatsAppMessage.findMany({
+        where: { conversationId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      })
+      return ok(messages)
+    } catch (error) {
+      return err(dbError('Failed to list latest whatsapp messages', error))
+    }
+  },
+
   async findByProviderMessageId(
     providerMessageId: string,
   ): Promise<Result<WhatsAppMessage | null>> {

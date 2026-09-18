@@ -13,6 +13,9 @@ export type WhatsAppConversationWithPreview =
     include: typeof conversationListInclude
   }>
 
+export type WhatsAppConversationWithConnection =
+  Prisma.WhatsAppConversationGetPayload<{ include: { connection: true } }>
+
 export const WhatsAppConversationRepository = {
   async listByWorkspace(
     workspaceId: string,
@@ -68,6 +71,22 @@ export const WhatsAppConversationRepository = {
     try {
       const conversation = await prisma.whatsAppConversation.findUnique({
         where: { id },
+      })
+      return ok(conversation)
+    } catch (error) {
+      return err(dbError('Failed to find whatsapp conversation', error))
+    }
+  },
+
+  /** Sem escopo de workspace: uso exclusivo de jobs em background, que só
+   * recebem o id da conversa no payload. */
+  async findByIdWithConnection(
+    id: string,
+  ): Promise<Result<WhatsAppConversationWithConnection | null>> {
+    try {
+      const conversation = await prisma.whatsAppConversation.findUnique({
+        where: { id },
+        include: { connection: true },
       })
       return ok(conversation)
     } catch (error) {
