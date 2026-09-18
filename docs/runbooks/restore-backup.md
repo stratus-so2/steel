@@ -14,13 +14,17 @@ que estragou dados, ou perda do servidor.
 | ---- | ------ | --------- | -------- |
 | FULL (`pg_dump --format=custom` do banco todo) | todo dia **03:15** (Brasília), pelo `steel-worker` | MinIO local, bucket `database-backups`, chave `full/<backupId>.dump.enc` | 90 dias (limpeza 03:30) |
 | Cópia **offsite** do FULL | logo após cada FULL (job `copy-to-offsite`) | storage S3 externo (`BACKUP_OFFSITE_BUCKET`), chave `<prefixo>full/<backupId>.dump.enc` | `BACKUP_OFFSITE_RETENTION_DAYS` (padrão 90) |
-| WORKSPACE (JSON de um workspace) | sob demanda (`pnpm backup:workspace`) | MinIO local, `workspace/<workspaceId>/<backupId>.json.enc` | 90 dias |
+| WORKSPACE (JSON de um workspace) | sob demanda (painel `/admin/backups`, `pnpm backup:workspace`) e automaticamente antes de excluir/restaurar um workspace pelo painel | MinIO local, `workspace/<workspaceId>/<backupId>.json.enc` | 90 dias |
 
 - Todo backup é **cifrado pela aplicação** com a chave `CONNECTION_SECRETS`
   do `.env`. **Sem essa chave o backup é ilegível** — guarde uma cópia do
   `.env`/da chave SOPS (`SOPS_AGE_KEY`) fora do servidor.
 - Cada backup tem um registro na tabela `backups` (id, status, checksum
   SHA-256, tamanho, datas). O restore confere o checksum antes de aplicar.
+- O painel admin (`/admin/backups`) lista os backups com status, tamanho e
+  onde estão (MinIO/offsite), e baixa o arquivo **cifrado** por um link de
+  5 minutos. Para decifrar uma cópia baixada:
+  `pnpm backup:decrypt <arquivo.enc> <saida>` (mesmo `CONNECTION_SECRETS`).
 - A cópia offsite leva os checksums nos metadados do objeto, então dá para
   restaurá-la **mesmo sem a tabela `backups`** (servidor perdido).
 
@@ -157,19 +161,54 @@ servidor**. Para ativar:
 ## Restore de um workspace
 
 Restaura só os dados de um workspace (apaga o estado atual dele e recria a
-partir do snapshot, numa transação). Não mexe nos outros workspaces.
+partir do snapshot, numa transação — se algo falhar, nada muda). Não mexe nos
+outros workspaces. Também desfaz uma [exclusão](./delete-workspace.md).
+
+O backup de workspace é um JSON com todas as tabelas do workspace (inclusive
+as tabelas-filhas, como estágios de pipeline e itens de oportunidade). **Não
+inclui arquivos** do MinIO (mídias, anexos).
+
+> Backups de workspace gerados antes de 18/09/2026 não tinham as
+> tabelas-filhas: restaurar um deles num workspace com oportunidades,
+> formulários, transmissões etc. falha (e não altera nada). Nesse caso use o
+> caminho do backup FULL descrito no fim desta seção.
+
+### Pelo painel (recomendado)
+
+1. `https://<domínio>/admin/backups` → filtro **Por workspace** (ou a seção
+   “Backups deste workspace” no detalhe do workspace).
+2. No backup desejado (status **Concluído**), clique em **Restaurar**,
+   escreva o motivo e digite o **slug** do workspace.
+3. O worker tira antes um **backup de segurança** do estado atual (se o
+   workspace existe) e então restaura. Acompanhe em “Exclusões e
+   restaurações”; ao concluir aparecem as contagens e o ID do backup de
+   segurança (para desfazer, restaure esse).
+4. Confira no app com um usuário do workspace.
+
+Falhas comuns (a operação mostra o erro; nada foi alterado):
+
+| Erro | Causa | O que fazer |
+| ---- | ----- | ----------- |
+| `O slug "x" já é usado por outro workspace` | o workspace foi excluído e o slug reaproveitado | acione o engenheiro (restaurar com outro slug exige ajuste manual do snapshot) |
+| `Não foi possível restaurar: membership (...)` | um membro do backup teve a conta excluída | acione o engenheiro; o restore precisa ignorar esse membro |
+| `Checksum não bate` | arquivo corrompido | use outro backup |
+
+Um workspace restaurado a partir do backup tirado durante a exclusão volta
+**ativo**; se estava suspenso antes, suspenda de novo pelo painel.
+
+### Pela linha de comando
 
 1. Ache o backup:
    ```bash
    docker exec -it steel-db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c \
-     "SELECT id, workspace_id, started_at FROM backups
+     "SELECT id, workspace_id, workspace_slug, started_at FROM backups
       WHERE scope = '\''WORKSPACE'\'' AND status = '\''COMPLETED'\''
       ORDER BY started_at DESC LIMIT 20;"'
    ```
-   Não há backup de workspace automático: se precisar de um ponto de
-   restauração antes de uma operação arriscada, gere com
-   `pnpm backup:workspace <workspaceIdOuSlug>`.
-2. Restaure: `pnpm restore:workspace <backupId>`
+   Para um ponto de restauração antes de uma operação arriscada:
+   `pnpm backup:workspace <workspaceIdOuSlug>` (ou **Backup agora** no painel).
+2. Restaure: `pnpm restore:workspace <backupId>` (sem backup de segurança —
+   faça um antes, se o workspace existe).
 3. Confira no app com um usuário do workspace.
 
 Para recuperar um workspace a partir de um backup FULL (não há WORKSPACE),

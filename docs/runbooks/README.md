@@ -9,6 +9,7 @@ confirmar que deu certo.
 | "O sistema está no ar?" / alguém reportou lentidão ou erro | [Verificar se o sistema está no ar](./health-check.md) |
 | Um serviço travou, precisa reiniciar | [Reiniciar um serviço](./restart-service.md) |
 | Perda de dados, banco corrompido, servidor perdido | [Restaurar um backup](./restore-backup.md) |
+| Cliente encerrou / pediu exclusão dos dados | [Excluir um workspace](./delete-workspace.md) |
 | CI vermelho, deploy não saiu ou saiu quebrado | [CI vermelho / deploy falhou](./ci-deploy-failure.md) |
 
 ## Referência rápida do servidor
@@ -21,6 +22,7 @@ confirmar que deu certo.
 | Rede Docker | `steel_default` |
 | Status público | `https://<domínio>/status` |
 | Painel das filas | `https://<domínio>/jobs` (usuário/senha `WORKBENCH_USER`/`WORKBENCH_PASS` do `.env`) |
+| Painel admin (workspaces, backups, visão geral) | `https://<domínio>/admin` (conta `@stratustelecom.com.br` com admin global) — ver [painel admin](../admin-panel.md) |
 | Logs centralizados | Axiom, dataset `NEXT_PUBLIC_AXIOM_DATASET` |
 | Segredos | `secrets/production.enc.env` (SOPS); decriptado em `/var/www/steel/.env` a cada deploy |
 

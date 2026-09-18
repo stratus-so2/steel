@@ -79,6 +79,10 @@ resto exige o cookie `better-auth.session_token`).
 - **Feature flags** por workspace (capacidades opcionais dentro de um módulo,
   default por plano + override do admin): [feature-flags](../feature-flags.md).
 
+- **Ciclo de vida** (`workspaces.status`): `ACTIVE`, `SUSPENDED` (bloqueio
+  pelo admin global — `assertMember` responde `WORKSPACE_SUSPENDED`) e
+  `DELETING` (exclusão em andamento). Ver [painel admin](../admin-panel.md).
+
 ## Módulos de domínio
 
 | Módulo | UI | API / serviços |
@@ -136,7 +140,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |
 | `changelog` | e-mails de changelog | sob demanda |
-| `database-backup` | backup FULL (03:15), prune (03:30), backup por workspace, **cópia offsite** | cron + sob demanda |
+| `database-backup` | backup FULL (03:15), prune (03:30), backup por workspace, **cópia offsite**, exclusão e restauração de workspace pelo painel admin | cron + sob demanda |
 | `status-collect` | probes do `/status` ([ADR 0004](../adr/0004-status-collection-worker-jobs.md)) | core 1 min, periféricos 5 min |
 | `usage-rollup` | copia o uso por módulo do Redis para `module_usage_daily` ([métricas](../admin-metrics.md)) | a cada 15 min |
 
@@ -171,7 +175,9 @@ produção (e a outro projeto na máquina de desenvolvimento).
   objeto cifrado para um storage S3-compatível externo (`BACKUP_OFFSITE_*`),
   com SSE e verificação por leitura; retenção própria
   (`BACKUP_OFFSITE_RETENTION_DAYS`, padrão 90). Inerte se não configurado.
-- **Backup por workspace** sob demanda (`pnpm backup:workspace`).
+- **Backup por workspace** sob demanda (painel `/admin/backups` ou
+  `pnpm backup:workspace`) e automático antes de excluir/restaurar um
+  workspace pelo painel.
 - Restore: [runbook](../runbooks/restore-backup.md).
 
 ## Entrega
