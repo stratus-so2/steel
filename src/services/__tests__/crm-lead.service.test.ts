@@ -26,6 +26,7 @@ import { CrmLeadScoringRuleRepository } from '@/src/repositories/crm-lead-scorin
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { CrmProposalRepository } from '@/src/repositories/crm-proposal.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmLeadService } from '../crm-lead.service'
 import { dispatchCrmWorkflowRecordEvent } from '../crm-workflow-dispatcher'
 
@@ -162,6 +163,23 @@ describe('CrmLeadService', () => {
       via: 'form' as const,
       refId: 'f1',
     }
+
+    it('should refuse any intake channel when the CRM is disabled', async () => {
+      vi.mocked(
+        WorkspaceModuleAccessRepository.isEnabled,
+      ).mockResolvedValueOnce(ok(false))
+
+      expectErr(
+        await CrmLeadService.intake('ws1', system, {
+          name: 'Jane',
+          phones: ['81 99999-0000'],
+          source: 'form',
+        }),
+        'MODULE_DISABLED',
+      )
+      expect(mockedLeadRepo.findOpenByContacts).not.toHaveBeenCalled()
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+    })
 
     it('should score, route and attribute a system intake to the channel owner', async () => {
       mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
