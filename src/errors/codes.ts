@@ -88,6 +88,10 @@ export const ERROR_CODES = {
     code: 'WHATSAPP_BROADCAST_LOCKED',
     status: 409,
   },
+  WHATSAPP_BROADCAST_NO_RECIPIENTS: {
+    code: 'WHATSAPP_BROADCAST_NO_RECIPIENTS',
+    status: 422,
+  },
   WHATSAPP_AI_CONFIG_NOT_FOUND: {
     code: 'WHATSAPP_AI_CONFIG_NOT_FOUND',
     status: 404,

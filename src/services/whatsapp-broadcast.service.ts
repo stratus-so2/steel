@@ -1,6 +1,7 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import {
   whatsappBroadcastLocked,
+  whatsappBroadcastNoRecipients,
   whatsappBroadcastNotFound,
   whatsappConnectionNotFound,
 } from '@/src/errors'
@@ -13,6 +14,7 @@ import {
 } from '@/src/mappers/whatsapp-broadcast.mapper'
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import type { CreateWhatsAppBroadcastDTO } from '@/src/schemas/whatsapp-broadcast.schema'
 import type {
   WhatsAppBroadcastListDetailDTO,
@@ -82,7 +84,18 @@ export const WhatsAppBroadcastService = {
     if (!connection.ok) return connection
     if (!connection.value) return err(whatsappConnectionNotFound())
 
-    const uniqueContactIds = Array.from(new Set(dto.contactIds))
+    const requestedIds = Array.from(new Set(dto.contactIds))
+    // Opt-out LGPD: descadastrados (e contatos de outro workspace) saem na
+    // própria query — a UI só reflete, não é a barreira.
+    const eligible = await WhatsAppContactRepository.listBroadcastEligibleIds(
+      workspaceId,
+      requestedIds,
+    )
+    if (!eligible.ok) return eligible
+    const uniqueContactIds = eligible.value
+    if (uniqueContactIds.length === 0) {
+      return err(whatsappBroadcastNoRecipients())
+    }
 
     const result = await WhatsAppBroadcastRepository.create(
       {
@@ -102,7 +115,10 @@ export const WhatsAppBroadcastService = {
       action: 'create',
       actorId,
       targetId: result.value.id,
-      meta: { recipients: uniqueContactIds.length },
+      meta: {
+        recipients: uniqueContactIds.length,
+        excluded: requestedIds.length - uniqueContactIds.length,
+      },
     })
 
     return ok(toWhatsAppBroadcastListDetailDTO(result.value))
@@ -126,9 +142,23 @@ export const WhatsAppBroadcastService = {
     if (!existing.value) return err(whatsappBroadcastNotFound())
     if (existing.value.status !== 'DRAFT') return err(whatsappBroadcastLocked())
 
+    // Quem se descadastrou entre a criação da lista e o disparo não recebe.
+    const optedOut = existing.value.recipients.filter(
+      (recipient) => recipient.contact.broadcastOptedOutAt !== null,
+    )
+    const sendable = existing.value.recipients.filter(
+      (recipient) => recipient.contact.broadcastOptedOutAt === null,
+    )
+    if (optedOut.length > 0) {
+      const skipped = await WhatsAppBroadcastRepository.markRecipientsSkipped(
+        optedOut.map((recipient) => recipient.id),
+      )
+      if (!skipped.ok) return skipped
+    }
+
     const queue = getWhatsappBroadcastQueue()
     await queue.addBulk(
-      existing.value.recipients.map((recipient, index) => ({
+      sendable.map((recipient, index) => ({
         name: WhatsappBroadcastJob.SendBroadcastMessage,
         data: { broadcastListId: id, recipientId: recipient.id },
         opts: { delay: index * STAGGER_DELAY_MS },
@@ -137,7 +167,7 @@ export const WhatsAppBroadcastService = {
 
     const updated = await WhatsAppBroadcastRepository.updateStatus(
       id,
-      'RUNNING',
+      sendable.length > 0 ? 'RUNNING' : 'DONE',
     )
     if (!updated.ok) return updated
 
@@ -146,7 +176,7 @@ export const WhatsAppBroadcastService = {
       action: 'start',
       actorId,
       targetId: id,
-      meta: { recipients: existing.value.recipients.length },
+      meta: { recipients: sendable.length, skipped: optedOut.length },
     })
 
     const fresh = await WhatsAppBroadcastRepository.findById(id, workspaceId)

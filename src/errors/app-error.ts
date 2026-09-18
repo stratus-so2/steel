@@ -183,6 +183,10 @@ export const whatsappBroadcastLocked = (
   message = 'Esta lista de transmissão já foi iniciada e não pode ser editada',
 ): AppError => appError('WHATSAPP_BROADCAST_LOCKED', message)
 
+export const whatsappBroadcastNoRecipients = (
+  message = 'Nenhum contato elegível: os selecionados se descadastraram das transmissões',
+): AppError => appError('WHATSAPP_BROADCAST_NO_RECIPIENTS', message)
+
 export const whatsappAiConfigNotFound = (): AppError =>
   appError(
     'WHATSAPP_AI_CONFIG_NOT_FOUND',

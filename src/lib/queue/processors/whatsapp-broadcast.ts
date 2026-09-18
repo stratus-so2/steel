@@ -38,6 +38,23 @@ async function processSendBroadcastMessage(
 
   if (recipient.status !== 'PENDING') return
 
+  // Opt-out LGPD: o contato pode ter respondido SAIR depois que o job foi
+  // enfileirado (inclusive nos agendados por planilha) — nunca envia.
+  if (recipient.contact.broadcastOptedOutAt) {
+    await WhatsAppBroadcastRepository.markRecipientsSkipped([recipientId])
+    const remaining =
+      await WhatsAppBroadcastRepository.countPendingRecipients(broadcastListId)
+    if (remaining.ok && remaining.value === 0) {
+      await WhatsAppBroadcastRepository.updateStatus(broadcastListId, 'DONE')
+    }
+    logger.info('queue.whatsapp_broadcast.skipped_opted_out', {
+      component: 'WhatsappBroadcast',
+      jobId: job.id,
+      recipientId,
+    })
+    return
+  }
+
   const connection = await prisma.whatsAppConnection.findUnique({
     where: { id: recipient.broadcastList.connectionId },
   })

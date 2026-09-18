@@ -82,6 +82,36 @@ describe('WhatsAppBroadcastImportService.import()', () => {
     )
   })
 
+  it('should reject rows whose contact opted out of broadcasts', async () => {
+    mockHappyPathDeps()
+    mockedContactRepo.upsertByWaId.mockResolvedValue(
+      ok(
+        createFakeWhatsAppContact({
+          id: 'contact1',
+          broadcastOptedOutAt: new Date(),
+          broadcastOptOutSource: 'KEYWORD',
+        }),
+      ),
+    )
+
+    const dto = expectOk(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', {
+        name: 'Lembretes',
+        connectionId: 'conn1',
+        templateId: 'tmpl1',
+        sendOffsetHours: 24,
+        csv: validCsv,
+      }),
+    )
+
+    expect(dto.createdCount).toBe(0)
+    expect(dto.broadcastList).toBeNull()
+    expect(dto.rejectedRows).toEqual([
+      { rowNumber: 1, reason: expect.stringMatching(/descadastr/i) },
+    ])
+    expect(mockedBroadcastRepo.createScheduled).not.toHaveBeenCalled()
+  })
+
   it('should return WHATSAPP_CONNECTION_NOT_FOUND when the connection does not exist', async () => {
     mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
       ok(createFakeMembership({ role: 'ADMIN' })),

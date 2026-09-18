@@ -120,6 +120,7 @@ export {
   whatsappAiKnowledgeDocumentNotFound,
   whatsappAiKnowledgeDocumentUnsupportedType,
   whatsappBroadcastLocked,
+  whatsappBroadcastNoRecipients,
   whatsappBroadcastNotFound,
   whatsappConnectionConflict,
   whatsappConnectionNotFound,

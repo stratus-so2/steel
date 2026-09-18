@@ -8,6 +8,7 @@ import { ok } from '@/src/lib/result'
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/src/repositories/whatsapp-broadcast.repository')
+vi.mock('@/src/repositories/whatsapp-contact.repository')
 
 const { addBulk } = vi.hoisted(() => ({
   addBulk: vi.fn(async (_jobs: unknown[]) => []),
@@ -19,12 +20,14 @@ vi.mock('@/src/lib/queue/queues', () => ({
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadcast.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
+import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { WhatsAppBroadcastService } from '../whatsapp-broadcast.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
 const mockedBroadcastRepo = vi.mocked(WhatsAppBroadcastRepository)
+const mockedContactRepo = vi.mocked(WhatsAppContactRepository)
 
 describe('WhatsAppBroadcastService', () => {
   describe('create()', () => {
@@ -70,6 +73,9 @@ describe('WhatsAppBroadcastService', () => {
         2,
       )
       mockedBroadcastRepo.create.mockResolvedValue(ok(created))
+      mockedContactRepo.listBroadcastEligibleIds.mockImplementation(
+        async (_workspaceId, ids) => ok(ids),
+      )
 
       const result = await WhatsAppBroadcastService.create('u1', 'ws1', {
         connectionId: 'conn1',
@@ -83,6 +89,57 @@ describe('WhatsAppBroadcastService', () => {
         expect.objectContaining({ connectionId: 'conn1', createdById: 'u1' }),
         ['c1', 'c2'],
       )
+    })
+
+    it('should exclude opted-out contacts via the eligibility query', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      mockedConnectionRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppConnection({ id: 'conn1' })),
+      )
+      mockedBroadcastRepo.create.mockResolvedValue(
+        ok(createFakeWhatsAppBroadcastListWithRecipients({ id: 'b1' }, 1)),
+      )
+      mockedContactRepo.listBroadcastEligibleIds.mockResolvedValue(ok(['c2']))
+
+      expectOk(
+        await WhatsAppBroadcastService.create('u1', 'ws1', {
+          connectionId: 'conn1',
+          name: 'Promoção',
+          messageBody: 'Aproveite!',
+          contactIds: ['c1', 'c2'],
+        }),
+      )
+      expect(mockedContactRepo.listBroadcastEligibleIds).toHaveBeenCalledWith(
+        'ws1',
+        ['c1', 'c2'],
+      )
+      expect(mockedBroadcastRepo.create).toHaveBeenCalledWith(
+        expect.anything(),
+        ['c2'],
+      )
+    })
+
+    it('should return WHATSAPP_BROADCAST_NO_RECIPIENTS when every contact opted out', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      mockedConnectionRepo.findById.mockResolvedValue(
+        ok(createFakeWhatsAppConnection({ id: 'conn1' })),
+      )
+      mockedContactRepo.listBroadcastEligibleIds.mockResolvedValue(ok([]))
+
+      expectErr(
+        await WhatsAppBroadcastService.create('u1', 'ws1', {
+          connectionId: 'conn1',
+          name: 'Promoção',
+          messageBody: 'Aproveite!',
+          contactIds: ['c1'],
+        }),
+        'WHATSAPP_BROADCAST_NO_RECIPIENTS',
+      )
+      expect(mockedBroadcastRepo.create).not.toHaveBeenCalled()
     })
 
     it('should return WHATSAPP_CONNECTION_NOT_FOUND for an unknown connection', async () => {
@@ -131,6 +188,34 @@ describe('WhatsAppBroadcastService', () => {
         'b1',
         'RUNNING',
       )
+    })
+
+    it('should skip contacts that opted out after the list was created', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+      const draft = createFakeWhatsAppBroadcastListWithRecipients(
+        { id: 'b1', status: 'DRAFT' },
+        3,
+      )
+      draft.recipients[1].contact.broadcastOptedOutAt = new Date()
+      draft.recipients[1].contact.broadcastOptOutSource = 'KEYWORD'
+      mockedBroadcastRepo.findById.mockResolvedValue(ok(draft))
+      mockedBroadcastRepo.updateStatus.mockResolvedValue(ok(undefined))
+      mockedBroadcastRepo.markRecipientsSkipped.mockResolvedValue(ok(1))
+
+      expectOk(await WhatsAppBroadcastService.start('u1', 'ws1', 'b1'))
+
+      expect(mockedBroadcastRepo.markRecipientsSkipped).toHaveBeenCalledWith([
+        draft.recipients[1].id,
+      ])
+      const jobs = addBulk.mock.calls[0][0] as {
+        data: { recipientId: string }
+      }[]
+      expect(jobs.map((j) => j.data.recipientId)).toEqual([
+        draft.recipients[0].id,
+        draft.recipients[2].id,
+      ])
     })
 
     it('should reject starting a broadcast that already left DRAFT status', async () => {

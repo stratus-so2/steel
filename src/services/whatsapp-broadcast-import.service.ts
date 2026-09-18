@@ -77,6 +77,7 @@ export const WhatsAppBroadcastImportService = {
     }
 
     const recipients = []
+    const rejectedRows = [...rejected]
     for (const row of valid) {
       const contact = await WhatsAppContactRepository.upsertByWaId({
         workspaceId,
@@ -84,12 +85,25 @@ export const WhatsAppBroadcastImportService = {
         name: row.contactName,
       })
       if (!contact.ok) return contact
+      // Opt-out LGPD: contato que pediu para sair não entra na transmissão.
+      if (contact.value.broadcastOptedOutAt) {
+        rejectedRows.push({
+          rowNumber: row.rowNumber,
+          reason: 'Contato descadastrado das transmissões (opt-out)',
+        })
+        continue
+      }
       recipients.push({
         contactId: contact.value.id,
         variableValues: row.variableValues,
         scheduledAt: row.scheduledAt,
         appointmentAt: row.appointmentAt,
       })
+    }
+
+    rejectedRows.sort((a, b) => a.rowNumber - b.rowNumber)
+    if (recipients.length === 0) {
+      return ok({ broadcastList: null, createdCount: 0, rejectedRows })
     }
 
     const created = await WhatsAppBroadcastRepository.createScheduled(
@@ -113,14 +127,14 @@ export const WhatsAppBroadcastImportService = {
       meta: {
         source: 'csv_import',
         created: recipients.length,
-        rejected: rejected.length,
+        rejected: rejectedRows.length,
       },
     })
 
     return ok({
       broadcastList: toWhatsAppBroadcastListDTO(created.value),
       createdCount: recipients.length,
-      rejectedRows: rejected,
+      rejectedRows,
     })
   },
 }
