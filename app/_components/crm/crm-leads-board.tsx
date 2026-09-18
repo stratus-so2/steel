@@ -7,6 +7,7 @@ import {
   STAGE_LABELS,
   STAGE_STYLES,
 } from '@/app/_components/crm/crm-lead-stage'
+import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -35,9 +36,11 @@ import {
   useCloseCrmLeadLost,
   useCloseCrmLeadWon,
   useCreateCrmLeadProposal,
+  useCrmLeadReopenings,
   useRegisterCrmLeadContactAttempt,
   useRegisterCrmLeadMeeting,
   useRegisterCrmLeadProposalPresentation,
+  useReopenCrmLead,
   useSetCrmLeadInterestProducts,
   useUpsertCrmLeadQualification,
 } from '@/src/hooks/use-crm-lead-pipeline'
@@ -45,6 +48,7 @@ import {
   createCrmResource,
   useCrmResourceList,
 } from '@/src/hooks/use-crm-resource-list'
+import { useCrmSettings } from '@/src/hooks/use-crm-settings'
 import type {
   CrmLeadContactAttemptDTO,
   CrmLeadDTO,
@@ -316,7 +320,15 @@ function LeadStagePanel({
           />
         ) : null}
 
-        {lead.stage === 'CLOSED' ? <ClosedSummary lead={lead} /> : null}
+        {lead.stage === 'CLOSED' ? (
+          <ClosedSummary
+            workspaceId={workspaceId}
+            lead={lead}
+            onChanged={onChanged}
+          />
+        ) : null}
+
+        <ReopeningHistory workspaceId={workspaceId} leadId={lead.id} />
       </div>
 
       {lead.stage !== 'CLOSED' ? (
@@ -1037,7 +1049,15 @@ function ProposalStageForms({
   )
 }
 
-function ClosedSummary({ lead }: { lead: CrmLeadDTO }) {
+function ClosedSummary({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
   if (lead.closeResult === 'WON') {
     return (
       <div className='flex flex-col gap-2'>
@@ -1071,11 +1091,136 @@ function ClosedSummary({ lead }: { lead: CrmLeadDTO }) {
             {new Date(lead.retryAt).toLocaleDateString('pt-BR')}
           </p>
         ) : null}
+        <ReopenLeadAction
+          workspaceId={workspaceId}
+          lead={lead}
+          onChanged={onChanged}
+        />
       </div>
     )
   }
   return (
     <p className='text-muted-foreground text-sm'>Sem resultado registrado.</p>
+  )
+}
+
+/**
+ * Reabre um lead perdido (motivo obrigatório). O destino é a etapa das
+ * configurações do CRM, limitada pelo que os registros do lead permitem —
+ * o servidor decide e a mensagem de sucesso mostra onde o lead caiu.
+ */
+function ReopenLeadAction({
+  workspaceId,
+  lead,
+  onChanged,
+}: {
+  workspaceId: string
+  lead: CrmLeadDTO
+  onChanged: () => void
+}) {
+  const canEdit = useCan('leads', 'EDIT')
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const reopen = useReopenCrmLead(workspaceId)
+  const { data: settings } = useCrmSettings(open ? workspaceId : '')
+
+  if (!canEdit) return null
+
+  async function handleSubmit() {
+    if (!reason.trim()) {
+      notify.error('Informe o motivo da reabertura')
+      return
+    }
+    try {
+      const updated = await reopen.mutateAsync({
+        leadId: lead.id,
+        reason: reason.trim(),
+      })
+      notify.success(`Lead reaberto em "${STAGE_LABELS[updated.stage]}"`)
+      setOpen(false)
+      setReason('')
+      onChanged()
+    } catch (err) {
+      notify.error(err)
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button
+        size='sm'
+        variant='outline'
+        className='w-fit'
+        onClick={() => setOpen(true)}
+      >
+        Reabrir lead
+      </Button>
+    )
+  }
+
+  return (
+    <div className='flex flex-col gap-2 rounded-md border p-3'>
+      <Label>Motivo da reabertura</Label>
+      <Textarea
+        placeholder='Ex.: cliente voltou a responder e pediu nova proposta'
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        rows={2}
+      />
+      <p className='text-muted-foreground text-xs'>
+        {settings
+          ? `O lead volta para "${STAGE_LABELS[settings.leadReopenStage]}" — ou para a etapa mais avançada que os registros dele permitem.`
+          : 'O lead volta para a etapa definida nas configurações do CRM.'}{' '}
+        O motivo e a perda anterior ficam no histórico.
+      </p>
+      <div className='flex gap-2'>
+        <Button size='sm' variant='ghost' onClick={() => setOpen(false)}>
+          Cancelar
+        </Button>
+        <Button size='sm' onClick={handleSubmit} disabled={reopen.isPending}>
+          {reopen.isPending ? 'Reabrindo…' : 'Confirmar reabertura'}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Reaberturas anteriores do lead (motivo + a perda que foi desfeita). */
+function ReopeningHistory({
+  workspaceId,
+  leadId,
+}: {
+  workspaceId: string
+  leadId: string
+}) {
+  const { data: reopenings } = useCrmLeadReopenings(workspaceId, leadId)
+  if (!reopenings?.length) return null
+
+  return (
+    <div className='flex flex-col gap-2'>
+      <p className='font-medium text-sm'>Histórico de reaberturas</p>
+      <ul className='flex flex-col gap-2'>
+        {reopenings.map((r) => (
+          <li key={r.id} className='rounded-md border p-2 text-xs'>
+            <p>
+              <span className='font-medium'>
+                {new Date(r.createdAt).toLocaleDateString('pt-BR')}
+              </span>{' '}
+              · reaberto em "{STAGE_LABELS[r.toStage]}"
+            </p>
+            <p className='text-muted-foreground'>Motivo: {r.reason}</p>
+            {r.previousLostReason ? (
+              <p className='text-muted-foreground'>
+                Perda anterior: {r.previousLostReason}
+                {r.previousClosedAt
+                  ? ` (${new Date(r.previousClosedAt).toLocaleDateString('pt-BR')})`
+                  : ''}
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

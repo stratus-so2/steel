@@ -523,4 +523,96 @@ describe('<CrmLeadsBoard /> stage panel', () => {
       screen.getByText('Nova tentativa prevista para 15/01/2027'),
     ).toBeTruthy()
   })
+
+  it('CLOSED/LOST: reopens the lead with a mandatory reason', async () => {
+    const fetchSpy = mockFetch([
+      leadsRoute([
+        lead({ stage: 'CLOSED', closeResult: 'LOST', lostReason: 'Preço' }),
+      ]),
+      {
+        match: '/crm/settings',
+        data: {
+          workspaceId: 'ws1',
+          leadReopenStage: 'RECEIVED',
+          proposalValidityDays: 15,
+          notifyProposalExpiry: true,
+          isDefault: true,
+          updatedById: null,
+          updatedAt: null,
+        },
+      },
+      { match: '/leads/l1/reopenings', data: [] },
+      {
+        method: 'POST',
+        match: '/leads/l1/reopen',
+        data: lead({ stage: 'RECEIVED' }),
+      },
+    ])
+    renderBoard()
+    await openLead('Ana Lima')
+
+    fireEvent.click(await screen.findByText('Reabrir lead'))
+    expect(
+      await screen.findByText(/O lead volta para "Lead recebido"/),
+    ).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Confirmar reabertura'))
+    expect(notify.error).toHaveBeenCalledWith('Informe o motivo da reabertura')
+
+    fireEvent.change(
+      screen.getByPlaceholderText(/cliente voltou a responder/i),
+      { target: { value: '  Pediu nova proposta  ' } },
+    )
+    fireEvent.click(screen.getByText('Confirmar reabertura'))
+
+    await waitFor(() =>
+      expect(notify.success).toHaveBeenCalledWith(
+        'Lead reaberto em "Lead recebido"',
+      ),
+    )
+    expect(fetchBody(fetchSpy, `${LEAD_URL}/l1/reopen`)).toEqual({
+      reason: 'Pediu nova proposta',
+    })
+  })
+
+  it('CLOSED/WON: does not offer reopening', async () => {
+    mockFetch([
+      leadsRoute([lead({ stage: 'CLOSED', closeResult: 'WON' })]),
+      { match: '/leads/l1/reopenings', data: [] },
+    ])
+    renderBoard()
+    await openLead('Ana Lima')
+
+    expect(await screen.findByText('Ganho')).toBeTruthy()
+    expect(screen.queryByText('Reabrir lead')).toBeNull()
+  })
+
+  it('shows the reopening history of a lead', async () => {
+    mockFetch([
+      leadsRoute([lead({ stage: 'RECEIVED' })]),
+      {
+        match: '/leads/l1/reopenings',
+        data: [
+          {
+            id: 'r1',
+            leadId: 'l1',
+            toStage: 'RECEIVED',
+            reason: 'Cliente voltou',
+            previousLostReason: 'Preço',
+            previousLostNote: null,
+            previousClosedAt: '2026-09-01T12:00:00.000Z',
+            previousRetryAt: null,
+            reopenedById: 'u1',
+            createdAt: '2026-09-10T12:00:00.000Z',
+          },
+        ],
+      },
+    ])
+    renderBoard()
+    await openLead('Ana Lima')
+
+    expect(await screen.findByText('Histórico de reaberturas')).toBeTruthy()
+    expect(screen.getByText('Motivo: Cliente voltou')).toBeTruthy()
+    expect(screen.getByText('Perda anterior: Preço (01/09/2026)')).toBeTruthy()
+  })
 })

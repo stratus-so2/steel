@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   CrmLeadContactAttemptDTO,
   CrmLeadContactChannelDTO,
@@ -10,6 +10,7 @@ import type {
   CrmLeadProposalFormatDTO,
   CrmLeadProposalPresentationDTO,
   CrmLeadQualificationDTO,
+  CrmLeadReopeningDTO,
 } from '@/types/crm-lead'
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
@@ -176,5 +177,44 @@ export function useCloseCrmLeadLost(workspaceId: string) {
         },
         'Erro ao fechar o lead como perdido',
       ),
+  })
+}
+
+const reopeningsKey = (workspaceId: string, leadId: string) =>
+  ['crm-lead-reopenings', workspaceId, leadId] as const
+
+/** Histórico de reaberturas do lead (mais recente primeiro). */
+export function useCrmLeadReopenings(workspaceId: string, leadId: string) {
+  return useQuery({
+    queryKey: reopeningsKey(workspaceId, leadId),
+    queryFn: () =>
+      apiFetch<CrmLeadReopeningDTO[]>(
+        `${base(workspaceId, leadId)}/reopenings`,
+        undefined,
+        'Erro ao carregar o histórico de reaberturas',
+      ),
+    enabled: !!workspaceId && !!leadId,
+  })
+}
+
+export function useReopenCrmLead(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (input: { leadId: string; reason: string }) =>
+      apiFetch<CrmLeadDTO>(
+        `${base(workspaceId, input.leadId)}/reopen`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: input.reason }),
+        },
+        'Erro ao reabrir o lead',
+      ),
+    onSuccess: (_lead, input) => {
+      queryClient.invalidateQueries({
+        queryKey: reopeningsKey(workspaceId, input.leadId),
+      })
+    },
   })
 }
