@@ -20,7 +20,11 @@ export type CrmCampaignStatusDTO =
   | 'SENT'
   | 'FAILED'
 export type CrmCampaignRecipientScopeDTO = 'ALL' | 'SELECTED'
-export type CrmCampaignRecipientStatusDTO = 'PENDING' | 'SENT' | 'FAILED'
+export type CrmCampaignRecipientStatusDTO =
+  | 'PENDING'
+  | 'SENT'
+  | 'FAILED'
+  | 'SKIPPED'
 
 export interface CrmEmailCampaignDTO {
   id: string
@@ -33,6 +37,8 @@ export interface CrmEmailCampaignDTO {
   recipientCount: number
   sentCount: number
   failedCount: number
+  /** Descadastrados (opt-out LGPD) entre a criação e o envio — não enviados. */
+  skippedCount: number
   scheduledAt: string | null
   sentAt: string | null
   workspaceId: string
@@ -72,4 +78,20 @@ export interface CrmMailingListMemberDTO {
   name: string | null
   personId: string | null
   createdAt: string
+}
+
+/** Descadastro LGPD de campanhas (endereço + pessoa vinculada, quando houver). */
+export interface CrmEmailOptOutDTO {
+  id: string
+  email: string
+  personId: string | null
+  campaignId: string | null
+  source: 'LINK' | 'ONE_CLICK'
+  createdAt: string
+}
+
+/** Resultado público da página de descadastro — sem dados do workspace. */
+export interface CrmEmailUnsubscribeResultDTO {
+  email: string
+  alreadyOptedOut: boolean
 }

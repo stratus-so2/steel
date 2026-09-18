@@ -31,22 +31,25 @@ describe('toCrmEmailCampaignDTO()', () => {
     expect(dto.recipientCount).toBe(0)
     expect(dto.sentCount).toBe(0)
     expect(dto.failedCount).toBe(0)
+    expect(dto.skippedCount).toBe(0)
   })
 
   it('should compute sent/failed counts from the recipients list', () => {
     const campaign = createFakeCrmEmailCampaign({ id: 'c-1' })
     const dto = toCrmEmailCampaignDTO({
       ...campaign,
-      _count: { recipients: 3 },
+      _count: { recipients: 4 },
       recipients: [
         { status: 'SENT' },
         { status: 'SENT' },
         { status: 'FAILED' },
+        { status: 'SKIPPED' },
       ],
     })
-    expect(dto.recipientCount).toBe(3)
+    expect(dto.recipientCount).toBe(4)
     expect(dto.sentCount).toBe(2)
     expect(dto.failedCount).toBe(1)
+    expect(dto.skippedCount).toBe(1)
   })
 })
 

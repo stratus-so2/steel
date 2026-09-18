@@ -5,7 +5,11 @@ export type WhatsAppBroadcastStatusDTO =
   | 'DONE'
   | 'FAILED'
 
-export type WhatsAppBroadcastRecipientStatusDTO = 'PENDING' | 'SENT' | 'FAILED'
+export type WhatsAppBroadcastRecipientStatusDTO =
+  | 'PENDING'
+  | 'SENT'
+  | 'FAILED'
+  | 'SKIPPED'
 
 export interface WhatsAppBroadcastRecipientDTO {
   id: string
@@ -30,6 +34,8 @@ export interface WhatsAppBroadcastListDTO {
   recipientCount: number
   sentCount: number
   failedCount: number
+  /** Contatos descadastrados (opt-out LGPD) no momento do disparo. */
+  skippedCount: number
   createdAt: string
   updatedAt: string
 }

@@ -51,6 +51,8 @@ export function toCrmEmailCampaignDTO(
       campaign.recipients?.filter((r) => r.status === 'SENT').length ?? 0,
     failedCount:
       campaign.recipients?.filter((r) => r.status === 'FAILED').length ?? 0,
+    skippedCount:
+      campaign.recipients?.filter((r) => r.status === 'SKIPPED').length ?? 0,
     scheduledAt: campaign.scheduledAt
       ? campaign.scheduledAt.toISOString()
       : null,

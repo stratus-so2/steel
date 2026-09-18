@@ -66,12 +66,14 @@ const RECIPIENT_LABEL: Record<CrmCampaignRecipientStatusDTO, string> = {
   PENDING: 'Pendente',
   SENT: 'Enviado',
   FAILED: 'Falhou',
+  SKIPPED: 'Descadastrado',
 }
 
 const RECIPIENT_STYLE: Record<CrmCampaignRecipientStatusDTO, string> = {
   PENDING: 'text-muted-foreground',
   SENT: 'text-emerald-500',
   FAILED: 'text-destructive',
+  SKIPPED: 'text-amber-600',
 }
 
 const STATUS_OPTIONS = (

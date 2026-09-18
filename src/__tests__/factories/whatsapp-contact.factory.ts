@@ -13,6 +13,8 @@ export function createFakeWhatsAppContact(
     name: 'Maria Silva',
     avatarUrl: null,
     description: null,
+    broadcastOptedOutAt: null,
+    broadcastOptOutSource: null,
     createdAt: now,
     updatedAt: now,
     _count: { conversations: 0 },

@@ -15,13 +15,15 @@ describe('toWhatsAppBroadcastListDTO()', () => {
       { status: 'SENT' },
       { status: 'FAILED' },
       { status: 'PENDING' },
+      { status: 'SKIPPED' },
     ])
 
     const dto = toWhatsAppBroadcastListDTO(list)
 
-    expect(dto.recipientCount).toBe(4)
+    expect(dto.recipientCount).toBe(5)
     expect(dto.sentCount).toBe(2)
     expect(dto.failedCount).toBe(1)
+    expect(dto.skippedCount).toBe(1)
   })
 
   it('should default counts to zero for an empty broadcast', () => {
@@ -32,6 +34,7 @@ describe('toWhatsAppBroadcastListDTO()', () => {
     expect(dto.recipientCount).toBe(0)
     expect(dto.sentCount).toBe(0)
     expect(dto.failedCount).toBe(0)
+    expect(dto.skippedCount).toBe(0)
   })
 })
 

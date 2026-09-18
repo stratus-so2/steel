@@ -20,6 +20,8 @@ describe('toWhatsAppContactDTO()', () => {
       name: 'Maria Silva',
       avatarUrl: 'https://minio.internal/avatars/ct1.jpg',
       description: null,
+      broadcastOptedOutAt: null,
+      broadcastOptOutSource: null,
       conversationCount: 0,
       createdAt: contact.createdAt.toISOString(),
       updatedAt: contact.updatedAt.toISOString(),
@@ -33,5 +35,18 @@ describe('toWhatsAppContactDTO()', () => {
 
     expect(dto.name).toBeNull()
     expect(dto.avatarUrl).toBeNull()
+  })
+
+  it('should expose the broadcast opt-out state', () => {
+    const optedOutAt = new Date('2026-09-01T12:00:00.000Z')
+    const contact = createFakeWhatsAppContact({
+      broadcastOptedOutAt: optedOutAt,
+      broadcastOptOutSource: 'KEYWORD',
+    })
+
+    const dto = toWhatsAppContactDTO(contact)
+
+    expect(dto.broadcastOptedOutAt).toBe('2026-09-01T12:00:00.000Z')
+    expect(dto.broadcastOptOutSource).toBe('KEYWORD')
   })
 })

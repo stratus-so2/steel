@@ -24,6 +24,7 @@ export function toWhatsAppBroadcastListDTO(
     recipientCount: list.recipients.length,
     sentCount: list.recipients.filter((r) => r.status === 'SENT').length,
     failedCount: list.recipients.filter((r) => r.status === 'FAILED').length,
+    skippedCount: list.recipients.filter((r) => r.status === 'SKIPPED').length,
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
   }
@@ -57,6 +58,7 @@ export function toWhatsAppBroadcastListDetailDTO(
     recipientCount: recipients.length,
     sentCount: recipients.filter((r) => r.status === 'SENT').length,
     failedCount: recipients.filter((r) => r.status === 'FAILED').length,
+    skippedCount: recipients.filter((r) => r.status === 'SKIPPED').length,
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
     recipients,

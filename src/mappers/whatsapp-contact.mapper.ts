@@ -11,6 +11,10 @@ export function toWhatsAppContactDTO(
     name: contact.name,
     avatarUrl: contact.avatarUrl,
     description: contact.description,
+    broadcastOptedOutAt: contact.broadcastOptedOutAt
+      ? contact.broadcastOptedOutAt.toISOString()
+      : null,
+    broadcastOptOutSource: contact.broadcastOptOutSource,
     conversationCount: contact._count?.conversations ?? 0,
     createdAt: contact.createdAt.toISOString(),
     updatedAt: contact.updatedAt.toISOString(),
