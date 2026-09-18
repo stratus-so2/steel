@@ -176,4 +176,66 @@ describe('WhatsAppContactRepository', () => {
       expect(expectOk(found)).toBeNull()
     })
   })
+
+  describe('setBroadcastOptOut()', () => {
+    it('should record and clear the opt-out', async () => {
+      const workspace = await seedWorkspace()
+      const contact = expectOk(
+        await WhatsAppContactRepository.create({
+          workspaceId: workspace.id,
+          waId: '5511911112222',
+        }),
+      )
+      const at = new Date('2026-09-18T10:00:00.000Z')
+
+      const optedOut = expectOk(
+        await WhatsAppContactRepository.setBroadcastOptOut(contact.id, {
+          at,
+          source: 'KEYWORD',
+        }),
+      )
+      expect(optedOut.broadcastOptedOutAt).toEqual(at)
+      expect(optedOut.broadcastOptOutSource).toBe('KEYWORD')
+
+      const cleared = expectOk(
+        await WhatsAppContactRepository.setBroadcastOptOut(contact.id, null),
+      )
+      expect(cleared.broadcastOptedOutAt).toBeNull()
+      expect(cleared.broadcastOptOutSource).toBeNull()
+    })
+  })
+
+  describe('listBroadcastEligibleIds()', () => {
+    it('should drop opted-out contacts and contacts from other workspaces', async () => {
+      const [workspace, other] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+      ])
+      const [active, optedOut, foreign] = await Promise.all([
+        prisma.whatsAppContact.create({
+          data: { workspaceId: workspace.id, waId: '5511900000001' },
+        }),
+        prisma.whatsAppContact.create({
+          data: {
+            workspaceId: workspace.id,
+            waId: '5511900000002',
+            broadcastOptedOutAt: new Date(),
+            broadcastOptOutSource: 'KEYWORD',
+          },
+        }),
+        prisma.whatsAppContact.create({
+          data: { workspaceId: other.id, waId: '5511900000003' },
+        }),
+      ])
+
+      const ids = expectOk(
+        await WhatsAppContactRepository.listBroadcastEligibleIds(workspace.id, [
+          active.id,
+          optedOut.id,
+          foreign.id,
+        ]),
+      )
+      expect(ids).toEqual([active.id])
+    })
+  })
 })

@@ -114,7 +114,7 @@ export const WhatsAppBroadcastRepository = {
   async listDueScheduledRecipients(now: Date): Promise<
     Result<
       (WhatsAppBroadcastRecipient & {
-        contact: { waId: string }
+        contact: { waId: string; broadcastOptedOutAt: Date | null }
         broadcastList: WhatsAppBroadcastList
       })[]
     >
@@ -168,7 +168,7 @@ export const WhatsAppBroadcastRepository = {
   async findRecipientById(id: string): Promise<
     Result<
       | (WhatsAppBroadcastRecipient & {
-          contact: { waId: string }
+          contact: { waId: string; broadcastOptedOutAt: Date | null }
           broadcastList: WhatsAppBroadcastList
         })
       | null
@@ -199,6 +199,24 @@ export const WhatsAppBroadcastRepository = {
       return ok(undefined)
     } catch (error) {
       return err(dbError('Failed to update broadcast recipient', error))
+    }
+  },
+
+  /** Marca destinatários como SKIPPED (contato descadastrado antes do
+   * disparo) — só os ainda PENDING. */
+  async markRecipientsSkipped(ids: string[]): Promise<Result<number>> {
+    if (ids.length === 0) return ok(0)
+    try {
+      const result = await prisma.whatsAppBroadcastRecipient.updateMany({
+        where: { id: { in: ids }, status: 'PENDING' },
+        data: {
+          status: 'SKIPPED',
+          errorMessage: 'Contato descadastrado (opt-out LGPD)',
+        },
+      })
+      return ok(result.count)
+    } catch (error) {
+      return err(dbError('Failed to skip broadcast recipients', error))
     }
   },
 

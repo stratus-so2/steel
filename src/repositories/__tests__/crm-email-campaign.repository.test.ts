@@ -5,7 +5,7 @@ import {
 } from '@/src/__tests__/factories/crm-email-marketing.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import {
   CrmEmailCampaignRecipientRepository,
   CrmEmailCampaignRepository,
@@ -103,6 +103,51 @@ describe('CrmEmailCampaignRecipientRepository', () => {
       )
       expect(list[0].status).toBe('SENT')
       expect(list[0].providerMessageId).toBe('resend-id-1')
+    })
+  })
+
+  describe('findByIdWithCampaign()', () => {
+    it('should return the recipient with its campaign workspace', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const campaign = await seedCrmEmailCampaign(workspace.id, user.id)
+      const recipient = await seedCrmEmailCampaignRecipient(campaign.id)
+
+      const found = expectOk(
+        await CrmEmailCampaignRecipientRepository.findByIdWithCampaign(
+          recipient.id,
+        ),
+      )
+      expect(found.campaign).toEqual({
+        id: campaign.id,
+        workspaceId: workspace.id,
+      })
+    })
+
+    it('should return NOT_FOUND for an unknown recipient', async () => {
+      expectErr(
+        await CrmEmailCampaignRecipientRepository.findByIdWithCampaign(
+          'missing',
+        ),
+        'RESOURCE_NOT_FOUND',
+      )
+    })
+  })
+
+  describe('markSkipped()', () => {
+    it('should set status SKIPPED with an opt-out reason', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      const campaign = await seedCrmEmailCampaign(workspace.id, user.id)
+      const recipient = await seedCrmEmailCampaignRecipient(campaign.id)
+
+      expectOk(
+        await CrmEmailCampaignRecipientRepository.markSkipped(recipient.id),
+      )
+
+      const list = expectOk(
+        await CrmEmailCampaignRecipientRepository.listByCampaign(campaign.id),
+      )
+      expect(list[0].status).toBe('SKIPPED')
+      expect(list[0].errorMessage).toMatch(/descadastrado/i)
     })
   })
 })

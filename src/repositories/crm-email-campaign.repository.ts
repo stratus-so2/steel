@@ -154,6 +154,43 @@ export const CrmEmailCampaignRecipientRepository = {
     }
   },
 
+  /** Destinatário + campanha, para o descadastro público (sem sessão). */
+  async findByIdWithCampaign(id: string): Promise<
+    Result<
+      CrmEmailCampaignRecipient & {
+        campaign: Pick<CrmEmailCampaign, 'id' | 'workspaceId'>
+      }
+    >
+  > {
+    try {
+      const recipient = await prisma.crmEmailCampaignRecipient.findUnique({
+        where: { id },
+        include: { campaign: { select: { id: true, workspaceId: true } } },
+      })
+      if (!recipient) return err(notFound('CrmEmailCampaignRecipient'))
+      return ok(recipient)
+    } catch (error) {
+      return err(dbError('Failed to find CRM campaign recipient', error))
+    }
+  },
+
+  async markSkipped(id: string): Promise<Result<void>> {
+    try {
+      await prisma.crmEmailCampaignRecipient.update({
+        where: { id },
+        data: {
+          status: 'SKIPPED',
+          errorMessage: 'Endereço descadastrado (opt-out LGPD)',
+        },
+      })
+      return ok(undefined)
+    } catch (error) {
+      return err(
+        dbError('Failed to mark CRM campaign recipient skipped', error),
+      )
+    }
+  },
+
   async markSent(
     id: string,
     providerMessageId?: string,

@@ -1,4 +1,4 @@
-import type { WhatsAppContact } from '@prisma/client'
+import type { WhatsAppContact, WhatsAppOptOutSource } from '@prisma/client'
 import { conflict } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -131,6 +131,47 @@ export const WhatsAppContactRepository = {
       return ok(contact)
     } catch (error) {
       return err(dbError('Failed to update whatsapp contact', error))
+    }
+  },
+
+  /** Registra (`{ at, source }`) ou remove (`null`) o opt-out LGPD de
+   * transmissões. */
+  async setBroadcastOptOut(
+    id: string,
+    optOut: { at: Date; source: WhatsAppOptOutSource } | null,
+  ): Promise<Result<WhatsAppContact>> {
+    try {
+      const contact = await prisma.whatsAppContact.update({
+        where: { id },
+        data: {
+          broadcastOptedOutAt: optOut?.at ?? null,
+          broadcastOptOutSource: optOut?.source ?? null,
+        },
+      })
+      return ok(contact)
+    } catch (error) {
+      return err(dbError('Failed to update whatsapp contact opt-out', error))
+    }
+  },
+
+  /** Dos ids informados, só os que pertencem ao workspace e não se
+   * descadastraram de transmissões — filtro no banco, não na UI. */
+  async listBroadcastEligibleIds(
+    workspaceId: string,
+    ids: string[],
+  ): Promise<Result<string[]>> {
+    if (ids.length === 0) return ok([])
+    try {
+      const contacts = await prisma.whatsAppContact.findMany({
+        where: { workspaceId, id: { in: ids }, broadcastOptedOutAt: null },
+        select: { id: true },
+      })
+      const eligible = new Set(contacts.map((c) => c.id))
+      return ok(ids.filter((id) => eligible.has(id)))
+    } catch (error) {
+      return err(
+        dbError('Failed to list broadcast-eligible whatsapp contacts', error),
+      )
     }
   },
 
