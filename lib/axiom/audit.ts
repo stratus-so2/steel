@@ -40,6 +40,7 @@ type AuditEntity =
   | 'crm_lead'
   | 'crm_lead_scoring_rule'
   | 'crm_lead_routing_rule'
+  | 'crm_settings'
   | 'crm_custom_field_definition'
   | 'crm_task'
   | 'crm_note'
