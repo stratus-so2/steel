@@ -6,6 +6,7 @@ import type {
   Prisma,
 } from '@prisma/client'
 import { crmProposalNotFound } from '@/src/errors'
+import { CRM_PROPOSAL_EXPIRABLE_STATUSES } from '@/src/lib/crm-proposal-validity'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import type { CrmProposalSectionInputDTO } from '@/src/schemas/crm-proposal.schema'
@@ -13,6 +14,12 @@ import { dbError } from './db-error'
 
 export type CrmProposalWithSections = CrmProposal & {
   sections: CrmProposalSection[]
+}
+
+/** Proposta vencida candidata a expirar, com o que o aviso por e-mail usa. */
+export type CrmProposalExpirationCandidate = CrmProposal & {
+  responsible: { id: string; name: string; email: string }
+  workspace: { id: string; name: string; slug: string }
 }
 
 /** Agregados crus de leitura; o mapper compõe o DTO (completionRate etc.). */
@@ -151,6 +158,7 @@ export const CrmProposalRepository = {
       responsibleId?: string
       validUntil?: Date | null
       status?: CrmProposal['status']
+      expiredAt?: Date | null
       updatedById?: string
       sections?: CrmProposalSectionInputDTO[]
     },
@@ -226,9 +234,95 @@ export const CrmProposalRepository = {
       return err(dbError('Failed to reorder CRM proposals', error))
     }
   },
+
+  /**
+   * Propostas enviadas/vistas cuja data de validade já passou (`validUntil <
+   * now`). O corte fino "vale até o fim do dia" fica no service.
+   */
+  async listExpirationCandidates(
+    now: Date,
+  ): Promise<Result<CrmProposalExpirationCandidate[]>> {
+    try {
+      const proposals = await prisma.crmProposal.findMany({
+        where: {
+          status: { in: [...CRM_PROPOSAL_EXPIRABLE_STATUSES] },
+          validUntil: { lt: now },
+          deletedAt: null,
+        },
+        orderBy: { validUntil: 'asc' },
+        include: {
+          responsible: { select: { id: true, name: true, email: true } },
+          workspace: { select: { id: true, name: true, slug: true } },
+        },
+      })
+      return ok(proposals)
+    } catch (error) {
+      return err(
+        dbError('Failed to list CRM proposal expiration candidates', error),
+      )
+    }
+  },
+
+  /**
+   * Marca como EXPIRED se ainda estiver enviada/vista. `false` = outra
+   * operação (aceite, extensão, outro tick) chegou antes — não notificar.
+   */
+  async markExpired(id: string, at: Date): Promise<Result<boolean>> {
+    try {
+      const { count } = await prisma.crmProposal.updateMany({
+        where: {
+          id,
+          status: { in: [...CRM_PROPOSAL_EXPIRABLE_STATUSES] },
+          deletedAt: null,
+        },
+        data: { status: 'EXPIRED', expiredAt: at },
+      })
+      return ok(count === 1)
+    } catch (error) {
+      return err(dbError('Failed to expire CRM proposal', error))
+    }
+  },
+
+  /**
+   * Registra o aceite se a proposta ainda estiver enviada/vista. `false` =
+   * o status mudou antes (aceite duplo, expiração, recusa).
+   */
+  async accept(
+    id: string,
+    data: { name: string; at: Date },
+  ): Promise<Result<boolean>> {
+    try {
+      const { count } = await prisma.crmProposal.updateMany({
+        where: {
+          id,
+          status: { in: [...CRM_PROPOSAL_EXPIRABLE_STATUSES] },
+          deletedAt: null,
+        },
+        data: {
+          status: 'ACCEPTED',
+          acceptedAt: data.at,
+          acceptedByName: data.name,
+        },
+      })
+      return ok(count === 1)
+    } catch (error) {
+      return err(dbError('Failed to accept CRM proposal', error))
+    }
+  },
 }
 
 export const CrmProposalViewRepository = {
+  async countByProposal(proposalId: string): Promise<Result<number>> {
+    try {
+      const count = await prisma.crmProposalView.count({
+        where: { proposalId },
+      })
+      return ok(count)
+    } catch (error) {
+      return err(dbError('Failed to count CRM proposal views', error))
+    }
+  },
+
   async record(data: {
     proposalId: string
     viewId: string

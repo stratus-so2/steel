@@ -56,6 +56,7 @@ import type {
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
 import { assertModuleEnabled, assertModuleMember } from './authz'
+import { resolveProposalValidUntil } from './crm-proposal.service'
 import { CrmSettingsService } from './crm-settings.service'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
@@ -886,6 +887,12 @@ export const CrmLeadService = {
       )
     }
 
+    const validUntil = await resolveProposalValidUntil(
+      workspaceId,
+      dto.validUntil,
+    )
+    if (!validUntil.ok) return validUntil
+
     const proposal = await CrmProposalRepository.create({
       workspaceId,
       createdById: actorId,
@@ -893,7 +900,7 @@ export const CrmLeadService = {
       templateId: dto.templateId,
       leadId,
       responsibleId: actorId,
-      validUntil: dto.validUntil,
+      validUntil: validUntil.value,
       sections: [],
     })
     if (!proposal.ok) return proposal

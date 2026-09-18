@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   defaultProposalValidUntil,
+  formatProposalValidity,
   isCrmProposalExpired,
   isProposalValidityPast,
   proposalValidityEnd,
@@ -76,5 +77,13 @@ describe('isCrmProposalExpired()', () => {
     expect(
       isCrmProposalExpired({ status: 'SENT', validUntil: null }, now),
     ).toBe(false)
+  })
+})
+
+describe('formatProposalValidity()', () => {
+  it('should format the São Paulo date', () => {
+    expect(formatProposalValidity(new Date('2026-10-11T02:59:59.999Z'))).toBe(
+      '10/10/2026',
+    )
   })
 })

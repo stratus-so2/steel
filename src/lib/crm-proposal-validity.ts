@@ -35,6 +35,15 @@ export function defaultProposalValidUntil(from: Date, days: number): Date {
   return proposalValidityEnd(new Date(from.getTime() + days * DAY_MS))
 }
 
+const validityDateFormat = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+})
+
+/** Data de validade para mensagens ao usuário (dd/mm/aaaa, São Paulo). */
+export function formatProposalValidity(validUntil: Date): string {
+  return validityDateFormat.format(validUntil)
+}
+
 /** A data de validade (se houver) já passou? Independe do status. */
 export function isProposalValidityPast(
   validUntil: Date | null,

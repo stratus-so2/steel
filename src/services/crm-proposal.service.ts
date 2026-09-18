@@ -1,6 +1,23 @@
 import { createHash } from 'node:crypto'
 import { auditMutation } from '@/lib/axiom/audit'
-import { ok, type Result } from '@/src/lib/result'
+import { logger } from '@/lib/axiom/logger'
+import { baseEmailUrl } from '@/lib/base-email-url'
+import {
+  conflict,
+  crmProposalExpired,
+  crmProposalNotAcceptable,
+  forbidden,
+  validationError,
+} from '@/src/errors'
+import {
+  CRM_PROPOSAL_EXPIRABLE_STATUSES,
+  defaultProposalValidUntil,
+  formatProposalValidity,
+  isCrmProposalExpired,
+  isProposalValidityPast,
+} from '@/src/lib/crm-proposal-validity'
+import { sendCrmProposalExpiredEmail } from '@/src/lib/mail/crm/send-proposal-expired'
+import { err, ok, type Result } from '@/src/lib/result'
 import {
   toCrmProposalDTO,
   toCrmProposalMetricsDTO,
@@ -15,7 +32,9 @@ import {
 } from '@/src/repositories/crm-proposal.repository'
 import { CrmProposalTemplateRepository } from '@/src/repositories/crm-proposal-template.repository'
 import type {
+  AcceptCrmProposalDTO,
   CreateCrmProposalDTO,
+  ExtendCrmProposalValidityDTO,
   RecordCrmProposalViewDTO,
   UpdateCrmProposalDTO,
 } from '@/src/schemas/crm-proposal.schema'
@@ -24,7 +43,16 @@ import type {
   CrmProposalMetricsDTO,
   CrmProposalPublicDTO,
 } from '@/types/crm-proposal'
-import { assertMember, assertModuleEnabled, assertModuleMember } from './authz'
+import {
+  assertMember,
+  assertModuleEnabled,
+  assertModuleMember,
+  assertModulePrivileged,
+} from './authz'
+import {
+  CrmSettingsService,
+  type ResolvedCrmSettings,
+} from './crm-settings.service'
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
@@ -67,6 +95,36 @@ async function assertRelatedEntities(
   }
   return ok(true)
 }
+
+/** Validade informada ou, sem ela, hoje + a validade padrão da workspace. */
+export async function resolveProposalValidUntil(
+  workspaceId: string,
+  validUntil: Date | undefined,
+): Promise<Result<Date>> {
+  if (validUntil) return ok(validUntil)
+  const settings = await CrmSettingsService.resolve(workspaceId)
+  if (!settings.ok) return settings
+  return ok(
+    defaultProposalValidUntil(new Date(), settings.value.proposalValidityDays),
+  )
+}
+
+function expiredMessage(validUntil: Date | null, action: string): string {
+  const since = validUntil ? ` em ${formatProposalValidity(validUntil)}` : ''
+  return `A validade desta proposta expirou${since}. ${action}`
+}
+
+/** Status de volta ao estender uma expirada: vista se já teve visita. */
+async function statusAfterExtension(
+  proposalId: string,
+): Promise<Result<'SENT' | 'VIEWED'>> {
+  const views = await CrmProposalViewRepository.countByProposal(proposalId)
+  if (!views.ok) return views
+  return ok(views.value > 0 ? 'VIEWED' : 'SENT')
+}
+
+const sameInstant = (a: Date | null, b: Date | null) =>
+  (a?.getTime() ?? null) === (b?.getTime() ?? null)
 
 export const CrmProposalService = {
   async list(
@@ -141,6 +199,12 @@ export const CrmProposalService = {
         }))
     }
 
+    const validUntil = await resolveProposalValidUntil(
+      workspaceId,
+      dto.validUntil,
+    )
+    if (!validUntil.ok) return validUntil
+
     const result = await CrmProposalRepository.create({
       workspaceId,
       createdById: actorId,
@@ -150,7 +214,7 @@ export const CrmProposalService = {
       contactId: dto.contactId,
       opportunityId: dto.opportunityId,
       responsibleId: dto.responsibleId,
-      validUntil: dto.validUntil,
+      validUntil: validUntil.value,
       sections,
     })
 
@@ -201,6 +265,56 @@ export const CrmProposalService = {
     })
     if (!related.ok) return related
 
+    const current = existing.value
+    const validityChanged =
+      dto.validUntil !== undefined &&
+      !sameInstant(dto.validUntil, current.validUntil)
+    const statusChanged =
+      dto.status !== undefined && dto.status !== current.status
+    const nextValidUntil =
+      dto.validUntil !== undefined ? dto.validUntil : current.validUntil
+
+    // Aceite fora da validade é bloqueado — estenda a validade antes.
+    if (
+      statusChanged &&
+      dto.status === 'ACCEPTED' &&
+      (current.status === 'EXPIRED' || isProposalValidityPast(nextValidUntil))
+    ) {
+      return err(
+        crmProposalExpired(
+          expiredMessage(
+            current.validUntil,
+            'Estenda a validade antes de marcá-la como aceita.',
+          ),
+        ),
+      )
+    }
+
+    let status = dto.status
+    let expiredAt: null | undefined
+    // Mexer na validade/status de uma proposta expirada é "estender": só
+    // OWNER/ADMIN (mesma regra de `extendValidity`).
+    if (current.status === 'EXPIRED' && (validityChanged || statusChanged)) {
+      if (!membership.value.isPrivileged) {
+        return err(
+          forbidden(
+            'Só administradores do CRM podem alterar a validade de uma proposta expirada',
+          ),
+        )
+      }
+      if (isProposalValidityPast(nextValidUntil)) {
+        return err(
+          validationError('A nova validade precisa ser uma data futura'),
+        )
+      }
+      if (!statusChanged) {
+        const reopened = await statusAfterExtension(proposalId)
+        if (!reopened.ok) return reopened
+        status = reopened.value
+      }
+      expiredAt = null
+    }
+
     const result = await CrmProposalRepository.update(proposalId, {
       name: dto.name,
       companyId: dto.companyId,
@@ -208,7 +322,8 @@ export const CrmProposalService = {
       opportunityId: dto.opportunityId,
       responsibleId: dto.responsibleId,
       validUntil: dto.validUntil,
-      status: dto.status,
+      status,
+      expiredAt,
       sections: dto.sections,
       updatedById: actorId,
     })
@@ -359,6 +474,20 @@ export const CrmProposalService = {
     )
     if (!existing.ok) return existing
 
+    if (
+      existing.value.status === 'EXPIRED' ||
+      isProposalValidityPast(existing.value.validUntil)
+    ) {
+      return err(
+        crmProposalExpired(
+          expiredMessage(
+            existing.value.validUntil,
+            'Ajuste a data de validade antes de enviar.',
+          ),
+        ),
+      )
+    }
+
     const result = await CrmProposalRepository.setStatus(proposalId, 'SENT')
     if (!result.ok) return result
 
@@ -371,5 +500,206 @@ export const CrmProposalService = {
     })
 
     return ok(toCrmProposalDTO(result.value))
+  },
+
+  /**
+   * OWNER/ADMIN estende a validade — inclusive de uma proposta já expirada,
+   * que volta a SENT/VIEWED e pode ser aceita de novo. A nova data precisa
+   * ser futura; propostas já respondidas (aceita/recusada) não mudam.
+   */
+  async extendValidity(
+    actorId: string,
+    workspaceId: string,
+    proposalId: string,
+    dto: ExtendCrmProposalValidityDTO,
+  ): Promise<Result<CrmProposalDTO>> {
+    const membership = await assertModulePrivileged(actorId, workspaceId, 'CRM')
+    if (!membership.ok) return membership
+
+    const existing = await CrmProposalRepository.findById(
+      proposalId,
+      workspaceId,
+    )
+    if (!existing.ok) return existing
+    const current = existing.value
+
+    if (current.status === 'ACCEPTED' || current.status === 'REJECTED') {
+      return err(
+        conflict(
+          'Esta proposta já foi respondida pelo cliente — a validade não pode mais ser alterada',
+        ),
+      )
+    }
+    if (isProposalValidityPast(dto.validUntil)) {
+      return err(validationError('A nova validade precisa ser uma data futura'))
+    }
+
+    let reopenedStatus: 'SENT' | 'VIEWED' | undefined
+    if (current.status === 'EXPIRED') {
+      const status = await statusAfterExtension(proposalId)
+      if (!status.ok) return status
+      reopenedStatus = status.value
+    }
+
+    const result = await CrmProposalRepository.update(proposalId, {
+      validUntil: dto.validUntil,
+      ...(reopenedStatus ? { status: reopenedStatus, expiredAt: null } : {}),
+      updatedById: actorId,
+    })
+    if (!result.ok) return result
+
+    auditMutation({
+      entity: 'crm_proposal',
+      action: 'update',
+      actorId,
+      targetId: proposalId,
+      meta: {
+        validityExtended: true,
+        validUntil: dto.validUntil.toISOString(),
+        previousValidUntil: current.validUntil?.toISOString() ?? null,
+        reopenedFromExpired: reopenedStatus !== undefined,
+      },
+    })
+
+    return ok(toCrmProposalDTO(result.value))
+  },
+
+  /**
+   * Aceite do cliente pela página pública. Bloqueado após a validade (com a
+   * data na mensagem) e para propostas que não estão mais aguardando
+   * resposta. A escrita é condicional ao status, então aceites simultâneos
+   * não gravam duas vezes.
+   */
+  async accept(
+    shareToken: string,
+    ip: string,
+    dto: AcceptCrmProposalDTO,
+  ): Promise<Result<CrmProposalPublicDTO>> {
+    const proposal = await CrmProposalRepository.findByShareToken(shareToken)
+    if (!proposal.ok) return proposal
+
+    const moduleEnabled = await assertModuleEnabled(
+      proposal.value.workspaceId,
+      'CRM',
+    )
+    if (!moduleEnabled.ok) return moduleEnabled
+
+    if (isCrmProposalExpired(proposal.value)) {
+      return err(
+        crmProposalExpired(
+          expiredMessage(
+            proposal.value.validUntil,
+            'Ela não pode mais ser aceita — peça uma nova proposta ou a extensão da validade a quem a enviou.',
+          ),
+        ),
+      )
+    }
+    if (
+      !(CRM_PROPOSAL_EXPIRABLE_STATUSES as readonly string[]).includes(
+        proposal.value.status,
+      )
+    ) {
+      return err(
+        crmProposalNotAcceptable(
+          proposal.value.status === 'ACCEPTED'
+            ? 'Esta proposta já foi aceita'
+            : undefined,
+        ),
+      )
+    }
+
+    const accepted = await CrmProposalRepository.accept(proposal.value.id, {
+      name: dto.name,
+      at: new Date(),
+    })
+    if (!accepted.ok) return accepted
+    if (!accepted.value) return err(crmProposalNotAcceptable())
+
+    auditMutation({
+      entity: 'crm_proposal',
+      action: 'accept',
+      actorId: null,
+      targetId: proposal.value.id,
+      meta: { via: 'public_link', ipHash: hashIp(ip) },
+    })
+
+    const updated = await CrmProposalRepository.findByShareToken(shareToken)
+    if (!updated.ok) return updated
+
+    return ok(toCrmProposalPublicDTO(updated.value))
+  },
+
+  /**
+   * Job diário: marca como EXPIRED as propostas enviadas/vistas cuja
+   * validade terminou (vale até o fim do dia, São Paulo) e, se a workspace
+   * mantiver o aviso ligado, manda e-mail ao responsável. Falha de e-mail
+   * não interrompe o lote.
+   */
+  async expireDue(
+    now: Date = new Date(),
+  ): Promise<
+    Result<{ candidates: number; expired: number; notified: number }>
+  > {
+    const candidates = await CrmProposalRepository.listExpirationCandidates(now)
+    if (!candidates.ok) return candidates
+
+    const settingsByWorkspace = new Map<string, ResolvedCrmSettings>()
+    let expired = 0
+    let notified = 0
+
+    for (const proposal of candidates.value) {
+      if (!isProposalValidityPast(proposal.validUntil, now)) continue
+
+      const marked = await CrmProposalRepository.markExpired(proposal.id, now)
+      if (!marked.ok) {
+        logger.error('crm.proposal.expire_failed', {
+          proposalId: proposal.id,
+          workspaceId: proposal.workspaceId,
+          reason: marked.error.code,
+        })
+        continue
+      }
+      if (!marked.value) continue
+      expired += 1
+
+      auditMutation({
+        entity: 'crm_proposal',
+        action: 'update',
+        actorId: null,
+        targetId: proposal.id,
+        meta: { status: 'EXPIRED', via: 'crm-proposal-expiry' },
+      })
+
+      let settings = settingsByWorkspace.get(proposal.workspaceId)
+      if (!settings) {
+        const resolved = await CrmSettingsService.resolve(proposal.workspaceId)
+        if (!resolved.ok) continue
+        settings = resolved.value
+        settingsByWorkspace.set(proposal.workspaceId, settings)
+      }
+      if (!settings.notifyProposalExpiry) continue
+
+      try {
+        await sendCrmProposalExpiredEmail({
+          email: proposal.responsible.email,
+          username: proposal.responsible.name,
+          proposalName: proposal.name,
+          workspaceName: proposal.workspace.name,
+          validUntil: proposal.validUntil
+            ? formatProposalValidity(proposal.validUntil)
+            : '',
+          proposalUrl: `${baseEmailUrl}/${proposal.workspace.slug}/crm/proposals/${proposal.id}`,
+        })
+        notified += 1
+      } catch (error) {
+        logger.warn('crm.proposal.expiry_email_failed', {
+          proposalId: proposal.id,
+          workspaceId: proposal.workspaceId,
+          message: error instanceof Error ? error.message : String(error),
+        })
+      }
+    }
+
+    return ok({ candidates: candidates.value.length, expired, notified })
   },
 }

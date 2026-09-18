@@ -64,3 +64,11 @@ export interface TalkToSalesEmailProps {
   teamSize: string
   message: string
 }
+
+export interface CrmProposalExpiredEmailProps extends EmailProps {
+  proposalName: string
+  workspaceName: string
+  /** Data de validade já formatada (dd/mm/aaaa). */
+  validUntil: string
+  proposalUrl: string
+}

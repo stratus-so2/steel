@@ -479,6 +479,37 @@ describe('CrmLeadService', () => {
       expect(result.proposal.id).toBe('p1')
     })
 
+    it('should default the validity to the workspace setting', async () => {
+      mockMember()
+      mockedSettingsRepo.findByWorkspace.mockResolvedValue(
+        ok(createFakeCrmSettings({ proposalValidityDays: 30 })),
+      )
+      mockedLeadRepo.findById.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'OPPORTUNITY' })),
+      )
+      mockedLeadRepo.listMeetings.mockResolvedValue(
+        ok([createFakeCrmLeadMeeting({ leadId: 'l1' })]),
+      )
+      mockedProposalRepo.create.mockResolvedValue(
+        ok({ ...createFakeCrmProposal({ id: 'p1' }), sections: [] }),
+      )
+      mockedLeadRepo.update.mockResolvedValue(
+        ok(createFakeCrmLead({ id: 'l1', stage: 'PROPOSAL' })),
+      )
+
+      expectOk(
+        await CrmLeadService.createProposal('u1', 'ws1', 'l1', {
+          name: 'Proposta X',
+        }),
+      )
+
+      const validUntil = mockedProposalRepo.create.mock.calls[0]?.[0]
+        .validUntil as Date
+      const days = (validUntil.getTime() - Date.now()) / 86_400_000
+      expect(days).toBeGreaterThan(29)
+      expect(days).toBeLessThanOrEqual(31)
+    })
+
     it('should reject creating a proposal with no meeting registered', async () => {
       mockMember()
       mockedLeadRepo.findById.mockResolvedValue(
