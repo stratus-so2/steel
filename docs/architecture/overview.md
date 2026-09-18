@@ -86,6 +86,10 @@ resto exige o cookie `better-auth.session_token`).
 | **ServiceDesk** | `[workspace-slug]/servicedesk` | casca; domínio ainda em construção |
 | **Base (Nexo)** | auth, onboarding, settings (membros, billing, conexões), wiki, IA, sticky notes, short links, `/status`, `/docs` (Scalar) | `src/services/{workspace,membership,invitation,subscription,user,...}.service.ts` |
 
+Campanhas de e-mail e transmissões do WhatsApp respeitam o descadastro LGPD
+(link + `List-Unsubscribe` no e-mail, palavras-chave no WhatsApp) — regras,
+registro e política de reinscrição em [LGPD — descadastro](../lgpd.md).
+
 ## Worker (BullMQ)
 
 Processo Node separado (`worker/index.ts`, build `pnpm worker:build` →
