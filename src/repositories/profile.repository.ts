@@ -103,15 +103,38 @@ export const ProfileRepository = {
   },
 
   /**
-   * Semeia os 3 perfis de sistema da workspace (idempotente) e liga as
-   * memberships sem perfil ao perfil correspondente ao seu `role`. Retorna os
-   * perfis da workspace.
+   * Semeia os perfis de sistema da workspace (idempotente), ressincroniza a
+   * matriz salva deles com a do código (fonte da verdade — recursos novos
+   * entram sem migração manual) e liga as memberships sem perfil ao perfil
+   * correspondente ao seu `role`. Retorna os perfis da workspace.
    */
   async ensureSystemProfiles(workspaceId: string): Promise<Result<Profile[]>> {
     try {
       const existing = await prisma.profile.findMany({
         where: { workspaceId, isSystem: true },
       })
+      const stale = existing.filter((p) => {
+        const expected = p.systemKey
+          ? SYSTEM_PROFILE_PERMISSIONS[p.systemKey]
+          : undefined
+        return (
+          expected && JSON.stringify(p.permissions) !== JSON.stringify(expected)
+        )
+      })
+      if (stale.length > 0) {
+        await prisma.$transaction(
+          stale.map((p) =>
+            prisma.profile.update({
+              where: { id: p.id },
+              data: {
+                permissions: SYSTEM_PROFILE_PERMISSIONS[
+                  p.systemKey as string
+                ] as Prisma.InputJsonValue,
+              },
+            }),
+          ),
+        )
+      }
       if (existing.length < SYSTEM_PROFILES.length) {
         await prisma.$transaction(async (tx) => {
           for (const sp of SYSTEM_PROFILES) {

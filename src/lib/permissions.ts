@@ -1,7 +1,10 @@
 /**
  * Catálogo de permissões do RBAC. Um perfil tem um mapa `recurso → [ações]`.
- * Perfis de sistema (OWNER/ADMIN/MEMBER) têm matrizes padrão que preservam o
- * comportamento anterior aos perfis customizados.
+ * Perfis de sistema (OWNER/ADMIN/MEMBER/VIEWER) têm matrizes padrão definidas
+ * aqui — o código é a fonte da verdade delas, não o JSON salvo no banco.
+ *
+ * Regra geral: **negação por padrão**. Recurso ou ação ausente do mapa =
+ * bloqueado.
  */
 
 export const PERMISSION_ACTIONS = ['VIEW', 'CREATE', 'EDIT', 'DELETE'] as const
@@ -31,6 +34,13 @@ export const PERMISSION_RESOURCES = [
   'audit-logs',
   'leads',
   'reports',
+  // Comunicação (WhatsApp)
+  'conversations',
+  'contacts',
+  'groups',
+  'broadcasts',
+  'message-templates',
+  'quick-replies',
 ] as const
 export type PermissionResource = (typeof PERMISSION_RESOURCES)[number]
 
@@ -57,14 +67,23 @@ const MEMBER_ENTITIES = new Set<PermissionResource>([
   'social',
   'leads',
   'reports',
+  'conversations',
+  'contacts',
+  'groups',
+  'quick-replies',
 ])
 
-/** Recursos de configuração que o Membro só pode visualizar. */
+/**
+ * Recursos que o Membro só pode visualizar: configuração do CRM e, na
+ * Comunicação, transmissões e templates (criação restrita a admins).
+ */
 const MEMBER_READONLY = new Set<PermissionResource>([
   'pipelines',
   'quotas',
   'custom-fields',
   'audit-logs',
+  'broadcasts',
+  'message-templates',
 ])
 
 function fullMatrix(): PermissionMap {
@@ -83,11 +102,24 @@ function memberMatrix(): PermissionMap {
   return map
 }
 
+/**
+ * Visualizador: somente leitura (VIEW) em tudo que o Membro enxerga. Nunca
+ * cria, edita ou exclui, e não vê membros, configurações nem integrações.
+ */
+function viewerMatrix(): PermissionMap {
+  const map: PermissionMap = {}
+  for (const r of PERMISSION_RESOURCES) {
+    map[r] = MEMBER_ENTITIES.has(r) || MEMBER_READONLY.has(r) ? [...READ] : []
+  }
+  return map
+}
+
 /** Matrizes padrão dos perfis de sistema, por `systemKey`. */
 export const SYSTEM_PROFILE_PERMISSIONS: Record<string, PermissionMap> = {
   OWNER: fullMatrix(),
   ADMIN: fullMatrix(),
   MEMBER: memberMatrix(),
+  VIEWER: viewerMatrix(),
 }
 
 /** Definição dos perfis de sistema semeados em toda workspace. */
@@ -95,6 +127,7 @@ export const SYSTEM_PROFILES = [
   { systemKey: 'OWNER', name: 'Proprietário' },
   { systemKey: 'ADMIN', name: 'Administrador' },
   { systemKey: 'MEMBER', name: 'Membro' },
+  { systemKey: 'VIEWER', name: 'Visualizador' },
 ] as const
 
 /** Mapa `role` (enum legado) → `systemKey` do perfil. */
@@ -102,6 +135,7 @@ export const ROLE_TO_SYSTEM_KEY: Record<string, string> = {
   OWNER: 'OWNER',
   ADMIN: 'ADMIN',
   MEMBER: 'MEMBER',
+  VIEWER: 'VIEWER',
 }
 
 /** O perfil concede a ação no recurso? */

@@ -1,5 +1,5 @@
-import type { Role } from '@prisma/client'
-import { forbidden } from '../errors'
+import type { ModuleKind, Profile, Role } from '@prisma/client'
+import { forbidden, moduleDisabled } from '../errors'
 import {
   can,
   type PermissionAction,
@@ -9,6 +9,7 @@ import {
 import { err, ok, type Result } from '../lib/result'
 import { MembershipRepository } from '../repositories/membership.repository'
 import { UserRepository } from '../repositories/user.repository'
+import { WorkspaceModuleAccessRepository } from '../repositories/workspace-module-access.repository'
 
 export const PRIVILEGED_ROLES = ['OWNER', 'ADMIN'] as const
 
@@ -41,10 +42,31 @@ export interface PermissionRequirement {
 }
 
 /**
+ * Permissões efetivas de uma membership. Perfis de sistema usam a matriz do
+ * código (fonte da verdade — o JSON salvo é só um snapshot da época do seed e
+ * não acompanha recursos novos); perfis customizados usam o que foi salvo; sem
+ * perfil, cai na matriz do papel. `null` = nada definido → negado.
+ */
+export function resolvePermissions(
+  role: Role,
+  profile: Pick<Profile, 'isSystem' | 'systemKey' | 'permissions'> | null,
+): PermissionMap | null {
+  if (profile) {
+    if (profile.isSystem && profile.systemKey) {
+      const system = SYSTEM_PROFILE_PERMISSIONS[profile.systemKey]
+      if (system) return system
+    }
+    return (profile.permissions as PermissionMap | null) ?? null
+  }
+  return SYSTEM_PROFILE_PERMISSIONS[role] ?? null
+}
+
+/**
  * Verifica associação ao workspace e, opcionalmente, uma permissão específica
- * (recurso × ação). Sem `require`, só confirma associação — o comportamento
- * histórico de `assertMember`, preservado para não quebrar os chamadores
- * existentes. Membros com role privilegiado (OWNER/ADMIN) sempre passam.
+ * (recurso × ação). Sem `require`, só confirma associação. Com `require`, a
+ * regra é **negação por padrão**: se a matriz efetiva não conceder a ação
+ * explicitamente (ou não houver matriz), bloqueia. Membros com role
+ * privilegiado (OWNER/ADMIN) sempre passam.
  */
 export async function assertMember(
   actorId: string,
@@ -59,19 +81,71 @@ export async function assertMember(
   if (!membership.value) return err(forbidden())
 
   const isPrivileged = isPrivilegedRole(membership.value.role)
-  const profile = membership.value.profile
-  const permissions: PermissionMap | null = profile
-    ? (profile.permissions as PermissionMap)
-    : (SYSTEM_PROFILE_PERMISSIONS[membership.value.role] ?? null)
+  const permissions = resolvePermissions(
+    membership.value.role,
+    membership.value.profile,
+  )
 
-  if (require && !isPrivileged) {
-    // `null` = não determinável → permite (membro verificado).
-    if (permissions && !can(permissions, require.resource, require.action)) {
+  return authorize(
+    { role: membership.value.role, isPrivileged, permissions },
+    require,
+  )
+}
+
+function authorize(
+  ctx: MembershipContext,
+  require?: PermissionRequirement,
+): Result<MembershipContext> {
+  if (require && !ctx.isPrivileged) {
+    // Negação por padrão: sem matriz ou sem a ação concedida → bloqueado.
+    if (
+      !ctx.permissions ||
+      !can(ctx.permissions, require.resource, require.action)
+    ) {
       return err(forbidden())
     }
   }
+  return ok(ctx)
+}
 
-  return ok({ role: membership.value.role, isPrivileged, permissions })
+/**
+ * Barra o acesso quando o módulo não está habilitado para a workspace. Não
+ * exige sessão — é usado também pelas rotas públicas (formulários, propostas,
+ * landing pages, webhooks) depois de resolverem a workspace pelo token.
+ */
+export async function assertModuleEnabled(
+  workspaceId: string,
+  module: ModuleKind,
+): Promise<Result<true>> {
+  const enabled = await WorkspaceModuleAccessRepository.isEnabled(
+    workspaceId,
+    module,
+  )
+  if (!enabled.ok) return enabled
+  if (!enabled.value) return err(moduleDisabled())
+  return ok(true)
+}
+
+/**
+ * Porta de entrada de autorização dos services de módulo (CRM, Comunicação):
+ * associação ao workspace → módulo habilitado → permissão (recurso × ação).
+ * A associação vem primeiro para não revelar a um não-membro se o módulo
+ * está ativo. Sem `require`, vale só associação + módulo (leituras de apoio,
+ * como a lista de membros para atribuição).
+ */
+export async function assertModuleMember(
+  actorId: string,
+  workspaceId: string,
+  module: ModuleKind,
+  require?: PermissionRequirement,
+): Promise<Result<MembershipContext>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+
+  const enabled = await assertModuleEnabled(workspaceId, module)
+  if (!enabled.ok) return enabled
+
+  return authorize(membership.value, require)
 }
 
 export async function assertPrivileged(

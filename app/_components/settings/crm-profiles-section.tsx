@@ -52,6 +52,12 @@ const RESOURCE_LABEL: Record<string, string> = {
   'audit-logs': 'Log de auditoria',
   leads: 'Leads',
   reports: 'Relatórios',
+  conversations: 'Conversas',
+  contacts: 'Contatos',
+  groups: 'Grupos',
+  broadcasts: 'Transmissões',
+  'message-templates': 'Templates de mensagem',
+  'quick-replies': 'Respostas rápidas',
 }
 
 const ACTION_LABEL: Record<PermissionAction, string> = {
