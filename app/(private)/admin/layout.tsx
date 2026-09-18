@@ -1,5 +1,6 @@
 import {
   Building03Icon,
+  ChartHistogramIcon,
   MailAtSign01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
@@ -32,6 +33,9 @@ export default async function AdminLayout({
         <NavGroup>
           <NavItem href='/admin/workspaces' icon={Building03Icon}>
             Workspaces
+          </NavItem>
+          <NavItem href='/admin/metrics' icon={ChartHistogramIcon}>
+            Métricas
           </NavItem>
           <NavItem href='/admin/changelog' icon={MailAtSign01Icon}>
             Changelog
