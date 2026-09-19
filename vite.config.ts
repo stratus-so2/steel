@@ -108,6 +108,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
+      // Piso global exigido: abaixo de 95% em qualquer métrica o
+      // `test:coverage` falha e o job Coverage Tests barra o CI.
+      thresholds: {
+        statements: 95,
+        branches: 95,
+        functions: 95,
+        lines: 95,
+      },
       include: [
         'src/services/**',
         'src/mappers/**',
