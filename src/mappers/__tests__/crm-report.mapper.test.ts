@@ -73,4 +73,40 @@ describe('legacyToQuery()', () => {
       sort: { field: 'count', direction: 'desc' },
     })
   })
+
+  it('should namespace a plain column sort by the report source', () => {
+    const report = createFakeCrmReport({
+      source: 'lead',
+      columns: ['name', 'createdAt'],
+      groupBy: null,
+      sort: { field: 'createdAt', direction: 'asc' },
+    })
+
+    expect(legacyToQuery(report).sort).toEqual({
+      field: 'lead.createdAt',
+      direction: 'asc',
+    })
+  })
+
+  it('should treat null legacy columns and filters as empty', () => {
+    const report = createFakeCrmReport({
+      source: 'lead',
+      columns: null as never,
+      filters: null as never,
+      groupBy: null,
+      sort: null,
+      query: null as never,
+    })
+
+    const dto = toCrmReportDTO(report)
+
+    expect(dto.columns).toEqual([])
+    expect(dto.filters).toEqual([])
+    expect(dto.query).toEqual(
+      expect.objectContaining({
+        columns: [],
+        datasets: [{ alias: 'lead', source: 'lead', filters: [] }],
+      }),
+    )
+  })
 })

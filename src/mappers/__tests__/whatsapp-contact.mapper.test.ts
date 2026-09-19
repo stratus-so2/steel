@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { createFakeWhatsAppContact } from '@/src/__tests__/factories/whatsapp-contact.factory'
+import {
+  createFakeWhatsAppContact,
+  createFakeWhatsAppContactWithoutCount,
+} from '@/src/__tests__/factories/whatsapp-contact.factory'
 import { toWhatsAppContactDTO } from '../whatsapp-contact.mapper'
 
 describe('toWhatsAppContactDTO()', () => {
@@ -48,5 +51,20 @@ describe('toWhatsAppContactDTO()', () => {
 
     expect(dto.broadcastOptedOutAt).toBe('2026-09-01T12:00:00.000Z')
     expect(dto.broadcastOptOutSource).toBe('KEYWORD')
+  })
+
+  it('should expose the conversation count when included', () => {
+    const contact = {
+      ...createFakeWhatsAppContact(),
+      _count: { conversations: 3 },
+    }
+
+    expect(toWhatsAppContactDTO(contact).conversationCount).toBe(3)
+  })
+
+  it('should default the conversation count to zero when not included', () => {
+    const contact = createFakeWhatsAppContactWithoutCount()
+
+    expect(toWhatsAppContactDTO(contact).conversationCount).toBe(0)
   })
 })
