@@ -181,3 +181,28 @@ describe('StickyNoteService', () => {
     })
   })
 })
+
+describe('StickyNoteService lookup failures', () => {
+  it('list() should propagate a repository failure', async () => {
+    mockedRepo.listByUserId.mockResolvedValue(err(databaseError()))
+
+    expectErr(await StickyNoteService.list('u1'), 'DATABASE_ERROR')
+  })
+
+  it('update() should propagate a lookup failure without updating', async () => {
+    mockedRepo.findById.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await StickyNoteService.update('u1', 's1', { color: 'RED' }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('delete() should propagate a lookup failure without deleting', async () => {
+    mockedRepo.findById.mockResolvedValue(err(databaseError()))
+
+    expectErr(await StickyNoteService.delete('u1', 's1'), 'DATABASE_ERROR')
+    expect(mockedRepo.delete).not.toHaveBeenCalled()
+  })
+})

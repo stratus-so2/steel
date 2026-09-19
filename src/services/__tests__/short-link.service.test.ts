@@ -178,3 +178,22 @@ describe('ShortLinkService', () => {
     })
   })
 })
+
+describe('ShortLinkService lookup failures', () => {
+  it('update() should propagate a lookup failure without updating', async () => {
+    mockedRepo.findById.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await ShortLinkService.update('u1', 'l1', { title: 'Novo' }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('delete() should propagate a lookup failure without deleting', async () => {
+    mockedRepo.findById.mockResolvedValue(err(databaseError()))
+
+    expectErr(await ShortLinkService.delete('u1', 'l1'), 'DATABASE_ERROR')
+    expect(mockedRepo.delete).not.toHaveBeenCalled()
+  })
+})
