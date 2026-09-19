@@ -582,7 +582,10 @@ export class OpenApiRegistry {
       })
     }
     if (auto && config.body && isZodBody(config.body)) {
-      errors.push({ code: 'VALIDATION_ERROR', when: 'Corpo inválido' })
+      errors.push({
+        code: 'VALIDATION_ERROR',
+        when: 'Corpo inválido ou JSON malformado',
+      })
     }
     if (
       auto &&

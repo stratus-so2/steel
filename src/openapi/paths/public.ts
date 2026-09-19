@@ -402,7 +402,7 @@ const routes: RouteConfig[] = [
         type: 'object',
         additionalProperties: true,
         description:
-          'Payload livre (JSON). Corpo inválido é tratado como `{}`.',
+          'Payload livre (JSON). Corpo vazio (ou JSON que não é objeto) é tratado como `{}`; JSON malformado é recusado com `422`.',
       },
       required: false,
       example: {
@@ -419,6 +419,7 @@ const routes: RouteConfig[] = [
         code: 'CRM_WORKFLOW_WEBHOOK_INVALID',
         when: 'Token inexistente ou workflow sem versão ativa',
       },
+      { code: 'VALIDATION_ERROR', when: 'JSON malformado' },
       CRM_DISABLED,
     ],
   },

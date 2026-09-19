@@ -4454,7 +4454,7 @@
               "schema": {
                 "type": "object",
                 "additionalProperties": true,
-                "description": "Payload livre (JSON). Corpo inválido é tratado como `{}`."
+                "description": "Payload livre (JSON). Corpo vazio (ou JSON que não é objeto) é tratado como `{}`; JSON malformado é recusado com `422`."
               },
               "example": {
                 "pedido": "PV-1042",
@@ -4494,6 +4494,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404_CRM_WORKFLOW_WEBHOOK_INVALID"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -6664,7 +6667,7 @@
             }
           },
           "400": {
-            "description": "Payload sem `entry[0].changes[0].value`.",
+            "description": "JSON malformado ou payload sem `entry[0].changes[0].value` (checado após a assinatura).",
             "content": {
               "text/plain": {
                 "schema": {
@@ -7735,7 +7738,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9938,7 +9941,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28570,7 +28573,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28979,7 +28982,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -32778,7 +32781,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -48618,7 +48621,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -48717,7 +48720,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -48856,7 +48859,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -48897,7 +48900,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -48938,7 +48941,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -48979,7 +48982,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49020,7 +49023,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49061,7 +49064,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49109,7 +49112,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49150,7 +49153,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49191,7 +49194,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49232,6 +49235,36 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_19": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
                 "summary": "VALIDATION_ERROR — Slug de plataforma desconhecido",
                 "value": {
                   "success": false,
@@ -49257,7 +49290,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_19": {
+      "422_VALIDATION_ERROR_20": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -49291,7 +49324,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_20": {
+      "422_VALIDATION_ERROR_21": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -49314,7 +49347,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_21": {
+      "422_VALIDATION_ERROR_22": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -49337,7 +49370,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_22": {
+      "422_VALIDATION_ERROR_23": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -49369,7 +49402,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49410,7 +49443,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49485,7 +49518,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49526,7 +49559,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49566,7 +49599,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49607,7 +49640,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49666,7 +49699,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49707,7 +49740,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49748,7 +49781,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49789,7 +49822,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49875,7 +49908,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49927,7 +49960,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -49968,7 +50001,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -50009,7 +50042,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -50050,7 +50083,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -50091,7 +50124,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
                 "value": {
                   "success": false,
                   "statusCode": 422,

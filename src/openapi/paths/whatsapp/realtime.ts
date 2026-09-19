@@ -159,7 +159,10 @@ ${WEBHOOK_EFFECTS} ${WEBHOOK_NOTE}`,
           'EVENT_RECEIVED',
         ),
       },
-      400: text('Payload sem `entry[0].changes[0].value`.', 'Entrada inválida'),
+      400: text(
+        'JSON malformado ou payload sem `entry[0].changes[0].value` (checado após a assinatura).',
+        'Entrada inválida',
+      ),
       401: text(
         'Assinatura ausente/inválida ou App Secret não configurado.',
         'Assinatura inválida',
