@@ -495,3 +495,49 @@ describe('SubscriptionService', () => {
     })
   })
 })
+
+describe('SubscriptionService edge cases', () => {
+  it('create() should report a non-Error gateway rejection as PAYMENT_ERROR', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ workspaceId: 'ws1', role: 'OWNER' })),
+    )
+    mockedAbacate.createSubscription.mockRejectedValueOnce('ECONNRESET')
+
+    expectErr(
+      await SubscriptionService.create('owner', {
+        plan: 'PRO',
+        workspaceId: 'ws1',
+        seats: 1,
+        interval: 'monthly',
+      }),
+      'PAYMENT_ERROR',
+    )
+    expect(mockedSubRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('handleWebhookEvent() should propagate a deactivation failure and keep caches', async () => {
+    mockedSubRepo.findByBillId.mockResolvedValue(
+      ok(createFakeSubscription({ billId: 'bill_c', workspaceId: 'ws1' })),
+    )
+    mockedSubRepo.deactivateByBillId.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await SubscriptionService.handleWebhookEvent(
+        'subscription.cancelled',
+        'bill_c',
+      ),
+      'DATABASE_ERROR',
+    )
+    expect(mockedWorkspaceCache.invalidate).not.toHaveBeenCalled()
+  })
+
+  it('getActiveByWorkspace() should return the active subscription', async () => {
+    const active = createFakeSubscription({ workspaceId: 'ws1' })
+    mockedSubRepo.findActiveByWorkspaceId.mockResolvedValue(ok(active))
+
+    expect(
+      expectOk(await SubscriptionService.getActiveByWorkspace('ws1')),
+    ).toBe(active)
+    expect(mockedSubRepo.findActiveByWorkspaceId).toHaveBeenCalledWith('ws1')
+  })
+})
