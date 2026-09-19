@@ -60,7 +60,7 @@ function computeOverallStatus(
   const peripheralStatuses: ComponentStatus[] = []
   for (const c of components) {
     if (c.tier === 'core') coreStatuses.push(c.currentStatus)
-    else if (c.tier === 'peripheral') peripheralStatuses.push(c.currentStatus)
+    else peripheralStatuses.push(c.currentStatus)
   }
 
   const worstCore = worstStatus(coreStatuses)
