@@ -32,7 +32,7 @@ describe('apiRequests()', () => {
     expect(apl).toContain("column_ifexists('request.errorCode', '')")
     // Rota normalizada por regex como reserva, aplicada duas vezes.
     expect(apl.match(/replace_regex\(/g)).toHaveLength(2)
-    expect(apl).toContain("@'/[id]${2}'")
+    expect(apl).toContain(`@'/[id]$\{2}'`)
     expect(apl).not.toContain('platform.environment')
     expect(apl).not.toMatch(/where (workspaceId|route|status) /)
   })

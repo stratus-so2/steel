@@ -130,6 +130,7 @@ export default defineConfig({
         'utils/**',
         'lib/abacatepay.ts',
         'src/lib/ai/**',
+        'src/lib/analytics/**',
         'src/lib/queue/processors/**',
       ],
       exclude: [
