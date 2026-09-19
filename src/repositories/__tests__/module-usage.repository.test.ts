@@ -114,3 +114,20 @@ describe('ModuleUsageRepository', () => {
     })
   })
 })
+
+describe('ModuleUsageRepository — database failures', () => {
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.moduleUsageDaily, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.moduleUsageDaily, 'findFirst').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await ModuleUsageRepository.listSince('2026-01-01'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await ModuleUsageRepository.firstDay(), 'DATABASE_ERROR')
+  })
+})

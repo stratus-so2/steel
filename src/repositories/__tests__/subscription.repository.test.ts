@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedSubscription } from '@/src/__tests__/factories/subscription.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -213,5 +213,29 @@ describe('SubscriptionRepository', () => {
       })
       expect(refreshedWs?.activePlan).toBe('PRO')
     })
+  })
+})
+
+describe('SubscriptionRepository — database failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should return DATABASE_ERROR when lookups throw', async () => {
+    vi.spyOn(prisma.subscription, 'findUnique').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.subscription, 'findFirst').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await SubscriptionRepository.findByBillId('bill'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SubscriptionRepository.findActiveByWorkspaceId('w'),
+      'DATABASE_ERROR',
+    )
   })
 })

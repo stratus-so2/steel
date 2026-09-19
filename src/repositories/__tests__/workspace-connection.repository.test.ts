@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { seedWorkspaceConnection } from '@/src/__tests__/factories/workspace-connection.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import { WorkspaceConnectionRepository } from '../workspace-connection.repository'
 
 describe('WorkspaceConnectionRepository', () => {
@@ -137,5 +138,56 @@ describe('WorkspaceConnectionRepository', () => {
       )
       expect(remaining).toBeNull()
     })
+  })
+})
+
+describe('WorkspaceConnectionRepository — failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('upsert() should return DATABASE_ERROR for an unknown workspace', async () => {
+    const user = await seedUser()
+    expectErr(
+      await WorkspaceConnectionRepository.upsert({
+        workspaceId: 'missing',
+        module: 'CRM',
+        host: 'db.example.com',
+        port: 5432,
+        username: 'crm',
+        encryptedPassword: 'enc',
+        database: 'crm',
+        sslEnabled: true,
+        createdById: user.id,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('delete() should return DATABASE_ERROR for an unknown connection', async () => {
+    expectErr(
+      await WorkspaceConnectionRepository.delete('missing'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(
+      prisma.workspaceModuleConnection,
+      'findUnique',
+    ).mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(
+      prisma.workspaceModuleConnection,
+      'findMany',
+    ).mockRejectedValueOnce(new Error('boom'))
+
+    expectErr(
+      await WorkspaceConnectionRepository.findByWorkspaceAndModule('w', 'CRM'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await WorkspaceConnectionRepository.listByWorkspace('w'),
+      'DATABASE_ERROR',
+    )
   })
 })

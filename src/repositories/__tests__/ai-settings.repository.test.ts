@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedAiUsage } from '@/src/__tests__/factories/ai-settings.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import {
   AiUsageRepository,
   UserAiPreferenceRepository,
@@ -138,5 +139,70 @@ describe('AiUsageRepository', () => {
     expect(
       expectOk(await AiUsageRepository.sumSince(workspace.id, new Date(0))),
     ).toEqual({ inputTokens: 0, outputTokens: 0, costUsd: 0 })
+  })
+})
+
+describe('AI settings repositories — failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should return DATABASE_ERROR when writing for an unknown workspace or user', async () => {
+    expectErr(
+      await WorkspaceAiSettingsRepository.upsert('missing', {
+        enabledModels: ['gpt'],
+        crmAssistantModel: 'gpt',
+        whatsappReplyModel: 'gpt',
+        whatsappSentimentModel: 'gpt',
+      }),
+      'DATABASE_ERROR',
+    )
+    const workspace = await seedWorkspace()
+    expectErr(
+      await UserAiPreferenceRepository.upsert(workspace.id, 'missing', 'gpt'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await AiUsageRepository.record({
+        workspaceId: 'missing',
+        userId: null,
+        feature: 'CRM_ASSISTANT',
+        provider: 'openai',
+        model: 'gpt',
+        inputTokens: 1,
+        outputTokens: 1,
+        costUsd: 0.01,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.workspaceAiSettings, 'findUnique').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.userAiPreference, 'findUnique').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.userAiPreference, 'deleteMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.aiUsage, 'aggregate').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await WorkspaceAiSettingsRepository.findByWorkspace('w'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await UserAiPreferenceRepository.find('w', 'u'), 'DATABASE_ERROR')
+    expectErr(
+      await UserAiPreferenceRepository.remove('w', 'u'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await AiUsageRepository.sumSince('w', new Date()),
+      'DATABASE_ERROR',
+    )
   })
 })

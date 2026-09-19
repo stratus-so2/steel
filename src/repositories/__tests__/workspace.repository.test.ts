@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedSubscription } from '@/src/__tests__/factories/subscription.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
@@ -279,5 +279,53 @@ describe('WorkspaceRepository', () => {
 
       expectErr(result, 'DATABASE_ERROR')
     })
+  })
+})
+
+describe('WorkspaceRepository — database failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.workspace, 'findUnique')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+    vi.spyOn(prisma.workspace, 'findMany')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+
+    expectErr(await WorkspaceRepository.findById('w'), 'DATABASE_ERROR')
+    expectErr(await WorkspaceRepository.findBySlug('s'), 'DATABASE_ERROR')
+    expectErr(
+      await WorkspaceRepository.findWithMemberCount('w'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await WorkspaceRepository.listAllWithCounts(), 'DATABASE_ERROR')
+    expectErr(await WorkspaceRepository.revertExpiredTrials(), 'DATABASE_ERROR')
+  })
+
+  it('should return DATABASE_ERROR on non-unique write failures', async () => {
+    vi.spyOn(prisma.workspace, 'create').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    expectErr(
+      await WorkspaceRepository.create({ name: 'Acme', slug: 'acme' }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await WorkspaceRepository.update('missing', { name: 'x' }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await WorkspaceRepository.setStatus('missing', { status: 'SUSPENDED' }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await WorkspaceRepository.setPlan('missing', 'FREE'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await WorkspaceRepository.delete('missing'), 'DATABASE_ERROR')
   })
 })

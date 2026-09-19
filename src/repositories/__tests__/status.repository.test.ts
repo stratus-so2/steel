@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { StatusRepository } from '@/src/repositories/status.repository'
 
@@ -296,5 +296,73 @@ describe('StatusRepository', () => {
       expect(byKey.app?.status).toBe('DEGRADED')
       expect(byKey.cache?.status).toBe('OPERATIONAL')
     })
+  })
+})
+
+describe('StatusRepository — database failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const from = new Date('2025-07-01T00:00:00.000Z')
+  const to = new Date('2025-07-02T00:00:00.000Z')
+
+  it('should return DATABASE_ERROR when health check queries throw', async () => {
+    vi.spyOn(prisma.healthCheck, 'createMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.healthCheck, 'deleteMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.healthCheck, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(new Error('boom'))
+
+    expectErr(
+      await StatusRepository.recordChecks([
+        {
+          componentKey: 'app',
+          status: 'OPERATIONAL',
+          latencyMs: 1,
+          error: null,
+        },
+      ]),
+      'DATABASE_ERROR',
+    )
+    expectErr(await StatusRepository.pruneOldChecks(to), 'DATABASE_ERROR')
+    expectErr(
+      await StatusRepository.aggregateForDay('app', from, to),
+      'DATABASE_ERROR',
+    )
+    expectErr(await StatusRepository.findLatestPerComponent(), 'DATABASE_ERROR')
+  })
+
+  it('should return DATABASE_ERROR when daily aggregate queries throw', async () => {
+    vi.spyOn(prisma.componentDaily, 'upsert').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.componentDaily, 'findMany')
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockRejectedValueOnce(new Error('boom'))
+
+    expectErr(
+      await StatusRepository.upsertDaily('app', from, {
+        worstStatus: 'OPERATIONAL',
+        totalChecks: 1,
+        upChecks: 1,
+        uptimePct: 100,
+        avgLatencyMs: 1,
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await StatusRepository.findDailies('app', from, to),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await StatusRepository.findDailiesForKeys(['app'], from, to),
+      'DATABASE_ERROR',
+    )
   })
 })

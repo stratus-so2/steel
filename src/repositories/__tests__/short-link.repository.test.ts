@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedShortLink } from '@/src/__tests__/factories/short-link.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -141,5 +141,23 @@ describe('ShortLinkRepository', () => {
 
       expectErr(result, 'DATABASE_ERROR')
     })
+  })
+})
+
+describe('ShortLinkRepository — database failures', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should return DATABASE_ERROR when reads throw', async () => {
+    vi.spyOn(prisma.shortLink, 'findUnique').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.shortLink, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(await ShortLinkRepository.findById('s'), 'DATABASE_ERROR')
+    expectErr(await ShortLinkRepository.listByUserId('u'), 'DATABASE_ERROR')
   })
 })

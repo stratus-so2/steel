@@ -162,6 +162,34 @@ describe('ProfileRepository', () => {
   })
 
   describe('ensureSystemProfiles()', () => {
+    it('should leave legacy key-less system profiles and orphan memberships untouched', async () => {
+      const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+      for (const name of ['A', 'B', 'C', 'D']) {
+        await seedProfile(workspace.id, {
+          name,
+          isSystem: true,
+          systemKey: null,
+          permissions: { legacy: ['VIEW'] },
+        })
+      }
+      const membership = await seedMembership({
+        userId: user.id,
+        workspaceId: workspace.id,
+      })
+
+      const profiles = expectOk(
+        await ProfileRepository.ensureSystemProfiles(workspace.id),
+      )
+
+      expect(profiles).toHaveLength(4)
+      expect(profiles.every((p) => p.systemKey === null)).toBe(true)
+      expect(profiles[0].permissions).toEqual({ legacy: ['VIEW'] })
+      const stored = await prisma.membership.findUniqueOrThrow({
+        where: { id: membership.id },
+      })
+      expect(stored.profileId).toBeNull()
+    })
+
     it('should return DATABASE_ERROR when the lookup throws', async () => {
       vi.spyOn(prisma.profile, 'findMany').mockRejectedValueOnce(
         new Error('boom'),

@@ -7,6 +7,7 @@ import {
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { prisma } from '@/src/lib/prisma'
 import { ProjectRepository } from '@/src/repositories/project.repository'
 
 afterEach(() => {
@@ -79,5 +80,27 @@ describe('ProjectRepository - members', () => {
 
       expectErr(result, 'PROJECT_MEMBER_NOT_FOUND')
     })
+  })
+})
+
+describe('ProjectRepository members — database failures', () => {
+  it('should return DATABASE_ERROR when adding a member to an unknown project', async () => {
+    const user = await seedUser()
+    expectErr(
+      await ProjectRepository.addMember(user.id, 'missing'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should return DATABASE_ERROR when listing or removing throws', async () => {
+    vi.spyOn(prisma.projectMember, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+    vi.spyOn(prisma.projectMember, 'deleteMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(await ProjectRepository.listMembers('p'), 'DATABASE_ERROR')
+    expectErr(await ProjectRepository.removeMember('u', 'p'), 'DATABASE_ERROR')
   })
 })

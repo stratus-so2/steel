@@ -142,3 +142,16 @@ describe('WorkspaceFeatureOverrideRepository', () => {
     expect(list[0].updatedById).toBeNull()
   })
 })
+
+describe('WorkspaceFeatureOverrideRepository.remove() — failures', () => {
+  it('should return DATABASE_ERROR when the delete throws', async () => {
+    vi.spyOn(
+      prisma.workspaceFeatureOverride,
+      'deleteMany',
+    ).mockRejectedValueOnce(new Error('boom'))
+    expectErr(
+      await WorkspaceFeatureOverrideRepository.remove('w', 'k'),
+      'DATABASE_ERROR',
+    )
+  })
+})
