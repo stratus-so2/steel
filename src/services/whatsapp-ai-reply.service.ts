@@ -100,7 +100,6 @@ async function buildKnowledgeBaseSection(workspaceId: string): Promise<string> {
     sections.push(`### ${doc.filename}\n${text}`)
     remaining -= text.length
   }
-  if (sections.length === 0) return ''
 
   return `\n\nBase de conhecimento (use como referência para responder; não mencione que são "documentos anexados"):\n${sections.join('\n\n')}`
 }
