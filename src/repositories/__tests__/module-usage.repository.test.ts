@@ -60,6 +60,18 @@ describe('ModuleUsageRepository', () => {
       expect(written).toBe(1)
     })
 
+    it('should return DATABASE_ERROR when the lookup of workspaces throws', async () => {
+      vi.spyOn(prisma.workspace, 'findMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await ModuleUsageRepository.upsertDay('2026-09-18', [
+          { workspaceId: 'w', module: 'CRM', requests: 1, mutations: 0 },
+        ]),
+        'DATABASE_ERROR',
+      )
+    })
+
     it('should return 0 without touching the database for no counters', async () => {
       const spy = vi.spyOn(prisma.workspace, 'findMany')
       expect(
