@@ -3,8 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeUser } from '@/src/__tests__/factories/user.factory'
 import { createFakeWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
 vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/repositories/workspace.repository')
 vi.mock('@/src/repositories/backup.repository')
@@ -23,6 +26,7 @@ vi.mock('@/src/lib/backup-download-token', () => ({
   verifyBackupDownloadToken: vi.fn(() => true),
 }))
 
+import { logger } from '@/lib/axiom/logger'
 import { recordAdminAction } from '@/src/lib/admin-audit'
 import { verifyBackupDownloadToken } from '@/src/lib/backup-download-token'
 import {
@@ -30,6 +34,7 @@ import {
   triggerFullBackup,
   triggerWorkspaceBackup,
 } from '@/src/lib/queue/database-backup'
+import { getOffsiteConfig } from '@/src/lib/storage/offsite-backup'
 import { AdminOperationRepository } from '@/src/repositories/admin-operation.repository'
 import { BackupRepository } from '@/src/repositories/backup.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
@@ -252,5 +257,254 @@ describe('AdminBackupService.requestRestore()', () => {
     )
     expectErr(await Service.requestRestore(admin.id, 'b1', input), 'CONFLICT')
     expect(enqueueAdminOperation).not.toHaveBeenCalled()
+  })
+})
+
+describe('AdminBackupService failure paths', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+  const regular = createFakeUser({ isPlatformAdmin: false })
+
+  it('denies every operation to a non platform admin', async () => {
+    userRepo.findById.mockResolvedValue(ok(regular))
+
+    expectErr(await Service.list(regular.id, { limit: 50 }), 'FORBIDDEN')
+    expectErr(await Service.trigger(regular.id, { scope: 'FULL' }), 'FORBIDDEN')
+    expectErr(await Service.createDownloadLink(regular.id, 'b1'), 'FORBIDDEN')
+    expectErr(
+      await Service.authorizeDownload(regular.id, 'b1', { exp: 1, sig: 'x' }),
+      'FORBIDDEN',
+    )
+    expectErr(
+      await Service.requestRestore(regular.id, 'b1', {
+        confirmSlug: 'acme',
+        reason: 'motivo qualquer',
+      }),
+      'FORBIDDEN',
+    )
+    expect(backupRepo.findById).not.toHaveBeenCalled()
+  })
+
+  it('list() propagates backup and workspace lookup failures', async () => {
+    backupRepo.list.mockResolvedValue(err(DB_ERROR))
+    expectErr(await Service.list(admin.id, { limit: 50 }), 'DATABASE_ERROR')
+
+    backupRepo.list.mockResolvedValue(ok([backup()]))
+    backupRepo.existingWorkspaceIds.mockResolvedValue(err(DB_ERROR))
+    expectErr(await Service.list(admin.id, { limit: 50 }), 'DATABASE_ERROR')
+  })
+
+  it('list() reports an off-site copy when configured', async () => {
+    vi.mocked(getOffsiteConfig).mockReturnValueOnce({} as never)
+    backupRepo.list.mockResolvedValue(ok([]))
+    backupRepo.existingWorkspaceIds.mockResolvedValue(ok(new Set()))
+
+    expect(
+      expectOk(await Service.list(admin.id, { limit: 50 })).offsiteConfigured,
+    ).toBe(true)
+  })
+
+  it('trigger() propagates a workspace lookup failure', async () => {
+    workspaceRepo.findById.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await Service.trigger(admin.id, {
+        scope: 'WORKSPACE',
+        workspaceId: 'ws1',
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(triggerWorkspaceBackup).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [new Error('redis down'), 'redis down'],
+    ['boom', 'boom'],
+  ])('trigger() maps a queue failure (%s) to INTERNAL_SERVER_ERROR', async (thrown, logged) => {
+    vi.mocked(triggerFullBackup).mockRejectedValueOnce(thrown)
+
+    const error = expectErr(
+      await Service.trigger(admin.id, { scope: 'FULL' }),
+      'INTERNAL_SERVER_ERROR',
+    )
+    expect(error.message).toBe(
+      'Fila de backups indisponível. Tente novamente em instantes.',
+    )
+    expect(logger.error).toHaveBeenCalledWith(
+      'admin.backup.trigger_failed',
+      expect.objectContaining({ scope: 'FULL', message: logged }),
+    )
+    expect(recordAdminAction).not.toHaveBeenCalled()
+  })
+
+  it('createDownloadLink() propagates lookup failures and unknown backups', async () => {
+    backupRepo.findById.mockResolvedValue(err(DB_ERROR))
+    expectErr(
+      await Service.createDownloadLink(admin.id, 'b1'),
+      'DATABASE_ERROR',
+    )
+
+    backupRepo.findById.mockResolvedValue(ok(null))
+    expectErr(
+      await Service.createDownloadLink(admin.id, 'b1'),
+      'BACKUP_NOT_FOUND',
+    )
+  })
+
+  it('labels FULL backups by scope in the audit trail', async () => {
+    const full = backup({
+      scope: 'FULL',
+      workspaceId: null,
+      workspaceSlug: null,
+      storageKey: 'full/b1.dump.enc',
+    })
+    backupRepo.findById.mockResolvedValue(ok(full))
+
+    expectOk(await Service.createDownloadLink(admin.id, 'b1'))
+    const target = expectOk(
+      await Service.authorizeDownload(admin.id, 'b1', { exp: 1, sig: 'x' }),
+    )
+
+    expect(target.filename).toBe('steel-full-b1.dump.enc')
+    expect(recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'backup.download_link',
+        targetLabel: 'FULL',
+      }),
+    )
+    expect(recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'backup.download',
+        targetLabel: 'FULL',
+      }),
+    )
+  })
+
+  it('authorizeDownload() propagates a lookup failure and hides unfinished backups', async () => {
+    backupRepo.findById.mockResolvedValue(err(DB_ERROR))
+    expectErr(
+      await Service.authorizeDownload(admin.id, 'b1', { exp: 1, sig: 'x' }),
+      'DATABASE_ERROR',
+    )
+
+    backupRepo.findById.mockResolvedValue(
+      ok(
+        backup({ status: 'RUNNING', storageKey: 'workspace/ws1/b1.json.enc' }),
+      ),
+    )
+    expectErr(
+      await Service.authorizeDownload(admin.id, 'b1', { exp: 1, sig: 'x' }),
+      'BACKUP_NOT_FOUND',
+    )
+
+    backupRepo.findById.mockResolvedValue(ok(null))
+    expectErr(
+      await Service.authorizeDownload(admin.id, 'b1', { exp: 1, sig: 'x' }),
+      'BACKUP_NOT_FOUND',
+    )
+  })
+
+  describe('requestRestore()', () => {
+    const input = { confirmSlug: 'acme', reason: 'dados apagados por engano' }
+    const restore = () => Service.requestRestore(admin.id, 'b1', input)
+
+    beforeEach(() => {
+      backupRepo.findById.mockResolvedValue(ok(backup()))
+      workspaceRepo.findWithMemberCount.mockResolvedValue(
+        ok({
+          ...createFakeWorkspace({ id: 'ws1', slug: 'acme', name: 'Acme' }),
+          memberCount: 2,
+        }),
+      )
+      operationRepo.findActiveByWorkspace.mockResolvedValue(ok(null))
+      operationRepo.create.mockImplementation(async (data) =>
+        ok({ id: 'op9', status: 'QUEUED', ...data } as never),
+      )
+      operationRepo.markFailed.mockResolvedValue(ok(undefined) as never)
+    })
+
+    it('propagates a backup lookup failure and unknown backups', async () => {
+      backupRepo.findById.mockResolvedValue(err(DB_ERROR))
+      expectErr(await restore(), 'DATABASE_ERROR')
+
+      backupRepo.findById.mockResolvedValue(ok(null))
+      expectErr(await restore(), 'BACKUP_NOT_FOUND')
+    })
+
+    it('refuses a backup that did not complete', async () => {
+      backupRepo.findById.mockResolvedValue(
+        ok(backup({ status: 'FAILED', storageKey: null })),
+      )
+
+      const error = expectErr(await restore(), 'BACKUP_NOT_RESTORABLE')
+      expect(error.message).toBe('O backup não foi concluído')
+    })
+
+    it('propagates a workspace lookup failure', async () => {
+      workspaceRepo.findWithMemberCount.mockResolvedValue(err(DB_ERROR))
+
+      expectErr(await restore(), 'DATABASE_ERROR')
+    })
+
+    it('fails when neither the workspace nor the backup knows the slug', async () => {
+      workspaceRepo.findWithMemberCount.mockResolvedValue(ok(null))
+      backupRepo.findById.mockResolvedValue(ok(backup({ workspaceSlug: null })))
+
+      expectErr(await restore(), 'RESOURCE_NOT_FOUND')
+    })
+
+    it('propagates a failure checking running operations', async () => {
+      operationRepo.findActiveByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+      expectErr(await restore(), 'DATABASE_ERROR')
+    })
+
+    it('refuses while another operation is running', async () => {
+      operationRepo.findActiveByWorkspace.mockResolvedValue(
+        ok({ id: 'op1' } as never),
+      )
+
+      expectErr(await restore(), 'WORKSPACE_OPERATION_IN_PROGRESS')
+      expect(operationRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('refuses while the workspace is being deleted', async () => {
+      workspaceRepo.findWithMemberCount.mockResolvedValue(
+        ok({
+          ...createFakeWorkspace({
+            id: 'ws1',
+            slug: 'acme',
+            status: 'DELETING',
+          }),
+          memberCount: 2,
+        }),
+      )
+
+      expectErr(await restore(), 'WORKSPACE_OPERATION_IN_PROGRESS')
+    })
+
+    it('propagates a failure checking whether the slug was reused', async () => {
+      workspaceRepo.findWithMemberCount.mockResolvedValue(ok(null))
+      workspaceRepo.findBySlug.mockResolvedValue(err(DB_ERROR))
+
+      expectErr(await restore(), 'DATABASE_ERROR')
+    })
+
+    it('propagates a failure creating the operation', async () => {
+      operationRepo.create.mockResolvedValue(err(DB_ERROR))
+
+      expectErr(await restore(), 'DATABASE_ERROR')
+      expect(enqueueAdminOperation).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      [new Error('redis down'), 'redis down'],
+      ['boom', 'boom'],
+    ])('marks the operation failed when enqueueing throws %s', async (thrown, message) => {
+      vi.mocked(enqueueAdminOperation).mockRejectedValueOnce(thrown)
+
+      expectErr(await restore(), 'INTERNAL_SERVER_ERROR')
+      expect(operationRepo.markFailed).toHaveBeenCalledWith('op9', message)
+      expect(recordAdminAction).not.toHaveBeenCalled()
+    })
   })
 })
