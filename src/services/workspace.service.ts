@@ -4,7 +4,7 @@ import type { WorkspaceDTO } from '@/types/workspace'
 import { UserCache } from '../cache/user.cache'
 import { WorkspaceCache } from '../cache/workspace.cache'
 import { TRIAL_PLAN, trialEndsAtFrom } from '../config/trial'
-import { forbidden } from '../errors'
+import { forbidden, subscriptionCancelFailed } from '../errors'
 import { err, ok, type Result } from '../lib/result'
 import { toWorkspaceDTO } from '../mappers/workspace.mapper'
 import { MembershipRepository } from '../repositories/membership.repository'
@@ -14,6 +14,7 @@ import type {
   UpdateWorkspaceDTO,
 } from '../schemas/workspace.schema'
 import { assertMember } from './authz'
+import { SubscriptionService } from './subscription.service'
 
 export const WorkspaceService = {
   async getById(
@@ -144,6 +145,48 @@ export const WorkspaceService = {
       return err(forbidden('Apenas o OWNER pode deletar o workspace'))
     }
 
+    // Assinatura antes do delete: `subscriptions.workspace_id` é
+    // `onDelete: Cascade`, então apagar o workspace primeiro levaria junto o
+    // `billId` e deixaria a cobrança viva no AbacatePay sem rastro. Falha no
+    // cancelamento **barra** a exclusão (não há force aqui: o dono fala com o
+    // suporte, que tem o override do painel admin).
+    const cancellation = await SubscriptionService.cancelWorkspaceSubscriptions(
+      {
+        workspaceId,
+        actorId,
+        source: 'owner_workspace_deletion',
+      },
+    )
+    if (!cancellation.ok) {
+      auditMutation({
+        entity: 'workspace',
+        action: 'delete',
+        actorId,
+        targetId: workspaceId,
+        outcome: 'failure',
+        reason: cancellation.error.code,
+      })
+      return cancellation
+    }
+    if (cancellation.value.failed.length > 0) {
+      const billIds = cancellation.value.failed.map((s) => s.billId)
+      auditMutation({
+        entity: 'workspace',
+        action: 'delete',
+        actorId,
+        targetId: workspaceId,
+        outcome: 'failure',
+        reason: 'SUBSCRIPTION_CANCEL_FAILED',
+        meta: { billIds },
+      })
+      return err(
+        subscriptionCancelFailed(
+          'Não foi possível cancelar a assinatura deste workspace no AbacatePay. Nada foi apagado — tente de novo em alguns minutos ou fale com o suporte.',
+          { billIds },
+        ),
+      )
+    }
+
     const membersIds =
       await MembershipRepository.listUserByWorkspace(workspaceId)
 
@@ -172,6 +215,7 @@ export const WorkspaceService = {
       action: 'delete',
       actorId,
       targetId: workspaceId,
+      meta: { subscriptionsCancelled: cancellation.value.cancelled.length },
     })
 
     return ok(undefined)

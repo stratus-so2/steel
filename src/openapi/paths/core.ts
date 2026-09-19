@@ -354,7 +354,8 @@ const workspaces: RouteConfig[] = [
     path: '/workspaces/{id}',
     tags: ['Workspaces'],
     summary: 'Excluir workspace',
-    description: 'Exclui o workspace e seus dados. Só o OWNER.',
+    description:
+      'Exclui o workspace e seus dados. Só o OWNER. Assinaturas ativas são canceladas na AbacatePay antes da exclusão; se o cancelamento falhar nada é apagado (`SUBSCRIPTION_CANCEL_FAILED`).',
     consent: true,
     responses: { 200: { description: 'Workspace excluído.', schema: null } },
     errors: [
@@ -362,6 +363,12 @@ const workspaces: RouteConfig[] = [
         code: 'FORBIDDEN',
         message: 'Apenas o OWNER pode deletar o workspace',
         when: 'Usuário não é o OWNER',
+      },
+      {
+        code: 'SUBSCRIPTION_CANCEL_FAILED',
+        message:
+          'Não foi possível cancelar a assinatura deste workspace no AbacatePay. Nada foi apagado — tente de novo em alguns minutos ou fale com o suporte.',
+        when: 'A AbacatePay recusou/não respondeu o cancelamento',
       },
       'WORKSPACE_SUSPENDED',
     ],

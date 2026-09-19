@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -10,16 +10,30 @@ vi.mock('@/src/repositories/workspace.repository')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/cache/workspace.cache')
 vi.mock('@/src/cache/user.cache')
+vi.mock('@/src/services/subscription.service')
 
 import { UserCache } from '@/src/cache/user.cache'
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
+import { SubscriptionService } from '@/src/services/subscription.service'
 
 const mockedWorkspaceRepo = vi.mocked(WorkspaceRepository)
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedWorkspaceCache = vi.mocked(WorkspaceCache)
 const mockedUserCache = vi.mocked(UserCache)
+const mockedSubscriptions = vi.mocked(SubscriptionService)
+
+/** Nada a cancelar: o caminho normal dos testes que não são de assinatura. */
+function noSubscriptions() {
+  mockedSubscriptions.cancelWorkspaceSubscriptions.mockResolvedValue(
+    ok({ attempts: [], cancelled: [], failed: [] }),
+  )
+}
+
+beforeEach(() => {
+  noSubscriptions()
+})
 
 describe('WorkspaceService', () => {
   describe('getById()', () => {
@@ -372,6 +386,88 @@ describe('WorkspaceService', () => {
       const result = await WorkspaceService.delete('owner', 'ws1')
 
       expectErr(result, 'DATABASE_ERROR')
+      expect(mockedWorkspaceRepo.delete).not.toHaveBeenCalled()
+    })
+
+    it('should cancel the subscriptions at AbacatePay before deleting', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(
+          createFakeMembership({
+            userId: 'owner',
+            workspaceId: 'ws1',
+            role: 'OWNER',
+          }),
+        ),
+      )
+      mockedMembershipRepo.listUserByWorkspace.mockResolvedValue(ok(['owner']))
+      mockedWorkspaceRepo.delete.mockResolvedValue(ok(undefined))
+
+      expectOk(await WorkspaceService.delete('owner', 'ws1'))
+
+      expect(
+        mockedSubscriptions.cancelWorkspaceSubscriptions,
+      ).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        actorId: 'owner',
+        source: 'owner_workspace_deletion',
+      })
+      expect(
+        mockedSubscriptions.cancelWorkspaceSubscriptions.mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(mockedWorkspaceRepo.delete.mock.invocationCallOrder[0])
+    })
+
+    it('should block the deletion when a subscription fails to cancel', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(
+          createFakeMembership({
+            userId: 'owner',
+            workspaceId: 'ws1',
+            role: 'OWNER',
+          }),
+        ),
+      )
+      mockedSubscriptions.cancelWorkspaceSubscriptions.mockResolvedValue(
+        ok({
+          attempts: [],
+          cancelled: [],
+          failed: [
+            {
+              billId: 'bill_1',
+              plan: 'PRO',
+              status: 'PAID',
+              interval: 'MONTHLY',
+              outcome: 'FAILED' as const,
+              error: 'gateway down',
+            },
+          ],
+        }),
+      )
+
+      const error = expectErr(
+        await WorkspaceService.delete('owner', 'ws1'),
+        'SUBSCRIPTION_CANCEL_FAILED',
+      )
+      expect(error.message).toContain('AbacatePay')
+      expect(error.details).toEqual({ billIds: ['bill_1'] })
+      expect(mockedWorkspaceRepo.delete).not.toHaveBeenCalled()
+    })
+
+    it('should propagate a subscription lookup failure without deleting', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(
+          createFakeMembership({
+            userId: 'owner',
+            workspaceId: 'ws1',
+            role: 'OWNER',
+          }),
+        ),
+      )
+      mockedSubscriptions.cancelWorkspaceSubscriptions.mockResolvedValue(
+        err(databaseError()),
+      )
+
+      expectErr(await WorkspaceService.delete('owner', 'ws1'), 'DATABASE_ERROR')
       expect(mockedWorkspaceRepo.delete).not.toHaveBeenCalled()
     })
   })
