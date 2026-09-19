@@ -191,3 +191,42 @@ describe('AiUsageService.record()', () => {
     ).resolves.toBeUndefined()
   })
 })
+
+describe('AiUsageService edge cases', () => {
+  it('prepare() should propagate a settings lookup failure', async () => {
+    setup({ settings })
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await AiUsageService.prepare('ws1', 'CRM_ASSISTANT', 'u1'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedPreferenceRepo.find).not.toHaveBeenCalled()
+  })
+
+  it('prepare() should propagate a preference lookup failure', async () => {
+    setup({ settings })
+    mockedPreferenceRepo.find.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await AiUsageService.prepare('ws1', 'CRM_ASSISTANT', 'u1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it.each([
+    ['no tokens at all', { inputTokens: 0, outputTokens: 0 }, false],
+    ['only output tokens', { inputTokens: 0, outputTokens: 50 }, true],
+  ])('record() with %s should write to the ledger: %s', async (_label, usage, written) => {
+    setup({ settings })
+    const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))
+
+    await AiUsageService.record(call, {
+      workspaceId: 'ws1',
+      userId: null,
+      usage,
+    })
+
+    expect(mockedUsageRepo.record).toHaveBeenCalledTimes(written ? 1 : 0)
+  })
+})
