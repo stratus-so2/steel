@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateCrmEmailTemplateSchema } from '@/src/schemas/crm-email-template.schema'
 import { CrmEmailTemplateService } from '@/src/services/crm-email-template.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -26,10 +27,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, templateId }, body] = await Promise.all([
+  const [{ id, templateId }, json] = await Promise.all([
     ctx.params,
-    request.json(),
+    readJsonBody(request),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateCrmEmailTemplateSchema.safeParse(body)
 
   if (!parsed.success) {

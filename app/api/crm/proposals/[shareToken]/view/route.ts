@@ -3,6 +3,7 @@ import { withAxiom } from '@/lib/axiom/server'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { RecordCrmProposalViewSchema } from '@/src/schemas/crm-proposal.schema'
 import { CrmProposalService } from '@/src/services/crm-proposal.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -18,7 +19,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!limit.ok) return handleError(limit.error)
 
   const { shareToken } = await ctx.params
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = RecordCrmProposalViewSchema.safeParse(body)
 
   if (!parsed.success) {

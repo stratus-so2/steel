@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateCrmTaskSchema } from '@/src/schemas/crm-task.schema'
 import { CrmTaskService } from '@/src/services/crm-task.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -26,7 +27,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, taskId }, body] = await Promise.all([ctx.params, request.json()])
+  const [{ id, taskId }, json] = await Promise.all([
+    ctx.params,
+    readJsonBody(request),
+  ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateCrmTaskSchema.safeParse(body)
 
   if (!parsed.success) {

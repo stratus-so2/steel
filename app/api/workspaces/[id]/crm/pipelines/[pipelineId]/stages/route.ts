@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateCrmPipelineStageSchema } from '@/src/schemas/crm-pipeline.schema'
 import { CrmPipelineStageService } from '@/src/services/crm-pipeline.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -45,10 +46,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, pipelineId }, body] = await Promise.all([
+  const [{ id, pipelineId }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateCrmPipelineStageSchema.safeParse(body)
 
   if (!parsed.success) {

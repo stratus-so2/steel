@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateCrmOpportunityLineItemSchema } from '@/src/schemas/crm-opportunity.schema'
 import { CrmOpportunityLineItemService } from '@/src/services/crm-opportunity.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -45,10 +46,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, opportunityId }, body] = await Promise.all([
+  const [{ id, opportunityId }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateCrmOpportunityLineItemSchema.safeParse(body)
 
   if (!parsed.success) {

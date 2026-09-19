@@ -3,6 +3,7 @@ import { withAxiom } from '@/lib/axiom/server'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { RecordCrmLandingPageViewSchema } from '@/src/schemas/crm-landing-page.schema'
 import { CrmLandingPageService } from '@/src/services/crm-landing-page.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -18,7 +19,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!limit.ok) return handleError(limit.error)
 
   const { shareToken } = await ctx.params
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = RecordCrmLandingPageViewSchema.safeParse(body)
 
   if (!parsed.success) {

@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateCrmFormSchema } from '@/src/schemas/crm-form.schema'
 import { CrmFormService } from '@/src/services/crm-form.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -42,7 +43,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!consent.ok) return handleError(consent.error)
 
   const { id } = await ctx.params
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateCrmFormSchema.safeParse(body)
 
   if (!parsed.success) {

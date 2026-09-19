@@ -5,6 +5,7 @@ import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { IngestCrmLeadSchema } from '@/src/schemas/crm-integration-key.schema'
 import { CrmIntegrationKeyService } from '@/src/services/crm-integration-key.service'
 import { CrmLeadService } from '@/src/services/crm-lead.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -25,7 +26,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const context = await CrmIntegrationKeyService.verify(plaintextKey)
   if (!context.ok) return handleError(context.error)
 
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = IngestCrmLeadSchema.safeParse(body)
 
   if (!parsed.success) {

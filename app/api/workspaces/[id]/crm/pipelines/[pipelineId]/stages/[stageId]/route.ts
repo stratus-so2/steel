@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateCrmPipelineStageSchema } from '@/src/schemas/crm-pipeline.schema'
 import { CrmPipelineStageService } from '@/src/services/crm-pipeline.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -28,10 +29,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, pipelineId, stageId }, body] = await Promise.all([
+  const [{ id, pipelineId, stageId }, json] = await Promise.all([
     ctx.params,
-    request.json(),
+    readJsonBody(request),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateCrmPipelineStageSchema.safeParse(body)
 
   if (!parsed.success) {

@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { RegisterCrmLeadProposalPresentationSchema } from '@/src/schemas/crm-lead.schema'
 import { CrmLeadService } from '@/src/services/crm-lead.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -48,10 +49,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, leadId, proposalId }, body] = await Promise.all([
+  const [{ id, leadId, proposalId }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = RegisterCrmLeadProposalPresentationSchema.safeParse(body)
 
   if (!parsed.success) {

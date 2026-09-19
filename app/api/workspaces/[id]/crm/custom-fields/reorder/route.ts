@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { ReorderCrmCustomFieldsSchema } from '@/src/schemas/crm-custom-field.schema'
 import { CrmCustomFieldDefinitionService } from '@/src/services/crm-custom-field.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -26,7 +27,9 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id }, body] = await Promise.all([ctx.params, request.json()])
+  const [{ id }, json] = await Promise.all([ctx.params, readJsonBody(request)])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = ReorderCrmCustomFieldsSchema.safeParse(body)
 
   if (!parsed.success) {

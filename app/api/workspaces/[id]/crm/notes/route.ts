@@ -8,6 +8,7 @@ import {
   ListCrmNotesSchema,
 } from '@/src/schemas/crm-note.schema'
 import { CrmNoteService } from '@/src/services/crm-note.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -59,7 +60,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!consent.ok) return handleError(consent.error)
 
   const { id } = await ctx.params
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateCrmNoteSchema.safeParse(body)
 
   if (!parsed.success) {

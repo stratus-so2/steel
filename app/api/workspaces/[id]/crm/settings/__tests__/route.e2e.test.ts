@@ -3,9 +3,11 @@ import {
   addMember,
   authenticatedOwner,
   createAuthenticatedUser,
+  defaultHeaders,
   getJson,
   patchJson,
 } from '@/src/__tests__/helpers/e2e'
+import { BASE_URL } from '@/src/__tests__/setup.e2e'
 
 describe('GET & PATCH /api/workspaces/[id]/crm/settings', () => {
   it('should serve the defaults and let the owner customize them', async () => {
@@ -65,6 +67,21 @@ describe('GET & PATCH /api/workspaces/[id]/crm/settings', () => {
       user.cookie,
     )
     expect(res.status).toBe(422)
+  })
+
+  it('should reject a malformed JSON body with 422 (not a silent no-op)', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const res = await fetch(
+      `${BASE_URL}/api/workspaces/${workspace.id}/crm/settings`,
+      {
+        method: 'PATCH',
+        headers: { ...defaultHeaders, Cookie: user.cookie },
+        body: '{"proposalValidityDays": 30,',
+      },
+    )
+    expect(res.status).toBe(422)
+    expect((await res.json()).error.code).toBe('VALIDATION_ERROR')
   })
 
   it('should return 403 to a non-member', async () => {

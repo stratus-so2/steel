@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateCrmWorkflowDraftSchema } from '@/src/schemas/crm-workflow.schema'
 import { CrmWorkflowService } from '@/src/services/crm-workflow.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -46,10 +47,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, workflowId }, body] = await Promise.all([
+  const [{ id, workflowId }, json] = await Promise.all([
     ctx.params,
-    request.json(),
+    readJsonBody(request),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateCrmWorkflowDraftSchema.safeParse(body)
 
   if (!parsed.success) {

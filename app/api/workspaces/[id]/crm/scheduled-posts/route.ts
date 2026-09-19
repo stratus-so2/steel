@@ -6,6 +6,7 @@ import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateCrmScheduledPostSchema } from '@/src/schemas/crm-social.schema'
 import type { CrmScheduledUploadMedia } from '@/src/services/crm-social.service'
 import { CrmScheduledPostService } from '@/src/services/crm-social.service'
+import { parseJson, readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -51,6 +52,15 @@ async function parseCreateBody(request: NextRequest): Promise<
     }
 
     const optionsRaw = form.get('options')
+    let options: unknown
+    if (typeof optionsRaw === 'string' && optionsRaw) {
+      const parsedOptions = parseJson(optionsRaw)
+      if (!parsedOptions.ok) {
+        return { ok: false, error: 'Campo options inválido (JSON malformado)' }
+      }
+      options = parsedOptions.value
+    }
+
     return {
       ok: true,
       fields: {
@@ -59,17 +69,15 @@ async function parseCreateBody(request: NextRequest): Promise<
         mode: form.get('mode') || 'schedule',
         scheduledFor: form.get('scheduledFor') || undefined,
         platforms: form.getAll('platforms').map(String),
-        options:
-          typeof optionsRaw === 'string' && optionsRaw
-            ? JSON.parse(optionsRaw)
-            : undefined,
+        options,
       },
       media,
     }
   }
 
-  const body = await request.json().catch(() => ({}))
-  return { ok: true, fields: body as Record<string, unknown>, media: [] }
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return { ok: false, error: json.error.message }
+  return { ok: true, fields: json.value as Record<string, unknown>, media: [] }
 }
 
 export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {

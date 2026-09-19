@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateCrmEmailTemplateSchema } from '@/src/schemas/crm-email-template.schema'
 import { CrmEmailTemplateService } from '@/src/services/crm-email-template.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -42,7 +43,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!consent.ok) return handleError(consent.error)
 
   const { id } = await ctx.params
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateCrmEmailTemplateSchema.safeParse(body)
 
   if (!parsed.success) {

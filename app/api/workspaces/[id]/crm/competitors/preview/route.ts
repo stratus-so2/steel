@@ -4,6 +4,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { PreviewCrmCompetitorSchema } from '@/src/schemas/crm-competitor.schema'
 import { CrmCompetitorService } from '@/src/services/crm-competitor.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -24,7 +25,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!limit.ok) return handleError(limit.error)
 
   const { id } = await ctx.params
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = PreviewCrmCompetitorSchema.safeParse(body)
 
   if (!parsed.success) {
