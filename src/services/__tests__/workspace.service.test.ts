@@ -376,3 +376,45 @@ describe('WorkspaceService', () => {
     })
   })
 })
+
+describe('WorkspaceService member cache fallback', () => {
+  function asOwner() {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(
+        createFakeMembership({
+          userId: 'owner',
+          workspaceId: 'ws1',
+          role: 'OWNER',
+        }),
+      ),
+    )
+  }
+
+  it('update() should at least refresh the actor cache when listing members fails', async () => {
+    asOwner()
+    mockedWorkspaceRepo.update.mockResolvedValue(
+      ok(createFakeWorkspace({ id: 'ws1', name: 'Novo' })),
+    )
+    mockedMembershipRepo.listUserByWorkspace.mockResolvedValue(
+      err(databaseError()),
+    )
+
+    expectOk(await WorkspaceService.update('owner', 'ws1', { name: 'Novo' }))
+
+    expect(mockedUserCache.invalidate).toHaveBeenCalledTimes(1)
+    expect(mockedUserCache.invalidate).toHaveBeenCalledWith('owner')
+  })
+
+  it('delete() should at least refresh the actor cache when listing members fails', async () => {
+    asOwner()
+    mockedMembershipRepo.listUserByWorkspace.mockResolvedValue(
+      err(databaseError()),
+    )
+    mockedWorkspaceRepo.delete.mockResolvedValue(ok(undefined) as never)
+
+    expectOk(await WorkspaceService.delete('owner', 'ws1'))
+
+    expect(mockedUserCache.invalidate).toHaveBeenCalledTimes(1)
+    expect(mockedUserCache.invalidate).toHaveBeenCalledWith('owner')
+  })
+})
