@@ -16,6 +16,7 @@ import {
   assertModuleEnabled,
   assertModuleMember,
   assertPlatformAdmin,
+  assertPrivileged,
   assertWorkspaceActive,
 } from '../authz'
 
@@ -333,5 +334,60 @@ describe('assertPlatformAdmin()', () => {
       err({ code: 'RESOURCE_NOT_FOUND', message: 'User not found' }),
     )
     expectErr(await assertPlatformAdmin('u1'), 'RESOURCE_NOT_FOUND')
+  })
+})
+
+describe('authz edge cases', () => {
+  it('should fall back to the stored permissions for an unknown system key', async () => {
+    const profile = createFakeProfile({
+      isSystem: true,
+      systemKey: 'RETIRED_KEY' as never,
+      permissions: { companies: ['VIEW'] },
+    })
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'MEMBER', profile })),
+    )
+
+    expectOk(
+      await assertMember('u1', 'ws1', {
+        resource: 'companies',
+        action: 'VIEW',
+      }),
+    )
+    expectErr(
+      await assertMember('u1', 'ws1', {
+        resource: 'companies',
+        action: 'EDIT',
+      }),
+      'FORBIDDEN',
+    )
+  })
+
+  describe('assertPrivileged()', () => {
+    it('should propagate a membership lookup failure', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        err({ code: 'DATABASE_ERROR', message: 'db down' }),
+      )
+
+      expectErr(await assertPrivileged('u1', 'ws1'), 'DATABASE_ERROR')
+    })
+
+    it('should deny a plain member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+
+      expectErr(await assertPrivileged('u1', 'ws1'), 'FORBIDDEN')
+    })
+
+    it('should allow an ADMIN', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'ADMIN' })),
+      )
+
+      expect(expectOk(await assertPrivileged('u1', 'ws1')).isPrivileged).toBe(
+        true,
+      )
+    })
   })
 })
