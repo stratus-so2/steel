@@ -16,6 +16,8 @@ export async function fetchAndDecryptBackup(backupId: string): Promise<{
     scope: string
     workspaceId: string | null
     storageKey: string
+    /** Manifesto dos arquivos do MinIO; `null` em backup só de banco. */
+    filesKey: string | null
   }
 }> {
   const backup = await prisma.backup.findUnique({ where: { id: backupId } })
@@ -51,6 +53,7 @@ export async function fetchAndDecryptBackup(backupId: string): Promise<{
       scope: backup.scope,
       workspaceId: backup.workspaceId,
       storageKey: backup.storageKey,
+      filesKey: backup.filesKey,
     },
   }
 }

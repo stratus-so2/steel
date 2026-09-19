@@ -13,6 +13,10 @@ import {
 import { fetchAndDecryptBackup } from '../database-restore'
 import type { DatabaseBackupJob, DatabaseBackupJobPayload } from '../jobs'
 import {
+  readWorkspaceFilesManifest,
+  restoreWorkspaceFiles,
+} from '../workspace-file-archive'
+import {
   purgeWorkspaceRows,
   restoreWorkspaceSnapshot,
   type WorkspaceSnapshot,
@@ -287,13 +291,64 @@ export async function runWorkspaceDeletion(
 }
 
 /**
- * Restaura um workspace a partir de um backup WORKSPACE. Se o workspace
+ * Restaura os arquivos do MinIO do backup, se ele tiver um manifesto. Falha
+ * aqui **não** derruba o restore: as linhas já foram recriadas na transação
+ * e refazê-las não traria nada de volta — o erro fica na operação (e no log)
+ * para reprocessar só os arquivos (`pnpm restore:workspace <id> --files-only`).
+ */
+async function restoreFilesStep(params: {
+  filesKey: string | null
+  operationId: string
+  workspaceId: string
+  jobId: string | undefined
+}): Promise<{
+  filesRestored: number
+  filesBytes: number
+  filesError: string | null
+}> {
+  if (!params.filesKey) {
+    return { filesRestored: 0, filesBytes: 0, filesError: null }
+  }
+  try {
+    const manifest = await readWorkspaceFilesManifest(params.filesKey)
+    const result = await restoreWorkspaceFiles({ manifest })
+    logger.info('queue.admin_operation.workspace_files_restored', {
+      component: 'Worker',
+      jobId: params.jobId,
+      operationId: params.operationId,
+      workspaceId: params.workspaceId,
+      filesRestored: result.restored,
+      filesBytes: result.bytes,
+    })
+    return {
+      filesRestored: result.restored,
+      filesBytes: result.bytes,
+      filesError: null,
+    }
+  } catch (error) {
+    const filesError = error instanceof Error ? error.message : String(error)
+    logger.error('queue.admin_operation.workspace_files_restore_failed', {
+      component: 'Worker',
+      jobId: params.jobId,
+      operationId: params.operationId,
+      workspaceId: params.workspaceId,
+      message: filesError,
+    })
+    return { filesRestored: 0, filesBytes: 0, filesError }
+  }
+}
+
+/**
+ * Restaura um workspace a partir de um backup WORKSPACE: as linhas (numa
+ * transação) e depois os arquivos do MinIO do manifesto. Se o workspace
  * existe hoje, tira antes um backup de segurança do estado atual (o restore
  * substitui tudo) — o id fica em `meta.safetyBackupId` para desfazer.
  */
 export async function runWorkspaceRestore(
   job: Job<DatabaseBackupJobPayload[typeof DatabaseBackupJob.RestoreWorkspace]>,
-): Promise<{ tables: number; rows: number } | undefined> {
+): Promise<
+  { tables: number; rows: number; filesRestored: number } | undefined
+> {
   const operation = await loadRunnable(job.data.operationId, job.id)
   if (!operation) return undefined
 
@@ -333,13 +388,26 @@ export async function runWorkspaceRestore(
     const result = await restoreWorkspaceSnapshot(prisma, snapshot)
     await invalidateWorkspaceCaches(workspaceId)
 
+    await setStep(id, 'restore_files')
+    const files = await restoreFilesStep({
+      filesKey: backup.filesKey,
+      operationId: id,
+      workspaceId,
+      jobId: job.id,
+    })
+
     await prisma.adminOperation.update({
       where: { id },
       data: {
         status: 'COMPLETED',
         step: 'done',
         completedAt: new Date(),
-        meta: { ...meta, safetyBackupId, ...result } as Prisma.InputJsonValue,
+        meta: {
+          ...meta,
+          safetyBackupId,
+          ...result,
+          ...files,
+        } as Prisma.InputJsonValue,
       },
     })
 
@@ -351,7 +419,12 @@ export async function runWorkspaceRestore(
       targetId: workspaceId,
       targetLabel: operation.workspaceSlug,
       reason: operation.reason,
-      meta: { operationId: id, backupId: operation.backupId, safetyBackupId },
+      meta: {
+        operationId: id,
+        backupId: operation.backupId,
+        safetyBackupId,
+        ...files,
+      },
     })
 
     logger.info('queue.admin_operation.workspace_restored', {
@@ -361,8 +434,9 @@ export async function runWorkspaceRestore(
       workspaceId,
       backupId: operation.backupId,
       ...result,
+      ...files,
     })
-    return result
+    return { ...result, filesRestored: files.filesRestored }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await prisma.adminOperation.update({

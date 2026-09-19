@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
   restoreWorkspaceSnapshot: vi.fn(),
   purgeWorkspaceFiles: vi.fn(),
   fetchAndDecryptBackup: vi.fn(),
+  readWorkspaceFilesManifest: vi.fn(),
+  restoreWorkspaceFiles: vi.fn(),
   recordAdminAction: vi.fn(),
   cancelWorkspaceSubscriptions: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -40,6 +42,10 @@ vi.mock('@/src/lib/storage/workspace-files', () => ({
 }))
 vi.mock('@/src/lib/queue/database-restore', () => ({
   fetchAndDecryptBackup: mocks.fetchAndDecryptBackup,
+}))
+vi.mock('@/src/lib/queue/workspace-file-archive', () => ({
+  readWorkspaceFilesManifest: mocks.readWorkspaceFilesManifest,
+  restoreWorkspaceFiles: mocks.restoreWorkspaceFiles,
 }))
 vi.mock('@/src/lib/admin-audit', () => ({
   recordAdminAction: mocks.recordAdminAction,
@@ -117,12 +123,31 @@ beforeEach(() => {
       failed: [],
     },
   })
+  mocks.readWorkspaceFilesManifest.mockResolvedValue({
+    version: 1,
+    workspaceId: 'ws1',
+    backupId: 'b1',
+    files: [],
+    missingLegacyKeys: 0,
+  })
+  mocks.restoreWorkspaceFiles.mockResolvedValue({
+    restored: 2,
+    planned: 2,
+    bytes: 2048,
+    byBucket: {},
+    dryRun: false,
+  })
 })
 
 describe('runWorkspaceDeletion()', () => {
   it('backs up first, then purges rows and files, and records the audit', async () => {
     mocks.op.findUnique.mockResolvedValue(operation())
-    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 10 })
+    mocks.backupWorkspace.mockResolvedValue({
+      backupId: 'b1',
+      sizeBytes: 10,
+      fileCount: 0,
+      fileBytes: 0,
+    })
 
     const result = await runWorkspaceDeletion(job('delete-workspace'))
 
@@ -195,7 +220,12 @@ describe('runWorkspaceDeletion()', () => {
 
   it('completes with a recorded filesError when only the file purge fails', async () => {
     mocks.op.findUnique.mockResolvedValue(operation())
-    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 10 })
+    mocks.backupWorkspace.mockResolvedValue({
+      backupId: 'b1',
+      sizeBytes: 10,
+      fileCount: 0,
+      fileBytes: 0,
+    })
     mocks.purgeWorkspaceFiles.mockRejectedValue(new Error('bucket locked'))
 
     await runWorkspaceDeletion(job('delete-workspace'))
@@ -320,7 +350,12 @@ describe('runWorkspaceRestore()', () => {
   beforeEach(() => {
     mocks.fetchAndDecryptBackup.mockResolvedValue({
       buffer: Buffer.from(JSON.stringify(snapshot)),
-      backup: { id: 'b1', scope: 'WORKSPACE', workspaceId: 'ws1' },
+      backup: {
+        id: 'b1',
+        scope: 'WORKSPACE',
+        workspaceId: 'ws1',
+        filesKey: 'workspace/ws1/b1.files/manifest.json.enc',
+      },
     })
     mocks.restoreWorkspaceSnapshot.mockResolvedValue({ tables: 4, rows: 12 })
   })
@@ -330,11 +365,16 @@ describe('runWorkspaceRestore()', () => {
       operation({ kind: 'WORKSPACE_RESTORE', backupId: 'b1', meta: null }),
     )
     mocks.workspace.findUnique.mockResolvedValue({ id: 'ws1' })
-    mocks.backupWorkspace.mockResolvedValue({ backupId: 'safe1', sizeBytes: 1 })
+    mocks.backupWorkspace.mockResolvedValue({
+      backupId: 'safe1',
+      sizeBytes: 1,
+      fileCount: 0,
+      fileBytes: 0,
+    })
 
     const result = await runWorkspaceRestore(job('restore-workspace'))
 
-    expect(result).toEqual({ tables: 4, rows: 12 })
+    expect(result).toEqual({ tables: 4, rows: 12, filesRestored: 2 })
     expect(mocks.backupWorkspace.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.restoreWorkspaceSnapshot.mock.invocationCallOrder[0],
     )
@@ -343,6 +383,73 @@ describe('runWorkspaceRestore()', () => {
       data: expect.objectContaining({
         status: 'COMPLETED',
         meta: expect.objectContaining({ safetyBackupId: 'safe1' }),
+      }),
+    })
+  })
+
+  it('skips the file step for a backup taken before files were included', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({ kind: 'WORKSPACE_RESTORE', backupId: 'b1' }),
+    )
+    mocks.workspace.findUnique.mockResolvedValue(null)
+    mocks.fetchAndDecryptBackup.mockResolvedValue({
+      buffer: Buffer.from(JSON.stringify(snapshot)),
+      backup: {
+        id: 'b1',
+        scope: 'WORKSPACE',
+        workspaceId: 'ws1',
+        filesKey: null,
+      },
+    })
+
+    const result = await runWorkspaceRestore(job('restore-workspace'))
+
+    expect(result).toEqual({ tables: 4, rows: 12, filesRestored: 0 })
+    expect(mocks.readWorkspaceFilesManifest).not.toHaveBeenCalled()
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({
+        meta: expect.objectContaining({ filesRestored: 0, filesError: null }),
+      }),
+    })
+  })
+
+  it('completes with filesError when the file step fails (rows are already back)', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({ kind: 'WORKSPACE_RESTORE', backupId: 'b1' }),
+    )
+    mocks.workspace.findUnique.mockResolvedValue(null)
+    mocks.restoreWorkspaceFiles.mockRejectedValue(new Error('minio down'))
+
+    const result = await runWorkspaceRestore(job('restore-workspace'))
+
+    expect(result).toEqual({ tables: 4, rows: 12, filesRestored: 0 })
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({
+        status: 'COMPLETED',
+        meta: expect.objectContaining({ filesError: 'minio down' }),
+      }),
+    })
+    expect(mocks.logger.error).toHaveBeenCalledWith(
+      'queue.admin_operation.workspace_files_restore_failed',
+      expect.objectContaining({ message: 'minio down' }),
+    )
+  })
+
+  it('stringifies a non-Error failure in the file step', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({ kind: 'WORKSPACE_RESTORE', backupId: 'b1' }),
+    )
+    mocks.workspace.findUnique.mockResolvedValue(null)
+    mocks.readWorkspaceFilesManifest.mockRejectedValue('manifest gone')
+
+    await runWorkspaceRestore(job('restore-workspace'))
+
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({
+        meta: expect.objectContaining({ filesError: 'manifest gone' }),
       }),
     })
   })
