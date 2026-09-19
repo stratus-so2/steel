@@ -411,6 +411,9 @@ export const ERROR_CODES = {
   MAIL_ERROR: { code: 'MAIL_ERROR', status: 502 },
   CONNECTION_TEST_FAILED: { code: 'CONNECTION_TEST_FAILED', status: 502 },
   RELEASE_NOTES_UNAVAILABLE: { code: 'RELEASE_NOTES_UNAVAILABLE', status: 502 },
+  // Consulta APL ao Axiom (painel Analytics) falhou ou expirou. Vai por
+  // painel: os outros blocos da página continuam de pé.
+  ANALYTICS_QUERY_FAILED: { code: 'ANALYTICS_QUERY_FAILED', status: 502 },
   BACKUP_FAILED: { code: 'BACKUP_FAILED', status: 500 },
 } as const
 

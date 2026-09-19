@@ -234,6 +234,10 @@ export const releaseNotesUnavailable = (
   message = 'Não foi possível buscar a release no GitHub',
 ): AppError => appError('RELEASE_NOTES_UNAVAILABLE', message)
 
+export const analyticsQueryFailed = (
+  message = 'Não foi possível consultar os logs no Axiom',
+): AppError => appError('ANALYTICS_QUERY_FAILED', message)
+
 export const whatsappProviderError = (
   message = 'Falha ao comunicar com o provedor do WhatsApp',
 ): AppError => appError('WHATSAPP_PROVIDER_ERROR', message)

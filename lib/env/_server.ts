@@ -63,6 +63,10 @@ const serverEnv = {
   BACKUP_OFFSITE_RETENTION_DAYS: process.env.BACKUP_OFFSITE_RETENTION_DAYS,
   GITHUB_RELEASES_TOKEN: process.env.GITHUB_RELEASES_TOKEN,
   GITHUB_RELEASES_REPO: process.env.GITHUB_RELEASES_REPO,
+  AXIOM_QUERY_TOKEN: process.env.AXIOM_QUERY_TOKEN,
+  AXIOM_QUERY_URL: process.env.AXIOM_QUERY_URL,
+  ANALYTICS_FIXTURES: process.env.ANALYTICS_FIXTURES,
+  GEOIP_DB_PATH: process.env.GEOIP_DB_PATH,
 }
 
 /** String opcional que trata `""` como ausente (não só `undefined`). */
@@ -225,6 +229,23 @@ const serverEnvSchema = z.object({
       })
       .optional(),
   ),
+  // Painel Analytics do admin (`/admin/analytics`): token de API do Axiom só
+  // com permissão de *Query* no dataset de NEXT_PUBLIC_AXIOM_DATASET (o
+  // token de ingestão público não lê). Sem ele o painel mostra o passo a
+  // passo de configuração. Ver docs/admin-analytics.md.
+  AXIOM_QUERY_TOKEN: blankOptional,
+  // Base da API de consulta (default https://api.axiom.co).
+  AXIOM_QUERY_URL: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.url().startsWith('http').optional(),
+  ),
+  // Dados simulados no painel Analytics para desenvolver a UI sem o Axiom.
+  // Só vale fora de produção (ignorado com NODE_ENV=production).
+  ANALYTICS_FIXTURES: flag,
+  // Caminho do GeoLite2-City.mmdb (MaxMind) para o país/cidade dos logs de
+  // requisição. Sem o arquivo, o enriquecimento é pulado em silêncio. O IP
+  // nunca é gravado: só país/cidade.
+  GEOIP_DB_PATH: blankOptional,
 })
 
 const validatedServerEnv =
@@ -294,4 +315,8 @@ export const {
   BACKUP_OFFSITE_RETENTION_DAYS,
   GITHUB_RELEASES_TOKEN,
   GITHUB_RELEASES_REPO,
+  AXIOM_QUERY_TOKEN,
+  AXIOM_QUERY_URL,
+  ANALYTICS_FIXTURES,
+  GEOIP_DB_PATH,
 } = validatedServerEnv

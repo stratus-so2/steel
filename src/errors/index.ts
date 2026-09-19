@@ -2,6 +2,7 @@ export {
   aiModelNotEnabled,
   aiProviderUnavailable,
   aiQuotaExceeded,
+  analyticsQueryFailed,
   backupDownloadLinkInvalid,
   backupNotFound,
   backupNotRestorable,
