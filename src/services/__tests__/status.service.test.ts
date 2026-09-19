@@ -8,6 +8,9 @@ vi.mock('@/src/lib/prisma', () => ({
     incident: { findMany: vi.fn() },
   },
 }))
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
 vi.mock('@/src/cache/status.cache')
 vi.mock('@/src/repositories/status.repository')
 vi.mock('@/src/repositories/incident.repository')
@@ -22,6 +25,7 @@ vi.mock('@/src/services/status/probes', () => {
   }
 })
 
+import { logger } from '@/lib/axiom/logger'
 import { StatusCache } from '@/src/cache/status.cache'
 import { prisma } from '@/src/lib/prisma'
 import { IncidentRepository } from '@/src/repositories/incident.repository'
@@ -714,5 +718,155 @@ describe('StatusService.collect()', () => {
     const rows = mockedStatusRepo.recordChecks.mock.calls[0]?.[0]
     expect(rows).toHaveLength(3)
     expect(rows?.map((r) => r.componentKey)).not.toContain('auth')
+  })
+})
+
+describe('StatusService edge cases', () => {
+  function dailyRow(day: Date) {
+    return {
+      id: `d-${day.toISOString()}`,
+      componentKey: 'database',
+      day,
+      worstStatus: 'OPERATIONAL' as const,
+      totalChecks: 10,
+      upChecks: 10,
+      uptimePct: { toString: () => '100' } as unknown as never,
+      avgLatencyMs: 5,
+      updatedAt: day,
+    }
+  }
+
+  it('should only tag the days a resolved incident spans', async () => {
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+    const yesterday = new Date(today.getTime() - 86_400_000)
+    mockedCache.get.mockResolvedValue(null)
+    mockedCache.set.mockResolvedValue(undefined)
+    mockedStatusRepo.findDailiesForKeys.mockResolvedValue(
+      ok([dailyRow(yesterday), dailyRow(today)]),
+    )
+    mockedStatusRepo.findLatestPerComponent.mockResolvedValue(ok([]))
+    mockedPrismaIncident.mockResolvedValue([
+      {
+        id: 'inc-old',
+        componentKey: 'database',
+        startedAt: yesterday,
+        resolvedAt: new Date(yesterday.getTime() + 3_600_000),
+      },
+    ] as never)
+
+    const value = expectOk(await StatusService.getCurrentSnapshot())
+
+    const history = value.components.find((c) => c.key === 'database')?.history
+    const byDay = new Map(history?.map((p) => [p.day, p.incidentId]))
+    expect(byDay.get(yesterday.toISOString().slice(0, 10))).toBe('inc-old')
+    expect(byDay.get(today.toISOString().slice(0, 10))).toBeUndefined()
+  })
+
+  it.each([
+    ['read', 'get', 'status.cache_read_failed'],
+    ['write', 'set', 'status.cache_write_failed'],
+  ] as const)('should log a non-Error cache %s failure', async (_label, method, event) => {
+    mockedCache.get.mockResolvedValue(null)
+    mockedCache.set.mockResolvedValue(undefined)
+    mockedCache[method].mockRejectedValue('redis closed')
+    mockedStatusRepo.findDailiesForKeys.mockResolvedValue(ok([]))
+    mockedStatusRepo.findLatestPerComponent.mockResolvedValue(ok([]))
+
+    expectOk(await StatusService.getCurrentSnapshot())
+
+    expect(logger.error).toHaveBeenCalledWith(
+      event,
+      expect.objectContaining({ message: 'redis closed' }),
+    )
+  })
+
+  it('should fall back to the raw key for incidents of retired components', async () => {
+    mockedIncidentRepo.findInWindow.mockResolvedValue(
+      ok([
+        {
+          id: 'i-legacy',
+          componentKey: 'legacy-probe',
+          severity: 'DEGRADED',
+          title: 'Sonda antiga',
+          startedAt: new Date('2025-01-01T08:00:00.000Z'),
+          resolvedAt: null,
+        },
+      ]),
+    )
+
+    const value = expectOk(await StatusService.listIncidents(7))
+
+    expect(value[0]).toEqual(
+      expect.objectContaining({
+        componentName: 'legacy-probe',
+        resolvedAt: null,
+      }),
+    )
+  })
+
+  describe('collect()', () => {
+    function arrangeCollect(
+      database: { status: string; error: string | null },
+      open: { severity: string } | null,
+    ) {
+      mockedRunProbes.mockResolvedValue({
+        app: { status: 'OPERATIONAL', latencyMs: 5, error: null },
+        database: { latencyMs: 10, ...database },
+        cache: { status: 'OPERATIONAL', latencyMs: 3, error: null },
+        auth: { status: 'OPERATIONAL', latencyMs: 20, error: null },
+      } as never)
+      mockedStatusRepo.recordChecks.mockResolvedValue(ok(undefined))
+      mockedStatusRepo.aggregateForDay.mockResolvedValue(ok(null))
+      mockedIncidentRepo.findOpenByComponent.mockImplementation(async (key) =>
+        key === 'database' && open
+          ? ok({
+              id: 'open-i',
+              componentKey: 'database',
+              title: 'x',
+              startedAt: new Date(),
+              resolvedAt: null,
+              ...open,
+            } as never)
+          : ok(null),
+      )
+      mockedIncidentRepo.create.mockResolvedValue(ok({ id: 'new-i' } as never))
+      mockedStatusRepo.pruneOldChecks.mockResolvedValue(ok(0))
+      mockedCache.invalidate.mockResolvedValue(undefined)
+    }
+
+    it('should open an incident without an error detail when the probe has none', async () => {
+      arrangeCollect({ status: 'DEGRADED', error: null }, null)
+
+      expectOk(await StatusService.collect('core'))
+
+      const input = mockedIncidentRepo.create.mock.calls[0][0]
+      expect(input.initialMessage).not.toMatch(/Erro reportado/)
+      expect(input.initialMessage).toMatch(/Estamos investigando\.$/)
+    })
+
+    it('should keep the severity when the probe is not worse than the open incident', async () => {
+      arrangeCollect(
+        { status: 'DEGRADED', error: 'lento' },
+        { severity: 'MAJOR_OUTAGE' },
+      )
+
+      expectOk(await StatusService.collect('core'))
+
+      expect(mockedIncidentRepo.bumpSeverity).not.toHaveBeenCalled()
+      expect(mockedIncidentRepo.create).not.toHaveBeenCalled()
+    })
+
+    it('should log a non-Error cache invalidation failure', async () => {
+      arrangeCollect({ status: 'OPERATIONAL', error: null }, null)
+      mockedCache.invalidate.mockRejectedValue('redis closed')
+
+      expectOk(await StatusService.collect('core'))
+
+      expect(logger.error).toHaveBeenCalledWith(
+        'status.cache_invalidate_failed',
+        expect.objectContaining({ message: 'redis closed' }),
+      )
+    })
   })
 })
