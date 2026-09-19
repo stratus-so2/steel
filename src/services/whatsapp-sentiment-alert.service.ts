@@ -93,6 +93,7 @@ export const WhatsAppSentimentAlertService = {
       : undefined
     const shouldAssign =
       supervisor !== undefined && !conversation.value.assignedUserId
+    const assignedToId = shouldAssign && supervisor ? supervisor.userId : null
     if (recipients.length === 0 && !shouldAssign) {
       return ok({ alerted: false, reason: 'no_recipients' })
     }
@@ -206,7 +207,7 @@ export const WhatsAppSentimentAlertService = {
         recipients: userIds.length,
         inApp,
         email: emailed,
-        assignedToId: shouldAssign ? (supervisor?.userId ?? null) : null,
+        assignedToId,
       },
     })
 
@@ -226,7 +227,7 @@ export const WhatsAppSentimentAlertService = {
       recipients: userIds.length,
       inApp,
       email: emailed,
-      assignedToId: shouldAssign ? (supervisor?.userId ?? null) : null,
+      assignedToId,
     })
   },
 }
