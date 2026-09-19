@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq'
 import type { QueueHealthDTO } from '@/types/admin-workspace'
+import { scrubMessage } from '../analytics/scrub'
 import { getQueueConnection } from './connection'
 import { QueueName } from './jobs'
 
@@ -80,4 +81,50 @@ export async function getQueueHealth(
 /** Testes: zera o cache. */
 export function resetQueueHealthCache(): void {
   cached = null
+}
+
+export interface JobFailureInfo {
+  queue: string
+  jobId: string | null
+  jobName: string
+  /** Motivo limpo (sem e-mail/IP/documentos) e truncado. */
+  reason: string | null
+  attempts: number
+  failedAt: string | null
+}
+
+/**
+ * Falhas mais recentes de todas as filas (as `perQueue` últimas de cada
+ * uma), da mais nova para a mais antiga — aba Jobs do painel Analytics. Só
+ * leitura; mesmo timeout dos contadores.
+ */
+export async function getRecentJobFailures(
+  perQueue = 5,
+  limit = 30,
+): Promise<JobFailureInfo[]> {
+  const names = Object.values(QueueName)
+  const perName = await withTimeout(
+    Promise.all(
+      names.map(async (name) => {
+        const jobs = await readerFor(name).getFailed(0, perQueue - 1)
+        return jobs.filter(Boolean).map(
+          (job): JobFailureInfo => ({
+            queue: name,
+            jobId: job.id ?? null,
+            jobName: job.name,
+            reason: scrubMessage(job.failedReason),
+            attempts: job.attemptsMade ?? 0,
+            failedAt: job.finishedOn
+              ? new Date(job.finishedOn).toISOString()
+              : null,
+          }),
+        )
+      }),
+    ),
+    TIMEOUT_MS,
+  )
+  return perName
+    .flat()
+    .sort((a, b) => (b.failedAt ?? '').localeCompare(a.failedAt ?? ''))
+    .slice(0, limit)
 }
