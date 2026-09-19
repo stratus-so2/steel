@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BackupDownloadQuerySchema,
   ConfirmedWorkspaceActionSchema,
+  DeleteWorkspaceSchema,
   ListBackupsQuerySchema,
   SetWorkspaceStatusSchema,
   TriggerBackupSchema,
@@ -33,6 +34,26 @@ describe('admin schemas', () => {
         reason: 'encerramento do contrato',
       }).success,
     ).toBe(true)
+  })
+
+  it('defaults the subscription-cancel force flag to false on deletion', () => {
+    const base = { confirmSlug: 'acme', reason: 'encerramento do contrato' }
+    expect(DeleteWorkspaceSchema.parse(base)).toEqual({
+      ...base,
+      ignoreSubscriptionCancelFailure: false,
+    })
+    expect(
+      DeleteWorkspaceSchema.parse({
+        ...base,
+        ignoreSubscriptionCancelFailure: true,
+      }).ignoreSubscriptionCancelFailure,
+    ).toBe(true)
+    expect(
+      DeleteWorkspaceSchema.safeParse({
+        ...base,
+        ignoreSubscriptionCancelFailure: 'yes',
+      }).success,
+    ).toBe(false)
   })
 
   it('requires a workspaceId only for WORKSPACE backups', () => {

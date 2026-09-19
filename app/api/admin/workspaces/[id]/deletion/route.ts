@@ -3,7 +3,7 @@ import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { ConfirmedWorkspaceActionSchema } from '@/src/schemas/admin.schema'
+import { DeleteWorkspaceSchema } from '@/src/schemas/admin.schema'
 import { AdminWorkspaceLifecycleService } from '@/src/services/admin-workspace-lifecycle.service'
 import { readJsonBody } from '@/utils/http-request'
 import {
@@ -36,7 +36,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   ])
   if (!json.ok) return handleError(json.error)
   const body = json.value
-  const parsed = ConfirmedWorkspaceActionSchema.safeParse(body)
+  const parsed = DeleteWorkspaceSchema.safeParse(body)
   if (!parsed.success) {
     return standardError(
       'VALIDATION_ERROR',

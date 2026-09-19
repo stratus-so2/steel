@@ -144,6 +144,7 @@ function operation(
     requestedByEmail: 'admin@stratustelecom.com.br',
     reason: 'encerramento',
     error: null,
+    subscriptionsCancelled: [],
     subscriptionsToCancel: [],
     filesDeleted: 4,
     filesError: null,

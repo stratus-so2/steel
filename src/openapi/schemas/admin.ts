@@ -79,11 +79,17 @@ export const AdminOperationDTO = dto(
       requestedByEmail: z.string(),
       reason: z.string(),
       error: z.string().nullable(),
+      subscriptionsCancelled: z
+        .array(z.object({ billId: z.string(), plan: z.string() }))
+        .meta({
+          description:
+            'Assinaturas canceladas automaticamente na AbacatePay (exclusão).',
+        }),
       subscriptionsToCancel: z
         .array(z.object({ billId: z.string(), plan: z.string() }))
         .meta({
           description:
-            'Assinaturas pagas a cancelar manualmente na AbacatePay (exclusão).',
+            'Assinaturas que a AbacatePay recusou cancelar numa exclusão forçada: exigem cancelamento manual. Vazio no caminho normal.',
         }),
       filesDeleted: z.number().int().nullable(),
       filesError: z.string().nullable(),

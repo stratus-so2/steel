@@ -45,6 +45,7 @@ export const PLAN_LABEL: Record<string, string> = {
 export const OPERATION_STEP_LABEL: Record<string, string> = {
   queued: 'Na fila do worker',
   backup: 'Fazendo backup do workspace',
+  cancel_subscriptions: 'Cancelando assinaturas no AbacatePay',
   purge_database: 'Apagando dados',
   purge_files: 'Apagando arquivos',
   safety_backup: 'Backup de segurança do estado atual',

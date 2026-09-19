@@ -32,7 +32,11 @@ export interface AdminOperationDTO {
   id: string
   kind: AdminOperationKind
   status: AdminOperationStatus
-  /** `queued` → `backup` → `purge_database` → `purge_files` → `done` etc. */
+  /**
+   * `queued` → `backup` → `cancel_subscriptions` → `purge_database` →
+   * `purge_files` → `done` (exclusão) ou `safety_backup` → `restore` →
+   * `done` (restauração).
+   */
   step: string
   workspaceId: string
   workspaceSlug: string
@@ -41,7 +45,13 @@ export interface AdminOperationDTO {
   requestedByEmail: string
   reason: string
   error: string | null
-  /** Assinaturas pagas para cancelar manualmente no AbacatePay (exclusão). */
+  /** Assinaturas canceladas automaticamente no AbacatePay (exclusão). */
+  subscriptionsCancelled: { billId: string; plan: string }[]
+  /**
+   * Assinaturas que o AbacatePay recusou cancelar numa exclusão **forçada**:
+   * exigem cancelamento manual no painel do provedor. Vazio no caminho
+   * normal — uma falha de cancelamento barra a exclusão.
+   */
   subscriptionsToCancel: { billId: string; plan: string }[]
   filesDeleted: number | null
   filesError: string | null

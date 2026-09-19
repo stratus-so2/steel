@@ -82,6 +82,7 @@ describe('toAdminOperationDTO()', () => {
       meta: {
         filesDeleted: 3,
         filesError: null,
+        subscriptionsCancelled: [{ billId: 'bill_0', plan: 'PRO' }],
         subscriptionsToCancel: [
           { billId: 'bill_1', plan: 'PRO', status: 'PAID' },
           { nope: true },
@@ -91,6 +92,7 @@ describe('toAdminOperationDTO()', () => {
     expect(dto).toMatchObject({
       filesDeleted: 3,
       filesError: null,
+      subscriptionsCancelled: [{ billId: 'bill_0', plan: 'PRO' }],
       subscriptionsToCancel: [{ billId: 'bill_1', plan: 'PRO' }],
       completedAt: now.toISOString(),
     })
@@ -100,6 +102,7 @@ describe('toAdminOperationDTO()', () => {
     expect(toAdminOperationDTO(base)).toMatchObject({
       filesDeleted: null,
       safetyBackupId: null,
+      subscriptionsCancelled: [],
       subscriptionsToCancel: [],
     })
   })

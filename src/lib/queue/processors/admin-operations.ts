@@ -6,6 +6,10 @@ import { WorkspaceFeaturesCache } from '@/src/cache/workspace-features.cache'
 import { recordAdminAction } from '@/src/lib/admin-audit'
 import { prisma } from '@/src/lib/prisma'
 import { purgeWorkspaceFiles } from '@/src/lib/storage/workspace-files'
+import {
+  type SubscriptionCancellationAttempt,
+  SubscriptionService,
+} from '@/src/services/subscription.service'
 import { fetchAndDecryptBackup } from '../database-restore'
 import type { DatabaseBackupJob, DatabaseBackupJobPayload } from '../jobs'
 import {
@@ -76,11 +80,24 @@ const actorOf = (operation: AdminOperation) => ({
   email: operation.requestedByEmail,
 })
 
+/** Resumo curto (billId + plano) do que vai para a `meta` da operação. */
+function summarize(
+  attempts: SubscriptionCancellationAttempt[],
+): { billId: string; plan: string }[] {
+  return attempts.map((a) => ({ billId: a.billId, plan: a.plan }))
+}
+
 /**
  * Exclusão definitiva de um workspace, em cadeia: backup do workspace (o
- * mesmo passo do job `run-workspace-backup`) → só com o backup COMPLETED,
+ * mesmo passo do job `run-workspace-backup`) → cancelamento das assinaturas
+ * no AbacatePay → só com o backup COMPLETED e as assinaturas canceladas,
  * apaga as linhas (transação) → apaga os arquivos no MinIO. Falha antes do
  * purge do banco devolve o workspace ao status anterior; nada é apagado.
+ *
+ * Política de assinatura: **barra** a exclusão se algum cancelamento falhar,
+ * para nunca sobrar cobrança viva sem workspace. O admin pode repetir o
+ * pedido com `ignoreSubscriptionCancelFailure` para forçar — aí as
+ * assinaturas ficam marcadas como pendentes de cancelamento manual.
  */
 export async function runWorkspaceDeletion(
   job: Job<DatabaseBackupJobPayload[typeof DatabaseBackupJob.DeleteWorkspace]>,
@@ -109,18 +126,48 @@ export async function runWorkspaceDeletion(
     }
     if (!backupId) throw new Error('Backup do workspace não foi gerado.')
 
-    // 2. Banco — coleta o que depende das linhas antes de apagá-las.
+    // 2. Assinaturas — cancela no provedor ANTES de apagar qualquer linha:
+    // depois do purge o `billId` some junto com o workspace (FK cascade) e
+    // não haveria como saber o que continua sendo cobrado.
+    await setStep(id, 'cancel_subscriptions', { backupId })
+    const cancellation = await SubscriptionService.cancelWorkspaceSubscriptions(
+      {
+        workspaceId,
+        actorId: operation.requestedById,
+        source: 'admin_workspace_deletion',
+      },
+    )
+    if (!cancellation.ok) {
+      throw new Error(
+        `Não foi possível consultar as assinaturas do workspace: ${cancellation.error.message}`,
+      )
+    }
+
+    const { cancelled, failed } = cancellation.value
+    const forced = meta.ignoreSubscriptionCancelFailure === true
+    if (failed.length > 0 && !forced) {
+      throw new Error(
+        `Exclusão barrada: ${failed.length} assinatura(s) não cancelada(s) no AbacatePay (${failed
+          .map((s) => `${s.billId}: ${s.error ?? 'erro desconhecido'}`)
+          .join('; ')}). Nada foi apagado. Cancele no painel do AbacatePay e ` +
+          'peça a exclusão de novo, ou marque "seguir mesmo se o cancelamento falhar".',
+      )
+    }
+    if (failed.length > 0) {
+      logger.warn('queue.admin_operation.subscription_cancel_forced', {
+        component: 'Worker',
+        operationId: id,
+        workspaceId,
+        billIds: failed.map((s) => s.billId),
+      })
+    }
+
+    // 3. Banco — coleta o que depende das linhas antes de apagá-las.
     await setStep(id, 'purge_database', { backupId })
-    const [aiAttachments, subscriptions] = await Promise.all([
-      prisma.crmAiAttachment.findMany({
-        where: { conversation: { workspaceId } },
-        select: { storageKey: true },
-      }),
-      prisma.subscription.findMany({
-        where: { workspaceId, status: { in: ['PAID', 'PENDING'] } },
-        select: { billId: true, plan: true, status: true, interval: true },
-      }),
-    ])
+    const aiAttachments = await prisma.crmAiAttachment.findMany({
+      where: { conversation: { workspaceId } },
+      select: { storageKey: true },
+    })
 
     await prisma.$transaction((tx) => purgeWorkspaceRows(tx, workspaceId), {
       timeout: 120_000,
@@ -128,7 +175,7 @@ export async function runWorkspaceDeletion(
     databasePurged = true
     await invalidateWorkspaceCaches(workspaceId)
 
-    // 3. Arquivos — falha aqui não desfaz o purge (já sem volta); fica
+    // 4. Arquivos — falha aqui não desfaz o purge (já sem volta); fica
     // registrada para limpeza manual.
     await setStep(id, 'purge_files')
     let filesDeleted = 0
@@ -149,11 +196,10 @@ export async function runWorkspaceDeletion(
       })
     }
 
-    // Não há API de cancelamento no cliente AbacatePay: a lista fica na
-    // operação para o admin cancelar no painel do provedor.
-    const subscriptionsToCancel = subscriptions.filter(
-      (s) => s.status === 'PAID',
-    )
+    // Só sobra na lista "cancele à mão" o que o provedor recusou numa
+    // exclusão forçada — no caminho normal ela vem vazia.
+    const subscriptionsCancelled = summarize(cancelled)
+    const subscriptionsToCancel = summarize(failed)
 
     await prisma.adminOperation.update({
       where: { id },
@@ -165,6 +211,7 @@ export async function runWorkspaceDeletion(
           ...meta,
           filesDeleted,
           filesError,
+          subscriptionsCancelled,
           subscriptionsToCancel,
         } as Prisma.InputJsonValue,
       },
@@ -183,7 +230,9 @@ export async function runWorkspaceDeletion(
         backupId,
         filesDeleted,
         filesError,
+        subscriptionsCancelled: subscriptionsCancelled.map((s) => s.billId),
         subscriptionsToCancel: subscriptionsToCancel.map((s) => s.billId),
+        subscriptionCancelForced: forced && failed.length > 0,
       },
     })
 
@@ -194,6 +243,8 @@ export async function runWorkspaceDeletion(
       workspaceId,
       backupId,
       filesDeleted,
+      subscriptionsCancelled: subscriptionsCancelled.length,
+      subscriptionsPendingManualCancellation: subscriptionsToCancel.length,
     })
     return { backupId, filesDeleted }
   } catch (error) {

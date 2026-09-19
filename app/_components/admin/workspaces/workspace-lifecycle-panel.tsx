@@ -6,9 +6,10 @@ import {
   PlayIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useId, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -64,6 +65,8 @@ export function WorkspaceLifecyclePanel({
   const router = useRouter()
   const [dialog, setDialog] = useState<DialogKind>(null)
   const [plan, setPlan] = useState<string>(workspace.activePlan)
+  const [forceCancel, setForceCancel] = useState(false)
+  const forceCancelId = useId()
   const setStatus = useSetWorkspaceStatus(workspace.id)
   const changePlan = useChangeWorkspacePlan(workspace.id)
   const remove = useDeleteWorkspace(workspace.id)
@@ -74,6 +77,7 @@ export function WorkspaceLifecyclePanel({
   function close() {
     setDialog(null)
     setPlan(workspace.activePlan)
+    setForceCancel(false)
   }
 
   async function run(action: () => Promise<unknown>, success: string) {
@@ -133,7 +137,7 @@ export function WorkspaceLifecyclePanel({
         <div className='bg-destructive/5'>
           <ActionRow
             title='Excluir workspace'
-            description='Faz backup do workspace e, só com ele concluído, apaga dados e arquivos. Não tem volta sem restaurar o backup.'
+            description='Faz backup do workspace, cancela as assinaturas no AbacatePay e só então apaga dados e arquivos. Não tem volta sem restaurar o backup.'
             action={
               <Button
                 size='sm'
@@ -232,15 +236,39 @@ export function WorkspaceLifecyclePanel({
               arquivos no MinIO. Arquivos não entram no backup.
             </li>
             <li>
-              Assinaturas pagas precisam ser canceladas no AbacatePay — a lista
-              aparece no progresso da exclusão.
+              As assinaturas ativas são canceladas no AbacatePay antes de apagar
+              qualquer coisa. Se algum cancelamento falhar, a exclusão é barrada
+              e nada é apagado.
             </li>
           </ul>
         }
         onConfirm={(values) =>
-          run(() => remove.mutateAsync(values), 'Exclusão enfileirada')
+          run(
+            () =>
+              remove.mutateAsync({
+                ...values,
+                ignoreSubscriptionCancelFailure: forceCancel,
+              }),
+            'Exclusão enfileirada',
+          )
         }
-      />
+      >
+        <div className='flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3'>
+          <Checkbox
+            id={forceCancelId}
+            checked={forceCancel}
+            onCheckedChange={(state) => setForceCancel(state === true)}
+          />
+          <Label
+            htmlFor={forceCancelId}
+            className='block text-muted-foreground text-xs leading-normal'
+          >
+            Seguir mesmo se o cancelamento da assinatura falhar. As assinaturas
+            recusadas ficam registradas na operação e na auditoria — você
+            precisará cancelá-las à mão no painel do AbacatePay.
+          </Label>
+        </div>
+      </ConfirmActionDialog>
     </AdminPanel>
   )
 }

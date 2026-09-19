@@ -3,6 +3,7 @@ import {
   BackupDownloadQuerySchema,
   ChangeWorkspacePlanSchema,
   ConfirmedWorkspaceActionSchema,
+  DeleteWorkspaceSchema,
   ListBackupsQuerySchema,
   SetWorkspaceStatusSchema,
   TriggerBackupSchema,
@@ -294,13 +295,14 @@ const routes: RouteConfig[] = [
     tags: ['Admin · Workspaces'],
     summary: 'Excluir workspace definitivamente',
     description:
-      'Assíncrono (202): o worker faz um backup de segurança do workspace e só então apaga dados e arquivos. Confirme digitando o slug em `confirmSlug`. Acompanhe por `GET /admin/operations/{id}`.',
+      'Assíncrono (202): o worker faz um backup de segurança do workspace, cancela as assinaturas ativas na AbacatePay e só então apaga dados e arquivos. Se algum cancelamento falhar a operação é barrada e nada é apagado — reenvie com `ignoreSubscriptionCancelFailure: true` para seguir mesmo assim (as assinaturas ficam registradas para cancelamento manual). Confirme digitando o slug em `confirmSlug`. Acompanhe por `GET /admin/operations/{id}`.',
     consent: true,
     body: {
-      schema: ConfirmedWorkspaceActionSchema,
+      schema: DeleteWorkspaceSchema,
       example: {
         confirmSlug: 'acme',
         reason: 'Encerramento de contrato a pedido do cliente',
+        ignoreSubscriptionCancelFailure: false,
       },
     },
     responses: {

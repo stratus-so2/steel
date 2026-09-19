@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   purgeWorkspaceFiles: vi.fn(),
   fetchAndDecryptBackup: vi.fn(),
   recordAdminAction: vi.fn(),
+  cancelWorkspaceSubscriptions: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 
@@ -50,6 +51,11 @@ vi.mock('@/src/cache/workspace-features.cache', () => ({
   WorkspaceFeaturesCache: { invalidate: vi.fn().mockResolvedValue(undefined) },
 }))
 vi.mock('@/lib/axiom/logger', () => ({ logger: mocks.logger }))
+vi.mock('@/src/services/subscription.service', () => ({
+  SubscriptionService: {
+    cancelWorkspaceSubscriptions: mocks.cancelWorkspaceSubscriptions,
+  },
+}))
 
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
 import {
@@ -76,6 +82,18 @@ function operation(overrides: Record<string, unknown> = {}) {
   }
 }
 
+function cancelAttempt(overrides: Record<string, unknown> = {}) {
+  return {
+    billId: 'bill_1',
+    plan: 'PRO',
+    status: 'PAID',
+    interval: 'MONTHLY',
+    outcome: 'CANCELLED',
+    error: null,
+    ...overrides,
+  }
+}
+
 const job = (name: string) =>
   ({ id: 'job1', name, data: { operationId: 'op1' } }) as unknown as Job<{
     operationId: string
@@ -91,6 +109,14 @@ beforeEach(() => {
     { billId: 'bill_1', plan: 'PRO', status: 'PAID', interval: 'MONTHLY' },
   ])
   mocks.purgeWorkspaceFiles.mockResolvedValue({ deleted: 3, byBucket: {} })
+  mocks.cancelWorkspaceSubscriptions.mockResolvedValue({
+    ok: true,
+    value: {
+      attempts: [cancelAttempt()],
+      cancelled: [cancelAttempt()],
+      failed: [],
+    },
+  })
 })
 
 describe('runWorkspaceDeletion()', () => {
@@ -104,10 +130,18 @@ describe('runWorkspaceDeletion()', () => {
     expect(mocks.backupWorkspace).toHaveBeenCalledWith(
       expect.objectContaining({ workspaceId: 'ws1', triggeredById: 'admin1' }),
     )
-    // Ordem: backup concluído antes do purge.
+    // Ordem: backup → cancelamento das assinaturas → purge.
     expect(mocks.backupWorkspace.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.purgeWorkspaceRows.mock.invocationCallOrder[0],
+      mocks.cancelWorkspaceSubscriptions.mock.invocationCallOrder[0],
     )
+    expect(
+      mocks.cancelWorkspaceSubscriptions.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocks.purgeWorkspaceRows.mock.invocationCallOrder[0])
+    expect(mocks.cancelWorkspaceSubscriptions).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      actorId: 'admin1',
+      source: 'admin_workspace_deletion',
+    })
     expect(mocks.purgeWorkspaceRows).toHaveBeenCalledWith({}, 'ws1')
     expect(mocks.purgeWorkspaceFiles).toHaveBeenCalledWith('ws1', ['c1/a.pdf'])
     expect(mocks.op.update).toHaveBeenLastCalledWith({
@@ -117,9 +151,8 @@ describe('runWorkspaceDeletion()', () => {
         step: 'done',
         meta: expect.objectContaining({
           filesDeleted: 3,
-          subscriptionsToCancel: [
-            expect.objectContaining({ billId: 'bill_1' }),
-          ],
+          subscriptionsCancelled: [{ billId: 'bill_1', plan: 'PRO' }],
+          subscriptionsToCancel: [],
         }),
       }),
     })
@@ -185,6 +218,91 @@ describe('runWorkspaceDeletion()', () => {
 
     expect(mocks.backupWorkspace).not.toHaveBeenCalled()
     expect(mocks.purgeWorkspaceRows).toHaveBeenCalled()
+  })
+
+  it('blocks the deletion when a subscription fails to cancel at the provider', async () => {
+    mocks.op.findUnique.mockResolvedValue(operation())
+    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 10 })
+    const failed = cancelAttempt({ outcome: 'FAILED', error: 'gateway down' })
+    mocks.cancelWorkspaceSubscriptions.mockResolvedValue({
+      ok: true,
+      value: { attempts: [failed], cancelled: [], failed: [failed] },
+    })
+
+    await expect(runWorkspaceDeletion(job('delete-workspace'))).rejects.toThrow(
+      /Exclusão barrada/,
+    )
+
+    expect(mocks.purgeWorkspaceRows).not.toHaveBeenCalled()
+    expect(mocks.purgeWorkspaceFiles).not.toHaveBeenCalled()
+    expect(mocks.workspace.updateMany).toHaveBeenCalledWith({
+      where: { id: 'ws1', status: 'DELETING' },
+      data: { status: 'ACTIVE' },
+    })
+    expect(mocks.recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'workspace.delete_failed',
+        outcome: 'failure',
+      }),
+    )
+  })
+
+  it('proceeds and flags the manual cancellation when the admin forces it', async () => {
+    mocks.op.findUnique.mockResolvedValue(
+      operation({
+        meta: {
+          previousStatus: 'ACTIVE',
+          ignoreSubscriptionCancelFailure: true,
+        },
+      }),
+    )
+    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 10 })
+    const failed = cancelAttempt({ outcome: 'FAILED', error: 'gateway down' })
+    mocks.cancelWorkspaceSubscriptions.mockResolvedValue({
+      ok: true,
+      value: { attempts: [failed], cancelled: [], failed: [failed] },
+    })
+
+    await runWorkspaceDeletion(job('delete-workspace'))
+
+    expect(mocks.purgeWorkspaceRows).toHaveBeenCalled()
+    expect(mocks.op.update).toHaveBeenLastCalledWith({
+      where: { id: 'op1' },
+      data: expect.objectContaining({
+        status: 'COMPLETED',
+        meta: expect.objectContaining({
+          subscriptionsCancelled: [],
+          subscriptionsToCancel: [{ billId: 'bill_1', plan: 'PRO' }],
+        }),
+      }),
+    })
+    expect(mocks.recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'workspace.deleted',
+        meta: expect.objectContaining({
+          subscriptionCancelForced: true,
+          subscriptionsToCancel: ['bill_1'],
+        }),
+      }),
+    )
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      'queue.admin_operation.subscription_cancel_forced',
+      expect.objectContaining({ billIds: ['bill_1'] }),
+    )
+  })
+
+  it('never purges when the subscription lookup itself fails', async () => {
+    mocks.op.findUnique.mockResolvedValue(operation())
+    mocks.backupWorkspace.mockResolvedValue({ backupId: 'b1', sizeBytes: 10 })
+    mocks.cancelWorkspaceSubscriptions.mockResolvedValue({
+      ok: false,
+      error: { code: 'DATABASE_ERROR', message: 'db down' },
+    })
+
+    await expect(runWorkspaceDeletion(job('delete-workspace'))).rejects.toThrow(
+      /db down/,
+    )
+    expect(mocks.purgeWorkspaceRows).not.toHaveBeenCalled()
   })
 
   it('skips an operation that already failed or completed', async () => {

@@ -28,6 +28,18 @@ export type ConfirmedWorkspaceActionInput = z.infer<
   typeof ConfirmedWorkspaceActionSchema
 >
 
+/**
+ * Exclusão definitiva. `ignoreSubscriptionCancelFailure` é o *force*: por
+ * padrão a exclusão é **barrada** se o cancelamento de alguma assinatura no
+ * AbacatePay falhar (nada é apagado). Marcado, a exclusão segue e as
+ * assinaturas que não cancelaram ficam registradas como pendentes de
+ * cancelamento manual (operação + auditoria).
+ */
+export const DeleteWorkspaceSchema = ConfirmedWorkspaceActionSchema.extend({
+  ignoreSubscriptionCancelFailure: z.boolean().default(false),
+})
+export type DeleteWorkspaceInput = z.infer<typeof DeleteWorkspaceSchema>
+
 export const TriggerBackupSchema = z.discriminatedUnion('scope', [
   z.object({ scope: z.literal('FULL') }),
   z.object({ scope: z.literal('WORKSPACE'), workspaceId: z.string().min(1) }),

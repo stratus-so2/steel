@@ -71,6 +71,7 @@ export function toAdminOperationDTO(
     requestedByEmail: operation.requestedByEmail,
     reason: operation.reason,
     error: operation.error,
+    subscriptionsCancelled: asSubscriptions(meta.subscriptionsCancelled),
     subscriptionsToCancel: asSubscriptions(meta.subscriptionsToCancel),
     filesDeleted:
       typeof meta.filesDeleted === 'number' ? meta.filesDeleted : null,

@@ -116,6 +116,14 @@ export interface ConfirmedActionInput {
   reason: string
 }
 
+/**
+ * Exclusão de workspace. `ignoreSubscriptionCancelFailure` é o *force*: por
+ * padrão uma falha ao cancelar a assinatura no AbacatePay barra a exclusão.
+ */
+export interface DeleteWorkspaceActionInput extends ConfirmedActionInput {
+  ignoreSubscriptionCancelFailure: boolean
+}
+
 export function useRestoreBackup() {
   const invalidate = useInvalidateAdmin()
   return useMutation({
@@ -161,7 +169,7 @@ export function useChangeWorkspacePlan(workspaceId: string) {
 export function useDeleteWorkspace(workspaceId: string) {
   const invalidate = useInvalidateAdmin()
   return useMutation({
-    mutationFn: (input: ConfirmedActionInput) =>
+    mutationFn: (input: DeleteWorkspaceActionInput) =>
       apiFetch<AdminOperationDTO>(
         `/api/admin/workspaces/${workspaceId}/deletion`,
         { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(input) },

@@ -22,7 +22,7 @@ import { AdminOperationRepository } from '@/src/repositories/admin-operation.rep
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
 import type {
   ChangeWorkspacePlanInput,
-  ConfirmedWorkspaceActionInput,
+  DeleteWorkspaceInput,
 } from '@/src/schemas/admin.schema'
 import type {
   AdminAuditEntryDTO,
@@ -211,12 +211,13 @@ export const AdminWorkspaceLifecycleService = {
 
   /**
    * Pede a exclusão definitiva: marca o workspace como `DELETING` (bloqueia
-   * os membros na hora) e enfileira o job, que só apaga depois do backup.
+   * os membros na hora) e enfileira o job, que cancela as assinaturas no
+   * AbacatePay e só apaga depois do backup.
    */
   async requestDeletion(
     actorId: string,
     workspaceId: string,
-    input: ConfirmedWorkspaceActionInput,
+    input: DeleteWorkspaceInput,
   ): Promise<Result<AdminOperationDTO>> {
     const admin = await assertPlatformAdmin(actorId)
     if (!admin.ok) return admin
@@ -242,7 +243,11 @@ export const AdminWorkspaceLifecycleService = {
       requestedById: admin.value.userId,
       requestedByEmail: admin.value.email,
       reason: input.reason,
-      meta: { previousStatus: workspace.value.status },
+      meta: {
+        previousStatus: workspace.value.status,
+        ignoreSubscriptionCancelFailure:
+          input.ignoreSubscriptionCancelFailure === true,
+      },
     })
     if (!operation.ok) return operation
 
@@ -292,6 +297,8 @@ export const AdminWorkspaceLifecycleService = {
         operationId: operation.value.id,
         memberCount: workspace.value.memberCount,
         plan: workspace.value.activePlan,
+        ignoreSubscriptionCancelFailure:
+          input.ignoreSubscriptionCancelFailure === true,
       },
     })
     logger.info('admin.workspace.delete_requested', {

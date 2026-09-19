@@ -197,7 +197,11 @@ describe('AdminWorkspaceLifecycleService.changePlan()', () => {
 })
 
 describe('AdminWorkspaceLifecycleService.requestDeletion()', () => {
-  const input = { confirmSlug: 'acme', reason: 'encerramento do contrato' }
+  const input = {
+    confirmSlug: 'acme',
+    reason: 'encerramento do contrato',
+    ignoreSubscriptionCancelFailure: false,
+  }
 
   beforeEach(() => {
     workspaceRepo.findWithMemberCount.mockResolvedValue(ok(workspace()))
@@ -224,7 +228,10 @@ describe('AdminWorkspaceLifecycleService.requestDeletion()', () => {
     expect(operationRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'WORKSPACE_DELETE',
-        meta: { previousStatus: 'ACTIVE' },
+        meta: {
+          previousStatus: 'ACTIVE',
+          ignoreSubscriptionCancelFailure: false,
+        },
         requestedByEmail: admin.email,
       }),
     )
@@ -234,6 +241,32 @@ describe('AdminWorkspaceLifecycleService.requestDeletion()', () => {
     expect(enqueueAdminOperation).toHaveBeenCalledWith('delete', 'op1')
     expect(recordAdminAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'workspace.delete_requested' }),
+    )
+  })
+
+  it('records the force flag on the operation and in the audit', async () => {
+    expectOk(
+      await Service.requestDeletion(admin.id, 'ws1', {
+        ...input,
+        ignoreSubscriptionCancelFailure: true,
+      }),
+    )
+
+    expect(operationRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: {
+          previousStatus: 'ACTIVE',
+          ignoreSubscriptionCancelFailure: true,
+        },
+      }),
+    )
+    expect(recordAdminAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'workspace.delete_requested',
+        meta: expect.objectContaining({
+          ignoreSubscriptionCancelFailure: true,
+        }),
+      }),
     )
   })
 
@@ -434,7 +467,11 @@ describe('AdminWorkspaceLifecycleService — mutation failure paths', () => {
   })
 
   it('requestDeletion covers outsider, lookup, active-op and create failures', async () => {
-    const input = { confirmSlug: 'acme', reason: 'encerramento do contrato' }
+    const input = {
+      confirmSlug: 'acme',
+      reason: 'encerramento do contrato',
+      ignoreSubscriptionCancelFailure: false,
+    }
     userRepo.findById.mockResolvedValueOnce(ok(outsider))
     expectErr(
       await Service.requestDeletion(outsider.id, 'ws1', input),
@@ -477,6 +514,7 @@ describe('AdminWorkspaceLifecycleService — mutation failure paths', () => {
       await Service.requestDeletion(admin.id, 'ws1', {
         confirmSlug: 'acme',
         reason: 'encerramento do contrato',
+        ignoreSubscriptionCancelFailure: false,
       }),
       'DATABASE_ERROR',
     )
@@ -497,6 +535,7 @@ describe('AdminWorkspaceLifecycleService — mutation failure paths', () => {
       await Service.requestDeletion(admin.id, 'ws1', {
         confirmSlug: 'acme',
         reason: 'encerramento do contrato',
+        ignoreSubscriptionCancelFailure: false,
       }),
       'INTERNAL_SERVER_ERROR',
     )
