@@ -125,3 +125,54 @@ describe('WhatsAppMediaService.downloadInboundMedia()', () => {
     expect(mockedMessageRepo.update).not.toHaveBeenCalled()
   })
 })
+
+describe('WhatsAppMediaService.downloadInboundMedia() failure paths', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  it('should propagate a message lookup failure', async () => {
+    mockedMessageRepo.findById.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppMediaService.downloadInboundMedia('m1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should propagate a conversation lookup failure', async () => {
+    arrange()
+    mockedConversationRepo.findByIdWithConnection.mockResolvedValue(
+      err(DB_ERROR),
+    )
+
+    expectErr(
+      await WhatsAppMediaService.downloadInboundMedia('m1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should use a generic message for a non-Error provider failure', async () => {
+    arrange()
+    mockedResolve.mockRejectedValue('timeout')
+
+    const error = expectErr(
+      await WhatsAppMediaService.downloadInboundMedia('m1'),
+      'WHATSAPP_PROVIDER_ERROR',
+    )
+    expect(error.message).toBe('Falha ao resolver mídia')
+  })
+
+  it('should propagate a failure saving the stored media URL', async () => {
+    arrange()
+    mockedResolve.mockResolvedValue({ url: 'https://graph.example/media' })
+    mockedDownload.mockResolvedValue(
+      ok({ url: 'https://steel.example/media/ws1/a.jpg' }) as never,
+    )
+    mockedMessageRepo.update.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppMediaService.downloadInboundMedia('m1'),
+      'DATABASE_ERROR',
+    )
+    expect(publishWhatsAppEvent).not.toHaveBeenCalled()
+  })
+})
