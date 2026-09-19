@@ -58,4 +58,9 @@ describe('CouponService.validate()', () => {
     mockedAbacate.getCoupon.mockRejectedValue(new Error('gateway down'))
     expectErr(await CouponService.validate({ code: 'X' }), 'PAYMENT_ERROR')
   })
+
+  it('returns PAYMENT_ERROR for a non-Error gateway rejection', async () => {
+    mockedAbacate.getCoupon.mockRejectedValue('socket hang up')
+    expectErr(await CouponService.validate({ code: 'X' }), 'PAYMENT_ERROR')
+  })
 })
