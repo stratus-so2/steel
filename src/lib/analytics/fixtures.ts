@@ -315,11 +315,11 @@ function latency(
   const total = specs.reduce((s, r) => s + r.requests, 0)
   if (total === 0) return { p50: null, p95: null, p99: null }
   const mean = specs.reduce((s, r) => s + r.spec.p50 * r.requests, 0) / total
-  const p50 = Math.round(mean * (0.55 + jitter * 0.2))
+  const p50 = Math.round(mean * (0.6 + jitter * 0.08))
   return {
     p50,
-    p95: Math.round(p50 * (3.2 + jitter)),
-    p99: Math.round(p50 * (6 + jitter * 3)),
+    p95: Math.round(p50 * (3.3 + jitter * 0.4)),
+    p99: Math.round(p50 * (6.5 + jitter * 1.2)),
   }
 }
 
@@ -349,7 +349,7 @@ export function fixtureTrafficTotals(
   const all = samples(window, filters)
   const requests = series.reduce((s, p) => s + p.requests, 0)
   const lat = latency(
-    routesFor(filters).map((spec) => ({ spec, requests: 1 })),
+    routesFor(filters).map((spec) => ({ spec, requests: spec.weight })),
     0.5,
   )
   const peakUsers = Math.max(0, ...all.map((b) => b.users))
@@ -487,7 +487,10 @@ export function fixtureErrorSamples(
     i++
   ) {
     const group = groups[Math.floor(random() * Math.min(groups.length, 8))]
-    const spec = ROUTES.find((r) => r.route === group.route) as RouteSpec
+    const spec = ROUTES.find(
+      (r) =>
+        r.route === group.route && r.codes.some(([, c]) => c === group.code),
+    ) as RouteSpec
     out.push({
       t: new Date(window.to.getTime() - random() * span * 0.5).toISOString(),
       method: spec.method,

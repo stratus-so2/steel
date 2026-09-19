@@ -49,12 +49,7 @@ export const ADMIN_NAV: { title: string; items: NavEntry[] }[] = [
   {
     title: 'Observabilidade',
     items: [
-      {
-        href: '/admin/analytics',
-        label: 'Analytics',
-        icon: Analytics01Icon,
-        soon: true,
-      },
+      { href: '/admin/analytics', label: 'Analytics', icon: Analytics01Icon },
     ],
   },
 ]
