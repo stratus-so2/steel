@@ -98,3 +98,47 @@ describe('AdminMetricsService.getOverview()', () => {
     )
   })
 })
+
+describe('AdminMetricsService.getOverview() source failures', () => {
+  it.each([
+    [
+      'workspace count',
+      () =>
+        mockedMetricsRepo.countWorkspaces.mockResolvedValue(
+          err(databaseError()),
+        ),
+    ],
+    [
+      'recent logins',
+      () =>
+        mockedMetricsRepo.countWorkspacesWithLoginSince.mockResolvedValue(
+          err(databaseError()),
+        ),
+    ],
+    [
+      'paying subscriptions',
+      () =>
+        mockedMetricsRepo.listPayingSubscriptions.mockResolvedValue(
+          err(databaseError()),
+        ),
+    ],
+    [
+      'ended subscriptions',
+      () =>
+        mockedMetricsRepo.listEndedSubscriptionsSince.mockResolvedValue(
+          err(databaseError()),
+        ),
+    ],
+    [
+      'first usage day',
+      () => mockedUsageRepo.firstDay.mockResolvedValue(err(databaseError())),
+    ],
+  ])('should propagate a failure loading the %s', async (_label, arrangeFailure) => {
+    arrangeFailure()
+
+    expectErr(
+      await AdminMetricsService.getOverview(platformAdmin.id, NOW),
+      'DATABASE_ERROR',
+    )
+  })
+})
