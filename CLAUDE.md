@@ -41,8 +41,8 @@ pnpm test:e2e             # app/**/__tests__/*.e2e.test.ts — runs against `nex
 pnpm test:component       # app/**/__tests__/*.component.test.tsx — jsdom
 pnpm test:all             # every project, --run
 pnpm test:coverage        # unit + integration with coverage (95% floor on all 4 metrics)
-pnpm test:ui              # Vitest UI (browser) for unit + component on :51204
-pnpm test:ui:coverage     # Vitest UI with the coverage tab
+pnpm test:ui              # Vitest UI (browser): every project, on :51204
+pnpm test:ui:coverage     # same, with the coverage tab
 
 # single test:
 pnpm vitest --project unit src/services/__tests__/sticky-note.service.test.ts
@@ -56,7 +56,8 @@ Test file location determines which project runs it (see `include` globs in `vit
 - `src/lib/__tests__/*.smoke.test.ts` → **redis-tls** smoke
 - Integration tests truncate all tables `afterEach` (`src/__tests__/setup.integration.ts`), so they require a disposable dev database.
 
-**Vitest UI** (`@vitest/ui`, pinned to the exact `vitest` version — they must match): filterable test tree, diffs, module graph and the coverage report at `http://localhost:51204/__vitest__/`.
+**Vitest UI** (`@vitest/ui`, pinned to the exact `vitest` version — they must match): filterable test tree, diffs, module graph and the coverage report at `http://localhost:51204/__vitest__/`. `pnpm test:ui` runs **every** project, so it needs the infra up (`pnpm infra`) for integration and `pnpm start` on :3001 for e2e; as usual those two TRUNCATE the dev database between tests.
+
 
 ### Worker (BullMQ background jobs — separate process from Next)
 
