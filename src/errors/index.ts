@@ -121,6 +121,7 @@ export {
   releaseNotesUnavailable,
   seatLimitReached,
   storageError,
+  subscriptionCancelFailed,
   unauthorized,
   usernameConflict,
   validationError,

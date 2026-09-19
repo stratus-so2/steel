@@ -1,7 +1,20 @@
 import 'server-only'
-import { ABACATE_PAY } from '@/lib/env/server'
+import { ABACATE_PAY, ABACATE_PAY_CANCEL_PATH } from '@/lib/env/server'
 
 const BASE_URL = 'https://api.abacatepay.com/v2'
+
+/**
+ * Único lugar que descreve o endpoint de cancelamento de assinatura
+ * (`POST /subscriptions/cancel`, corpo `{ id }`, doc oficial em
+ * https://docs.abacatepay.com/pages/subscriptions/cancel). O caminho é
+ * sobrescrevível por `ABACATE_PAY_CANCEL_PATH` para o dia em que o provedor
+ * mudar a rota sem precisar de deploy de código. A chamada **nunca** falha
+ * em silêncio: qualquer resposta não-2xx vira `Error` (ver `request`).
+ */
+const CANCEL_SUBSCRIPTION_ENDPOINT = {
+  method: 'POST' as const,
+  path: ABACATE_PAY_CANCEL_PATH || '/subscriptions/cancel',
+}
 
 interface SubscriptionItem {
   id: string
@@ -71,6 +84,25 @@ export const AbacatePayClient = {
     return request<AbacatePaySubscription>('/subscriptions/create', {
       method: 'POST',
       body: JSON.stringify(params),
+    })
+  },
+
+  /**
+   * Cancela uma assinatura no provedor. O `id` é o mesmo da criação
+   * (`subscriptions/create` devolve um checkout `bill_...`), que o Steel
+   * guarda em `subscriptions.bill_id`. O cancelamento é imediato e
+   * irreversível — não há período de carência.
+   *
+   * Lança em qualquer resposta não-2xx (inclusive 404 de assinatura
+   * inexistente): quem chama decide a política, mas nunca recebe um
+   * "cancelou" falso.
+   */
+  async cancelSubscription(
+    id: string,
+  ): Promise<AbacatePayResponse<AbacatePaySubscription>> {
+    return request<AbacatePaySubscription>(CANCEL_SUBSCRIPTION_ENDPOINT.path, {
+      method: CANCEL_SUBSCRIPTION_ENDPOINT.method,
+      body: JSON.stringify({ id }),
     })
   },
 

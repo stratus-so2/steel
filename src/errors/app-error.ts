@@ -115,6 +115,15 @@ export const paymentError = (
   message = 'Falha ao processar o pagamento',
 ): AppError => appError('PAYMENT_ERROR', message)
 
+/**
+ * Cancelamento de assinatura recusado pelo AbacatePay. A mensagem lista as
+ * assinaturas que continuam ativas para o admin agir.
+ */
+export const subscriptionCancelFailed = (
+  message = 'Não foi possível cancelar a assinatura no AbacatePay',
+  details?: unknown,
+): AppError => appError('SUBSCRIPTION_CANCEL_FAILED', message, details)
+
 export const mailError = (
   message = 'Não foi possível enviar sua mensagem',
 ): AppError => appError('MAIL_ERROR', message)

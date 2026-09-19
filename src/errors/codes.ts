@@ -401,6 +401,13 @@ export const ERROR_CODES = {
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },
   STORAGE_ERROR: { code: 'STORAGE_ERROR', status: 500 },
   PAYMENT_ERROR: { code: 'PAYMENT_ERROR', status: 502 },
+  // O provedor recusou/não respondeu o cancelamento da assinatura. 502 porque
+  // a falha é do gateway: dá para tentar de novo (ou forçar, registrando o
+  // cancelamento manual).
+  SUBSCRIPTION_CANCEL_FAILED: {
+    code: 'SUBSCRIPTION_CANCEL_FAILED',
+    status: 502,
+  },
   MAIL_ERROR: { code: 'MAIL_ERROR', status: 502 },
   CONNECTION_TEST_FAILED: { code: 'CONNECTION_TEST_FAILED', status: 502 },
   RELEASE_NOTES_UNAVAILABLE: { code: 'RELEASE_NOTES_UNAVAILABLE', status: 502 },

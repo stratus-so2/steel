@@ -24,6 +24,7 @@ const serverEnv = {
   HUGEICONS_TOKEN: process.env.HUGEICONS_TOKEN,
   ABACATE_PAY: process.env.ABACATE_PAY,
   ABACATE_PAY_WEBHOOK_SECRET: process.env.ABACATE_PAY_WEBHOOK_SECRET,
+  ABACATE_PAY_CANCEL_PATH: process.env.ABACATE_PAY_CANCEL_PATH,
   STATUS_COLLECTOR_SECRET: process.env.STATUS_COLLECTOR_SECRET,
   CONNECTION_SECRETS: process.env.CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS:
@@ -123,6 +124,17 @@ const serverEnvSchema = z.object({
   HUGEICONS_TOKEN: z.string().regex(/^[A-F0-9]{8}(-[A-F0-9]{8}){3}$/),
   ABACATE_PAY: z.string().min(1).max(100),
   ABACATE_PAY_WEBHOOK_SECRET: z.string().min(1).max(100),
+  // Caminho do cancelamento de assinatura no AbacatePay. Existe só para
+  // sobrescrever a rota se o provedor mudá-la; vazio = `/subscriptions/cancel`
+  // (o default fica em lib/abacatepay.ts).
+  ABACATE_PAY_CANCEL_PATH: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .startsWith('/', { message: 'ABACATE_PAY_CANCEL_PATH must start with /' })
+      .max(100)
+      .optional(),
+  ),
   STATUS_COLLECTOR_SECRET: z.string().min(32).max(128),
   CONNECTION_SECRETS: z.string().regex(/^\d+:.{32,}(,\d+:.{32,})*$/, {
     message:
@@ -244,6 +256,7 @@ export const {
   HUGEICONS_TOKEN,
   ABACATE_PAY,
   ABACATE_PAY_WEBHOOK_SECRET,
+  ABACATE_PAY_CANCEL_PATH,
   STATUS_COLLECTOR_SECRET,
   CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS,

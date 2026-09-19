@@ -86,6 +86,69 @@ describe('AbacatePayClient.createSubscription()', () => {
   })
 })
 
+describe('AbacatePayClient.cancelSubscription()', () => {
+  it('should POST to /subscriptions/cancel with the bill id in the body', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            id: 'bill_1',
+            url: 'https://pay/c/1',
+            amount: 100,
+            status: 'CANCELLED',
+            createdAt: 'now',
+            updatedAt: 'now',
+          },
+          error: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    const result = await AbacatePayClient.cancelSubscription('bill_1')
+
+    expect(result.data.status).toBe('CANCELLED')
+    const [url, init] = fetchSpy.mock.calls[0] ?? []
+    expect(url).toBe('https://api.abacatepay.com/v2/subscriptions/cancel')
+    expect(init?.method).toBe('POST')
+    expect(new Headers(init?.headers).get('Authorization')).toBe(
+      'Bearer fake-key',
+    )
+    expect(init?.body).toBe('{"id":"bill_1"}')
+  })
+
+  it('should throw loudly when the provider refuses the cancellation', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          success: false,
+          data: null,
+          error: 'subscription not found',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    await expect(
+      AbacatePayClient.cancelSubscription('bill_missing'),
+    ).rejects.toThrow('subscription not found')
+  })
+
+  it('should never resolve silently on a 5xx from the provider', async () => {
+    fetchSpy.mockResolvedValue(
+      new Response(JSON.stringify({}), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(
+      AbacatePayClient.cancelSubscription('bill_1'),
+    ).rejects.toThrow(/500/)
+  })
+})
+
 describe('AbacatePayClient.getCoupon()', () => {
   const json = (body: unknown, status: number) =>
     new Response(JSON.stringify(body), {
