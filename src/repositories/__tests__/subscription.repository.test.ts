@@ -216,6 +216,57 @@ describe('SubscriptionRepository', () => {
   })
 })
 
+describe('SubscriptionRepository.listCancellableByWorkspaceId()', () => {
+  it('should return only PAID and PENDING subscriptions of the workspace', async () => {
+    const ws = await seedWorkspace()
+    const other = await seedWorkspace()
+    await seedSubscription({
+      workspaceId: ws.id,
+      billId: 'bill_paid',
+      status: 'PAID',
+    })
+    await seedSubscription({
+      workspaceId: ws.id,
+      billId: 'bill_pending',
+      status: 'PENDING',
+    })
+    await seedSubscription({
+      workspaceId: ws.id,
+      billId: 'bill_cancelled',
+      status: 'CANCELLED',
+    })
+    await seedSubscription({
+      workspaceId: ws.id,
+      billId: 'bill_expired',
+      status: 'EXPIRED',
+    })
+    await seedSubscription({
+      workspaceId: other.id,
+      billId: 'bill_other',
+      status: 'PAID',
+    })
+
+    const found = expectOk(
+      await SubscriptionRepository.listCancellableByWorkspaceId(ws.id),
+    )
+
+    expect(found.map((s) => s.billId).sort()).toEqual([
+      'bill_paid',
+      'bill_pending',
+    ])
+  })
+
+  it('should return an empty list for a workspace without subscriptions', async () => {
+    const ws = await seedWorkspace()
+
+    expect(
+      expectOk(
+        await SubscriptionRepository.listCancellableByWorkspaceId(ws.id),
+      ),
+    ).toEqual([])
+  })
+})
+
 describe('SubscriptionRepository — database failures', () => {
   afterEach(() => {
     vi.restoreAllMocks()
@@ -235,6 +286,17 @@ describe('SubscriptionRepository — database failures', () => {
     )
     expectErr(
       await SubscriptionRepository.findActiveByWorkspaceId('w'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should return DATABASE_ERROR when the cancellable listing throws', async () => {
+    vi.spyOn(prisma.subscription, 'findMany').mockRejectedValueOnce(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await SubscriptionRepository.listCancellableByWorkspaceId('w'),
       'DATABASE_ERROR',
     )
   })

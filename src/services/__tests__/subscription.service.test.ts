@@ -11,7 +11,10 @@ import { err, ok } from '@/src/lib/result'
 import { SubscriptionService } from '@/src/services/subscription.service'
 
 vi.mock('@/lib/abacatepay', () => ({
-  AbacatePayClient: { createSubscription: vi.fn() },
+  AbacatePayClient: {
+    createSubscription: vi.fn(),
+    cancelSubscription: vi.fn(),
+  },
 }))
 vi.mock('@/src/repositories/subscription.repository')
 vi.mock('@/src/repositories/membership.repository')
@@ -529,6 +532,154 @@ describe('SubscriptionService edge cases', () => {
       'DATABASE_ERROR',
     )
     expect(mockedWorkspaceCache.invalidate).not.toHaveBeenCalled()
+  })
+
+  describe('cancelWorkspaceSubscriptions()', () => {
+    beforeEach(() => {
+      mockedAbacate.cancelSubscription.mockReset()
+      mockedSubRepo.listCancellableByWorkspaceId.mockReset()
+      mockedSubRepo.deactivateByBillId.mockReset()
+      mockedWorkspaceCache.invalidate.mockClear()
+    })
+
+    it('should cancel every billable subscription at the provider and locally', async () => {
+      const paid = createFakeSubscription({
+        billId: 'bill_paid',
+        workspaceId: 'ws1',
+        status: 'PAID',
+        plan: 'PRO',
+      })
+      const pending = createFakeSubscription({
+        billId: 'bill_pending',
+        workspaceId: 'ws1',
+        status: 'PENDING',
+        plan: 'BUSINESS',
+      })
+      mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(
+        ok([paid, pending]),
+      )
+      mockedAbacate.cancelSubscription.mockResolvedValue(
+        fakeAbacateResponse(
+          createFakeAbacateSubscription({ status: 'CANCELLED' }),
+        ),
+      )
+      mockedSubRepo.deactivateByBillId.mockImplementation(async (billId) =>
+        ok(createFakeSubscription({ billId, status: 'CANCELLED' })),
+      )
+
+      const report = expectOk(
+        await SubscriptionService.cancelWorkspaceSubscriptions({
+          workspaceId: 'ws1',
+          actorId: 'admin1',
+          source: 'admin_workspace_deletion',
+        }),
+      )
+
+      expect(report.cancelled.map((s) => s.billId)).toEqual([
+        'bill_paid',
+        'bill_pending',
+      ])
+      expect(report.failed).toEqual([])
+      expect(mockedAbacate.cancelSubscription).toHaveBeenNthCalledWith(
+        1,
+        'bill_paid',
+      )
+      expect(mockedAbacate.cancelSubscription).toHaveBeenNthCalledWith(
+        2,
+        'bill_pending',
+      )
+      expect(mockedSubRepo.deactivateByBillId).toHaveBeenCalledWith(
+        'bill_paid',
+        'CANCELLED',
+      )
+      expect(mockedWorkspaceCache.invalidate).toHaveBeenCalledWith('ws1')
+    })
+
+    it('should report a provider failure instead of pretending it cancelled', async () => {
+      mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(
+        ok([
+          createFakeSubscription({
+            billId: 'bill_bad',
+            workspaceId: 'ws1',
+            status: 'PAID',
+          }),
+        ]),
+      )
+      mockedAbacate.cancelSubscription.mockRejectedValue(
+        new Error('gateway timeout'),
+      )
+
+      const report = expectOk(
+        await SubscriptionService.cancelWorkspaceSubscriptions({
+          workspaceId: 'ws1',
+          actorId: null,
+          source: 'owner_workspace_deletion',
+        }),
+      )
+
+      expect(report.cancelled).toEqual([])
+      expect(report.failed).toEqual([
+        expect.objectContaining({
+          billId: 'bill_bad',
+          outcome: 'FAILED',
+          error: 'gateway timeout',
+        }),
+      ])
+      expect(mockedSubRepo.deactivateByBillId).not.toHaveBeenCalled()
+    })
+
+    it('should still count as cancelled when only the local update fails', async () => {
+      mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(
+        ok([createFakeSubscription({ billId: 'bill_x', workspaceId: 'ws1' })]),
+      )
+      mockedAbacate.cancelSubscription.mockResolvedValue(
+        fakeAbacateResponse(createFakeAbacateSubscription()),
+      )
+      mockedSubRepo.deactivateByBillId.mockResolvedValue(err(databaseError()))
+
+      const report = expectOk(
+        await SubscriptionService.cancelWorkspaceSubscriptions({
+          workspaceId: 'ws1',
+          actorId: 'admin1',
+          source: 'admin_workspace_deletion',
+        }),
+      )
+
+      expect(report.failed).toEqual([])
+      expect(report.cancelled).toHaveLength(1)
+    })
+
+    it('should propagate a repository failure and touch nothing', async () => {
+      mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(
+        err(databaseError()),
+      )
+
+      expectErr(
+        await SubscriptionService.cancelWorkspaceSubscriptions({
+          workspaceId: 'ws1',
+          actorId: 'admin1',
+          source: 'admin_workspace_deletion',
+        }),
+        'DATABASE_ERROR',
+      )
+      expect(mockedAbacate.cancelSubscription).not.toHaveBeenCalled()
+    })
+
+    it('should be a no-op (no cache churn) when there is nothing to cancel', async () => {
+      mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(ok([]))
+
+      const report = expectOk(
+        await SubscriptionService.cancelWorkspaceSubscriptions({
+          workspaceId: 'ws1',
+          actorId: 'admin1',
+          source: 'admin_workspace_deletion',
+        }),
+      )
+
+      expect(report.attempts).toEqual([])
+      expect(mockedAbacate.cancelSubscription).not.toHaveBeenCalled()
+      expect(mockedWorkspaceCache.invalidate).not.toHaveBeenCalled()
+    })
   })
 
   it('getActiveByWorkspace() should return the active subscription', async () => {

@@ -35,6 +35,28 @@ function intervalToPrisma(
   return interval === 'yearly' ? 'YEARLY' : 'MONTHLY'
 }
 
+/** De onde partiu o cancelamento em massa (só para auditoria/log). */
+export type SubscriptionCancellationSource =
+  | 'admin_workspace_deletion'
+  | 'owner_workspace_deletion'
+
+export interface SubscriptionCancellationAttempt {
+  billId: string
+  plan: string
+  /** Status local **antes** da tentativa (`PAID` ou `PENDING`). */
+  status: string
+  interval: string
+  outcome: 'CANCELLED' | 'FAILED'
+  /** Mensagem crua do provedor quando `outcome === 'FAILED'`. */
+  error: string | null
+}
+
+export interface WorkspaceSubscriptionCancellationReport {
+  attempts: SubscriptionCancellationAttempt[]
+  cancelled: SubscriptionCancellationAttempt[]
+  failed: SubscriptionCancellationAttempt[]
+}
+
 export const SubscriptionService = {
   async create(
     actorId: string,
@@ -261,6 +283,108 @@ export const SubscriptionService = {
       default:
         return ok(undefined)
     }
+  },
+
+  /**
+   * Cancela no AbacatePay **todas** as assinaturas cobráveis (`PAID` e
+   * `PENDING`) de um workspace. Usado antes de apagar o workspace (painel
+   * admin e exclusão pelo OWNER) para que nunca sobre cobrança viva sem
+   * workspace do outro lado.
+   *
+   * Nunca lança e nunca "cancela em silêncio": cada assinatura vira uma
+   * tentativa auditada no relatório. Quem chama decide a política sobre
+   * `report.failed` (o padrão do projeto é **barrar** a exclusão).
+   */
+  async cancelWorkspaceSubscriptions(params: {
+    workspaceId: string
+    actorId: string | null
+    source: SubscriptionCancellationSource
+  }): Promise<Result<WorkspaceSubscriptionCancellationReport>> {
+    const { workspaceId, actorId, source } = params
+
+    const found =
+      await SubscriptionRepository.listCancellableByWorkspaceId(workspaceId)
+    if (!found.ok) return found
+
+    const attempts: SubscriptionCancellationAttempt[] = []
+
+    // Sequencial de propósito: são poucas assinaturas por workspace e a
+    // ordem das tentativas precisa bater com a ordem da auditoria.
+    for (const subscription of found.value) {
+      const base = {
+        billId: subscription.billId,
+        plan: String(subscription.plan),
+        status: String(subscription.status),
+        interval: String(subscription.interval),
+      }
+
+      try {
+        await AbacatePayClient.cancelSubscription(subscription.billId)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        logger.error('subscription.cancel_failed', {
+          workspaceId,
+          billId: subscription.billId,
+          plan: subscription.plan,
+          source,
+          message,
+        })
+        auditMutation({
+          entity: 'subscription',
+          action: 'cancel',
+          actorId,
+          targetId: subscription.id,
+          outcome: 'failure',
+          reason: 'SUBSCRIPTION_CANCEL_FAILED',
+          meta: { workspaceId, billId: subscription.billId, source, message },
+        })
+        attempts.push({ ...base, outcome: 'FAILED', error: message })
+        continue
+      }
+
+      // O provedor já cancelou: a partir daqui a cobrança está morta. Uma
+      // falha ao gravar o status local não desfaz isso — só vira log.
+      const updated = await SubscriptionRepository.deactivateByBillId(
+        subscription.billId,
+        'CANCELLED',
+      )
+      if (!updated.ok) {
+        logger.error('subscription.cancel_local_update_failed', {
+          workspaceId,
+          billId: subscription.billId,
+          source,
+          reason: updated.error.code,
+        })
+      }
+
+      auditMutation({
+        entity: 'subscription',
+        action: 'cancel',
+        actorId,
+        targetId: subscription.id,
+        meta: {
+          workspaceId,
+          billId: subscription.billId,
+          plan: subscription.plan,
+          previousStatus: subscription.status,
+          source,
+        },
+      })
+      attempts.push({ ...base, outcome: 'CANCELLED', error: null })
+    }
+
+    if (attempts.length > 0) {
+      await Promise.all([
+        WorkspaceCache.invalidate(workspaceId),
+        WorkspaceFeaturesCache.invalidate(workspaceId),
+      ])
+    }
+
+    return ok({
+      attempts,
+      cancelled: attempts.filter((a) => a.outcome === 'CANCELLED'),
+      failed: attempts.filter((a) => a.outcome === 'FAILED'),
+    })
   },
 
   async getActiveByWorkspace(

@@ -59,6 +59,25 @@ export const SubscriptionRepository = {
     }
   },
 
+  /**
+   * Assinaturas do workspace que ainda custam dinheiro (ou podem passar a
+   * custar): `PAID` e `PENDING`. É a lista que precisa ser cancelada no
+   * provedor antes de apagar o workspace.
+   */
+  async listCancellableByWorkspaceId(
+    workspaceId: string,
+  ): Promise<Result<Subscription[]>> {
+    try {
+      const subscriptions = await prisma.subscription.findMany({
+        where: { workspaceId, status: { in: ['PAID', 'PENDING'] } },
+        orderBy: { createdAt: 'asc' },
+      })
+      return ok(subscriptions)
+    } catch (error) {
+      return err(dbError('Failed to list cancellable subscriptions', error))
+    }
+  },
+
   async updateStatusByBillId(
     billId: string,
     status: SubscriptionStatus,
