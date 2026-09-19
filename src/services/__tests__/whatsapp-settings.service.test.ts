@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWhatsAppSettings } from '@/src/__tests__/factories/whatsapp-settings.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-settings.repository')
@@ -150,5 +150,130 @@ describe('WhatsAppSettingsService', () => {
         defaultHours: 24,
       })
     })
+  })
+})
+
+describe('WhatsAppSettingsService failure paths and alert rule', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  function member(userId: string) {
+    return {
+      ...createFakeMembership({ userId, role: 'ADMIN' }),
+      user: { id: userId, name: userId, email: `${userId}@x.com`, image: null },
+    }
+  }
+
+  it('get() should propagate a lookup failure', async () => {
+    asRole('ADMIN')
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await WhatsAppSettingsService.get('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+
+  it('update() should propagate a lookup failure', async () => {
+    asRole('ADMIN')
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppSettingsService.update('u1', 'ws1', {
+        autoCloseAfterHours: 12,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('update() should propagate a member listing failure', async () => {
+    asRole('ADMIN')
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(ok(row()))
+    mockedMembershipRepo.listWithUserByWorkspace.mockResolvedValue(
+      err(DB_ERROR),
+    )
+
+    expectErr(
+      await WhatsAppSettingsService.update('u1', 'ws1', {
+        sentimentAlertAssignToId: 'sup1',
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('update() should dedupe recipients and set the supervisor when all are members', async () => {
+    asRole('ADMIN')
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(ok(row()))
+    mockedMembershipRepo.listWithUserByWorkspace.mockResolvedValue(
+      ok([member('a1'), member('sup1')]) as never,
+    )
+    mockedSettingsRepo.upsert.mockResolvedValue(
+      ok(row({ sentimentAlertRecipientIds: ['a1'] })),
+    )
+
+    expectOk(
+      await WhatsAppSettingsService.update('u1', 'ws1', {
+        sentimentAlertRecipientIds: ['a1', 'a1'],
+        sentimentAlertAssignToId: 'sup1',
+      }),
+    )
+
+    expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+      'ws1',
+      expect.objectContaining({
+        sentimentAlertRecipientIds: ['a1'],
+        sentimentAlertAssignToId: 'sup1',
+      }),
+    )
+    expect(auditMutation).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'update' }),
+    )
+  })
+
+  it('update() should clear the supervisor when null is sent', async () => {
+    asRole('ADMIN')
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(
+      ok(row({ sentimentAlertAssignToId: 'sup1' })),
+    )
+    mockedSettingsRepo.upsert.mockResolvedValue(ok(row()))
+
+    expectOk(
+      await WhatsAppSettingsService.update('u1', 'ws1', {
+        sentimentAlertAssignToId: null,
+      }),
+    )
+
+    expect(mockedMembershipRepo.listWithUserByWorkspace).not.toHaveBeenCalled()
+    expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+      'ws1',
+      expect.objectContaining({ sentimentAlertAssignToId: null }),
+    )
+  })
+
+  it('update() should propagate a save failure', async () => {
+    asRole('ADMIN')
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(ok(null))
+    mockedSettingsRepo.upsert.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppSettingsService.update('u1', 'ws1', {
+        autoCloseAfterHours: 12,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('listAutoCloseWindows() should propagate a listing failure', async () => {
+    mockedSettingsRepo.listAll.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppSettingsService.listAutoCloseWindows(),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('getEffective() should propagate a lookup failure', async () => {
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppSettingsService.getEffective('ws1'),
+      'DATABASE_ERROR',
+    )
   })
 })
