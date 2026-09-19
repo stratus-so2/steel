@@ -271,3 +271,51 @@ describe('FeatureFlagService', () => {
     })
   })
 })
+
+describe('FeatureFlagService lookup failures', () => {
+  it('hasFeature() should propagate a workspace lookup failure on a cache miss', async () => {
+    mockedWorkspaceRepo.findById.mockResolvedValue(err(databaseError('boom')))
+
+    expectErr(
+      await FeatureFlagService.hasFeature('ws1', 'crm.aiAssistant'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedCache.set).not.toHaveBeenCalled()
+  })
+
+  it('assertFeature() should propagate a lookup failure', async () => {
+    mockedOverrideRepo.listByWorkspace.mockResolvedValue(
+      err(databaseError('boom')),
+    )
+
+    expectErr(await assertFeature('ws1', 'crm.aiAssistant'), 'DATABASE_ERROR')
+  })
+
+  it('listForAdmin() should propagate an override lookup failure', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedOverrideRepo.listByWorkspace.mockResolvedValue(
+      err(databaseError('boom')),
+    )
+
+    expectErr(
+      await FeatureFlagService.listForAdmin(platformAdmin.id, 'ws1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('setOverride() should return NOT_FOUND for an unknown workspace', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedWorkspaceRepo.findById.mockResolvedValue(err(notFound('Workspace')))
+
+    expectErr(
+      await FeatureFlagService.setOverride(platformAdmin.id, 'nope', {
+        key: 'crm.aiAssistant',
+        enabled: true,
+        note: null,
+        expiresAt: null,
+      }),
+      'RESOURCE_NOT_FOUND',
+    )
+    expect(mockedOverrideRepo.upsert).not.toHaveBeenCalled()
+  })
+})
