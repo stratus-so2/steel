@@ -5,11 +5,17 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
 vi.mock('@/src/repositories/workspace-module-access.repository')
 vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/services/whatsapp-dashboard-seed.service')
 vi.mock('@/src/services/crm-pipeline-seed.service')
 
+import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmPipelineSeedService } from '@/src/services/crm-pipeline-seed.service'
@@ -289,5 +295,72 @@ describe('WorkspaceModuleAccessService', () => {
       expect(expectOk(result)).toBe(true)
       expect(mockedUserRepo.findById).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('WorkspaceModuleAccessService failure paths', () => {
+  it('list() should propagate a repository failure', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedRepo.listByWorkspace.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await WorkspaceModuleAccessService.list(platformAdmin.id, 'ws1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it.each([
+    [true, 'grant'],
+    [false, 'revoke'],
+  ])('setEnabled(%s) should audit a failed %s and propagate it', async (enabled, action) => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedRepo.upsert.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await WorkspaceModuleAccessService.setEnabled(
+        platformAdmin.id,
+        'ws1',
+        'CRM',
+        enabled,
+      ),
+      'DATABASE_ERROR',
+    )
+    expect(auditMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action,
+        outcome: 'failure',
+        reason: 'DATABASE_ERROR',
+      }),
+    )
+    expect(mockedPipelineSeedService.seedDefaultPipeline).not.toHaveBeenCalled()
+  })
+
+  it('setEnabled() should log and still grant CRM when the pipeline seed fails', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedRepo.upsert.mockResolvedValue(
+      ok(
+        createFakeWorkspaceModuleAccess({
+          workspaceId: 'ws1',
+          module: 'CRM',
+          enabled: true,
+        }),
+      ),
+    )
+    mockedPipelineSeedService.seedDefaultPipeline.mockResolvedValue(
+      err(databaseError('boom')),
+    )
+
+    expectOk(
+      await WorkspaceModuleAccessService.setEnabled(
+        platformAdmin.id,
+        'ws1',
+        'CRM',
+        true,
+      ),
+    )
+    expect(logger.error).toHaveBeenCalledWith(
+      'workspace_module_access.seed_default_pipeline_failed',
+      expect.objectContaining({ workspaceId: 'ws1' }),
+    )
   })
 })
