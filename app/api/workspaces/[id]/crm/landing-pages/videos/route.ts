@@ -37,6 +37,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   }
 
   const stored = await persistCrmLandingPageVideo({
+    workspaceId: id,
     contentType,
     byteSize: contentLength,
     readBody: async () => Buffer.from(await request.arrayBuffer()),

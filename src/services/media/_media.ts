@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { logger } from '@/lib/axiom/logger'
 import { MINIO_ENDPOINT, MINIO_PUBLIC_URL } from '@/lib/env/_server'
 import { storageError, validationError } from '@/src/errors'
@@ -23,6 +24,19 @@ export function validateImage(
     return err(validationError('Arquivo muito grande. Máximo 5 MB'))
 
   return ok(ext)
+}
+
+/**
+ * Chave de mídia de CRM prefixada pelo workspace. O nome do arquivo é
+ * aleatório (a URL pública é o único ponteiro, guardado no conteúdo da
+ * landing page/proposta), então o prefixo é a única forma de saber a quem o
+ * objeto pertence — é o que permite incluí-lo no backup do workspace e
+ * apagá-lo na exclusão. Objetos gravados antes desta mudança ficaram na raiz
+ * do bucket; veja `collectWorkspaceFileRefs` em
+ * `src/lib/storage/workspace-files.ts` para como eles são reencontrados.
+ */
+export function workspaceMediaKey(workspaceId: string, ext: string): string {
+  return `${workspaceId}/${randomUUID()}.${ext}`
 }
 
 interface PersistInput {

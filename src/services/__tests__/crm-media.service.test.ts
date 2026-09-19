@@ -27,6 +27,7 @@ beforeEach(() => {
 
 function upload(contentType: string, byteSize = 1024) {
   return {
+    workspaceId: 'ws1',
     contentType,
     byteSize,
     readBody: vi.fn(async () => Buffer.from('bytes')),
@@ -52,10 +53,14 @@ describe.each([
 
     const { url } = expectOk(await persist(input))
 
-    expect(url).toMatch(new RegExp(`/${bucket}/[\\w-]+\\.webp$`))
+    expect(url).toMatch(new RegExp(`/${bucket}/ws1/[\\w-]+\\.webp$`))
     expect(s3Bucket).toHaveBeenCalledWith(bucket)
     expect(s3Put).toHaveBeenCalledWith(
-      expect.objectContaining({ bucket, contentType: 'image/webp' }),
+      expect.objectContaining({
+        bucket,
+        contentType: 'image/webp',
+        key: expect.stringMatching(/^ws1\//),
+      }),
     )
   })
 
@@ -96,7 +101,7 @@ describe('persistCrmLandingPageVideo()', () => {
     )
 
     expect(url).toMatch(
-      new RegExp(`/crm-landing-page-videos/[\\w-]+\\.${ext}$`),
+      new RegExp(`/crm-landing-page-videos/ws1/[\\w-]+\\.${ext}$`),
     )
     expect(s3Bucket).toHaveBeenCalledWith('crm-landing-page-videos')
   })

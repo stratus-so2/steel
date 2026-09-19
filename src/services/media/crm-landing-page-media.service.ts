@@ -1,7 +1,6 @@
-import { randomUUID } from 'node:crypto'
 import { validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
-import { persistObject, validateImage } from './_media'
+import { persistObject, validateImage, workspaceMediaKey } from './_media'
 
 const BUCKET = 'crm-landing-page-images'
 const VIDEO_BUCKET = 'crm-landing-page-videos'
@@ -12,6 +11,7 @@ const ALLOWED_VIDEO_TYPES: Record<string, string> = {
 }
 
 export async function persistCrmLandingPageImage(input: {
+  workspaceId: string
   contentType: string
   byteSize: number
   readBody: () => Promise<Buffer>
@@ -21,7 +21,7 @@ export async function persistCrmLandingPageImage(input: {
   const ext = validation.value
 
   const body = await input.readBody()
-  const key = `${randomUUID()}.${ext}`
+  const key = workspaceMediaKey(input.workspaceId, ext)
 
   const stored = await persistObject({
     bucket: BUCKET,
@@ -47,6 +47,7 @@ function validateVideo(contentType: string, byteSize: number): Result<string> {
 }
 
 export async function persistCrmLandingPageVideo(input: {
+  workspaceId: string
   contentType: string
   byteSize: number
   readBody: () => Promise<Buffer>
@@ -56,7 +57,7 @@ export async function persistCrmLandingPageVideo(input: {
   const ext = validation.value
 
   const body = await input.readBody()
-  const key = `${randomUUID()}.${ext}`
+  const key = workspaceMediaKey(input.workspaceId, ext)
 
   const stored = await persistObject({
     bucket: VIDEO_BUCKET,

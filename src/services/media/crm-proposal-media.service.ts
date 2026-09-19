@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto'
 import { ok, type Result } from '@/src/lib/result'
-import { persistObject, validateImage } from './_media'
+import { persistObject, validateImage, workspaceMediaKey } from './_media'
 
 const BUCKET = 'crm-proposal-images'
 
 export async function persistCrmProposalImage(input: {
+  workspaceId: string
   contentType: string
   byteSize: number
   readBody: () => Promise<Buffer>
@@ -14,7 +14,7 @@ export async function persistCrmProposalImage(input: {
   const ext = validation.value
 
   const body = await input.readBody()
-  const key = `${randomUUID()}.${ext}`
+  const key = workspaceMediaKey(input.workspaceId, ext)
 
   const stored = await persistObject({
     bucket: BUCKET,
