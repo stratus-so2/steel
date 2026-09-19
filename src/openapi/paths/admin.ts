@@ -8,6 +8,7 @@ import {
   SetWorkspaceStatusSchema,
   TriggerBackupSchema,
 } from '@/src/schemas/admin.schema'
+import { AnalyticsQuerySchema } from '@/src/schemas/admin-analytics.schema'
 import { CreateChangelogSchema } from '@/src/schemas/changelog.schema'
 import { SetFeatureOverrideSchema } from '@/src/schemas/feature-flag.schema'
 import {
@@ -19,6 +20,7 @@ import { SetWorkspaceModuleAccessSchema } from '@/src/schemas/workspace-module-a
 import { flag, PLATFORM_ADMIN_ERRORS } from '../common'
 import type { ErrorEntry, OpenApiRegistry, RouteConfig } from '../registry'
 import {
+  AdminAnalyticsDTO,
   AdminAuditEntryDTO,
   AdminBackupDTO,
   AdminFeatureDTO,
@@ -93,6 +95,25 @@ const routes: RouteConfig[] = [
     description:
       'Clientes ativos, MRR, churn por mês e uso por módulo/workspace na janela.',
     responses: { 200: { description: 'Métricas.', schema: AdminMetricsDTO } },
+  }),
+  admin({
+    method: 'get',
+    path: '/admin/analytics',
+    tags: ['Admin · Métricas'],
+    summary: 'Analytics de requisições (Axiom) e filas',
+    description:
+      'Uma aba por chamada: `overview` (req/min, erros 4xx/5xx, latência p50/p95/p99, usuários/workspaces únicos), `routes` (rotas normalizadas), `route` (detalhe de uma rota — exige `route`), `errors`, `access` (país/cidade, navegador, dispositivo) e `jobs` (BullMQ). Os dados vêm dos logs de requisição no Axiom (APL) com cache de 45 s; cada painel falha sozinho. Sem `AXIOM_QUERY_TOKEN` responde `unconfigured: true`.',
+    query: AnalyticsQuerySchema,
+    responses: {
+      200: { description: 'Aba do painel.', schema: AdminAnalyticsDTO },
+    },
+    errors: [
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Workspace not found',
+        when: 'Filtro `workspace` inexistente (aba `access`)',
+      },
+    ],
   }),
   admin({
     method: 'get',

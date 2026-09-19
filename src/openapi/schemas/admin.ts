@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { FEATURE_KEYS } from '@/src/config/features'
+import { AnalyticsResultSchema } from '@/src/schemas/admin-analytics.schema'
 import { dto } from '../common'
 
 /** DTOs do painel admin global (`types/admin-*.d.ts`, `types/changelog.d.ts`). */
@@ -360,5 +361,13 @@ export const ChangelogReleaseDraftDTO = dto(
         }),
       })
       .nullable(),
+  }),
+)
+
+export const AdminAnalyticsDTO = dto(
+  'AdminAnalytics',
+  AnalyticsResultSchema.meta({
+    description:
+      'Uma aba do painel Analytics (`view`). Cada painel é `{ ok: true, data }` ou `{ ok: false, error }`; sem `AXIOM_QUERY_TOKEN` vem `unconfigured: true` (exceto `jobs`, que lê o Redis).',
   }),
 )
