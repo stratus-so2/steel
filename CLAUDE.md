@@ -40,7 +40,9 @@ pnpm test:integration     # repositories + cache — hits a real Postgres + Redi
 pnpm test:e2e             # app/**/__tests__/*.e2e.test.ts — runs against `next start` (BASE_URL defaults to :3001)
 pnpm test:component       # app/**/__tests__/*.component.test.tsx — jsdom
 pnpm test:all             # every project, --run
-pnpm test:coverage        # unit + integration with coverage
+pnpm test:coverage        # unit + integration with coverage (95% floor on all 4 metrics)
+pnpm test:ui              # Vitest UI (browser) for unit + component on :51204
+pnpm test:ui:coverage     # Vitest UI with the coverage tab
 
 # single test:
 pnpm vitest --project unit src/services/__tests__/sticky-note.service.test.ts
@@ -53,6 +55,8 @@ Test file location determines which project runs it (see `include` globs in `vit
 - `app/**/__tests__/*.e2e.test.ts` → **e2e**; `app/**/__tests__/*.component.test.tsx` → **component**
 - `src/lib/__tests__/*.smoke.test.ts` → **redis-tls** smoke
 - Integration tests truncate all tables `afterEach` (`src/__tests__/setup.integration.ts`), so they require a disposable dev database.
+
+**Vitest UI** (`@vitest/ui`, pinned to the exact `vitest` version — they must match): filterable test tree, diffs, module graph and the coverage report at `http://localhost:51204/__vitest__/`.
 
 ### Worker (BullMQ background jobs — separate process from Next)
 
