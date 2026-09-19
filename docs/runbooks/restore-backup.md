@@ -14,7 +14,7 @@ que estragou dados, ou perda do servidor.
 | ---- | ------ | --------- | -------- |
 | FULL (`pg_dump --format=custom` do banco todo) | todo dia **03:15** (Brasília), pelo `steel-worker` | MinIO local, bucket `database-backups`, chave `full/<backupId>.dump.enc` | 90 dias (limpeza 03:30) |
 | Cópia **offsite** do FULL | logo após cada FULL (job `copy-to-offsite`) | storage S3 externo (`BACKUP_OFFSITE_BUCKET`), chave `<prefixo>full/<backupId>.dump.enc` | `BACKUP_OFFSITE_RETENTION_DAYS` (padrão 90) |
-| WORKSPACE (JSON de um workspace) | sob demanda (painel `/admin/backups`, `pnpm backup:workspace`) e automaticamente antes de excluir/restaurar um workspace pelo painel | MinIO local, `workspace/<workspaceId>/<backupId>.json.enc` | 90 dias |
+| WORKSPACE (JSON das linhas **+ arquivos do MinIO** de um workspace) | sob demanda (painel `/admin/backups`, `pnpm backup:workspace`) e automaticamente antes de excluir/restaurar um workspace pelo painel | MinIO local: linhas em `workspace/<workspaceId>/<backupId>.json.enc`; arquivos em `workspace/<workspaceId>/<backupId>.files/` (`<n>.enc` + `manifest.json.enc`) | 90 dias (o prune apaga linhas e arquivos juntos) |
 
 - Todo backup é **cifrado pela aplicação** com a chave `CONNECTION_SECRETS`
   do `.env`. **Sem essa chave o backup é ilegível** — guarde uma cópia do
@@ -27,6 +27,10 @@ que estragou dados, ou perda do servidor.
   `pnpm backup:decrypt <arquivo.enc> <saida>` (mesmo `CONNECTION_SECRETS`).
 - A cópia offsite leva os checksums nos metadados do objeto, então dá para
   restaurá-la **mesmo sem a tabela `backups`** (servidor perdido).
+- **Só o FULL vai para o offsite.** Backups de workspace (inclusive os
+  arquivos) ficam apenas no MinIO do servidor, e o FULL é só `pg_dump`: **não
+  existe hoje cópia fora do servidor dos arquivos do MinIO** (mídias,
+  anexos). Perder o volume do MinIO perde os arquivos.
 
 ## Preparação (uma vez por restore)
 
@@ -164,9 +168,37 @@ Restaura só os dados de um workspace (apaga o estado atual dele e recria a
 partir do snapshot, numa transação — se algo falhar, nada muda). Não mexe nos
 outros workspaces. Também desfaz uma [exclusão](./delete-workspace.md).
 
-O backup de workspace é um JSON com todas as tabelas do workspace (inclusive
-as tabelas-filhas, como estágios de pipeline e itens de oportunidade). **Não
-inclui arquivos** do MinIO (mídias, anexos).
+O backup de workspace tem duas partes, ambas cifradas com `CONNECTION_SECRETS`:
+
+- **Linhas:** um JSON com todas as tabelas do workspace (inclusive as
+  tabelas-filhas, como estágios de pipeline e itens de oportunidade).
+- **Arquivos do MinIO** (backups a partir de 19/09/2026): cada objeto
+  copiado e cifrado individualmente, mais um manifesto com bucket, chave,
+  content-type, tamanho e SHA-256. O restore regrava esses arquivos depois
+  das linhas.
+
+| Entra no backup | Como é achado |
+| --------------- | ------------- |
+| mídias do WhatsApp (`whatsapp-media`), documentos de conhecimento da IA (`whatsapp-ai-knowledge`), capas de projeto (`projects-covers`), posts agendados (`crm-scheduled-posts`, `crm-social-publish-tmp`) | prefixo `<workspaceId>/` — completo |
+| imagens/vídeos de landing page e imagens de proposta **enviadas a partir de 19/09/2026** | prefixo `<workspaceId>/` — completo |
+| anexos do assistente de IA do CRM (`crm-ai-attachments`) | pela tabela `crm_ai_attachments` — completo |
+| imagens/vídeos de landing page e imagens de proposta **antigas** (chave na raiz do bucket) | **best-effort:** pela URL citada no conteúdo das seções de landing page, de proposta e de modelo de proposta |
+
+**Fica de fora:** avatar e capa de usuário (`avatars`, `user-covers` — são
+do usuário, não do workspace), imagens do changelog (globais), exportações
+LGPD e os próprios backups. Mídia **antiga** de landing page/proposta que
+nenhuma seção cita mais (seção apagada, proposta excluída) não tem como ser
+atribuída a um workspace e não entra; a referência que aponta para um
+arquivo que já não existe é só contada (`missingLegacyKeys` no log
+`queue.database_backup.workspace_completed`).
+
+O restore **só escreve** as chaves do manifesto: não apaga nada e não mexe
+em arquivos fora do backup (um arquivo enviado depois do backup continua lá).
+Rodar de novo sobrescreve as mesmas chaves com o mesmo conteúdo. Cada
+arquivo é conferido pelo SHA-256 antes de ir para o bucket.
+
+Backups gerados antes de 19/09/2026 não têm a parte de arquivos (no painel,
+a coluna **Arquivos** mostra `—`): restaurá-los traz só as linhas.
 
 > Backups de workspace gerados antes de 18/09/2026 não tinham as
 > tabelas-filhas: restaurar um deles num workspace com oportunidades,
@@ -180,9 +212,13 @@ inclui arquivos** do MinIO (mídias, anexos).
 2. No backup desejado (status **Concluído**), clique em **Restaurar**,
    escreva o motivo e digite o **slug** do workspace.
 3. O worker tira antes um **backup de segurança** do estado atual (se o
-   workspace existe) e então restaura. Acompanhe em “Exclusões e
-   restaurações”; ao concluir aparecem as contagens e o ID do backup de
-   segurança (para desfazer, restaure esse).
+   workspace existe — com arquivos), restaura as linhas e depois os
+   arquivos. Acompanhe em “Exclusões e restaurações”; ao concluir aparecem
+   as contagens e o ID do backup de segurança (para desfazer, restaure esse).
+   Se o passo de arquivos falhar, a operação conclui assim mesmo (as linhas
+   já voltaram) com `filesError` no resultado e no log
+   `queue.admin_operation.workspace_files_restore_failed` — reprocesse só os
+   arquivos pela linha de comando com `--files-only` (abaixo).
 4. Confira no app com um usuário do workspace.
 
 Falhas comuns (a operação mostra o erro; nada foi alterado):
@@ -192,6 +228,7 @@ Falhas comuns (a operação mostra o erro; nada foi alterado):
 | `O slug "x" já é usado por outro workspace` | o workspace foi excluído e o slug reaproveitado | acione o engenheiro (restaurar com outro slug exige ajuste manual do snapshot) |
 | `Não foi possível restaurar: membership (...)` | um membro do backup teve a conta excluída | acione o engenheiro; o restore precisa ignorar esse membro |
 | `Checksum não bate` | arquivo corrompido | use outro backup |
+| `Checksum não bate para <bucket>/<chave>` (em `filesError`) | um arquivo do backup está corrompido; os anteriores já foram regravados | as linhas estão ok; use outro backup com `--files-only` ou acione o engenheiro |
 
 Um workspace restaurado a partir do backup tirado durante a exclusão volta
 **ativo**; se estava suspenso antes, suspenda de novo pelo painel.
@@ -207,9 +244,20 @@ Um workspace restaurado a partir do backup tirado durante a exclusão volta
    ```
    Para um ponto de restauração antes de uma operação arriscada:
    `pnpm backup:workspace <workspaceIdOuSlug>` (ou **Backup agora** no painel).
-2. Restaure: `pnpm restore:workspace <backupId>` (sem backup de segurança —
-   faça um antes, se o workspace existe).
-3. Confira no app com um usuário do workspace.
+2. **Ensaie:** `pnpm restore:workspace <backupId> --dry-run` — não escreve
+   nada; mostra tabelas/linhas e os arquivos por bucket (quantidade e
+   tamanho), quantos são legados achados por referência e se o backup é só
+   de banco.
+3. Restaure: `pnpm restore:workspace <backupId>` (sem backup de segurança —
+   faça um antes, se o workspace existe). Saída esperada:
+   `Workspace "<id>" restaurado em <n>ms (<t> tabelas, <l> linhas, <a> arquivos (<tamanho>)).`
+   - `--skip-files`: só as linhas.
+   - `--files-only`: só os arquivos — para reprocessar um restore cujo passo
+     de arquivos falhou. Pode ser repetido sem efeito colateral.
+   - Rodando fora do container, lembre do `MINIO_ENDPOINT` da
+     [preparação](#preparação-uma-vez-por-restore).
+4. Confira no app com um usuário do workspace (abra uma conversa com mídia,
+   uma landing page com imagem).
 
 Para recuperar um workspace a partir de um backup FULL (não há WORKSPACE),
 restaure o FULL num banco descartável (`--target`) e copie os registros

@@ -177,7 +177,16 @@ produção (e a outro projeto na máquina de desenvolvimento).
   (`BACKUP_OFFSITE_RETENTION_DAYS`, padrão 90). Inerte se não configurado.
 - **Backup por workspace** sob demanda (painel `/admin/backups` ou
   `pnpm backup:workspace`) e automático antes de excluir/restaurar um
-  workspace pelo painel.
+  workspace pelo painel. Leva as linhas (JSON) **e os arquivos do MinIO** do
+  workspace — cada objeto copiado e cifrado individualmente para
+  `database-backups` (memória limitada ao maior arquivo), com manifesto e
+  SHA-256; `backups.file_count`/`file_bytes` registram o volume. O restore
+  regrava só as chaves do manifesto (não apaga nada; idempotente; `--dry-run`
+  no CLI). Quais buckets entram: `src/lib/storage/workspace-files.ts`. Mídias
+  antigas de landing page/proposta (sem o workspace na chave) entram só
+  quando citadas no conteúdo.
+- **Arquivos do MinIO não têm cópia offsite:** o FULL é só `pg_dump` e o
+  offsite copia só o FULL.
 - Restore: [runbook](../runbooks/restore-backup.md).
 
 ## Entrega

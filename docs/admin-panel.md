@@ -72,7 +72,8 @@ editáveis à parte** — o limite vem do plano (`limitOf(plan, 'seats')`).
    `bill_id` se perderia.
 4. Apaga as linhas (uma transação; oportunidades primeiro, o resto por
    cascata) e depois os **arquivos no MinIO** (`src/lib/storage/workspace-files.ts`:
-   buckets com prefixo `<workspaceId>/` + anexos da IA do CRM).
+   buckets com prefixo `<workspaceId>/` — inclusive as mídias de landing
+   page/proposta enviadas a partir de 19/09/2026 — + anexos da IA do CRM).
 5. Registra `workspace.deleted` em `admin_audit_logs` (sem FK: sobrevive ao
    workspace) e no Axiom.
 
@@ -103,31 +104,43 @@ aparece no detalhe do workspace e em `/admin/backups`.
   cancela antes de apagar e, em falha, responde `SUBSCRIPTION_CANCEL_FAILED`
   (502) sem apagar nada. Não tem *force*: o cliente fala com o suporte, que
   usa o override do painel.
-- **Arquivos não entram no backup** do workspace: depois da exclusão, mídias
-  e anexos não voltam com o restore. Imagens de landing pages/propostas usam
-  chave aleatória sem o workspace e não são apagadas (ficam órfãs).
+- **Arquivos entram no backup** do workspace (a partir de 19/09/2026): o
+  backup tirado no passo 2 leva as mídias e anexos, e restaurá-lo traz de
+  volta linhas **e** arquivos. Mídias **antigas** de landing page/proposta
+  (gravadas na raiz do bucket, sem o workspace na chave) entram no backup
+  quando alguma seção as cita, mas **não são apagadas** na exclusão (a
+  varredura depende das linhas, que já foram removidas) — ficam órfãs.
 
 Runbook: [excluir um workspace](./runbooks/delete-workspace.md).
 
 ## Backups pelo painel
 
-- **Listar:** status, tamanho, onde está (MinIO local e/ou offsite — gravado
-  quando o `copy-to-offsite` confirma), origem (painel ou cron/CLI) e se o
-  workspace ainda existe. Aviso quando `BACKUP_OFFSITE_*` não está
-  configurado.
+- **Listar:** status, tamanho, **arquivos** (quantidade e tamanho em claro
+  dos arquivos do MinIO no backup de workspace; `—` em backup anterior à
+  inclusão de arquivos, que é só de banco), onde está (MinIO local e/ou
+  offsite — gravado quando o `copy-to-offsite` confirma), origem (painel ou
+  cron/CLI) e se o workspace ainda existe. Aviso quando `BACKUP_OFFSITE_*`
+  não está configurado.
 - **Fazer backup agora:** completo (`pg_dump`) ou de um workspace. O worker
   processa um por vez.
 - **Baixar:** `POST .../download-link` gera um link assinado (HMAC com
   `BETTER_AUTH_SECRET`, amarrado ao backup **e** ao admin, válido 5 min); o
   app transmite o arquivo do MinIO (que nunca é público). O arquivo vem
   **cifrado**; para abrir: `pnpm backup:decrypt <arquivo.enc> <saida>` com o
-  mesmo `CONNECTION_SECRETS`. Trate a saída como dado pessoal.
+  mesmo `CONNECTION_SECRETS`. Trate a saída como dado pessoal. O download
+  traz só o JSON das linhas; os arquivos do backup de workspace ficam no
+  MinIO sob `workspace/<ws>/<backup>.files/` e voltam pelo restore.
 - **Restaurar um workspace:** só backups `WORKSPACE` concluídos. Digita o
   slug + motivo; enfileira `restore-workspace`, que tira um **backup de
-  segurança** do estado atual (se o workspace existe) e restaura numa única
-  transação (falhou → nada muda). Serve também para desfazer uma exclusão,
-  desde que o slug não tenha sido reaproveitado. Um backup tirado durante a
-  exclusão volta como `ACTIVE`.
+  segurança** do estado atual (se o workspace existe), restaura as linhas
+  numa única transação (falhou → nada muda) e depois regrava os arquivos do
+  manifesto no MinIO (só as chaves do backup; nada é apagado). Falha no
+  passo de arquivos não desfaz as linhas: a operação conclui com
+  `filesError` e os arquivos são reprocessados com
+  `pnpm restore:workspace <id> --files-only`. O diálogo de confirmação diz
+  quantos arquivos serão regravados, ou avisa que o backup é só de banco.
+  Serve também para desfazer uma exclusão, desde que o slug não tenha sido
+  reaproveitado. Um backup tirado durante a exclusão volta como `ACTIVE`.
 - **Restore completo** (banco inteiro) continua só pelo
   [runbook](./runbooks/restore-backup.md): exige parar app e worker.
 
@@ -136,6 +149,16 @@ filhas que só chegam ao workspace por relação (estágios de pipeline, itens d
 oportunidade, destinatários de transmissão...), listadas em
 `src/lib/queue/workspace-snapshot.ts`. Um teste lê o `schema.prisma` e falha
 se um modelo-filho novo ficar de fora.
+
+Os **arquivos** do workspace vêm de `collectWorkspaceFileRefs`
+(`src/lib/storage/workspace-files.ts`): os buckets prefixados por
+`<workspaceId>/` (lista `WORKSPACE_BUCKETS` — bucket novo com dado de
+workspace entra ali, com a flag `public`), os anexos da IA pela linha e,
+best-effort, as mídias antigas de landing page/proposta citadas no conteúdo.
+A cópia/restauração em si está em `src/lib/queue/workspace-file-archive.ts`
+(um objeto por vez, cada um cifrado; manifesto com SHA-256). O que entra,
+o que fica de fora e a limitação das mídias antigas estão no
+[runbook de restore](./runbooks/restore-backup.md#restore-de-um-workspace).
 
 ## Auditoria
 

@@ -4,9 +4,11 @@
 (LGPD) ou o workspace foi criado por engano.
 
 > A exclusão é **definitiva**. O único caminho de volta é restaurar o backup
-> que o próprio processo gera — e ele **não inclui arquivos** (mídias do
-> WhatsApp, anexos, capas). Se o cliente só está inadimplente, **suspenda**
-> em vez de excluir.
+> que o próprio processo gera — ele inclui as linhas **e** os arquivos do
+> MinIO (mídias do WhatsApp, anexos, capas, imagens de landing
+> page/proposta; veja o que fica de fora em
+> [restaurar um backup](./restore-backup.md#restore-de-um-workspace)). Se o
+> cliente só está inadimplente, **suspenda** em vez de excluir.
 
 ## Pelo painel (caminho normal)
 
@@ -48,16 +50,22 @@ estava (backup já concluído é reaproveitado).
 ## Limpeza manual de arquivos
 
 Os arquivos de um workspace ficam no MinIO sob o prefixo `<workspaceId>/`
-nos buckets `projects-covers`, `crm-scheduled-posts`,
-`crm-social-publish-tmp`, `whatsapp-media` e `whatsapp-ai-knowledge`. Pelo
-console do MinIO (`http://127.0.0.1:9003`, via túnel SSH) ou com o `mc`:
+nos buckets `projects-covers`, `crm-landing-page-images`,
+`crm-landing-page-videos`, `crm-proposal-images`, `crm-scheduled-posts`,
+`crm-social-publish-tmp`, `whatsapp-media` e `whatsapp-ai-knowledge` (lista
+em `src/lib/storage/workspace-files.ts`). Pelo console do MinIO
+(`http://127.0.0.1:9003`, via túnel SSH) ou com o `mc`:
 
 ```bash
 docker run --rm --network steel_default --entrypoint sh minio/mc -c \
   'mc alias set s http://steel-minio:9000 "$MINIO_USER" "$MINIO_PASSWORD" && \
-   for b in projects-covers crm-scheduled-posts crm-social-publish-tmp whatsapp-media whatsapp-ai-knowledge; do \
+   for b in projects-covers crm-landing-page-images crm-landing-page-videos crm-proposal-images crm-scheduled-posts crm-social-publish-tmp whatsapp-media whatsapp-ai-knowledge; do \
      mc rm --recursive --force "s/$b/<workspaceId>/"; done'
 ```
+
+Imagens/vídeos de landing page e proposta enviados **antes de 19/09/2026**
+ficam na raiz desses buckets, sem o workspace na chave, e não são apagados
+pela exclusão (ficam órfãos).
 
 (`MINIO_USER`/`MINIO_PASSWORD` do `.env`.) Anexos do assistente de IA
 (`crm-ai-attachments`) usam o ID da conversa, não do workspace — a operação
