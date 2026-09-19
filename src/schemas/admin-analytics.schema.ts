@@ -22,7 +22,11 @@ export type AnalyticsRange = (typeof ANALYTICS_RANGES)[number]
 export const ANALYTICS_STATUS_CLASSES = ['2xx', '3xx', '4xx', '5xx'] as const
 export type AnalyticsStatusClass = (typeof ANALYTICS_STATUS_CLASSES)[number]
 
-export const ANALYTICS_ENVIRONMENTS = ['production', 'development'] as const
+export const ANALYTICS_ENVIRONMENTS = [
+  'production',
+  'development',
+  'test',
+] as const
 export type AnalyticsEnvironment = (typeof ANALYTICS_ENVIRONMENTS)[number]
 
 /** Valor vazio na query string (`?route=`) vale como ausente. */

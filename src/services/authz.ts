@@ -1,5 +1,6 @@
 import type { ModuleKind, Profile, Role, WorkspaceStatus } from '@prisma/client'
 import { forbidden, moduleDisabled, workspaceSuspended } from '../errors'
+import { annotateRequest } from '../lib/analytics/request-context'
 import {
   can,
   type PermissionAction,
@@ -98,6 +99,8 @@ export async function assertMember(
   // Depois da associação: não revela a um não-membro que o workspace existe.
   const active = assertWorkspaceActive(membership.value.workspace?.status)
   if (!active.ok) return active
+  // Workspaces únicos do painel Analytics (no-op fora de uma rota de API).
+  annotateRequest({ workspaceId })
 
   const isPrivileged = isPrivilegedRole(membership.value.role)
   const permissions = resolvePermissions(

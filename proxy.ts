@@ -4,8 +4,9 @@ import {
   type NextFetchEvent,
 } from 'next/server'
 import { logger } from '@/lib/axiom/server'
+import { logRequest } from '@/lib/axiom/request-log'
 import { NODE_ENV } from '@/lib/env/env'
-import { transformMiddlewareRequest } from '@axiomhq/nextjs'
+import { geolocateRequest } from '@/src/lib/analytics/geoip'
 
 const PUBLIC_ROUTES = [
   '/', '/sign-in', '/sign-up', '/forget-password',
@@ -50,10 +51,28 @@ function withSecurityHeaders(
   return response
 }
 
-export function proxy(request: NextRequest, event: NextFetchEvent) {
-  logger.info(...transformMiddlewareRequest(request))
+/**
+ * Page view/requisição vista pelo proxy (fonte `middleware` no Axiom): rota
+ * normalizada, país/cidade (GeoLite2, a partir do X-Forwarded-For) e família
+ * do navegador. O IP e o User-Agent cru não vão para o log (LGPD). Fora do
+ * caminho da resposta (`waitUntil`).
+ */
+async function logProxyRequest(request: NextRequest): Promise<void> {
+  logRequest(
+    logger,
+    {
+      method: request.method,
+      url: request.url,
+      headers: request.headers,
+      geo: await geolocateRequest(request.headers),
+    },
+    'middleware',
+  )
+  await logger.flush()
+}
 
-  event.waitUntil(logger.flush())
+export function proxy(request: NextRequest, event: NextFetchEvent) {
+  event.waitUntil(logProxyRequest(request))
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const requestHeaders = new Headers(request.headers)

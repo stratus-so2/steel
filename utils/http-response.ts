@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ERROR_CODES } from '@/src/errors/codes'
+import { annotateRequest } from '@/src/lib/analytics/request-context'
 import type { AppError } from '@/src/errors/app-error'
 import type { ErrorCode } from '@/src/errors/codes'
 import type { ErrorResponse, SuccessResponse } from '@/types/http-response'
@@ -45,6 +46,10 @@ export function errorResponse(
   message?: string,
   details?: ErrorDetails,
 ): NextResponse<ErrorResponse> {
+  // Erro de domínio no log da requisição (painel Analytics → Erros); a
+  // mensagem é limpa/truncada no log, e é no-op fora de um `withAxiom`.
+  annotateRequest({ errorCode: code, errorMessage: message })
+
   const response: ErrorResponse = {
     success: false,
     statusCode,
