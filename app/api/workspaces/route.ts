@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateWorkspaceSchema } from '@/src/schemas/workspace.schema'
 import { WorkspaceService } from '@/src/services/workspace.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -24,7 +25,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const body = await request.json()
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateWorkspaceSchema.safeParse(body)
 
   if (!parsed.success) {

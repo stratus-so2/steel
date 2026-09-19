@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   createAuthenticatedUser,
+  defaultHeaders,
   deleteJson,
   patchJson,
 } from '@/src/__tests__/helpers/e2e'
+import { BASE_URL } from '@/src/__tests__/setup.e2e'
 import { prisma } from '@/src/lib/prisma'
 
 async function seedStickyFor(userId: string) {
@@ -49,6 +51,21 @@ describe('PATCH /api/sticky-notes/[id]', () => {
     )
 
     expect(res.status).toBe(422)
+  })
+
+  it('should return 422 (not 500) for a malformed JSON body', async () => {
+    const owner = await createAuthenticatedUser()
+    const sticky = await seedStickyFor(owner.id)
+
+    const res = await fetch(`${BASE_URL}/api/sticky-notes/${sticky.id}`, {
+      method: 'PATCH',
+      headers: { ...defaultHeaders, Cookie: owner.cookie },
+      body: '{"color":',
+    })
+
+    expect(res.status).toBe(422)
+    const body = await res.json()
+    expect(body.error.code).toBe('VALIDATION_ERROR')
   })
 
   it('should allow owner to update color', async () => {

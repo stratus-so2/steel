@@ -4,6 +4,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { ReleaseDraftRequestSchema } from '@/src/schemas/release-notes.schema'
 import { ReleaseNotesService } from '@/src/services/release-notes.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -18,7 +19,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limit.ok) return handleError(limit.error)
 
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = ReleaseDraftRequestSchema.safeParse(body)
   if (!parsed.success) {
     return standardError(

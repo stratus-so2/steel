@@ -5,6 +5,7 @@ import { mirrorPreferenceCookies } from '@/src/lib/preference-cookies'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateUserPreferenceSchema } from '@/src/schemas/user-preference.schema'
 import { UserPreferenceService } from '@/src/services/user-preference.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -30,7 +31,9 @@ export const PATCH = withAxiom(async (request: NextRequest) => {
   const limited = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limited.ok) return handleError(limited.error)
 
-  const body = await request.json()
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateUserPreferenceSchema.safeParse(body)
 
   if (!parsed.success) {

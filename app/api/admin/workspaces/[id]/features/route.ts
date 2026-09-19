@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { SetFeatureOverrideSchema } from '@/src/schemas/feature-flag.schema'
 import { FeatureFlagService } from '@/src/services/feature-flag.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -41,10 +42,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id }, body] = await Promise.all([
+  const [{ id }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = SetFeatureOverrideSchema.safeParse(body)
 
   if (!parsed.success) {

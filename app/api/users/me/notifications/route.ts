@@ -4,6 +4,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateNotificationSettingSchema } from '@/src/schemas/notification-settings.schema'
 import { NotificationSettingService } from '@/src/services/notification-setting.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -27,7 +28,9 @@ export const PATCH = withAxiom(async (request: NextRequest) => {
   const limited = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limited.ok) return handleError(limited.error)
 
-  const body = await request.json()
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateNotificationSettingSchema.safeParse(body)
 
   if (!parsed.success) {

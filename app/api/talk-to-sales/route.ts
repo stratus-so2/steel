@@ -4,6 +4,7 @@ import { apiLimiter } from '@/src/lib/rate-limit'
 import { getClientIp, withRateLimit } from '@/src/lib/rate-limit-helpers'
 import { TalkToSalesSchema } from '@/src/schemas/talk-to-sales.schema'
 import { TalkToSalesService } from '@/src/services/talk-to-sales.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -14,7 +15,9 @@ export const POST = withAxiom(
   withRateLimit(
     (request) => ({ limiter: apiLimiter, key: `ip:${getClientIp(request)}` }),
     async (request: NextRequest) => {
-      const body = await request.json().catch(() => ({}))
+      const json = await readJsonBody(request, { allowEmpty: true })
+      if (!json.ok) return handleError(json.error)
+      const body = json.value
       const parsed = TalkToSalesSchema.safeParse(body)
 
       if (!parsed.success) {

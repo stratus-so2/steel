@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { ConfirmedWorkspaceActionSchema } from '@/src/schemas/admin.schema'
 import { AdminBackupService } from '@/src/services/admin-backup.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -26,10 +27,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id }, body] = await Promise.all([
+  const [{ id }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = ConfirmedWorkspaceActionSchema.safeParse(body)
   if (!parsed.success) {
     return standardError(

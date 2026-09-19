@@ -7,6 +7,7 @@ import {
   ListProjectsSchema,
 } from '@/src/schemas/project.schema'
 import { ProjectService } from '@/src/services/project.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -50,7 +51,9 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   if (!limit.ok) return handleError(limit.error)
 
   const { id } = await ctx.params
-  const body = await request.json()
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateProjectSchema.safeParse(body)
 
   if (!parsed.success) {

@@ -8,6 +8,7 @@ import {
   SaveWorkspaceConnectionSchema,
 } from '@/src/schemas/workspace-connection.schema'
 import { WorkspaceConnectionService } from '@/src/services/workspace-connection.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -29,10 +30,12 @@ export const PUT = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, module }, body] = await Promise.all([
+  const [{ id, module }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
 
   const moduleParsed = ModuleKindSchema.safeParse(module)
   if (!moduleParsed.success) {

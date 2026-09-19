@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { AddProjectMemberSchema } from '@/src/schemas/project-member.schema'
 import { ProjectService } from '@/src/services/project.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -40,7 +41,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, slug }, body] = await Promise.all([ctx.params, request.json()])
+  const [{ id, slug }, json] = await Promise.all([
+    ctx.params,
+    readJsonBody(request),
+  ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = AddProjectMemberSchema.safeParse(body)
   if (!parsed.success) {
     return standardError(

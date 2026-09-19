@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateShortLinkSchema } from '@/src/schemas/short-link.schema'
 import { ShortLinkService } from '@/src/services/short-link.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -23,7 +24,9 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   const consent = await requireConsent(auth.value.user.id, 'page:(private)')
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id }, body] = await Promise.all([ctx.params, request.json()])
+  const [{ id }, json] = await Promise.all([ctx.params, readJsonBody(request)])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateShortLinkSchema.safeParse(body)
 
   if (!parsed.success) {

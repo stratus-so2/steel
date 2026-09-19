@@ -4,6 +4,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateChangelogSchema } from '@/src/schemas/changelog.schema'
 import { AdminChangelogService } from '@/src/services/admin-changelog.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -30,7 +31,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limit.ok) return handleError(limit.error)
 
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateChangelogSchema.safeParse(body)
 
   if (!parsed.success) {

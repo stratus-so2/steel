@@ -26,4 +26,14 @@ describe('POST /api/talk-to/sales', () => {
     const res = await post({ ...valid, email: 'nope', teamSize: 'huge' })
     expect(res.status).toBe(422)
   })
+
+  it('should return 422 (not 500) for a malformed JSON body', async () => {
+    const res = await fetch(`${BASE_URL}/api/talk-to-sales`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"name":',
+    })
+    expect(res.status).toBe(422)
+    expect((await res.json()).error.code).toBe('VALIDATION_ERROR')
+  })
 })

@@ -5,6 +5,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { AdminWorkspaceService } from '@/src/services/admin-workspace.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -28,7 +29,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, userId }, body] = await Promise.all([ctx.params, request.json()])
+  const [{ id, userId }, json] = await Promise.all([
+    ctx.params,
+    readJsonBody(request),
+  ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = SetProfileSchema.safeParse(body)
 
   if (!parsed.success) {

@@ -3,6 +3,7 @@ import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { UpdateUserSchema } from '@/src/schemas/user.schema'
 import { UserService } from '@/src/services/user.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -24,7 +25,9 @@ export const PATCH = withAxiom(async (request: NextRequest) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
-  const body = await request.json()
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateUserSchema.safeParse(body)
 
   if (!parsed.success) {

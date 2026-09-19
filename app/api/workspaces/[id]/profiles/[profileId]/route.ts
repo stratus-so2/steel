@@ -4,6 +4,7 @@ import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { UpdateProfileSchema } from '@/src/schemas/profile.schema'
 import { ProfileService } from '@/src/services/profile.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -19,10 +20,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limit.ok) return handleError(limit.error)
 
-  const [{ id, profileId }, body] = await Promise.all([
+  const [{ id, profileId }, json] = await Promise.all([
     ctx.params,
-    request.json(),
+    readJsonBody(request),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = UpdateProfileSchema.safeParse(body)
 
   if (!parsed.success) {

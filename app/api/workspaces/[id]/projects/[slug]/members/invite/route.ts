@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { InviteToProjectSchema } from '@/src/schemas/invitation.schema'
 import { InvitationService } from '@/src/services/invitation.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -44,7 +45,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, slug }, body] = await Promise.all([ctx.params, request.json()])
+  const [{ id, slug }, json] = await Promise.all([
+    ctx.params,
+    readJsonBody(request),
+  ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = InviteToProjectSchema.safeParse(body)
   if (!parsed.success) {
     return standardError(

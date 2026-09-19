@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateSubscriptionSchema } from '@/src/schemas/subscription.schema'
 import { SubscriptionService } from '@/src/services/subscription.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -21,7 +22,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const consent = await requireConsent(auth.value.user.id, 'page:(private)')
   if (!consent.ok) return handleError(consent.error)
 
-  const body = await request.json()
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateSubscriptionSchema.safeParse(body)
 
   if (!parsed.success) {

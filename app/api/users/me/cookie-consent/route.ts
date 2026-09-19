@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { ConsentService } from '@/src/services/consent.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -15,7 +16,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
-  const body = await request.json().catch(() => null)
+  const json = await readJsonBody(request)
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = BodySchema.safeParse(body)
   if (!parsed.success) {
     return standardError(

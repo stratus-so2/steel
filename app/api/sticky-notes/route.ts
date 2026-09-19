@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateStickyNoteSchema } from '@/src/schemas/sticky-note.schema'
 import { StickyNoteService } from '@/src/services/sticky-note.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -34,7 +35,9 @@ export const POST = withAxiom(async (request: NextRequest) => {
   const consent = await requireConsent(auth.value.user.id, 'page:(private)')
   if (!consent.ok) return handleError(consent.error)
 
-  const body = await request.json().catch(() => ({}))
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateStickyNoteSchema.safeParse(body)
 
   if (!parsed.success) {
