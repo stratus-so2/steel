@@ -13,15 +13,22 @@
 1. Entre em `https://<domínio>/admin/workspaces`, abra o workspace e confira
    nome, slug e ID.
 2. Em **Ciclo de vida → Excluir workspace**, escreva o motivo (fica na
-   auditoria) e digite o **slug** exatamente.
+   auditoria) e digite o **slug** exatamente. Deixe **desmarcado** “Seguir
+   mesmo se o cancelamento da assinatura falhar” — ele só serve para a
+   segunda tentativa descrita em [Se falhar](#se-falhar).
 3. Acompanhe o progresso no próprio detalhe (ou em `/admin/backups`):
-   `Na fila do worker` → `Fazendo backup do workspace` → `Apagando dados` →
-   `Apagando arquivos` → `Concluída`. Os membros já ficam bloqueados desde o
+   `Na fila do worker` → `Fazendo backup do workspace` → `Cancelando
+   assinaturas no AbacatePay` → `Apagando dados` → `Apagando arquivos` →
+   `Concluída`. Os membros já ficam bloqueados desde o
    passo 1.
 4. Ao concluir:
    - Anote o **ID do backup** mostrado na operação (retenção de 90 dias).
-   - Se aparecer **“Cancele no AbacatePay”**, cancele essas assinaturas no
-     painel do AbacatePay — o Steel não tem API de cancelamento.
+   - **“Assinaturas canceladas no AbacatePay”** lista o que o Steel
+     cancelou sozinho — não precisa fazer nada.
+   - Se aparecer **“Exclusão forçada: … Cancele à mão”** (só acontece se você
+     marcou a opção de forçar), cancele essas assinaturas (`bill_...`) no
+     painel do AbacatePay **no mesmo dia** — o cliente continua sendo cobrado
+     até isso.
    - Se aparecer **“Arquivos não apagados por completo”**, veja
      [limpeza manual de arquivos](#limpeza-manual-de-arquivos).
 
@@ -30,6 +37,7 @@
 | Passo onde parou | O que aconteceu | O que fazer |
 | ---------------- | --------------- | ----------- |
 | Na fila / backup | nada foi apagado; o workspace voltou ao status anterior | veja o erro na operação e os logs do worker (`queue.admin_operation.workspace_delete_failed`); resolva (MinIO fora? [health check](./health-check.md)) e peça a exclusão de novo |
+| Cancelando assinaturas | o AbacatePay recusou/não respondeu (erro “Exclusão barrada: …” com o `bill_...` e a mensagem do provedor); nada foi apagado, o workspace voltou ao status anterior. As que cancelaram continuam canceladas | veja o [status do componente pagamento](./health-check.md) e tente de novo em alguns minutos. Se a assinatura já não existe/já foi cancelada no painel do AbacatePay, confira lá e peça a exclusão de novo marcando **“Seguir mesmo se o cancelamento da assinatura falhar”** — e cancele à mão o que sobrar listado |
 | Apagando dados | a transação desfez tudo; o workspace voltou ao status anterior | idem; se repetir, acione o engenheiro com o erro |
 | Apagando arquivos | **dados já apagados**; operação `Concluída` com aviso | [limpeza manual de arquivos](#limpeza-manual-de-arquivos) |
 

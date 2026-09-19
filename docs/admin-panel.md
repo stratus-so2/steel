@@ -64,20 +64,45 @@ editáveis à parte** — o limite vem do plano (`limitOf(plan, 'seats')`).
    `database-backup`, com `attempts: 1`.
 2. O worker faz o **backup do workspace** (mesmo passo do job
    `run-workspace-backup`). Só com o backup `COMPLETED` segue.
-3. Apaga as linhas (uma transação; oportunidades primeiro, o resto por
+3. **Cancela as assinaturas** `PAID` e `PENDING` do workspace no AbacatePay
+   (`POST /subscriptions/cancel` com o `bill_id`,
+   `SubscriptionService.cancelWorkspaceSubscriptions`). Cada tentativa gera
+   `auditMutation` (`subscription`/`cancel`, sucesso ou falha). Tem que ser
+   antes do purge: `subscriptions` cai por cascata junto com o workspace e o
+   `bill_id` se perderia.
+4. Apaga as linhas (uma transação; oportunidades primeiro, o resto por
    cascata) e depois os **arquivos no MinIO** (`src/lib/storage/workspace-files.ts`:
    buckets com prefixo `<workspaceId>/` + anexos da IA do CRM).
-4. Registra `workspace.deleted` em `admin_audit_logs` (sem FK: sobrevive ao
+5. Registra `workspace.deleted` em `admin_audit_logs` (sem FK: sobrevive ao
    workspace) e no Axiom.
 
-Falha antes do passo 3 devolve o workspace ao status anterior e nada é
+Falha antes do passo 4 devolve o workspace ao status anterior e nada é
 apagado. Falha ao apagar arquivos não desfaz o banco: fica em
 `filesError` para limpeza manual. O progresso (passo, erro, backup gerado)
 aparece no detalhe do workspace e em `/admin/backups`.
 
-- **Assinaturas:** o cliente AbacatePay não tem API de cancelamento. As
-  assinaturas `PAID` do workspace ficam listadas no resultado da operação
-  (“Cancele no AbacatePay”) — cancele no painel do provedor.
+- **Assinaturas — política:** se o AbacatePay recusar (ou não responder)
+  o cancelamento de **qualquer** assinatura, a exclusão é **barrada**: a
+  operação fica `FAILED` com o erro (“Exclusão barrada: … Nada foi
+  apagado”), o workspace volta ao status anterior e nada é apagado. As que
+  já cancelaram continuam canceladas (não tem volta no provedor). O admin
+  pode repetir o pedido ou marcar **“Seguir mesmo se o cancelamento da
+  assinatura falhar”** (`ignoreSubscriptionCancelFailure: true`): aí a
+  exclusão segue e as assinaturas recusadas ficam em `subscriptionsToCancel`
+  (“Exclusão forçada: … Cancele à mão”, em vermelho no progresso), em
+  `admin_audit_logs` (`subscriptionCancelForced: true`) e no log
+  `queue.admin_operation.subscription_cancel_forced` — o cancelamento no
+  painel do AbacatePay passa a ser manual. As canceladas automaticamente
+  aparecem em `subscriptionsCancelled`.
+- **Rota do provedor:** `POST https://api.abacatepay.com/v2/subscriptions/cancel`
+  ([doc](https://docs.abacatepay.com/pages/subscriptions/cancel)), definida
+  num só lugar em `lib/abacatepay.ts`; `ABACATE_PAY_CANCEL_PATH` sobrescreve o
+  caminho se o provedor mudar. Qualquer resposta não-2xx é falha — nunca
+  vira “cancelado”. A chave precisa da permissão `SUBSCRIPTION:DELETE`.
+- **Exclusão pelo OWNER** (`DELETE /api/workspaces/[id]`, sem UI hoje): também
+  cancela antes de apagar e, em falha, responde `SUBSCRIPTION_CANCEL_FAILED`
+  (502) sem apagar nada. Não tem *force*: o cliente fala com o suporte, que
+  usa o override do painel.
 - **Arquivos não entram no backup** do workspace: depois da exclusão, mídias
   e anexos não voltam com o restore. Imagens de landing pages/propostas usam
   chave aleatória sem o workspace e não são apagadas (ficam órfãs).
@@ -127,7 +152,7 @@ que aparece em “Ações recentes” e no histórico do workspace.
 | `GET /api/admin/overview` | dados da visão geral |
 | `PATCH /api/admin/workspaces/[id]/status` | `{ action: 'suspend' \| 'reactivate', reason }` |
 | `PATCH /api/admin/workspaces/[id]/plan` | `{ plan, reason }` |
-| `POST /api/admin/workspaces/[id]/deletion` | `{ confirmSlug, reason }` → 202 + operação |
+| `POST /api/admin/workspaces/[id]/deletion` | `{ confirmSlug, reason, ignoreSubscriptionCancelFailure? }` → 202 + operação |
 | `GET /api/admin/workspaces/[id]/audit` | histórico do admin no workspace |
 | `GET /api/admin/operations[?workspaceId=]`, `GET /api/admin/operations/[id]` | progresso de exclusões/restaurações |
 | `GET /api/admin/backups[?scope=&workspaceId=&limit=]` | lista + `offsiteConfigured` |
@@ -139,4 +164,5 @@ que aparece em “Ações recentes” e no histórico do workspace.
 Erros específicos: `WORKSPACE_SUSPENDED` (403), `WORKSPACE_STATUS_CONFLICT`
 (409), `WORKSPACE_OPERATION_IN_PROGRESS` (409),
 `WORKSPACE_CONFIRMATION_MISMATCH` (422), `BACKUP_NOT_FOUND` (404),
-`BACKUP_NOT_RESTORABLE` (409), `BACKUP_DOWNLOAD_LINK_INVALID` (403).
+`BACKUP_NOT_RESTORABLE` (409), `BACKUP_DOWNLOAD_LINK_INVALID` (403),
+`SUBSCRIPTION_CANCEL_FAILED` (502, exclusão pelo OWNER).
