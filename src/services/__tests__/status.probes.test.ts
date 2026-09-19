@@ -158,3 +158,63 @@ describe('runProbesForTier()', () => {
     expect(result.payment?.error).toContain('AbacatePay HTTP 502')
   })
 })
+
+describe('probeApp() with an app URL (worker collection)', () => {
+  it('should GET /api/status once, trimming a trailing slash', async () => {
+    fetchSpy.mockResolvedValue(new Response('{}', { status: 200 }))
+
+    const result = await probeApp({ appUrl: 'http://app.internal:3000/' })
+
+    expect(result.status).toBe('OPERATIONAL')
+    expect(result.error).toBeNull()
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'http://app.internal:3000/api/status',
+      expect.objectContaining({ method: 'GET', signal: expect.any(Object) }),
+    )
+  })
+
+  it('should treat a 4xx answer as the server being up', async () => {
+    fetchSpy.mockResolvedValue(new Response('', { status: 404 }))
+
+    expect(
+      (await probeApp({ appUrl: 'http://app.internal:3000' })).status,
+    ).toBe('OPERATIONAL')
+  })
+
+  it('should report a major outage on a 5xx answer', async () => {
+    fetchSpy.mockResolvedValue(new Response('', { status: 503 }))
+
+    const result = await probeApp({ appUrl: 'http://app.internal:3000' })
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'MAJOR_OUTAGE',
+        error: 'App HTTP 503',
+      }),
+    )
+  })
+
+  it('should abort the request after the probe timeout', async () => {
+    vi.useFakeTimers()
+    fetchSpy.mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(new Error('aborted')),
+          )
+        }),
+    )
+
+    try {
+      const pending = probeApp({ appUrl: 'http://app.internal:3000' })
+      await vi.advanceTimersByTimeAsync(5_000)
+      const result = await pending
+
+      expect(result).toEqual(
+        expect.objectContaining({ status: 'MAJOR_OUTAGE', error: 'aborted' }),
+      )
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

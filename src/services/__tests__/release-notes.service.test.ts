@@ -122,3 +122,37 @@ describe('ReleaseNotesService.draft()', () => {
     expect(error.message).toMatch(/Nenhuma release/)
   })
 })
+
+describe('ReleaseNotesService.draft() GitHub failure mapping', () => {
+  beforeEach(() => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+  })
+
+  it.each([
+    401, 403,
+  ])('should explain a refused token for HTTP %i', async (status) => {
+    mockedLatest.mockRejectedValue(
+      new GithubReleasesError(`GitHub API ${status}`, status),
+    )
+
+    const error = expectErr(
+      await ReleaseNotesService.draft(platformAdmin.id, { source: 'github' }),
+      'RELEASE_NOTES_UNAVAILABLE',
+    )
+    expect(error.message).toMatch(/GitHub recusou o acesso/)
+  })
+
+  it.each([
+    ['a server error', new GithubReleasesError('GitHub API 502', 502)],
+    ['a network error', new Error('fetch failed')],
+    ['a non-Error rejection', 'socket closed'],
+  ])('should fall back to the generic message for %s', async (_label, cause) => {
+    mockedLatest.mockRejectedValue(cause)
+
+    const error = expectErr(
+      await ReleaseNotesService.draft(platformAdmin.id, { source: 'github' }),
+      'RELEASE_NOTES_UNAVAILABLE',
+    )
+    expect(error.message).not.toMatch(/Nenhuma release|recusou/)
+  })
+})
