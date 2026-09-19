@@ -158,3 +158,60 @@ describe('WhatsAppDashboardSeedService.seedDefaults()', () => {
     expect(mockedReportRepo.create).not.toHaveBeenCalled()
   })
 })
+
+describe('WhatsAppDashboardSeedService.seedDefaults() failure paths', () => {
+  const seed = () =>
+    WhatsAppDashboardSeedService.seedDefaults(WORKSPACE_ID, ACTOR_ID)
+
+  it('propagates a failure listing existing dashboards', async () => {
+    stubEmptyState()
+    mockedDashboardRepo.listByWorkspace.mockResolvedValue(
+      err(databaseError('down')),
+    )
+
+    expectErr(await seed(), 'DATABASE_ERROR')
+    expect(mockedDashboardRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('propagates a failure creating the second dashboard', async () => {
+    stubEmptyState()
+    mockedDashboardRepo.create
+      .mockImplementationOnce(async (data) =>
+        ok(createFakeCrmDashboard({ title: data.title })),
+      )
+      .mockResolvedValueOnce(err(databaseError('down')))
+
+    expectErr(await seed(), 'DATABASE_ERROR')
+    expect(mockedReportRepo.listByWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('propagates a failure listing existing reports', async () => {
+    stubEmptyState()
+    mockedReportRepo.listByWorkspace.mockResolvedValue(
+      err(databaseError('down')),
+    )
+
+    expectErr(await seed(), 'DATABASE_ERROR')
+    expect(mockedReportRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('propagates a failure creating the first report', async () => {
+    stubEmptyState()
+    mockedReportRepo.create.mockResolvedValueOnce(err(databaseError('down')))
+
+    expectErr(await seed(), 'DATABASE_ERROR')
+    expect(mockedReportRepo.create).toHaveBeenCalledTimes(1)
+  })
+
+  it('propagates a failure creating the second report', async () => {
+    stubEmptyState()
+    mockedReportRepo.create
+      .mockImplementationOnce(async (data) =>
+        ok(createFakeCrmReport({ name: data.name })),
+      )
+      .mockResolvedValueOnce(err(databaseError('down')))
+
+    expectErr(await seed(), 'DATABASE_ERROR')
+    expect(mockedReportRepo.create).toHaveBeenCalledTimes(2)
+  })
+})
