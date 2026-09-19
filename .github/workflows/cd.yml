@@ -227,8 +227,15 @@ jobs:
       - name: Decrypt homologação secrets
         run: |
           sops --decrypt secrets/homologacao.enc.env > "${DEPLOY_DIR}/.env"
+          # Token de consulta do Axiom (painel /admin/analytics). Fica como
+          # secret do GitHub em vez de no arquivo SOPS porque a chave privada
+          # do age só existe aqui no CI; vazio = painel mostra "configurar".
+          if [ -n "${AXIOM_QUERY_TOKEN}" ]; then
+            printf 'AXIOM_QUERY_TOKEN=%s\n' "${AXIOM_QUERY_TOKEN}" >> "${DEPLOY_DIR}/.env"
+          fi
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+          AXIOM_QUERY_TOKEN: ${{ secrets.AXIOM_QUERY_TOKEN }}
 
       - name: Deploy versioned image
         env:
