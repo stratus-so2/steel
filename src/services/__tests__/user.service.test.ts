@@ -9,6 +9,9 @@ import { err, ok } from '@/src/lib/result'
 import type { UserWithMemberships } from '@/src/repositories/user.repository'
 import { UserService } from '@/src/services/user.service'
 
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
 vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/cache/user.cache')
 vi.mock('@/src/lib/queue/account-lifecycle', () => ({
@@ -28,6 +31,7 @@ vi.mock('@/src/lib/mail/user/send-delete-account', () => ({
   sendDeleteAccountEmail: vi.fn(),
 }))
 
+import { logger } from '@/lib/axiom/logger'
 import { PRIVACY_VERSION, TERMS_VERSION } from '@/lib/legal/versions'
 import { UserCache } from '@/src/cache/user.cache'
 import { rateLimited } from '@/src/errors/app-error'
@@ -715,6 +719,133 @@ describe('UserService', () => {
       })
 
       expectErr(result, 'DATABASE_ERROR')
+    })
+  })
+})
+
+describe('UserService edge cases', () => {
+  it('saveOnboardingProfile() should propagate a persistence failure without touching the cache', async () => {
+    mockedUser.saveProfile.mockResolvedValue(err(databaseError()))
+
+    expectErr(
+      await UserService.saveOnboardingProfile('user-1', { name: 'Ana' }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedUserCache.invalidate).not.toHaveBeenCalled()
+  })
+
+  describe('deleteAccount() with non-Error failures', () => {
+    beforeEach(() => {
+      const user = createFakeUser({ id: 'user-1' })
+      mockedUser.findById.mockResolvedValue(ok(user))
+      mockedUser.countBlockingSoleOwnerWorkspaces.mockResolvedValue(ok(0))
+      mockedUser.scheduleDeletion.mockImplementation(async (_id, at) =>
+        ok({ ...user, deletionScheduledAt: at }),
+      )
+      mockedUser.clearDeletionSchedule.mockResolvedValue(ok(user))
+      mockedUser.deleteAllSessions.mockResolvedValue(ok(undefined))
+      mockedUserCache.invalidate.mockResolvedValue(undefined)
+      mockedScheduleDeletion.mockResolvedValue(undefined)
+      mockedSendEmail.mockResolvedValue({ id: 'email-id' })
+    })
+
+    it('should revert the schedule when the queue rejects with a non-Error', async () => {
+      mockedScheduleDeletion.mockRejectedValueOnce('redis down')
+
+      expectErr(await UserService.deleteAccount('user-1'), 'DATABASE_ERROR')
+      expect(logger.error).toHaveBeenCalledWith(
+        'user.delete_account.enqueue_failed',
+        expect.objectContaining({ message: 'redis down' }),
+      )
+      expect(mockedUser.clearDeletionSchedule).toHaveBeenCalledWith('user-1')
+    })
+
+    it('should still schedule the deletion when revoking sessions fails', async () => {
+      mockedUser.deleteAllSessions.mockResolvedValue(err(databaseError()))
+
+      expectOk(await UserService.deleteAccount('user-1'))
+      expect(logger.warn).toHaveBeenCalledWith(
+        'user.delete_account.sessions_cleanup_failed',
+        expect.objectContaining({ reason: 'DATABASE_ERROR' }),
+      )
+      expect(mockedSendEmail).toHaveBeenCalled()
+    })
+
+    it('should log a non-Error e-mail failure and still succeed', async () => {
+      mockedSendEmail.mockRejectedValue('smtp timeout')
+
+      expectOk(await UserService.deleteAccount('user-1'))
+      expect(logger.warn).toHaveBeenCalledWith(
+        'user.delete_account.email_failed',
+        expect.objectContaining({ message: 'smtp timeout' }),
+      )
+    })
+  })
+
+  it('requestExport() should report a non-Error enqueue failure', async () => {
+    mockedUser.findById.mockResolvedValue(ok(createFakeUser({ id: 'user-1' })))
+    mockedConsume.mockResolvedValue(ok(undefined))
+    mockedEnqueueExport.mockRejectedValueOnce('queue closed')
+
+    expectErr(await UserService.requestExport('user-1'), 'DATABASE_ERROR')
+    expect(logger.error).toHaveBeenCalledWith(
+      'user.export.enqueue_failed',
+      expect.objectContaining({ message: 'queue closed' }),
+    )
+  })
+
+  describe('goBackOnboardingStep() failures', () => {
+    it('should propagate a user lookup failure', async () => {
+      mockedUser.findById.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await UserService.goBackOnboardingStep('user1'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should be a no-op once onboarding is finished', async () => {
+      mockedUser.findById.mockResolvedValue(
+        ok(createFakeUser({ onboardingStep: null })),
+      )
+
+      expectOk(await UserService.goBackOnboardingStep('user1'))
+      expect(mockedUser.updateOnboardingStep).not.toHaveBeenCalled()
+    })
+
+    it('should propagate the step update failure', async () => {
+      mockedUser.findById.mockResolvedValue(
+        ok(createFakeUser({ onboardingStep: 'WORKSPACE' })),
+      )
+      mockedUser.updateOnboardingStep.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await UserService.goBackOnboardingStep('user1'),
+        'DATABASE_ERROR',
+      )
+      expect(mockedUserCache.invalidate).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('getOnboardingProfile() failures', () => {
+    it('should propagate a user lookup failure', async () => {
+      mockedUser.findById.mockResolvedValue(err(databaseError()))
+      mockedUser.hasCredentialAccount.mockResolvedValue(ok(true))
+
+      expectErr(
+        await UserService.getOnboardingProfile('user1'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should propagate a credential lookup failure', async () => {
+      mockedUser.findById.mockResolvedValue(ok(createFakeUser()))
+      mockedUser.hasCredentialAccount.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await UserService.getOnboardingProfile('user1'),
+        'DATABASE_ERROR',
+      )
     })
   })
 })
