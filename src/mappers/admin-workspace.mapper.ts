@@ -98,6 +98,13 @@ export function toAdminBackupDTO(
       ? existingWorkspaceIds.has(backup.workspaceId)
       : false,
     sizeBytes: backup.sizeBytes,
+    files:
+      backup.filesKey === null
+        ? null
+        : {
+            count: backup.fileCount ?? 0,
+            bytes: Number(backup.fileBytes ?? 0),
+          },
     errorMessage: backup.errorMessage,
     locations: {
       local: backup.status === 'COMPLETED' && backup.storageKey !== null,

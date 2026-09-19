@@ -26,6 +26,7 @@ function backup(overrides: Partial<AdminBackupDTO> = {}): AdminBackupDTO {
     workspaceSlug: 'acme',
     workspaceExists: true,
     sizeBytes: 2048,
+    files: { count: 3, bytes: 1024 },
     errorMessage: null,
     locations: { local: true, offsite: false },
     offsiteCopiedAt: null,
@@ -70,6 +71,9 @@ describe('<AdminBackupsPanel />', () => {
     expect(screen.getByText('excluído')).toBeTruthy()
     expect(screen.getByText('Banco inteiro')).toBeTruthy()
     expect(screen.getAllByText('2 KB')).toHaveLength(3)
+    // Arquivos: contagem + tamanho por backup de workspace; FULL fica com "—".
+    expect(screen.getAllByText('3')).toHaveLength(2)
+    expect(screen.getAllByText('· 1 KB')).toHaveLength(2)
     expect(screen.getByText('offsite ativo')).toBeTruthy()
     // Backup completo não tem botão de restaurar.
     expect(screen.queryByLabelText('Restaurar backup b_3')).toBeNull()
@@ -126,6 +130,41 @@ describe('<AdminBackupsPanel />', () => {
       reason: 'dados apagados por engano',
       confirmSlug: 'acme',
     })
+  })
+
+  it('warns that a pre-files backup does not bring media back', async () => {
+    mockFetch([
+      {
+        match: '/api/admin/backups',
+        data: {
+          offsiteConfigured: true,
+          backups: [backup({ files: null })],
+        },
+      },
+    ])
+    renderWithQuery(<AdminBackupsPanel workspaces={[]} />)
+
+    fireEvent.click(await screen.findByLabelText('Restaurar backup b_1'))
+
+    await screen.findByText(/anterior à inclusão de arquivos/)
+  })
+
+  it('announces how many files the restore will rewrite', async () => {
+    mockFetch([
+      {
+        match: '/api/admin/backups',
+        data: {
+          offsiteConfigured: true,
+          backups: [backup({ files: { count: 12, bytes: 3145728 } })],
+        },
+      },
+    ])
+    renderWithQuery(<AdminBackupsPanel workspaces={[]} />)
+
+    fireEvent.click(await screen.findByLabelText('Restaurar backup b_1'))
+
+    await screen.findByText('12 arquivo(s)')
+    expect(screen.getAllByText(/3 MB/).length).toBeGreaterThan(0)
   })
 })
 

@@ -70,6 +70,8 @@ export interface AdminBackupDTO {
   /** `false` quando o workspace do backup não existe mais. */
   workspaceExists: boolean
   sizeBytes: number | null
+  /** Arquivos do MinIO no backup; `null` em backup só de banco. */
+  files: { count: number; bytes: number } | null
   errorMessage: string | null
   /** Onde o arquivo está: MinIO local e/ou cópia offsite. */
   locations: { local: boolean; offsite: boolean }

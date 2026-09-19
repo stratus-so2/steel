@@ -147,6 +147,31 @@ describe('toAdminBackupDTO()', () => {
       triggeredBy: 'system',
     })
   })
+
+  it('exposes the archived file count and bytes as numbers', () => {
+    expect(toAdminBackupDTO(backup, new Set(['ws1'])).files).toEqual({
+      count: 4,
+      bytes: 4096,
+    })
+  })
+
+  it('reports null files for a backup taken before files were included', () => {
+    expect(
+      toAdminBackupDTO(
+        { ...backup, filesKey: null, fileCount: null, fileBytes: null },
+        new Set(['ws1']),
+      ).files,
+    ).toBeNull()
+  })
+
+  it('defaults a manifest with unknown counters to zero', () => {
+    expect(
+      toAdminBackupDTO(
+        { ...backup, fileCount: null, fileBytes: null },
+        new Set(['ws1']),
+      ).files,
+    ).toEqual({ count: 0, bytes: 0 })
+  })
 })
 
 describe('toAdminAuditEntryDTO()', () => {

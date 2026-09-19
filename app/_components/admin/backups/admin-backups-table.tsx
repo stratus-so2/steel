@@ -46,6 +46,37 @@ function Locations({ backup }: { backup: AdminBackupDTO }) {
   )
 }
 
+/**
+ * Arquivos do MinIO que vieram no backup. `—` distingue "backup só de banco"
+ * (gerado antes de 19/09/2026) de "backup com arquivos, mas nenhum arquivo".
+ */
+function FilesCell({ backup }: { backup: AdminBackupDTO }) {
+  if (backup.scope === 'FULL') {
+    return <span className='text-muted-foreground'>—</span>
+  }
+  if (!backup.files) {
+    return (
+      <Tooltip>
+        <TooltipTrigger render={<span className='text-muted-foreground' />}>
+          —
+        </TooltipTrigger>
+        <TooltipContent>
+          Backup anterior à inclusão de arquivos: só as linhas do banco.
+        </TooltipContent>
+      </Tooltip>
+    )
+  }
+  return (
+    <span className='tabular-nums'>
+      {backup.files.count.toLocaleString('pt-BR')}
+      <span className='text-muted-foreground'>
+        {' · '}
+        {formatBytes(backup.files.bytes)}
+      </span>
+    </span>
+  )
+}
+
 function WorkspaceCell({ backup }: { backup: AdminBackupDTO }) {
   if (backup.scope === 'FULL') {
     return <span className='text-muted-foreground'>Banco inteiro</span>
@@ -104,6 +135,7 @@ export function AdminBackupsTable({
             {showWorkspace && <TableHead>Escopo</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead className='text-right'>Tamanho</TableHead>
+            <TableHead className='text-right'>Arquivos</TableHead>
             <TableHead>Local</TableHead>
             <TableHead>Origem</TableHead>
             <TableHead>ID</TableHead>
@@ -142,6 +174,9 @@ export function AdminBackupsTable({
                 </TableCell>
                 <TableCell className='text-right font-mono tabular-nums'>
                   {formatBytes(backup.sizeBytes)}
+                </TableCell>
+                <TableCell className='text-right font-mono'>
+                  <FilesCell backup={backup} />
                 </TableCell>
                 <TableCell>
                   <Locations backup={backup} />
@@ -201,10 +236,21 @@ export function AdminBackupsTable({
                 pelo estado de {formatDateTime(restoring.startedAt)}. Antes, o
                 worker tira um backup de segurança do estado atual.
               </p>
-              <p>
-                Arquivos (mídias, anexos) não fazem parte do backup e não são
-                restaurados.
-              </p>
+              {restoring.files ? (
+                <p>
+                  Também regrava no MinIO os{' '}
+                  <strong>
+                    {restoring.files.count.toLocaleString('pt-BR')} arquivo(s)
+                  </strong>{' '}
+                  ({formatBytes(restoring.files.bytes)}) do backup. Objetos fora
+                  do backup não são apagados.
+                </p>
+              ) : (
+                <p>
+                  Este backup é anterior à inclusão de arquivos: mídias e anexos
+                  não são restaurados.
+                </p>
+              )}
             </div>
           }
           onConfirm={async (values) => {
