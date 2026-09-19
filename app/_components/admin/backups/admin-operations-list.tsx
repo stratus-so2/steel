@@ -20,7 +20,7 @@ const KIND_LABEL: Record<AdminOperationDTO['kind'], string> = {
 }
 
 const DELETE_STEPS = ['backup', 'purge_database', 'purge_files', 'done']
-const RESTORE_STEPS = ['safety_backup', 'restore', 'done']
+const RESTORE_STEPS = ['safety_backup', 'restore', 'restore_files', 'done']
 
 /** Barra de passos: concluídos, atual (pulsa) e pendentes. */
 function StepBar({ operation }: { operation: AdminOperationDTO }) {
@@ -95,7 +95,10 @@ export function OperationRow({ operation }: { operation: AdminOperationDTO }) {
       )}
       {operation.filesError && (
         <p className='text-amber-700 text-xs dark:text-amber-400'>
-          Arquivos não apagados por completo: {operation.filesError}
+          {operation.kind === 'WORKSPACE_DELETE'
+            ? 'Arquivos não apagados por completo'
+            : 'Arquivos não restaurados (dados ok; rode pnpm restore:workspace --files-only)'}
+          : {operation.filesError}
         </p>
       )}
       {operation.subscriptionsToCancel.length > 0 && (

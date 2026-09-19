@@ -224,6 +224,30 @@ describe('<AdminOperationsList />', () => {
     ).toBeTruthy()
   })
 
+  it('tells a failed file step of a delete apart from one of a restore', async () => {
+    mockFetch([
+      {
+        match: '/api/admin/operations',
+        data: [
+          operation({ filesError: 'purge broke' }),
+          operation({
+            id: 'op_2',
+            kind: 'WORKSPACE_RESTORE',
+            step: 'done',
+            filesError: 'minio down',
+          }),
+        ],
+      },
+    ])
+    renderWithQuery(<AdminOperationsList />)
+
+    await screen.findByText(/Arquivos não apagados por completo/)
+    expect(screen.getByText(/purge broke/)).toBeTruthy()
+    expect(screen.getByText(/Arquivos não restaurados/)).toBeTruthy()
+    expect(screen.getByText(/--files-only/)).toBeTruthy()
+    expect(screen.getByText(/minio down/)).toBeTruthy()
+  })
+
   it('renders nothing when empty and hideWhenEmpty is set', async () => {
     const spy = mockFetch([{ match: '/api/admin/operations', data: [] }])
     const { container } = renderWithQuery(

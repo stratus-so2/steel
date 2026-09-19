@@ -50,5 +50,6 @@ export const OPERATION_STEP_LABEL: Record<string, string> = {
   purge_files: 'Apagando arquivos',
   safety_backup: 'Backup de segurança do estado atual',
   restore: 'Restaurando dados',
+  restore_files: 'Restaurando arquivos',
   done: 'Concluída',
 }
