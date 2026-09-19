@@ -10,8 +10,16 @@ vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/repositories/whatsapp-message.repository')
 vi.mock('@/src/services/ai-usage.service')
 vi.mock('@/src/services/whatsapp-sentiment-alert.service')
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+}))
 
-import { aiQuotaExceeded, databaseError } from '@/src/errors'
+import { logger } from '@/lib/axiom/logger'
+import {
+  aiProviderUnavailable,
+  aiQuotaExceeded,
+  databaseError,
+} from '@/src/errors'
 import type { AiChatResponse, AiProvider } from '@/src/lib/ai/types'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
@@ -218,6 +226,133 @@ describe('WhatsAppSentimentService.analyzeMessage()', () => {
     expectErr(
       await WhatsAppSentimentService.analyzeMessage('m1'),
       'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('WhatsAppSentimentService.analyzeMessage() — failure paths', () => {
+  function arrangeClassified() {
+    arrangeMessage()
+    mockedAiUsage.prepare.mockResolvedValue(
+      ok(
+        preparedCall(
+          vi.fn(async () => response('{"sentiment":"POSITIVE","score":0.6}')),
+        ),
+      ),
+    )
+    mockedMessageRepo.update.mockResolvedValue(ok(createFakeWhatsAppMessage()))
+    mockedMessageRepo.listRecentSentimentScores.mockResolvedValue(ok([0.6]))
+    mockedConversationRepo.update.mockResolvedValue(
+      ok(createFakeWhatsAppConversation()),
+    )
+    mockedAlert.evaluate.mockResolvedValue(
+      ok({ alerted: false, reason: 'above_threshold' }),
+    )
+  }
+
+  it('should propagate an AI config lookup failure', async () => {
+    arrangeMessage()
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(
+      err(databaseError('down')),
+    )
+
+    expectErr(
+      await WhatsAppSentimentService.analyzeMessage('m1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it.each([
+    [aiProviderUnavailable(), 'ai_provider_unavailable'],
+    [databaseError('down'), 'ai_prepare_failed'],
+  ])('should skip with the matching reason when preparation fails (%#)', async (error, reason) => {
+    arrangeMessage()
+    mockedAiUsage.prepare.mockResolvedValue(err(error))
+
+    expect(
+      expectOk(await WhatsAppSentimentService.analyzeMessage('m1')),
+    ).toEqual({ status: 'skipped', reason })
+  })
+
+  it('should stringify a non-Error provider failure', async () => {
+    arrangeMessage()
+    mockedAiUsage.prepare.mockResolvedValue(
+      ok(
+        preparedCall(
+          vi.fn(async () => {
+            throw 'overloaded'
+          }),
+        ),
+      ),
+    )
+
+    expect(
+      expectOk(await WhatsAppSentimentService.analyzeMessage('m1')),
+    ).toEqual(expect.objectContaining({ detail: 'overloaded' }))
+  })
+
+  it('should propagate a failure persisting the classification', async () => {
+    arrangeClassified()
+    mockedMessageRepo.update.mockResolvedValue(err(databaseError('down')))
+
+    expectErr(
+      await WhatsAppSentimentService.analyzeMessage('m1'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedMessageRepo.listRecentSentimentScores).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a failure reading the recent scores', async () => {
+    arrangeClassified()
+    mockedMessageRepo.listRecentSentimentScores.mockResolvedValue(
+      err(databaseError('down')),
+    )
+
+    expectErr(
+      await WhatsAppSentimentService.analyzeMessage('m1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should report a null average when no scored messages remain', async () => {
+    arrangeClassified()
+    mockedMessageRepo.listRecentSentimentScores.mockResolvedValue(ok([]))
+
+    const outcome = expectOk(
+      await WhatsAppSentimentService.analyzeMessage('m1'),
+    )
+
+    expect(outcome).toEqual(
+      expect.objectContaining({ avgSentimentScore: null }),
+    )
+    expect(mockedConversationRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a failure storing the conversation average', async () => {
+    arrangeClassified()
+    mockedConversationRepo.update.mockResolvedValue(err(databaseError('down')))
+
+    expectErr(
+      await WhatsAppSentimentService.analyzeMessage('m1'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedAlert.evaluate).not.toHaveBeenCalled()
+  })
+
+  it('should keep the classification when the alert evaluation fails', async () => {
+    arrangeClassified()
+    mockedAlert.evaluate.mockResolvedValue(err(databaseError('down')))
+
+    const outcome = expectOk(
+      await WhatsAppSentimentService.analyzeMessage('m1'),
+    )
+
+    expect(outcome).toEqual(
+      expect.objectContaining({ status: 'classified', alert: null }),
+    )
+    expect(logger.error).toHaveBeenCalledWith(
+      'whatsapp.sentiment_alert.failed',
+      expect.objectContaining({ reason: 'DATABASE_ERROR' }),
     )
   })
 })
