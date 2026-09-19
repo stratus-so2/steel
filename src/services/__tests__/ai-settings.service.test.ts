@@ -5,7 +5,7 @@ import {
 } from '@/src/__tests__/factories/ai-settings.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/ai-settings.repository')
@@ -253,5 +253,127 @@ describe('AiSettingsService', () => {
         'FORBIDDEN',
       )
     })
+  })
+})
+
+describe('AiSettingsService failure paths', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  it('get() should propagate a settings lookup failure', async () => {
+    asRole('MEMBER')
+    withState()
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await AiSettingsService.get('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+
+  it('get() should propagate a usage aggregation failure', async () => {
+    asRole('MEMBER')
+    withState()
+    mockedUsageRepo.sumSince.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await AiSettingsService.get('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+
+  it('get() should propagate a preference lookup failure', async () => {
+    asRole('MEMBER')
+    withState()
+    mockedPreferenceRepo.find.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await AiSettingsService.get('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+
+  it("get() should surface the member's saved preference", async () => {
+    asRole('MEMBER')
+    withState()
+    mockedPreferenceRepo.find.mockResolvedValue(
+      ok(createFakeUserAiPreference({ modelKey: 'openai:gpt-4o-mini' })),
+    )
+
+    const dto = expectOk(await AiSettingsService.get('u1', 'ws1'))
+
+    expect(dto.userPreference).toBe('openai:gpt-4o-mini')
+  })
+
+  it('update() should propagate a settings lookup failure', async () => {
+    asRole('OWNER')
+    withState()
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await AiSettingsService.update('u1', 'ws1', { monthlyQuotaUsd: 10 }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('update() should change the WhatsApp reply and sentiment defaults', async () => {
+    asRole('OWNER')
+    withState()
+
+    expectOk(
+      await AiSettingsService.update('u1', 'ws1', {
+        enabledModels: ['openai:gpt-4o-mini', 'openai:gpt-5-mini'],
+        whatsappReplyModel: 'openai:gpt-5-mini',
+        whatsappSentimentModel: 'openai:gpt-5-mini',
+      }),
+    )
+
+    expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+      'ws1',
+      expect.objectContaining({
+        whatsappReplyModel: 'openai:gpt-5-mini',
+        whatsappSentimentModel: 'openai:gpt-5-mini',
+      }),
+    )
+  })
+
+  it('update() should propagate a save failure', async () => {
+    asRole('OWNER')
+    withState()
+    mockedSettingsRepo.upsert.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await AiSettingsService.update('u1', 'ws1', { monthlyQuotaUsd: 10 }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('setUserPreference() should propagate a settings lookup failure', async () => {
+    asRole('MEMBER')
+    withState()
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await AiSettingsService.setUserPreference('u1', 'ws1', {
+        modelKey: null,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('setUserPreference() should propagate a removal failure', async () => {
+    asRole('MEMBER')
+    withState()
+    mockedPreferenceRepo.remove.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await AiSettingsService.setUserPreference('u1', 'ws1', {
+        modelKey: null,
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('setUserPreference() should propagate a save failure', async () => {
+    asRole('MEMBER')
+    withState()
+    mockedPreferenceRepo.upsert.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await AiSettingsService.setUserPreference('u1', 'ws1', {
+        modelKey: 'openai:gpt-4o-mini',
+      }),
+      'DATABASE_ERROR',
+    )
   })
 })
