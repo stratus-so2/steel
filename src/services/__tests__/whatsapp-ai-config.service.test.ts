@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWhatsAppAiConfig } from '@/src/__tests__/factories/whatsapp-ai-config.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-ai-config.repository')
@@ -115,5 +115,112 @@ describe('WhatsAppAiConfigService', () => {
         expect.objectContaining({ encryptedOpenaiApiKey: null, active: true }),
       )
     })
+  })
+})
+
+describe('WhatsAppAiConfigService failure paths and fallbacks', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  function asOwner() {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'OWNER' })),
+    )
+  }
+
+  it('get() should return the saved config as a DTO', async () => {
+    asOwner()
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(
+      ok(createFakeWhatsAppAiConfig({ workspaceId: 'ws1', active: true })),
+    )
+
+    const dto = expectOk(await WhatsAppAiConfigService.get('u1', 'ws1'))
+
+    expect(dto).toEqual(expect.objectContaining({ active: true }))
+  })
+
+  it('get() should propagate a lookup failure', async () => {
+    asOwner()
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await WhatsAppAiConfigService.get('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+
+  it('save() should reject a plain MEMBER', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'MEMBER' })),
+    )
+
+    expectErr(
+      await WhatsAppAiConfigService.save('u1', 'ws1', { active: true }),
+      'FORBIDDEN',
+    )
+    expect(mockedAiConfigRepo.upsert).not.toHaveBeenCalled()
+  })
+
+  it('save() should propagate a lookup failure', async () => {
+    asOwner()
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppAiConfigService.save('u1', 'ws1', { active: true }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('save() should keep the stored flags when the update omits them', async () => {
+    asOwner()
+    const existing = createFakeWhatsAppAiConfig({
+      workspaceId: 'ws1',
+      active: true,
+      readMedia: true,
+    })
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(ok(existing))
+    mockedAiConfigRepo.upsert.mockResolvedValue(ok(existing))
+
+    expectOk(
+      await WhatsAppAiConfigService.save('u1', 'ws1', {
+        systemPrompt: 'Novo prompt',
+      }),
+    )
+
+    expect(mockedAiConfigRepo.upsert).toHaveBeenCalledWith(
+      'ws1',
+      expect.objectContaining({
+        systemPrompt: 'Novo prompt',
+        active: true,
+        readMedia: true,
+      }),
+    )
+  })
+
+  it('save() should default to inactive for a brand-new config', async () => {
+    asOwner()
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(ok(null))
+    mockedAiConfigRepo.upsert.mockResolvedValue(
+      ok(createFakeWhatsAppAiConfig({ workspaceId: 'ws1' })),
+    )
+
+    expectOk(await WhatsAppAiConfigService.save('u1', 'ws1', {}))
+
+    expect(mockedAiConfigRepo.upsert).toHaveBeenCalledWith(
+      'ws1',
+      expect.objectContaining({
+        encryptedOpenaiApiKey: null,
+        model: 'gpt-4o-mini',
+        active: false,
+        readMedia: false,
+      }),
+    )
+  })
+
+  it('save() should propagate an upsert failure', async () => {
+    asOwner()
+    mockedAiConfigRepo.findByWorkspace.mockResolvedValue(ok(null))
+    mockedAiConfigRepo.upsert.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppAiConfigService.save('u1', 'ws1', { active: true }),
+      'DATABASE_ERROR',
+    )
   })
 })
