@@ -779,6 +779,13 @@ model Backup {
   storageKey      String?      @map("storage_key")
   sizeBytes       Int?         @map("size_bytes")
   checksum        String?
+  /// Backup WORKSPACE: manifesto (cifrado) dos arquivos do MinIO copiados
+  /// junto com as linhas. `null` = backup só de banco (antes de 19/09/2026).
+  filesKey        String?      @map("files_key")
+  fileCount       Int?         @map("file_count")
+  /// Soma dos bytes em claro dos arquivos — `BigInt` porque a mídia de um
+  /// workspace passa fácil dos 2 GB.
+  fileBytes       BigInt?      @map("file_bytes")
   errorMessage    String?      @map("error_message")
   /// Chave da cópia offsite, gravada quando o `copy-to-offsite` confirma.
   offsiteKey      String?      @map("offsite_key")

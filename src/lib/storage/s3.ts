@@ -101,6 +101,29 @@ export async function getObject(input: GetObjectInput): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
+/**
+ * Como `getObject`, mas devolve também o `Content-Type` gravado — o backup de
+ * arquivos precisa dele para regravar o objeto do jeito que estava (um bucket
+ * público serve a mídia direto ao navegador).
+ */
+export async function getObjectWithContentType(
+  input: GetObjectInput,
+): Promise<{ body: Buffer; contentType: string }> {
+  const s3 = getS3Client()
+  const result = await s3.send(
+    new GetObjectCommand({ Bucket: input.bucket, Key: input.key }),
+  )
+  const stream = result.Body as AsyncIterable<Uint8Array>
+  const chunks: Buffer[] = []
+  for await (const chunk of stream) {
+    chunks.push(Buffer.from(chunk))
+  }
+  return {
+    body: Buffer.concat(chunks),
+    contentType: result.ContentType ?? 'application/octet-stream',
+  }
+}
+
 export interface DeleteObjectInput {
   bucket: string
   key: string
@@ -154,13 +177,23 @@ function isMissingBucket(error: unknown): boolean {
   return name === 'NoSuchBucket' || name === 'NotFound'
 }
 
-/** Todas as chaves sob um prefixo (paginado). Bucket inexistente → `[]`. */
-export async function listObjectKeys(
+export interface ListedObject {
+  key: string
+  size: number
+}
+
+/**
+ * Objetos sob um prefixo, com tamanho (paginado). Bucket inexistente → `[]`.
+ * Com `delimiter: '/'` a listagem para no primeiro nível: com prefixo vazio
+ * devolve só os objetos na raiz do bucket, sem percorrer as "pastas".
+ */
+export async function listObjects(
   bucket: string,
   prefix: string,
-): Promise<string[]> {
+  options: { delimiter?: string } = {},
+): Promise<ListedObject[]> {
   const s3 = getS3Client()
-  const keys: string[] = []
+  const objects: ListedObject[] = []
   let token: string | undefined
   try {
     do {
@@ -168,11 +201,13 @@ export async function listObjectKeys(
         new ListObjectsV2Command({
           Bucket: bucket,
           Prefix: prefix,
+          Delimiter: options.delimiter,
           ContinuationToken: token,
         }),
       )
       for (const object of page.Contents ?? []) {
-        if (object.Key) keys.push(object.Key)
+        if (object.Key)
+          objects.push({ key: object.Key, size: object.Size ?? 0 })
       }
       token = page.IsTruncated ? page.NextContinuationToken : undefined
     } while (token)
@@ -180,7 +215,16 @@ export async function listObjectKeys(
     if (isMissingBucket(error)) return []
     throw error
   }
-  return keys
+  return objects
+}
+
+/** Todas as chaves sob um prefixo (paginado). Bucket inexistente → `[]`. */
+export async function listObjectKeys(
+  bucket: string,
+  prefix: string,
+): Promise<string[]> {
+  const objects = await listObjects(bucket, prefix)
+  return objects.map((object) => object.key)
 }
 
 /** Apaga em lotes de 1000 (limite do S3). Devolve quantos foram apagados. */

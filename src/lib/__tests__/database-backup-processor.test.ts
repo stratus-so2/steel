@@ -25,6 +25,8 @@ const mocks = vi.hoisted(() => ({
   uploadAndVerifyOffsite: vi.fn(),
   queueAdd: vi.fn(),
   gatherWorkspaceData: vi.fn(),
+  archiveWorkspaceFiles: vi.fn(),
+  deleteWorkspaceFileArchive: vi.fn(),
   runWorkspaceDeletion: vi.fn(),
   runWorkspaceRestore: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -60,6 +62,10 @@ vi.mock('@/src/lib/queue/queues', () => ({
 }))
 vi.mock('@/src/lib/queue/workspace-snapshot', () => ({
   gatherWorkspaceData: mocks.gatherWorkspaceData,
+}))
+vi.mock('@/src/lib/queue/workspace-file-archive', () => ({
+  archiveWorkspaceFiles: mocks.archiveWorkspaceFiles,
+  deleteWorkspaceFileArchive: mocks.deleteWorkspaceFileArchive,
 }))
 vi.mock('@/src/lib/queue/processors/admin-operations', () => ({
   runWorkspaceDeletion: mocks.runWorkspaceDeletion,
@@ -102,6 +108,13 @@ beforeEach(() => {
   mocks.backup.create.mockResolvedValue({ id: 'bk-1' })
   mocks.backup.update.mockResolvedValue({})
   mocks.getOffsiteConfig.mockReturnValue(null)
+  mocks.archiveWorkspaceFiles.mockResolvedValue({
+    manifestKey: 'workspace/ws-1/bk-1.files/manifest.json.enc',
+    fileCount: 0,
+    fileBytes: 0,
+    missingLegacyKeys: 0,
+  })
+  mocks.deleteWorkspaceFileArchive.mockResolvedValue(0)
 })
 
 describe('processDatabaseBackup — run-full-backup', () => {
@@ -230,6 +243,8 @@ describe('backupWorkspace', () => {
     expect(result).toEqual({
       backupId: 'bk-1',
       sizeBytes: Buffer.byteLength('ciphertext'),
+      fileCount: 0,
+      fileBytes: 0,
     })
     expect(mocks.backup.create).toHaveBeenCalledWith({
       data: {
@@ -322,7 +337,7 @@ describe('processDatabaseBackup — routing', () => {
       }),
     )
 
-    expect(result).toEqual({ backupId: 'bk-1' })
+    expect(result).toEqual({ backupId: 'bk-1', fileCount: 0, fileBytes: 0 })
   })
 
   it('delegates workspace deletion and restore to the admin operations', async () => {

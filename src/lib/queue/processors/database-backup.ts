@@ -25,6 +25,10 @@ import { BACKUP_BUCKET } from '../backup-bucket'
 import { DatabaseBackupJob, type DatabaseBackupJobPayload } from '../jobs'
 import { getDatabaseBackupQueue } from '../queues'
 import { BackupRetentionDays } from '../retention'
+import {
+  archiveWorkspaceFiles,
+  deleteWorkspaceFileArchive,
+} from '../workspace-file-archive'
 import { gatherWorkspaceData } from '../workspace-snapshot'
 import { runWorkspaceDeletion, runWorkspaceRestore } from './admin-operations'
 
@@ -227,15 +231,22 @@ async function runFullBackup(
 }
 
 /**
- * Backup lógico de um workspace (JSON cifrado). Exportado porque a exclusão
- * definitiva (`delete-workspace`) e o restore reaproveitam exatamente este
- * passo antes de mexer nos dados. Lança em falha, com o registro já FAILED.
+ * Backup lógico de um workspace: o JSON das linhas **mais** os arquivos do
+ * MinIO que pertencem a ele (`workspace-file-archive.ts`), tudo cifrado.
+ * Exportado porque a exclusão definitiva (`delete-workspace`) e o restore
+ * reaproveitam exatamente este passo antes de mexer nos dados. Lança em
+ * falha, com o registro já FAILED.
  */
 export async function backupWorkspace(params: {
   workspaceId: string
   triggeredById?: string | null
   jobId?: string
-}): Promise<{ backupId: string; sizeBytes: number }> {
+}): Promise<{
+  backupId: string
+  sizeBytes: number
+  fileCount: number
+  fileBytes: number
+}> {
   const { workspaceId, jobId } = params
   const triggeredById = params.triggeredById ?? null
 
@@ -270,6 +281,16 @@ export async function backupWorkspace(params: {
     const key = `workspace/${workspaceId}/${record.id}.json.enc`
     const { sizeBytes, checksum } = await uploadEncrypted({ key, buffer })
 
+    // Os arquivos do MinIO vão depois das linhas e um objeto por vez: se o
+    // storage falhar, o snapshot já está gravado e o retry do BullMQ refaz
+    // o backup inteiro (o registro só vira COMPLETED com os dois prontos).
+    const archive = await archiveWorkspaceFiles({
+      client: prisma,
+      workspaceId,
+      backupId: record.id,
+      jobId,
+    })
+
     await prisma.backup.update({
       where: { id: record.id },
       data: {
@@ -277,6 +298,9 @@ export async function backupWorkspace(params: {
         storageKey: key,
         sizeBytes,
         checksum,
+        filesKey: archive.manifestKey,
+        fileCount: archive.fileCount,
+        fileBytes: BigInt(archive.fileBytes),
         completedAt: new Date(),
         expiresAt: expiresAt(),
       },
@@ -287,7 +311,14 @@ export async function backupWorkspace(params: {
       action: 'create',
       actorId: triggeredById ?? 'system',
       targetId: record.id,
-      meta: { scope: 'WORKSPACE', workspaceId, sizeBytes, jobId },
+      meta: {
+        scope: 'WORKSPACE',
+        workspaceId,
+        sizeBytes,
+        fileCount: archive.fileCount,
+        fileBytes: archive.fileBytes,
+        jobId,
+      },
     })
 
     logger.info('queue.database_backup.workspace_completed', {
@@ -296,8 +327,16 @@ export async function backupWorkspace(params: {
       backupId: record.id,
       workspaceId,
       sizeBytes,
+      fileCount: archive.fileCount,
+      fileBytes: archive.fileBytes,
+      missingLegacyKeys: archive.missingLegacyKeys,
     })
-    return { backupId: record.id, sizeBytes }
+    return {
+      backupId: record.id,
+      sizeBytes,
+      fileCount: archive.fileCount,
+      fileBytes: archive.fileBytes,
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     await prisma.backup.update({
@@ -323,13 +362,13 @@ async function runWorkspaceBackup(
   job: Job<
     DatabaseBackupJobPayload[typeof DatabaseBackupJob.RunWorkspaceBackup]
   >,
-): Promise<{ backupId: string }> {
-  const { backupId } = await backupWorkspace({
+): Promise<{ backupId: string; fileCount: number; fileBytes: number }> {
+  const { backupId, fileCount, fileBytes } = await backupWorkspace({
     workspaceId: job.data.workspaceId,
     triggeredById: job.data.triggeredById,
     jobId: job.id,
   })
-  return { backupId }
+  return { backupId, fileCount, fileBytes }
 }
 
 async function pruneExpiredBackups(): Promise<void> {
@@ -340,6 +379,9 @@ async function pruneExpiredBackups(): Promise<void> {
   for (const backup of expired) {
     if (backup.storageKey) {
       await deleteObject({ bucket: BACKUP_BUCKET, key: backup.storageKey })
+    }
+    if (backup.filesKey && backup.workspaceId) {
+      await deleteWorkspaceFileArchive(backup.workspaceId, backup.id)
     }
   }
 
