@@ -16,7 +16,7 @@ checada no service, não só na UI.
 | **Métricas** `/admin/metrics` | ver [métricas da plataforma](./admin-metrics.md) |
 | **Backups** `/admin/backups` | backups completos e por workspace, disparo manual, download, restauração, progresso de exclusões/restaurações |
 | **Changelog** `/admin/changelog` | e-mails de novidades |
-| Analytics | placeholder “em breve” (aguarda validação) |
+| **Analytics** `/admin/analytics` | tráfego, rotas, erros, acessos (país/cidade) e filas a partir dos logs no Axiom — ver [analytics](./admin-analytics.md) |
 
 A casca (`app/(private)/admin/layout.tsx`) usa barra lateral em telas ≥ md e
 uma faixa de navegação rolável abaixo disso. Os primitivos visuais ficam em
@@ -173,6 +173,7 @@ que aparece em “Ações recentes” e no histórico do workspace.
 | Método e rota | Uso |
 | ------------- | --- |
 | `GET /api/admin/overview` | dados da visão geral |
+| `GET /api/admin/analytics?view=&range=&workspace=&route=&status=&env=` | uma aba do Analytics ([detalhes](./admin-analytics.md)) |
 | `PATCH /api/admin/workspaces/[id]/status` | `{ action: 'suspend' \| 'reactivate', reason }` |
 | `PATCH /api/admin/workspaces/[id]/plan` | `{ plan, reason }` |
 | `POST /api/admin/workspaces/[id]/deletion` | `{ confirmSlug, reason, ignoreSubscriptionCancelFailure? }` → 202 + operação |

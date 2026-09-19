@@ -48,6 +48,10 @@ app/api/**/route.ts  →  Service        →  Repository   →  Prisma
 - **Rota** (`app/api/**/route.ts`): fina. `withAxiom` → `getAuthSession()` →
   `consume(apiLimiter, ...)` → validação Zod → service → `successResponse` /
   `handleError`.
+- **Log de requisição**: `withAxiom` e o `proxy.ts` gravam no Axiom um evento
+  por requisição (`lib/axiom/request-log.ts`) com rota normalizada,
+  usuário/workspace, código de erro e país/cidade (GeoLite2) — **sem IP nem
+  User-Agent cru**. É a fonte do [Analytics do admin](../admin-analytics.md).
 - **Service** (`src/services/*.service.ts`): regras de negócio,
   **autorização** (ownership, papel no workspace, acesso ao módulo) e
   auditoria (`auditMutation`/`auditAuth`, `lib/axiom/audit`).
