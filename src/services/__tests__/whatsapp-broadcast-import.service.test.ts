@@ -257,3 +257,99 @@ describe('WhatsAppBroadcastImportService.import()', () => {
     })
   })
 })
+
+describe('WhatsAppBroadcastImportService.import() failure paths', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+  const input = {
+    name: 'Lembretes',
+    connectionId: 'conn1',
+    templateId: 'tmpl1',
+    sendOffsetHours: 24,
+    csv: validCsv,
+  }
+
+  it('should return FORBIDDEN for a non-member', async () => {
+    mockHappyPathDeps()
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+
+    expectErr(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', input),
+      'FORBIDDEN',
+    )
+  })
+
+  it('should propagate a connection lookup failure', async () => {
+    mockHappyPathDeps()
+    mockedConnectionRepo.findById.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', input),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should propagate a template lookup failure', async () => {
+    mockHappyPathDeps()
+    mockedTemplateRepo.findById.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', input),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should propagate a contact upsert failure', async () => {
+    mockHappyPathDeps()
+    mockedContactRepo.upsertByWaId.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', input),
+      'DATABASE_ERROR',
+    )
+    expect(mockedBroadcastRepo.createScheduled).not.toHaveBeenCalled()
+  })
+
+  it('should list rejected rows in csv order when invalid and opted-out rows mix', async () => {
+    mockHappyPathDeps()
+    mockedContactRepo.upsertByWaId
+      .mockResolvedValueOnce(
+        ok(
+          createFakeWhatsAppContact({
+            id: 'opted',
+            broadcastOptedOutAt: new Date(),
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(ok(createFakeWhatsAppContact({ id: 'contact3' })))
+    const csv = [
+      'telefone,nome,data_referencia,var_1',
+      '11987654321,Maria,2026-08-15T09:00:00.000Z,Maria',
+      'abc,Joao,2026-08-15T09:00:00.000Z,Joao',
+      '11912345678,Ana,2026-08-15T09:00:00.000Z,Ana',
+    ].join('\n')
+
+    const dto = expectOk(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', {
+        ...input,
+        csv,
+      }),
+    )
+
+    expect(dto.createdCount).toBe(1)
+    expect(dto.rejectedRows.map((r) => r.rowNumber)).toEqual([1, 2])
+    expect(mockedBroadcastRepo.createScheduled).toHaveBeenCalledWith(
+      expect.anything(),
+      [expect.objectContaining({ contactId: 'contact3' })],
+    )
+  })
+
+  it('should propagate a failure creating the scheduled broadcast', async () => {
+    mockHappyPathDeps()
+    mockedBroadcastRepo.createScheduled.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppBroadcastImportService.import('u1', 'ws1', input),
+      'DATABASE_ERROR',
+    )
+  })
+})
