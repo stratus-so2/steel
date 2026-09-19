@@ -100,3 +100,20 @@ describe('UserPreferenceService', () => {
     })
   })
 })
+
+describe('UserPreferenceService.get() on a cache miss', () => {
+  it('should read the stored preference and warm the cache', async () => {
+    repo.findByUserId.mockResolvedValue(
+      ok(createFakeUserPreference({ theme: 'LIGHT' })),
+    )
+
+    const dto = expectOk(await UserPreferenceService.get('user_123'))
+
+    expect(dto.theme).toBe('LIGHT')
+    expect(repo.upsert).not.toHaveBeenCalled()
+    expect(cache.set).toHaveBeenCalledWith(
+      'user_123',
+      expect.objectContaining({ theme: 'LIGHT' }),
+    )
+  })
+})
