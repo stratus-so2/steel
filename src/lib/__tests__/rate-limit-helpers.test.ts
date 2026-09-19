@@ -25,6 +25,14 @@ describe('getClientIp()', () => {
     expect(getClientIp(req)).toBe('4.4.4.4')
   })
 
+  it('should ignore an empty first x-forwarded-for entry', () => {
+    const req = makeRequest({
+      'x-forwarded-for': ' , 7.7.7.7',
+      'x-real-ip': '8.8.8.8',
+    })
+    expect(getClientIp(req)).toBe('8.8.8.8')
+  })
+
   it('should fall back to x-real-ip when x-forwarded-for is absent', () => {
     const req = makeRequest({ 'x-real-ip': '6.6.6.6' })
     expect(getClientIp(req)).toBe('6.6.6.6')
