@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { createFakeWhatsAppAiKnowledgeDocument } from '@/src/__tests__/factories/whatsapp-ai-knowledge-document.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-ai-knowledge-document.repository')
@@ -216,5 +216,116 @@ describe('WhatsAppAiKnowledgeDocumentService', () => {
         key: 'ws1/doc1.pdf',
       })
     })
+  })
+})
+
+describe('WhatsAppAiKnowledgeDocumentService failure paths', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  const upload = () =>
+    WhatsAppAiKnowledgeDocumentService.upload('u1', 'ws1', {
+      contentType: 'application/pdf',
+      byteSize: 100,
+      filename: 'manual.pdf',
+      readBody: async () => Buffer.from('conteúdo'),
+    })
+
+  function asOwner() {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'OWNER' })),
+    )
+  }
+
+  function arrangeUpload() {
+    asOwner()
+    mockedClassify.mockReturnValue({ ok: true, value: { ext: 'pdf' } })
+    mockedPutObject.mockResolvedValue(undefined as never)
+    mockedRepo.create.mockResolvedValue(
+      ok(createFakeWhatsAppAiKnowledgeDocument({ id: 'doc1' })),
+    )
+    mockedExtract.mockResolvedValue({ ok: true, value: 'texto' })
+    mockedRepo.updateStatus.mockResolvedValue(
+      ok(createFakeWhatsAppAiKnowledgeDocument({ id: 'doc1' })),
+    )
+  }
+
+  it('list() should propagate a repository failure', async () => {
+    asOwner()
+    mockedRepo.listByWorkspace.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppAiKnowledgeDocumentService.list('u1', 'ws1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('upload() should reject a plain MEMBER', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'MEMBER' })),
+    )
+
+    expectErr(await upload(), 'FORBIDDEN')
+    expect(mockedClassify).not.toHaveBeenCalled()
+  })
+
+  it('upload() should map a storage failure to STORAGE_ERROR', async () => {
+    arrangeUpload()
+    mockedPutObject.mockRejectedValueOnce(new Error('minio down'))
+
+    const error = expectErr(await upload(), 'STORAGE_ERROR')
+    expect(error.message).toBe('Falha ao armazenar o documento')
+    expect(mockedRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('upload() should propagate a failure creating the record', async () => {
+    arrangeUpload()
+    mockedRepo.create.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await upload(), 'DATABASE_ERROR')
+    expect(mockedExtract).not.toHaveBeenCalled()
+  })
+
+  it('upload() should propagate a failure storing the extraction status', async () => {
+    arrangeUpload()
+    mockedRepo.updateStatus.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await upload(), 'DATABASE_ERROR')
+  })
+
+  it('remove() should propagate a lookup failure', async () => {
+    asOwner()
+    mockedRepo.findById.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppAiKnowledgeDocumentService.remove('u1', 'ws1', 'doc1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('remove() should propagate a delete failure and keep the stored file', async () => {
+    asOwner()
+    mockedRepo.findById.mockResolvedValue(
+      ok(createFakeWhatsAppAiKnowledgeDocument({ id: 'doc1' })),
+    )
+    mockedRepo.delete.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await WhatsAppAiKnowledgeDocumentService.remove('u1', 'ws1', 'doc1'),
+      'DATABASE_ERROR',
+    )
+    expect(mockedDeleteObject).not.toHaveBeenCalled()
+  })
+
+  it('remove() should succeed even when the stored file cannot be deleted', async () => {
+    asOwner()
+    mockedRepo.findById.mockResolvedValue(
+      ok(createFakeWhatsAppAiKnowledgeDocument({ id: 'doc1' })),
+    )
+    mockedRepo.delete.mockResolvedValue(ok(undefined) as never)
+    mockedDeleteObject.mockRejectedValueOnce(new Error('minio down'))
+
+    expectOk(
+      await WhatsAppAiKnowledgeDocumentService.remove('u1', 'ws1', 'doc1'),
+    )
   })
 })
