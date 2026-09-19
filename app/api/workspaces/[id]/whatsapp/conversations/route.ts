@@ -5,6 +5,7 @@ import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import type { WhatsAppConversationStatusFilter } from '@/src/repositories/whatsapp-conversation.repository'
 import { StartWhatsAppConversationSchema } from '@/src/schemas/whatsapp-conversation.schema'
 import { WhatsAppConversationService } from '@/src/services/whatsapp-conversation.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -53,10 +54,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limit.ok) return handleError(limit.error)
 
-  const [{ id }, body] = await Promise.all([
+  const [{ id }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = StartWhatsAppConversationSchema.safeParse(body)
 
   if (!parsed.success) {

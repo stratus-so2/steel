@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateWhatsAppBroadcastImportSchema } from '@/src/schemas/whatsapp-broadcast-import.schema'
 import { WhatsAppBroadcastImportService } from '@/src/services/whatsapp-broadcast-import.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -26,10 +27,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id }, body] = await Promise.all([
+  const [{ id }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateWhatsAppBroadcastImportSchema.safeParse(body)
 
   if (!parsed.success) {

@@ -5,6 +5,7 @@ import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
 import { CreateCrmDashboardWidgetSchema } from '@/src/schemas/crm-dashboard.schema'
 import { CrmDashboardWidgetService } from '@/src/services/crm-dashboard.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -45,10 +46,12 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const [{ id, dashboardId }, body] = await Promise.all([
+  const [{ id, dashboardId }, json] = await Promise.all([
     ctx.params,
-    request.json().catch(() => ({})),
+    readJsonBody(request, { allowEmpty: true }),
   ])
+  if (!json.ok) return handleError(json.error)
+  const body = json.value
   const parsed = CreateCrmDashboardWidgetSchema.safeParse(body)
 
   if (!parsed.success) {

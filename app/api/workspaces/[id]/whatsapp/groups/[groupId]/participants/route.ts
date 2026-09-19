@@ -2,8 +2,12 @@ import type { NextRequest } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { GroupParticipantsSchema } from '@/src/schemas/whatsapp-group.schema'
+import {
+  type GroupParticipantsDTO,
+  GroupParticipantsSchema,
+} from '@/src/schemas/whatsapp-group.schema'
 import { WhatsAppGroupService } from '@/src/services/whatsapp-group.service'
+import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
   standardError,
@@ -12,9 +16,26 @@ import {
 
 type Params = { params: Promise<{ id: string; groupId: string }> }
 
-async function parseParticipants(request: NextRequest) {
-  const body = await request.json().catch(() => ({}))
-  return GroupParticipantsSchema.safeParse(body)
+async function parseParticipants(
+  request: NextRequest,
+): Promise<
+  { ok: true; data: GroupParticipantsDTO } | { ok: false; response: Response }
+> {
+  const json = await readJsonBody(request, { allowEmpty: true })
+  if (!json.ok) return { ok: false, response: handleError(json.error) }
+
+  const parsed = GroupParticipantsSchema.safeParse(json.value)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      response: standardError(
+        'VALIDATION_ERROR',
+        'Dados inválidos',
+        parsed.error.issues,
+      ),
+    }
+  }
+  return { ok: true, data: parsed.data }
 }
 
 export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
@@ -28,14 +49,7 @@ export const POST = withAxiom(async (request: NextRequest, ctx: Params) => {
     ctx.params,
     parseParticipants(request),
   ])
-
-  if (!parsed.success) {
-    return standardError(
-      'VALIDATION_ERROR',
-      'Dados inválidos',
-      parsed.error.issues,
-    )
-  }
+  if (!parsed.ok) return parsed.response
 
   const result = await WhatsAppGroupService.addParticipants(
     auth.value.user.id,
@@ -59,14 +73,7 @@ export const DELETE = withAxiom(async (request: NextRequest, ctx: Params) => {
     ctx.params,
     parseParticipants(request),
   ])
-
-  if (!parsed.success) {
-    return standardError(
-      'VALIDATION_ERROR',
-      'Dados inválidos',
-      parsed.error.issues,
-    )
-  }
+  if (!parsed.ok) return parsed.response
 
   const result = await WhatsAppGroupService.removeParticipants(
     auth.value.user.id,

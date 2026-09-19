@@ -10,6 +10,7 @@ import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connec
 import { assertModuleEnabled } from '@/src/services/authz'
 import { WhatsAppWebhookService } from '@/src/services/whatsapp-webhook.service'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
+import { parseJson } from '@/utils/http-request'
 
 function verifyMetaSignature(
   rawBody: string,
@@ -160,11 +161,16 @@ export const POST = withAxiom(async (request: NextRequest) => {
     return new Response('Assinatura inválida', { status: 401 })
   }
 
-  const json = JSON.parse(rawBody) as {
-    entry?: { changes?: { field?: string; value?: MetaWebhookValue }[] }[]
+  // Parse só depois de verificar a assinatura sobre o corpo bruto.
+  const parsedBody = parseJson(rawBody)
+  if (!parsedBody.ok) {
+    return new Response('Entrada inválida', { status: 400 })
   }
+  const json = parsedBody.value as {
+    entry?: { changes?: { field?: string; value?: MetaWebhookValue }[] }[]
+  } | null
 
-  const change = json.entry?.[0]?.changes?.[0]
+  const change = json?.entry?.[0]?.changes?.[0]
   const value = change?.value
 
   if (!value) {
