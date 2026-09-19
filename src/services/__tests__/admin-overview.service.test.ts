@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeUser } from '@/src/__tests__/factories/user.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
-import { ok } from '@/src/lib/result'
+import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/repositories/admin-overview.repository')
@@ -12,6 +12,7 @@ vi.mock('@/src/repositories/backup.repository')
 vi.mock('@/src/lib/queue/health', () => ({ getQueueHealth: vi.fn() }))
 
 import { getQueueHealth } from '@/src/lib/queue/health'
+import { AdminAuditLogRepository } from '@/src/repositories/admin-audit-log.repository'
 import { AdminMetricsRepository } from '@/src/repositories/admin-metrics.repository'
 import { AdminOperationRepository } from '@/src/repositories/admin-operation.repository'
 import { AdminOverviewRepository } from '@/src/repositories/admin-overview.repository'
@@ -113,5 +114,80 @@ describe('AdminOverviewService.get()', () => {
     vi.mocked(getQueueHealth).mockRejectedValue(new Error('timeout'))
     const dto = expectOk(await AdminOverviewService.get(admin.id))
     expect(dto.queues).toBeNull()
+  })
+})
+
+describe('AdminOverviewService.get() failures', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  beforeEach(() => {
+    vi.mocked(getQueueHealth).mockResolvedValue([])
+    vi.mocked(AdminAuditLogRepository.listRecent).mockResolvedValue(ok([]))
+  })
+
+  it('degrades queue health on a non-Error rejection too', async () => {
+    vi.mocked(getQueueHealth).mockRejectedValue('ECONNREFUSED')
+
+    expect(expectOk(await AdminOverviewService.get(admin.id)).queues).toBeNull()
+  })
+
+  it.each([
+    [
+      'workspace counts',
+      () =>
+        vi
+          .mocked(AdminOverviewRepository.workspaceCounts)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'user counts',
+      () =>
+        vi
+          .mocked(AdminOverviewRepository.userCounts)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'paying subscriptions',
+      () =>
+        vi
+          .mocked(AdminMetricsRepository.listPayingSubscriptions)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'recent signups',
+      () =>
+        vi
+          .mocked(AdminOverviewRepository.recentSignups)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'recent admin actions',
+      () =>
+        vi
+          .mocked(AdminAuditLogRepository.listRecent)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'status health',
+      () =>
+        vi
+          .mocked(StatusRepository.findLatestPerComponent)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'recent backups',
+      () => vi.mocked(BackupRepository.list).mockResolvedValue(err(DB_ERROR)),
+    ],
+    [
+      'recent operations',
+      () =>
+        vi
+          .mocked(AdminOperationRepository.listRecent)
+          .mockResolvedValue(err(DB_ERROR)),
+    ],
+  ])('propagates a failure loading %s', async (_label, arrangeFailure) => {
+    arrangeFailure()
+
+    expectErr(await AdminOverviewService.get(admin.id), 'DATABASE_ERROR')
   })
 })
