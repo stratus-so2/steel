@@ -159,4 +159,69 @@ describe('WhatsAppAiKnowledgeDocumentRepository', () => {
       expectErr(result, 'RESOURCE_NOT_FOUND')
     })
   })
+
+  describe('database failures', () => {
+    it('should return DATABASE_ERROR when create hits a missing workspace', async () => {
+      const user = await seedUser()
+      expectErr(
+        await WhatsAppAiKnowledgeDocumentRepository.create({
+          workspaceId: 'missing',
+          createdById: user.id,
+          filename: 'faq.pdf',
+          contentType: 'application/pdf',
+          sizeBytes: 10,
+          storageKey: 'k',
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR when reads throw', async () => {
+      vi.spyOn(prisma.whatsAppAiKnowledgeDocument, 'findMany')
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(
+        prisma.whatsAppAiKnowledgeDocument,
+        'findFirst',
+      ).mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppAiKnowledgeDocumentRepository.listByWorkspace('w'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppAiKnowledgeDocumentRepository.listReadyTextsByWorkspace(
+          'w',
+        ),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppAiKnowledgeDocumentRepository.findById('d', 'w'),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should return DATABASE_ERROR on non-P2025 write failures', async () => {
+      vi.spyOn(
+        prisma.whatsAppAiKnowledgeDocument,
+        'update',
+      ).mockRejectedValueOnce(new Error('boom'))
+      vi.spyOn(
+        prisma.whatsAppAiKnowledgeDocument,
+        'delete',
+      ).mockRejectedValueOnce(new Error('boom'))
+
+      expectErr(
+        await WhatsAppAiKnowledgeDocumentRepository.updateStatus('d', {
+          status: 'FAILED',
+          errorMessage: 'x',
+        }),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppAiKnowledgeDocumentRepository.delete('d'),
+        'DATABASE_ERROR',
+      )
+    })
+  })
 })
