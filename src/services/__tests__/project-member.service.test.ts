@@ -222,3 +222,155 @@ describe('ProjectService.removeMember()', () => {
     expect(mockedProject.removeMember).toHaveBeenCalledWith('u2', 'proj-id')
   })
 })
+
+describe('ProjectService member management failure paths', () => {
+  const DB_ERROR = { code: 'DATABASE_ERROR' as const, message: 'db down' }
+
+  it.each([
+    ['listMembers', () => ProjectService.listMembers('actor', 'ws1', 'proj')],
+    [
+      'removeMember',
+      () => ProjectService.removeMember('actor', 'ws1', 'proj', 'target'),
+    ],
+  ])('%s() should return FORBIDDEN for a non-member', async (_name, call) => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(ok(null))
+
+    expectErr(await call(), 'FORBIDDEN')
+    expect(mockedProject.findByWorkspaceAndSlug).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['listMembers', () => ProjectService.listMembers('actor', 'ws1', 'proj')],
+    [
+      'addMember',
+      () => ProjectService.addMember('actor', 'ws1', 'proj', 'target'),
+    ],
+    [
+      'removeMember',
+      () => ProjectService.removeMember('actor', 'ws1', 'proj', 'target'),
+    ],
+  ])('%s() should propagate a project lookup failure', async (_name, call) => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(ownerMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(await call(), 'DATABASE_ERROR')
+  })
+
+  it('listMembers() should let a project member of a private project read the roster', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(plainMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails({ members: [{ userId: 'actor' }] }) as never),
+    )
+    mockedProject.listMembers.mockResolvedValue(
+      ok([memberWithUser('actor')] as never),
+    )
+
+    expect(
+      expectOk(await ProjectService.listMembers('actor', 'ws1', 'proj')),
+    ).toHaveLength(1)
+  })
+
+  it('listMembers() should propagate a roster lookup failure', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(ownerMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails() as never),
+    )
+    mockedProject.listMembers.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await ProjectService.listMembers('actor', 'ws1', 'proj'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('removeMember() should forbid a plain member who is not the lead', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(plainMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails({ leadId: 'someone-else' }) as never),
+    )
+
+    expectErr(
+      await ProjectService.removeMember('actor', 'ws1', 'proj', 'target'),
+      'PROJECT_FORBIDDEN',
+    )
+    expect(mockedProject.removeMember).not.toHaveBeenCalled()
+  })
+
+  it('removeMember() should let the project lead remove a member', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(plainMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails({ leadId: 'actor' }) as never),
+    )
+    mockedProject.removeMember.mockResolvedValue(ok(undefined))
+
+    expectOk(
+      await ProjectService.removeMember('actor', 'ws1', 'proj', 'target'),
+    )
+    expect(mockedProject.removeMember).toHaveBeenCalledWith('target', 'proj-id')
+  })
+
+  it('removeMember() should propagate a removal failure', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(ownerMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails() as never),
+    )
+    mockedProject.removeMember.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await ProjectService.removeMember('actor', 'ws1', 'proj', 'target'),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('ProjectService access checks on private projects', () => {
+  it('addMember() should return FORBIDDEN for a non-member', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(ok(null))
+
+    expectErr(
+      await ProjectService.addMember('actor', 'ws1', 'proj', 'target'),
+      'FORBIDDEN',
+    )
+  })
+
+  it('unfavorite() should forbid an outsider of a private project', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(plainMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails({ members: [{ userId: 'other' }] }) as never),
+    )
+
+    expectErr(
+      await ProjectService.unfavorite('actor', 'ws1', 'proj'),
+      'PROJECT_FORBIDDEN',
+    )
+    expect(mockedProject.removeFavorite).not.toHaveBeenCalled()
+  })
+
+  it('unfavorite() should let a project member of a private project unfavorite', async () => {
+    mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+      ok(plainMembership),
+    )
+    mockedProject.findByWorkspaceAndSlug.mockResolvedValue(
+      ok(projectWithDetails({ members: [{ userId: 'actor' }] }) as never),
+    )
+    mockedProject.removeFavorite.mockResolvedValue(ok(undefined))
+
+    expect(
+      expectOk(await ProjectService.unfavorite('actor', 'ws1', 'proj')),
+    ).toEqual({ favorited: false })
+  })
+})
