@@ -72,6 +72,10 @@ export type AuditEntity =
   | 'backup'
   | 'workspace_ai_settings'
   | 'user_ai_preference'
+  | 'sd_customer'
+  | 'sd_contact'
+  | 'sd_config_item'
+  | 'sd_config_item_type'
 
 export type AuditAction =
   | 'create'
