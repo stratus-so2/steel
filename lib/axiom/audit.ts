@@ -97,6 +97,10 @@ export type AuditEntity =
   // ServiceDesk — chamados
   | 'sd_ticket'
   | 'sd_saved_view'
+  | 'sd_customer'
+  | 'sd_contact'
+  | 'sd_config_item'
+  | 'sd_config_item_type'
 
 export type AuditAction =
   | 'create'

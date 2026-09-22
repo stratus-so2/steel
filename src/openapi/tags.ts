@@ -202,6 +202,16 @@ export const TAG_GROUPS = [
         description:
           'Configuração do ServiceDesk (ITIL 4): geral, departamentos, catálogo, classificações, impacto/urgência/prioridade/severidade e matriz, fluxos (fases e transições), calendários, SLA/OLA, escalonamento, automações, campos customizados, modelos, respostas prontas e peças.',
       },
+      {
+        name: 'ServiceDesk · Clientes e contatos',
+        description:
+          'Cadastro de clientes e empresas (CPF/CNPJ validado, endereço via ViaCEP) e seus contatos. Só agentes (membros de um departamento) e admins do ServiceDesk.',
+      },
+      {
+        name: 'ServiceDesk · CMDB',
+        description:
+          'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',
+      },
     ],
   },
   {
