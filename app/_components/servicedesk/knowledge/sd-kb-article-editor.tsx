@@ -118,12 +118,29 @@ export function SdKbArticleEditor({
   const coverInput = useRef<HTMLInputElement>(null)
   const pending = useRef<UpdateSdKbArticleInput>({})
 
+  // Sair da página (ou fechar a aba) antes do debounce não perde a última
+  // edição: o que estiver pendente vai num PATCH `keepalive`.
   useEffect(() => {
+    const url = `/api/workspaces/${workspaceId}/servicedesk/knowledge/${initial.id}`
+    function sendPending() {
+      const data = pending.current
+      if (Object.keys(data).length === 0) return
+      pending.current = {}
+      void fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        keepalive: true,
+      }).catch(() => {})
+    }
+    window.addEventListener('beforeunload', sendPending)
     return () => {
+      window.removeEventListener('beforeunload', sendPending)
       if (contentTimer.current) clearTimeout(contentTimer.current)
       if (titleTimer.current) clearTimeout(titleTimer.current)
+      sendPending()
     }
-  }, [])
+  }, [workspaceId, initial.id])
 
   function save(data: UpdateSdKbArticleInput) {
     setSaveState('saving')

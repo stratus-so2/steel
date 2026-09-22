@@ -42,6 +42,7 @@ vi.mock('next/navigation', () => ({
 const DRAFT = article({ status: 'DRAFT', visibility: 'INTERNAL' })
 
 function setup(extra: Parameters<typeof mockFetch>[0] = []) {
+  let unmount = () => {}
   const spy = mockFetch([
     ...extra,
     {
@@ -81,7 +82,7 @@ function setup(extra: Parameters<typeof mockFetch>[0] = []) {
     },
     { match: /\/knowledge\/a1$/, data: DRAFT },
   ])
-  renderWithQuery(
+  ;({ unmount } = renderWithQuery(
     <SdKbArticleEditor
       workspaceId={WS}
       workspaceSlug='acme'
@@ -90,8 +91,8 @@ function setup(extra: Parameters<typeof mockFetch>[0] = []) {
       article={DRAFT}
       canDelete
     />,
-  )
-  return spy
+  ))
+  return Object.assign(spy, { unmount: () => unmount() })
 }
 
 describe('<SdKbArticleEditor />', () => {
@@ -122,6 +123,18 @@ describe('<SdKbArticleEditor />', () => {
     )
     // O sumário acompanha o conteúdo editado.
     expect(screen.getByRole('button', { name: 'Novo título H1' })).toBeTruthy()
+  })
+
+  it('flushes a pending edit with keepalive when leaving the page', async () => {
+    const spy = setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Editar conteúdo' }))
+    spy.unmount()
+    const call = spy.mock.calls.find(
+      ([url, init]) =>
+        /\/knowledge\/a1$/.test(String(url)) && init?.method === 'PATCH',
+    )
+    expect(call?.[1]?.keepalive).toBe(true)
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ content: EDITED })
   })
 
   it('saves the title on blur', async () => {
