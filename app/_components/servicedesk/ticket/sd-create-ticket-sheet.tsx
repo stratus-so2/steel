@@ -64,6 +64,8 @@ export interface SdCreateTicketPreset {
   phaseId?: string
   parent?: { id: string; label: string } | null
   values?: Record<string, unknown>
+  /** Rótulos dos valores pré-preenchidos de seletores assíncronos. */
+  labels?: Record<string, string>
 }
 
 const TEMPLATE_VALUE_KEYS = [
@@ -374,6 +376,7 @@ export function SdCreateTicketSheet({
             context={context}
             agents={agents.data}
             value={v[field]}
+            selectedLabel={preset?.labels?.[field]}
             onChange={(value) => setValue(field, value)}
           />
         ) : null}
