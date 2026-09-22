@@ -95,10 +95,10 @@ async function notifySla(
   })
 }
 
+/** `candidates` já vem filtrado pelo gatilho; aqui NO_UPDATE + condições. */
 async function matchesRule(
   rule: SdEscalationRule,
   t: SdTicketWithRelations,
-  triggers: SdEscalationTrigger[],
   now: Date,
 ): Promise<boolean> {
   if (rule.trigger === 'NO_UPDATE') {
@@ -115,8 +115,6 @@ async function matchesRule(
     )
     if (!latest.ok) return false
     if (latest.value && latest.value.createdAt >= t.lastActivityAt) return false
-  } else if (!triggers.includes(rule.trigger)) {
-    return false
   }
   const conditions = SdConditionsSchema.safeParse(rule.conditions)
   if (!conditions.success) return false
@@ -219,7 +217,7 @@ async function processTicket(t: SdTicketWithRelations, run: WorkspaceRun) {
   }
   let current = fresh.value
   for (const rule of candidates) {
-    if (!(await matchesRule(rule, current, triggers, now))) continue
+    if (!(await matchesRule(rule, current, now))) continue
     const escalated = await runSdEscalationRule(
       current,
       rule,

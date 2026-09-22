@@ -51,6 +51,7 @@ export const SdTicketNotifier = {
       })
       return ok(0)
     }
+    const workspaceName = workspace.value.name
     const href = sdTicketHref(workspace.value.slug, input.ticket.number)
 
     const created = await NotificationService.notifyUsers({
@@ -77,7 +78,7 @@ export const SdTicketNotifier = {
             sendSdTicketNotificationEmail({
               email: u.email,
               username: u.name,
-              workspaceName: workspace.value?.name ?? '',
+              workspaceName,
               ticketCode: input.ticket.code,
               ticketTitle: input.ticket.title,
               headline: input.title,
