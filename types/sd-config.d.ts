@@ -1,4 +1,9 @@
-import type { SdCondition } from '@/src/schemas/sd-rule.schema'
+import type {
+  SdAutomationAction,
+  SdCondition,
+  SdEscalationActions,
+} from '@/src/schemas/sd-rule.schema'
+import type { SdTicketTemplateDefaults } from '@/src/schemas/sd-ticket-template.schema'
 import type {
   SdPublicSettingsDTO,
   SdSettingsDTO,
@@ -220,7 +225,7 @@ export interface SdEscalationRuleDTO {
   trigger: SdEscalationTriggerDTO
   thresholdMinutes: number | null
   conditions: SdCondition[]
-  actions: import('@/src/schemas/sd-rule.schema').SdEscalationActions
+  actions: SdEscalationActions
   active: boolean
   position: number
   createdAt: string
@@ -242,7 +247,7 @@ export interface SdAutomationRuleDTO {
   description: string | null
   event: SdAutomationEventDTO
   conditions: SdCondition[]
-  actions: import('@/src/schemas/sd-rule.schema').SdAutomationAction[]
+  actions: SdAutomationAction[]
   stopProcessing: boolean
   active: boolean
   position: number
@@ -312,7 +317,7 @@ export interface SdTicketTemplateDTO {
   ticketType: SdTicketTypeDTO
   name: string
   description: string | null
-  defaults: import('@/src/schemas/sd-ticket-template.schema').SdTicketTemplateDefaults
+  defaults: SdTicketTemplateDefaults
   tasks: SdTicketTemplateTaskDTO[]
   portalVisible: boolean
   active: boolean
