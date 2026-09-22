@@ -103,15 +103,18 @@ Modelos: bloco `ServiceDesk` no fim de `prisma/schema.prisma` (tabelas `sd_*`).
 | `/settings` | configurações (abas) |
 | `/servicedesk/approval/[token]` (pública, fora do workspace) | aprovar/reprovar |
 
+Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
+`src/schemas/sd-rule.schema.ts` (condições e ações das regras).
+
 ## Fatias e dono de cada arquivo (construção em paralelo)
 
 | Fatia | Dono de |
 | ----- | ------- |
 | config | `sd-settings`, `sd-department`, `sd-category`, `sd-classification`, `sd-priority` (impacto, urgência, prioridade, matriz, severidade), `sd-phase` (+ transições), `sd-calendar`, `sd-sla-policy`, `sd-escalation-rule`, `sd-automation-rule`, `sd-custom-field`, `sd-ticket-template`, `sd-canned-response`, `sd-part`, `sd-seed.service.ts`, `sd-access.ts`, tela `/settings` |
-| tickets | `sd-ticket`, `sd-ticket-event`, `sd-saved-view`, `src/lib/servicedesk/{sla,conditions,ticket-code}.ts`, motor de automação/escalonamento, fila `servicedesk-sla` |
+| tickets | `sd-ticket`, `sd-ticket-participant`, `sd-ticket-event`, `sd-ticket-escalation` (service manual + automático), `sd-saved-view`, `src/lib/servicedesk/{sla,conditions,ticket-code,realtime}.ts`, SSE `servicedesk/events`, motor de automação, fila `servicedesk-sla` |
 | directory | `sd-customer`, `sd-contact`, `sd-config-item` (+ tipos), `src/lib/servicedesk/{document,viacep}.ts`, telas de cadastro |
 | knowledge | `sd-kb-article`, `sd-kb-comment`, editor Plate, telas `/knowledge` |
 | ticket-ui | quadros, filtros, visões salvas, tela do chamado (casca + cabeçalho + campos), início |
-| ticket-tabs | `sd-ticket-message`, `-attachment`, `-task`, `-cost`, `-part`, `-approval`, `-escalation`, `-signature`, `-participant`, abas do chamado, página pública de aprovação, SSE |
+| ticket-tabs | `sd-ticket-message`, `-attachment`, `-task`, `-cost`, `-part`, `-approval`, `-signature`, abas do chamado (a de Escalonamento usa o service da fatia tickets), página pública de aprovação |
 | whatsapp-ai | conexão WhatsApp do módulo, webhook → chamado, aba WhatsApp, `sd-ai*` (copiloto, pré-atendimento, triagem) |
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
