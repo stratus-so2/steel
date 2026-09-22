@@ -117,6 +117,10 @@ const LIST_QUERY = {
       description: 'CSV de ids; aceita `me` e `unassigned`.',
     },
     requesterId: { type: 'string', description: 'Id ou `me`.' },
+    participantId: {
+      type: 'string',
+      description: 'Participante: id de usuário ou `me`.',
+    },
     customerId: { type: 'string' },
     companyId: { type: 'string' },
     contactId: { type: 'string' },

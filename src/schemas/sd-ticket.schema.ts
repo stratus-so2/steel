@@ -207,6 +207,8 @@ export const ListSdTicketsSchema = z.object({
   /** Ids de usuário, `me` (o próprio) e/ou `unassigned` (sem responsável). */
   assigneeIds: idList,
   requesterId: optionalId,
+  /** Participante: id de usuário ou `me` (chamados em que participo). */
+  participantId: optionalId,
   customerId: optionalId,
   companyId: optionalId,
   contactId: optionalId,

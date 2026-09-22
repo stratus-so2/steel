@@ -145,7 +145,9 @@ describe('ListSdTicketsSchema', () => {
       createdFrom: '2026-09-01',
       q: '',
       requesterId: null,
+      participantId: 'me',
     })
+    expect(parsed.participantId).toBe('me')
     expect(parsed.phaseIds).toEqual(['a', 'b'])
     expect(parsed.types).toEqual(['INCIDENT', 'CHANGE', 'PROBLEM'])
     expect(parsed.assigneeIds).toEqual(['me', 'unassigned'])

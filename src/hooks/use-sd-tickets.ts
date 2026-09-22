@@ -41,6 +41,8 @@ export interface SdTicketFilters {
   assigneeIds?: string[]
   /** Id ou `me`. */
   requesterId?: string
+  /** Participante: id ou `me`. */
+  participantId?: string
   customerId?: string
   companyId?: string
   contactId?: string

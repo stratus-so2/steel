@@ -49723,6 +49723,15 @@
             }
           },
           {
+            "name": "participantId",
+            "in": "query",
+            "required": false,
+            "description": "Participante: id de usuário ou `me`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "customerId",
             "in": "query",
             "required": false,
