@@ -766,6 +766,21 @@ export const sdKbArticleForbidden = (
   message = 'Você não tem acesso a este artigo',
 ): AppError => appError('SD_KB_ARTICLE_FORBIDDEN', message)
 
+export const sdKbArticleMoveInvalid = (
+  message = 'Um artigo não pode ficar dentro dele mesmo ou de um subartigo',
+): AppError => appError('SD_KB_ARTICLE_MOVE_INVALID', message)
+
+export const sdKbCommentNotFound = (): AppError =>
+  appError('SD_KB_COMMENT_NOT_FOUND', 'Comentário não encontrado')
+
+export const sdKbCommentForbidden = (
+  message = 'Você não pode alterar este comentário',
+): AppError => appError('SD_KB_COMMENT_FORBIDDEN', message)
+
+export const sdKbCommentNestingTooDeep = (
+  message = 'Respostas só podem ser feitas a um comentário raiz',
+): AppError => appError('SD_KB_COMMENT_NESTING_TOO_DEEP', message)
+
 export const sdAttachmentNotFound = (): AppError =>
   appError('SD_ATTACHMENT_NOT_FOUND', 'Anexo não encontrado')
 

@@ -56,6 +56,14 @@ export const WORKSPACE_BUCKETS: readonly WorkspaceBucket[] = [
     public: false,
     writtenBy: 'src/services/whatsapp-ai-knowledge-document.service.ts',
   },
+  {
+    // ServiceDesk (privado): mídia da base de conhecimento em
+    // `<ws>/kb/<articleId>/...`; anexos e assinaturas dos chamados também
+    // gravam aqui, sempre com o workspace na frente da chave.
+    name: 'servicedesk',
+    public: false,
+    writtenBy: 'src/services/sd-kb-media.service.ts',
+  },
 ] as const
 
 export const WORKSPACE_PREFIXED_BUCKETS = WORKSPACE_BUCKETS.map((b) => b.name)

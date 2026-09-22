@@ -157,6 +157,10 @@
       "description": "SSE de eventos e webhooks de entrada da Meta e da Z-API."
     },
     {
+      "name": "ServiceDesk · Base de conhecimento",
+      "description": "Artigos (árvore, rascunho/publicado, interno/portal, categoria, tags), busca, votos de utilidade, comentários do editor, mídia e vínculo com chamados."
+    },
+    {
       "name": "CRM público · Formulários",
       "description": "Formulários publicados — leitura e envio por visitantes, sem sessão (o `publicToken` é o acesso)."
     },
@@ -270,6 +274,10 @@
         "Comunicação · Configurações",
         "Comunicação · Tempo real e webhooks"
       ]
+    },
+    {
+      "name": "ServiceDesk",
+      "tags": ["ServiceDesk · Base de conhecimento"]
     },
     {
       "name": "Páginas públicas do CRM",
@@ -673,7 +681,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_5"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_6"
           }
         },
         "security": [
@@ -1041,7 +1049,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_14"
+            "$ref": "#/components/responses/400_BAD_REQUEST_15"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -14537,7 +14545,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -25343,7 +25351,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -25767,7 +25775,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -29093,7 +29101,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_38"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_SOCIAL_CONNECTION_NOT_FOUND"
@@ -34038,6 +34046,2078 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/knowledge": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Listar a árvore de artigos",
+        "operationId": "getWorkspacesByIdServicedeskKnowledge",
+        "description": "Artigos vivos ordenados por pai e posição (sem o conteúdo). `archived=true` lista a lixeira (só agentes).\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artigos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbArticleSummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_3"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Criar artigo",
+        "operationId": "postWorkspacesByIdServicedeskKnowledge",
+        "description": "Cria um rascunho vazio no fim dos irmãos (`parentId` opcional).\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `CREATE` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "default": "",
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 16
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "enum": ["INTERNAL", "PORTAL"]
+                  },
+                  "tags": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Artigo criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CATEGORY_NOT_FOUND_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_KB_ARTICLE_MOVE_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/categories": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Categorias com contagem de artigos",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeCategories",
+        "description": "Categorias ativas do catálogo com a contagem de artigos visíveis ao leitor.\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categorias.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbCategory"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/members": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Membros para @menção",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeMembers",
+        "description": "Membros do workspace cujo nome contém `q` (até 8).\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `VIEW` (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Membros.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbMentionableMember"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/search": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Buscar artigos",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeSearch",
+        "description": "Relevância por `to_tsvector('portuguese')` sobre título (peso maior) + texto, mais um bônus quando o termo aparece no título (ILIKE). Sem `q`, os atualizados mais recentemente. Filtros de status/visibilidade valem só para agentes.\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["DRAFT", "PUBLISHED"]
+            }
+          },
+          {
+            "name": "visibility",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["INTERNAL", "PORTAL"]
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbSearchResult"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/suggest": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Sugerir artigos para um chamado",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeSuggest",
+        "description": "Artigos publicados que batem com algum termo do título do chamado ou com a categoria/subcategoria/serviço dele.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `VIEW` (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sugestões.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbSearchResult"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Obter artigo",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeByArticleId",
+        "description": "Artigo completo com o voto do leitor (`myVote`).\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artigo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Atualizar artigo (autosave)",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleId",
+        "description": "Título, ícone, capa, conteúdo (recalcula o texto plano da busca), categoria, visibilidade e tags. O autosave só de conteúdo não é auditado.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "icon": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 16
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "coverImage": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2048
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "content": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "categoryId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "enum": ["INTERNAL", "PORTAL"]
+                  },
+                  "tags": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 40
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Artigo salvo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CATEGORY_NOT_FOUND_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Excluir artigo definitivamente",
+        "operationId": "deleteWorkspacesByIdServicedeskKnowledgeByArticleId",
+        "description": "Apaga o artigo, a subárvore, comentários, vínculos, votos e mídia.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `DELETE` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/archive": {
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Arquivar artigo (e subárvore)",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleIdArchive",
+        "description": "Arquiva o artigo e os descendentes com o mesmo carimbo.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Arquivado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/comments": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Listar comentários do artigo",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeByArticleIdComments",
+        "description": "Discussões do editor (internas dos agentes), por marca e data.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `VIEW` (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comentários.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbComment"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Comentar",
+        "operationId": "postWorkspacesByIdServicedeskKnowledgeByArticleIdComments",
+        "description": "Raiz de discussão numa marca do editor ou resposta (`parentId`, que herda a marca da raiz).\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "markId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "content": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "parentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": ["markId", "content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comentário.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbComment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND_SD_KB_COMMENT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_KB_COMMENT_NESTING_TOO_DEEP"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/comments/{commentId}": {
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Editar comentário",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleIdCommentsByCommentId",
+        "description": "Só o autor edita.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "ID do comentário.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  }
+                },
+                "required": ["content"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comentário.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbComment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_SD_KB_COMMENT_FORBIDDEN"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND_SD_KB_COMMENT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Excluir comentário",
+        "operationId": "deleteWorkspacesByIdServicedeskKnowledgeByArticleIdCommentsByCommentId",
+        "description": "O autor ou um admin do módulo.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "ID do comentário.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Excluído.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_SD_KB_COMMENT_FORBIDDEN"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND_SD_KB_COMMENT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/comments/{commentId}/resolve": {
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Resolver/reabrir discussão",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleIdCommentsByCommentIdResolve",
+        "description": "Só a raiz da discussão.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "description": "ID do comentário.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resolved": {
+                    "type": "boolean"
+                  }
+                },
+                "required": ["resolved"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comentário.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbComment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_SD_KB_COMMENT_FORBIDDEN"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND_SD_KB_COMMENT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/media": {
+      "post": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Enviar mídia do editor",
+        "operationId": "postWorkspacesByIdServicedeskKnowledgeByArticleIdMedia",
+        "description": "Multipart, campo `file`. Imagem até 10 MB, vídeo 200 MB, áudio 50 MB, documento 25 MB. Guarda no bucket privado `servicedesk` e devolve a URL estável servida pela API.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário (limite de upload); ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mídia salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbMedia"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_14"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_SD_ATTACHMENT_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/media/{fileName}": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Baixar mídia do artigo",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeByArticleIdMediaByFileName",
+        "description": "Arquivo como gravado (mesma regra de leitura do artigo).\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "description": "Nome do arquivo (`<cuid>.<ext>`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Arquivo.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/move": {
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Mover/reordenar artigo",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleIdMove",
+        "description": "Muda o pai e a posição entre os irmãos (renumerados). Não aceita o próprio artigo, um descendente ou um destino arquivado.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "parentId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "position": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": ["parentId", "position"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Movido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_KB_ARTICLE_MOVE_INVALID_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/related": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Artigos relacionados",
+        "operationId": "getWorkspacesByIdServicedeskKnowledgeByArticleIdRelated",
+        "description": "Mesma categoria ou alguma tag em comum (até 5).\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Relacionados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdKbArticleSummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/restore": {
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Restaurar artigo arquivado",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleIdRestore",
+        "description": "Traz de volta o artigo e o que foi arquivado junto; com o pai ainda arquivado, volta para a raiz.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restaurado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/status": {
+      "patch": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Publicar ou voltar para rascunho",
+        "operationId": "patchWorkspacesByIdServicedeskKnowledgeByArticleIdStatus",
+        "description": "Publicar carimba `publishedAt`; exige título e artigo não arquivado.\n\nAcesso: só **agentes** (membros de um departamento ou admins do módulo) com `sd-knowledge` × `EDIT` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["DRAFT", "PUBLISHED"]
+                  }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status salvo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/view": {
+      "post": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Registrar visualização",
+        "operationId": "postWorkspacesByIdServicedeskKnowledgeByArticleIdView",
+        "description": "Conta uma vez por usuário por dia (Redis).\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contagem.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbViewResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/knowledge/{articleId}/vote": {
+      "put": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Votar \"Este artigo ajudou?\"",
+        "operationId": "putWorkspacesByIdServicedeskKnowledgeByArticleIdVote",
+        "description": "Um voto por usuário: `true`/`false` grava ou troca, `null` retira.\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "ID do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "helpful": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["helpful"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Totais.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdKbVoteResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR_5"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/tickets/{ticketId}/kb-links": {
+      "get": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Artigos vinculados ao chamado",
+        "operationId": "getWorkspacesByIdServicedeskTicketsByTicketIdKbLinks",
+        "description": "Base da aba \"Conhecimento\" do chamado. Solicitante: só nos chamados que abriu ou em que participa, e só artigos do portal.\n\nAcesso: sessão + membro com o módulo **ServiceDesk** e `sd-knowledge` × `VIEW`. **Agentes** veem tudo; **solicitantes** só artigos publicados com visibilidade portal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "ID do chamado.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vínculos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdTicketKbLink"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Vincular artigo ao chamado",
+        "operationId": "postWorkspacesByIdServicedeskTicketsByTicketIdKbLinks",
+        "description": "Idempotente.\n\nAcesso: só **agentes** com `sd-tickets` × `EDIT`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "ID do chamado.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "articleId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": ["articleId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Vínculo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTicketKbLink"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_KB_ARTICLE_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Base de conhecimento"],
+        "summary": "Desvincular artigo do chamado",
+        "operationId": "deleteWorkspacesByIdServicedeskTicketsByTicketIdKbLinks",
+        "description": "Idempotente. O artigo vai na query (`articleId`).\n\nAcesso: só **agentes** com `sd-tickets` × `EDIT`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "ID do chamado.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "articleId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desvinculado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/whatsapp/ai-config": {
       "get": {
         "tags": ["Comunicação · IA"],
@@ -34289,7 +36369,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE"
@@ -34466,7 +36546,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34733,7 +36813,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_BROADCAST_NOT_FOUND"
@@ -34856,7 +36936,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_39"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -35292,7 +37372,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -35377,7 +37457,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "409": {
             "$ref": "#/components/responses/409_CONFLICT_2"
@@ -35458,7 +37538,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -35567,7 +37647,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -35636,7 +37716,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -35784,7 +37864,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -36012,7 +38092,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -36377,7 +38457,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -37434,7 +39514,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -37501,7 +39581,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -37581,7 +39661,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
@@ -37650,7 +39730,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
@@ -37716,7 +39796,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
@@ -38167,7 +40247,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
@@ -38287,7 +40367,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_6"
@@ -38395,7 +40475,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
@@ -38473,7 +40553,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
@@ -38540,7 +40620,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -38621,7 +40701,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -38690,7 +40770,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_GROUP_NOT_FOUND"
@@ -38777,7 +40857,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -38865,7 +40945,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -38941,7 +41021,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -39010,7 +41090,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -39100,7 +41180,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_GROUP_NOT_FOUND"
@@ -39188,7 +41268,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -39280,7 +41360,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -39370,7 +41450,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_9"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -39502,7 +41582,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -39584,7 +41664,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34"
           },
           "409": {
             "$ref": "#/components/responses/409_WHATSAPP_QUICK_REPLY_CONFLICT"
@@ -39682,7 +41762,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
@@ -39754,7 +41834,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
@@ -39811,7 +41891,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -40280,7 +42360,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -40343,7 +42423,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -40829,7 +42909,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -40898,7 +42978,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -40961,7 +43041,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -41032,7 +43112,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -41247,7 +43327,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -41428,7 +43508,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -41509,7 +43589,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -42013,6 +44093,28 @@
         }
       },
       "400_BAD_REQUEST_14": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
+                "summary": "BAD_REQUEST",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_15": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -42882,7 +44984,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `EDIT`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -42904,7 +45006,7 @@
                 }
               },
               "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED",
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -42927,7 +45029,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `VIEW`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `EDIT`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -42972,7 +45074,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `VIEW`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43017,7 +45119,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `CREATE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43062,18 +45164,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `CREATE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43129,7 +45220,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `DELETE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43185,7 +45276,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `EDIT`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `DELETE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43230,6 +45321,118 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
@@ -43266,7 +45469,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43311,7 +45514,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43356,7 +45559,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43401,7 +45604,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43446,107 +45649,6 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `VIEW`",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Permissão insuficiente",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `message-templates` × `CREATE`",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Permissão insuficiente",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
@@ -43556,18 +45658,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `CREATE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43623,7 +45714,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `DELETE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `message-templates` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43679,7 +45770,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `EDIT`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -43716,6 +45807,118 @@
         }
       },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `DELETE`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43782,7 +45985,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43838,7 +46041,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43883,7 +46086,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43928,7 +46131,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -43973,7 +46176,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44018,7 +46221,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44063,7 +46266,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44108,7 +46311,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44153,7 +46356,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44198,7 +46401,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44243,7 +46446,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_38": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44299,7 +46502,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_39": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -44594,6 +46797,319 @@
                   "message": "Esta funcionalidade não está disponível para este workspace",
                   "error": {
                     "code": "FEATURE_NOT_ENABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento) tentando editar",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento) tentando editar",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_3": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_SD_KB_COMMENT_FORBIDDEN": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`, `SD_KB_COMMENT_FORBIDDEN`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento) tentando editar",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_KB_COMMENT_FORBIDDEN": {
+                "summary": "SD_KB_COMMENT_FORBIDDEN",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não pode alterar este comentário",
+                  "error": {
+                    "code": "SD_KB_COMMENT_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
                   }
                 }
               }
@@ -46934,6 +49450,188 @@
           }
         }
       },
+      "404_SD_CATEGORY_NOT_FOUND_SD_KB_ARTICLE_NOT_FOUND": {
+        "description": "Não encontrado: `SD_CATEGORY_NOT_FOUND`, `SD_KB_ARTICLE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_KB_ARTICLE_NOT_FOUND": {
+                "summary": "SD_KB_ARTICLE_NOT_FOUND — Artigo inexistente, de outro workspace ou (solicitante) fora do portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Artigo não encontrado",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_CATEGORY_NOT_FOUND": {
+                "summary": "SD_CATEGORY_NOT_FOUND — Categoria inexistente, inativa ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Categoria não encontrada",
+                  "error": {
+                    "code": "SD_CATEGORY_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_KB_ARTICLE_NOT_FOUND": {
+        "description": "Não encontrado: `SD_KB_ARTICLE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_KB_ARTICLE_NOT_FOUND": {
+                "summary": "SD_KB_ARTICLE_NOT_FOUND — Artigo inexistente, de outro workspace ou (solicitante) fora do portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Artigo não encontrado",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_KB_ARTICLE_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND": {
+        "description": "Não encontrado: `SD_KB_ARTICLE_NOT_FOUND`, `SD_ATTACHMENT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_KB_ARTICLE_NOT_FOUND": {
+                "summary": "SD_KB_ARTICLE_NOT_FOUND — Artigo inexistente, de outro workspace ou (solicitante) fora do portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Artigo não encontrado",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_ATTACHMENT_NOT_FOUND": {
+                "summary": "SD_ATTACHMENT_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Anexo não encontrado",
+                  "error": {
+                    "code": "SD_ATTACHMENT_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_KB_ARTICLE_NOT_FOUND_SD_KB_COMMENT_NOT_FOUND": {
+        "description": "Não encontrado: `SD_KB_ARTICLE_NOT_FOUND`, `SD_KB_COMMENT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_KB_ARTICLE_NOT_FOUND": {
+                "summary": "SD_KB_ARTICLE_NOT_FOUND — Artigo inexistente, de outro workspace ou (solicitante) fora do portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Artigo não encontrado",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_KB_COMMENT_NOT_FOUND": {
+                "summary": "SD_KB_COMMENT_NOT_FOUND — Comentário inexistente ou de outro artigo",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Comentário não encontrado",
+                  "error": {
+                    "code": "SD_KB_COMMENT_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_TICKET_NOT_FOUND": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_TICKET_NOT_FOUND_SD_KB_ARTICLE_NOT_FOUND": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_KB_ARTICLE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_KB_ARTICLE_NOT_FOUND": {
+                "summary": "SD_KB_ARTICLE_NOT_FOUND — Artigo inexistente, de outro workspace ou (solicitante) fora do portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Artigo não encontrado",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND": {
         "description": "Não encontrado: `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND`",
         "content": {
@@ -48755,6 +51453,29 @@
           }
         }
       },
+      "422_SD_ATTACHMENT_INVALID": {
+        "description": "Dados inválidos: `SD_ATTACHMENT_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_ATTACHMENT_INVALID": {
+                "summary": "SD_ATTACHMENT_INVALID",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Arquivo inválido (tipo ou tamanho não permitido)",
+                  "error": {
+                    "code": "SD_ATTACHMENT_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_VALIDATION_ERROR": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
@@ -49997,6 +52718,129 @@
           }
         }
       },
+      "422_VALIDATION_ERROR_SD_KB_ARTICLE_MOVE_INVALID": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_KB_ARTICLE_MOVE_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_KB_ARTICLE_MOVE_INVALID": {
+                "summary": "SD_KB_ARTICLE_MOVE_INVALID — Pai arquivado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Um artigo não pode ficar dentro dele mesmo ou de um subartigo",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_MOVE_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_KB_ARTICLE_MOVE_INVALID_2": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_KB_ARTICLE_MOVE_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_KB_ARTICLE_MOVE_INVALID": {
+                "summary": "SD_KB_ARTICLE_MOVE_INVALID",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Um artigo não pode ficar dentro dele mesmo ou de um subartigo",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_MOVE_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_KB_COMMENT_NESTING_TOO_DEEP": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_KB_COMMENT_NESTING_TOO_DEEP`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_KB_COMMENT_NESTING_TOO_DEEP": {
+                "summary": "SD_KB_COMMENT_NESTING_TOO_DEEP",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Respostas só podem ser feitas a um comentário raiz",
+                  "error": {
+                    "code": "SD_KB_COMMENT_NESTING_TOO_DEEP"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_VALIDATION_ERROR_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE": {
         "description": "Dados inválidos: `VALIDATION_ERROR`, `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE`",
         "content": {
@@ -50747,6 +53591,29 @@
         }
       },
       "500_STORAGE_ERROR_5": {
+        "description": "Erro interno: `STORAGE_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "STORAGE_ERROR": {
+                "summary": "STORAGE_ERROR — Redis indisponível",
+                "value": {
+                  "success": false,
+                  "statusCode": 500,
+                  "message": "Falha ao armazenar o arquivo",
+                  "error": {
+                    "code": "STORAGE_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500_STORAGE_ERROR_6": {
         "description": "Erro interno: `STORAGE_ERROR`",
         "content": {
           "application/json": {
@@ -65213,6 +68080,10 @@
           "SD_CUSTOM_FIELD_INVALID",
           "SD_KB_ARTICLE_NOT_FOUND",
           "SD_KB_ARTICLE_FORBIDDEN",
+          "SD_KB_ARTICLE_MOVE_INVALID",
+          "SD_KB_COMMENT_NOT_FOUND",
+          "SD_KB_COMMENT_FORBIDDEN",
+          "SD_KB_COMMENT_NESTING_TOO_DEEP",
           "SD_ATTACHMENT_NOT_FOUND",
           "SD_ATTACHMENT_INVALID",
           "SD_CEP_NOT_FOUND",
@@ -65231,7 +68102,7 @@
           "ANALYTICS_QUERY_FAILED",
           "BACKUP_FAILED"
         ],
-        "description": "Código estável do erro (fonte: `src/errors/codes.ts`). Use o código — não a mensagem — para tratar erros no cliente.\n\n| Código | Status HTTP |\n| ------ | ----------- |\n| `UNAUTHORIZED` | 401 |\n| `INVALID_TOKEN` | 401 |\n| `TOKEN_EXPIRED` | 401 |\n| `INVALID_CREDENTIALS` | 401 |\n| `FORBIDDEN` | 403 |\n| `INSUFFICIENT_PERMISSIONS` | 403 |\n| `PROJECT_FORBIDDEN` | 403 |\n| `SEAT_LIMIT_REACHED` | 403 |\n| `FEATURE_NOT_IN_PLAN` | 403 |\n| `CONNECTION_FORBIDDEN` | 403 |\n| `MODULE_DISABLED` | 403 |\n| `WORKSPACE_SUSPENDED` | 403 |\n| `BACKUP_DOWNLOAD_LINK_INVALID` | 403 |\n| `BAD_REQUEST` | 400 |\n| `VALIDATION_ERROR` | 422 |\n| `RESOURCE_NOT_FOUND` | 404 |\n| `CONFLICT` | 409 |\n| `USERNAME_CONFLICT` | 409 |\n| `RATE_LIMITED` | 429 |\n| `PROJECT_NOT_FOUND` | 404 |\n| `PROJECT_SLUG_CONFLICT` | 409 |\n| `INVITATION_NOT_FOUND` | 404 |\n| `INVITATION_NOT_PENDING` | 409 |\n| `INVITATION_EXPIRED` | 410 |\n| `INVITATION_EMAIL_MISMATCH` | 403 |\n| `INVITATION_DUPLICATE` | 409 |\n| `INVITATION_ALREADY_MEMBER` | 409 |\n| `PROJECT_MEMBER_ALREADY_EXISTS` | 409 |\n| `PROJECT_MEMBER_NOT_FOUND` | 404 |\n| `PROJECT_MEMBER_NOT_IN_WORKSPACE` | 409 |\n| `COUPON_INVALID` | 422 |\n| `CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_CONFLICT` | 409 |\n| `WHATSAPP_CONTACT_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `WHATSAPP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_ALREADY_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_NOT_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_AI_HANDLING` | 409 |\n| `WHATSAPP_QUICK_REPLY_NOT_FOUND` | 404 |\n| `WHATSAPP_QUICK_REPLY_CONFLICT` | 409 |\n| `WHATSAPP_TEMPLATE_NOT_FOUND` | 404 |\n| `WHATSAPP_TEMPLATE_NOT_APPROVED` | 422 |\n| `WHATSAPP_BROADCAST_NOT_FOUND` | 404 |\n| `WHATSAPP_BROADCAST_LOCKED` | 409 |\n| `WHATSAPP_BROADCAST_MEDIA_INVALID` | 422 |\n| `WHATSAPP_BROADCAST_NO_RECIPIENTS` | 422 |\n| `WHATSAPP_AI_CONFIG_NOT_FOUND` | 404 |\n| `WHATSAPP_PROVIDER_ERROR` | 502 |\n| `WHATSAPP_WEBHOOK_UNAUTHORIZED` | 401 |\n| `WHATSAPP_GROUP_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED` | 422 |\n| `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE` | 422 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND` | 404 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE` | 422 |\n| `CRM_COMPANY_NOT_FOUND` | 404 |\n| `CRM_COMPANY_CONFLICT` | 409 |\n| `CRM_PERSON_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_IN_USE` | 409 |\n| `CRM_PRODUCT_NOT_FOUND` | 404 |\n| `CRM_PRODUCT_CONFLICT` | 409 |\n| `CRM_OPPORTUNITY_NOT_FOUND` | 404 |\n| `CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND` | 404 |\n| `CRM_LEAD_NOT_FOUND` | 404 |\n| `CRM_LEAD_ALREADY_CONVERTED` | 409 |\n| `CRM_LEAD_SCORING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_ROUTING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_STAGE_TRANSITION_INVALID` | 409 |\n| `CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET` | 422 |\n| `CRM_LEAD_ALREADY_CLOSED` | 409 |\n| `CRM_LEAD_QUALIFICATION_NOT_FOUND` | 404 |\n| `CRM_LEAD_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_LEAD_DUPLICATE` | 409 |\n| `CRM_LEAD_REOPEN_NOT_ALLOWED` | 409 |\n| `CRM_CUSTOM_FIELD_NOT_FOUND` | 404 |\n| `CRM_CUSTOM_FIELD_CONFLICT` | 409 |\n| `CRM_CUSTOM_FIELD_INVALID` | 422 |\n| `CRM_TASK_NOT_FOUND` | 404 |\n| `CRM_NOTE_NOT_FOUND` | 404 |\n| `CRM_QUOTA_NOT_FOUND` | 404 |\n| `CRM_QUOTA_CONFLICT` | 409 |\n| `CRM_REPORT_NOT_FOUND` | 404 |\n| `CRM_REPORT_INVALID_SOURCE` | 422 |\n| `CRM_DASHBOARD_NOT_FOUND` | 404 |\n| `CRM_DASHBOARD_WIDGET_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_EXPIRED` | 409 |\n| `CRM_PROPOSAL_NOT_ACCEPTABLE` | 409 |\n| `CRM_PROPOSAL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_PUBLISHED` | 422 |\n| `CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `CRM_AI_NOT_CONFIGURED` | 503 |\n| `CRM_INTEGRATION_KEY_NOT_FOUND` | 404 |\n| `CRM_INTEGRATION_KEY_INVALID` | 401 |\n| `CRM_EMAIL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_ALREADY_SENT` | 409 |\n| `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS` | 422 |\n| `CRM_EMAIL_UNSUBSCRIBE_INVALID` | 400 |\n| `CRM_MAILING_LIST_NOT_FOUND` | 404 |\n| `CRM_MAILING_LIST_MEMBER_CONFLICT` | 409 |\n| `CRM_WORKFLOW_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_NOT_ACTIVE` | 409 |\n| `CRM_WORKFLOW_VERSION_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_VERSION_NOT_DRAFT` | 409 |\n| `CRM_WORKFLOW_INVALID_DEFINITION` | 422 |\n| `CRM_WORKFLOW_EXECUTION_FAILED` | 500 |\n| `CRM_WORKFLOW_WEBHOOK_INVALID` | 404 |\n| `CRM_LANDING_PAGE_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_CONFLICT` | 409 |\n| `CRM_SOCIAL_OAUTH_FAILED` | 502 |\n| `CRM_SOCIAL_STATE_INVALID` | 400 |\n| `CRM_SOCIAL_NOT_CONFIGURED` | 503 |\n| `CRM_SOCIAL_NO_PAGE` | 422 |\n| `CRM_SOCIAL_IG_NOT_LINKED` | 422 |\n| `CRM_SOCIAL_TOKEN_EXPIRED` | 409 |\n| `CRM_SOCIAL_SCOPE_MISSING` | 409 |\n| `CRM_SOCIAL_VIDEO_INVALID` | 422 |\n| `CRM_COMPETITOR_PROFILE_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_ALREADY_PUBLISHED` | 409 |\n| `CRM_SCHEDULED_POST_INVALID` | 400 |\n| `CRM_EMAIL_ACCOUNT_NOT_FOUND` | 404 |\n| `CRM_EMAIL_ACCOUNT_CONFLICT` | 409 |\n| `CRM_EMAIL_MESSAGE_NOT_FOUND` | 404 |\n| `CRM_CALENDAR_EVENT_NOT_FOUND` | 404 |\n| `CRM_AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `PROFILE_NOT_FOUND` | 404 |\n| `PROFILE_NAME_TAKEN` | 409 |\n| `PROFILE_SYSTEM_PROTECTED` | 409 |\n| `PROFILE_IN_USE` | 409 |\n| `CRM_HOOK_VAULT_ITEM_NOT_FOUND` | 404 |\n| `CRM_TRACKED_COMPETITOR_NOT_FOUND` | 404 |\n| `CHANGELOG_NOT_FOUND` | 404 |\n| `CHANGELOG_LOCKED` | 409 |\n| `BACKUP_NOT_FOUND` | 404 |\n| `BACKUP_NOT_RESTORABLE` | 409 |\n| `WORKSPACE_STATUS_CONFLICT` | 409 |\n| `WORKSPACE_OPERATION_IN_PROGRESS` | 409 |\n| `WORKSPACE_CONFIRMATION_MISMATCH` | 422 |\n| `AI_QUOTA_EXCEEDED` | 402 |\n| `AI_MODEL_NOT_ENABLED` | 422 |\n| `AI_PROVIDER_UNAVAILABLE` | 503 |\n| `FEATURE_NOT_ENABLED` | 403 |\n| `SD_TICKET_NOT_FOUND` | 404 |\n| `SD_TICKET_FORBIDDEN` | 403 |\n| `SD_NOT_AGENT` | 403 |\n| `SD_TICKET_CLOSED` | 409 |\n| `SD_PHASE_NOT_FOUND` | 404 |\n| `SD_PHASE_TRANSITION_NOT_ALLOWED` | 422 |\n| `SD_PHASE_REQUIREMENTS_UNMET` | 422 |\n| `SD_APPROVAL_REQUIRED` | 422 |\n| `SD_APPROVAL_NOT_FOUND` | 404 |\n| `SD_APPROVAL_NOT_PENDING` | 409 |\n| `SD_APPROVAL_EXPIRED` | 410 |\n| `SD_SIGNATURE_REQUIRED` | 422 |\n| `SD_CATEGORY_NOT_FOUND` | 404 |\n| `SD_CATEGORY_LEVEL_INVALID` | 422 |\n| `SD_DEPARTMENT_NOT_FOUND` | 404 |\n| `SD_DEPARTMENT_DEPTH_EXCEEDED` | 422 |\n| `SD_CUSTOMER_NOT_FOUND` | 404 |\n| `SD_CUSTOMER_DOCUMENT_CONFLICT` | 409 |\n| `SD_DOCUMENT_INVALID` | 422 |\n| `SD_CONTACT_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_NOT_FOUND` | 404 |\n| `SD_CONFIG_NOT_FOUND` | 404 |\n| `SD_CONFIG_CONFLICT` | 409 |\n| `SD_CUSTOM_FIELD_INVALID` | 422 |\n| `SD_KB_ARTICLE_NOT_FOUND` | 404 |\n| `SD_KB_ARTICLE_FORBIDDEN` | 403 |\n| `SD_ATTACHMENT_NOT_FOUND` | 404 |\n| `SD_ATTACHMENT_INVALID` | 422 |\n| `SD_CEP_NOT_FOUND` | 404 |\n| `SD_CEP_LOOKUP_FAILED` | 502 |\n| `SD_PORTAL_DISABLED` | 403 |\n| `SD_WHATSAPP_NOT_CONFIGURED` | 422 |\n| `SD_AI_DISABLED` | 403 |\n| `INTERNAL_SERVER_ERROR` | 500 |\n| `DATABASE_ERROR` | 500 |\n| `STORAGE_ERROR` | 500 |\n| `PAYMENT_ERROR` | 502 |\n| `SUBSCRIPTION_CANCEL_FAILED` | 502 |\n| `MAIL_ERROR` | 502 |\n| `CONNECTION_TEST_FAILED` | 502 |\n| `RELEASE_NOTES_UNAVAILABLE` | 502 |\n| `ANALYTICS_QUERY_FAILED` | 502 |\n| `BACKUP_FAILED` | 500 |"
+        "description": "Código estável do erro (fonte: `src/errors/codes.ts`). Use o código — não a mensagem — para tratar erros no cliente.\n\n| Código | Status HTTP |\n| ------ | ----------- |\n| `UNAUTHORIZED` | 401 |\n| `INVALID_TOKEN` | 401 |\n| `TOKEN_EXPIRED` | 401 |\n| `INVALID_CREDENTIALS` | 401 |\n| `FORBIDDEN` | 403 |\n| `INSUFFICIENT_PERMISSIONS` | 403 |\n| `PROJECT_FORBIDDEN` | 403 |\n| `SEAT_LIMIT_REACHED` | 403 |\n| `FEATURE_NOT_IN_PLAN` | 403 |\n| `CONNECTION_FORBIDDEN` | 403 |\n| `MODULE_DISABLED` | 403 |\n| `WORKSPACE_SUSPENDED` | 403 |\n| `BACKUP_DOWNLOAD_LINK_INVALID` | 403 |\n| `BAD_REQUEST` | 400 |\n| `VALIDATION_ERROR` | 422 |\n| `RESOURCE_NOT_FOUND` | 404 |\n| `CONFLICT` | 409 |\n| `USERNAME_CONFLICT` | 409 |\n| `RATE_LIMITED` | 429 |\n| `PROJECT_NOT_FOUND` | 404 |\n| `PROJECT_SLUG_CONFLICT` | 409 |\n| `INVITATION_NOT_FOUND` | 404 |\n| `INVITATION_NOT_PENDING` | 409 |\n| `INVITATION_EXPIRED` | 410 |\n| `INVITATION_EMAIL_MISMATCH` | 403 |\n| `INVITATION_DUPLICATE` | 409 |\n| `INVITATION_ALREADY_MEMBER` | 409 |\n| `PROJECT_MEMBER_ALREADY_EXISTS` | 409 |\n| `PROJECT_MEMBER_NOT_FOUND` | 404 |\n| `PROJECT_MEMBER_NOT_IN_WORKSPACE` | 409 |\n| `COUPON_INVALID` | 422 |\n| `CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_CONFLICT` | 409 |\n| `WHATSAPP_CONTACT_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `WHATSAPP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_ALREADY_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_NOT_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_AI_HANDLING` | 409 |\n| `WHATSAPP_QUICK_REPLY_NOT_FOUND` | 404 |\n| `WHATSAPP_QUICK_REPLY_CONFLICT` | 409 |\n| `WHATSAPP_TEMPLATE_NOT_FOUND` | 404 |\n| `WHATSAPP_TEMPLATE_NOT_APPROVED` | 422 |\n| `WHATSAPP_BROADCAST_NOT_FOUND` | 404 |\n| `WHATSAPP_BROADCAST_LOCKED` | 409 |\n| `WHATSAPP_BROADCAST_MEDIA_INVALID` | 422 |\n| `WHATSAPP_BROADCAST_NO_RECIPIENTS` | 422 |\n| `WHATSAPP_AI_CONFIG_NOT_FOUND` | 404 |\n| `WHATSAPP_PROVIDER_ERROR` | 502 |\n| `WHATSAPP_WEBHOOK_UNAUTHORIZED` | 401 |\n| `WHATSAPP_GROUP_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED` | 422 |\n| `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE` | 422 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND` | 404 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE` | 422 |\n| `CRM_COMPANY_NOT_FOUND` | 404 |\n| `CRM_COMPANY_CONFLICT` | 409 |\n| `CRM_PERSON_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_IN_USE` | 409 |\n| `CRM_PRODUCT_NOT_FOUND` | 404 |\n| `CRM_PRODUCT_CONFLICT` | 409 |\n| `CRM_OPPORTUNITY_NOT_FOUND` | 404 |\n| `CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND` | 404 |\n| `CRM_LEAD_NOT_FOUND` | 404 |\n| `CRM_LEAD_ALREADY_CONVERTED` | 409 |\n| `CRM_LEAD_SCORING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_ROUTING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_STAGE_TRANSITION_INVALID` | 409 |\n| `CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET` | 422 |\n| `CRM_LEAD_ALREADY_CLOSED` | 409 |\n| `CRM_LEAD_QUALIFICATION_NOT_FOUND` | 404 |\n| `CRM_LEAD_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_LEAD_DUPLICATE` | 409 |\n| `CRM_LEAD_REOPEN_NOT_ALLOWED` | 409 |\n| `CRM_CUSTOM_FIELD_NOT_FOUND` | 404 |\n| `CRM_CUSTOM_FIELD_CONFLICT` | 409 |\n| `CRM_CUSTOM_FIELD_INVALID` | 422 |\n| `CRM_TASK_NOT_FOUND` | 404 |\n| `CRM_NOTE_NOT_FOUND` | 404 |\n| `CRM_QUOTA_NOT_FOUND` | 404 |\n| `CRM_QUOTA_CONFLICT` | 409 |\n| `CRM_REPORT_NOT_FOUND` | 404 |\n| `CRM_REPORT_INVALID_SOURCE` | 422 |\n| `CRM_DASHBOARD_NOT_FOUND` | 404 |\n| `CRM_DASHBOARD_WIDGET_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_EXPIRED` | 409 |\n| `CRM_PROPOSAL_NOT_ACCEPTABLE` | 409 |\n| `CRM_PROPOSAL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_PUBLISHED` | 422 |\n| `CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `CRM_AI_NOT_CONFIGURED` | 503 |\n| `CRM_INTEGRATION_KEY_NOT_FOUND` | 404 |\n| `CRM_INTEGRATION_KEY_INVALID` | 401 |\n| `CRM_EMAIL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_ALREADY_SENT` | 409 |\n| `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS` | 422 |\n| `CRM_EMAIL_UNSUBSCRIBE_INVALID` | 400 |\n| `CRM_MAILING_LIST_NOT_FOUND` | 404 |\n| `CRM_MAILING_LIST_MEMBER_CONFLICT` | 409 |\n| `CRM_WORKFLOW_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_NOT_ACTIVE` | 409 |\n| `CRM_WORKFLOW_VERSION_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_VERSION_NOT_DRAFT` | 409 |\n| `CRM_WORKFLOW_INVALID_DEFINITION` | 422 |\n| `CRM_WORKFLOW_EXECUTION_FAILED` | 500 |\n| `CRM_WORKFLOW_WEBHOOK_INVALID` | 404 |\n| `CRM_LANDING_PAGE_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_CONFLICT` | 409 |\n| `CRM_SOCIAL_OAUTH_FAILED` | 502 |\n| `CRM_SOCIAL_STATE_INVALID` | 400 |\n| `CRM_SOCIAL_NOT_CONFIGURED` | 503 |\n| `CRM_SOCIAL_NO_PAGE` | 422 |\n| `CRM_SOCIAL_IG_NOT_LINKED` | 422 |\n| `CRM_SOCIAL_TOKEN_EXPIRED` | 409 |\n| `CRM_SOCIAL_SCOPE_MISSING` | 409 |\n| `CRM_SOCIAL_VIDEO_INVALID` | 422 |\n| `CRM_COMPETITOR_PROFILE_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_ALREADY_PUBLISHED` | 409 |\n| `CRM_SCHEDULED_POST_INVALID` | 400 |\n| `CRM_EMAIL_ACCOUNT_NOT_FOUND` | 404 |\n| `CRM_EMAIL_ACCOUNT_CONFLICT` | 409 |\n| `CRM_EMAIL_MESSAGE_NOT_FOUND` | 404 |\n| `CRM_CALENDAR_EVENT_NOT_FOUND` | 404 |\n| `CRM_AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `PROFILE_NOT_FOUND` | 404 |\n| `PROFILE_NAME_TAKEN` | 409 |\n| `PROFILE_SYSTEM_PROTECTED` | 409 |\n| `PROFILE_IN_USE` | 409 |\n| `CRM_HOOK_VAULT_ITEM_NOT_FOUND` | 404 |\n| `CRM_TRACKED_COMPETITOR_NOT_FOUND` | 404 |\n| `CHANGELOG_NOT_FOUND` | 404 |\n| `CHANGELOG_LOCKED` | 409 |\n| `BACKUP_NOT_FOUND` | 404 |\n| `BACKUP_NOT_RESTORABLE` | 409 |\n| `WORKSPACE_STATUS_CONFLICT` | 409 |\n| `WORKSPACE_OPERATION_IN_PROGRESS` | 409 |\n| `WORKSPACE_CONFIRMATION_MISMATCH` | 422 |\n| `AI_QUOTA_EXCEEDED` | 402 |\n| `AI_MODEL_NOT_ENABLED` | 422 |\n| `AI_PROVIDER_UNAVAILABLE` | 503 |\n| `FEATURE_NOT_ENABLED` | 403 |\n| `SD_TICKET_NOT_FOUND` | 404 |\n| `SD_TICKET_FORBIDDEN` | 403 |\n| `SD_NOT_AGENT` | 403 |\n| `SD_TICKET_CLOSED` | 409 |\n| `SD_PHASE_NOT_FOUND` | 404 |\n| `SD_PHASE_TRANSITION_NOT_ALLOWED` | 422 |\n| `SD_PHASE_REQUIREMENTS_UNMET` | 422 |\n| `SD_APPROVAL_REQUIRED` | 422 |\n| `SD_APPROVAL_NOT_FOUND` | 404 |\n| `SD_APPROVAL_NOT_PENDING` | 409 |\n| `SD_APPROVAL_EXPIRED` | 410 |\n| `SD_SIGNATURE_REQUIRED` | 422 |\n| `SD_CATEGORY_NOT_FOUND` | 404 |\n| `SD_CATEGORY_LEVEL_INVALID` | 422 |\n| `SD_DEPARTMENT_NOT_FOUND` | 404 |\n| `SD_DEPARTMENT_DEPTH_EXCEEDED` | 422 |\n| `SD_CUSTOMER_NOT_FOUND` | 404 |\n| `SD_CUSTOMER_DOCUMENT_CONFLICT` | 409 |\n| `SD_DOCUMENT_INVALID` | 422 |\n| `SD_CONTACT_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_NOT_FOUND` | 404 |\n| `SD_CONFIG_NOT_FOUND` | 404 |\n| `SD_CONFIG_CONFLICT` | 409 |\n| `SD_CUSTOM_FIELD_INVALID` | 422 |\n| `SD_KB_ARTICLE_NOT_FOUND` | 404 |\n| `SD_KB_ARTICLE_FORBIDDEN` | 403 |\n| `SD_KB_ARTICLE_MOVE_INVALID` | 422 |\n| `SD_KB_COMMENT_NOT_FOUND` | 404 |\n| `SD_KB_COMMENT_FORBIDDEN` | 403 |\n| `SD_KB_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `SD_ATTACHMENT_NOT_FOUND` | 404 |\n| `SD_ATTACHMENT_INVALID` | 422 |\n| `SD_CEP_NOT_FOUND` | 404 |\n| `SD_CEP_LOOKUP_FAILED` | 502 |\n| `SD_PORTAL_DISABLED` | 403 |\n| `SD_WHATSAPP_NOT_CONFIGURED` | 422 |\n| `SD_AI_DISABLED` | 403 |\n| `INTERNAL_SERVER_ERROR` | 500 |\n| `DATABASE_ERROR` | 500 |\n| `STORAGE_ERROR` | 500 |\n| `PAYMENT_ERROR` | 502 |\n| `SUBSCRIPTION_CANCEL_FAILED` | 502 |\n| `MAIL_ERROR` | 502 |\n| `CONNECTION_TEST_FAILED` | 502 |\n| `RELEASE_NOTES_UNAVAILABLE` | 502 |\n| `ANALYTICS_QUERY_FAILED` | 502 |\n| `BACKUP_FAILED` | 500 |"
       },
       "ErrorResponse": {
         "type": "object",
@@ -65614,6 +68485,832 @@
           }
         },
         "required": ["userId", "name", "username", "image", "isLead", "createdAt"]
+      },
+      "SdKbArticle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1kbart0000ab7d3k1e5xyz"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Como redefinir a senha da VPN"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "🔐"
+          },
+          "coverImage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "PUBLISHED"]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["INTERNAL", "PORTAL"],
+            "description": "`PORTAL`: solicitantes leem quando publicado."
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["vpn", "acesso"]
+          },
+          "position": {
+            "type": "number"
+          },
+          "viewCount": {
+            "type": "number"
+          },
+          "helpfulCount": {
+            "type": "number"
+          },
+          "notHelpfulCount": {
+            "type": "number"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "description": "Documento do editor Plate (lista de blocos).",
+            "example": [
+              {
+                "type": "p",
+                "children": [
+                  {
+                    "text": "Reinicie o cliente VPN."
+                  }
+                ]
+              }
+            ]
+          },
+          "readingMinutes": {
+            "type": "number",
+            "example": 3
+          },
+          "createdById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "name", "image"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "name", "image"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "name", "icon"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "myVote": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["up", "down"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "parentId",
+          "title",
+          "icon",
+          "coverImage",
+          "status",
+          "visibility",
+          "categoryId",
+          "tags",
+          "position",
+          "viewCount",
+          "helpfulCount",
+          "notHelpfulCount",
+          "publishedAt",
+          "archivedAt",
+          "createdAt",
+          "updatedAt",
+          "content",
+          "readingMinutes",
+          "createdById",
+          "updatedById",
+          "createdBy",
+          "updatedBy",
+          "category",
+          "myVote"
+        ]
+      },
+      "SdKbArticleSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1kbart0000ab7d3k1e5xyz"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Como redefinir a senha da VPN"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "🔐"
+          },
+          "coverImage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "PUBLISHED"]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["INTERNAL", "PORTAL"],
+            "description": "`PORTAL`: solicitantes leem quando publicado."
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["vpn", "acesso"]
+          },
+          "position": {
+            "type": "number"
+          },
+          "viewCount": {
+            "type": "number"
+          },
+          "helpfulCount": {
+            "type": "number"
+          },
+          "notHelpfulCount": {
+            "type": "number"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "parentId",
+          "title",
+          "icon",
+          "coverImage",
+          "status",
+          "visibility",
+          "categoryId",
+          "tags",
+          "position",
+          "viewCount",
+          "helpfulCount",
+          "notHelpfulCount",
+          "publishedAt",
+          "archivedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SdKbCategory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "Acesso e senhas"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "articleCount": {
+            "type": "number"
+          }
+        },
+        "required": ["id", "name", "icon", "description", "parentId", "articleCount"]
+      },
+      "SdKbComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "articleId": {
+            "type": "string"
+          },
+          "markId": {
+            "type": "string"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "description": "Documento do editor Plate (lista de blocos).",
+            "example": [
+              {
+                "type": "p",
+                "children": [
+                  {
+                    "text": "Reinicie o cliente VPN."
+                  }
+                ]
+              }
+            ]
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "name", "image"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolved": {
+            "type": "boolean"
+          },
+          "resolvedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolvedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "articleId",
+          "markId",
+          "parentId",
+          "content",
+          "author",
+          "resolved",
+          "resolvedAt",
+          "resolvedById",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SdKbMedia": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "ws1/kb/art1/ckw1file.png"
+          },
+          "url": {
+            "type": "string",
+            "example": "/api/workspaces/ws1/servicedesk/knowledge/art1/media/ckw1file.png"
+          },
+          "name": {
+            "type": "string",
+            "example": "diagrama.png"
+          }
+        },
+        "required": ["key", "url", "name"]
+      },
+      "SdKbMentionableMember": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["userId", "name", "image"]
+      },
+      "SdKbSearchResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1kbart0000ab7d3k1e5xyz"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Como redefinir a senha da VPN"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "🔐"
+          },
+          "coverImage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "PUBLISHED"]
+          },
+          "visibility": {
+            "type": "string",
+            "enum": ["INTERNAL", "PORTAL"],
+            "description": "`PORTAL`: solicitantes leem quando publicado."
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["vpn", "acesso"]
+          },
+          "position": {
+            "type": "number"
+          },
+          "viewCount": {
+            "type": "number"
+          },
+          "helpfulCount": {
+            "type": "number"
+          },
+          "notHelpfulCount": {
+            "type": "number"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "excerpt": {
+            "type": "string",
+            "example": "…reinicie o cliente VPN e…"
+          },
+          "rank": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "parentId",
+          "title",
+          "icon",
+          "coverImage",
+          "status",
+          "visibility",
+          "categoryId",
+          "tags",
+          "position",
+          "viewCount",
+          "helpfulCount",
+          "notHelpfulCount",
+          "publishedAt",
+          "archivedAt",
+          "createdAt",
+          "updatedAt",
+          "excerpt",
+          "rank"
+        ]
+      },
+      "SdKbViewResult": {
+        "type": "object",
+        "properties": {
+          "viewCount": {
+            "type": "number"
+          },
+          "counted": {
+            "type": "boolean",
+            "description": "`false` quando o usuário já viu o artigo hoje."
+          }
+        },
+        "required": ["viewCount", "counted"]
+      },
+      "SdKbVoteResult": {
+        "type": "object",
+        "properties": {
+          "helpfulCount": {
+            "type": "number"
+          },
+          "notHelpfulCount": {
+            "type": "number"
+          },
+          "myVote": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["up", "down"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["helpfulCount", "notHelpfulCount", "myVote"]
+      },
+      "SdTicketKbLink": {
+        "type": "object",
+        "properties": {
+          "ticketId": {
+            "type": "string"
+          },
+          "article": {
+            "$ref": "#/components/schemas/SdKbArticleSummary"
+          },
+          "linkedById": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["ticketId", "article", "linkedById", "createdAt"]
       },
       "ShortLink": {
         "type": "object",

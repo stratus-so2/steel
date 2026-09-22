@@ -72,6 +72,9 @@ export type AuditEntity =
   | 'backup'
   | 'workspace_ai_settings'
   | 'user_ai_preference'
+  | 'sd_kb_article'
+  | 'sd_kb_comment'
+  | 'sd_ticket_kb_link'
 
 export type AuditAction =
   | 'create'
@@ -109,6 +112,11 @@ export type AuditAction =
   | 'suspend'
   | 'reactivate'
   | 'download'
+  | 'move'
+  | 'publish'
+  | 'unpublish'
+  | 'resolve'
+  | 'unresolve'
 
 type AuditOutcome = 'success' | 'failure'
 

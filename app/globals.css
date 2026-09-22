@@ -53,6 +53,9 @@
   --color-branding-900: oklch(0.382 0.0907 257.55);
   --color-branding-950: oklch(0.265 0.0588 261.94);
   --app: oklch(19.32% 0.002 230.81);
+  /* Editor Plate da base de conhecimento (seleção/realce) */
+  --brand: oklch(0.623 0.214 259.815);
+  --highlight: oklch(0.852 0.199 91.936);
 }
 
 .dark {
@@ -100,6 +103,8 @@
   --color-branding-900: oklch(0.382 0.0907 257.55);
   --color-branding-950: oklch(0.265 0.0588 261.94);
   --app: oklch(19.32% 0.002 230.81);
+  --brand: oklch(0.707 0.165 254.624);
+  --highlight: oklch(0.852 0.199 91.936);
 }
 
 /*
@@ -135,6 +140,8 @@
 }
 
 @theme inline {
+  --color-brand: var(--brand);
+  --color-highlight: var(--highlight);
   --font-sans: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
