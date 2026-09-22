@@ -187,6 +187,11 @@ export const TAG_GROUPS = [
         description:
           'Artigos (árvore, rascunho/publicado, interno/portal, categoria, tags), busca, votos de utilidade, comentários do editor, mídia e vínculo com chamados.',
       },
+      {
+        name: 'ServiceDesk · Configurações',
+        description:
+          'Configuração do ServiceDesk (ITIL 4): geral, departamentos, catálogo, classificações, impacto/urgência/prioridade/severidade e matriz, fluxos (fases e transições), calendários, SLA/OLA, escalonamento, automações, campos customizados, modelos, respostas prontas e peças.',
+      },
     ],
   },
   {

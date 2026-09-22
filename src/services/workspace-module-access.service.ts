@@ -6,6 +6,7 @@ import { ok, type Result } from '@/src/lib/result'
 import { toWorkspaceModuleAccessDTO } from '@/src/mappers/workspace-module-access.mapper'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmPipelineSeedService } from '@/src/services/crm-pipeline-seed.service'
+import { SdSeedService } from '@/src/services/sd-seed.service'
 import { WhatsAppDashboardSeedService } from '@/src/services/whatsapp-dashboard-seed.service'
 import type {
   WorkspaceModuleAccessDTO,
@@ -113,6 +114,17 @@ export const WorkspaceModuleAccessService = {
       )
       if (!seed.ok) {
         logger.error('workspace_module_access.seed_default_pipeline_failed', {
+          workspaceId,
+          actorId,
+          error: seed.error,
+        })
+      }
+    }
+
+    if (module === 'SERVICE_DESK' && enabled) {
+      const seed = await SdSeedService.seedDefaults(workspaceId, actorId)
+      if (!seed.ok) {
+        logger.error('workspace_module_access.seed_servicedesk_failed', {
           workspaceId,
           actorId,
           error: seed.error,

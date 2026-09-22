@@ -13,12 +13,15 @@ vi.mock('@/src/repositories/workspace-module-access.repository')
 vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/services/whatsapp-dashboard-seed.service')
 vi.mock('@/src/services/crm-pipeline-seed.service')
+vi.mock('@/src/services/sd-seed.service')
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
+import type { SdSeedSummary } from '@/src/repositories/sd-seed.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmPipelineSeedService } from '@/src/services/crm-pipeline-seed.service'
+import { SdSeedService } from '@/src/services/sd-seed.service'
 import { WhatsAppDashboardSeedService } from '@/src/services/whatsapp-dashboard-seed.service'
 import { WorkspaceModuleAccessService } from '../workspace-module-access.service'
 
@@ -26,6 +29,7 @@ const mockedRepo = vi.mocked(WorkspaceModuleAccessRepository)
 const mockedUserRepo = vi.mocked(UserRepository)
 const mockedSeedService = vi.mocked(WhatsAppDashboardSeedService)
 const mockedPipelineSeedService = vi.mocked(CrmPipelineSeedService)
+const mockedSdSeedService = vi.mocked(SdSeedService)
 
 const platformAdmin = createFakeUser({
   isPlatformAdmin: true,
@@ -362,5 +366,86 @@ describe('WorkspaceModuleAccessService failure paths', () => {
       'workspace_module_access.seed_default_pipeline_failed',
       expect.objectContaining({ workspaceId: 'ws1' }),
     )
+  })
+
+  it('setEnabled() should seed the ServiceDesk ITIL defaults when granting SERVICE_DESK', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedRepo.upsert.mockResolvedValue(
+      ok(
+        createFakeWorkspaceModuleAccess({
+          workspaceId: 'ws1',
+          module: 'SERVICE_DESK',
+          enabled: true,
+        }),
+      ),
+    )
+    mockedSdSeedService.seedDefaults.mockResolvedValue(
+      ok({ phases: 30 } as SdSeedSummary),
+    )
+
+    expectOk(
+      await WorkspaceModuleAccessService.setEnabled(
+        platformAdmin.id,
+        'ws1',
+        'SERVICE_DESK',
+        true,
+      ),
+    )
+    expect(mockedSdSeedService.seedDefaults).toHaveBeenCalledWith(
+      'ws1',
+      platformAdmin.id,
+    )
+    expect(mockedSeedService.seedDefaults).not.toHaveBeenCalled()
+    expect(mockedPipelineSeedService.seedDefaultPipeline).not.toHaveBeenCalled()
+  })
+
+  it('setEnabled() should log and still grant SERVICE_DESK when the seed fails', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedRepo.upsert.mockResolvedValue(
+      ok(
+        createFakeWorkspaceModuleAccess({
+          workspaceId: 'ws1',
+          module: 'SERVICE_DESK',
+          enabled: true,
+        }),
+      ),
+    )
+    mockedSdSeedService.seedDefaults.mockResolvedValue(
+      err(databaseError('boom')),
+    )
+
+    expectOk(
+      await WorkspaceModuleAccessService.setEnabled(
+        platformAdmin.id,
+        'ws1',
+        'SERVICE_DESK',
+        true,
+      ),
+    )
+    expect(logger.error).toHaveBeenCalledWith(
+      'workspace_module_access.seed_servicedesk_failed',
+      expect.objectContaining({ workspaceId: 'ws1' }),
+    )
+  })
+
+  it('setEnabled() should not seed the ServiceDesk when revoking it', async () => {
+    mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+    mockedRepo.upsert.mockResolvedValue(
+      ok(
+        createFakeWorkspaceModuleAccess({
+          workspaceId: 'ws1',
+          module: 'SERVICE_DESK',
+          enabled: false,
+        }),
+      ),
+    )
+
+    await WorkspaceModuleAccessService.setEnabled(
+      platformAdmin.id,
+      'ws1',
+      'SERVICE_DESK',
+      false,
+    )
+    expect(mockedSdSeedService.seedDefaults).not.toHaveBeenCalled()
   })
 })
