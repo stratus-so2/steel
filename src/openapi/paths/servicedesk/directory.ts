@@ -19,6 +19,7 @@ import {
   SdCustomerOptionsSchema,
   UpdateSdCustomerSchema,
 } from '@/src/schemas/sd-customer.schema'
+import { SdOptionsQuerySchema } from '@/src/schemas/sd-directory.schema'
 import type { ErrorEntry, RouteConfig } from '../../registry'
 import {
   SdCepAddressDTO,
@@ -231,6 +232,18 @@ export const sdDirectoryRoutes: RouteConfig[] = [
     summary: 'Seletor de contatos',
     description: `Busca leve (ativos), opcionalmente só de um cliente. ${access('sd-contacts', 'VIEW')}`,
     query: SdContactOptionsSchema,
+    responses: {
+      200: { description: 'Opções.', schema: z.array(SdOptionDTO) },
+    },
+    errors: AGENT_ERRORS,
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/servicedesk/contacts/user-options',
+    tags: [PEOPLE],
+    summary: 'Seletor de usuários do workspace',
+    description: `Membros do workspace (usuário vinculado ao contato, responsável do CI). ${access('sd-contacts', 'VIEW')}`,
+    query: SdOptionsQuerySchema,
     responses: {
       200: { description: 'Opções.', schema: z.array(SdOptionDTO) },
     },

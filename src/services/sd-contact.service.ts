@@ -25,6 +25,7 @@ import type {
   SdContactOptionsDTO,
   UpdateSdContactDTO,
 } from '@/src/schemas/sd-contact.schema'
+import type { SdOptionsQueryDTO } from '@/src/schemas/sd-directory.schema'
 import type { SdContactDetailDTO, SdContactDTO } from '@/types/sd-contact'
 import type { SdOptionDTO, SdPage } from '@/types/sd-directory'
 import { SdAccess } from './sd-access'
@@ -163,6 +164,26 @@ export const SdContactService = {
           sublabel: parts.length ? parts.join(' · ') : null,
         }
       }),
+    )
+  },
+
+  /**
+   * Membros da workspace para os seletores de usuário (contato ↔ usuário da
+   * plataforma, responsável do CI). Agentes não têm `members:VIEW`, por isso
+   * a busca mora aqui.
+   */
+  async userOptions(
+    actorId: string,
+    workspaceId: string,
+    query: SdOptionsQueryDTO,
+  ): Promise<Result<SdOptionDTO[]>> {
+    const ctx = await agent(actorId, workspaceId, 'VIEW')
+    if (!ctx.ok) return ctx
+
+    const rows = await SdContactRepository.listMemberOptions(workspaceId, query)
+    if (!rows.ok) return rows
+    return ok(
+      rows.value.map((u) => ({ id: u.id, label: u.name, sublabel: u.email })),
     )
   },
 

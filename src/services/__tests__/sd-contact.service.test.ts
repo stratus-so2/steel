@@ -199,6 +199,28 @@ describe('SdContactService', () => {
     })
   })
 
+  describe('userOptions()', () => {
+    it('maps workspace members to options for agents', async () => {
+      repo.listMemberOptions.mockResolvedValue(
+        ok([{ id: 'u9', name: 'Bob', email: 'bob@x.com', image: null }]),
+      )
+      expect(
+        expectOk(await SdContactService.userOptions('u1', 'ws1', { limit: 5 })),
+      ).toEqual([{ id: 'u9', label: 'Bob', sublabel: 'bob@x.com' }])
+
+      repo.listMemberOptions.mockResolvedValueOnce(err(databaseError()))
+      expectErr(
+        await SdContactService.userOptions('u1', 'ws1', { limit: 5 }),
+        'DATABASE_ERROR',
+      )
+      asSdMember('MEMBER', { agent: false })
+      expectErr(
+        await SdContactService.userOptions('u1', 'ws1', { limit: 5 }),
+        'SD_NOT_AGENT',
+      )
+    })
+  })
+
   describe('findByChannel() / lookup()', () => {
     it('matches WhatsApp with and without the ninth digit and trims the email', async () => {
       repo.findByChannel.mockResolvedValue(

@@ -197,6 +197,36 @@ export const SdContactRepository = {
     }
   },
 
+  /** Membros da workspace (usuário do contato, responsável do CI). */
+  async listMemberOptions(
+    workspaceId: string,
+    query: { q?: string; limit: number },
+  ): Promise<
+    Result<{ id: string; name: string; email: string; image: string | null }[]>
+  > {
+    try {
+      const contains = query.q
+        ? { contains: query.q, mode: 'insensitive' as const }
+        : undefined
+      const rows = await prisma.membership.findMany({
+        where: {
+          workspaceId,
+          ...(contains
+            ? { user: { OR: [{ name: contains }, { email: contains }] } }
+            : {}),
+        },
+        select: {
+          user: { select: { id: true, name: true, email: true, image: true } },
+        },
+        orderBy: { user: { name: 'asc' } },
+        take: query.limit,
+      })
+      return ok(rows.map((r) => r.user))
+    } catch (error) {
+      return err(dbError('Failed to list workspace member options', error))
+    }
+  },
+
   /** O usuário é membro desta workspace? */
   async isWorkspaceMember(
     workspaceId: string,

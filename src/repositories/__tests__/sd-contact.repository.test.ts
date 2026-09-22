@@ -187,6 +187,35 @@ describe('SdContactRepository', () => {
     })
   })
 
+  describe('listMemberOptions()', () => {
+    it('lists workspace members filtered by name/email', async () => {
+      const { workspace, other, user } = await setup()
+      const bob = await seedUser({ name: 'Bob Agente' })
+      await prisma.membership.createMany({
+        data: [
+          { workspaceId: workspace.id, userId: user.id, role: 'OWNER' },
+          { workspaceId: workspace.id, userId: bob.id, role: 'MEMBER' },
+          { workspaceId: other.id, userId: user.id, role: 'OWNER' },
+        ],
+      })
+      const all = expectOk(
+        await SdContactRepository.listMemberOptions(workspace.id, {
+          limit: 10,
+        }),
+      )
+      expect(all.map((u) => u.id).sort()).toEqual([bob.id, user.id].sort())
+      const filtered = expectOk(
+        await SdContactRepository.listMemberOptions(workspace.id, {
+          q: 'bob',
+          limit: 10,
+        }),
+      )
+      expect(filtered).toEqual([
+        { id: bob.id, name: 'Bob Agente', email: bob.email, image: bob.image },
+      ])
+    })
+  })
+
   describe('isWorkspaceMember()', () => {
     it('checks the membership', async () => {
       const { workspace, user } = await setup()
@@ -276,6 +305,11 @@ describe('SdContactRepository', () => {
       vi.spyOn(prisma.sdContact, 'findMany').mockImplementation(boom as never)
       vi.spyOn(prisma.sdTicket, 'findMany').mockImplementation(boom as never)
       vi.spyOn(prisma.membership, 'findFirst').mockImplementation(boom as never)
+      vi.spyOn(prisma.membership, 'findMany').mockImplementation(boom as never)
+      expectErr(
+        await SdContactRepository.listMemberOptions('ws', { limit: 1 }),
+        'DATABASE_ERROR',
+      )
 
       expectErr(await SdContactRepository.findById('x', 'ws'), 'DATABASE_ERROR')
       expectErr(
