@@ -9,6 +9,7 @@ export function createFakeWhatsAppConnection(
     id: createId(),
     workspaceId: createId(),
     provider: 'ZAPI',
+    module: 'COMMUNICATION',
     label: 'Suporte',
     phoneNumber: '5511999999999',
     status: 'CONNECTING',

@@ -1,5 +1,27 @@
+import {
+  Alert02Icon,
+  ArrowDataTransferHorizontalIcon,
+  BookOpen01Icon,
+  Bug01Icon,
+  Building03Icon,
+  ContactBookIcon,
+  CustomerService01Icon,
+  DashboardSquare01Icon,
+  Home01Icon,
+  ServerStack01Icon,
+  Settings02Icon,
+  Ticket01Icon,
+  TicketStarIcon,
+  UserAccountIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
+import {
+  ContextHeader,
+  ContextSidebar,
+  NavGroup,
+  NavItem,
+} from '@/app/_components/navigation/sidebar-context'
 import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function ServiceDeskLayout({
@@ -11,6 +33,69 @@ export default async function ServiceDeskLayout({
 }) {
   const { 'workspace-slug': slug } = await params
   if (!(await hasModuleAccess(slug, 'SERVICE_DESK'))) notFound()
+  const base = `/${slug}/servicedesk`
 
-  return children
+  return (
+    <>
+      <ContextSidebar>
+        <ContextHeader title='ServiceDesk' />
+        <NavGroup>
+          <NavItem href={base} icon={Home01Icon}>
+            Início
+          </NavItem>
+          <NavItem href={`${base}/portal`} icon={CustomerService01Icon}>
+            Portal do solicitante
+          </NavItem>
+        </NavGroup>
+        <NavGroup>
+          <NavItem href={`${base}/tickets`} icon={Ticket01Icon}>
+            Todos os chamados
+          </NavItem>
+          <NavItem href={`${base}/incidents`} icon={Alert02Icon}>
+            Incidentes
+          </NavItem>
+          <NavItem href={`${base}/requests`} icon={TicketStarIcon}>
+            Requisições
+          </NavItem>
+          <NavItem
+            href={`${base}/changes`}
+            icon={ArrowDataTransferHorizontalIcon}
+          >
+            Mudanças
+          </NavItem>
+          <NavItem href={`${base}/problems`} icon={Bug01Icon}>
+            Problemas
+          </NavItem>
+        </NavGroup>
+        <NavGroup>
+          <NavItem href={`${base}/customers`} icon={UserAccountIcon}>
+            Clientes
+          </NavItem>
+          <NavItem href={`${base}/companies`} icon={Building03Icon}>
+            Empresas
+          </NavItem>
+          <NavItem href={`${base}/contacts`} icon={ContactBookIcon}>
+            Contatos
+          </NavItem>
+          <NavItem href={`${base}/config-items`} icon={ServerStack01Icon}>
+            Itens de configuração
+          </NavItem>
+        </NavGroup>
+        <NavGroup>
+          <NavItem href={`${base}/knowledge`} icon={BookOpen01Icon}>
+            Base de conhecimento
+          </NavItem>
+          <NavItem href={`${base}/dashboards`} icon={DashboardSquare01Icon}>
+            Painéis
+          </NavItem>
+        </NavGroup>
+        <NavGroup>
+          <NavItem href={`${base}/settings`} icon={Settings02Icon}>
+            Configurações
+          </NavItem>
+        </NavGroup>
+      </ContextSidebar>
+      {children}
+    </>
+  )
 }

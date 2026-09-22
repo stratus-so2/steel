@@ -283,7 +283,15 @@ export const NotificationListDTO = dto(
       z.object({
         id: z.string(),
         workspaceId: z.string(),
-        kind: z.enum(['WHATSAPP_NEGATIVE_SENTIMENT']),
+        kind: z.enum([
+          'WHATSAPP_NEGATIVE_SENTIMENT',
+          'SD_TICKET_ASSIGNED',
+          'SD_TICKET_MESSAGE',
+          'SD_SLA_AT_RISK',
+          'SD_SLA_BREACHED',
+          'SD_TICKET_ESCALATED',
+          'SD_APPROVAL_RESPONDED',
+        ]),
         title: z.string(),
         body: z.string(),
         href: z

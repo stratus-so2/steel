@@ -58,6 +58,14 @@ const RESOURCE_LABEL: Record<string, string> = {
   broadcasts: 'Transmissões',
   'message-templates': 'Templates de mensagem',
   'quick-replies': 'Respostas rápidas',
+  'sd-tickets': 'ServiceDesk · Chamados',
+  'sd-customers': 'ServiceDesk · Clientes e empresas',
+  'sd-contacts': 'ServiceDesk · Contatos',
+  'sd-config-items': 'ServiceDesk · Itens de configuração',
+  'sd-knowledge': 'ServiceDesk · Base de conhecimento',
+  'sd-dashboards': 'ServiceDesk · Painéis',
+  'sd-portal': 'ServiceDesk · Portal do solicitante',
+  'sd-settings': 'ServiceDesk · Configurações',
 }
 
 const ACTION_LABEL: Record<PermissionAction, string> = {

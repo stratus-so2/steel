@@ -41,6 +41,16 @@ export const PERMISSION_RESOURCES = [
   'broadcasts',
   'message-templates',
   'quick-replies',
+  // ServiceDesk — além da matriz, o service distingue agente (membro de algum
+  // departamento) de solicitante (só portal e os próprios chamados).
+  'sd-tickets',
+  'sd-customers',
+  'sd-contacts',
+  'sd-config-items',
+  'sd-knowledge',
+  'sd-dashboards',
+  'sd-portal',
+  'sd-settings',
 ] as const
 export type PermissionResource = (typeof PERMISSION_RESOURCES)[number]
 
@@ -71,6 +81,13 @@ const MEMBER_ENTITIES = new Set<PermissionResource>([
   'contacts',
   'groups',
   'quick-replies',
+  'sd-tickets',
+  'sd-customers',
+  'sd-contacts',
+  'sd-config-items',
+  'sd-knowledge',
+  'sd-dashboards',
+  'sd-portal',
 ])
 
 /**
@@ -84,6 +101,7 @@ const MEMBER_READONLY = new Set<PermissionResource>([
   'audit-logs',
   'broadcasts',
   'message-templates',
+  'sd-settings',
 ])
 
 function fullMatrix(): PermissionMap {

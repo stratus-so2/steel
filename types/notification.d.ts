@@ -1,4 +1,11 @@
-export type NotificationKindDTO = 'WHATSAPP_NEGATIVE_SENTIMENT'
+export type NotificationKindDTO =
+  | 'WHATSAPP_NEGATIVE_SENTIMENT'
+  | 'SD_TICKET_ASSIGNED'
+  | 'SD_TICKET_MESSAGE'
+  | 'SD_SLA_AT_RISK'
+  | 'SD_SLA_BREACHED'
+  | 'SD_TICKET_ESCALATED'
+  | 'SD_APPROVAL_RESPONDED'
 
 export interface NotificationDTO {
   id: string

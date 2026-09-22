@@ -122,6 +122,36 @@ model User {
   crmEmailMessagesCreated            CrmEmailMessage[]             @relation("CrmEmailMessageCreatedBy")
   crmCalendarEventsCreated           CrmCalendarEvent[]            @relation("CrmCalendarEventCreatedBy")
 
+  sdDepartmentMemberships  SdDepartmentMember[]  @relation("SdDepartmentMemberUser")
+  sdCustomersCreated       SdCustomer[]          @relation("SdCustomerCreatedBy")
+  sdContactsLinked         SdContact[]           @relation("SdContactUser")
+  sdContactsCreated        SdContact[]           @relation("SdContactCreatedBy")
+  sdConfigItemsOwned       SdConfigItem[]        @relation("SdConfigItemOwner")
+  sdConfigItemsCreated     SdConfigItem[]        @relation("SdConfigItemCreatedBy")
+  sdCannedResponsesCreated SdCannedResponse[]    @relation("SdCannedResponseCreatedBy")
+  sdTicketsAssigned        SdTicket[]            @relation("SdTicketAssignee")
+  sdTicketsRequested       SdTicket[]            @relation("SdTicketRequester")
+  sdTicketsCreated         SdTicket[]            @relation("SdTicketCreatedBy")
+  sdTicketParticipations   SdTicketParticipant[] @relation("SdTicketParticipantUser")
+  sdTicketMessages         SdTicketMessage[]     @relation("SdTicketMessageAuthor")
+  sdTicketAttachments      SdTicketAttachment[]  @relation("SdTicketAttachmentUploader")
+  sdTicketTasksAssigned    SdTicketTask[]        @relation("SdTicketTaskAssignee")
+  sdTicketTasksCreated     SdTicketTask[]        @relation("SdTicketTaskCreatedBy")
+  sdTicketCostsFor         SdTicketCost[]        @relation("SdTicketCostUser")
+  sdTicketCostsCreated     SdTicketCost[]        @relation("SdTicketCostCreatedBy")
+  sdTicketPartsCreated     SdTicketPart[]        @relation("SdTicketPartCreatedBy")
+  sdTicketApprovalsToGive  SdTicketApproval[]    @relation("SdTicketApprovalApprover")
+  sdTicketApprovalsAsked   SdTicketApproval[]    @relation("SdTicketApprovalRequestedBy")
+  sdTicketEscalations      SdTicketEscalation[]  @relation("SdTicketEscalationCreatedBy")
+  sdTicketEvents           SdTicketEvent[]       @relation("SdTicketEventActor")
+  sdTicketSignatures       SdTicketSignature[]   @relation("SdTicketSignatureSignedBy")
+  sdSavedViews             SdSavedView[]         @relation("SdSavedViewUser")
+  sdKbArticlesCreated      SdKbArticle[]         @relation("SdKbArticleAuthor")
+  sdKbArticlesUpdated      SdKbArticle[]         @relation("SdKbArticleEditor")
+  sdKbComments             SdKbComment[]         @relation("SdKbCommentAuthor")
+  sdKbCommentsResolved     SdKbComment[]         @relation("SdKbCommentResolver")
+  sdAiConversations        SdAiConversation[]    @relation("SdAiConversationUser")
+
   @@index([deletionScheduledAt])
   @@map("users")
 }
@@ -359,6 +389,43 @@ model Workspace {
   profiles               Profile[]
   crmLeadContactAttempts CrmLeadContactAttempt[]
   crmLeadMeetings        CrmLeadMeeting[]
+
+  sdSettings               SdSettings?
+  sdDepartments            SdDepartment[]
+  sdCustomers              SdCustomer[]
+  sdContacts               SdContact[]
+  sdConfigItemTypes        SdConfigItemType[]
+  sdConfigItems            SdConfigItem[]
+  sdCategories             SdCategory[]
+  sdClassifications        SdClassification[]
+  sdImpacts                SdImpact[]
+  sdUrgencies              SdUrgency[]
+  sdPriorities             SdPriority[]
+  sdPriorityMatrix         SdPriorityMatrix[]
+  sdSeverities             SdSeverity[]
+  sdPhases                 SdPhase[]
+  sdPhaseTransitions       SdPhaseTransition[]
+  sdBusinessCalendars      SdBusinessCalendar[]
+  sdSlaPolicies            SdSlaPolicy[]
+  sdEscalationRules        SdEscalationRule[]
+  sdAutomationRules        SdAutomationRule[]
+  sdCustomFieldDefinitions SdCustomFieldDefinition[]
+  sdTicketTemplates        SdTicketTemplate[]
+  sdCannedResponses        SdCannedResponse[]
+  sdParts                  SdPart[]
+  sdTickets                SdTicket[]
+  sdTicketMessages         SdTicketMessage[]
+  sdTicketAttachments      SdTicketAttachment[]
+  sdTicketTasks            SdTicketTask[]
+  sdTicketCosts            SdTicketCost[]
+  sdTicketParts            SdTicketPart[]
+  sdTicketApprovals        SdTicketApproval[]
+  sdTicketEscalations      SdTicketEscalation[]
+  sdTicketEvents           SdTicketEvent[]
+  sdTicketSignatures       SdTicketSignature[]
+  sdSavedViews             SdSavedView[]
+  sdKbArticles             SdKbArticle[]
+  sdAiConversations        SdAiConversation[]
 
   @@index([status])
   @@map("workspaces")
@@ -887,6 +954,8 @@ model WhatsAppConnection {
   id                       String                   @id @default(cuid())
   workspaceId              String                   @map("workspace_id")
   provider                 WhatsAppProvider
+  /// Módulo dono da conexão: COMMUNICATION (zap) ou SERVICE_DESK (chamados).
+  module                   ModuleKind               @default(COMMUNICATION)
   label                    String
   phoneNumber              String                   @map("phone_number")
   status                   WhatsAppConnectionStatus @default(CONNECTING)
@@ -986,6 +1055,7 @@ model WhatsAppConversation {
   assignedUser User?                       @relation("WhatsAppConversationAssignee", fields: [assignedUserId], references: [id], onDelete: SetNull)
   messages     WhatsAppMessage[]
   events       WhatsAppConversationEvent[]
+  sdTickets    SdTicket[]
 
   @@index([workspaceId, status, lastMessageAt])
   @@index([workspaceId, deletedAt, archivedAt, pinnedAt])
@@ -3417,6 +3487,9 @@ enum AiUsageFeature {
   CRM_ASSISTANT
   WHATSAPP_REPLY
   WHATSAPP_SENTIMENT
+  SERVICEDESK_COPILOT
+  SERVICEDESK_PRE_SERVICE
+  SERVICEDESK_TRIAGE
 }
 
 /// Livro-razão de consumo de IA de todas as funcionalidades — base da cota
@@ -3445,6 +3518,12 @@ model AiUsage {
 
 enum NotificationKind {
   WHATSAPP_NEGATIVE_SENTIMENT
+  SD_TICKET_ASSIGNED
+  SD_TICKET_MESSAGE
+  SD_SLA_AT_RISK
+  SD_SLA_BREACHED
+  SD_TICKET_ESCALATED
+  SD_APPROVAL_RESPONDED
 }
 
 /// Notificação no app (caixa de entrada do usuário no workspace).
@@ -3466,4 +3545,1380 @@ model Notification {
   @@index([userId, workspaceId, createdAt])
   @@index([userId, workspaceId, readAt])
   @@map("notifications")
+}
+
+// ============================================================================
+// ServiceDesk (ITIL 4) — ver docs/servicedesk/README.md e ADR 0008.
+// Tudo prefixado `Sd` / tabelas `sd_*`. Práticas cobertas: Incident, Service
+// Request, Change Enablement, Problem, Knowledge, Service Configuration (CMDB),
+// Service Level (SLA/OLA) e Service Catalog. Quase tudo é configurável por
+// workspace (tabelas em vez de enums) — os enums abaixo guardam só a
+// *semântica* fixa que o motor precisa entender.
+// ============================================================================
+
+/// Prática ITIL do chamado. Fixa: o motor (SLA, aprovação, campos de mudança
+/// e problema) depende dela. Customização fica em fases/templates/campos.
+enum SdTicketType {
+  INCIDENT
+  SERVICE_REQUEST
+  CHANGE
+  PROBLEM
+}
+
+/// Semântica de uma fase (o nome/cor/% são livres). O motor usa isto para
+/// SLA (WAITING pausa), resolução (RESOLVED carimba resolvedAt) e fechamento.
+enum SdPhaseCategory {
+  NEW
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+  CANCELED
+}
+
+enum SdTicketChannel {
+  AGENT
+  PORTAL
+  EMAIL
+  WHATSAPP
+  PHONE
+  AI
+  API
+}
+
+/// Tipo de mudança ITIL (Change Enablement).
+enum SdChangeType {
+  STANDARD
+  NORMAL
+  EMERGENCY
+}
+
+enum SdRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+}
+
+enum SdCustomerKind {
+  CLIENT
+  COMPANY
+}
+
+enum SdPersonType {
+  INDIVIDUAL
+  LEGAL
+}
+
+enum SdCategoryLevel {
+  CATEGORY
+  SUBCATEGORY
+  SERVICE
+}
+
+enum SdClassificationKind {
+  TICKET
+  SOLUTION
+}
+
+enum SdConfigItemStatus {
+  PLANNED
+  IN_STOCK
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+enum SdCustomFieldEntity {
+  TICKET
+  CUSTOMER
+  CONTACT
+  CONFIG_ITEM
+}
+
+enum SdCustomFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  CURRENCY
+  DATE
+  DATETIME
+  CHECKBOX
+  SELECT
+  MULTI_SELECT
+  USER
+  EMAIL
+  URL
+  PHONE
+}
+
+enum SdSlaKind {
+  SLA
+  OLA
+}
+
+enum SdMessageAuthorKind {
+  AGENT
+  REQUESTER
+  CONTACT
+  AI
+  SYSTEM
+}
+
+enum SdMessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum SdMessageChannel {
+  PLATFORM
+  WHATSAPP
+  EMAIL
+}
+
+enum SdAttachmentKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  OTHER
+}
+
+enum SdTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  CANCELED
+}
+
+enum SdCostCategory {
+  LABOR
+  TRAVEL
+  MATERIAL
+  SERVICE
+  LICENSE
+  OTHER
+}
+
+enum SdPartStatus {
+  REQUESTED
+  RESERVED
+  INSTALLED
+  RETURNED
+  CANCELED
+}
+
+enum SdApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+  EXPIRED
+}
+
+enum SdEscalationKind {
+  FUNCTIONAL
+  HIERARCHICAL
+}
+
+enum SdEscalationTrigger {
+  FIRST_RESPONSE_AT_RISK
+  FIRST_RESPONSE_BREACHED
+  RESOLUTION_AT_RISK
+  RESOLUTION_BREACHED
+  NO_UPDATE
+}
+
+enum SdAutomationEvent {
+  TICKET_CREATED
+  TICKET_UPDATED
+  PHASE_CHANGED
+  MESSAGE_RECEIVED
+  APPROVAL_RESPONDED
+  SLA_AT_RISK
+  SLA_BREACHED
+}
+
+enum SdKbArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum SdKbVisibility {
+  INTERNAL
+  PORTAL
+}
+
+enum SdViewMode {
+  KANBAN
+  LIST
+  TABLE
+}
+
+/// Configuração geral do módulo por workspace (1:1).
+model SdSettings {
+  id                          String         @id @default(cuid())
+  workspaceId                 String         @unique @map("workspace_id")
+  /// Próximo número sequencial de chamado (incremento atômico no create).
+  nextTicketNumber            Int            @default(1) @map("next_ticket_number")
+  /// Prefixo de exibição por tipo: {"INCIDENT":"INC","SERVICE_REQUEST":"REQ",...}
+  ticketPrefixes              Json           @map("ticket_prefixes")
+  defaultDepartmentId         String?        @map("default_department_id")
+  defaultSlaPolicyId          String?        @map("default_sla_policy_id")
+  /// Conexão do WhatsApp usada pelo ServiceDesk (WhatsAppConnection.module = SERVICE_DESK).
+  whatsappConnectionId        String?        @map("whatsapp_connection_id")
+  portalEnabled               Boolean        @default(true) @map("portal_enabled")
+  /// Tipos que o solicitante pode abrir pelo portal.
+  portalTicketTypes           SdTicketType[] @default([INCIDENT, SERVICE_REQUEST]) @map("portal_ticket_types")
+  requireSignatureOnClose     Boolean        @default(false) @map("require_signature_on_close")
+  requireSolutionOnResolve    Boolean        @default(true) @map("require_solution_on_resolve")
+  /// Fecha automaticamente chamados RESOLVED após N horas (0 = desligado).
+  autoCloseResolvedAfterHours Int            @default(72) @map("auto_close_resolved_after_hours")
+  /// % do prazo consumido a partir do qual o SLA vira "em risco".
+  slaAtRiskPercent            Int            @default(80) @map("sla_at_risk_percent")
+  /// Reabertura: nova mensagem do solicitante em chamado RESOLVED reabre.
+  reopenOnRequesterReply      Boolean        @default(true) @map("reopen_on_requester_reply")
+  /// Atribuição automática dentro do departamento (round-robin).
+  autoAssignRoundRobin        Boolean        @default(false) @map("auto_assign_round_robin")
+  // Agente de IA
+  aiEnabled                   Boolean        @default(false) @map("ai_enabled")
+  /// Pré-atendimento: IA conversa com o solicitante (portal/WhatsApp) antes
+  /// de abrir o chamado, sugere artigos e faz a triagem.
+  aiPreServiceEnabled         Boolean        @default(false) @map("ai_pre_service_enabled")
+  /// Triagem automática (categoria/prioridade/departamento) na abertura.
+  aiAutoTriageEnabled         Boolean        @default(false) @map("ai_auto_triage_enabled")
+  /// Resposta automática no WhatsApp enquanto não há atendente.
+  aiWhatsappAutoReply         Boolean        @default(false) @map("ai_whatsapp_auto_reply")
+  aiPersona                   String?        @map("ai_persona")
+  aiInstructions              String?        @map("ai_instructions")
+  aiHandoffKeywords           String[]       @default([]) @map("ai_handoff_keywords")
+  updatedById                 String?        @map("updated_by_id")
+  createdAt                   DateTime       @default(now()) @map("created_at")
+  updatedAt                   DateTime       @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("sd_settings")
+}
+
+/// Departamento (time que atende). `parentId` = sub-departamento (um nível).
+model SdDepartment {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  parentId    String?   @map("parent_id")
+  name        String
+  description String?
+  email       String?
+  color       String?
+  /// Calendário de expediente do time (OLA/SLA quando o chamado está aqui).
+  calendarId  String?   @map("calendar_id")
+  active      Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent      SdDepartment?        @relation("SdDepartmentTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    SdDepartment[]       @relation("SdDepartmentTree")
+  calendar    SdBusinessCalendar?  @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  members     SdDepartmentMember[]
+  tickets     SdTicket[]
+  categories  SdCategory[]
+  configItems SdConfigItem[]
+
+  @@index([workspaceId])
+  @@index([parentId])
+  @@map("sd_departments")
+}
+
+/// Vínculo usuário ↔ departamento. Quem tem ao menos um vínculo é "agente";
+/// sem vínculo, o membro usa o ServiceDesk como solicitante (portal).
+model SdDepartmentMember {
+  id             String    @id @default(cuid())
+  departmentId   String    @map("department_id")
+  userId         String    @map("user_id")
+  /// Líder/supervisor do time (alvo do escalonamento hierárquico).
+  isLead         Boolean   @default(false) @map("is_lead")
+  /// Último recebimento no round-robin.
+  lastAssignedAt DateTime? @map("last_assigned_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  department SdDepartment @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user       User         @relation("SdDepartmentMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, userId])
+  @@index([userId])
+  @@map("sd_department_members")
+}
+
+/// Cliente ou Empresa (mesmo cadastro; `kind` separa as duas listas).
+model SdCustomer {
+  id           String         @id @default(cuid())
+  workspaceId  String         @map("workspace_id")
+  kind         SdCustomerKind @default(CLIENT)
+  personType   SdPersonType   @default(LEGAL) @map("person_type")
+  name         String
+  tradeName    String?        @map("trade_name")
+  /// CPF/CNPJ só dígitos.
+  document     String?
+  email        String?
+  phone        String?
+  whatsapp     String?
+  zipCode      String?        @map("zip_code")
+  street       String?
+  number       String?
+  complement   String?
+  district     String?
+  city         String?
+  state        String?
+  country      String         @default("BR")
+  ibgeCode     String?        @map("ibge_code")
+  notes        String?
+  customFields Json           @default("{}") @map("custom_fields")
+  active       Boolean        @default(true)
+  createdById  String         @map("created_by_id")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+
+  workspace        Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy        User                @relation("SdCustomerCreatedBy", fields: [createdById], references: [id])
+  contacts         SdContactCustomer[]
+  ticketsAsClient  SdTicket[]          @relation("SdTicketCustomer")
+  ticketsAsCompany SdTicket[]          @relation("SdTicketCompany")
+  configItems      SdConfigItem[]
+
+  @@index([workspaceId, kind])
+  @@index([workspaceId, document])
+  @@index([deletedAt])
+  @@map("sd_customers")
+}
+
+/// Contato (pessoa) de um ou mais clientes/empresas.
+model SdContact {
+  id           String    @id @default(cuid())
+  workspaceId  String    @map("workspace_id")
+  name         String
+  jobTitle     String?   @map("job_title")
+  email        String?
+  phone        String?
+  whatsapp     String?
+  /// Usuário da plataforma que é este contato (chat interno / portal).
+  userId       String?   @map("user_id")
+  notes        String?
+  customFields Json      @default("{}") @map("custom_fields")
+  active       Boolean   @default(true)
+  createdById  String    @map("created_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?               @relation("SdContactUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy User                @relation("SdContactCreatedBy", fields: [createdById], references: [id])
+  customers SdContactCustomer[]
+  tickets   SdTicket[]
+  messages  SdTicketMessage[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, email])
+  @@index([workspaceId, whatsapp])
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("sd_contacts")
+}
+
+model SdContactCustomer {
+  contactId  String  @map("contact_id")
+  customerId String  @map("customer_id")
+  isPrimary  Boolean @default(false) @map("is_primary")
+
+  contact  SdContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  customer SdCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, customerId])
+  @@index([customerId])
+  @@map("sd_contact_customers")
+}
+
+/// Tipo de item de configuração (CMDB) — customizável (Servidor, Notebook,
+/// Link, Licença…), com ícone e os atributos esperados.
+model SdConfigItemType {
+  id              String   @id @default(cuid())
+  workspaceId     String   @map("workspace_id")
+  name            String
+  icon            String?
+  color           String?
+  /// Esquema dos atributos específicos: [{key,label,type,options?}]
+  attributeSchema Json     @default("[]") @map("attribute_schema")
+  position        Int      @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items     SdConfigItem[]
+
+  @@unique([workspaceId, name])
+  @@map("sd_config_item_types")
+}
+
+/// Item de configuração (CI) — Service Configuration Management / CMDB.
+model SdConfigItem {
+  id            String             @id @default(cuid())
+  workspaceId   String             @map("workspace_id")
+  typeId        String?            @map("type_id")
+  parentId      String?            @map("parent_id")
+  name          String
+  /// Etiqueta patrimonial / código.
+  code          String?
+  status        SdConfigItemStatus @default(ACTIVE)
+  criticality   SdRiskLevel        @default(MEDIUM)
+  customerId    String?            @map("customer_id")
+  departmentId  String?            @map("department_id")
+  ownerId       String?            @map("owner_id")
+  serialNumber  String?            @map("serial_number")
+  manufacturer  String?
+  model         String?
+  location      String?
+  ipAddress     String?            @map("ip_address")
+  purchasedAt   DateTime?          @map("purchased_at")
+  warrantyUntil DateTime?          @map("warranty_until")
+  attributes    Json               @default("{}")
+  customFields  Json               @default("{}") @map("custom_fields")
+  notes         String?
+  createdById   String             @map("created_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  deletedAt     DateTime?          @map("deleted_at")
+
+  workspace  Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type       SdConfigItemType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  parent     SdConfigItem?     @relation("SdConfigItemTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children   SdConfigItem[]    @relation("SdConfigItemTree")
+  customer   SdCustomer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  department SdDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  owner      User?             @relation("SdConfigItemOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy  User              @relation("SdConfigItemCreatedBy", fields: [createdById], references: [id])
+  tickets    SdTicket[]
+
+  @@index([workspaceId])
+  @@index([customerId])
+  @@index([typeId])
+  @@index([deletedAt])
+  @@map("sd_config_items")
+}
+
+/// Catálogo de serviços: categoria > subcategoria > serviço (árvore de 3
+/// níveis; `level` é validado no service contra o nível do pai).
+model SdCategory {
+  id            String          @id @default(cuid())
+  workspaceId   String          @map("workspace_id")
+  parentId      String?         @map("parent_id")
+  level         SdCategoryLevel
+  name          String
+  description   String?
+  icon          String?
+  /// Tipos em que a categoria aparece (vazio = todos).
+  ticketTypes   SdTicketType[]  @default([]) @map("ticket_types")
+  /// Time padrão (roteamento) e SLA padrão do nó.
+  departmentId  String?         @map("department_id")
+  slaPolicyId   String?         @map("sla_policy_id")
+  /// Visível no portal do solicitante.
+  portalVisible Boolean         @default(true) @map("portal_visible")
+  active        Boolean         @default(true)
+  position      Int             @default(0)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  workspace            Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent               SdCategory?   @relation("SdCategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children             SdCategory[]  @relation("SdCategoryTree")
+  department           SdDepartment? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  slaPolicy            SdSlaPolicy?  @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  ticketsAsCategory    SdTicket[]    @relation("SdTicketCategory")
+  ticketsAsSubcategory SdTicket[]    @relation("SdTicketSubcategory")
+  ticketsAsService     SdTicket[]    @relation("SdTicketService")
+  kbArticles           SdKbArticle[]
+
+  @@index([workspaceId, level])
+  @@index([parentId])
+  @@map("sd_categories")
+}
+
+/// Classificação do chamado (TICKET) ou da solução (SOLUTION).
+model SdClassification {
+  id          String               @id @default(cuid())
+  workspaceId String               @map("workspace_id")
+  kind        SdClassificationKind
+  name        String
+  description String?
+  color       String?
+  ticketTypes SdTicketType[]       @default([]) @map("ticket_types")
+  active      Boolean              @default(true)
+  position    Int                  @default(0)
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  workspace         Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticketsAsTicket   SdTicket[] @relation("SdTicketClassification")
+  ticketsAsSolution SdTicket[] @relation("SdTicketSolutionClassification")
+
+  @@index([workspaceId, kind])
+  @@map("sd_classifications")
+}
+
+/// Impacto (ITIL) — customizável. `level` maior = mais impacto.
+model SdImpact {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  description String?
+  level       Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  matrix    SdPriorityMatrix[]
+  tickets   SdTicket[]
+
+  @@unique([workspaceId, level])
+  @@map("sd_impacts")
+}
+
+/// Urgência (ITIL) — customizável. `level` maior = mais urgente.
+model SdUrgency {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  description String?
+  level       Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  matrix    SdPriorityMatrix[]
+  tickets   SdTicket[]
+
+  @@unique([workspaceId, level])
+  @@map("sd_urgencies")
+}
+
+/// Prioridade — customizável (nome, cor, peso). Derivada da matriz
+/// impacto × urgência ou escolhida manualmente.
+model SdPriority {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  color       String?
+  /// Peso: maior = mais prioritário (ordenação, filas, KPIs).
+  level       Int
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  matrix     SdPriorityMatrix[]
+  slaTargets SdSlaTarget[]
+  tickets    SdTicket[]
+
+  @@unique([workspaceId, level])
+  @@map("sd_priorities")
+}
+
+model SdPriorityMatrix {
+  id          String @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  impactId    String @map("impact_id")
+  urgencyId   String @map("urgency_id")
+  priorityId  String @map("priority_id")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  impact    SdImpact   @relation(fields: [impactId], references: [id], onDelete: Cascade)
+  urgency   SdUrgency  @relation(fields: [urgencyId], references: [id], onDelete: Cascade)
+  priority  SdPriority @relation(fields: [priorityId], references: [id], onDelete: Cascade)
+
+  @@unique([impactId, urgencyId])
+  @@index([workspaceId])
+  @@map("sd_priority_matrix")
+}
+
+/// Severidade — customizável (gravidade técnica, independente da prioridade).
+model SdSeverity {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  description String?
+  color       String?
+  level       Int
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tickets   SdTicket[]
+
+  @@unique([workspaceId, level])
+  @@map("sd_severities")
+}
+
+/// Fase do fluxo de um tipo de chamado (kanban). Nome, cor, ordem e % de
+/// conclusão (0–100) livres; `category` dá a semântica ao motor.
+model SdPhase {
+  id                String          @id @default(cuid())
+  workspaceId       String          @map("workspace_id")
+  ticketType        SdTicketType    @map("ticket_type")
+  name              String
+  description       String?
+  color             String?
+  category          SdPhaseCategory
+  completionPercent Int             @default(0) @map("completion_percent")
+  position          Int             @default(0)
+  /// Fase inicial de chamados novos deste tipo (uma por tipo).
+  isInitial         Boolean         @default(false) @map("is_initial")
+  /// Pausa o relógio do SLA enquanto o chamado está aqui (ex.: aguardando cliente).
+  pausesSla         Boolean         @default(false) @map("pauses_sla")
+  /// Entrar nesta fase exige aprovação vigente (APPROVED).
+  requiresApproval  Boolean         @default(false) @map("requires_approval")
+  /// Campos que precisam estar preenchidos para entrar: ["solution","assigneeId",...]
+  requiredFields    String[]        @default([]) @map("required_fields")
+  /// Limite WIP do kanban (0 = sem limite).
+  wipLimit          Int             @default(0) @map("wip_limit")
+  active            Boolean         @default(true)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  workspace       Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tickets         SdTicket[]
+  transitionsFrom SdPhaseTransition[] @relation("SdPhaseTransitionFrom")
+  transitionsTo   SdPhaseTransition[] @relation("SdPhaseTransitionTo")
+
+  @@index([workspaceId, ticketType, position])
+  @@map("sd_phases")
+}
+
+/// Transição permitida entre fases. Sem nenhuma transição cadastrada para o
+/// tipo, o fluxo é livre (qualquer fase → qualquer fase).
+model SdPhaseTransition {
+  id                   String   @id @default(cuid())
+  workspaceId          String   @map("workspace_id")
+  fromPhaseId          String   @map("from_phase_id")
+  toPhaseId            String   @map("to_phase_id")
+  /// Restringe a transição a membros destes departamentos (vazio = qualquer agente).
+  allowedDepartmentIds String[] @default([]) @map("allowed_department_ids")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  fromPhase SdPhase   @relation("SdPhaseTransitionFrom", fields: [fromPhaseId], references: [id], onDelete: Cascade)
+  toPhase   SdPhase   @relation("SdPhaseTransitionTo", fields: [toPhaseId], references: [id], onDelete: Cascade)
+
+  @@unique([fromPhaseId, toPhaseId])
+  @@index([workspaceId])
+  @@map("sd_phase_transitions")
+}
+
+/// Calendário de expediente + feriados (base do relógio de SLA).
+model SdBusinessCalendar {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  timezone    String   @default("America/Sao_Paulo")
+  /// {"mon":[["08:00","18:00"]],"tue":[...],...,"sun":[]}
+  schedule    Json
+  /// [{"date":"2026-12-25","name":"Natal"}]
+  holidays    Json     @default("[]")
+  is24x7      Boolean  @default(false) @map("is_24x7")
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slaPolicies SdSlaPolicy[]
+  departments SdDepartment[]
+
+  @@map("sd_business_calendars")
+}
+
+/// Política de SLA/OLA. Aplicada à primeira política ativa (por `position`)
+/// cujas `conditions` casam com o chamado; senão a padrão.
+model SdSlaPolicy {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  kind        SdSlaKind @default(SLA)
+  name        String
+  description String?
+  calendarId  String?   @map("calendar_id")
+  /// [{"field":"type|priorityId|categoryId|customerId|departmentId|channel","operator":"in|not_in|equals","value":...}]
+  conditions  Json      @default("[]")
+  isDefault   Boolean   @default(false) @map("is_default")
+  active      Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  calendar   SdBusinessCalendar? @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  targets    SdSlaTarget[]
+  categories SdCategory[]
+  tickets    SdTicket[]
+
+  @@index([workspaceId, position])
+  @@map("sd_sla_policies")
+}
+
+/// Metas de uma política por prioridade (minutos úteis).
+model SdSlaTarget {
+  id                   String @id @default(cuid())
+  policyId             String @map("policy_id")
+  priorityId           String @map("priority_id")
+  firstResponseMinutes Int    @map("first_response_minutes")
+  resolutionMinutes    Int    @map("resolution_minutes")
+
+  policy   SdSlaPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  priority SdPriority  @relation(fields: [priorityId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, priorityId])
+  @@map("sd_sla_targets")
+}
+
+/// Regra de escalonamento (disparada pelo tick de SLA do worker).
+model SdEscalationRule {
+  id               String              @id @default(cuid())
+  workspaceId      String              @map("workspace_id")
+  name             String
+  trigger          SdEscalationTrigger
+  /// NO_UPDATE: minutos sem atualização. AT_RISK usa SdSettings.slaAtRiskPercent.
+  thresholdMinutes Int?                @map("threshold_minutes")
+  conditions       Json                @default("[]")
+  /// {"notifyUserIds":[],"notifyDepartmentLeads":true,"reassignDepartmentId":null,"reassignUserId":null,"raisePriority":false,"kind":"FUNCTIONAL|HIERARCHICAL"}
+  actions          Json
+  active           Boolean             @default(true)
+  position         Int                 @default(0)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, trigger])
+  @@map("sd_escalation_rules")
+}
+
+/// Regra de automação: evento → condições → ações (atribuir, mudar campo,
+/// notificar, enviar mensagem, criar tarefas…).
+model SdAutomationRule {
+  id             String            @id @default(cuid())
+  workspaceId    String            @map("workspace_id")
+  name           String
+  description    String?
+  event          SdAutomationEvent
+  conditions     Json              @default("[]")
+  /// [{"type":"set_field|assign_department|assign_user|round_robin|add_participant|notify|post_message|create_task|apply_template","params":{...}}]
+  actions        Json              @default("[]")
+  /// Para de avaliar as próximas regras do mesmo evento.
+  stopProcessing Boolean           @default(false) @map("stop_processing")
+  active         Boolean           @default(true)
+  position       Int               @default(0)
+  runCount       Int               @default(0) @map("run_count")
+  lastRunAt      DateTime?         @map("last_run_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, event, position])
+  @@map("sd_automation_rules")
+}
+
+/// Campo customizado (chamado, cliente, contato ou CI). Valor mora no JSON
+/// `customFields` da entidade, na chave `key`.
+model SdCustomFieldDefinition {
+  id              String              @id @default(cuid())
+  workspaceId     String              @map("workspace_id")
+  entity          SdCustomFieldEntity
+  key             String
+  label           String
+  description     String?
+  type            SdCustomFieldType
+  /// SELECT/MULTI_SELECT: [{"value":"x","label":"X","color":"#..."}]
+  options         Json                @default("[]")
+  /// TICKET: tipos em que aparece (vazio = todos). Também filtra por categoria.
+  ticketTypes     SdTicketType[]      @default([]) @map("ticket_types")
+  categoryIds     String[]            @default([]) @map("category_ids")
+  required        Boolean             @default(false)
+  visibleInPortal Boolean             @default(false) @map("visible_in_portal")
+  defaultValue    Json?               @map("default_value")
+  active          Boolean             @default(true)
+  position        Int                 @default(0)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, entity, key])
+  @@map("sd_custom_field_definitions")
+}
+
+/// Modelo de chamado (ITIL: modelos de requisição / mudança padrão):
+/// valores padrão + checklist de tarefas aplicados na abertura.
+model SdTicketTemplate {
+  id            String       @id @default(cuid())
+  workspaceId   String       @map("workspace_id")
+  ticketType    SdTicketType @map("ticket_type")
+  name          String
+  description   String?
+  /// {"title","description","categoryId","subcategoryId","serviceId","priorityId","impactId","urgencyId","severityId","classificationId","departmentId","changeType","customFields":{}}
+  defaults      Json         @default("{}")
+  /// [{"title":"...","description":"..."}]
+  tasks         Json         @default("[]")
+  portalVisible Boolean      @default(false) @map("portal_visible")
+  active        Boolean      @default(true)
+  position      Int          @default(0)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tickets   SdTicket[]
+
+  @@index([workspaceId, ticketType])
+  @@map("sd_ticket_templates")
+}
+
+/// Resposta pronta para o histórico/WhatsApp do chamado.
+model SdCannedResponse {
+  id           String   @id @default(cuid())
+  workspaceId  String   @map("workspace_id")
+  title        String
+  shortcut     String?
+  body         String
+  departmentId String?  @map("department_id")
+  createdById  String   @map("created_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("SdCannedResponseCreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId])
+  @@map("sd_canned_responses")
+}
+
+/// Catálogo de peças (estoque simples).
+model SdPart {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  sku         String?
+  description String?
+  unitCost    Decimal  @default(0) @map("unit_cost") @db.Decimal(14, 2)
+  stock       Int?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticketParts SdTicketPart[]
+
+  @@index([workspaceId])
+  @@map("sd_parts")
+}
+
+/// Chamado (incidente, requisição, mudança ou problema).
+model SdTicket {
+  id                       String          @id @default(cuid())
+  workspaceId              String          @map("workspace_id")
+  /// Sequencial por workspace; exibido como `<prefixo>-<número>`.
+  number                   Int
+  type                     SdTicketType
+  title                    String
+  /// HTML do editor rico (sanitizado no service).
+  description              String?
+  channel                  SdTicketChannel @default(AGENT)
+  phaseId                  String          @map("phase_id")
+  /// Snapshot da % da fase atual (histórico/relatórios sem join).
+  completionPercent        Int             @default(0) @map("completion_percent")
+  impactId                 String?         @map("impact_id")
+  urgencyId                String?         @map("urgency_id")
+  priorityId               String?         @map("priority_id")
+  severityId               String?         @map("severity_id")
+  categoryId               String?         @map("category_id")
+  subcategoryId            String?         @map("subcategory_id")
+  serviceId                String?         @map("service_id")
+  classificationId         String?         @map("classification_id")
+  solutionClassificationId String?         @map("solution_classification_id")
+  solution                 String?
+  customerId               String?         @map("customer_id")
+  companyId                String?         @map("company_id")
+  contactId                String?         @map("contact_id")
+  configItemId             String?         @map("config_item_id")
+  departmentId             String?         @map("department_id")
+  assigneeId               String?         @map("assignee_id")
+  /// Usuário da plataforma que abriu (portal) — solicitante.
+  requesterId              String?         @map("requester_id")
+  templateId               String?         @map("template_id")
+  /// Item pai (itens filhos: incidentes de um problema, tarefas de uma mudança…).
+  parentId                 String?         @map("parent_id")
+  /// Conversa do WhatsApp vinculada (aba WhatsApp do chamado).
+  whatsappConversationId   String?         @map("whatsapp_conversation_id")
+  escalationLevel          Int             @default(0) @map("escalation_level")
+  tags                     String[]        @default([])
+  customFields             Json            @default("{}") @map("custom_fields")
+  // SLA
+  slaPolicyId              String?         @map("sla_policy_id")
+  firstResponseDueAt       DateTime?       @map("first_response_due_at")
+  resolutionDueAt          DateTime?       @map("resolution_due_at")
+  firstRespondedAt         DateTime?       @map("first_responded_at")
+  slaPausedAt              DateTime?       @map("sla_paused_at")
+  /// Minutos úteis acumulados em pausa (somados ao prazo ao retomar).
+  slaPausedMinutes         Int             @default(0) @map("sla_paused_minutes")
+  firstResponseBreached    Boolean         @default(false) @map("first_response_breached")
+  resolutionBreached       Boolean         @default(false) @map("resolution_breached")
+  slaAtRiskNotifiedAt      DateTime?       @map("sla_at_risk_notified_at")
+  resolvedAt               DateTime?       @map("resolved_at")
+  closedAt                 DateTime?       @map("closed_at")
+  reopenCount              Int             @default(0) @map("reopen_count")
+  // Mudança (Change Enablement)
+  changeType               SdChangeType?   @map("change_type")
+  changeRisk               SdRiskLevel?    @map("change_risk")
+  plannedStartAt           DateTime?       @map("planned_start_at")
+  plannedEndAt             DateTime?       @map("planned_end_at")
+  implementationPlan       String?         @map("implementation_plan")
+  rollbackPlan             String?         @map("rollback_plan")
+  testPlan                 String?         @map("test_plan")
+  // Problema
+  rootCause                String?         @map("root_cause")
+  workaround               String?
+  knownError               Boolean         @default(false) @map("known_error")
+  // IA (pré-atendimento/triagem)
+  aiSummary                String?         @map("ai_summary")
+  aiTriage                 Json?           @map("ai_triage")
+  /// Satisfação (1–5) respondida pelo solicitante após resolver.
+  csatScore                Int?            @map("csat_score")
+  csatComment              String?         @map("csat_comment")
+  lastActivityAt           DateTime        @default(now()) @map("last_activity_at")
+  createdById              String?         @map("created_by_id")
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
+  deletedAt                DateTime?       @map("deleted_at")
+
+  workspace              Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  phase                  SdPhase               @relation(fields: [phaseId], references: [id])
+  impact                 SdImpact?             @relation(fields: [impactId], references: [id], onDelete: SetNull)
+  urgency                SdUrgency?            @relation(fields: [urgencyId], references: [id], onDelete: SetNull)
+  priority               SdPriority?           @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+  severity               SdSeverity?           @relation(fields: [severityId], references: [id], onDelete: SetNull)
+  category               SdCategory?           @relation("SdTicketCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory            SdCategory?           @relation("SdTicketSubcategory", fields: [subcategoryId], references: [id], onDelete: SetNull)
+  service                SdCategory?           @relation("SdTicketService", fields: [serviceId], references: [id], onDelete: SetNull)
+  classification         SdClassification?     @relation("SdTicketClassification", fields: [classificationId], references: [id], onDelete: SetNull)
+  solutionClassification SdClassification?     @relation("SdTicketSolutionClassification", fields: [solutionClassificationId], references: [id], onDelete: SetNull)
+  customer               SdCustomer?           @relation("SdTicketCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  company                SdCustomer?           @relation("SdTicketCompany", fields: [companyId], references: [id], onDelete: SetNull)
+  contact                SdContact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  configItem             SdConfigItem?         @relation(fields: [configItemId], references: [id], onDelete: SetNull)
+  department             SdDepartment?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignee               User?                 @relation("SdTicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  requester              User?                 @relation("SdTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  createdBy              User?                 @relation("SdTicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  template               SdTicketTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  parent                 SdTicket?             @relation("SdTicketTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children               SdTicket[]            @relation("SdTicketTree")
+  whatsappConversation   WhatsAppConversation? @relation(fields: [whatsappConversationId], references: [id], onDelete: SetNull)
+  slaPolicy              SdSlaPolicy?          @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  participants           SdTicketParticipant[]
+  messages               SdTicketMessage[]
+  attachments            SdTicketAttachment[]
+  tasks                  SdTicketTask[]
+  costs                  SdTicketCost[]
+  parts                  SdTicketPart[]
+  approvals              SdTicketApproval[]
+  escalations            SdTicketEscalation[]
+  events                 SdTicketEvent[]
+  signatures             SdTicketSignature[]
+  kbLinks                SdTicketKbLink[]
+
+  @@unique([workspaceId, number])
+  @@index([workspaceId, type, phaseId])
+  @@index([workspaceId, assigneeId])
+  @@index([workspaceId, departmentId])
+  @@index([workspaceId, requesterId])
+  @@index([workspaceId, customerId])
+  @@index([workspaceId, resolutionDueAt])
+  @@index([workspaceId, createdAt])
+  @@index([parentId])
+  @@index([whatsappConversationId])
+  @@index([deletedAt])
+  @@map("sd_tickets")
+}
+
+model SdTicketParticipant {
+  ticketId  String   @map("ticket_id")
+  userId    String   @map("user_id")
+  addedById String?  @map("added_by_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket SdTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User     @relation("SdTicketParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, userId])
+  @@index([userId])
+  @@map("sd_ticket_participants")
+}
+
+/// Histórico/chat do chamado (texto com emoji + anexos). INTERNAL = nota
+/// interna que o solicitante não vê.
+model SdTicketMessage {
+  id                String              @id @default(cuid())
+  workspaceId       String              @map("workspace_id")
+  ticketId          String              @map("ticket_id")
+  authorKind        SdMessageAuthorKind @map("author_kind")
+  authorUserId      String?             @map("author_user_id")
+  authorContactId   String?             @map("author_contact_id")
+  visibility        SdMessageVisibility @default(PUBLIC)
+  channel           SdMessageChannel    @default(PLATFORM)
+  body              String
+  /// Mensagem do WhatsApp espelhada (quando channel = WHATSAPP).
+  whatsappMessageId String?             @map("whatsapp_message_id")
+  editedAt          DateTime?           @map("edited_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  deletedAt         DateTime?           @map("deleted_at")
+
+  workspace     Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket        SdTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorUser    User?                @relation("SdTicketMessageAuthor", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorContact SdContact?           @relation(fields: [authorContactId], references: [id], onDelete: SetNull)
+  attachments   SdTicketAttachment[]
+
+  @@index([ticketId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@map("sd_ticket_messages")
+}
+
+/// Arquivo no MinIO (bucket `servicedesk`), opcionalmente preso a uma mensagem.
+model SdTicketAttachment {
+  id           String           @id @default(cuid())
+  workspaceId  String           @map("workspace_id")
+  ticketId     String           @map("ticket_id")
+  messageId    String?          @map("message_id")
+  uploadedById String?          @map("uploaded_by_id")
+  kind         SdAttachmentKind
+  fileName     String           @map("file_name")
+  mimeType     String           @map("mime_type")
+  size         Int
+  storageKey   String           @map("storage_key")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  deletedAt    DateTime?        @map("deleted_at")
+
+  workspace  Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket     SdTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message    SdTicketMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploadedBy User?            @relation("SdTicketAttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([messageId])
+  @@map("sd_ticket_attachments")
+}
+
+model SdTicketTask {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  ticketId    String       @map("ticket_id")
+  title       String
+  description String?
+  status      SdTaskStatus @default(TODO)
+  assigneeId  String?      @map("assignee_id")
+  dueDate     DateTime?    @map("due_date")
+  completedAt DateTime?    @map("completed_at")
+  position    Int          @default(0)
+  createdById String       @map("created_by_id")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  assignee  User?     @relation("SdTicketTaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdBy User      @relation("SdTicketTaskCreatedBy", fields: [createdById], references: [id])
+
+  @@index([ticketId, position])
+  @@index([workspaceId, assigneeId])
+  @@map("sd_ticket_tasks")
+}
+
+model SdTicketCost {
+  id          String         @id @default(cuid())
+  workspaceId String         @map("workspace_id")
+  ticketId    String         @map("ticket_id")
+  category    SdCostCategory @default(OTHER)
+  description String
+  quantity    Decimal        @default(1) @db.Decimal(12, 2)
+  unitCost    Decimal        @map("unit_cost") @db.Decimal(14, 2)
+  billable    Boolean        @default(false)
+  incurredAt  DateTime       @default(now()) @map("incurred_at")
+  /// Técnico a quem o custo se refere (mão de obra).
+  userId      String?        @map("user_id")
+  createdById String         @map("created_by_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User?     @relation("SdTicketCostUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy User      @relation("SdTicketCostCreatedBy", fields: [createdById], references: [id])
+
+  @@index([ticketId])
+  @@map("sd_ticket_costs")
+}
+
+model SdTicketPart {
+  id           String       @id @default(cuid())
+  workspaceId  String       @map("workspace_id")
+  ticketId     String       @map("ticket_id")
+  partId       String?      @map("part_id")
+  name         String
+  sku          String?
+  quantity     Int          @default(1)
+  unitCost     Decimal      @default(0) @map("unit_cost") @db.Decimal(14, 2)
+  serialNumber String?      @map("serial_number")
+  status       SdPartStatus @default(REQUESTED)
+  notes        String?
+  createdById  String       @map("created_by_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  part      SdPart?   @relation(fields: [partId], references: [id], onDelete: SetNull)
+  createdBy User      @relation("SdTicketPartCreatedBy", fields: [createdById], references: [id])
+
+  @@index([ticketId])
+  @@map("sd_ticket_parts")
+}
+
+/// Pedido de aprovação por e-mail (link público com token de uso único,
+/// guardado como hash SHA-256).
+model SdTicketApproval {
+  id             String           @id @default(cuid())
+  workspaceId    String           @map("workspace_id")
+  ticketId       String           @map("ticket_id")
+  approverName   String?          @map("approver_name")
+  approverEmail  String           @map("approver_email")
+  approverUserId String?          @map("approver_user_id")
+  tokenHash      String           @unique @map("token_hash")
+  status         SdApprovalStatus @default(PENDING)
+  message        String?
+  comment        String?
+  requestedById  String           @map("requested_by_id")
+  sentAt         DateTime?        @map("sent_at")
+  respondedAt    DateTime?        @map("responded_at")
+  expiresAt      DateTime         @map("expires_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket      SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  approver    User?     @relation("SdTicketApprovalApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+  requestedBy User      @relation("SdTicketApprovalRequestedBy", fields: [requestedById], references: [id])
+
+  @@index([ticketId])
+  @@index([workspaceId, status])
+  @@map("sd_ticket_approvals")
+}
+
+model SdTicketEscalation {
+  id               String           @id @default(cuid())
+  workspaceId      String           @map("workspace_id")
+  ticketId         String           @map("ticket_id")
+  kind             SdEscalationKind
+  fromLevel        Int              @map("from_level")
+  toLevel          Int              @map("to_level")
+  fromDepartmentId String?          @map("from_department_id")
+  toDepartmentId   String?          @map("to_department_id")
+  fromAssigneeId   String?          @map("from_assignee_id")
+  toAssigneeId     String?          @map("to_assignee_id")
+  reason           String
+  /// Disparada por regra (SLA) e não por uma pessoa.
+  automatic        Boolean          @default(false)
+  ruleId           String?          @map("rule_id")
+  createdById      String?          @map("created_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdBy User?     @relation("SdTicketEscalationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@map("sd_ticket_escalations")
+}
+
+/// Rastreabilidade: tudo que acontece no chamado (append-only).
+model SdTicketEvent {
+  id          String              @id @default(cuid())
+  workspaceId String              @map("workspace_id")
+  ticketId    String              @map("ticket_id")
+  actorKind   SdMessageAuthorKind @map("actor_kind")
+  actorUserId String?             @map("actor_user_id")
+  /// ex.: ticket.created, field.changed, phase.changed, message.posted,
+  /// task.completed, approval.requested, sla.breached, escalated, signed…
+  action      String
+  field       String?
+  fromValue   Json?               @map("from_value")
+  toValue     Json?               @map("to_value")
+  meta        Json?
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("SdTicketEventActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@index([workspaceId, action, createdAt])
+  @@map("sd_ticket_events")
+}
+
+/// Assinatura digital (PNG no MinIO + SHA-256 do PNG e do snapshot do chamado).
+model SdTicketSignature {
+  id             String   @id @default(cuid())
+  workspaceId    String   @map("workspace_id")
+  ticketId       String   @map("ticket_id")
+  purpose        String   @default("Aceite do atendimento")
+  signerName     String   @map("signer_name")
+  signerDocument String?  @map("signer_document")
+  signerEmail    String?  @map("signer_email")
+  signedById     String?  @map("signed_by_id")
+  storageKey     String   @map("storage_key")
+  imageSha256    String   @map("image_sha256")
+  /// Hash do estado do chamado no momento da assinatura (integridade).
+  ticketSha256   String   @map("ticket_sha256")
+  signedAt       DateTime @default(now()) @map("signed_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  signedBy  User?     @relation("SdTicketSignatureSignedBy", fields: [signedById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@map("sd_ticket_signatures")
+}
+
+/// Visão salva da lista de chamados (filtros, colunas, ordenação, modo).
+model SdSavedView {
+  id          String        @id @default(cuid())
+  workspaceId String        @map("workspace_id")
+  userId      String        @map("user_id")
+  name        String
+  ticketType  SdTicketType? @map("ticket_type")
+  mode        SdViewMode    @default(KANBAN)
+  filters     Json          @default("{}")
+  sort        Json          @default("[]")
+  columns     Json          @default("[]")
+  /// Compartilhada com todo o workspace.
+  shared      Boolean       @default(false)
+  position    Int           @default(0)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("SdSavedViewUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, userId])
+  @@map("sd_saved_views")
+}
+
+/// Base de conhecimento (port da Wiki do Nexo + publicação no portal,
+/// vínculo com categoria e avaliação de utilidade).
+model SdKbArticle {
+  id              String            @id @default(cuid())
+  workspaceId     String            @map("workspace_id")
+  parentId        String?           @map("parent_id")
+  title           String
+  icon            String?
+  coverImage      String?           @map("cover_image")
+  content         Json
+  /// Texto plano extraído do conteúdo (busca e contexto da IA).
+  plainText       String            @default("") @map("plain_text")
+  status          SdKbArticleStatus @default(DRAFT)
+  visibility      SdKbVisibility    @default(INTERNAL)
+  categoryId      String?           @map("category_id")
+  tags            String[]          @default([])
+  position        Int               @default(0)
+  viewCount       Int               @default(0) @map("view_count")
+  helpfulCount    Int               @default(0) @map("helpful_count")
+  notHelpfulCount Int               @default(0) @map("not_helpful_count")
+  publishedAt     DateTime?         @map("published_at")
+  createdById     String?           @map("created_by_id")
+  updatedById     String?           @map("updated_by_id")
+  archivedAt      DateTime?         @map("archived_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent      SdKbArticle?     @relation("SdKbArticleTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    SdKbArticle[]    @relation("SdKbArticleTree")
+  category    SdCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy   User?            @relation("SdKbArticleAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy   User?            @relation("SdKbArticleEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  comments    SdKbComment[]
+  ticketLinks SdTicketKbLink[]
+
+  @@index([workspaceId, parentId])
+  @@index([workspaceId, status, visibility])
+  @@map("sd_kb_articles")
+}
+
+model SdKbComment {
+  id           String    @id @default(cuid())
+  articleId    String    @map("article_id")
+  authorId     String?   @map("author_id")
+  parentId     String?   @map("parent_id")
+  markId       String    @map("mark_id")
+  content      Json
+  resolved     Boolean   @default(false)
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedById String?   @map("resolved_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  article    SdKbArticle   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author     User?         @relation("SdKbCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  resolvedBy User?         @relation("SdKbCommentResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  parent     SdKbComment?  @relation("SdKbCommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    SdKbComment[] @relation("SdKbCommentThread")
+
+  @@index([articleId, markId])
+  @@map("sd_kb_comments")
+}
+
+/// Artigo usado/sugerido num chamado (KCS: medir reuso do conhecimento).
+model SdTicketKbLink {
+  ticketId   String   @map("ticket_id")
+  articleId  String   @map("article_id")
+  linkedById String?  @map("linked_by_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  ticket  SdTicket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  article SdKbArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, articleId])
+  @@index([articleId])
+  @@map("sd_ticket_kb_links")
+}
+
+/// Conversa do agente de IA do ServiceDesk (copiloto do agente ou
+/// pré-atendimento do solicitante).
+model SdAiConversation {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  userId      String?  @map("user_id")
+  /// COPILOT (agente, dentro de um chamado) | PRE_SERVICE (portal/WhatsApp).
+  mode        String
+  ticketId    String?  @map("ticket_id")
+  /// Resultado do pré-atendimento: resolved_by_kb | ticket_opened | abandoned
+  outcome     String?
+  messages    Json     @default("[]")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation("SdAiConversationUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, userId])
+  @@index([ticketId])
+  @@map("sd_ai_conversations")
 }

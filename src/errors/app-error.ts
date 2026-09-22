@@ -670,3 +670,124 @@ export const backupNotRestorable = (message: string): AppError =>
 export const backupDownloadLinkInvalid = (
   message = 'Link de download inválido ou expirado',
 ): AppError => appError('BACKUP_DOWNLOAD_LINK_INVALID', message)
+
+// ServiceDesk (ITIL)
+
+export const sdTicketNotFound = (): AppError =>
+  appError('SD_TICKET_NOT_FOUND', 'Chamado não encontrado')
+
+export const sdTicketForbidden = (
+  message = 'Você não tem acesso a este chamado',
+): AppError => appError('SD_TICKET_FORBIDDEN', message)
+
+export const sdNotAgent = (
+  message = 'Apenas agentes (membros de um departamento) podem fazer isso',
+): AppError => appError('SD_NOT_AGENT', message)
+
+export const sdTicketClosed = (
+  message = 'O chamado está encerrado',
+): AppError => appError('SD_TICKET_CLOSED', message)
+
+export const sdPhaseNotFound = (): AppError =>
+  appError('SD_PHASE_NOT_FOUND', 'Fase não encontrada')
+
+export const sdPhaseTransitionNotAllowed = (
+  message = 'Transição de fase não permitida pelo fluxo configurado',
+): AppError => appError('SD_PHASE_TRANSITION_NOT_ALLOWED', message)
+
+export const sdPhaseRequirementsUnmet = (
+  message = 'Preencha os campos obrigatórios da fase',
+): AppError => appError('SD_PHASE_REQUIREMENTS_UNMET', message)
+
+export const sdApprovalRequired = (
+  message = 'Esta fase exige uma aprovação concedida',
+): AppError => appError('SD_APPROVAL_REQUIRED', message)
+
+export const sdApprovalNotFound = (): AppError =>
+  appError('SD_APPROVAL_NOT_FOUND', 'Aprovação não encontrada')
+
+export const sdApprovalNotPending = (
+  message = 'Esta aprovação já foi respondida ou cancelada',
+): AppError => appError('SD_APPROVAL_NOT_PENDING', message)
+
+export const sdApprovalExpired = (
+  message = 'O link de aprovação expirou',
+): AppError => appError('SD_APPROVAL_EXPIRED', message)
+
+export const sdSignatureRequired = (
+  message = 'É preciso colher a assinatura antes de encerrar o chamado',
+): AppError => appError('SD_SIGNATURE_REQUIRED', message)
+
+export const sdCategoryNotFound = (): AppError =>
+  appError('SD_CATEGORY_NOT_FOUND', 'Categoria não encontrada')
+
+export const sdCategoryLevelInvalid = (
+  message = 'Nível inválido na árvore categoria > subcategoria > serviço',
+): AppError => appError('SD_CATEGORY_LEVEL_INVALID', message)
+
+export const sdDepartmentNotFound = (): AppError =>
+  appError('SD_DEPARTMENT_NOT_FOUND', 'Departamento não encontrado')
+
+export const sdDepartmentDepthExceeded = (
+  message = 'Sub-departamentos não podem ter filhos',
+): AppError => appError('SD_DEPARTMENT_DEPTH_EXCEEDED', message)
+
+export const sdCustomerNotFound = (): AppError =>
+  appError('SD_CUSTOMER_NOT_FOUND', 'Cliente/empresa não encontrado')
+
+export const sdCustomerDocumentConflict = (
+  message = 'Já existe um cadastro com este CPF/CNPJ',
+): AppError => appError('SD_CUSTOMER_DOCUMENT_CONFLICT', message)
+
+export const sdDocumentInvalid = (message = 'CPF/CNPJ inválido'): AppError =>
+  appError('SD_DOCUMENT_INVALID', message)
+
+export const sdContactNotFound = (): AppError =>
+  appError('SD_CONTACT_NOT_FOUND', 'Contato não encontrado')
+
+export const sdConfigItemNotFound = (): AppError =>
+  appError('SD_CONFIG_ITEM_NOT_FOUND', 'Item de configuração não encontrado')
+
+export const sdConfigNotFound = (): AppError =>
+  appError('SD_CONFIG_NOT_FOUND', 'Configuração do ServiceDesk não encontrada')
+
+export const sdConfigConflict = (
+  message = 'Conflito na configuração do ServiceDesk',
+): AppError => appError('SD_CONFIG_CONFLICT', message)
+
+export const sdCustomFieldInvalid = (
+  message = 'Valor de campo customizado inválido',
+): AppError => appError('SD_CUSTOM_FIELD_INVALID', message)
+
+export const sdKbArticleNotFound = (): AppError =>
+  appError('SD_KB_ARTICLE_NOT_FOUND', 'Artigo não encontrado')
+
+export const sdKbArticleForbidden = (
+  message = 'Você não tem acesso a este artigo',
+): AppError => appError('SD_KB_ARTICLE_FORBIDDEN', message)
+
+export const sdAttachmentNotFound = (): AppError =>
+  appError('SD_ATTACHMENT_NOT_FOUND', 'Anexo não encontrado')
+
+export const sdAttachmentInvalid = (
+  message = 'Arquivo inválido (tipo ou tamanho não permitido)',
+): AppError => appError('SD_ATTACHMENT_INVALID', message)
+
+export const sdCepNotFound = (): AppError =>
+  appError('SD_CEP_NOT_FOUND', 'CEP não encontrado')
+
+export const sdCepLookupFailed = (
+  message = 'Não foi possível consultar o CEP agora',
+): AppError => appError('SD_CEP_LOOKUP_FAILED', message)
+
+export const sdPortalDisabled = (
+  message = 'O portal do solicitante está desativado',
+): AppError => appError('SD_PORTAL_DISABLED', message)
+
+export const sdWhatsappNotConfigured = (
+  message = 'Nenhuma conexão de WhatsApp configurada no ServiceDesk',
+): AppError => appError('SD_WHATSAPP_NOT_CONFIGURED', message)
+
+export const sdAiDisabled = (
+  message = 'O agente de IA do ServiceDesk está desativado',
+): AppError => appError('SD_AI_DISABLED', message)
