@@ -139,6 +139,21 @@ export const TAG_GROUPS = [
     ],
   },
   {
+    name: 'ServiceDesk',
+    tags: [
+      {
+        name: 'ServiceDesk · Chamados',
+        description:
+          'Chamados ITIL (incidente, requisição, mudança, problema): abertura, quadro kanban, fases, SLA, participantes, escalonamento, rastreabilidade e tempo real. Agentes veem todos; solicitantes só os próprios.',
+      },
+      {
+        name: 'ServiceDesk · Visões salvas',
+        description:
+          'Filtros, colunas e modo (kanban/lista/tabela) salvos do quadro de chamados — pessoais ou compartilhados.',
+      },
+    ],
+  },
+  {
     name: 'Comunicação',
     tags: [
       {

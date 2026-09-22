@@ -1,7 +1,6 @@
 import type {
   Prisma,
   SdApprovalStatus,
-  SdAutomationEvent,
   SdBusinessCalendar,
   SdCategory,
   SdCustomFieldDefinition,
@@ -593,20 +592,6 @@ export const SdTicketContextRepository = {
       return ok(rows)
     } catch (error) {
       return err(dbError('Failed to list ServiceDesk escalation rules', error))
-    }
-  },
-
-  async countActiveAutomationRules(
-    workspaceId: string,
-    events: SdAutomationEvent[],
-  ): Promise<Result<number>> {
-    try {
-      const count = await prisma.sdAutomationRule.count({
-        where: { workspaceId, active: true, event: { in: events } },
-      })
-      return ok(count)
-    } catch (error) {
-      return err(dbError('Failed to count ServiceDesk automation rules', error))
     }
   },
 }

@@ -150,6 +150,35 @@ function breachedWhere(now: Date): Prisma.SdTicketWhereInput {
   }
 }
 
+/**
+ * Complemento de `breachedWhere` escrito em termos positivos: `NOT (...)`
+ * em SQL descarta linhas com prazos NULL (lógica de três valores).
+ */
+function notBreachedWhere(now: Date): Prisma.SdTicketWhereInput {
+  return {
+    firstResponseBreached: false,
+    resolutionBreached: false,
+    AND: [
+      {
+        OR: [
+          { firstRespondedAt: { not: null } },
+          { slaPausedAt: { not: null } },
+          { firstResponseDueAt: null },
+          { firstResponseDueAt: { gte: now } },
+        ],
+      },
+      {
+        OR: [
+          { resolvedAt: { not: null } },
+          { slaPausedAt: { not: null } },
+          { resolutionDueAt: null },
+          { resolutionDueAt: { gte: now } },
+        ],
+      },
+    ],
+  }
+}
+
 /** Visibilidade de solicitante (README: solicitante, participante, contato). */
 export function sdRequesterScope(userId: string): Prisma.SdTicketWhereInput {
   return {
@@ -201,7 +230,7 @@ export function buildSdTicketWhere(
   if (f.sla === 'breached') and.push(breachedWhere(now))
   if (f.sla === 'at_risk') {
     and.push({ slaAtRiskNotifiedAt: { not: null } })
-    and.push({ NOT: breachedWhere(now) })
+    and.push(notBreachedWhere(now))
   }
   if (f.createdFrom || f.createdTo) {
     where.createdAt = {
@@ -419,9 +448,11 @@ export const SdTicketRepository = {
           prisma.sdTicket.count({ where: { ...open, assigneeId: null } }),
           prisma.sdTicket.count({
             where: {
-              ...open,
-              slaAtRiskNotifiedAt: { not: null },
-              NOT: breachedWhere(params.now),
+              AND: [
+                open,
+                { slaAtRiskNotifiedAt: { not: null } },
+                notBreachedWhere(params.now),
+              ],
             },
           }),
           prisma.sdTicket.count({

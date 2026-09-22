@@ -89,6 +89,50 @@ Modelos: bloco `ServiceDesk` no fim de `prisma/schema.prisma` (tabelas `sd_*`).
   `sd-tickets` etc.; padrões "Analítico" e "KPIs (TV)" semeados; modo TV em
   tela cheia com auto-refresh.
 
+## Motor de chamados (contratos para as outras fatias)
+
+API (`app/api/workspaces/[id]/servicedesk/…`, OpenAPI em
+`src/openapi/paths/servicedesk-tickets.ts`): `tickets` (GET lista/kanban
+com filtros, POST abrir), `tickets/summary`, `tickets/bulk`,
+`tickets/[ticketId]` (GET/PATCH/DELETE — `ticketId` aceita id, número ou
+`INC-000123`), `…/phase`, `…/parent`, `…/participants[/userId]`,
+`…/events` (rastreabilidade), `…/escalations`, `saved-views[/viewId]` e o
+SSE `events`. Hooks: `src/hooks/use-sd-tickets.ts`.
+
+Para as fatias que mexem no chamado (mensagens, tarefas, aprovações,
+assinaturas, WhatsApp/IA):
+
+- **Rastreabilidade**: `recordSdTicketEvent(event | event[])`
+  (`src/services/sd-ticket-event-recorder.ts`) — `{ workspaceId, ticketId,
+  actorKind, actorUserId?, action, field?, fromValue?, toValue?, meta? }`;
+  relações como `{ id, label }`. Nunca lança.
+- **Tempo real**: `publishSdTicketEvent(workspaceId, event, audience)`
+  (`src/lib/servicedesk/realtime.ts`). Evento `{ type, ticketId, number,
+  at, actorId?, internal? }` com `type` ∈ `ticket.created | ticket.updated
+  | ticket.phase_changed | ticket.assigned | ticket.deleted |
+  ticket.escalated | ticket.sla | ticket.participants | ticket.message |
+  ticket.task | ticket.cost | ticket.part | ticket.attachment |
+  ticket.approval | ticket.signature`. `audience = { requesterId,
+  participantIds, contactUserId }` decide quais solicitantes recebem;
+  `internal: true` (nota interna, custo) só vai para agentes. O evento é um
+  aviso: o cliente recarrega pelas rotas.
+- **Automação**: `runSdAutomations(event, ticketId, { actorId })` /
+  `fireSdAutomations(…)` (`src/services/sd-automation-engine.ts`) — ex.:
+  `MESSAGE_RECEIVED`, `APPROVAL_RESPONDED`. As ações não disparam novas
+  automações (sem laço).
+- **Motor** (`SdTicketEngine`, `src/services/sd-ticket-engine.ts`, sem
+  autorização): `resolveRef`, `markFirstResponse(ticketId)` (1ª mensagem
+  pública de agente), `touchActivity(ticketId)`, `reopen(ticket, actor,
+  config)` (resposta do solicitante com `reopenOnRequesterReply`),
+  `changePhase`, `update`, `loadConfig`. Visibilidade:
+  `canViewSdTicket(ctx, ticket)`. HTML rico: `sanitizeSdHtml` /
+  `sdHtmlToText` (`src/lib/servicedesk/html.ts`).
+- **SLA**: `src/lib/servicedesk/sla.ts` (`addBusinessMinutes`,
+  `businessMinutesBetween`, `computeSlaState`, `parseSdCalendar`). O tick
+  `servicedesk-sla` (1 min) marca risco/violação uma única vez, notifica
+  (responsável + líderes), roda `SdEscalationRule` e as automações
+  `SLA_AT_RISK`/`SLA_BREACHED` e fecha RESOLVED vencidos.
+
 ## Rotas de UI
 
 | Rota (`/[slug]/servicedesk/…`) | Tela |
