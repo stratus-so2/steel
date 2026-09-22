@@ -7,6 +7,7 @@ import { registerCrmPaths } from './paths/crm'
 import { registerPublicPaths } from './paths/public'
 import { registerServiceDeskPaths } from './paths/servicedesk'
 import { registerServiceDeskKnowledgePaths } from './paths/servicedesk-knowledge'
+import { registerSdTicketPaths } from './paths/servicedesk-tickets'
 import { registerWhatsAppPaths } from './paths/whatsapp'
 import { OpenApiRegistry } from './registry'
 import { TAG_GROUPS } from './tags'
@@ -22,6 +23,7 @@ export function createRegistry(): OpenApiRegistry {
   registerWhatsAppPaths(registry)
   registerServiceDeskKnowledgePaths(registry)
   registerServiceDeskPaths(registry)
+  registerSdTicketPaths(registry)
   return registry
 }
 

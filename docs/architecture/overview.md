@@ -147,6 +147,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `database-backup` | backup FULL (03:15), prune (03:30), backup por workspace, **cópia offsite**, exclusão e restauração de workspace pelo painel admin | cron + sob demanda |
 | `status-collect` | probes do `/status` ([ADR 0004](../adr/0004-status-collection-worker-jobs.md)) | core 1 min, periféricos 5 min |
 | `usage-rollup` | copia o uso por módulo do Redis para `module_usage_daily` ([métricas](../admin-metrics.md)) | a cada 15 min |
+| `servicedesk-sla` | SLA dos chamados do ServiceDesk: marca risco/violação (uma vez), notifica, roda regras de escalonamento e automações de SLA, fecha RESOLVED após `autoCloseResolvedAfterHours` ([ServiceDesk](../servicedesk/README.md)) | a cada 1 min |
 
 Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
 

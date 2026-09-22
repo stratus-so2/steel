@@ -94,6 +94,9 @@ export type AuditEntity =
   | 'sd_canned_response'
   | 'sd_part'
   | 'sd_seed'
+  // ServiceDesk — chamados
+  | 'sd_ticket'
+  | 'sd_saved_view'
 
 export type AuditAction =
   | 'create'
@@ -136,6 +139,7 @@ export type AuditAction =
   | 'unpublish'
   | 'resolve'
   | 'unresolve'
+  | 'escalate'
 
 type AuditOutcome = 'success' | 'failure'
 

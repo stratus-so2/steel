@@ -17,6 +17,7 @@ import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-work
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
 import { processDatabaseBackup } from '../src/lib/queue/processors/database-backup'
+import { processServicedeskSla } from '../src/lib/queue/processors/servicedesk-sla'
 import { processStatusCollect } from '../src/lib/queue/processors/status-collect'
 import { processUsageRollup } from '../src/lib/queue/processors/usage-rollup'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
@@ -33,6 +34,7 @@ import {
   scheduleCrmWorkflowScheduleJobs,
   scheduleDatabaseBackupJobs,
   scheduleDataRetentionJobs,
+  scheduleServicedeskSlaJobs,
   scheduleStatusCollectJobs,
   scheduleTrialLifecycleJobs,
   scheduleUsageRollupJobs,
@@ -156,6 +158,7 @@ async function main(): Promise<void> {
   workers.push(registerWorker(QueueName.DatabaseBackup, processDatabaseBackup))
   workers.push(registerWorker(QueueName.StatusCollect, processStatusCollect))
   workers.push(registerWorker(QueueName.UsageRollup, processUsageRollup))
+  workers.push(registerWorker(QueueName.ServicedeskSla, processServicedeskSla))
 
   await scheduleDataRetentionJobs()
   await scheduleTrialLifecycleJobs()
@@ -169,6 +172,7 @@ async function main(): Promise<void> {
   await scheduleDatabaseBackupJobs()
   await scheduleStatusCollectJobs()
   await scheduleUsageRollupJobs()
+  await scheduleServicedeskSlaJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

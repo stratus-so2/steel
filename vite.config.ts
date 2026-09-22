@@ -134,6 +134,7 @@ export default defineConfig({
         'lib/abacatepay.ts',
         'src/lib/ai/**',
         'src/lib/analytics/**',
+        'src/lib/servicedesk/**',
         'src/lib/queue/processors/**',
       ],
       exclude: [

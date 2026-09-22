@@ -29,6 +29,9 @@ export const CrmProposalExpiryCron = '5 0 * * *' as const
 /** Frequência do tick que publica posts sociais agendados vencidos. */
 export const CrmSocialPostsTickCron = '* * * * *' as const
 
+/** Frequência do tick de SLA do ServiceDesk (risco, violação, escalonamento). */
+export const ServicedeskSlaCron = '* * * * *' as const
+
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 
