@@ -106,7 +106,7 @@ describe('customers CRUD', () => {
       {
         id: customer.id,
         label: 'Acme Ltda',
-        sublabel: '11.222.333/0001-81',
+        sublabel: '11.222.333/0001-81 · SP',
       },
     ])
 
