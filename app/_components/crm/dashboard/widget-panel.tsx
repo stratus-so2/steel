@@ -4,10 +4,15 @@ import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import dynamic from 'next/dynamic'
 import * as React from 'react'
 import {
+  AGGREGATION_LABELS,
   CHART_SOURCE_LABELS,
   CHART_TYPE_META,
   COMPARE_RANGE_LABELS,
+  DATE_BUCKET_LABELS,
+  moduleOfBasePath,
+  PERIOD_LABELS,
   SOCIAL_METRIC_LABELS,
+  sourcesForBasePath,
   VIEW_SOURCE_FIELDS,
   VIEW_SOURCE_LABELS,
   WIDGET_TYPE_META,
@@ -38,14 +43,20 @@ import {
   updateCrmDashboardWidget,
 } from '@/src/hooks/use-crm-dashboard-widget'
 import {
+  AGGREGATIONS,
+  type Aggregation,
   CHART_SOURCES,
   type ChartConfig,
   ChartConfigSchema,
   type ChartSource,
   type ChartType,
   COMPARE_RANGES,
+  DATE_BUCKETS,
+  type DateBucket,
   FILTER_OPERATORS,
   type IframeConfig,
+  PERIODS,
+  type Period,
   type RichTextConfig,
   SOCIAL_METRICS,
   SORT_MODES,
@@ -113,12 +124,26 @@ const DEFAULT_SIZE: Record<WidgetType, { w: number; h: number }> = {
   RICH_TEXT: { w: 4, h: 6 },
 }
 
-function defaultConfig(type: WidgetType): Record<string, unknown> {
+/** Fonte inicial de um widget novo conforme o módulo do dashboard. */
+function defaultSource(basePath: string): ViewSource {
+  const module = moduleOfBasePath(basePath)
+  if (module === 'SERVICE_DESK') return 'sd-tickets'
+  if (module === 'COMMUNICATION') return 'whatsapp-conversations'
+  return 'companies'
+}
+
+function defaultConfig(
+  type: WidgetType,
+  basePath: string,
+): Record<string, unknown> {
   switch (type) {
     case 'CHART':
-      return ChartConfigSchema.parse({ chartType: 'vertical' })
+      return ChartConfigSchema.parse({
+        chartType: 'vertical',
+        source: defaultSource(basePath),
+      })
     case 'VIEW':
-      return ViewConfigSchema.parse({ source: 'companies' })
+      return ViewConfigSchema.parse({ source: defaultSource(basePath) })
     case 'IFRAME':
       return { url: '' }
     case 'RICH_TEXT':
@@ -181,7 +206,7 @@ export function WidgetPanel({
 
   function chooseType(next: WidgetType) {
     setType(next)
-    setConfig(defaultConfig(next))
+    setConfig(defaultConfig(next, basePath))
   }
 
   async function handleSave() {
@@ -268,12 +293,14 @@ export function WidgetPanel({
                 <ChartEditor
                   config={config as ChartConfig}
                   onChange={setConfig}
+                  basePath={basePath}
                 />
               ) : null}
               {type === 'VIEW' ? (
                 <ViewEditor
                   config={config as ViewConfig}
                   onChange={setConfig}
+                  basePath={basePath}
                 />
               ) : null}
               {type === 'IFRAME' ? (
@@ -374,9 +401,11 @@ function Labeled({
 function SourceSelect({
   value,
   onChange,
+  basePath,
 }: {
   value: ViewSource
   onChange: (value: ViewSource) => void
+  basePath: string
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as ViewSource)}>
@@ -384,7 +413,7 @@ function SourceSelect({
         <span>{VIEW_SOURCE_LABELS[value]}</span>
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
-        {VIEW_SOURCES.map((source) => (
+        {sourcesForBasePath(VIEW_SOURCES, basePath).map((source) => (
           <SelectItem key={source} value={source}>
             {VIEW_SOURCE_LABELS[source]}
           </SelectItem>
@@ -397,9 +426,11 @@ function SourceSelect({
 function ChartSourceSelect({
   value,
   onChange,
+  basePath,
 }: {
   value: ChartSource
   onChange: (value: ChartSource) => void
+  basePath: string
 }) {
   return (
     <Select value={value} onValueChange={(v) => onChange(v as ChartSource)}>
@@ -407,7 +438,7 @@ function ChartSourceSelect({
         <span>{CHART_SOURCE_LABELS[value]}</span>
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
-        {CHART_SOURCES.map((source) => (
+        {sourcesForBasePath(CHART_SOURCES, basePath).map((source) => (
           <SelectItem key={source} value={source}>
             {CHART_SOURCE_LABELS[source]}
           </SelectItem>
@@ -641,14 +672,160 @@ function FilterEditor({
   )
 }
 
+/* ----------------------- período, cálculo e limite ------------------------ */
+
+const DATE_FIELD_HINT = /(At|Date|date)$/
+
+/** Período (janela de datas) + campo de data usado. */
+function PeriodFields({
+  source,
+  period,
+  periodField,
+  onChange,
+}: {
+  source: ViewSource
+  period: Period | undefined
+  periodField: string | undefined
+  onChange: (patch: { period?: Period; periodField?: string }) => void
+}) {
+  const dateFields = (VIEW_SOURCE_FIELDS[source] ?? []).filter((f) =>
+    DATE_FIELD_HINT.test(f.key),
+  )
+  return (
+    <div className='space-y-2'>
+      <Labeled label='Período'>
+        <Select
+          value={period ?? NONE}
+          onValueChange={(v) =>
+            onChange({
+              period: v === NONE ? undefined : (v as Period),
+              periodField,
+            })
+          }
+        >
+          <SelectTrigger className='w-full'>
+            <span>{period ? PERIOD_LABELS[period] : 'Todo o histórico'}</span>
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            <SelectItem value={NONE}>Todo o histórico</SelectItem>
+            {PERIODS.map((p) => (
+              <SelectItem key={p} value={p}>
+                {PERIOD_LABELS[p]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Labeled>
+      {period && dateFields.length > 0 ? (
+        <Labeled label='Data considerada'>
+          <Select
+            value={periodField ?? 'createdAt'}
+            onValueChange={(v) => onChange({ period, periodField: String(v) })}
+          >
+            <SelectTrigger size='sm' className='w-full'>
+              <span className='truncate'>
+                {dateFields.find((f) => f.key === (periodField ?? 'createdAt'))
+                  ?.label ?? periodField}
+              </span>
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {dateFields.map((f) => (
+                <SelectItem key={f.key} value={f.key}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Labeled>
+      ) : null}
+    </div>
+  )
+}
+
+function AggregationSelect({
+  value,
+  onChange,
+}: {
+  value: Aggregation
+  onChange: (value: Aggregation) => void
+}) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as Aggregation)}>
+      <SelectTrigger className='w-full'>
+        <span>{AGGREGATION_LABELS[value]}</span>
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false}>
+        {AGGREGATIONS.map((a) => (
+          <SelectItem key={a} value={a}>
+            {AGGREGATION_LABELS[a]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function DateBucketSelect({
+  value,
+  onChange,
+}: {
+  value: DateBucket | undefined
+  onChange: (value: DateBucket | undefined) => void
+}) {
+  return (
+    <Select
+      value={value ?? NONE}
+      onValueChange={(v) =>
+        onChange(v === NONE ? undefined : (v as DateBucket))
+      }
+    >
+      <SelectTrigger size='sm' className='w-full'>
+        <span>{value ? DATE_BUCKET_LABELS[value] : 'Não agrupar'}</span>
+      </SelectTrigger>
+      <SelectContent alignItemWithTrigger={false}>
+        <SelectItem value={NONE}>Não agrupar</SelectItem>
+        {DATE_BUCKETS.map((b) => (
+          <SelectItem key={b} value={b}>
+            {DATE_BUCKET_LABELS[b]}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function LimitField({
+  value,
+  onChange,
+  label = 'Mostrar só os primeiros (top N)',
+}: {
+  value: number | undefined
+  onChange: (value: number | undefined) => void
+  label?: string
+}) {
+  return (
+    <NumberField
+      label={label}
+      value={value}
+      onChange={(n) =>
+        onChange(
+          n === undefined || n < 1 ? undefined : Math.min(500, Math.round(n)),
+        )
+      }
+    />
+  )
+}
+
 /* ------------------------------- chart editor ------------------------------ */
 
 function ChartEditor({
   config,
   onChange,
+  basePath,
 }: {
   config: ChartConfig
   onChange: (config: Record<string, unknown>) => void
+  basePath: string
 }) {
   const c = config
   const set = (patch: Partial<ChartConfig>) => onChange({ ...c, ...patch })
@@ -716,19 +893,49 @@ function ChartEditor({
         ))}
       </div>
 
+      <TextField
+        label='Título do widget'
+        value={c.title ?? ''}
+        placeholder='Ex.: Chamados abertos'
+        onChange={(title) => set({ title: title || undefined })}
+      />
+
       <section className='space-y-3'>
         <SectionTitle>Dados</SectionTitle>
         <Labeled label='Fonte'>
-          <ChartSourceSelect value={c.source} onChange={setSource} />
+          <ChartSourceSelect
+            value={c.source}
+            onChange={setSource}
+            basePath={basePath}
+          />
         </Labeled>
         {isSocials ? (
           <SocialsFields config={c} set={set} />
         ) : (
-          <FilterEditor
-            source={viewSource}
-            filters={c.filters}
-            onChange={(filters) => set({ filters })}
-          />
+          <>
+            <FilterEditor
+              source={viewSource}
+              filters={c.filters}
+              onChange={(filters) => set({ filters })}
+            />
+            <PeriodFields
+              source={viewSource}
+              period={c.period}
+              periodField={c.periodField}
+              onChange={(patch) => set(patch)}
+            />
+            <Labeled label='Cálculo do valor'>
+              <AggregationSelect
+                value={c.aggregation ?? 'auto'}
+                onChange={(aggregation) =>
+                  set({
+                    aggregation:
+                      aggregation === 'auto' ? undefined : aggregation,
+                  })
+                }
+              />
+            </Labeled>
+          </>
         )}
       </section>
 
@@ -762,6 +969,43 @@ function ChartEditor({
               placeholder='%'
               onChange={(suffix) => set({ suffix })}
             />
+          </div>
+          <div className='flex gap-2'>
+            <NumberField
+              label='Casas decimais'
+              value={c.decimals}
+              onChange={(decimals) =>
+                set({
+                  decimals:
+                    decimals === undefined
+                      ? undefined
+                      : Math.min(4, Math.max(0, Math.round(decimals))),
+                })
+              }
+            />
+            <div className='flex-1 space-y-1'>
+              <span className='text-muted-foreground text-xs'>
+                Cor do número
+              </span>
+              <div className='flex items-center gap-1.5'>
+                <Input
+                  type='color'
+                  aria-label='Cor do número'
+                  className='h-9 w-12 p-1'
+                  value={c.color ?? '#6366f1'}
+                  onChange={(e) => set({ color: e.target.value })}
+                />
+                {c.color ? (
+                  <Button
+                    variant='ghost'
+                    size='sm'
+                    onClick={() => set({ color: undefined })}
+                  >
+                    Padrão
+                  </Button>
+                ) : null}
+              </div>
+            </div>
           </div>
           <Labeled label='Comparar com período anterior'>
             <Select
@@ -867,12 +1111,19 @@ function BarLineFields({
             noneLabel='Selecionar campo'
           />
         </Labeled>
+        <Labeled label='Agrupar datas'>
+          <DateBucketSelect
+            value={c.dateBucket}
+            onChange={(dateBucket) => set({ dateBucket })}
+          />
+        </Labeled>
         <Labeled label='Ordenar por'>
           <SortModeSelect
             value={c.xSort}
             onChange={(xSort) => set({ xSort })}
           />
         </Labeled>
+        <LimitField value={c.limit} onChange={(limit) => set({ limit })} />
         <Toggle
           label='Omitir valores zero'
           checked={c.omitZero}
@@ -966,6 +1217,7 @@ function PieFields({
       <Labeled label='Ordenar por'>
         <SortModeSelect value={c.xSort} onChange={(xSort) => set({ xSort })} />
       </Labeled>
+      <LimitField value={c.limit} onChange={(limit) => set({ limit })} />
       <Toggle
         label='Esconder categoria vazia'
         checked={c.hideEmpty}
@@ -1078,14 +1330,16 @@ function SocialsFields({
 function ViewEditor({
   config,
   onChange,
+  basePath,
 }: {
   config: ViewConfig
   onChange: (config: Record<string, unknown>) => void
+  basePath: string
 }) {
   const sourceFields = VIEW_SOURCE_FIELDS[config.source] ?? []
 
   function setSource(source: ViewSource) {
-    onChange({ source, fields: [], filters: [], sort: [] })
+    onChange({ title: config.title, source, fields: [], filters: [], sort: [] })
   }
   function toggleField(key: string) {
     const fields = config.fields.includes(key)
@@ -1115,8 +1369,18 @@ function ViewEditor({
 
   return (
     <div className='space-y-5'>
+      <TextField
+        label='Título do widget'
+        value={config.title ?? ''}
+        placeholder='Ex.: Críticos abertos'
+        onChange={(title) => onChange({ ...config, title: title || undefined })}
+      />
       <Labeled label='Fonte'>
-        <SourceSelect value={config.source} onChange={setSource} />
+        <SourceSelect
+          value={config.source}
+          onChange={setSource}
+          basePath={basePath}
+        />
       </Labeled>
 
       <div className='space-y-2'>
@@ -1145,6 +1409,17 @@ function ViewEditor({
         source={config.source}
         filters={config.filters}
         onChange={(filters) => onChange({ ...config, filters })}
+      />
+      <PeriodFields
+        source={config.source}
+        period={config.period}
+        periodField={config.periodField}
+        onChange={(patch) => onChange({ ...config, ...patch })}
+      />
+      <LimitField
+        value={config.limit}
+        onChange={(limit) => onChange({ ...config, limit })}
+        label='Máximo de linhas'
       />
 
       <div className='space-y-2'>

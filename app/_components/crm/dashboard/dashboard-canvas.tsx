@@ -39,6 +39,14 @@ function typeLabel(type: CrmDashboardWidgetDTO['type']): string {
   return WIDGET_TYPE_META.find((meta) => meta.type === type)?.label ?? type
 }
 
+/** Título do widget (config.title) ou, na falta, o nome do tipo. */
+export function widgetTitle(widget: CrmDashboardWidgetDTO): string {
+  const title = (widget.config as { title?: unknown }).title
+  return typeof title === 'string' && title.trim()
+    ? title.trim()
+    : typeLabel(widget.type)
+}
+
 export function DashboardCanvas({
   workspaceId,
   dashboardId,
@@ -207,7 +215,7 @@ export function DashboardCanvas({
                   )}
                 >
                   <span className='truncate font-medium text-muted-foreground text-xs uppercase tracking-wide'>
-                    {typeLabel(widget.type)}
+                    {widgetTitle(widget)}
                   </span>
                   {editMode ? (
                     <div className='flex items-center gap-0.5'>
