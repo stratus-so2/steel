@@ -9,6 +9,7 @@ import {
   normalizeDocument,
   normalizePhone,
   validateDocument,
+  whatsappCandidates,
   whatsappLink,
 } from '@/src/lib/servicedesk/document'
 
@@ -145,6 +146,21 @@ describe('servicedesk/document', () => {
       expect(formatPhone('11987654321')).toBe('+55 (11) 98765-4321')
       expect(formatPhone('442079460958')).toBe('+442079460958')
       expect(formatPhone(null)).toBe('')
+    })
+
+    it('lists WhatsApp match candidates with and without the ninth digit', () => {
+      expect(whatsappCandidates('+55 11 98765-4321')).toEqual([
+        '5511987654321',
+        '551187654321',
+      ])
+      expect(whatsappCandidates('551187654321')).toEqual([
+        '551187654321',
+        '5511987654321',
+      ])
+      // Fixo (começa com 2–5) não ganha o 9; números estrangeiros ficam como estão.
+      expect(whatsappCandidates('551133334444')).toEqual(['551133334444'])
+      expect(whatsappCandidates('442079460958')).toEqual(['442079460958'])
+      expect(whatsappCandidates('')).toEqual([])
     })
 
     it('builds the wa.me link', () => {

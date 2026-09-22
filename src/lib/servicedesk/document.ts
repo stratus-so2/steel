@@ -157,6 +157,29 @@ export function formatPhone(value: string | null | undefined): string {
   return `+55 (${ddd}) ${rest.slice(0, cut)}-${rest.slice(cut)}`
 }
 
+/**
+ * Variações de um número para casar o WhatsApp de entrada com o cadastro:
+ * o WhatsApp costuma entregar celulares BR sem o nono dígito
+ * (`55 11 8765-4321`), enquanto o cadastro tem `55 11 98765-4321` — e
+ * vice-versa. Devolve o número normalizado e, para celulares BR, a variação
+ * com/sem o 9.
+ */
+export function whatsappCandidates(value: string | null | undefined): string[] {
+  const phone = normalizePhone(value)
+  if (!phone) return []
+  const candidates = [phone]
+  if (phone.startsWith('55')) {
+    const ddd = phone.slice(2, 4)
+    const local = phone.slice(4)
+    if (local.length === 9 && local.startsWith('9')) {
+      candidates.push(`55${ddd}${local.slice(1)}`)
+    } else if (local.length === 8 && /^[6-9]/.test(local)) {
+      candidates.push(`55${ddd}9${local}`)
+    }
+  }
+  return candidates
+}
+
 /** Link `wa.me` para o número (normalizado); `null` sem número. */
 export function whatsappLink(value: string | null | undefined): string | null {
   const phone = normalizePhone(value)
