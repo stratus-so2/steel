@@ -180,6 +180,16 @@ export const TAG_GROUPS = [
     ],
   },
   {
+    name: 'ServiceDesk',
+    tags: [
+      {
+        name: 'ServiceDesk · Base de conhecimento',
+        description:
+          'Artigos (árvore, rascunho/publicado, interno/portal, categoria, tags), busca, votos de utilidade, comentários do editor, mídia e vínculo com chamados.',
+      },
+    ],
+  },
+  {
     name: 'Páginas públicas do CRM',
     tags: [
       {
