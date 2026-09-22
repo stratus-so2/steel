@@ -12,16 +12,17 @@ import {
   successResponse,
 } from '@/utils/http-response'
 
+/** Segmentos dinâmicos da rota (`id` = workspace, `departmentId`...). */
 type RouteParams = Record<string, string>
 
-interface HandlerInput<P extends RouteParams, B, Q> {
+interface HandlerInput<B, Q> {
   userId: string
-  params: P
+  params: RouteParams
   body: B
   query: Q
 }
 
-interface SdConfigRouteOptions<P extends RouteParams, B, Q> {
+interface SdConfigRouteOptions<B, Q> {
   /**
    * Recurso para o gate de consentimento LGPD (ex.: `'POST
    * /api/workspaces/[id]/servicedesk/departments'`). Informe em toda mutação.
@@ -35,7 +36,7 @@ interface SdConfigRouteOptions<P extends RouteParams, B, Q> {
   query?: z.ZodType<Q>
   /** Status HTTP de sucesso (padrão 200). */
   status?: number
-  handler: (input: HandlerInput<P, B, Q>) => Promise<Result<unknown>>
+  handler: (input: HandlerInput<B, Q>) => Promise<Result<unknown>>
 }
 
 function queryObject(url: string): Record<string, string | string[]> {
@@ -55,13 +56,11 @@ function queryObject(url: string): Record<string, string | string[]> {
  * (query/corpo) → service → `successResponse`/`handleError`. A autorização
  * (admin × agente × solicitante) mora no service.
  */
-export function sdConfigRoute<
-  P extends RouteParams = { id: string },
-  B = undefined,
-  Q = undefined,
->(options: SdConfigRouteOptions<P, B, Q>) {
+export function sdConfigRoute<B = undefined, Q = undefined>(
+  options: SdConfigRouteOptions<B, Q>,
+) {
   return withAxiom(
-    async (request: NextRequest, ctx: { params: Promise<P> }) => {
+    async (request: NextRequest, ctx: { params: Promise<RouteParams> }) => {
       const auth = await getAuthSession()
       if (!auth.ok) return handleError(auth.error)
       const userId = auth.value.user.id

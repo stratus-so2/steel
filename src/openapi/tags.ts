@@ -180,6 +180,16 @@ export const TAG_GROUPS = [
     ],
   },
   {
+    name: 'ServiceDesk',
+    tags: [
+      {
+        name: 'ServiceDesk · Configurações',
+        description:
+          'Configuração do ServiceDesk (ITIL 4): geral, departamentos, catálogo, classificações, impacto/urgência/prioridade/severidade e matriz, fluxos (fases e transições), calendários, SLA/OLA, escalonamento, automações, campos customizados, modelos, respostas prontas e peças.',
+      },
+    ],
+  },
+  {
     name: 'Páginas públicas do CRM',
     tags: [
       {
