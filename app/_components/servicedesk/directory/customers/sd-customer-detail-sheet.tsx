@@ -7,6 +7,7 @@ import {
   StarIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
+import { SdCustomFieldsView } from '@/app/_components/servicedesk/custom-fields/sd-custom-fields-form'
 import { SdContactFormSheet } from '@/app/_components/servicedesk/directory/contacts/sd-contact-form-sheet'
 import {
   formatSdDate,
@@ -41,7 +42,6 @@ import {
 } from '@/src/hooks/use-sd-customers'
 import { formatDocument, formatPhone } from '@/src/lib/servicedesk/document'
 import type { SdCustomerDTO } from '@/types/sd-customer'
-import { SdCustomFieldsView } from '../shared/sd-custom-fields-view'
 
 /** Detalhe do cliente/empresa com as abas Dados, Contatos, CIs e Chamados. */
 export function SdCustomerDetailSheet({
@@ -212,7 +212,11 @@ export function SdCustomerDetailSheet({
                     {formatSdDate(customer.createdAt)}
                   </SdInfoRow>
                 </dl>
-                <SdCustomFieldsView values={customer.customFields} />
+                <SdCustomFieldsView
+                  workspaceId={workspaceId}
+                  entity='CUSTOMER'
+                  values={customer.customFields}
+                />
               </TabsContent>
 
               <TabsContent value='contacts' className='flex flex-col gap-3'>

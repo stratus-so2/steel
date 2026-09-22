@@ -8,6 +8,7 @@ import {
   ServerStack01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
+import { SdCustomFieldsView } from '@/app/_components/servicedesk/custom-fields/sd-custom-fields-form'
 import {
   formatSdDate,
   SD_CI_STATUS_LABEL,
@@ -41,7 +42,6 @@ import {
   useSdConfigItemTypes,
 } from '@/src/hooks/use-sd-config-items'
 import type { SdConfigItemDTO } from '@/types/sd-config-item'
-import { SdCustomFieldsView } from '../shared/sd-custom-fields-view'
 
 function attributeText(value: string | number | boolean): string {
   if (typeof value === 'boolean') return value ? 'Sim' : 'Não'
@@ -206,7 +206,11 @@ export function SdConfigItemDetailSheet({
                     </dl>
                   </div>
                 ) : null}
-                <SdCustomFieldsView values={item.customFields} />
+                <SdCustomFieldsView
+                  workspaceId={workspaceId}
+                  entity='CONFIG_ITEM'
+                  values={item.customFields}
+                />
               </TabsContent>
 
               <TabsContent value='tree' className='flex flex-col gap-3'>
