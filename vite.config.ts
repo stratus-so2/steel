@@ -91,6 +91,9 @@ export default defineConfig({
           // Full CRM grids and Base UI dialogs render slowly on a loaded runner;
           // the first render of a file can exceed 5s even though it passes.
           testTimeout: 15000,
+          // `@platejs/math` e `@platejs/docx-io` (editor da KB) importam CSS e
+          // subpaths CJS sem extensão: processados pelo Vite, não pelo Node.
+          server: { deps: { inline: [/@platejs\/(math|docx-io)/] } },
         },
       },
       {
