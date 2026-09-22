@@ -748,6 +748,16 @@ export const sdContactNotFound = (): AppError =>
 export const sdConfigItemNotFound = (): AppError =>
   appError('SD_CONFIG_ITEM_NOT_FOUND', 'Item de configuração não encontrado')
 
+export const sdConfigItemTypeNotFound = (): AppError =>
+  appError(
+    'SD_CONFIG_ITEM_TYPE_NOT_FOUND',
+    'Tipo de item de configuração não encontrado',
+  )
+
+export const sdConfigItemCycle = (
+  message = 'O item pai não pode ser o próprio item nem um de seus descendentes',
+): AppError => appError('SD_CONFIG_ITEM_CYCLE', message)
+
 export const sdConfigNotFound = (): AppError =>
   appError('SD_CONFIG_NOT_FOUND', 'Configuração do ServiceDesk não encontrada')
 
