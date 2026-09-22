@@ -64,7 +64,7 @@ export function canSeeSdAttachment(
 }
 
 function displayName(fileName: string): string {
-  const base = fileName.split(/[\\/]/).pop()?.trim() ?? ''
+  const base = fileName.replace(/^.*[\\/]/, '').trim()
   return (base || 'arquivo').slice(0, 255)
 }
 
