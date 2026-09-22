@@ -13,6 +13,13 @@ export interface SdOptionDTO {
   sublabel: string | null
 }
 
+/** Resultado de uma importação de planilha. */
+export interface SdImportResultDTO {
+  created: number
+  /** Linhas recusadas (linha 1 = cabeçalho). */
+  rejected: { line: number; message: string }[]
+}
+
 /** Valores de campos customizados (`{ chave: valor }`). */
 export type SdCustomFieldValuesDTO = Record<
   string,

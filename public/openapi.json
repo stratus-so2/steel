@@ -35950,6 +35950,89 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/contacts/import": {
+      "post": {
+        "tags": ["ServiceDesk · Clientes e contatos"],
+        "summary": "Importar contatos (planilha)",
+        "operationId": "postWorkspacesByIdServicedeskContactsImport",
+        "description": "Como a importação de clientes. Colunas: nome, cargo, email, telefone, whatsapp/celular, observacoes e documento_cliente (CPF/CNPJ do cliente/empresa a vincular como principal). Acesso: sessão + **agente** do ServiceDesk (membro de um departamento, ou admin) com a permissão `sd-contacts` × `CREATE` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "additionalProperties": {
+                        "type": "string",
+                        "maxLength": 5000
+                      }
+                    }
+                  }
+                },
+                "required": ["rows"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdImportResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/servicedesk/contacts/lookup": {
       "get": {
         "tags": ["ServiceDesk · Clientes e contatos"],
@@ -36994,6 +37077,93 @@
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_DOCUMENT_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/customers/import": {
+      "post": {
+        "tags": ["ServiceDesk · Clientes e contatos"],
+        "summary": "Importar clientes/empresas (planilha)",
+        "operationId": "postWorkspacesByIdServicedeskCustomersImport",
+        "description": "Linhas já convertidas do CSV em `{ coluna: valor }` com cabeçalhos normalizados (minúsculas, sem acento, `_`). Colunas aceitas: nome/razao_social, fantasia, documento/cpf/cnpj, email, telefone, whatsapp/celular, cep, logradouro, numero, complemento, bairro, cidade, uf, ibge, observacoes. Cada linha é validada e criada separadamente; as recusadas voltam com o número da linha (cabeçalho = 1). Acesso: sessão + **agente** do ServiceDesk (membro de um departamento, ou admin) com a permissão `sd-customers` × `CREATE` (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "minItems": 1,
+                    "maxItems": 1000,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "additionalProperties": {
+                        "type": "string",
+                        "maxLength": 5000
+                      }
+                    }
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": ["CLIENT", "COMPANY"]
+                  }
+                },
+                "required": ["rows", "kind"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resultado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdImportResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -71787,6 +71957,35 @@
           "contacts",
           "recentTickets"
         ]
+      },
+      "SdImportResult": {
+        "type": "object",
+        "properties": {
+          "created": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "rejected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "line": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": ["line", "message"]
+            },
+            "description": "Linhas recusadas (linha 1 = cabeçalho)."
+          }
+        },
+        "required": ["created", "rejected"]
       },
       "SdLinkedTicket": {
         "type": "object",

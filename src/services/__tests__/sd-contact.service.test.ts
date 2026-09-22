@@ -474,4 +474,74 @@ describe('SdContactService', () => {
       )
     })
   })
+
+  describe('importRows()', () => {
+    it('links by customer document, reports unknown documents and invalid rows', async () => {
+      repo.create.mockResolvedValue(ok(createFakeSdContact()))
+      customers.findByDocument
+        .mockResolvedValueOnce(ok({ id: 'c1' } as never))
+        .mockResolvedValueOnce(ok(null))
+        .mockResolvedValueOnce(err(databaseError('db caiu')))
+
+      const result = expectOk(
+        await SdContactService.importRows('u1', 'ws1', {
+          rows: [
+            {
+              nome: 'Ana',
+              celular: '11987654321',
+              cnpj_cliente: '11.222.333/0001-81',
+            },
+            { nome: 'Bia', documento_cliente: '999' },
+            { nome: 'Caio', documento_cliente: '52998224725' },
+            { nome: 'Dani', email: 'invalido' },
+            { nome: 'Edu' },
+          ],
+        }),
+      )
+      expect(result.created).toBe(2)
+      expect(result.rejected).toEqual([
+        { line: 3, message: 'Nenhum cliente/empresa com o documento 999' },
+        { line: 4, message: 'db caiu' },
+        { line: 5, message: 'email: E-mail inválido' },
+      ])
+      expect(customers.findByDocument).toHaveBeenNthCalledWith(
+        1,
+        'ws1',
+        '11222333000181',
+      )
+      expect(repo.create).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ name: 'Ana', whatsapp: '5511987654321' }),
+        [{ customerId: 'c1', isPrimary: true }],
+      )
+      expect(repo.create).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ name: 'Edu' }),
+        [],
+      )
+    })
+
+    it('reports failed inserts and rows without a name', async () => {
+      repo.create.mockResolvedValue(err(databaseError('falhou')))
+      const result = expectOk(
+        await SdContactService.importRows('u1', 'ws1', {
+          rows: [{ nome: 'A' }, { cargo: 'TI' }],
+        }),
+      )
+      expect(result.created).toBe(0)
+      expect(result.rejected[0]).toEqual({ line: 2, message: 'falhou' })
+      expect(result.rejected[1].line).toBe(3)
+      expect(result.rejected[1].message).toMatch(/^name: /)
+    })
+
+    it('requires CREATE permission', async () => {
+      asSdMember('VIEWER')
+      expectErr(
+        await SdContactService.importRows('u1', 'ws1', {
+          rows: [{ nome: 'A' }],
+        }),
+        'FORBIDDEN',
+      )
+    })
+  })
 })

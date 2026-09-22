@@ -536,4 +536,77 @@ describe('SdCustomerService', () => {
       )
     })
   })
+
+  describe('importRows()', () => {
+    it('creates valid rows and reports rejected lines (header = line 1)', async () => {
+      repo.create.mockResolvedValue(ok(createFakeSdCustomer()))
+      repo.findByDocument
+        .mockResolvedValueOnce(ok(null))
+        .mockResolvedValueOnce(ok(createFakeSdCustomer({ name: 'Dup' })))
+
+      const result = expectOk(
+        await SdCustomerService.importRows('u1', 'ws1', {
+          kind: 'COMPANY',
+          rows: [
+            { razao_social: 'Acme', cnpj: '11.222.333/0001-81', uf: 'sp' },
+            { nome: '' },
+            { nome: 'Doc ruim', cnpj: '123' },
+            { nome: 'Duplicada', cnpj: '52998224725' },
+            { nome: 'Sem doc', email: 'x@y.com' },
+          ],
+        }),
+      )
+      expect(result.created).toBe(2)
+      expect(result.rejected).toEqual([
+        { line: 3, message: 'name: Nome é obrigatório' },
+        {
+          line: 4,
+          message: 'Informe um CPF (11 dígitos) ou CNPJ (14 caracteres)',
+        },
+        {
+          line: 5,
+          message: 'Já existe um cadastro com este CPF/CNPJ: Dup',
+        },
+      ])
+      expect(repo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'COMPANY',
+          name: 'Acme',
+          document: '11222333000181',
+          state: 'SP',
+        }),
+      )
+      expect(audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: 'sd_customer',
+          meta: { workspaceId: 'ws1', import: true, created: 2, rejected: 3 },
+        }),
+      )
+    })
+
+    it('reports a failed insert and a row-level validation issue without path', async () => {
+      repo.create.mockResolvedValue(err(databaseError('falhou')))
+      const result = expectOk(
+        await SdCustomerService.importRows('u1', 'ws1', {
+          kind: 'CLIENT',
+          rows: [{ nome: 'A' }],
+        }),
+      )
+      expect(result).toEqual({
+        created: 0,
+        rejected: [{ line: 2, message: 'falhou' }],
+      })
+    })
+
+    it('requires CREATE permission', async () => {
+      asSdMember('VIEWER')
+      expectErr(
+        await SdCustomerService.importRows('u1', 'ws1', {
+          kind: 'CLIENT',
+          rows: [{ nome: 'A' }],
+        }),
+        'FORBIDDEN',
+      )
+    })
+  })
 })

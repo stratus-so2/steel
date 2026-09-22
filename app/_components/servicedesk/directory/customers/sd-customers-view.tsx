@@ -1,12 +1,16 @@
 'use client'
 
-import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  FileImportIcon,
+  PlusSignIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
 import {
   SD_PERSON_TYPE_LABEL,
   UF_OPTIONS,
 } from '@/app/_components/servicedesk/directory/shared/sd-directory-labels'
 import { SdPill } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
+import { SdImportDialog } from '@/app/_components/servicedesk/directory/shared/sd-import-dialog'
 import {
   type SdColumn,
   SdDataTable,
@@ -19,6 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   type SdCustomersQuery,
+  useImportSdCustomers,
   useSdCustomers,
 } from '@/src/hooks/use-sd-customers'
 import { formatDocument, formatPhone } from '@/src/lib/servicedesk/document'
@@ -157,6 +162,8 @@ export function SdCustomersView({
   }
   const { data, isLoading, error } = useSdCustomers(workspaceId, query)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const importRows = useImportSdCustomers(workspaceId)
   const [form, setForm] = useState<{
     open: boolean
     customer: SdCustomerDTO | null
@@ -222,10 +229,30 @@ export function SdCustomersView({
             </SdFilterField>
           </>
         }
-        actions={createButton}
+        actions={
+          <>
+            <Button
+              size='sm'
+              variant='outline'
+              onClick={() => setImporting(true)}
+            >
+              <SteelIcon icon={FileImportIcon} strokeWidth={2} />
+              Importar
+            </Button>
+            {createButton}
+          </>
+        }
         emptyTitle={`Nenhum ${noun} encontrado`}
         emptyDescription={`Cadastre ${noun === 'empresa' ? 'a primeira empresa' : 'o primeiro cliente'} ou ajuste a busca e os filtros.`}
         emptyAction={createButton}
+      />
+
+      <SdImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        title={kind === 'COMPANY' ? 'Importar empresas' : 'Importar clientes'}
+        columnsHelp='Colunas reconhecidas: nome (ou razão social), fantasia, cpf/cnpj, email, telefone, whatsapp, cep, logradouro, número, complemento, bairro, cidade, uf e observações.'
+        onImport={(rows) => importRows.mutateAsync({ kind, rows })}
       />
 
       <SdCustomerDetailSheet

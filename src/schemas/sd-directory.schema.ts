@@ -43,6 +43,19 @@ export const SdPageQuerySchema = z.object({
   order: z.enum(['asc', 'desc']).default('asc'),
 })
 
+/**
+ * Importação de planilha: linhas `{ coluna_normalizada: valor }` (o cliente
+ * converte o CSV com `src/lib/servicedesk/csv.ts`). Até 1.000 por envio.
+ */
+export const SdImportRowsSchema = z.object({
+  rows: z
+    .array(z.record(z.string().max(100), z.string().max(5000)))
+    .min(1, 'A planilha não tem linhas')
+    .max(1000, 'Importe no máximo 1.000 linhas por vez'),
+})
+
+export type SdImportRowsDTO = z.infer<typeof SdImportRowsSchema>
+
 /** Busca leve dos seletores (combobox do formulário de chamado). */
 export const SdOptionsQuerySchema = z.object({
   q: z.string().trim().max(200).optional(),
@@ -53,7 +66,7 @@ export type SdOptionsQueryDTO = z.infer<typeof SdOptionsQuerySchema>
 
 /** Texto obrigatório com trim. */
 export function requiredText(max: number, message: string) {
-  return z.string().trim().min(1, message).max(max)
+  return z.string({ error: message }).trim().min(1, message).max(max)
 }
 
 /** Converte `''`/espaços em `null` (campo limpo). */

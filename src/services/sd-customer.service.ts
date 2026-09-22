@@ -1,8 +1,10 @@
 import type { SdPersonType } from '@prisma/client'
+import type z from 'zod'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { sdCustomerDocumentConflict, sdDocumentInvalid } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { mapSdCustomerImportRecord } from '@/src/lib/servicedesk/directory-import'
 import {
   detectPersonType,
   formatDocument,
@@ -15,16 +17,23 @@ import {
 } from '@/src/mappers/sd-customer.mapper'
 import {
   SdCustomerRepository,
+  type SdCustomerWithCounts,
   type SdCustomerWriteData,
 } from '@/src/repositories/sd-customer.repository'
-import type {
-  CreateSdCustomerDTO,
-  ListSdCustomersDTO,
-  SdCustomerOptionsDTO,
-  UpdateSdCustomerDTO,
+import {
+  type CreateSdCustomerDTO,
+  CreateSdCustomerSchema,
+  type ImportSdCustomersDTO,
+  type ListSdCustomersDTO,
+  type SdCustomerOptionsDTO,
+  type UpdateSdCustomerDTO,
 } from '@/src/schemas/sd-customer.schema'
 import type { SdCustomerDetailDTO, SdCustomerDTO } from '@/types/sd-customer'
-import type { SdOptionDTO, SdPage } from '@/types/sd-directory'
+import type {
+  SdImportResultDTO,
+  SdOptionDTO,
+  SdPage,
+} from '@/types/sd-directory'
 import type { PermissionAction } from '../lib/permissions'
 import { SdAccess } from './sd-access'
 
@@ -111,7 +120,99 @@ function phones(dto: {
   }
 }
 
+/** Documento → disponibilidade → insert (sem autorização: quem chama checa). */
+async function insertCustomer(
+  actorId: string,
+  workspaceId: string,
+  dto: CreateSdCustomerDTO,
+): Promise<Result<SdCustomerWithCounts>> {
+  const doc = resolveDocument(dto.document, dto.personType)
+  if (!doc.ok) return doc
+  const available = await assertDocumentAvailable(
+    workspaceId,
+    doc.value.document,
+  )
+  if (!available.ok) return available
+
+  // TODO(servicedesk-integração): validar `dto.customFields` com
+  // `validateSdCustomFieldValues(definitions, values, …)` (entidade CUSTOMER).
+  return SdCustomerRepository.create({
+    workspaceId,
+    createdById: actorId,
+    kind: dto.kind,
+    personType: doc.value.personType ?? 'LEGAL',
+    name: dto.name,
+    tradeName: dto.tradeName,
+    document: doc.value.document,
+    email: dto.email,
+    ...phones(dto),
+    zipCode: dto.zipCode,
+    street: dto.street,
+    number: dto.number,
+    complement: dto.complement,
+    district: dto.district,
+    city: dto.city,
+    state: dto.state,
+    country: dto.country,
+    ibgeCode: dto.ibgeCode,
+    notes: dto.notes,
+    customFields: dto.customFields,
+    active: dto.active,
+  })
+}
+
+/** Primeira mensagem de erro de validação Zod, em pt-BR. */
+function firstIssue(error: z.ZodError): string {
+  const issue = error.issues[0]
+  const field = issue?.path.join('.')
+  return field ? `${field}: ${issue.message}` : (issue?.message ?? 'inválido')
+}
+
 export const SdCustomerService = {
+  /**
+   * Importação de planilha (linhas já convertidas em `{ coluna: valor }` —
+   * ver `src/lib/servicedesk/csv.ts`). Cada linha é validada e criada
+   * separadamente; as recusadas voltam com o número da linha (cabeçalho = 1).
+   */
+  async importRows(
+    actorId: string,
+    workspaceId: string,
+    dto: ImportSdCustomersDTO,
+  ): Promise<Result<SdImportResultDTO>> {
+    const ctx = await agent(actorId, workspaceId, 'CREATE')
+    if (!ctx.ok) return ctx
+
+    let created = 0
+    const rejected: SdImportResultDTO['rejected'] = []
+    for (const [index, record] of dto.rows.entries()) {
+      const line = index + 2
+      const parsed = CreateSdCustomerSchema.safeParse({
+        ...mapSdCustomerImportRecord(record),
+        kind: dto.kind,
+      })
+      if (!parsed.success) {
+        rejected.push({ line, message: firstIssue(parsed.error) })
+        continue
+      }
+      const result = await insertCustomer(actorId, workspaceId, parsed.data)
+      if (result.ok) created++
+      else rejected.push({ line, message: result.error.message })
+    }
+
+    auditMutation({
+      entity: 'sd_customer',
+      action: 'create',
+      actorId,
+      meta: {
+        workspaceId,
+        import: true,
+        created,
+        rejected: rejected.length,
+      },
+    })
+    return ok({ created, rejected })
+  },
+
   async list(
     actorId: string,
     workspaceId: string,
@@ -191,39 +292,7 @@ export const SdCustomerService = {
     const ctx = await agent(actorId, workspaceId, 'CREATE')
     if (!ctx.ok) return ctx
 
-    const doc = resolveDocument(dto.document, dto.personType)
-    if (!doc.ok) return doc
-    const available = await assertDocumentAvailable(
-      workspaceId,
-      doc.value.document,
-    )
-    if (!available.ok) return available
-
-    // TODO(servicedesk-integração): validar `dto.customFields` com
-    // `validateSdCustomFieldValues(definitions, values, …)` (entidade CUSTOMER).
-    const result = await SdCustomerRepository.create({
-      workspaceId,
-      createdById: actorId,
-      kind: dto.kind,
-      personType: doc.value.personType ?? 'LEGAL',
-      name: dto.name,
-      tradeName: dto.tradeName,
-      document: doc.value.document,
-      email: dto.email,
-      ...phones(dto),
-      zipCode: dto.zipCode,
-      street: dto.street,
-      number: dto.number,
-      complement: dto.complement,
-      district: dto.district,
-      city: dto.city,
-      state: dto.state,
-      country: dto.country,
-      ibgeCode: dto.ibgeCode,
-      notes: dto.notes,
-      customFields: dto.customFields,
-      active: dto.active,
-    })
+    const result = await insertCustomer(actorId, workspaceId, dto)
     if (!result.ok) {
       auditMutation({
         entity: 'sd_customer',

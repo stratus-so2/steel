@@ -15,11 +15,15 @@ import {
 } from '@/src/schemas/sd-contact.schema'
 import {
   CreateSdCustomerSchema,
+  ImportSdCustomersSchema,
   ListSdCustomersSchema,
   SdCustomerOptionsSchema,
   UpdateSdCustomerSchema,
 } from '@/src/schemas/sd-customer.schema'
-import { SdOptionsQuerySchema } from '@/src/schemas/sd-directory.schema'
+import {
+  SdImportRowsSchema,
+  SdOptionsQuerySchema,
+} from '@/src/schemas/sd-directory.schema'
 import type { ErrorEntry, RouteConfig } from '../../registry'
 import {
   SdCepAddressDTO,
@@ -30,6 +34,7 @@ import {
   SdContactDTO,
   SdCustomerDetailDTO,
   SdCustomerDTO,
+  SdImportResultDTO,
   SdOptionDTO,
   sdPage,
 } from '../../schemas/servicedesk/directory'
@@ -147,6 +152,19 @@ export const sdDirectoryRoutes: RouteConfig[] = [
     errors: [...AGENT_ERRORS, ...DOC_ERRORS],
   },
   {
+    method: 'post',
+    path: '/workspaces/{id}/servicedesk/customers/import',
+    tags: [PEOPLE],
+    summary: 'Importar clientes/empresas (planilha)',
+    description: `Linhas já convertidas do CSV em \`{ coluna: valor }\` com cabeçalhos normalizados (minúsculas, sem acento, \`_\`). Colunas aceitas: nome/razao_social, fantasia, documento/cpf/cnpj, email, telefone, whatsapp/celular, cep, logradouro, numero, complemento, bairro, cidade, uf, ibge, observacoes. Cada linha é validada e criada separadamente; as recusadas voltam com o número da linha (cabeçalho = 1). ${access('sd-customers', 'CREATE')}`,
+    consent: true,
+    body: ImportSdCustomersSchema,
+    responses: {
+      200: { description: 'Resultado.', schema: SdImportResultDTO },
+    },
+    errors: AGENT_ERRORS,
+  },
+  {
     method: 'get',
     path: '/workspaces/{id}/servicedesk/customers/options',
     tags: [PEOPLE],
@@ -224,6 +242,19 @@ export const sdDirectoryRoutes: RouteConfig[] = [
         when: 'Usuário vinculado não é membro do workspace',
       },
     ],
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/servicedesk/contacts/import',
+    tags: [PEOPLE],
+    summary: 'Importar contatos (planilha)',
+    description: `Como a importação de clientes. Colunas: nome, cargo, email, telefone, whatsapp/celular, observacoes e documento_cliente (CPF/CNPJ do cliente/empresa a vincular como principal). ${access('sd-contacts', 'CREATE')}`,
+    consent: true,
+    body: SdImportRowsSchema,
+    responses: {
+      200: { description: 'Resultado.', schema: SdImportResultDTO },
+    },
+    errors: AGENT_ERRORS,
   },
   {
     method: 'get',

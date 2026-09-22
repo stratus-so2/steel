@@ -153,6 +153,57 @@ describe('customers CRUD', () => {
   })
 })
 
+describe('POST /api/workspaces/[id]/servicedesk/{customers,contacts}/import', () => {
+  it('imports customers and contacts from spreadsheet rows', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const customers = await postJson(
+      `${base(workspace.id)}/import`,
+      {
+        kind: 'COMPANY',
+        rows: [
+          { razao_social: 'Acme', cnpj: '11.222.333/0001-81' },
+          { razao_social: 'Sem CNPJ válido', cnpj: '1' },
+        ],
+      },
+      user.cookie,
+    )
+    expect(customers.status).toBe(200)
+    expect((await customers.json()).data).toEqual({
+      created: 1,
+      rejected: [
+        {
+          line: 3,
+          message: 'Informe um CPF (11 dígitos) ou CNPJ (14 caracteres)',
+        },
+      ],
+    })
+
+    const contacts = await postJson(
+      `/api/workspaces/${workspace.id}/servicedesk/contacts/import`,
+      { rows: [{ nome: 'Ana', documento_cliente: '11222333000181' }] },
+      user.cookie,
+    )
+    expect((await contacts.json()).data).toEqual({ created: 1, rejected: [] })
+
+    const listed = await getJson(
+      `/api/workspaces/${workspace.id}/servicedesk/contacts?q=ana`,
+      user.cookie,
+    )
+    const [ana] = (await listed.json()).data.items
+    expect(ana.customers[0]).toMatchObject({ name: 'Acme', isPrimary: true })
+  })
+
+  it('rejects an empty import with 422', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const res = await postJson(
+      `${base(workspace.id)}/import`,
+      { kind: 'CLIENT', rows: [] },
+      user.cookie,
+    )
+    expect(res.status).toBe(422)
+  })
+})
+
 describe('GET /api/workspaces/[id]/servicedesk/cep/[cep]', () => {
   it('rejects a malformed CEP without calling ViaCEP', async () => {
     const { user, workspace } = await authenticatedOwner()

@@ -3,8 +3,10 @@ import { logger } from '@/lib/axiom/logger'
 import { sdCustomerNotFound, validationError } from '@/src/errors'
 import type { PermissionAction } from '@/src/lib/permissions'
 import { err, ok, type Result } from '@/src/lib/result'
+import { mapSdContactImportRecord } from '@/src/lib/servicedesk/directory-import'
 import {
   formatPhone,
+  normalizeDocument,
   normalizePhone,
   whatsappCandidates,
 } from '@/src/lib/servicedesk/document'
@@ -18,16 +20,24 @@ import {
   type SdContactWriteData,
 } from '@/src/repositories/sd-contact.repository'
 import { SdCustomerRepository } from '@/src/repositories/sd-customer.repository'
-import type {
-  CreateSdContactDTO,
-  ListSdContactsDTO,
-  SdContactLookupDTO,
-  SdContactOptionsDTO,
-  UpdateSdContactDTO,
+import {
+  type CreateSdContactDTO,
+  CreateSdContactSchema,
+  type ListSdContactsDTO,
+  type SdContactLookupDTO,
+  type SdContactOptionsDTO,
+  type UpdateSdContactDTO,
 } from '@/src/schemas/sd-contact.schema'
-import type { SdOptionsQueryDTO } from '@/src/schemas/sd-directory.schema'
+import type {
+  SdImportRowsDTO,
+  SdOptionsQueryDTO,
+} from '@/src/schemas/sd-directory.schema'
 import type { SdContactDetailDTO, SdContactDTO } from '@/types/sd-contact'
-import type { SdOptionDTO, SdPage } from '@/types/sd-directory'
+import type {
+  SdImportResultDTO,
+  SdOptionDTO,
+  SdPage,
+} from '@/types/sd-directory'
 import { SdAccess } from './sd-access'
 
 const RESOURCE = 'sd-contacts'
@@ -213,6 +223,81 @@ export const SdContactService = {
     const ctx = await agent(actorId, workspaceId, 'VIEW')
     if (!ctx.ok) return ctx
     return SdContactService.findByChannel(workspaceId, query)
+  },
+
+  /**
+   * Importação de planilha de contatos. A coluna `documento_cliente` (ou
+   * equivalentes) vincula o contato, como principal, ao cliente/empresa com
+   * aquele CPF/CNPJ. Linhas recusadas voltam com o número da linha.
+   */
+  async importRows(
+    actorId: string,
+    workspaceId: string,
+    dto: SdImportRowsDTO,
+  ): Promise<Result<SdImportResultDTO>> {
+    const ctx = await agent(actorId, workspaceId, 'CREATE')
+    if (!ctx.ok) return ctx
+
+    let created = 0
+    const rejected: SdImportResultDTO['rejected'] = []
+    for (const [index, record] of dto.rows.entries()) {
+      const line = index + 2
+      const { customerDocument, ...fields } = mapSdContactImportRecord(record)
+      const parsed = CreateSdContactSchema.safeParse(fields)
+      if (!parsed.success) {
+        const issue = parsed.error.issues[0]
+        rejected.push({
+          line,
+          message: `${issue.path.join('.') || 'linha'}: ${issue.message}`,
+        })
+        continue
+      }
+
+      let links: SdContactLinkInput[] = []
+      if (customerDocument) {
+        const customer = await SdCustomerRepository.findByDocument(
+          workspaceId,
+          normalizeDocument(customerDocument),
+        )
+        if (!customer.ok) {
+          rejected.push({ line, message: customer.error.message })
+          continue
+        }
+        if (!customer.value) {
+          rejected.push({
+            line,
+            message: `Nenhum cliente/empresa com o documento ${customerDocument}`,
+          })
+          continue
+        }
+        links = [{ customerId: customer.value.id, isPrimary: true }]
+      }
+
+      const result = await SdContactRepository.create(
+        {
+          workspaceId,
+          createdById: actorId,
+          name: parsed.data.name,
+          jobTitle: parsed.data.jobTitle,
+          email: parsed.data.email,
+          ...phones(parsed.data),
+          notes: parsed.data.notes,
+          customFields: parsed.data.customFields,
+          active: parsed.data.active,
+        },
+        links,
+      )
+      if (result.ok) created++
+      else rejected.push({ line, message: result.error.message })
+    }
+
+    auditMutation({
+      entity: 'sd_contact',
+      action: 'create',
+      actorId,
+      meta: { workspaceId, import: true, created, rejected: rejected.length },
+    })
+    return ok({ created, rejected })
   },
 
   async create(

@@ -6,6 +6,7 @@ import {
   QueryBoolean,
   requiredText,
   SdCustomFieldValuesSchema,
+  SdImportRowsSchema,
   SdOptionsQuerySchema,
   SdPageQuerySchema,
 } from './sd-directory.schema'
@@ -115,6 +116,12 @@ export const ListSdCustomersSchema = SdPageQuerySchema.extend({
 })
 
 export type ListSdCustomersDTO = z.infer<typeof ListSdCustomersSchema>
+
+export const ImportSdCustomersSchema = SdImportRowsSchema.extend({
+  kind: SdCustomerKindEnum,
+})
+
+export type ImportSdCustomersDTO = z.infer<typeof ImportSdCustomersSchema>
 
 export const SdCustomerOptionsSchema = SdOptionsQuerySchema.extend({
   kind: SdCustomerKindEnum.optional(),

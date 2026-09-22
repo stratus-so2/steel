@@ -267,6 +267,16 @@ export const SdConfigItemDetailDTO = dto(
   }),
 )
 
+export const SdImportResultDTO = dto(
+  'SdImportResult',
+  z.object({
+    created: z.number().int(),
+    rejected: z
+      .array(z.object({ line: z.number().int(), message: z.string() }))
+      .meta({ description: 'Linhas recusadas (linha 1 = cabeçalho).' }),
+  }),
+)
+
 /** Página `{ items, total, page, pageSize }`. */
 export function sdPage<T extends z.ZodType>(item: T) {
   return z.object({

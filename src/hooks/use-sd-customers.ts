@@ -15,6 +15,7 @@ import type {
 } from '@/types/sd-customer'
 import type {
   SdCustomFieldValuesDTO,
+  SdImportResultDTO,
   SdOptionDTO,
   SdPage,
 } from '@/types/sd-directory'
@@ -141,6 +142,23 @@ export function useDeleteSdCustomer(workspaceId: string) {
         sdBase(workspaceId, `customers/${id}`),
         { method: 'DELETE' },
         'Erro ao excluir o cadastro',
+      ),
+    onSuccess: invalidate,
+  })
+}
+
+/** Importação de planilha (linhas já convertidas do CSV). */
+export function useImportSdCustomers(workspaceId: string) {
+  const invalidate = useInvalidate(workspaceId)
+  return useMutation({
+    mutationFn: (data: {
+      kind: SdCustomerKindDTO
+      rows: Record<string, string>[]
+    }) =>
+      apiFetch<SdImportResultDTO>(
+        sdBase(workspaceId, 'customers/import'),
+        sdJson('POST', data),
+        'Erro ao importar a planilha',
       ),
     onSuccess: invalidate,
   })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CreateSdCustomerSchema,
+  ImportSdCustomersSchema,
   ListSdCustomersSchema,
   SdCustomerOptionsSchema,
   UpdateSdCustomerSchema,
@@ -152,6 +153,25 @@ describe('ListSdCustomersSchema', () => {
     expect(ListSdCustomersSchema.safeParse({ active: 'yes' }).success).toBe(
       false,
     )
+  })
+
+  it('import schema requires kind and 1..1000 rows of string cells', () => {
+    expect(
+      ImportSdCustomersSchema.parse({ kind: 'CLIENT', rows: [{ nome: 'A' }] }),
+    ).toEqual({ kind: 'CLIENT', rows: [{ nome: 'A' }] })
+    expect(
+      ImportSdCustomersSchema.safeParse({ kind: 'CLIENT', rows: [] }).success,
+    ).toBe(false)
+    expect(
+      ImportSdCustomersSchema.safeParse({
+        kind: 'CLIENT',
+        rows: Array.from({ length: 1001 }, () => ({ nome: 'A' })),
+      }).success,
+    ).toBe(false)
+    expect(
+      ImportSdCustomersSchema.safeParse({ kind: 'CLIENT', rows: [{ n: 1 }] })
+        .success,
+    ).toBe(false)
   })
 
   it('options schema accepts kind', () => {

@@ -1,8 +1,13 @@
 'use client'
 
-import { PlusSignIcon, StarIcon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  FileImportIcon,
+  PlusSignIcon,
+  StarIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
 import { SdPill } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
+import { SdImportDialog } from '@/app/_components/servicedesk/directory/shared/sd-import-dialog'
 import { SdCustomerPicker } from '@/app/_components/servicedesk/pickers'
 import {
   type SdColumn,
@@ -15,6 +20,7 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
   type SdContactsQuery,
+  useImportSdContacts,
   useSdContacts,
 } from '@/src/hooks/use-sd-contacts'
 import { formatPhone } from '@/src/lib/servicedesk/document'
@@ -143,6 +149,8 @@ export function SdContactsView({
   }
   const { data, isLoading, error } = useSdContacts(workspaceId, query)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const importRows = useImportSdContacts(workspaceId)
   const [form, setForm] = useState<{
     open: boolean
     contact: SdContactDTO | null
@@ -206,10 +214,30 @@ export function SdContactsView({
             </SdFilterField>
           </>
         }
-        actions={createButton}
+        actions={
+          <>
+            <Button
+              size='sm'
+              variant='outline'
+              onClick={() => setImporting(true)}
+            >
+              <SteelIcon icon={FileImportIcon} strokeWidth={2} />
+              Importar
+            </Button>
+            {createButton}
+          </>
+        }
         emptyTitle='Nenhum contato encontrado'
         emptyDescription='Cadastre o primeiro contato ou ajuste a busca e os filtros.'
         emptyAction={createButton}
+      />
+
+      <SdImportDialog
+        open={importing}
+        onOpenChange={setImporting}
+        title='Importar contatos'
+        columnsHelp='Colunas reconhecidas: nome, cargo, email, telefone, whatsapp, observações e documento_cliente (CPF/CNPJ do cliente ou empresa a vincular).'
+        onImport={(rows) => importRows.mutateAsync({ rows })}
       />
 
       <SdContactDetailSheet

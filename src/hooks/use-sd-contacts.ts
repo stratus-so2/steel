@@ -9,6 +9,7 @@ import {
 import type { SdContactDetailDTO, SdContactDTO } from '@/types/sd-contact'
 import type {
   SdCustomFieldValuesDTO,
+  SdImportResultDTO,
   SdOptionDTO,
   SdPage,
 } from '@/types/sd-directory'
@@ -135,6 +136,20 @@ export function useUpdateSdContact(workspaceId: string) {
         sdBase(workspaceId, `contacts/${id}`),
         sdJson('PATCH', data),
         'Erro ao salvar o contato',
+      ),
+    onSuccess: invalidate,
+  })
+}
+
+/** Importação de planilha de contatos (linhas já convertidas do CSV). */
+export function useImportSdContacts(workspaceId: string) {
+  const invalidate = useInvalidate(workspaceId)
+  return useMutation({
+    mutationFn: (data: { rows: Record<string, string>[] }) =>
+      apiFetch<SdImportResultDTO>(
+        sdBase(workspaceId, 'contacts/import'),
+        sdJson('POST', data),
+        'Erro ao importar a planilha',
       ),
     onSuccess: invalidate,
   })
