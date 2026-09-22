@@ -19,6 +19,7 @@ export const QueueName = {
   DatabaseBackup: 'database-backup',
   StatusCollect: 'status-collect',
   UsageRollup: 'usage-rollup',
+  ServicedeskSla: 'servicedesk-sla',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -334,4 +335,20 @@ export type UsageRollupJob =
 
 export type UsageRollupJobPayload = {
   [UsageRollupJob.RollupModuleUsage]: Record<string, never>
+}
+
+/**
+ * Tick de SLA do ServiceDesk (1×/min): marca risco/violação, dispara
+ * escalonamentos/automações e fecha chamados resolvidos
+ * (`SdSlaMonitorService.runTick`).
+ */
+export const ServicedeskSlaJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type ServicedeskSlaJob =
+  (typeof ServicedeskSlaJob)[keyof typeof ServicedeskSlaJob]
+
+export type ServicedeskSlaJobPayload = {
+  [ServicedeskSlaJob.RunTick]: Record<string, never>
 }

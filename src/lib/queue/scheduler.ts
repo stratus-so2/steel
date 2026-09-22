@@ -8,6 +8,7 @@ import {
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
   DataRetentionJob,
+  ServicedeskSlaJob,
   StatusCollectJob,
   TrialLifecycleJob,
   UsageRollupJob,
@@ -22,6 +23,7 @@ import {
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
   getDataRetentionQueue,
+  getServicedeskSlaQueue,
   getStatusCollectQueue,
   getTrialLifecycleQueue,
   getUsageRollupQueue,
@@ -37,6 +39,7 @@ import {
   DatabaseBackupCron,
   RetentionCron,
   RetentionTimezone,
+  ServicedeskSlaCron,
   StatusCollectCron,
   UsageRollupCron,
   WhatsappBroadcastScheduleCron,
@@ -258,6 +261,21 @@ export async function scheduleUsageRollupJobs(): Promise<void> {
   logger.info('queue.scheduler.usage_rollup_registered', {
     component: 'Worker',
     pattern: UsageRollupCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskSlaJobs(): Promise<void> {
+  const queue = getServicedeskSlaQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskSlaJob.RunTick,
+    { pattern: ServicedeskSlaCron, tz: RetentionTimezone },
+    { name: ServicedeskSlaJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_sla_registered', {
+    component: 'Worker',
+    pattern: ServicedeskSlaCron,
     timezone: RetentionTimezone,
   })
 }

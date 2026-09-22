@@ -185,6 +185,11 @@ function localDay(ms: number, timeZone: string): number {
   return Date.UTC(p.year, p.month - 1, p.day)
 }
 
+/** Instante da meia-noite local (no fuso `timeZone`) do dia de `at`. */
+export function startOfSdLocalDay(at: Date, timeZone: string): Date {
+  return new Date(localToUtc(localDay(at.getTime(), timeZone), 0, timeZone))
+}
+
 function isoDate(dayUtc: number): string {
   return new Date(dayUtc).toISOString().slice(0, 10)
 }

@@ -72,6 +72,9 @@ export type AuditEntity =
   | 'backup'
   | 'workspace_ai_settings'
   | 'user_ai_preference'
+  // ServiceDesk — chamados
+  | 'sd_ticket'
+  | 'sd_saved_view'
 
 export type AuditAction =
   | 'create'
@@ -109,6 +112,7 @@ export type AuditAction =
   | 'suspend'
   | 'reactivate'
   | 'download'
+  | 'escalate'
 
 type AuditOutcome = 'success' | 'failure'
 

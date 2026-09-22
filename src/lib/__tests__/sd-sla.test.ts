@@ -7,6 +7,7 @@ import {
   SD_CALENDAR_24X7,
   type SdCalendar,
   type SdSlaTicketInput,
+  startOfSdLocalDay,
 } from '@/src/lib/servicedesk/sla'
 
 const WEEK = [
@@ -238,6 +239,18 @@ describe('businessMinutesBetween', () => {
     const start = at('2026-10-09T19:12:00Z')
     const due = addBusinessMinutes(start, 1234, BR)
     expect(businessMinutesBetween(start, due, BR)).toBe(1234)
+  })
+})
+
+describe('startOfSdLocalDay', () => {
+  it('returns the local midnight as an UTC instant', () => {
+    // 01:30Z de terça = 22:30 BRT de segunda
+    expect(
+      iso(startOfSdLocalDay(at('2026-09-22T01:30:00Z'), 'America/Sao_Paulo')),
+    ).toBe('2026-09-21T03:00:00.000Z')
+    expect(iso(startOfSdLocalDay(at('2026-09-22T01:30:00Z'), 'UTC'))).toBe(
+      '2026-09-22T00:00:00.000Z',
+    )
   })
 })
 

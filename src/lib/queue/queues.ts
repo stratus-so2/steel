@@ -24,6 +24,8 @@ import {
   type DataRetentionJob,
   type DataRetentionJobPayload,
   QueueName,
+  type ServicedeskSlaJob,
+  type ServicedeskSlaJobPayload,
   type StatusCollectJob,
   type StatusCollectJobPayload,
   type TrialLifecycleJob,
@@ -71,6 +73,7 @@ let changelogQueue: Queue | null = null
 let databaseBackupQueue: Queue | null = null
 let statusCollectQueue: Queue | null = null
 let usageRollupQueue: Queue | null = null
+let servicedeskSlaQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -453,6 +456,24 @@ export function getUsageRollupQueue(): Queue<
   >
 }
 
+export function getServicedeskSlaQueue(): Queue<
+  ServicedeskSlaJobPayload[ServicedeskSlaJob],
+  unknown,
+  ServicedeskSlaJob
+> {
+  if (!servicedeskSlaQueue) {
+    servicedeskSlaQueue = new Queue(QueueName.ServicedeskSla, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return servicedeskSlaQueue as Queue<
+    ServicedeskSlaJobPayload[ServicedeskSlaJob],
+    unknown,
+    ServicedeskSlaJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -475,6 +496,7 @@ export async function closeQueues(): Promise<void> {
     databaseBackupQueue?.close(),
     statusCollectQueue?.close(),
     usageRollupQueue?.close(),
+    servicedeskSlaQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -495,4 +517,5 @@ export async function closeQueues(): Promise<void> {
   databaseBackupQueue = null
   statusCollectQueue = null
   usageRollupQueue = null
+  servicedeskSlaQueue = null
 }
