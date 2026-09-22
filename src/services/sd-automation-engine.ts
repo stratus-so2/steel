@@ -202,7 +202,10 @@ async function applyTemplate(
   const filled = applySdTemplateDefaults(empty, tpl.value.defaults)
   const changes: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(filled)) {
-    if (key !== 'customFields' && value !== undefined) changes[key] = value
+    // Só as chaves vazias no chamado (`empty`): não sobrescreve o preenchido.
+    if (key !== 'customFields' && value !== undefined && key in empty) {
+      changes[key] = value
+    }
   }
   const current = t.customFields as Record<string, unknown>
   const templateFields = (filled.customFields ?? {}) as Record<string, unknown>
