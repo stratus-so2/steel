@@ -158,7 +158,7 @@ function CreateConnectionDialog({ workspaceId }: { workspaceId: string }) {
             <Label htmlFor='sd-wa-provider'>Provedor</Label>
             <select
               id='sd-wa-provider'
-              className='h-9 w-full rounded-md border border-border bg-background px-2 text-sm'
+              className='h-9 w-full rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30'
               value={form.provider}
               onChange={(event) =>
                 set('provider', event.target.value as WhatsAppProviderDTO)

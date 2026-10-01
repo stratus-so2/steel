@@ -302,7 +302,7 @@ function TemplateComposer({
   return (
     <div className='flex flex-col gap-2'>
       <select
-        className='h-9 w-full rounded-md border border-border bg-background px-2 text-sm'
+        className='h-9 w-full rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30'
         value={selected}
         aria-label='Modelo aprovado'
         onChange={(event: ChangeEvent<HTMLSelectElement>) =>
