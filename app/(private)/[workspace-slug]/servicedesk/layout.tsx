@@ -22,6 +22,7 @@ import {
   NavGroup,
   NavItem,
 } from '@/app/_components/navigation/sidebar-context'
+import { loadSdDirectoryContext } from '@/app/_components/servicedesk/directory/sd-directory-context'
 import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function ServiceDeskLayout({
@@ -33,7 +34,30 @@ export default async function ServiceDeskLayout({
 }) {
   const { 'workspace-slug': slug } = await params
   if (!(await hasModuleAccess(slug, 'SERVICE_DESK'))) notFound()
+  // Agente × solicitante (sem departamento): o menu do solicitante só tem
+  // o portal e a base de conhecimento.
+  const ctx = await loadSdDirectoryContext(slug)
+  if (!ctx) notFound()
   const base = `/${slug}/servicedesk`
+
+  if (!ctx.isAgent) {
+    return (
+      <>
+        <ContextSidebar>
+          <ContextHeader title='ServiceDesk' />
+          <NavGroup>
+            <NavItem href={`${base}/portal`} icon={CustomerService01Icon}>
+              Portal do solicitante
+            </NavItem>
+            <NavItem href={`${base}/knowledge`} icon={BookOpen01Icon}>
+              Base de conhecimento
+            </NavItem>
+          </NavGroup>
+        </ContextSidebar>
+        {children}
+      </>
+    )
+  }
 
   return (
     <>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { SdEntityCustomFieldsForm } from '@/app/_components/servicedesk/custom-fields/sd-custom-fields-form'
 import {
   EMPTY_SD_ADDRESS,
   SdAddressFields,
@@ -51,6 +52,7 @@ import type {
   SdCustomerKindDTO,
   SdPersonTypeDTO,
 } from '@/types/sd-customer'
+import type { SdCustomFieldValuesDTO } from '@/types/sd-directory'
 import {
   SD_CUSTOMER_KIND_LABEL,
   SD_PERSON_TYPE_LABEL,
@@ -138,10 +140,16 @@ export function SdCustomerFormSheet({
   const editing = Boolean(customer)
 
   // Reinicia ao abrir.
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    () => customer?.customFields ?? {},
+  )
   const [wasOpen, setWasOpen] = useState(open)
   if (open !== wasOpen) {
     setWasOpen(open)
-    if (open) setForm(initialState(kind, customer))
+    if (open) {
+      setForm(initialState(kind, customer))
+      setCustomFields(customer?.customFields ?? {})
+    }
   }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -186,6 +194,7 @@ export function SdCustomerFormSheet({
       ibgeCode: blankToNull(form.address.ibgeCode),
       notes: blankToNull(form.notes),
       active: form.active,
+      customFields: customFields as SdCustomFieldValuesDTO,
     }
     const done = {
       onSuccess: (saved: SdCustomerDTO) => {
@@ -327,9 +336,13 @@ export function SdCustomerFormSheet({
               Cadastro ativo (aparece nos seletores do chamado)
             </label>
           </SdFormSection>
-          {/* TODO(servicedesk-integração): campos customizados (entidade
-              CUSTOMER) quando as definições da fatia config estiverem
-              disponíveis; hoje os valores salvos são preservados. */}
+          <SdEntityCustomFieldsForm
+            workspaceId={workspaceId}
+            entity='CUSTOMER'
+            values={customFields}
+            onChange={setCustomFields}
+            idPrefix='sd-customer-cf'
+          />
         </form>
 
         <SheetFooter className='flex-row justify-end gap-2 border-t px-6 py-4'>

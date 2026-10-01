@@ -151,6 +151,7 @@ function resolveFilters(
       .map((id) => (id === 'me' ? ctx.userId : id)),
     includeUnassigned: assignees.includes('unassigned'),
     requesterId: q.requesterId === 'me' ? ctx.userId : q.requesterId,
+    participantId: q.participantId === 'me' ? ctx.userId : q.participantId,
     customerId: q.customerId,
     companyId: q.companyId,
     contactId: q.contactId,

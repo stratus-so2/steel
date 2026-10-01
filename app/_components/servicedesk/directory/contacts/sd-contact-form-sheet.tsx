@@ -2,6 +2,7 @@
 
 import { Cancel01Icon, StarIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
+import { SdEntityCustomFieldsForm } from '@/app/_components/servicedesk/custom-fields/sd-custom-fields-form'
 import {
   SdField,
   SdFormSection,
@@ -36,6 +37,7 @@ import {
   useUpdateSdContact,
 } from '@/src/hooks/use-sd-contacts'
 import type { SdContactDTO } from '@/types/sd-contact'
+import type { SdCustomFieldValuesDTO } from '@/types/sd-directory'
 
 interface LinkState {
   id: string
@@ -120,10 +122,16 @@ export function SdContactFormSheet({
   const editing = Boolean(contact)
 
   // Reinicia ao abrir (os objetos podem ser recriados a cada render do pai).
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    () => contact?.customFields ?? {},
+  )
   const [wasOpen, setWasOpen] = useState(open)
   if (open !== wasOpen) {
     setWasOpen(open)
-    if (open) setForm(initialState(contact, defaultCustomer))
+    if (open) {
+      setForm(initialState(contact, defaultCustomer))
+      setCustomFields(contact?.customFields ?? {})
+    }
   }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -183,6 +191,7 @@ export function SdContactFormSheet({
       userId: form.userId,
       notes: blankToNull(form.notes),
       active: form.active,
+      customFields: customFields as SdCustomFieldValuesDTO,
       customers: form.customers.map((c) => ({
         customerId: c.id,
         isPrimary: c.isPrimary,
@@ -365,7 +374,13 @@ export function SdContactFormSheet({
               Contato ativo
             </label>
           </SdFormSection>
-          {/* TODO(servicedesk-integração): campos customizados (CONTACT). */}
+          <SdEntityCustomFieldsForm
+            workspaceId={workspaceId}
+            entity='CONTACT'
+            values={customFields}
+            onChange={setCustomFields}
+            idPrefix='sd-contact-cf'
+          />
         </form>
 
         <SheetFooter className='flex-row justify-end gap-2 border-t px-6 py-4'>

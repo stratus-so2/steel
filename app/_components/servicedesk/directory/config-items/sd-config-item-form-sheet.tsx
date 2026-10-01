@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { SdEntityCustomFieldsForm } from '@/app/_components/servicedesk/custom-fields/sd-custom-fields-form'
 import {
   SD_CI_STATUS_LABEL,
   SD_RISK_LABEL,
@@ -45,6 +46,7 @@ import type {
   SdConfigItemStatusDTO,
   SdRiskLevelDTO,
 } from '@/types/sd-config-item'
+import type { SdCustomFieldValuesDTO } from '@/types/sd-directory'
 import {
   fromAttributeFormValues,
   type SdCiAttributeFormValues,
@@ -136,11 +138,16 @@ export function SdConfigItemFormSheet({
   const [form, setForm] = useState<FormState>(() =>
     initialState(item, { parent: defaultParent ?? undefined }),
   )
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    () => item?.customFields ?? {},
+  )
   const [wasOpen, setWasOpen] = useState(open)
   if (open !== wasOpen) {
     setWasOpen(open)
-    if (open)
+    if (open) {
       setForm(initialState(item, { parent: defaultParent ?? undefined }))
+      setCustomFields(item?.customFields ?? {})
+    }
   }
 
   const { data: types = [] } = useSdConfigItemTypes(workspaceId)
@@ -189,6 +196,7 @@ export function SdConfigItemFormSheet({
       purchasedAt: form.purchasedAt || null,
       warrantyUntil: form.warrantyUntil || null,
       notes: blankToNull(form.notes),
+      customFields: customFields as SdCustomFieldValuesDTO,
       ...(form.typeId
         ? { attributes: fromAttributeFormValues(schema, form.attributes) }
         : {}),
@@ -455,7 +463,13 @@ export function SdConfigItemFormSheet({
               rows={3}
             />
           </SdFormSection>
-          {/* TODO(servicedesk-integração): campos customizados (CONFIG_ITEM). */}
+          <SdEntityCustomFieldsForm
+            workspaceId={workspaceId}
+            entity='CONFIG_ITEM'
+            values={customFields}
+            onChange={setCustomFields}
+            idPrefix='sd-config_item-cf'
+          />
         </form>
 
         <SheetFooter className='flex-row justify-end gap-2 border-t px-6 py-4'>

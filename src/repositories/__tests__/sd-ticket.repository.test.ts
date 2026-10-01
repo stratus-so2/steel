@@ -237,6 +237,20 @@ describe('SdTicketRepository', () => {
       ).toEqual([asRequester.id, asParticipant.id, asContact.id])
     })
 
+    it('filters by participant', async () => {
+      const { workspace, user, flow } = await setup()
+      const mine = await seedSdTicket(workspace.id, flow.initial.id)
+      await prisma.sdTicketParticipant.create({
+        data: { ticketId: mine.id, userId: user.id },
+      })
+      await seedSdTicket(workspace.id, flow.initial.id)
+      expect(
+        await ids(
+          buildSdTicketWhere(workspace.id, { participantId: user.id }, NOW),
+        ),
+      ).toEqual([mine.id])
+    })
+
     it('filters by SLA state', async () => {
       const { workspace, flow } = await setup()
       const flagged = await seedSdTicket(workspace.id, flow.initial.id, {

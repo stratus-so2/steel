@@ -66,6 +66,8 @@ export interface SdColumn<T> {
   hideable?: boolean
   defaultHidden?: boolean
   className?: string
+  /** Conteúdo do cabeçalho no lugar do texto (ex.: "selecionar todos"). */
+  headerContent?: ReactNode
 }
 
 export interface SdDataTableProps<T extends { id: string }> {
@@ -96,6 +98,11 @@ export interface SdDataTableProps<T extends { id: string }> {
   emptyTitle?: string
   emptyDescription?: string
   emptyAction?: ReactNode
+  /** Esconde a barra (busca/filtros/colunas) — quem usa tem a própria. */
+  hideToolbar?: boolean
+  /** Colunas ocultas controladas por quem usa (sem localStorage). */
+  hiddenColumns?: string[]
+  rowClassName?: (row: T) => string | undefined
 }
 
 const PAGE_SIZES = [10, 25, 50, 100]
@@ -135,6 +142,9 @@ export function SdDataTable<T extends { id: string }>({
   emptyTitle = 'Nada por aqui ainda',
   emptyDescription = 'Crie o primeiro registro ou ajuste a busca e os filtros.',
   emptyAction,
+  hideToolbar,
+  hiddenColumns,
+  rowClassName,
 }: SdDataTableProps<T>) {
   const defaultHidden = useMemo(
     () => columns.filter((c) => c.defaultHidden).map((c) => c.id),
@@ -162,7 +172,8 @@ export function SdDataTable<T extends { id: string }>({
     })
   }
 
-  const visible = columns.filter((c) => !hidden.includes(c.id))
+  const effectiveHidden = hiddenColumns ?? hidden
+  const visible = columns.filter((c) => !effectiveHidden.includes(c.id))
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(total, page * pageSize)
@@ -178,7 +189,12 @@ export function SdDataTable<T extends { id: string }>({
 
   return (
     <div className='flex h-full min-h-0 flex-col gap-3 p-4'>
-      <div className='flex shrink-0 flex-wrap items-center gap-2'>
+      <div
+        className={cn(
+          'flex shrink-0 flex-wrap items-center gap-2',
+          hideToolbar && 'hidden',
+        )}
+      >
         <div className='relative mr-auto'>
           <SteelIcon
             icon={Search01Icon}
@@ -267,7 +283,9 @@ export function SdDataTable<T extends { id: string }>({
                 const active = column.sortKey && sort === column.sortKey
                 return (
                   <TableHead key={column.id} className={column.className}>
-                    {column.sortKey && onSortChange ? (
+                    {column.headerContent ? (
+                      column.headerContent
+                    ) : column.sortKey && onSortChange ? (
                       <button
                         type='button'
                         onClick={() => handleSort(column)}
@@ -346,7 +364,10 @@ export function SdDataTable<T extends { id: string }>({
                 <TableRow
                   key={row.id}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  className={cn(onRowClick && 'cursor-pointer')}
+                  className={cn(
+                    onRowClick && 'cursor-pointer',
+                    rowClassName?.(row),
+                  )}
                 >
                   {visible.map((column) => (
                     <TableCell key={column.id} className={column.className}>

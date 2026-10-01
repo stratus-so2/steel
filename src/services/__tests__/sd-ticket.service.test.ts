@@ -163,6 +163,22 @@ describe('list', () => {
     expect(json).not.toContain('participants')
   })
 
+  it('resolves the participant filter (me or explicit id)', async () => {
+    repo.list.mockResolvedValue(ok({ items: [], total: 0, nextCursor: null }))
+    expectOk(
+      await SdTicketService.list('u1', 'ws1', q({ participantId: 'me' })),
+    )
+    expectOk(
+      await SdTicketService.list('u1', 'ws1', q({ participantId: 'u7' })),
+    )
+    expect(JSON.stringify(repo.list.mock.calls[0][0].where)).toContain(
+      '"participants":{"some":{"userId":"u1"}}',
+    )
+    expect(JSON.stringify(repo.list.mock.calls[1][0].where)).toContain(
+      '"participants":{"some":{"userId":"u7"}}',
+    )
+  })
+
   it('scopes requesters, keeps explicit parents and uses cursor pages', async () => {
     as('requester')
     repo.list.mockResolvedValue(ok({ items: [], total: 0, nextCursor: null }))

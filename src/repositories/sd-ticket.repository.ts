@@ -96,6 +96,8 @@ export interface SdTicketFilters {
   assigneeIds?: string[]
   includeUnassigned?: boolean
   requesterId?: string
+  /** Chamados em que o usuário é participante. */
+  participantId?: string
   customerId?: string
   companyId?: string
   contactId?: string
@@ -217,6 +219,9 @@ export function buildSdTicketWhere(
     and.push({ OR: or })
   }
   if (f.requesterId) where.requesterId = f.requesterId
+  if (f.participantId) {
+    and.push({ participants: { some: { userId: f.participantId } } })
+  }
   if (f.customerId) where.customerId = f.customerId
   if (f.companyId) where.companyId = f.companyId
   if (f.contactId) where.contactId = f.contactId
