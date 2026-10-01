@@ -65,7 +65,7 @@ export function sdAttachmentKind(mimeType: string): SdAttachmentKind | null {
  * até 100 caracteres (o nome original fica na linha do banco).
  */
 export function sdSafeFileName(fileName: string): string {
-  const base = fileName.split(/[\\/]/).pop() ?? ''
+  const base = fileName.replace(/^.*[\\/]/, '')
   const cleaned = base
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')

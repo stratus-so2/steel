@@ -1,6 +1,7 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
 import { sdConfigRoutes } from './servicedesk/config'
 import { sdDirectoryRoutes } from './servicedesk/directory'
+import { sdTicketTabRoutes } from './servicedesk/ticket-tabs'
 
 /**
  * ServiceDesk — `app/api/workspaces/[id]/servicedesk/**` (sessão + membro +
@@ -8,7 +9,11 @@ import { sdDirectoryRoutes } from './servicedesk/directory'
  * de rotas por fatia em `./servicedesk/*.ts`; DTOs em
  * `../schemas/servicedesk-*.ts`.
  */
-const routes: RouteConfig[] = [...sdConfigRoutes, ...sdDirectoryRoutes]
+const routes: RouteConfig[] = [
+  ...sdConfigRoutes,
+  ...sdDirectoryRoutes,
+  ...sdTicketTabRoutes,
+]
 
 export function registerServiceDeskPaths(registry: OpenApiRegistry): void {
   for (const route of routes) registry.registerRoute(route)
