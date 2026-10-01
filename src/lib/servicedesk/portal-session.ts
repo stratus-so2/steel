@@ -1,5 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
+import { NEXT_PUBLIC_URL, NODE_ENV } from '@/lib/env/env'
 
 /**
  * Portal do contato externo (`/suporte`): token do link mágico e token da
@@ -51,14 +51,22 @@ export function sdPortalHashEquals(a: string, b: string): boolean {
   return timingSafeEqual(Buffer.from(a), Buffer.from(b))
 }
 
+/**
+ * Base pública do app. Em teste a validação de env é desligada, então a
+ * variável pode não existir — cai num caminho relativo em vez de estourar.
+ */
+function baseUrl(): string {
+  return NEXT_PUBLIC_URL ?? ''
+}
+
 /** `https://…/suporte/entrar/<token>` — o endereço que vai no e-mail. */
 export function sdPortalLinkUrl(token: string): string {
-  return `${NEXT_PUBLIC_URL}/suporte/entrar/${token}`
+  return `${baseUrl()}/suporte/entrar/${token}`
 }
 
 /** `https://…/suporte` — onde o contato pede um link novo. */
 export function sdPortalHomeUrl(): string {
-  return `${NEXT_PUBLIC_URL}/suporte`
+  return `${baseUrl()}/suporte`
 }
 
 export interface SdPortalCookieOptions {
@@ -72,12 +80,13 @@ export interface SdPortalCookieOptions {
 
 /**
  * Opções do cookie da sessão: `httpOnly`, `sameSite=lax` (o contato chega
- * pelo link do e-mail) e `secure` fora do desenvolvimento em HTTP.
+ * pelo link do e-mail) e `secure` em produção — em desenvolvimento o app
+ * roda em HTTP e o navegador descartaria o cookie.
  */
 export function sdPortalCookieOptions(expiresAt: Date): SdPortalCookieOptions {
   return {
     httpOnly: true,
-    secure: !NEXT_PUBLIC_URL.startsWith('http://'),
+    secure: NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     expires: expiresAt,

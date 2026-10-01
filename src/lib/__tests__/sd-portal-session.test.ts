@@ -58,9 +58,14 @@ describe('sd portal tokens', () => {
 
 describe('sd portal urls', () => {
   it('points the magic link at the public /suporte routes', () => {
-    const url = sdPortalLinkUrl('abc')
-    expect(url.endsWith('/suporte/entrar/abc')).toBe(true)
+    expect(sdPortalLinkUrl('abc').endsWith('/suporte/entrar/abc')).toBe(true)
     expect(sdPortalHomeUrl().endsWith('/suporte')).toBe(true)
+  })
+
+  it('still builds a usable path without NEXT_PUBLIC_URL', () => {
+    // Em teste a validação de env é desligada: a variável pode faltar.
+    expect(sdPortalLinkUrl('abc')).toContain('/suporte/entrar/abc')
+    expect(sdPortalHomeUrl()).toContain('/suporte')
   })
 })
 
@@ -72,7 +77,8 @@ describe('sd portal cookie', () => {
     expect(options.sameSite).toBe('lax')
     expect(options.path).toBe('/')
     expect(options.expires).toBe(expires)
-    expect(typeof options.secure).toBe('boolean')
+    // `secure` sai de `NODE_ENV`, não da URL pública (que pode faltar).
+    expect(options.secure).toBe(false)
   })
 
   it('clears the cookie with maxAge 0 and an expired date', () => {
