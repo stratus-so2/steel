@@ -1,11 +1,40 @@
 import type { SuccessResponse } from '@/types/http-response'
 
-async function throwApiError(res: Response, fallback: string): Promise<never> {
-  const body = await res.json().catch(() => null)
-  throw new Error(body?.message ?? fallback)
+/**
+ * Erro de uma chamada à API com o `code` do envelope (`ERROR_CODES`), para a
+ * UI tratar casos específicos (`SD_AI_DISABLED`, `AI_QUOTA_EXCEEDED`...).
+ * Continua sendo um `Error` com a mensagem do servidor: quem só usa
+ * `error.message` (`notify.error`) não muda em nada.
+ */
+export class ApiError extends Error {
+  readonly code: string | null
+  readonly status: number
+
+  constructor(message: string, code: string | null, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.status = status
+  }
 }
 
-// Fetches and return the `data` payload, throwing `Error(message)` on failure
+/** `true` quando o erro veio da API com um destes códigos. */
+export function isApiErrorCode(error: unknown, ...codes: string[]): boolean {
+  return error instanceof ApiError && error.code !== null
+    ? codes.includes(error.code)
+    : false
+}
+
+async function throwApiError(res: Response, fallback: string): Promise<never> {
+  const body = await res.json().catch(() => null)
+  throw new ApiError(
+    body?.message ?? fallback,
+    body?.error?.code ?? null,
+    res.status,
+  )
+}
+
+// Fetches and return the `data` payload, throwing `ApiError(message)` on failure
 export async function apiFetch<T>(
   input: RequestInfo | URL,
   init?: RequestInit,
