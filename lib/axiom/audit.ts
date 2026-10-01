@@ -110,6 +110,9 @@ export type AuditEntity =
   | 'sd_ticket_part'
   | 'sd_ticket_approval'
   | 'sd_ticket_signature'
+  // ServiceDesk — portal do contato externo (link mágico)
+  | 'sd_portal_access'
+  | 'sd_portal_session'
   // ServiceDesk — WhatsApp e IA
   | 'sd_ai_conversation'
 
