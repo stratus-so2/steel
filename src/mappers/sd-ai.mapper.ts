@@ -10,7 +10,11 @@ import type {
   SdAiOutcomeDTO,
 } from '@/types/sd-ai'
 
-const OUTCOMES = new Set<string>(['resolved_by_kb', 'ticket_opened', 'abandoned'])
+const OUTCOMES = new Set<string>([
+  'resolved_by_kb',
+  'ticket_opened',
+  'abandoned',
+])
 
 function isCard(value: unknown): value is SdAiArticleCardDTO {
   if (!value || typeof value !== 'object') return false
@@ -83,7 +87,9 @@ export function toSdAiClassification(
   const validCategory = category?.level === 'CATEGORY' ? category : undefined
   const sub = output.subcategoryId ? byId.get(output.subcategoryId) : undefined
   const validSub =
-    validCategory && sub?.level === 'SUBCATEGORY' && sub.parentId === validCategory.id
+    validCategory &&
+    sub?.level === 'SUBCATEGORY' &&
+    sub.parentId === validCategory.id
       ? sub
       : undefined
   const service = output.serviceId ? byId.get(output.serviceId) : undefined

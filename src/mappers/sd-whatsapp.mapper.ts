@@ -59,7 +59,9 @@ export function toSdWhatsappConversationDTO(
     aiActive: conversation.aiActive,
     aiHandoff: conversation.aiHandoff,
     lastMessageAt: conversation.lastMessageAt?.toISOString() ?? null,
-    lastMessagePreview: last ? sdWhatsappMessageBody(last.type, last.text) : null,
+    lastMessagePreview: last
+      ? sdWhatsappMessageBody(last.type, last.text)
+      : null,
     openTicket:
       ticket && prefixes
         ? { id: ticket.id, number: ticket.number, code: prefixes(ticket) }

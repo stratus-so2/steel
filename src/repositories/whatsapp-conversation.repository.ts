@@ -1,8 +1,4 @@
-import type {
-  ModuleKind,
-  Prisma,
-  WhatsAppConversation,
-} from '@prisma/client'
+import type { ModuleKind, Prisma, WhatsAppConversation } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'

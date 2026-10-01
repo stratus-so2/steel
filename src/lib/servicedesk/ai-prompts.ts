@@ -70,7 +70,8 @@ function personaBlock(settings: SdAiPersonaSettings): string {
   return parts.length > 0 ? `\n\n${parts.join('\n\n')}` : ''
 }
 
-const BASE_RULES = `Você é o agente de IA do ServiceDesk (central de atendimento de TI, práticas ITIL 4). Responda sempre em português do Brasil, de forma objetiva e cordial. Nunca invente procedimentos, prazos ou políticas: use apenas o contexto fornecido. Dados pessoais aparecem mascarados ([e-mail], [telefone], [documento]); não peça nem repita dados sensíveis.`
+const BASE_RULES =
+  'Você é o agente de IA do ServiceDesk (central de atendimento de TI, práticas ITIL 4). Responda sempre em português do Brasil, de forma objetiva e cordial. Nunca invente procedimentos, prazos ou políticas: use apenas o contexto fornecido. Dados pessoais aparecem mascarados ([e-mail], [telefone], [documento]); não peça nem repita dados sensíveis.'
 
 /* ------------------------------------------------------------------ */
 /* Contexto do chamado                                                  */
@@ -142,7 +143,8 @@ export interface SdAiKbArticle {
 const KB_CHAR_BUDGET = 10_000
 
 export function formatSdKbContext(articles: SdAiKbArticle[]): string {
-  if (articles.length === 0) return 'Base de conhecimento: nenhum artigo relevante encontrado.'
+  if (articles.length === 0)
+    return 'Base de conhecimento: nenhum artigo relevante encontrado.'
   let remaining = KB_CHAR_BUDGET
   const blocks: string[] = []
   for (const a of articles) {
@@ -238,7 +240,9 @@ export interface SdPreServicePromptInput extends SdAiPersonaSettings {
   ticketOpen?: { code: string; title: string } | null
 }
 
-export function buildSdPreServiceSystem(input: SdPreServicePromptInput): string {
+export function buildSdPreServiceSystem(
+  input: SdPreServicePromptInput,
+): string {
   const channel =
     input.channel === 'whatsapp'
       ? 'Canal: WhatsApp — mensagens curtas, sem markdown (use *negrito* do WhatsApp com moderação), no máximo 3 parágrafos.'

@@ -5,9 +5,9 @@ import type {
   SdMessageVisibility,
   SdTicketType,
 } from '@prisma/client'
-import type { SdAiCatalog } from '@/src/lib/servicedesk/ai-prompts'
 import { prisma } from '@/src/lib/prisma'
 import type { Result } from '@/src/lib/result'
+import type { SdAiCatalog } from '@/src/lib/servicedesk/ai-prompts'
 import { sdDb } from './sd-config-db'
 
 export type SdAiMode = 'COPILOT' | 'PRE_SERVICE'

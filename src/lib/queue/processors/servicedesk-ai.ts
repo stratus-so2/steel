@@ -16,7 +16,11 @@ const WARN_REASONS = new Set([
 async function processTriage(
   job: Job<ServicedeskAiJobPayload['triage-ticket']>,
 ): Promise<void> {
-  const base = { component: COMPONENT, jobId: job.id, ticketId: job.data.ticketId }
+  const base = {
+    component: COMPONENT,
+    jobId: job.id,
+    ticketId: job.data.ticketId,
+  }
   const result = await SdAiService.triageTicket(job.data.ticketId)
   // Erro de banco: lança para o BullMQ tentar de novo.
   if (!result.ok) {

@@ -181,15 +181,18 @@ export const SdWhatsappRepository = {
 
   /** Chamados (não excluídos) vinculados à conversa — tempo real. */
   async listLinkedTicketIds(conversationId: string): Promise<Result<string[]>> {
-    return sdDb('Failed to list ServiceDesk tickets of conversation', async () => {
-      const rows = await prisma.sdTicket.findMany({
-        where: { whatsappConversationId: conversationId, deletedAt: null },
-        select: { id: true },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-      })
-      return rows.map((r) => r.id)
-    })
+    return sdDb(
+      'Failed to list ServiceDesk tickets of conversation',
+      async () => {
+        const rows = await prisma.sdTicket.findMany({
+          where: { whatsappConversationId: conversationId, deletedAt: null },
+          select: { id: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        })
+        return rows.map((r) => r.id)
+      },
+    )
   },
 
   async setTicketConversation(
