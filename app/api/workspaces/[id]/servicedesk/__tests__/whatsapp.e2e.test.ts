@@ -152,7 +152,13 @@ describe('ServiceDesk WhatsApp — connections', () => {
     const first = await createConnection(workspace.id, owner.cookie)
     const second = await postJson(
       `${wa(workspace.id)}/connections`,
-      { ...ZAPI_CONNECTION, label: 'Plantão', zapiInstanceId: 'inst-2' },
+      {
+        ...ZAPI_CONNECTION,
+        label: 'Plantão',
+        // O número é único por workspace + provedor.
+        phoneNumber: '5511966665555',
+        zapiInstanceId: 'inst-2',
+      },
       owner.cookie,
     )
     expect(second.status).toBe(201)
