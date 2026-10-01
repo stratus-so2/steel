@@ -455,6 +455,35 @@ describe('SdWhatsappRepository.createTicketMessage / hasMirror', () => {
     expect(stored.channel).toBe('WHATSAPP')
   })
 
+  it('creates an internal message without attachment', async () => {
+    const { workspace, user, phase } = await setup()
+    const ticket = await seedSdTicket(workspace.id, phase.id)
+
+    const created = expectOk(
+      await SdWhatsappRepository.createTicketMessage({
+        workspaceId: workspace.id,
+        ticketId: ticket.id,
+        authorKind: 'AGENT',
+        authorUserId: user.id,
+        visibility: 'INTERNAL',
+        channel: 'PLATFORM',
+        body: 'nota interna',
+      }),
+    )
+
+    const stored = await prisma.sdTicketMessage.findUniqueOrThrow({
+      where: { id: created.id },
+    })
+    expect(stored.visibility).toBe('INTERNAL')
+    expect(stored.authorUserId).toBe(user.id)
+    expect(stored.whatsappMessageId).toBeNull()
+    expect(
+      await prisma.sdTicketAttachment.count({
+        where: { messageId: created.id },
+      }),
+    ).toBe(0)
+  })
+
   it('rolls the attachment back when the message cannot be created', async () => {
     const { workspace } = await setup()
     const before = await prisma.sdTicketAttachment.count()
