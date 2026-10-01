@@ -561,18 +561,20 @@ function SdOnCallOverridesSection({
   )
 }
 
+// Tons 600: contraste suficiente com o texto branco tanto no claro quanto
+// no escuro (o `/70` de antes apagava o rótulo no tema claro).
 const SEGMENT_COLORS = [
-  'bg-sky-500/70',
-  'bg-violet-500/70',
-  'bg-emerald-500/70',
-  'bg-amber-500/70',
-  'bg-rose-500/70',
-  'bg-teal-500/70',
+  'bg-sky-600',
+  'bg-violet-600',
+  'bg-emerald-600',
+  'bg-amber-600',
+  'bg-rose-600',
+  'bg-teal-600',
 ]
 
 /** Cor estável por pessoa, para a barra ficar legível nos dois temas. */
 export function sdOnCallSegmentColor(userId: string | null): string {
-  if (!userId) return 'bg-muted'
+  if (!userId) return 'bg-muted text-muted-foreground'
   let hash = 0
   for (const char of userId) hash = (hash + char.charCodeAt(0)) % 997
   return SEGMENT_COLORS[hash % SEGMENT_COLORS.length]
@@ -607,7 +609,7 @@ export function SdOnCallTimelineBars({
                   style={{ width: `${width}%` }}
                   title={`${segment.user?.name ?? 'Sem plantonista'} · ${formatSdOnCallRange(segment.start, segment.end)}${segment.source === 'override' ? ' (troca)' : ''}`}
                   className={cn(
-                    'flex min-w-0 items-center justify-center border-border/60 border-r px-1 text-[10px] text-white/95 last:border-r-0',
+                    'flex min-w-0 items-center justify-center border-background/40 border-r px-1 text-[10px] text-white last:border-r-0',
                     sdOnCallSegmentColor(segment.userId),
                     segment.source === 'override' &&
                       'ring-1 ring-foreground/40 ring-inset',

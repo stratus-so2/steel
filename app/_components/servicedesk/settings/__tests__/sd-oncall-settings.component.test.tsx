@@ -221,7 +221,7 @@ describe('helpers da aba', () => {
 
   it('keeps one stable colour per person and greys out the gaps', () => {
     expect(sdOnCallSegmentColor('u1')).toBe(sdOnCallSegmentColor('u1'))
-    expect(sdOnCallSegmentColor(null)).toBe('bg-muted')
+    expect(sdOnCallSegmentColor(null)).toMatch(/bg-muted/)
   })
 })
 
