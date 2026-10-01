@@ -5038,6 +5038,8 @@ model SdMailMessage {
   bodyText    String?         @map("body_text")
   /// Mensagem automática (férias, bounce): não abre nem reabre chamado.
   automatic   Boolean         @default(false)
+  /// Mensagem do histórico gerada por este e-mail (marcador da aba Histórico).
+  ticketMessageId String?     @map("ticket_message_id")
   processedAt DateTime?       @map("processed_at")
   error       String?
   createdAt   DateTime        @default(now()) @map("created_at")
