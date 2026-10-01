@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import {
+  indexSdTicketMail,
+  useSdTicketMail,
+} from '@/src/hooks/use-sd-mailboxes'
+import {
   flattenSdMessages,
   useDeleteSdTicketMessage,
   useSdTicketMessages,
@@ -29,6 +33,8 @@ export function SdTicketHistoryTab({
   const ticketRef = ticket.id
   useSdTicketRealtime(workspaceId)
   const query = useSdTicketMessages(workspaceId, ticketRef)
+  const mail = useSdTicketMail(workspaceId, ticketRef)
+  const mailByMessage = useMemo(() => indexSdTicketMail(mail.data), [mail.data])
   const update = useUpdateSdTicketMessage(workspaceId, ticketRef)
   const remove = useDeleteSdTicketMessage(workspaceId, ticketRef)
   const messages = useMemo(
@@ -76,6 +82,7 @@ export function SdTicketHistoryTab({
             <SdMessageBubble
               key={m.id}
               message={m}
+              mail={mailByMessage.get(m.id) ?? null}
               pending={update.isPending || remove.isPending}
               onEdit={(body) =>
                 update

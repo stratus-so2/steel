@@ -11,6 +11,7 @@ import {
   Flowchart01Icon,
   FormIcon,
   Layers01Icon,
+  Mail01Icon,
   Message01Icon,
   Settings02Icon,
   Tag01Icon,
@@ -28,6 +29,7 @@ import { SdDepartmentsTab } from './departments-tab'
 import { SdEscalationTab } from './escalation-tab'
 import { SdFlowsTab } from './flows-tab'
 import { SdGeneralTab } from './general-tab'
+import { SdMailSettingsTab } from './mail-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdSlaTab } from './sla-tab'
@@ -151,6 +153,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     icon: BoxIcon,
     description: 'Catálogo de peças e custos unitários.',
     component: SdPartsTab,
+  },
+  {
+    id: 'mail',
+    label: 'E-mail',
+    icon: Mail01Icon,
+    description:
+      'Caixas de e-mail monitoradas por IMAP: abertura e resposta de chamado por e-mail, padrões, listas de remetentes e confirmação de abertura.',
+    component: SdMailSettingsTab,
   },
   {
     id: 'whatsapp',
