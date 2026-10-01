@@ -22,7 +22,10 @@ const PUBLIC_ROUTES = [
   // Aprovação de chamado do ServiceDesk por e-mail: link sem sessão (token)
   '/servicedesk/approval', '/api/servicedesk/approvals',
   // Abertura de chamado por monitoramento: webhook sem sessão (token na URL)
-  '/api/servicedesk/monitoring'
+  '/api/servicedesk/monitoring',
+  // Portal do contato externo do ServiceDesk: link mágico + sessão própria
+  // no cookie `sd.portal_session` (sem Better Auth; escopo no service)
+  '/suporte', '/api/servicedesk/portal'
 ]
 
 /**

@@ -189,6 +189,10 @@
       "description": "Cadastro de clientes e empresas (CPF/CNPJ validado, endereço via ViaCEP) e seus contatos. Só agentes (membros de um departamento) e admins do ServiceDesk."
     },
     {
+      "name": "ServiceDesk · Portal do contato",
+      "description": "Portal público do contato do cliente (`/suporte`): link mágico por e-mail (token SHA-256, 7 dias, uso único), sessão própria de 12 horas no cookie `sd.portal_session` (sem Better Auth), lista e abertura de chamados, conversa com anexo, avaliação do atendimento e a base de conhecimento publicada. Tudo filtrado no service pelo contato e pelas empresas dele."
+    },
+    {
       "name": "ServiceDesk · Painéis",
       "description": "Painéis customizáveis (motor de dashboards com fontes de chamados, custos, eventos e artigos): contagem, soma, média, % de SLA, MTTR, backlog, criados × resolvidos, CSAT. Padrões \"Dashboard analítico\" e \"KPIs (TV)\"; modo TV em tela cheia. Só agentes."
     },
@@ -342,6 +346,7 @@
         "ServiceDesk · Base de conhecimento",
         "ServiceDesk · Configurações",
         "ServiceDesk · Clientes e contatos",
+        "ServiceDesk · Portal do contato",
         "ServiceDesk · Painéis",
         "ServiceDesk · WhatsApp",
         "ServiceDesk · Agente de IA",
@@ -482,7 +487,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_40"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_41"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -753,7 +758,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_6"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_8"
           }
         },
         "security": [
@@ -4095,7 +4100,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -4153,7 +4158,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_44"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_45"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -4250,7 +4255,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_45"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_46"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -4693,7 +4698,7 @@
             "$ref": "#/components/responses/404_CRM_WORKFLOW_WEBHOOK_INVALID"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -5164,6 +5169,857 @@
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/knowledge": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Base de conhecimento do portal",
+        "operationId": "getServicedeskPortalKnowledge",
+        "description": "Artigos `PUBLISHED` + `PORTAL` do workspace da sessão, com as categorias. Com `?q=` faz a busca (os itens trazem `excerpt` e `rank`).\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artigos e categorias.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalKbList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/knowledge/{articleId}": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Ler um artigo do portal",
+        "operationId": "getServicedeskPortalKnowledgeByArticleId",
+        "description": "Conteúdo Plate do artigo e a contagem de visualização. Rascunho, artigo interno ou arquivado respondem 404 — nunca o conteúdo.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "description": "Id do artigo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Artigo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalKbArticle"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/link": {
+      "post": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Pedir o link de acesso ao portal",
+        "operationId": "postServicedeskPortalLink",
+        "description": "O contato informa o e-mail e recebe um link mágico por workspace em que é contato ativo com o portal ligado. A resposta é **sempre a mesma**, exista ou não o e-mail — a rota não serve para descobrir clientes. Limitada por IP **e** por e-mail (5/h cada); cada emissão invalida os links pendentes do contato e é auditada (`sd_portal_access` / `create`). O e-mail respeita `MAIL_DRY_RUN`.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pedido registrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalLinkRequest"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/options": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Opções do formulário de abertura",
+        "operationId": "getServicedeskPortalOptions",
+        "description": "Tipos liberados em `portalTicketTypes`, catálogo e modelos marcados como `portalVisible`, urgências e campos customizados com `visibleInPortal`.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "responses": {
+          "200": {
+            "description": "Opções.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalFormOptions"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/session": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Sessão corrente do portal",
+        "operationId": "getServicedeskPortalSession",
+        "description": "Quem está no portal, em qual workspace, quais empresas ele representa e quais tipos pode abrir.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "responses": {
+          "200": {
+            "description": "Sessão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalSession"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Abrir a sessão do portal com o token do link",
+        "operationId": "postServicedeskPortalSession",
+        "description": "Consome o link (uso único, condição atômica no `UPDATE`) e abre a sessão de 12 horas, devolvendo o cookie `sd.portal_session` (`httpOnly`, `secure`, `sameSite=lax`). Fica no POST de propósito: o GET do link nunca o consome, então o pré-carregador do cliente de e-mail não queima o acesso. Auditado (`sd_portal_session` / `create`).\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": ["token"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Sessão aberta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalSession"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_LINK_INVALID"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "410": {
+            "$ref": "#/components/responses/410_SD_PORTAL_LINK_EXPIRED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Sair do portal",
+        "operationId": "deleteServicedeskPortalSession",
+        "description": "Encerra a sessão (limpa `sessionHash`) e apaga o cookie. O link já estava consumido: para voltar, o contato pede outro.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "responses": {
+          "200": {
+            "description": "Sessão encerrada (`data: null`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/tickets": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Listar os chamados do contato",
+        "operationId": "getServicedeskPortalTickets",
+        "description": "Chamados em que o contato é o contato e, com `SdSettings.portalCompanyScope` ligado, os das empresas dele (`SdContactCustomer`). O escopo entra no `WHERE` no service — a query não escolhe de quem são os chamados. `status`: `open` (padrão), `closed` ou `all`; `q` busca por título ou código.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "type": "string",
+              "enum": ["open", "closed", "all"]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página de chamados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalTicketPage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Abrir um chamado pelo portal",
+        "operationId": "postServicedeskPortalTickets",
+        "description": "Abre com `channel: PORTAL`, o contato como autor e a empresa principal dele já vinculada. O tipo precisa estar em `SdSettings.portalTicketTypes`; modelo e catálogo precisam ser `portalVisible` (o motor confere com `portal: true`), e os campos customizados obrigatórios são validados. Limite de escrita por contato e por IP. Auditado; a rastreabilidade registra `ticket.created` com ator `CONTACT`.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "subcategoryId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "serviceId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "urgencyId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "customFields": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "maxLength": 64
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": ["type", "title"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chamado aberto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalTicketSummary"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_PHASE_NOT_FOUND_SD_CATEGORY_NOT_FOUND_SD_CONFIG_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_CUSTOM_FIELD_INVALID_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/tickets/{code}": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Ver um chamado e a conversa",
+        "operationId": "getServicedeskPortalTicketsByCode",
+        "description": "O chamado é resolvido por **código/número dentro do escopo** do contato, então um chamado de outra empresa responde 404 — não existe IDOR por id adivinhado. O histórico traz só mensagens públicas e vivas, com os anexos presos a elas.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Código (`INC-000123`) ou número (`123`) do chamado. Id não é aceito.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chamado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalTicketDetail"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/tickets/{code}/attachments/{attachmentId}": {
+      "get": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Baixar um anexo do chamado",
+        "operationId": "getServicedeskPortalTicketsByCodeAttachmentsByAttachmentId",
+        "description": "Serve o arquivo do bucket privado. Só sai daqui anexo preso a uma **mensagem pública e viva** do chamado no escopo da sessão — anexo de nota interna ou solto de agente responde 404. `?download=1` força o download; a resposta vai com `nosniff` e CSP `sandbox`.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Código (`INC-000123`) ou número (`123`) do chamado. Id não é aceito.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "description": "Id do anexo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "required": false,
+            "description": "`1`/`true` força o download.",
+            "schema": {
+              "type": "string",
+              "enum": ["0", "1", "true", "false"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conteúdo do arquivo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR_6"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/tickets/{code}/csat": {
+      "post": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Avaliar o atendimento (CSAT)",
+        "operationId": "postServicedeskPortalTicketsByCodeCsat",
+        "description": "Nota de 1 a 5 e comentário opcional, só com o chamado resolvido/fechado e uma única vez (condição atômica no `UPDATE`). Registra `csat.submitted` com ator `CONTACT` e é auditado.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Código (`INC-000123`) ou número (`123`) do chamado. Id não é aceito.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "score": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "comment": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": ["score"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Avaliação registrada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalCsat"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_2"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_CSAT_ALREADY_SUBMITTED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_CSAT_NOT_AVAILABLE"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": []
+      }
+    },
+    "/servicedesk/portal/tickets/{code}/messages": {
+      "post": {
+        "tags": ["ServiceDesk · Portal do contato"],
+        "summary": "Responder no histórico do chamado",
+        "operationId": "postServicedeskPortalTicketsByCodeMessages",
+        "description": "Aceita JSON (`{ body }`) ou `multipart/form-data` com `body` + até 5 campos `files` (25 MB cada, mesmos tipos dos anexos do chamado). A mensagem é sempre **pública**, com `authorKind: CONTACT`; em chamado resolvido, reabre quando `reopenOnRequesterReply` está ligado. Avisa o responsável e os participantes, registra `message.posted` com ator `CONTACT` e dispara as automações de `MESSAGE_RECEIVED`.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "description": "Código (`INC-000123`) ou número (`123`) do chamado. Id não é aceito.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "attachmentCount": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_PORTAL_SESSION_EXPIRED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_ATTACHMENT_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR_5"
           }
         },
         "security": []
@@ -8073,7 +8929,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_CONNECTION_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -8143,7 +8999,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_28"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10346,7 +11202,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_25"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_27"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -12039,7 +12895,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -12316,7 +13172,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_38"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_39"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13036,7 +13892,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_39"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_40"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -15022,7 +15878,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_37"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_38"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -21861,7 +22717,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_42"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_43"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -21939,7 +22795,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_43"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_44"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -25696,7 +26552,7 @@
             "$ref": "#/components/responses/409_CRM_PROPOSAL_EXPIRED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -25848,7 +26704,7 @@
             "$ref": "#/components/responses/409_CONFLICT_4"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27874,7 +28730,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -29037,7 +29893,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_24"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_25"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -29446,7 +30302,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_23"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_24"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -29541,7 +30397,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_41"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_42"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33245,7 +34101,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_27"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_29"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -43053,7 +43909,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_26"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_28"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -44056,7 +44912,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -46084,7 +46940,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_10"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_12"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -47869,7 +48725,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "500": {
-            "$ref": "#/components/responses/500_STORAGE_ERROR_5"
+            "$ref": "#/components/responses/500_STORAGE_ERROR_7"
           }
         },
         "security": [
@@ -49483,7 +50339,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_9"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_10"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_NOTIFICATION_EVENT_UNKNOWN"
@@ -50440,7 +51296,7 @@
             "$ref": "#/components/responses/404_SD_PHASE_NOT_FOUND_SD_CONFIG_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -50687,6 +51543,215 @@
           },
           "409": {
             "$ref": "#/components/responses/409_SD_CONFIG_CONFLICT"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/portal-access": {
+      "get": {
+        "tags": ["ServiceDesk · Clientes e contatos"],
+        "summary": "Listar os acessos ao portal de um contato",
+        "operationId": "getWorkspacesByIdServicedeskPortalAccess",
+        "description": "Últimos 20 links emitidos para o contato (`?contactId=`), com o estado de cada um (`pending`, `active`, `used`, `expired`, `revoked`). Acesso: sessão + **agente** do ServiceDesk com `sd-contacts` × `VIEW`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contactId",
+            "in": "query",
+            "required": true,
+            "description": "Id do contato.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Acessos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdPortalAccess"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTACT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_26"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Clientes e contatos"],
+        "summary": "Enviar o acesso ao portal para um contato",
+        "operationId": "postWorkspacesByIdServicedeskPortalAccess",
+        "description": "Emite o link mágico (7 dias, uso único) e manda por e-mail para o endereço do contato ou para o `email` informado. Invalida os links pendentes dele. Auditado (`sd_portal_access` / `create`). Acesso: sessão + **agente** com `sd-contacts` × `EDIT`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contactId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                },
+                "required": ["contactId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Acesso enviado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalAccess"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTACT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/portal-access/{accessId}": {
+      "delete": {
+        "tags": ["ServiceDesk · Clientes e contatos"],
+        "summary": "Revogar um acesso ao portal",
+        "operationId": "deleteWorkspacesByIdServicedeskPortalAccessByAccessId",
+        "description": "O link deixa de valer e a sessão aberta por ele cai na hora. Auditado (`sd_portal_access` / `revoke`). Acesso: sessão + **agente** com `sd-contacts` × `EDIT`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "accessId",
+            "in": "path",
+            "required": true,
+            "description": "Id do acesso (`SdPortalAccess`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Acesso revogado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdPortalAccess"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_9"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_37"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -51770,6 +52835,9 @@
                       "type": "string",
                       "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
                     }
+                  },
+                  "portalCompanyScope": {
+                    "type": "boolean"
                   },
                   "requireSignatureOnClose": {
                     "type": "boolean"
@@ -53983,7 +55051,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -55749,7 +56817,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_2"
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -55824,7 +56892,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN"
           },
           "404": {
-            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_3"
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_4"
           },
           "409": {
             "$ref": "#/components/responses/409_SD_TICKET_CLOSED"
@@ -57179,7 +58247,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN"
           },
           "404": {
-            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND"
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_2"
           },
           "409": {
             "$ref": "#/components/responses/409_SD_TICKET_CLOSED"
@@ -65084,7 +66152,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -67876,7 +68944,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -68916,6 +69984,52 @@
                   "message": "Token de monitoramento inválido",
                   "error": {
                     "code": "SD_MONITOR_TOKEN_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "401_SD_PORTAL_LINK_INVALID": {
+        "description": "Não autenticado: `SD_PORTAL_LINK_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PORTAL_LINK_INVALID": {
+                "summary": "SD_PORTAL_LINK_INVALID — Token desconhecido, já usado ou revogado",
+                "value": {
+                  "success": false,
+                  "statusCode": 401,
+                  "message": "Link de acesso inválido ou já utilizado",
+                  "error": {
+                    "code": "SD_PORTAL_LINK_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "401_SD_PORTAL_SESSION_EXPIRED": {
+        "description": "Não autenticado: `SD_PORTAL_SESSION_EXPIRED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PORTAL_SESSION_EXPIRED": {
+                "summary": "SD_PORTAL_SESSION_EXPIRED — Sem o cookie `sd.portal_session`, ou sessão vencida/revogada",
+                "value": {
+                  "success": false,
+                  "statusCode": 401,
+                  "message": "Sua sessão expirou. Abra o link do e-mail de novo",
+                  "error": {
+                    "code": "SD_PORTAL_SESSION_EXPIRED"
                   }
                 }
               }
@@ -72413,6 +73527,73 @@
                 }
               },
               "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `sd-contacts`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_10": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
@@ -72460,7 +73641,63 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_10": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_11": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `sd-contacts`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_12": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -72587,6 +73824,95 @@
                   "message": "Você não pode alterar este comentário",
                   "error": {
                     "code": "SD_KB_COMMENT_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`, `SD_PORTAL_DISABLED`, `SD_PORTAL_CONTACT_INACTIVE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `sd-contacts`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_PORTAL_CONTACT_INACTIVE": {
+                "summary": "SD_PORTAL_CONTACT_INACTIVE — Contato inativo ou excluído",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este contato não tem mais acesso ao portal",
+                  "error": {
+                    "code": "SD_PORTAL_CONTACT_INACTIVE"
+                  }
+                }
+              },
+              "SD_PORTAL_DISABLED": {
+                "summary": "SD_PORTAL_DISABLED — O workspace desligou o portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O portal do solicitante está desativado",
+                  "error": {
+                    "code": "SD_PORTAL_DISABLED"
                   }
                 }
               }
@@ -74328,6 +75654,163 @@
           }
         }
       },
+      "403_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE": {
+        "description": "Acesso negado: `WORKSPACE_SUSPENDED`, `SD_PORTAL_DISABLED`, `SD_PORTAL_CONTACT_INACTIVE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PORTAL_CONTACT_INACTIVE": {
+                "summary": "SD_PORTAL_CONTACT_INACTIVE — O contato foi desativado ou excluído",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este contato não tem mais acesso ao portal",
+                  "error": {
+                    "code": "SD_PORTAL_CONTACT_INACTIVE"
+                  }
+                }
+              },
+              "SD_PORTAL_DISABLED": {
+                "summary": "SD_PORTAL_DISABLED — O workspace desligou o portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O portal do solicitante está desativado",
+                  "error": {
+                    "code": "SD_PORTAL_DISABLED"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE": {
+        "description": "Acesso negado: `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_PORTAL_DISABLED`, `SD_PORTAL_CONTACT_INACTIVE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PORTAL_CONTACT_INACTIVE": {
+                "summary": "SD_PORTAL_CONTACT_INACTIVE — O contato foi desativado ou excluído",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este contato não tem mais acesso ao portal",
+                  "error": {
+                    "code": "SD_PORTAL_CONTACT_INACTIVE"
+                  }
+                }
+              },
+              "SD_PORTAL_DISABLED": {
+                "summary": "SD_PORTAL_DISABLED — O workspace desligou o portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O portal do solicitante está desativado",
+                  "error": {
+                    "code": "SD_PORTAL_DISABLED"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Chamado cancelado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED_SD_PORTAL_CONTACT_INACTIVE_2": {
+        "description": "Acesso negado: `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_PORTAL_DISABLED`, `SD_PORTAL_CONTACT_INACTIVE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PORTAL_CONTACT_INACTIVE": {
+                "summary": "SD_PORTAL_CONTACT_INACTIVE — O contato foi desativado ou excluído",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este contato não tem mais acesso ao portal",
+                  "error": {
+                    "code": "SD_PORTAL_CONTACT_INACTIVE"
+                  }
+                }
+              },
+              "SD_PORTAL_DISABLED": {
+                "summary": "SD_PORTAL_DISABLED — O workspace desligou o portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O portal do solicitante está desativado",
+                  "error": {
+                    "code": "SD_PORTAL_DISABLED"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Tipo não liberado no portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_BACKUP_NOT_FOUND": {
         "description": "Não encontrado: `BACKUP_NOT_FOUND`",
         "content": {
@@ -75655,6 +77138,29 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Acesso inexistente, de outro workspace ou já revogado",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "SdPortalAccess not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_38": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
                 "summary": "RESOURCE_NOT_FOUND — Chave inexistente no workspace",
                 "value": {
                   "success": false,
@@ -75669,7 +77175,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_38": {
+      "404_RESOURCE_NOT_FOUND_39": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75692,7 +77198,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_39": {
+      "404_RESOURCE_NOT_FOUND_40": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75715,7 +77221,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_40": {
+      "404_RESOURCE_NOT_FOUND_41": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75738,7 +77244,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_41": {
+      "404_RESOURCE_NOT_FOUND_42": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75761,7 +77267,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_42": {
+      "404_RESOURCE_NOT_FOUND_43": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75806,7 +77312,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_43": {
+      "404_RESOURCE_NOT_FOUND_44": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75840,7 +77346,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_44": {
+      "404_RESOURCE_NOT_FOUND_45": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -75863,7 +77369,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_45": {
+      "404_RESOURCE_NOT_FOUND_46": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -76714,6 +78220,29 @@
           }
         }
       },
+      "404_SD_KB_ARTICLE_NOT_FOUND_2": {
+        "description": "Não encontrado: `SD_KB_ARTICLE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_KB_ARTICLE_NOT_FOUND": {
+                "summary": "SD_KB_ARTICLE_NOT_FOUND — Artigo inexistente, rascunho, interno ou arquivado",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Artigo não encontrado",
+                  "error": {
+                    "code": "SD_KB_ARTICLE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_SD_KB_ARTICLE_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND": {
         "description": "Não encontrado: `SD_KB_ARTICLE_NOT_FOUND`, `SD_ATTACHMENT_NOT_FOUND`",
         "content": {
@@ -76844,6 +78373,51 @@
                   "message": "Fase não encontrada",
                   "error": {
                     "code": "SD_PHASE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_PHASE_NOT_FOUND_SD_CATEGORY_NOT_FOUND_SD_CONFIG_NOT_FOUND": {
+        "description": "Não encontrado: `SD_PHASE_NOT_FOUND`, `SD_CATEGORY_NOT_FOUND`, `SD_CONFIG_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PHASE_NOT_FOUND": {
+                "summary": "SD_PHASE_NOT_FOUND — O tipo não tem fase inicial ativa",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Fase não encontrada",
+                  "error": {
+                    "code": "SD_PHASE_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_CATEGORY_NOT_FOUND": {
+                "summary": "SD_CATEGORY_NOT_FOUND — Catálogo inexistente ou não visível no portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Categoria não encontrada",
+                  "error": {
+                    "code": "SD_CATEGORY_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_CONFIG_NOT_FOUND": {
+                "summary": "SD_CONFIG_NOT_FOUND — Modelo inexistente, inativo ou não visível no portal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Configuração do ServiceDesk não encontrada",
+                  "error": {
+                    "code": "SD_CONFIG_NOT_FOUND"
                   }
                 }
               }
@@ -76997,6 +78571,29 @@
           }
         }
       },
+      "404_SD_TICKET_NOT_FOUND_2": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND — Chamado inexistente **ou fora do escopo do contato** (outra empresa)",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_SD_TICKET_NOT_FOUND_SD_APPROVAL_NOT_FOUND": {
         "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_APPROVAL_NOT_FOUND`",
         "content": {
@@ -77040,7 +78637,7 @@
             },
             "examples": {
               "SD_TICKET_NOT_FOUND": {
-                "summary": "SD_TICKET_NOT_FOUND",
+                "summary": "SD_TICKET_NOT_FOUND — Chamado inexistente **ou fora do escopo do contato** (outra empresa)",
                 "value": {
                   "success": false,
                   "statusCode": 404,
@@ -77051,7 +78648,7 @@
                 }
               },
               "SD_ATTACHMENT_NOT_FOUND": {
-                "summary": "SD_ATTACHMENT_NOT_FOUND — Anexo inexistente, já usado ou enviado por outra pessoa",
+                "summary": "SD_ATTACHMENT_NOT_FOUND — Anexo inexistente, excluído ou de mensagem interna",
                 "value": {
                   "success": false,
                   "statusCode": 404,
@@ -77085,7 +78682,7 @@
                 }
               },
               "SD_ATTACHMENT_NOT_FOUND": {
-                "summary": "SD_ATTACHMENT_NOT_FOUND — Inexistente, de outro chamado ou de nota interna (solicitante)",
+                "summary": "SD_ATTACHMENT_NOT_FOUND — Anexo inexistente, já usado ou enviado por outra pessoa",
                 "value": {
                   "success": false,
                   "statusCode": 404,
@@ -77100,6 +78697,40 @@
         }
       },
       "404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_3": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_ATTACHMENT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_ATTACHMENT_NOT_FOUND": {
+                "summary": "SD_ATTACHMENT_NOT_FOUND — Inexistente, de outro chamado ou de nota interna (solicitante)",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Anexo não encontrado",
+                  "error": {
+                    "code": "SD_ATTACHMENT_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_TICKET_NOT_FOUND_SD_ATTACHMENT_NOT_FOUND_4": {
         "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_ATTACHMENT_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -79761,6 +81392,29 @@
           }
         }
       },
+      "410_SD_PORTAL_LINK_EXPIRED": {
+        "description": "Expirado: `SD_PORTAL_LINK_EXPIRED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_PORTAL_LINK_EXPIRED": {
+                "summary": "SD_PORTAL_LINK_EXPIRED — Link com mais de 7 dias",
+                "value": {
+                  "success": false,
+                  "statusCode": 410,
+                  "message": "O link de acesso expirou. Peça um novo",
+                  "error": {
+                    "code": "SD_PORTAL_LINK_EXPIRED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS": {
         "description": "Dados inválidos: `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS`",
         "content": {
@@ -80189,6 +81843,47 @@
                 }
               },
               "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — Contato sem e-mail e sem `email` no corpo",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Este contato não tem e-mail cadastrado",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_12": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
                 "summary": "VALIDATION_ERROR — Destinatário ou supervisor não é membro do workspace",
                 "value": {
                   "success": false,
@@ -80203,7 +81898,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_12": {
+      "422_VALIDATION_ERROR_13": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80244,7 +81939,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_13": {
+      "422_VALIDATION_ERROR_14": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80285,7 +81980,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_14": {
+      "422_VALIDATION_ERROR_15": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80326,7 +82021,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_15": {
+      "422_VALIDATION_ERROR_16": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80367,7 +82062,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_16": {
+      "422_VALIDATION_ERROR_17": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80415,7 +82110,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_17": {
+      "422_VALIDATION_ERROR_18": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80456,7 +82151,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_18": {
+      "422_VALIDATION_ERROR_19": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80497,7 +82192,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_19": {
+      "422_VALIDATION_ERROR_20": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80538,7 +82233,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_20": {
+      "422_VALIDATION_ERROR_21": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80579,7 +82274,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_21": {
+      "422_VALIDATION_ERROR_22": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80609,7 +82304,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_22": {
+      "422_VALIDATION_ERROR_23": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80639,7 +82334,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_23": {
+      "422_VALIDATION_ERROR_24": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80673,7 +82368,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_24": {
+      "422_VALIDATION_ERROR_25": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80707,7 +82402,30 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_25": {
+      "422_VALIDATION_ERROR_26": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — `contactId` ausente",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Informe o contato (`contactId`)",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_27": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80730,7 +82448,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_26": {
+      "422_VALIDATION_ERROR_28": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80753,7 +82471,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_27": {
+      "422_VALIDATION_ERROR_29": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -80776,7 +82494,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_28": {
+      "422_VALIDATION_ERROR_30": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -81260,6 +82978,47 @@
           }
         }
       },
+      "422_VALIDATION_ERROR_SD_ATTACHMENT_INVALID": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_ATTACHMENT_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_ATTACHMENT_INVALID": {
+                "summary": "SD_ATTACHMENT_INVALID — Arquivo vazio, acima de 25 MB ou de tipo não permitido",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Arquivo inválido (tipo ou tamanho não permitido)",
+                  "error": {
+                    "code": "SD_ATTACHMENT_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_VALIDATION_ERROR_SD_CATEGORY_LEVEL_INVALID": {
         "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_CATEGORY_LEVEL_INVALID`",
         "content": {
@@ -81463,6 +83222,47 @@
               },
               "SD_CUSTOM_FIELD_INVALID": {
                 "summary": "SD_CUSTOM_FIELD_INVALID",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Valor de campo customizado inválido",
+                  "error": {
+                    "code": "SD_CUSTOM_FIELD_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_CUSTOM_FIELD_INVALID_2": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_CUSTOM_FIELD_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_CUSTOM_FIELD_INVALID": {
+                "summary": "SD_CUSTOM_FIELD_INVALID — Campo customizado obrigatório vazio ou valor fora das opções",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -82763,7 +84563,7 @@
             },
             "examples": {
               "STORAGE_ERROR": {
-                "summary": "STORAGE_ERROR — Redis indisponível",
+                "summary": "STORAGE_ERROR — Falha ao gravar o anexo no MinIO",
                 "value": {
                   "success": false,
                   "statusCode": 500,
@@ -82778,6 +84578,52 @@
         }
       },
       "500_STORAGE_ERROR_6": {
+        "description": "Erro interno: `STORAGE_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "STORAGE_ERROR": {
+                "summary": "STORAGE_ERROR — Falha ao ler o arquivo no MinIO",
+                "value": {
+                  "success": false,
+                  "statusCode": 500,
+                  "message": "Falha ao armazenar o arquivo",
+                  "error": {
+                    "code": "STORAGE_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500_STORAGE_ERROR_7": {
+        "description": "Erro interno: `STORAGE_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "STORAGE_ERROR": {
+                "summary": "STORAGE_ERROR — Redis indisponível",
+                "value": {
+                  "success": false,
+                  "statusCode": 500,
+                  "message": "Falha ao armazenar o arquivo",
+                  "error": {
+                    "code": "STORAGE_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "500_STORAGE_ERROR_8": {
         "description": "Erro interno: `STORAGE_ERROR`",
         "content": {
           "application/json": {
@@ -104232,6 +106078,1117 @@
         },
         "required": ["id", "fromPhaseId", "toPhaseId", "allowedDepartmentIds"]
       },
+      "SdPortalAccess": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "requestedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Agente que enviou; `null` quando o contato pediu."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Validade do link (7 dias)."
+          },
+          "usedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sessionExpiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "active", "used", "expired", "revoked"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "contactId",
+          "email",
+          "requestedBy",
+          "expiresAt",
+          "usedAt",
+          "sessionExpiresAt",
+          "revokedAt",
+          "status",
+          "createdAt"
+        ]
+      },
+      "SdPortalCsat": {
+        "type": "object",
+        "properties": {
+          "csatScore": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "csatComment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["csatScore", "csatComment"]
+      },
+      "SdPortalFormOptions": {
+        "type": "object",
+        "properties": {
+          "ticketTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+            }
+          },
+          "catalog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/getServicedeskPortalOptions200___schema0"
+            },
+            "description": "Catálogo visível no portal (`SdCategory.portalVisible`), em árvore."
+          },
+          "templates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "ticketType": {
+                  "type": "string",
+                  "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                }
+              },
+              "required": ["id", "name", "description", "ticketType"]
+            }
+          },
+          "urgencies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "name"]
+            }
+          },
+          "customFields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["value", "label"]
+                  }
+                },
+                "ticketTypes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                  }
+                },
+                "categoryIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "key",
+                "label",
+                "description",
+                "type",
+                "required",
+                "options",
+                "ticketTypes",
+                "categoryIds"
+              ]
+            }
+          }
+        },
+        "required": ["ticketTypes", "catalog", "templates", "urgencies", "customFields"]
+      },
+      "SdPortalKbArticle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverImage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "const": "PUBLISHED"
+          },
+          "visibility": {
+            "type": "string",
+            "const": "PORTAL"
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "position": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "viewCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "helpfulCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "notHelpfulCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "archivedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "excerpt": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "number"
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "description": "Conteúdo Plate do artigo (somente leitura)."
+          },
+          "readingMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "name", "icon"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "parentId",
+          "title",
+          "icon",
+          "coverImage",
+          "status",
+          "visibility",
+          "categoryId",
+          "tags",
+          "position",
+          "viewCount",
+          "helpfulCount",
+          "notHelpfulCount",
+          "publishedAt",
+          "archivedAt",
+          "createdAt",
+          "updatedAt",
+          "content",
+          "readingMinutes",
+          "category"
+        ]
+      },
+      "SdPortalKbList": {
+        "type": "object",
+        "properties": {
+          "articles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "workspaceId": {
+                  "type": "string"
+                },
+                "parentId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "coverImage": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "const": "PUBLISHED"
+                },
+                "visibility": {
+                  "type": "string",
+                  "const": "PORTAL"
+                },
+                "categoryId": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "viewCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "helpfulCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "notHelpfulCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "publishedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "archivedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "excerpt": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "workspaceId",
+                "parentId",
+                "title",
+                "icon",
+                "coverImage",
+                "status",
+                "visibility",
+                "categoryId",
+                "tags",
+                "position",
+                "viewCount",
+                "helpfulCount",
+                "notHelpfulCount",
+                "publishedAt",
+                "archivedAt",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "icon": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["id", "name", "icon"]
+            }
+          }
+        },
+        "required": ["articles", "categories"]
+      },
+      "SdPortalLinkRequest": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Se este e-mail estiver cadastrado como contato, o link de acesso chega em instantes.",
+            "description": "Mensagem genérica, idêntica exista ou não o e-mail — a rota não revela clientes."
+          }
+        },
+        "required": ["message"]
+      },
+      "SdPortalMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "authorKind": {
+            "type": "string",
+            "enum": ["AGENT", "REQUESTER", "CONTACT", "AI", "SYSTEM"]
+          },
+          "authorName": {
+            "type": "string",
+            "example": "Carlos A."
+          },
+          "mine": {
+            "type": "boolean",
+            "description": "Escrita pelo próprio contato da sessão."
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "fileName": {
+                  "type": "string"
+                },
+                "mimeType": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "url": {
+                  "type": "string",
+                  "example": "/api/servicedesk/portal/tickets/123/attachments/ckatt0000ab7d3k1e5xyz"
+                }
+              },
+              "required": ["id", "fileName", "mimeType", "size", "url"]
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "authorKind", "authorName", "mine", "body", "attachments", "createdAt"]
+      },
+      "SdPortalSession": {
+        "type": "object",
+        "properties": {
+          "contact": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "example": "Ana Souza"
+              },
+              "email": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["id", "name", "email"]
+          },
+          "workspace": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "example": "Stratus Telecom"
+              },
+              "slug": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "name", "slug"]
+          },
+          "customers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "isPrimary": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["id", "name", "isPrimary"]
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fim da sessão de 12 horas."
+          },
+          "companyScope": {
+            "type": "boolean",
+            "description": "O contato vê os chamados das empresas dele (`SdSettings.portalCompanyScope`), não só os próprios."
+          },
+          "ticketTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+            },
+            "description": "Tipos que ele pode abrir (`SdSettings.portalTicketTypes`)."
+          }
+        },
+        "required": ["contact", "workspace", "customers", "expiresAt", "companyScope", "ticketTypes"]
+      },
+      "SdPortalTicketDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "code": {
+            "type": "string",
+            "example": "INC-000123"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Em atendimento"
+              },
+              "color": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "category": {
+                "type": "string",
+                "enum": ["NEW", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED", "CANCELED"]
+              }
+            },
+            "required": ["name", "color", "category"]
+          },
+          "completionPercent": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "companyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assigneeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "csatScore": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "HTML já sanitizado do relato de abertura."
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "Infraestrutura › Impressão › Impressora do 3º andar"
+          },
+          "urgencyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "solution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "resolvedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "csatComment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "canReply": {
+            "type": "boolean"
+          },
+          "canRate": {
+            "type": "boolean"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdPortalMessage"
+            },
+            "description": "Só mensagens públicas e vivas (nota interna nunca sai)."
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "code",
+          "type",
+          "title",
+          "phase",
+          "completionPercent",
+          "companyName",
+          "assigneeName",
+          "closed",
+          "csatScore",
+          "lastActivityAt",
+          "createdAt",
+          "description",
+          "subject",
+          "urgencyName",
+          "solution",
+          "resolvedAt",
+          "closedAt",
+          "csatComment",
+          "canReply",
+          "canRate",
+          "messages"
+        ]
+      },
+      "SdPortalTicketPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdPortalTicketSummary"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "page": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["items", "total", "page", "pageSize"]
+      },
+      "SdPortalTicketSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "code": {
+            "type": "string",
+            "example": "INC-000123"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+          },
+          "title": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "Em atendimento"
+              },
+              "color": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "category": {
+                "type": "string",
+                "enum": ["NEW", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED", "CANCELED"]
+              }
+            },
+            "required": ["name", "color", "category"]
+          },
+          "completionPercent": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "% da fase atual (a barra de progresso do portal)."
+          },
+          "companyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assigneeName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "Carlos A.",
+            "description": "Nome curto de quem atende — nunca o e-mail do agente."
+          },
+          "closed": {
+            "type": "boolean"
+          },
+          "csatScore": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastActivityAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "code",
+          "type",
+          "title",
+          "phase",
+          "completionPercent",
+          "companyName",
+          "assigneeName",
+          "closed",
+          "csatScore",
+          "lastActivityAt",
+          "createdAt"
+        ]
+      },
       "SdPriorityMatrixCell": {
         "type": "object",
         "properties": {
@@ -110680,6 +113637,31 @@
           }
         },
         "required": ["module", "enabled", "grantedById", "updatedAt"]
+      },
+      "getServicedeskPortalOptions200___schema0": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ticketTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+            }
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/getServicedeskPortalOptions200___schema0"
+            }
+          }
+        },
+        "required": ["id", "name", "ticketTypes", "children"]
       }
     }
   }

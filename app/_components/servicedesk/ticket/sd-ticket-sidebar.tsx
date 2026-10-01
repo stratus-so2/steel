@@ -7,6 +7,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type ReactNode, useState } from 'react'
 import { SdAiCopilotPanel } from '@/app/_components/servicedesk/ai/copilot-panel'
+import { SdPortalAccessButton } from '@/app/_components/servicedesk/external-portal'
 import { SdTicketMonitorBlock } from '@/app/_components/servicedesk/monitoring/sd-ticket-monitor-block'
 import { SteelIcon } from '@/components/icon/icon'
 import {
@@ -378,6 +379,17 @@ export function SdTicketSidebar({
         {field('customerId', 'Cliente')}
         {field('companyId', 'Empresa')}
         {field('contactId', 'Contato')}
+        {ticket.contact ? (
+          <div className='px-1 pt-1'>
+            <SdPortalAccessButton
+              workspaceId={workspaceId}
+              contactId={ticket.contact.id}
+              contactEmail={ticket.contact.email}
+              contactName={ticket.contact.name}
+              size='xs'
+            />
+          </div>
+        ) : null}
         {field('configItemId', 'Item de configuração')}
       </Section>
 

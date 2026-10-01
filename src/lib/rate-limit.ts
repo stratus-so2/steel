@@ -35,6 +35,15 @@ const WHATSAPP_SEND_DURATION_SECONDS = 60
 const WHATSAPP_WEBHOOK_POINTS = 120
 const WHATSAPP_WEBHOOK_DURATION_SECONDS = 60
 
+// Portal do contato externo do ServiceDesk (sem sessão do Better Auth):
+// pedir o link mágico é caro (manda e-mail) e abrir/responder chamado é
+// escrita — os dois são limitados por IP **e** por e-mail/contato.
+const SD_PORTAL_LINK_POINTS = 5
+const SD_PORTAL_LINK_DURATION_SECONDS = 60 * 60
+
+const SD_PORTAL_WRITE_POINTS = 20
+const SD_PORTAL_WRITE_DURATION_SECONDS = 10 * 60
+
 const authInsurance = new RateLimiterMemory({
   points: AUTH_POINTS,
   duration: AUTH_DURATION_SECONDS,
@@ -123,6 +132,24 @@ export const whatsappWebhookLimiter = new RateLimiterRedis({
   duration: WHATSAPP_WEBHOOK_DURATION_SECONDS,
 })
 
+export const sdPortalLinkLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  storeType: 'redis',
+  useRedisPackage: true,
+  keyPrefix: 'rl:sd:portal:link',
+  points: SD_PORTAL_LINK_POINTS,
+  duration: SD_PORTAL_LINK_DURATION_SECONDS,
+})
+
+export const sdPortalWriteLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  storeType: 'redis',
+  useRedisPackage: true,
+  keyPrefix: 'rl:sd:portal:write',
+  points: SD_PORTAL_WRITE_POINTS,
+  duration: SD_PORTAL_WRITE_DURATION_SECONDS,
+})
+
 export type Limiter = RateLimiterRedis
 
 const limiterNames = new WeakMap<Limiter, string>([
@@ -134,6 +161,8 @@ const limiterNames = new WeakMap<Limiter, string>([
   [uploadLimiter, 'upload'],
   [whatsappSendLimiter, 'whatsapp_send'],
   [whatsappWebhookLimiter, 'whatsapp_webhook'],
+  [sdPortalLinkLimiter, 'sd_portal_link'],
+  [sdPortalWriteLimiter, 'sd_portal_write'],
 ])
 
 let connectionEnsured: Promise<unknown> | null = null

@@ -223,6 +223,11 @@ export const TAG_GROUPS = [
           'Cadastro de clientes e empresas (CPF/CNPJ validado, endereço via ViaCEP) e seus contatos. Só agentes (membros de um departamento) e admins do ServiceDesk.',
       },
       {
+        name: 'ServiceDesk · Portal do contato',
+        description:
+          'Portal público do contato do cliente (`/suporte`): link mágico por e-mail (token SHA-256, 7 dias, uso único), sessão própria de 12 horas no cookie `sd.portal_session` (sem Better Auth), lista e abertura de chamados, conversa com anexo, avaliação do atendimento e a base de conhecimento publicada. Tudo filtrado no service pelo contato e pelas empresas dele.',
+      },
+      {
         name: 'ServiceDesk · Painéis',
         description:
           'Painéis customizáveis (motor de dashboards com fontes de chamados, custos, eventos e artigos): contagem, soma, média, % de SLA, MTTR, backlog, criados × resolvidos, CSAT. Padrões "Dashboard analítico" e "KPIs (TV)"; modo TV em tela cheia. Só agentes.',

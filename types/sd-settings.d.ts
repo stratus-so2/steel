@@ -17,6 +17,8 @@ export interface SdSettingsDTO {
   whatsappConnectionId: string | null
   portalEnabled: boolean
   portalTicketTypes: SdTicketTypeDTO[]
+  /** Portal externo: o contato vê os chamados das empresas dele. */
+  portalCompanyScope: boolean
   requireSignatureOnClose: boolean
   requireSolutionOnResolve: boolean
   autoCloseResolvedAfterHours: number
@@ -41,6 +43,7 @@ export type SdPublicSettingsDTO = Pick<
   | 'ticketPrefixes'
   | 'portalEnabled'
   | 'portalTicketTypes'
+  | 'portalCompanyScope'
   | 'requireSignatureOnClose'
   | 'requireSolutionOnResolve'
   | 'reopenOnRequesterReply'

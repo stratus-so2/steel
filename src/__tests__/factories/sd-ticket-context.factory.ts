@@ -62,6 +62,7 @@ export function createFakeSdSettings(
     whatsappConnectionId: null,
     portalEnabled: true,
     portalTicketTypes: ['INCIDENT', 'SERVICE_REQUEST'],
+    portalCompanyScope: true,
     requireSignatureOnClose: false,
     requireSolutionOnResolve: true,
     autoCloseResolvedAfterHours: 72,

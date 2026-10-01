@@ -97,6 +97,8 @@ export type SdActor =
       departmentIds: string[]
     }
   | { kind: 'system'; source: string }
+  /** Contato externo autenticado pelo portal por link mágico (`/suporte`). */
+  | { kind: 'contact'; contactId: string; contactName: string }
 
 export function sdUserActor(ctx: SdAccessContext): SdActor {
   return {
@@ -110,6 +112,11 @@ export function sdUserActor(ctx: SdAccessContext): SdActor {
 
 export function sdSystemActor(source: string): SdActor {
   return { kind: 'system', source }
+}
+
+/** Ator do portal externo: o contato, que não tem conta na plataforma. */
+export function sdContactActor(contact: { id: string; name: string }): SdActor {
+  return { kind: 'contact', contactId: contact.id, contactName: contact.name }
 }
 
 export function sdActorUserId(actor: SdActor): string | null {

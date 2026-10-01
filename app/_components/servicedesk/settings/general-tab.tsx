@@ -43,6 +43,7 @@ type Draft = Pick<
   | 'defaultSlaPolicyId'
   | 'portalEnabled'
   | 'portalTicketTypes'
+  | 'portalCompanyScope'
   | 'requireSignatureOnClose'
   | 'requireSolutionOnResolve'
   | 'autoCloseResolvedAfterHours'
@@ -58,6 +59,7 @@ function toDraft(settings: SdSettingsDTO): Draft {
     defaultSlaPolicyId: settings.defaultSlaPolicyId,
     portalEnabled: settings.portalEnabled,
     portalTicketTypes: settings.portalTicketTypes,
+    portalCompanyScope: settings.portalCompanyScope,
     requireSignatureOnClose: settings.requireSignatureOnClose,
     requireSolutionOnResolve: settings.requireSolutionOnResolve,
     autoCloseResolvedAfterHours: settings.autoCloseResolvedAfterHours,
@@ -211,6 +213,13 @@ export function SdGeneralTab() {
             emptyLabel='nenhum'
           />
         </FieldBlock>
+        <ToggleRow
+          label='Contato externo vê os chamados da empresa dele'
+          description='No portal por link mágico (/suporte), o contato acompanha todos os chamados das empresas às quais está vinculado. Desligado, ele vê apenas os chamados em que é o contato.'
+          checked={draft.portalCompanyScope}
+          onCheckedChange={(value) => set('portalCompanyScope', value)}
+          disabled={!canEdit || !draft.portalEnabled}
+        />
       </SettingsSection>
 
       <SettingsSection

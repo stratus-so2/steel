@@ -113,6 +113,9 @@ export type AuditEntity =
   // ServiceDesk — central de notificações
   | 'sd_notification_preference'
   | 'sd_ticket_follower'
+  // ServiceDesk — portal do contato externo (link mágico)
+  | 'sd_portal_access'
+  | 'sd_portal_session'
   // ServiceDesk — WhatsApp e IA
   | 'sd_ai_conversation'
   // ServiceDesk — canais de entrada
