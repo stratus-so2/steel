@@ -69,7 +69,12 @@ services:
       - app-network
 
   steel-storage:
-    image: quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z
+    # Silo: fork AGPL mantido do servidor MinIO. A MinIO arquivou o projeto
+    # open-source e tirou a distribuição pública do ar (quay.io responde 401,
+    # Docker Hub nega e dl.min.io devolve 410), então um `docker compose pull`
+    # do zero não funciona mais com a imagem antiga. Drop-in: mesmo comando,
+    # mesmas variáveis, mesmo health endpoint e lê o volume já existente.
+    image: docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     container_name: steel-minio
     restart: unless-stopped
     environment:

@@ -160,7 +160,7 @@ Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_
 | Worker | `steel-worker` | — | mesma imagem, `node dist/worker.cjs` |
 | PostgreSQL 17 | `steel-db` | 5433 → 5432 | `docker-compose.infra.yml`, volume `pgdata` |
 | Redis 8 (TLS) | `steel-redis` | 6380 → 6379 | bitnami fixado por digest; certificados em `redis-tls/`; URL `rediss://` |
-| MinIO | `steel-minio` | 127.0.0.1:9002 (API), 127.0.0.1:9003 (console) | imagem `quay.io/minio/minio`; API nunca exposta publicamente |
+| MinIO | `steel-minio` | 127.0.0.1:9002 (API), 127.0.0.1:9003 (console) | imagem `docker.io/pgsty/silo` (fork AGPL mantido do MinIO, cuja distribuição pública saiu do ar); API nunca exposta publicamente |
 
 Todos na rede Docker `steel_default`. Segredos de produção versionados
 cifrados com SOPS em `secrets/production.enc.env`; o CD decripta para

@@ -237,13 +237,24 @@ jobs:
       - name: Push database schema
         run: pnpm prisma db push
 
+      # services: não dá para passar um comando customizado para a imagem do
+      # MinIO (precisa de `server /data`), então sobe com `docker run` + loop
+      # de espera, como o Redis do job redis-tls-smoke.
+      #
+      # A imagem é a Silo, fork AGPL mantido do servidor MinIO: a MinIO
+      # arquivou o repositório open-source e tirou a distribuição pública do
+      # ar — quay.io/minio/minio responde 401 em qualquer tag, o Docker Hub
+      # nega acesso e dl.min.io devolve 410 —, o que quebrou este job sem
+      # nenhuma mudança nossa. A Silo é drop-in: mesmo comando, mesmas
+      # variáveis e o mesmo `/minio/health/live` do loop abaixo (mesma troca
+      # já feita no Nexo).
       - name: Start MinIO
         run: |
           docker run -d --name minio \
             -p 9000:9000 \
             -e MINIO_ROOT_USER=$MINIO_USER \
             -e MINIO_ROOT_PASSWORD=$MINIO_PASSWORD \
-            quay.io/minio/minio:RELEASE.2025-02-28T09-55-16Z \
+            docker.io/pgsty/silo:RELEASE.2026-09-16T00-00-00Z \
             server /data
 
       - name: Wait for MinIO to be ready

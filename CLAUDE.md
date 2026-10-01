@@ -174,7 +174,7 @@ Daily FULL `pg_dump` (03:15), app-encrypted with `CONNECTION_SECRETS`, stored in
 | ------- | --------- | --------- | ----- |
 | PostgreSQL 17 | `steel-db` | 5433 | `docker-compose.infra.yml`, volume `pgdata` |
 | Redis 8 (TLS) | `steel-redis` | 6380 | bitnami pinned by digest (do not switch to `:latest`); certs in `redis-tls/`; URL is `rediss://` |
-| MinIO | `steel-minio` | 127.0.0.1:9002 (API), 127.0.0.1:9003 (console) | image from `quay.io/minio/minio`; API never public (nginx proxies `/media/`) |
+| MinIO | `steel-minio` | 127.0.0.1:9002 (API), 127.0.0.1:9003 (console) | image `docker.io/pgsty/silo` (maintained AGPL fork of MinIO — the upstream image was withdrawn); API never public (nginx proxies `/media/`) |
 | App | `nextjs-app` | 3000 | `docker-compose.yml` on the server (`/var/www/steel`), behind nginx |
 | Worker | `steel-worker` | — | same image, `node dist/worker.cjs` |
 
