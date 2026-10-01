@@ -128,6 +128,10 @@ export type AuditEntity =
   | 'sd_oncall_override'
   // ServiceDesk — chamados recorrentes (manutenção preventiva)
   | 'sd_recurring_ticket'
+  // ServiceDesk — contratos e apontamento de horas
+  | 'sd_contract'
+  | 'sd_contract_period'
+  | 'sd_time_entry'
 
 export type AuditAction =
   | 'create'

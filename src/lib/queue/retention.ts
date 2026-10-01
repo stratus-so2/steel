@@ -48,6 +48,13 @@ export const ServicedeskDigestCron = '5 * * * *' as const
  */
 export const ServicedeskRecurringCron = '*/5 * * * *' as const
 
+/**
+ * Faturamento dos contratos do ServiceDesk: todo dia às 00:20. No dia 1 do
+ * ciclo o tick abre o período novo e fecha o anterior; nos outros dias é
+ * inócuo (idempotente por `(contractId, periodStart)`).
+ */
+export const ServicedeskBillingCron = '20 0 * * *' as const
+
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 

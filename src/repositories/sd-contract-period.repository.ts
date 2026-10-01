@@ -139,6 +139,20 @@ export const SdContractPeriodRepository = {
     }
   },
 
+  /** Dos ids informados, quais estão fechados (congelam o apontamento). */
+  async findClosedIds(ids: string[]): Promise<Result<Set<string>>> {
+    if (ids.length === 0) return ok(new Set())
+    try {
+      const rows = await prisma.sdContractPeriod.findMany({
+        where: { id: { in: ids }, status: 'CLOSED' },
+        select: { id: true },
+      })
+      return ok(new Set(rows.map((row) => row.id)))
+    } catch (error) {
+      return err(dbError('Failed to list ServiceDesk contract periods', error))
+    }
+  },
+
   async update(
     id: string,
     data: SdContractPeriodTotalsData,

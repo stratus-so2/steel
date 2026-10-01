@@ -26,6 +26,8 @@ import {
   QueueName,
   type ServicedeskAiJob,
   type ServicedeskAiJobPayload,
+  type ServicedeskBillingJob,
+  type ServicedeskBillingJobPayload,
   type ServicedeskDigestJob,
   type ServicedeskDigestJobPayload,
   type ServicedeskMailJob,
@@ -86,6 +88,7 @@ let servicedeskAiQueue: Queue | null = null
 let servicedeskMailQueue: Queue | null = null
 let servicedeskDigestQueue: Queue | null = null
 let servicedeskRecurringQueue: Queue | null = null
+let servicedeskBillingQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -580,6 +583,28 @@ export function getServicedeskRecurringQueue(): Queue<
   >
 }
 
+/**
+ * Faturamento dos contratos: duas tentativas. O tick é idempotente por
+ * `(contractId, periodStart)`, então repetir não duplica período nem valor.
+ */
+export function getServicedeskBillingQueue(): Queue<
+  ServicedeskBillingJobPayload[ServicedeskBillingJob],
+  unknown,
+  ServicedeskBillingJob
+> {
+  if (!servicedeskBillingQueue) {
+    servicedeskBillingQueue = new Queue(QueueName.ServicedeskBilling, {
+      connection: getQueueConnection(),
+      defaultJobOptions: { ...defaultJobOptions, attempts: 2 },
+    })
+  }
+  return servicedeskBillingQueue as Queue<
+    ServicedeskBillingJobPayload[ServicedeskBillingJob],
+    unknown,
+    ServicedeskBillingJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -607,6 +632,7 @@ export async function closeQueues(): Promise<void> {
     servicedeskMailQueue?.close(),
     servicedeskDigestQueue?.close(),
     servicedeskRecurringQueue?.close(),
+    servicedeskBillingQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -632,4 +658,5 @@ export async function closeQueues(): Promise<void> {
   servicedeskMailQueue = null
   servicedeskDigestQueue = null
   servicedeskRecurringQueue = null
+  servicedeskBillingQueue = null
 }

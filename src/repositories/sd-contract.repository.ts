@@ -36,6 +36,17 @@ export interface SdContractRateData {
   multiplier: string
 }
 
+export const SD_CALENDAR_SELECT = {
+  timezone: true,
+  schedule: true,
+  holidays: true,
+  is24x7: true,
+} as const satisfies Prisma.SdBusinessCalendarSelect
+
+export type SdCalendarRow = Prisma.SdBusinessCalendarGetPayload<{
+  select: typeof SD_CALENDAR_SELECT
+}>
+
 export type SdContractData = Omit<
   Prisma.SdContractUncheckedCreateInput,
   'id' | 'workspaceId' | 'createdById' | 'rates' | 'periods' | 'timeEntries'
@@ -244,6 +255,75 @@ export const SdContractRepository = {
       return ok(undefined)
     } catch (error) {
       return err(dbError('Failed to delete ServiceDesk contract', error))
+    }
+  },
+
+  /**
+   * Confere no banco as referências do contrato: cliente, política de SLA e
+   * as prioridades citadas na tabela de valores. Devolve o que não existe
+   * naquele workspace.
+   */
+  async validateRefs(
+    workspaceId: string,
+    refs: {
+      customerId?: string
+      slaPolicyId?: string | null
+      priorityIds?: string[]
+    },
+  ): Promise<Result<string[]>> {
+    try {
+      const missing: string[] = []
+      if (refs.customerId) {
+        const customer = await prisma.sdCustomer.findFirst({
+          where: { id: refs.customerId, workspaceId, deletedAt: null },
+          select: { id: true },
+        })
+        if (!customer) missing.push('customerId')
+      }
+      if (refs.slaPolicyId) {
+        const policy = await prisma.sdSlaPolicy.findFirst({
+          where: { id: refs.slaPolicyId, workspaceId },
+          select: { id: true },
+        })
+        if (!policy) missing.push('slaPolicyId')
+      }
+      const priorityIds = [...new Set(refs.priorityIds ?? [])]
+      if (priorityIds.length > 0) {
+        const found = await prisma.sdPriority.findMany({
+          where: { id: { in: priorityIds }, workspaceId },
+          select: { id: true },
+        })
+        if (found.length !== priorityIds.length) missing.push('priorityId')
+      }
+      return ok(missing)
+    } catch (error) {
+      return err(dbError('Failed to validate ServiceDesk contract refs', error))
+    }
+  },
+
+  /**
+   * Calendário de expediente que decide a janela do apontamento: o da
+   * política de SLA do contrato, senão o calendário padrão do workspace.
+   */
+  async findBillingCalendar(
+    workspaceId: string,
+    slaPolicyId: string | null,
+  ): Promise<Result<SdCalendarRow | null>> {
+    try {
+      if (slaPolicyId) {
+        const policy = await prisma.sdSlaPolicy.findFirst({
+          where: { id: slaPolicyId, workspaceId },
+          select: { calendar: { select: SD_CALENDAR_SELECT } },
+        })
+        if (policy?.calendar) return ok(policy.calendar)
+      }
+      const fallback = await prisma.sdBusinessCalendar.findFirst({
+        where: { workspaceId, isDefault: true },
+        select: SD_CALENDAR_SELECT,
+      })
+      return ok(fallback)
+    } catch (error) {
+      return err(dbError('Failed to load ServiceDesk calendar', error))
     }
   },
 
