@@ -1,5 +1,9 @@
 import { logger } from '@/lib/axiom/logger'
 import { MAIL_DRY_RUN } from '@/lib/env/server'
+import {
+  type SdOutboundMail,
+  sendSdSmtp,
+} from '@/src/lib/mail/sd-mailbox-transport'
 import { sendEmail } from '@/src/lib/mail/send'
 import { ok, type Result } from '@/src/lib/result'
 import {
@@ -7,10 +11,6 @@ import {
   sdMailReferences,
   sdMailReplySubject,
 } from '@/src/lib/servicedesk/mail-text'
-import {
-  type SdOutboundMail,
-  sendSdSmtp,
-} from '@/src/lib/servicedesk/mail-transport'
 import {
   SdMailboxRepository,
   type SdMailboxRow,

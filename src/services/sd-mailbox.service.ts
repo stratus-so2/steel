@@ -3,14 +3,14 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { sdMailboxConflict, sdMailboxNotFound } from '@/src/errors'
 import { encryptConnectionSecret } from '@/src/lib/crypto'
-import { err, ok, type Result } from '@/src/lib/result'
-import { enqueueSdMailboxSync } from '@/src/lib/servicedesk/mail-queue'
 import {
   type SdImapConfig,
   type SdSmtpConfig,
   verifySdImap,
   verifySdSmtp,
-} from '@/src/lib/servicedesk/mail-transport'
+} from '@/src/lib/mail/sd-mailbox-transport'
+import { err, ok, type Result } from '@/src/lib/result'
+import { enqueueSdMailboxSync } from '@/src/lib/servicedesk/mail-queue'
 import {
   toSdMailboxDTO,
   toSdTicketMailMessageDTO,

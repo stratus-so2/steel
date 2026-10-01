@@ -1,10 +1,10 @@
 import { sdMailboxConnectionFailed } from '@/src/errors'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
-import { err, ok, type Result } from '@/src/lib/result'
 import type {
   SdImapConfig,
   SdSmtpConfig,
-} from '@/src/lib/servicedesk/mail-transport'
+} from '@/src/lib/mail/sd-mailbox-transport'
+import { err, ok, type Result } from '@/src/lib/result'
 import type { SdMailboxRow } from '@/src/repositories/sd-mailbox.repository'
 
 /**

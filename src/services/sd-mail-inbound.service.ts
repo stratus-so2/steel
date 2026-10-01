@@ -3,6 +3,10 @@ import type { SdAttachmentKind, SdMessageAuthorKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { sdMailboxNotFound } from '@/src/errors'
+import {
+  fetchSdMailbox,
+  type SdFetchedMail,
+} from '@/src/lib/mail/sd-mailbox-transport'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
   cleanSdMailBody,
@@ -13,10 +17,6 @@ import {
   sdMailTicketCodeFromSubject,
   sdMailTicketTitle,
 } from '@/src/lib/servicedesk/mail-text'
-import {
-  fetchSdMailbox,
-  type SdFetchedMail,
-} from '@/src/lib/servicedesk/mail-transport'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import {
   SD_ATTACHMENT_MAX_BYTES,
