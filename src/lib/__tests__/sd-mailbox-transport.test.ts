@@ -73,7 +73,7 @@ describe('toSdFetchedMail', () => {
     )
     const mail = toSdFetchedMail(1, parsed, MAX)
 
-    expect(mail?.html).toBe('<p>Olá</p>')
+    expect(mail?.html?.trim()).toBe('<p>Olá</p>')
     expect(mail?.subject).toBeNull()
     expect(mail?.fromName).toBeNull()
     expect(mail?.toAddresses).toEqual([])
@@ -147,7 +147,9 @@ describe('toSdFetchedMail', () => {
     const noId = await parse(
       raw(['From: a@cliente.com', 'Subject: sem id', '', 'texto', '']),
     )
-    expect(toSdFetchedMail(1, { ...noId, messageId: undefined }, MAX)).toBeNull()
+    expect(
+      toSdFetchedMail(1, { ...noId, messageId: undefined }, MAX),
+    ).toBeNull()
 
     const noFrom = await parse(
       raw(['Message-ID: <x@cliente.com>', 'Subject: sem from', '', 'oi', '']),

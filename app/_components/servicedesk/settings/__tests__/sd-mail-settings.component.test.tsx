@@ -88,9 +88,9 @@ describe('SD_SETTINGS_TABS', () => {
 
 describe('parseSdSenderList', () => {
   it('splits on newlines, commas and semicolons, lowercasing and deduping', () => {
-    expect(parseSdSenderList(' Ana@X.com \n@cliente.com.br, ana@x.com;  ')).toEqual(
-      ['ana@x.com', '@cliente.com.br'],
-    )
+    expect(
+      parseSdSenderList(' Ana@X.com \n@cliente.com.br, ana@x.com;  '),
+    ).toEqual(['ana@x.com', '@cliente.com.br'])
     expect(parseSdSenderList('')).toEqual([])
   })
 })
@@ -98,7 +98,9 @@ describe('parseSdSenderList', () => {
 describe('formatSdMailboxSync', () => {
   it('says "nunca" with no read yet and formats the date otherwise', () => {
     expect(formatSdMailboxSync(null)).toBe('nunca')
-    expect(formatSdMailboxSync('2026-10-01T12:00:00.000Z')).toMatch(/\d{2}\/\d{2}/)
+    expect(formatSdMailboxSync('2026-10-01T12:00:00.000Z')).toMatch(
+      /\d{2}\/\d{2}/,
+    )
   })
 })
 
@@ -133,7 +135,7 @@ describe('<SdMailSettingsTab />', () => {
     expect(await screen.findByText('Suporte')).toBeTruthy()
     expect(screen.getByText('Lendo')).toBeTruthy()
     expect(screen.getByText('SMTP próprio')).toBeTruthy()
-    expect(screen.getByText(/última.*leitura/s)).toBeTruthy()
+    expect(screen.getByText(/última[\s\S]*leitura/)).toBeTruthy()
   })
 
   it('reports the error of the last read', async () => {
@@ -327,9 +329,12 @@ describe('<SdMailSettingsTab />', () => {
       await screen.findByLabelText('Remetentes aceitos de Suporte'),
       { target: { value: '@cliente.com.br\nana@x.com' } },
     )
-    fireEvent.change(screen.getByLabelText('Remetentes bloqueados de Suporte'), {
-      target: { value: 'spam@x.com' },
-    })
+    fireEvent.change(
+      screen.getByLabelText('Remetentes bloqueados de Suporte'),
+      {
+        target: { value: 'spam@x.com' },
+      },
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Salvar listas' }))
 
     await waitFor(() =>
