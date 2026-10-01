@@ -60,9 +60,7 @@ describe('<SdExtRequestLink />', () => {
     fireEvent.click(submit)
 
     expect(await screen.findByText('Verifique seu e-mail')).toBeTruthy()
-    expect(
-      screen.getByText(/Se este e-mail estiver cadastrado/),
-    ).toBeTruthy()
+    expect(screen.getByText(/Se este e-mail estiver cadastrado/)).toBeTruthy()
     expect(JSON.parse(String(spy.mock.calls[0][1]?.body))).toEqual({
       email: 'ana@acme.com.br',
     })
@@ -146,9 +144,9 @@ describe('<SdExtShell />', () => {
       await screen.findByRole('heading', { name: 'Seu acesso expirou' }),
     ).toBeTruthy()
     expect(
-      screen.getByRole('link', { name: 'Pedir um novo acesso' }).getAttribute(
-        'href',
-      ),
+      screen
+        .getByRole('link', { name: 'Pedir um novo acesso' })
+        .getAttribute('href'),
     ).toBe('/suporte')
     expect(screen.queryByText('nunca renderiza')).toBeNull()
   })
@@ -308,8 +306,7 @@ describe('<SdExtTicket />', () => {
       expect(
         spy.mock.calls.some(
           (call) =>
-            String(call[0]).includes('/messages') &&
-            call[1]?.method === 'POST',
+            String(call[0]).includes('/messages') && call[1]?.method === 'POST',
         ),
       ).toBe(true),
     )
@@ -468,9 +465,7 @@ describe('<SdExtNewTicket />', () => {
 
     expect(await screen.findByLabelText('Resumo')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Incidente' })).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: 'Requisição' }),
-    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Requisição' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Mudança' })).toBeNull()
     expect(screen.getByLabelText('Assunto')).toBeTruthy()
     expect(screen.getByLabelText('Urgência')).toBeTruthy()
@@ -500,12 +495,7 @@ describe('<SdExtNewTicket />', () => {
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/suporte/chamados/INC-000020'),
     )
-    const body = JSON.parse(
-      String(
-        spy.mock.calls.find((call) => call[1]?.method === 'POST')?.[1]?.body,
-      ),
-    )
-    expect(body).toEqual({
+    expect(fetchBody(spy, `${API}/tickets`)).toEqual({
       type: 'INCIDENT',
       title: 'Internet caiu',
       description: 'Desde as 9h',

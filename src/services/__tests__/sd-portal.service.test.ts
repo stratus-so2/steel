@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  createFakeSdPortalContact,
-  createFakeSdPortalTicket,
-} from '@/src/__tests__/factories/sd-portal.factory'
+import { createFakeSdPortalTicket } from '@/src/__tests__/factories/sd-portal.factory'
 import { createFakeSdTicket } from '@/src/__tests__/factories/sd-ticket.factory'
 import { createFakeSdSettings } from '@/src/__tests__/factories/sd-ticket-context.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
@@ -57,8 +54,8 @@ import { getObject, putObject } from '@/src/lib/storage/s3'
 import { SdKbArticleRepository } from '@/src/repositories/sd-kb-article.repository'
 import { SdKbCatalogRepository } from '@/src/repositories/sd-kb-catalog.repository'
 import { SdPortalRepository } from '@/src/repositories/sd-portal.repository'
-import { SdTicketCsatRepository } from '@/src/repositories/sd-ticket-csat.repository'
 import { SdTicketRepository } from '@/src/repositories/sd-ticket.repository'
+import { SdTicketCsatRepository } from '@/src/repositories/sd-ticket-csat.repository'
 import { fireSdAutomations } from '../sd-automation-engine'
 import { SdPortalService, sdPortalTextToHtml } from '../sd-portal.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
@@ -412,10 +409,15 @@ describe('SdPortalService.createTicket', () => {
 describe('SdPortalService.reply', () => {
   it('posts a public CONTACT message, notifies the team and traces it', async () => {
     const dto = expectOk(
-      await SdPortalService.reply(session(), 'INC-000012', {
-        body: 'Obrigada!',
-        attachmentCount: 0,
-      }, []),
+      await SdPortalService.reply(
+        session(),
+        'INC-000012',
+        {
+          body: 'Obrigada!',
+          attachmentCount: 0,
+        },
+        [],
+      ),
     )
 
     const written = repo.createContactMessage.mock.calls[0][0]
@@ -490,7 +492,13 @@ describe('SdPortalService.reply', () => {
         session(),
         'INC-000012',
         { body: '', attachmentCount: 1 },
-        [{ buffer: PNG, contentType: 'application/x-msdownload', fileName: 'a.exe' }],
+        [
+          {
+            buffer: PNG,
+            contentType: 'application/x-msdownload',
+            fileName: 'a.exe',
+          },
+        ],
       ),
       'SD_ATTACHMENT_INVALID',
     )
@@ -499,7 +507,13 @@ describe('SdPortalService.reply', () => {
         session(),
         'INC-000012',
         { body: '', attachmentCount: 1 },
-        [{ buffer: Buffer.alloc(0), contentType: 'image/png', fileName: 'a.png' }],
+        [
+          {
+            buffer: Buffer.alloc(0),
+            contentType: 'image/png',
+            fileName: 'a.png',
+          },
+        ],
       ),
       'SD_ATTACHMENT_INVALID',
     )
@@ -1017,7 +1031,9 @@ describe('SdPortalService.knowledge', () => {
   })
 
   it('propagates database failures of the categories, list and search', async () => {
-    kbCatalog.listCategoriesWithCounts.mockResolvedValue(err(databaseError('x')))
+    kbCatalog.listCategoriesWithCounts.mockResolvedValue(
+      err(databaseError('x')),
+    )
     expectErr(
       await SdPortalService.knowledge(session(), { limit: 20 }),
       'DATABASE_ERROR',

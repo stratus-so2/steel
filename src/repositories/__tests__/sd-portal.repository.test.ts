@@ -271,9 +271,7 @@ describe('SdPortalRepository — links de acesso', () => {
     ])
 
     expect(
-      expectOk(
-        await SdPortalRepository.listByContact(workspace.id, ana.id, 1),
-      ),
+      expectOk(await SdPortalRepository.listByContact(workspace.id, ana.id, 1)),
     ).toHaveLength(1)
   })
 })
@@ -312,7 +310,7 @@ describe('SdPortalRepository.findContact', () => {
 
 describe('SdPortalRepository.findActiveContactsByEmail', () => {
   it('matches case-insensitively, only where the portal is on', async () => {
-    const { workspace, ana } = await setup()
+    const { ana } = await setup()
 
     const found = expectOk(
       await SdPortalRepository.findActiveContactsByEmail('ANA@ACME.COM.BR'),
@@ -414,7 +412,7 @@ describe('SdPortalRepository.findActiveContactsByEmail', () => {
 describe('SdPortalRepository — escopo dos chamados', () => {
   async function tickets() {
     const base = await setup()
-    const { workspace, other, user, flow, acme, outra, ana, bruno } = base
+    const { workspace, other, flow, acme, outra, ana, bruno } = base
     const mine = await seedSdTicket(workspace.id, flow.initial.id, {
       title: 'Meu chamado',
       contactId: ana.id,
@@ -779,7 +777,9 @@ describe('SdPortalRepository — mensagens e anexos', () => {
       contactId: ana.id,
     })
     expect(
-      expectOk(await SdPortalRepository.findPublicAttachment('att-x', another.id)),
+      expectOk(
+        await SdPortalRepository.findPublicAttachment('att-x', another.id),
+      ),
     ).toBeNull()
   })
 })
@@ -837,9 +837,7 @@ describe('SdPortalRepository.formOptions', () => {
       visibleInPortal: true,
     })
 
-    const options = expectOk(
-      await SdPortalRepository.formOptions(workspace.id),
-    )
+    const options = expectOk(await SdPortalRepository.formOptions(workspace.id))
 
     expect(new Set(options.categories.map((node) => node.name))).toEqual(
       new Set(['Visível', 'Subcategoria']),
@@ -855,9 +853,7 @@ describe('SdPortalRepository.formOptions', () => {
 
   it('answers with empty lists for a bare workspace', async () => {
     const workspace = await seedWorkspace()
-    const options = expectOk(
-      await SdPortalRepository.formOptions(workspace.id),
-    )
+    const options = expectOk(await SdPortalRepository.formOptions(workspace.id))
     expect(options).toEqual({
       categories: [],
       templates: [],

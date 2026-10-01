@@ -26,7 +26,11 @@ export function extTicket(
     code: 'INC-000012',
     type: 'INCIDENT',
     title: 'Impressora não imprime',
-    phase: { name: 'Em atendimento', color: '#2563eb', category: 'IN_PROGRESS' },
+    phase: {
+      name: 'Em atendimento',
+      color: '#2563eb',
+      category: 'IN_PROGRESS',
+    },
     completionPercent: 40,
     companyName: 'ACME Ltda',
     assigneeName: 'Carlos A.',

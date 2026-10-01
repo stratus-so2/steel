@@ -71,7 +71,10 @@ describe('SdPortalAccessService.issue', () => {
     )
 
     expect(dto.status).toBe('pending')
-    expect(repo.revokePending).toHaveBeenCalledWith('contact1', expect.any(Date))
+    expect(repo.revokePending).toHaveBeenCalledWith(
+      'contact1',
+      expect.any(Date),
+    )
     const created = repo.createAccess.mock.calls[0][0]
     expect(created.email).toBe('ana@acme.com.br')
     expect(created.requestedById).toBe('u1')
@@ -448,10 +451,7 @@ describe('SdPortalAccessService.openSession', () => {
 
   it('propagates database failures of the lookup and of the consume', async () => {
     repo.findByTokenHash.mockResolvedValue(err(databaseError('x')))
-    expectErr(
-      await SdPortalAccessService.openSession(token),
-      'DATABASE_ERROR',
-    )
+    expectErr(await SdPortalAccessService.openSession(token), 'DATABASE_ERROR')
 
     repo.findByTokenHash.mockResolvedValue(
       ok(createFakeSdPortalAccessWithContact()),
@@ -499,7 +499,9 @@ describe('SdPortalAccessService.resolveSession', () => {
       'SD_PORTAL_SESSION_EXPIRED',
     )
 
-    repo.findBySessionHash.mockResolvedValue(ok(live({ revokedAt: new Date() })))
+    repo.findBySessionHash.mockResolvedValue(
+      ok(live({ revokedAt: new Date() })),
+    )
     expectErr(
       await SdPortalAccessService.resolveSession(sessionToken),
       'SD_PORTAL_SESSION_EXPIRED',
@@ -594,10 +596,7 @@ describe('SdPortalAccessService.closeSession', () => {
 
   it('propagates database failures', async () => {
     repo.findBySessionHash.mockResolvedValue(err(databaseError('x')))
-    expectErr(
-      await SdPortalAccessService.closeSession(token),
-      'DATABASE_ERROR',
-    )
+    expectErr(await SdPortalAccessService.closeSession(token), 'DATABASE_ERROR')
 
     repo.findBySessionHash.mockResolvedValue(
       ok(createFakeSdPortalAccessWithContact()),

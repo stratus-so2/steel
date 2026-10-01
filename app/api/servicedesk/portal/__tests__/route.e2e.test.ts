@@ -364,9 +364,7 @@ describe('portal do contato externo — recusas de acesso', () => {
     })
     const response = await portalGet(`${API}/tickets`, cookie)
     expect(response.status).toBe(401)
-    expect((await response.json()).error.code).toBe(
-      'SD_PORTAL_SESSION_EXPIRED',
-    )
+    expect((await response.json()).error.code).toBe('SD_PORTAL_SESSION_EXPIRED')
   })
 
   it('403s once the contact is deactivated', async () => {
@@ -517,9 +515,7 @@ describe('portal do contato externo — isolamento entre empresas', () => {
       cookie,
     )
     expect(download.status).toBe(404)
-    expect((await download.json()).error.code).toBe(
-      'SD_ATTACHMENT_NOT_FOUND',
-    )
+    expect((await download.json()).error.code).toBe('SD_ATTACHMENT_NOT_FOUND')
   })
 })
 
@@ -551,9 +547,7 @@ describe('portal do contato externo — avaliação', () => {
       cookie,
     )
     expect(second.status).toBe(409)
-    expect((await second.json()).error.code).toBe(
-      'SD_CSAT_ALREADY_SUBMITTED',
-    )
+    expect((await second.json()).error.code).toBe('SD_CSAT_ALREADY_SUBMITTED')
 
     const event = await prisma.sdTicketEvent.findFirstOrThrow({
       where: { ticketId: resolved.id, action: 'csat.submitted' },
@@ -587,9 +581,9 @@ describe('portal do contato externo — formulário e conhecimento', () => {
     expect(response.status).toBe(200)
     const options = (await response.json()).data
     expect(options.ticketTypes).toEqual(['INCIDENT', 'SERVICE_REQUEST'])
-    expect(
-      options.catalog.map((node: { name: string }) => node.name),
-    ).toEqual(['Infraestrutura'])
+    expect(options.catalog.map((node: { name: string }) => node.name)).toEqual([
+      'Infraestrutura',
+    ])
   })
 
   it('lists only published portal articles and 404s the others', async () => {
@@ -642,9 +636,7 @@ describe('portal do contato externo — formulário e conhecimento', () => {
     for (const id of [internalArticle.id, draft.id]) {
       const blocked = await portalGet(`${API}/knowledge/${id}`, cookie)
       expect(blocked.status).toBe(404)
-      expect((await blocked.json()).error.code).toBe(
-        'SD_KB_ARTICLE_NOT_FOUND',
-      )
+      expect((await blocked.json()).error.code).toBe('SD_KB_ARTICLE_NOT_FOUND')
     }
   })
 })
@@ -761,7 +753,11 @@ describe('proxy', () => {
   })
 
   it('redirects the private portal pages to /suporte without a session', async () => {
-    for (const path of ['/suporte/chamados', '/suporte/novo', '/suporte/ajuda']) {
+    for (const path of [
+      '/suporte/chamados',
+      '/suporte/novo',
+      '/suporte/ajuda',
+    ]) {
       const response = await portalGet(path)
       expect([200, 307]).toContain(response.status)
       if (response.status === 307) {
