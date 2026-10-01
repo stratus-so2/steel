@@ -190,7 +190,13 @@ function toCards(rows: SdKbSearchRow[], ids: string[]): SdAiArticleCardDTO[] {
   return [...new Set(ids)].flatMap((id) => {
     const row = byId.get(id)
     return row
-      ? [{ id: row.id, title: row.title, excerpt: clipSdText(row.plainText, 240) }]
+      ? [
+          {
+            id: row.id,
+            title: row.title,
+            excerpt: clipSdText(row.plainText, 240),
+          },
+        ]
       : []
   })
 }
@@ -236,9 +242,11 @@ async function ticketContext(
   if (!messages.ok) return messages
   const kb = await SdKbArticleRepository.suggest(ticket.workspaceId, {
     terms: sdKbTermsFromTitle(ticket.title),
-    categoryIds: [ticket.categoryId, ticket.subcategoryId, ticket.serviceId].filter(
-      (id): id is string => Boolean(id),
-    ),
+    categoryIds: [
+      ticket.categoryId,
+      ticket.subcategoryId,
+      ticket.serviceId,
+    ].filter((id): id is string => Boolean(id)),
     limit: KB_LIMIT,
     portalOnly: false,
   })
@@ -343,7 +351,10 @@ interface TurnResult {
   draft: SdAiTicketDraftDTO
 }
 
-function allowedTypes(settings: SdSettings, portalOnly: boolean): SdTicketType[] {
+function allowedTypes(
+  settings: SdSettings,
+  portalOnly: boolean,
+): SdTicketType[] {
   if (!portalOnly) return ['INCIDENT', 'SERVICE_REQUEST', 'CHANGE', 'PROBLEM']
   return settings.portalTicketTypes.length > 0
     ? settings.portalTicketTypes
@@ -357,14 +368,18 @@ function normalizeDraft(
   types: SdTicketType[],
   history: TurnInput['history'],
 ): SdAiTicketDraftDTO {
-  const userTexts = history.filter((m) => m.role === 'user').map((m) => m.content)
+  const userTexts = history
+    .filter((m) => m.role === 'user')
+    .map((m) => m.content)
   const firstLine = (userTexts[0] ?? '').split('\n')[0]?.trim() ?? ''
   const categories = new Map(catalog.categories.map((c) => [c.id, c]))
   const category = raw?.categoryId ? categories.get(raw.categoryId) : undefined
   const validCategory = category?.level === 'CATEGORY' ? category : undefined
   const sub = raw?.subcategoryId ? categories.get(raw.subcategoryId) : undefined
   const validSub =
-    validCategory && sub?.level === 'SUBCATEGORY' && sub.parentId === validCategory.id
+    validCategory &&
+    sub?.level === 'SUBCATEGORY' &&
+    sub.parentId === validCategory.id
       ? sub
       : undefined
   const service = raw?.serviceId ? categories.get(raw.serviceId) : undefined
@@ -467,9 +482,7 @@ function shouldOpenTicket(output: SdAiTurnOutput): boolean {
   )
 }
 
-function storedMessages(
-  history: SdAiMessageDTO[],
-): Prisma.InputJsonValue {
+function storedMessages(history: SdAiMessageDTO[]): Prisma.InputJsonValue {
   return history as unknown as Prisma.InputJsonValue
 }
 
@@ -505,7 +518,10 @@ async function ownPreService(
   workspaceId: string,
   conversationId: string,
 ): Promise<Result<SdAiConversation>> {
-  const found = await SdAiRepository.findConversation(conversationId, workspaceId)
+  const found = await SdAiRepository.findConversation(
+    conversationId,
+    workspaceId,
+  )
   if (!found.ok) return found
   const row = found.value
   if (
@@ -572,7 +588,8 @@ export type SdAiTriageOutcome =
 
 function prepareFailure(code: string) {
   if (code === 'AI_QUOTA_EXCEEDED') return 'ai_quota_exceeded' as const
-  if (code === 'AI_PROVIDER_UNAVAILABLE') return 'ai_provider_unavailable' as const
+  if (code === 'AI_PROVIDER_UNAVAILABLE')
+    return 'ai_provider_unavailable' as const
   return 'ai_prepare_failed' as const
 }
 
@@ -597,11 +614,14 @@ async function openFromPreService(input: {
     transcript: sdAiTranscript(input.history),
   })
   if (!opened.ok) return opened
-  const saved = await SdAiRepository.updateConversation(input.aiConversation.id, {
-    messages: storedMessages(input.history),
-    outcome: 'ticket_opened',
-    ticketId: opened.value.id,
-  })
+  const saved = await SdAiRepository.updateConversation(
+    input.aiConversation.id,
+    {
+      messages: storedMessages(input.history),
+      outcome: 'ticket_opened',
+      ticketId: opened.value.id,
+    },
+  )
   if (!saved.ok) return saved
   await WhatsAppConversationRepository.update(input.conversation.id, {
     aiActive: false,
@@ -685,7 +705,12 @@ export const SdAiService = {
     workspaceId: string,
     ticketRef: string,
   ): Promise<Result<SdAiTextDTO>> {
-    const result = await copilotText(actorId, workspaceId, ticketRef, 'solution')
+    const result = await copilotText(
+      actorId,
+      workspaceId,
+      ticketRef,
+      'solution',
+    )
     if (!result.ok) return result
     return ok({ text: result.value.text })
   },
@@ -793,11 +818,13 @@ export const SdAiService = {
       call.value,
       {
         system: buildSdCopilotSystem('chat', config.settings, context.value),
-        messages: history.slice(-COPILOT_HISTORY).map((m) =>
-          m.role === 'user'
-            ? { role: 'user', content: redactSdPii(m.content) }
-            : { role: 'assistant', content: m.content },
-        ),
+        messages: history
+          .slice(-COPILOT_HISTORY)
+          .map((m) =>
+            m.role === 'user'
+              ? { role: 'user', content: redactSdPii(m.content) }
+              : { role: 'assistant', content: m.content },
+          ),
         maxTokens: 1500,
       },
       workspaceId,
@@ -949,16 +976,24 @@ export const SdAiService = {
     const type = dto.type ?? draft?.type ?? types[0]
     if (portal && !types.includes(type)) {
       return err(
-        sdTicketForbidden('Este tipo de chamado não pode ser aberto pelo portal'),
+        sdTicketForbidden(
+          'Este tipo de chamado não pode ser aberto pelo portal',
+        ),
       )
     }
-    const userTexts = history.filter((m) => m.role === 'user').map((m) => m.content)
+    const userTexts = history
+      .filter((m) => m.role === 'user')
+      .map((m) => m.content)
     const title =
       dto.title ??
       (draft?.title && draft.title.length >= 3
         ? draft.title
-        : clipSdText(userTexts[0]?.split('\n')[0] || 'Solicitação via assistente', 120))
-    const description = dto.description ?? draft?.description ?? userTexts.join('\n\n')
+        : clipSdText(
+            userTexts[0]?.split('\n')[0] || 'Solicitação via assistente',
+            120,
+          ))
+    const description =
+      dto.description ?? draft?.description ?? userTexts.join('\n\n')
 
     const base = {
       type,
@@ -1086,7 +1121,8 @@ export const SdAiService = {
     if (!settings.aiEnabled || !settings.aiAutoTriageEnabled) {
       return ok({ status: 'skipped', reason: 'ai_disabled' })
     }
-    if (ticket.aiTriage) return ok({ status: 'skipped', reason: 'already_triaged' })
+    if (ticket.aiTriage)
+      return ok({ status: 'skipped', reason: 'already_triaged' })
 
     const call = await AiUsageService.prepare(workspaceId, 'SERVICEDESK_TRIAGE')
     if (!call.ok) {
@@ -1109,7 +1145,8 @@ export const SdAiService = {
     )
     if (!response.ok) return ok({ status: 'failed', reason: 'provider_failed' })
     const output = parseSdAiJson(SdAiTriageOutputSchema, response.value.text)
-    if (!output) return ok({ status: 'skipped', reason: 'unparseable_response' })
+    if (!output)
+      return ok({ status: 'skipped', reason: 'unparseable_response' })
 
     const suggestions = toSdAiClassification(output, catalog.value)
     const changes = triageChanges(ticket, suggestions)
@@ -1155,7 +1192,11 @@ export const SdAiService = {
       applied: applied.join(','),
       confidence: suggestions.confidence,
     })
-    return ok({ status: 'triaged', applied, confidence: suggestions.confidence })
+    return ok({
+      status: 'triaged',
+      applied,
+      confidence: suggestions.confidence,
+    })
   },
 
   /**
@@ -1274,7 +1315,8 @@ export const SdAiService = {
         aiConversation,
         history,
         draft,
-        reason: output.action === 'open_ticket' ? 'ai_decision' : 'low_confidence',
+        reason:
+          output.action === 'open_ticket' ? 'ai_decision' : 'low_confidence',
       })
     }
 
@@ -1332,10 +1374,16 @@ function triageChanges(
   if (!ticket.urgencyId && s.urgency) changes.urgencyId = s.urgency.id
   // Impacto/urgência recalculam a prioridade pela matriz; a sugerida só
   // entra quando o chamado não tem prioridade nenhuma.
-  if (!ticket.priorityId && s.priority && !changes.impactId && !changes.urgencyId) {
+  if (
+    !ticket.priorityId &&
+    s.priority &&
+    !changes.impactId &&
+    !changes.urgencyId
+  ) {
     changes.priorityId = s.priority.id
   }
-  if (!ticket.departmentId && s.department) changes.departmentId = s.department.id
+  if (!ticket.departmentId && s.department)
+    changes.departmentId = s.department.id
   if (ticket.tags.length === 0 && s.tags.length > 0) changes.tags = s.tags
   return changes
 }
@@ -1387,7 +1435,10 @@ async function autoReply(input: {
       settings,
       userId: null,
       channel: 'whatsapp',
-      history: history.length > 0 ? history : [{ role: 'user', content: input.content }],
+      history:
+        history.length > 0
+          ? history
+          : [{ role: 'user', content: input.content }],
       portalOnly: true,
       ticketOpen: {
         code: sdTicketCode(ticket.value, config.prefixes),

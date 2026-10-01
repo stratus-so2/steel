@@ -52,6 +52,12 @@ export const VIEW_SOURCES = [
   'landing-pages',
   'whatsapp-conversations',
   'whatsapp-broadcasts',
+  // ServiceDesk — linhas achatadas servidas por
+  // `servicedesk/dashboards/sources/<fonte>` (campos derivados de SLA, MTTR…).
+  'sd-tickets',
+  'sd-ticket-costs',
+  'sd-ticket-events',
+  'sd-kb-articles',
 ] as const
 export type ViewSource = (typeof VIEW_SOURCES)[number]
 
@@ -109,6 +115,43 @@ export type CompareRange = (typeof COMPARE_RANGES)[number]
 const CompareRangeSchema = z.enum(COMPARE_RANGES)
 
 /**
+ * Como o valor de cada categoria é calculado a partir das linhas. `auto`
+ * (legado) soma o campo de valor quando ele é numérico, senão conta.
+ * `avg` ignora linhas sem número (ex.: MTTR só dos resolvidos).
+ */
+export const AGGREGATIONS = [
+  'auto',
+  'count',
+  'sum',
+  'avg',
+  'min',
+  'max',
+] as const
+export type Aggregation = (typeof AGGREGATIONS)[number]
+
+/** Agrupamento do eixo X quando o campo é uma data. */
+export const DATE_BUCKETS = ['day', 'week', 'month'] as const
+export type DateBucket = (typeof DATE_BUCKETS)[number]
+
+/**
+ * Janela de tempo aplicada às linhas antes de agregar (no fuso do
+ * navegador): hoje, últimos N dias, mês ou ano corrente. O campo de data é
+ * `periodField` (padrão `createdAt`).
+ */
+export const PERIODS = ['today', '7d', '30d', '90d', 'month', 'year'] as const
+export type Period = (typeof PERIODS)[number]
+
+/** Campos opcionais comuns a chart e view (ausentes = comportamento legado). */
+const dataWindowShape = {
+  /** Título exibido no cabeçalho do widget (e em destaque no modo TV). */
+  title: z.string().trim().max(120).optional(),
+  period: z.enum(PERIODS).optional(),
+  periodField: z.string().trim().max(100).optional(),
+  /** Top N (categorias no chart, linhas na tabela). */
+  limit: z.number().int().min(1).max(500).optional(),
+}
+
+/**
  * Customização completa do chart. Os campos relevantes variam por
  * `chartType`; campos não usados pelo tipo são ignorados no render.
  * Agregação do valor: soma quando o campo de valor é numérico, senão
@@ -145,6 +188,18 @@ export const ChartConfigSchema = z.object({
   legend: z.boolean().default(true),
   prefix: z.string().trim().max(20).default(''),
   suffix: z.string().trim().max(20).default(''),
+
+  // Extensões (opcionais — configs antigas continuam iguais)
+  ...dataWindowShape,
+  aggregation: z.enum(AGGREGATIONS).optional(),
+  dateBucket: z.enum(DATE_BUCKETS).optional(),
+  /** Casas decimais do número exibido (padrão: 0 na contagem, até 1 na média). */
+  decimals: z.number().int().min(0).max(4).optional(),
+  /** Cor de destaque do número do "aggregate" (ex.: vermelho p/ violados). */
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida')
+    .optional(),
 })
 
 export const ViewConfigSchema = z.object({
@@ -152,6 +207,7 @@ export const ViewConfigSchema = z.object({
   fields: z.array(z.string().trim().min(1).max(100)).max(50).default([]),
   filters: z.array(ViewFilterSchema).max(20).default([]),
   sort: z.array(ViewSortSchema).max(10).default([]),
+  ...dataWindowShape,
 })
 
 export const IframeConfigSchema = z.object({

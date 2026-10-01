@@ -859,3 +859,10 @@ export const sdWhatsappConversationNotFound = (
 export const sdWhatsappWindowClosed = (
   message = 'Fora da janela de 24 h do WhatsApp: envie um modelo aprovado',
 ): AppError => appError('SD_WHATSAPP_WINDOW_CLOSED', message)
+export const sdCsatAlreadySubmitted = (
+  message = 'Este atendimento já foi avaliado',
+): AppError => appError('SD_CSAT_ALREADY_SUBMITTED', message)
+
+export const sdCsatNotAvailable = (
+  message = 'A avaliação só fica disponível depois que o chamado é resolvido',
+): AppError => appError('SD_CSAT_NOT_AVAILABLE', message)

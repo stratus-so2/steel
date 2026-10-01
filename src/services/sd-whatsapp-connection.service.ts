@@ -37,7 +37,11 @@ function audit(
   actorId: string,
   workspaceId: string,
   targetId: string | null,
-  extra: { outcome?: 'failure'; reason?: string; meta?: Record<string, unknown> } = {},
+  extra: {
+    outcome?: 'failure'
+    reason?: string
+    meta?: Record<string, unknown>
+  } = {},
 ) {
   auditMutation({
     entity: 'whatsapp_connection',
@@ -59,7 +63,11 @@ async function loadOwned(
   workspaceId: string,
   id: string,
 ): Promise<Result<WhatsAppConnection>> {
-  const found = await WhatsAppConnectionRepository.findById(id, workspaceId, MODULE)
+  const found = await WhatsAppConnectionRepository.findById(
+    id,
+    workspaceId,
+    MODULE,
+  )
   if (!found.ok) return found
   if (!found.value) return err(whatsappConnectionNotFound())
   return ok(found.value)
@@ -144,20 +152,22 @@ export const SdWhatsappConnectionService = {
       return created
     }
 
-    let active = await activeId(workspaceId)
-    if (!active.ok) return active
-    if (!active.value) {
+    const current = await activeId(workspaceId)
+    if (!current.ok) return current
+    // Primeira conexão do módulo: já entra como a ativa do ServiceDesk.
+    let activeConnectionId = current.value
+    if (!activeConnectionId) {
       const updated = await SdSettingsRepository.update(workspaceId, {
         whatsappConnectionId: created.value.id,
         updatedById: actorId,
       })
       if (!updated.ok) return updated
-      active = ok(created.value.id)
+      activeConnectionId = created.value.id
     }
     audit('create', actorId, workspaceId, created.value.id, {
       meta: { provider: dto.provider },
     })
-    return ok(toSdWhatsappConnectionDTO(created.value, active.value))
+    return ok(toSdWhatsappConnectionDTO(created.value, activeConnectionId))
   },
 
   async update(
@@ -239,7 +249,8 @@ export const SdWhatsappConnectionService = {
     try {
       if (connection.provider === 'ZAPI') {
         const client = await zapiClient(connection)
-        if (!client) throw new Error('Conexão Z-API sem credenciais configuradas')
+        if (!client)
+          throw new Error('Conexão Z-API sem credenciais configuradas')
         connected = (await client.getConnectionStatus()).connected
       } else {
         if (
@@ -258,10 +269,12 @@ export const SdWhatsappConnectionService = {
         })
         connected = (await client.getConnectionStatus()).connected
       }
-      if (!connected) error = 'O provedor informou que o número não está conectado'
+      if (!connected)
+        error = 'O provedor informou que o número não está conectado'
     } catch (cause) {
       failed = true
-      error = cause instanceof Error ? cause.message : 'Falha ao testar a conexão'
+      error =
+        cause instanceof Error ? cause.message : 'Falha ao testar a conexão'
     }
 
     const status = connected ? 'CONNECTED' : failed ? 'ERROR' : 'DISCONNECTED'
@@ -291,7 +304,9 @@ export const SdWhatsappConnectionService = {
     if (!existing.ok) return existing
     const connection = existing.value
     if (connection.provider !== 'ZAPI') {
-      return err(badRequest('QR code está disponível apenas para conexões Z-API'))
+      return err(
+        badRequest('QR code está disponível apenas para conexões Z-API'),
+      )
     }
     const client = await zapiClient(connection)
     if (!client) {
@@ -302,7 +317,9 @@ export const SdWhatsappConnectionService = {
       qr = await client.getQrCode()
     } catch (cause) {
       return err(
-        badRequest(cause instanceof Error ? cause.message : 'Falha ao obter o QR code'),
+        badRequest(
+          cause instanceof Error ? cause.message : 'Falha ao obter o QR code',
+        ),
       )
     }
     const status = qr.status === 'connected' ? 'CONNECTED' : 'CONNECTING'

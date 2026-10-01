@@ -140,6 +140,8 @@ export {
   sdConfigNotFound,
   sdContactNotFound,
   sdCostNotFound,
+  sdCsatAlreadySubmitted,
+  sdCsatNotAvailable,
   sdCustomerDocumentConflict,
   sdCustomerNotFound,
   sdCustomFieldInvalid,

@@ -449,7 +449,11 @@ export const SdWhatsappInboundService = {
         const conversation = await WhatsAppConversationRepository.findByIdRaw(
           input.conversationId,
         )
-        if (conversation.ok && conversation.value && !conversation.value.aiHandoff) {
+        if (
+          conversation.ok &&
+          conversation.value &&
+          !conversation.value.aiHandoff
+        ) {
           await enqueueSdAiWhatsappReply(input.conversationId, input.message.id)
           return ok('mirrored_ai')
         }
@@ -510,4 +514,3 @@ export const SdWhatsappInboundService = {
     await publishSdTicketMessage(ticket.value)
   },
 }
-

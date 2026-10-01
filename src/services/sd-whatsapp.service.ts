@@ -123,10 +123,7 @@ async function linkedConversation(
 
 function codeOf(config: SdEngineConfig) {
   return (t: { type: string; number: number }) =>
-    sdTicketCode(
-      t as Parameters<typeof sdTicketCode>[0],
-      config.prefixes,
-    )
+    sdTicketCode(t as Parameters<typeof sdTicketCode>[0], config.prefixes)
 }
 
 /** Conversa pronta para envio: vinculada, chamado aberto, dentro da janela. */
@@ -138,7 +135,8 @@ async function sendable(
 ): Promise<Result<Loaded & { conversation: SdWaConversation }>> {
   const loaded = await load(actorId, workspaceId, ticketRef, 'EDIT')
   if (!loaded.ok) return loaded
-  if (CLOSED.has(loaded.value.ticket.phase.category)) return err(sdTicketClosed())
+  if (CLOSED.has(loaded.value.ticket.phase.category))
+    return err(sdTicketClosed())
   const conversation = await linkedConversation(loaded.value)
   if (!conversation.ok) return conversation
   if (kind === 'free') {
@@ -241,7 +239,10 @@ async function link(
       action: 'link',
       actorId,
       targetId: ticket.id,
-      meta: { workspaceId: ticket.workspaceId, conversationId: conversation.id },
+      meta: {
+        workspaceId: ticket.workspaceId,
+        conversationId: conversation.id,
+      },
     })
     await publishSdTicketMessage(ticket, actorId)
   }
@@ -381,13 +382,16 @@ export const SdWhatsappService = {
       contentType: file.contentType,
     })
     if (!stored.ok) return stored
-    const sent = await WhatsAppSend.media(target.value.conversation.connection, {
-      to: target.value.conversation.contact.waId,
-      mediaUrl: stored.value.url,
-      type: type.toLowerCase() as 'image' | 'video' | 'audio' | 'document',
-      caption: dto.caption,
-      fileName: file.fileName,
-    })
+    const sent = await WhatsAppSend.media(
+      target.value.conversation.connection,
+      {
+        to: target.value.conversation.contact.waId,
+        mediaUrl: stored.value.url,
+        type: type.toLowerCase() as 'image' | 'video' | 'audio' | 'document',
+        caption: dto.caption,
+        fileName: file.fileName,
+      },
+    )
     if (!sent.ok) return sent
     return finalizeSend(actorId, target.value, sent.value, {
       type,
@@ -456,7 +460,10 @@ export const SdWhatsappService = {
     if (!ctx.ok) return ctx
     const config = await SdTicketEngine.loadConfig(workspaceId)
     if (!config.ok) return config
-    const rows = await SdWhatsappRepository.listConversations(workspaceId, query)
+    const rows = await SdWhatsappRepository.listConversations(
+      workspaceId,
+      query,
+    )
     if (!rows.ok) return rows
     return ok(
       rows.value.map((row) =>
@@ -479,7 +486,8 @@ export const SdWhatsappService = {
       dto.conversationId,
     )
     if (!conversation.ok) return conversation
-    if (!conversation.value) return err(sdWhatsappConversationNotFound('Conversa não encontrada'))
+    if (!conversation.value)
+      return err(sdWhatsappConversationNotFound('Conversa não encontrada'))
     return link(actorId, loaded.value, conversation.value)
   },
 
@@ -560,7 +568,10 @@ export const SdWhatsappService = {
     if (!ticket.whatsappConversationId) {
       return err(sdWhatsappConversationNotFound())
     }
-    const saved = await SdWhatsappRepository.setTicketConversation(ticket.id, null)
+    const saved = await SdWhatsappRepository.setTicketConversation(
+      ticket.id,
+      null,
+    )
     if (!saved.ok) return saved
     await recordSdTicketEvent({
       workspaceId,

@@ -11,6 +11,7 @@ import {
 } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 import { CreateSdTicketPartSchema } from '@/src/schemas/sd-ticket-part.schema'
+import type { SdTicketEventInput } from '@/src/services/sd-ticket-event-recorder'
 
 vi.mock('@/lib/axiom/audit')
 vi.mock('@/src/repositories/sd-ticket-part.repository')
@@ -32,6 +33,14 @@ import { SdTicketPartRepository } from '@/src/repositories/sd-ticket-part.reposi
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { SdTicketPartService } from '../sd-ticket-part.service'
 import { loadSdTicketTab, publishSdTicketTab } from '../sd-ticket-tab-support'
+
+/** O recorder aceita um evento ou uma lista; os testes olham o primeiro. */
+function sdEventAction(
+  input: SdTicketEventInput | SdTicketEventInput[] | undefined,
+): string | undefined {
+  if (!input) return undefined
+  return Array.isArray(input) ? input[0]?.action : input.action
+}
 
 const load = vi.mocked(loadSdTicketTab)
 const repo = vi.mocked(SdTicketPartRepository)
@@ -128,7 +137,7 @@ describe('create', () => {
     )
     expect(dto.total).toBe('399.80')
     expect(catalog.findById).toHaveBeenCalledWith('p1', 'ws1')
-    expect(record.mock.calls[0]?.[0].action).toBe('part.added')
+    expect(sdEventAction(record.mock.calls[0]?.[0])).toBe('part.added')
     expect(publishSdTicketTab).toHaveBeenCalledWith(
       expect.anything(),
       'ticket.part',
@@ -371,7 +380,7 @@ describe('remove', () => {
       partId: 'p1',
       delta: 2,
     })
-    expect(record.mock.calls[0]?.[0].action).toBe('part.removed')
+    expect(sdEventAction(record.mock.calls[0]?.[0])).toBe('part.removed')
     expect(load).toHaveBeenCalledWith('u1', 'ws1', 't1', 'DELETE', {
       agentOnly: true,
       requireOpen: true,

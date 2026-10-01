@@ -4,6 +4,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { sdTabScope } from '@/src/__tests__/helpers/sd-ticket-tab.helpers'
 import { databaseError, sdNotAgent } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
+import type { SdTicketEventInput } from '@/src/services/sd-ticket-event-recorder'
 
 vi.mock('@/lib/axiom/audit')
 vi.mock('@/src/repositories/sd-ticket-task.repository')
@@ -29,6 +30,14 @@ import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { SdTicketNotifier } from '../sd-ticket-notifier'
 import { loadSdTicketTab, publishSdTicketTab } from '../sd-ticket-tab-support'
 import { SdTicketTaskService } from '../sd-ticket-task.service'
+
+/** O recorder aceita um evento ou uma lista; os testes olham o primeiro. */
+function sdEventAction(
+  input: SdTicketEventInput | SdTicketEventInput[] | undefined,
+): string | undefined {
+  if (!input) return undefined
+  return Array.isArray(input) ? input[0]?.action : input.action
+}
 
 const load = vi.mocked(loadSdTicketTab)
 const repo = vi.mocked(SdTicketTaskRepository)
@@ -186,7 +195,7 @@ describe('update', () => {
     )
     expect(repo.update.mock.calls[0]?.[1].completedAt).toBeInstanceOf(Date)
     expect(dto.status).toBe('DONE')
-    expect(record.mock.calls[0]?.[0].action).toBe('task.completed')
+    expect(sdEventAction(record.mock.calls[0]?.[0])).toBe('task.completed')
     expect(notify).not.toHaveBeenCalled()
     expect(repo.findById).toHaveBeenCalledWith('k1', 't1')
   })
@@ -203,7 +212,7 @@ describe('update', () => {
       }),
     )
     expect(repo.update.mock.calls[0]?.[1].completedAt).toBeNull()
-    expect(record.mock.calls[0]?.[0].action).toBe('task.reopened')
+    expect(sdEventAction(record.mock.calls[0]?.[0])).toBe('task.reopened')
 
     for (const [status, action] of [
       ['IN_PROGRESS', 'task.started'],
@@ -213,7 +222,7 @@ describe('update', () => {
       expectOk(
         await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', { status }),
       )
-      expect(record.mock.calls[0]?.[0].action).toBe(action)
+      expect(sdEventAction(record.mock.calls[0]?.[0])).toBe(action)
     }
   })
 
@@ -225,7 +234,7 @@ describe('update', () => {
       }),
     )
     expect(repo.update.mock.calls[0]?.[1]).not.toHaveProperty('completedAt')
-    expect(record.mock.calls[0]?.[0].action).toBe('task.updated')
+    expect(sdEventAction(record.mock.calls[0]?.[0])).toBe('task.updated')
 
     expectOk(
       await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', {
@@ -277,7 +286,7 @@ describe('remove', () => {
       requireOpen: true,
     })
     expect(repo.delete).toHaveBeenCalledWith('k1')
-    expect(record.mock.calls[0]?.[0].action).toBe('task.deleted')
+    expect(sdEventAction(record.mock.calls[0]?.[0])).toBe('task.deleted')
     expect(auditMutation).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'delete' }),
     )

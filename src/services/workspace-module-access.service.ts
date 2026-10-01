@@ -6,6 +6,7 @@ import { ok, type Result } from '@/src/lib/result'
 import { toWorkspaceModuleAccessDTO } from '@/src/mappers/workspace-module-access.mapper'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmPipelineSeedService } from '@/src/services/crm-pipeline-seed.service'
+import { SdDashboardSeedService } from '@/src/services/sd-dashboard-seed.service'
 import { SdSeedService } from '@/src/services/sd-seed.service'
 import { WhatsAppDashboardSeedService } from '@/src/services/whatsapp-dashboard-seed.service'
 import type {
@@ -128,6 +129,18 @@ export const WorkspaceModuleAccessService = {
           workspaceId,
           actorId,
           error: seed.error,
+        })
+      }
+      // Dashboards padrão (Analítico e KPIs/TV) — também não bloqueiam.
+      const dashboards = await SdDashboardSeedService.seedDefaults(
+        workspaceId,
+        actorId,
+      )
+      if (!dashboards.ok) {
+        logger.error('workspace_module_access.seed_sd_dashboards_failed', {
+          workspaceId,
+          actorId,
+          error: dashboards.error,
         })
       }
     }

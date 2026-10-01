@@ -223,6 +223,11 @@ export const TAG_GROUPS = [
           'Cadastro de clientes e empresas (CPF/CNPJ validado, endereço via ViaCEP) e seus contatos. Só agentes (membros de um departamento) e admins do ServiceDesk.',
       },
       {
+        name: 'ServiceDesk · Painéis',
+        description:
+          'Painéis customizáveis (motor de dashboards com fontes de chamados, custos, eventos e artigos): contagem, soma, média, % de SLA, MTTR, backlog, criados × resolvidos, CSAT. Padrões "Dashboard analítico" e "KPIs (TV)"; modo TV em tela cheia. Só agentes.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

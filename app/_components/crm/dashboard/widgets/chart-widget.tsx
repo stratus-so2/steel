@@ -8,16 +8,19 @@ import { ResponsiveBar } from '@nivo/bar'
 import { ResponsiveLine } from '@nivo/line'
 import { ResponsivePie } from '@nivo/pie'
 import * as React from 'react'
+import { useDashboardDisplay } from '@/app/_components/crm/dashboard/dashboard-display'
+import { useDashboardRows } from '@/app/_components/crm/dashboard/use-dashboard-rows'
 import {
   aggregateChart,
   aggregateCompare,
   aggregateTotal,
+  formatAggregate,
   type Row,
   withDerivedFields,
 } from '@/app/_components/crm/dashboard/widget-data'
 import { sourceResource } from '@/app/_components/crm/dashboard/widget-meta'
 import { SteelIcon } from '@/components/icon/icon'
-import { useResourceList } from '@/src/hooks/use-crm-resource-list'
+import { cn } from '@/lib/utils'
 import type { ChartConfig } from '@/src/schemas/crm-dashboard.schema'
 
 const COLORS = [
@@ -29,24 +32,43 @@ const COLORS = [
   '#a855f7',
 ]
 
+/** Paleta mais clara/saturada para o fundo escuro do modo TV. */
+const TV_COLORS = [
+  '#818cf8',
+  '#4ade80',
+  '#fbbf24',
+  '#f472b6',
+  '#22d3ee',
+  '#c084fc',
+]
+
 /** Tema nivo que herda a cor do texto do container (claro/escuro). */
-const THEME = {
-  text: { fill: 'currentColor', fontSize: 11 },
-  axis: {
-    ticks: { text: { fill: 'currentColor' }, line: { stroke: 'transparent' } },
-    legend: { text: { fill: 'currentColor', fontSize: 11 } },
-    domain: { line: { stroke: 'currentColor', strokeOpacity: 0.15 } },
-  },
-  grid: { line: { stroke: 'currentColor', strokeOpacity: 0.08 } },
-  legends: { text: { fill: 'currentColor' } },
-  tooltip: {
-    container: {
-      background: 'var(--color-popover)',
-      color: 'var(--color-popover-foreground)',
-      fontSize: 12,
+function nivoTheme(fontSize: number) {
+  return {
+    text: { fill: 'currentColor', fontSize },
+    axis: {
+      ticks: {
+        text: { fill: 'currentColor', fontSize },
+        line: { stroke: 'transparent' },
+      },
+      legend: { text: { fill: 'currentColor', fontSize } },
+      domain: { line: { stroke: 'currentColor', strokeOpacity: 0.15 } },
     },
-  },
-} as const
+    grid: { line: { stroke: 'currentColor', strokeOpacity: 0.08 } },
+    legends: { text: { fill: 'currentColor', fontSize } },
+    labels: { text: { fontSize, fontWeight: 600 } },
+    tooltip: {
+      container: {
+        background: 'var(--color-popover)',
+        color: 'var(--color-popover-foreground)',
+        fontSize: 12,
+      },
+    },
+  } as const
+}
+
+const THEME = nivoTheme(11)
+const TV_THEME = nivoTheme(16)
 
 function Empty({ message }: { message: string }) {
   return (
@@ -65,21 +87,85 @@ function Empty({ message }: { message: string }) {
 function useChartRows(
   workspaceId: string,
   source: ChartConfig['source'],
+  refreshKey: number,
 ): {
   items: Row[]
   isLoading: boolean
 } {
   const path = source === 'socials' ? '' : sourceResource(source)
-  const { items, isLoading } = useResourceList<Row>(
-    workspaceId,
-    path || 'crm/companies',
-  )
+  const { items, isLoading } = useDashboardRows(workspaceId, path, refreshKey)
   const derived = React.useMemo(
     () => withDerivedFields(source, items),
     [source, items],
   )
   if (source === 'socials') return { items: [], isLoading: false }
   return { items: derived, isLoading }
+}
+
+/**
+ * Número único (chart "aggregate"). No modo TV o número escala com o
+ * tamanho do bloco (container query) — legível do outro lado da sala em
+ * 1080p ou 4K.
+ */
+export function AggregateTile({
+  value,
+  config,
+  changePct,
+  tv,
+}: {
+  value: number
+  config: ChartConfig
+  changePct: number | null
+  tv: boolean
+}) {
+  const formatted = formatAggregate(value, config)
+  const isUp = changePct !== null && changePct >= 0
+  const caption = tv ? null : config.xAxisName
+  return (
+    <div
+      className='flex h-full flex-col items-center justify-center text-muted-foreground'
+      style={tv ? { containerType: 'size' } : undefined}
+    >
+      <span
+        data-testid='aggregate-value'
+        className={cn(
+          'font-heading font-semibold text-foreground tabular-nums leading-none',
+          !tv && 'text-4xl',
+        )}
+        style={{
+          ...(config.color ? { color: config.color } : {}),
+          ...(tv ? { fontSize: 'min(62cqh, 26cqw)' } : {}),
+        }}
+      >
+        {config.prefix}
+        {formatted}
+        {config.suffix}
+      </span>
+      {caption ? (
+        <span className='mt-1 text-xs uppercase tracking-wide'>{caption}</span>
+      ) : null}
+      {changePct !== null ? (
+        <span
+          className={cn(
+            'mt-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium',
+            tv ? 'text-[max(0.9rem,7cqh)]' : 'text-xs',
+            isUp
+              ? 'bg-emerald-500/15 text-emerald-500'
+              : 'bg-rose-500/15 text-rose-500',
+          )}
+        >
+          <SteelIcon
+            icon={isUp ? ArrowUp01Icon : ArrowDown01Icon}
+            className={tv ? 'size-[1em]' : 'size-3'}
+          />
+          {new Intl.NumberFormat('pt-BR', {
+            maximumFractionDigits: 1,
+          }).format(Math.abs(changePct))}
+          %
+        </span>
+      ) : null}
+    </div>
+  )
 }
 
 export function ChartWidget({
@@ -89,7 +175,15 @@ export function ChartWidget({
   workspaceId: string
   config: ChartConfig
 }) {
-  const { items, isLoading } = useChartRows(workspaceId, config.source)
+  const { variant, refreshKey } = useDashboardDisplay()
+  const tv = variant === 'tv'
+  const theme = tv ? TV_THEME : THEME
+  const palette = tv ? TV_COLORS : COLORS
+  const { items, isLoading } = useChartRows(
+    workspaceId,
+    config.source,
+    refreshKey,
+  )
 
   const data = React.useMemo(
     () => aggregateChart(items, config),
@@ -117,42 +211,13 @@ export function ChartWidget({
 
   /* -------------------------------- aggregate ------------------------------ */
   if (config.chartType === 'aggregate') {
-    const displayValue = compare ? compare.current : total
-    const formatted = new Intl.NumberFormat('pt-BR').format(displayValue)
-    const changePct = compare?.changePct ?? null
-    const isUp = changePct !== null && changePct >= 0
     return (
-      <div className='flex h-full flex-col items-center justify-center text-muted-foreground'>
-        <span className='font-heading font-semibold text-4xl text-foreground tabular-nums'>
-          {config.prefix}
-          {formatted}
-          {config.suffix}
-        </span>
-        {config.xAxisName ? (
-          <span className='mt-1 text-xs uppercase tracking-wide'>
-            {config.xAxisName}
-          </span>
-        ) : null}
-        {changePct !== null ? (
-          <span
-            className={
-              'mt-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium text-xs ' +
-              (isUp
-                ? 'bg-emerald-500/15 text-emerald-600'
-                : 'bg-rose-500/15 text-rose-600')
-            }
-          >
-            <SteelIcon
-              icon={isUp ? ArrowUp01Icon : ArrowDown01Icon}
-              className='size-3'
-            />
-            {new Intl.NumberFormat('pt-BR', {
-              maximumFractionDigits: 1,
-            }).format(Math.abs(changePct))}
-            %
-          </span>
-        ) : null}
-      </div>
+      <AggregateTile
+        value={compare ? compare.current : total}
+        config={config}
+        changePct={compare?.changePct ?? null}
+        tv={tv}
+      />
     )
   }
 
@@ -181,11 +246,20 @@ export function ChartWidget({
    * dela, para nunca ultrapassar a margem reservada (o que antes causava
    * sobreposição/corte de texto).
    */
-  const TICK_SPACE_X = 24
-  const AXIS_NAME_SPACE_X = 20
-  const SERIES_LEGEND_SPACE = 24
-  const TICK_SPACE_Y = 32
-  const AXIS_NAME_SPACE_Y = 20
+  const scale = tv ? 1.5 : 1
+  const TICK_SPACE_X = 24 * scale
+  const AXIS_NAME_SPACE_X = 20 * scale
+  const SERIES_LEGEND_SPACE = 24 * scale
+  // Barra horizontal: as categorias (ex.: nomes de agentes) ficam à
+  // esquerda — reserva a largura do rótulo mais longo (com teto).
+  const longestLabel = data.categories.reduce(
+    (max, category) => Math.max(max, category.length),
+    0,
+  )
+  const TICK_SPACE_Y = isHorizontal
+    ? Math.min(Math.max(32, longestLabel * 6.5 * scale + 12), 220 * scale)
+    : 32 * scale
+  const AXIS_NAME_SPACE_Y = 20 * scale
 
   const bottomMargin =
     TICK_SPACE_X +
@@ -205,8 +279,8 @@ export function ChartWidget({
           anchor: 'bottom' as const,
           direction: 'row' as const,
           translateY: seriesLegendTranslateY,
-          itemWidth: 80,
-          itemHeight: 16,
+          itemWidth: 80 * scale,
+          itemHeight: 16 * scale,
           symbolSize: 10,
         },
       ]
@@ -236,12 +310,12 @@ export function ChartWidget({
           innerRadius={0.5}
           padAngle={1}
           cornerRadius={3}
-          colors={COLORS}
+          colors={palette}
           borderWidth={0}
           enableArcLinkLabels={false}
           enableArcLabels={config.dataLabels}
           arcLabelsTextColor='#fff'
-          theme={THEME}
+          theme={theme}
           legends={
             config.legend
               ? [
@@ -280,7 +354,7 @@ export function ChartWidget({
             bottom: bottomMargin,
             left: leftMargin,
           }}
-          colors={COLORS}
+          colors={palette}
           curve='monotoneX'
           enableArea={config.stacked}
           areaOpacity={0.15}
@@ -307,7 +381,7 @@ export function ChartWidget({
             legendPosition: 'middle',
             legendOffset: axisLeftLegendOffset,
           }}
-          theme={THEME}
+          theme={theme}
           legends={legends}
         />
       </div>
@@ -333,7 +407,7 @@ export function ChartWidget({
         groupMode={config.stacked ? 'stacked' : 'grouped'}
         margin={{ top: 12, right: 16, bottom: bottomMargin, left: leftMargin }}
         padding={0.3}
-        colors={COLORS}
+        colors={palette}
         borderRadius={3}
         enableLabel={config.dataLabels}
         valueScale={{
@@ -355,7 +429,7 @@ export function ChartWidget({
           legendPosition: 'middle',
           legendOffset: axisLeftLegendOffset,
         }}
-        theme={THEME}
+        theme={theme}
         legends={legends}
       />
     </div>

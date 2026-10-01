@@ -96,6 +96,7 @@ export type AuditEntity =
   | 'sd_seed'
   // ServiceDesk — chamados
   | 'sd_ticket'
+  | 'sd_ticket_csat'
   | 'sd_saved_view'
   | 'sd_customer'
   | 'sd_contact'

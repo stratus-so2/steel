@@ -9,10 +9,18 @@ import {
   Table01Icon,
   TextFontIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  SD_SOURCE_FIELDS,
+  SD_SOURCE_LABELS,
+  SD_SOURCE_PATH,
+} from '@/app/_components/servicedesk/dashboards/sd-source-fields'
 import type {
+  Aggregation,
   ChartSource,
   ChartType,
   CompareRange,
+  DateBucket,
+  Period,
   SocialMetric,
   ViewSource,
   WidgetType,
@@ -150,6 +158,7 @@ export const VIEW_SOURCE_FIELDS: Record<ViewSource, ViewField[]> = {
     { key: 'scheduledAt', label: 'Agendado para' },
     { key: 'createdAt', label: 'Criado em' },
   ],
+  ...SD_SOURCE_FIELDS,
 }
 
 export const VIEW_SOURCE_LABELS: Record<ViewSource, string> = {
@@ -163,6 +172,7 @@ export const VIEW_SOURCE_LABELS: Record<ViewSource, string> = {
   'landing-pages': 'Landing pages',
   'whatsapp-conversations': 'Conversas do WhatsApp',
   'whatsapp-broadcasts': 'Transmissões do WhatsApp',
+  ...SD_SOURCE_LABELS,
 }
 
 /** Labels do chart: view sources + "socials". */
@@ -173,7 +183,10 @@ export const CHART_SOURCE_LABELS: Record<ChartSource, string> = {
 
 /** Módulo dono de cada fonte — usado pra filtrar o dropdown por contexto
  * (um dashboard do CRM não deve oferecer fontes do WhatsApp, e vice-versa). */
-export const SOURCE_MODULE: Record<ViewSource, 'CRM' | 'COMMUNICATION'> = {
+export const SOURCE_MODULE: Record<
+  ViewSource,
+  'CRM' | 'COMMUNICATION' | 'SERVICE_DESK'
+> = {
   companies: 'CRM',
   people: 'CRM',
   opportunities: 'CRM',
@@ -184,6 +197,38 @@ export const SOURCE_MODULE: Record<ViewSource, 'CRM' | 'COMMUNICATION'> = {
   'landing-pages': 'CRM',
   'whatsapp-conversations': 'COMMUNICATION',
   'whatsapp-broadcasts': 'COMMUNICATION',
+  'sd-tickets': 'SERVICE_DESK',
+  'sd-ticket-costs': 'SERVICE_DESK',
+  'sd-ticket-events': 'SERVICE_DESK',
+  'sd-kb-articles': 'SERVICE_DESK',
+}
+
+/** Módulo do dashboard pelo segmento de API (`crm`, `whatsapp`, `servicedesk`). */
+export function moduleOfBasePath(
+  basePath: string,
+): 'CRM' | 'COMMUNICATION' | 'SERVICE_DESK' {
+  if (basePath === 'servicedesk') return 'SERVICE_DESK'
+  if (basePath === 'whatsapp') return 'COMMUNICATION'
+  return 'CRM'
+}
+
+/**
+ * Fontes oferecidas no seletor: dashboards do ServiceDesk só veem as fontes
+ * do ServiceDesk; CRM e Comunicação mantêm as fontes de ambos (sem as do
+ * ServiceDesk).
+ */
+export function sourcesForBasePath<S extends ChartSource>(
+  sources: readonly S[],
+  basePath: string,
+): S[] {
+  const module = moduleOfBasePath(basePath)
+  return sources.filter((source) => {
+    const owner =
+      source === 'socials' ? 'CRM' : SOURCE_MODULE[source as ViewSource]
+    return module === 'SERVICE_DESK'
+      ? owner === 'SERVICE_DESK'
+      : owner !== 'SERVICE_DESK'
+  })
 }
 
 /** Caminho de API por fonte (após `/api/workspaces/<id>/`). */
@@ -198,6 +243,7 @@ const SOURCE_PATH: Record<ViewSource, string> = {
   'landing-pages': 'crm/landing-pages',
   'whatsapp-conversations': 'whatsapp/conversations',
   'whatsapp-broadcasts': 'whatsapp/broadcasts',
+  ...SD_SOURCE_PATH,
 }
 
 /** Traduz a fonte (valor do enum) para o caminho de API completo. */
@@ -218,4 +264,28 @@ export const SOCIAL_METRIC_LABELS: Record<SocialMetric, string> = {
   clicks: 'Cliques (Ads)',
   conversions: 'Conversões (Ads)',
   cost: 'Investimento (Ads)',
+}
+
+export const AGGREGATION_LABELS: Record<Aggregation, string> = {
+  auto: 'Automático (soma ou contagem)',
+  count: 'Contagem de registros',
+  sum: 'Soma',
+  avg: 'Média',
+  min: 'Mínimo',
+  max: 'Máximo',
+}
+
+export const DATE_BUCKET_LABELS: Record<DateBucket, string> = {
+  day: 'Por dia',
+  week: 'Por semana',
+  month: 'Por mês',
+}
+
+export const PERIOD_LABELS: Record<Period, string> = {
+  today: 'Hoje',
+  '7d': 'Últimos 7 dias',
+  '30d': 'Últimos 30 dias',
+  '90d': 'Últimos 90 dias',
+  month: 'Mês atual',
+  year: 'Ano atual',
 }

@@ -1,11 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import { useDashboardDisplay } from '@/app/_components/crm/dashboard/dashboard-display'
+import { useDashboardRows } from '@/app/_components/crm/dashboard/use-dashboard-rows'
 import {
   formatValue,
-  passesFilters,
-  type Row,
-  sortRows,
+  viewRows,
   withDerivedFields,
 } from '@/app/_components/crm/dashboard/widget-data'
 import {
@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useResourceList } from '@/src/hooks/use-crm-resource-list'
+import { cn } from '@/lib/utils'
 import type { ViewConfig } from '@/src/schemas/crm-dashboard.schema'
 
 export function ViewWidget({
@@ -30,24 +30,27 @@ export function ViewWidget({
   workspaceId: string
   config: ViewConfig
 }) {
-  const { items, isLoading } = useResourceList<Row>(
+  const { variant, refreshKey } = useDashboardDisplay()
+  const tv = variant === 'tv'
+  const { items, isLoading } = useDashboardRows(
     workspaceId,
     sourceResource(config.source),
+    refreshKey,
   )
 
   const fields = React.useMemo(() => {
     const all = VIEW_SOURCE_FIELDS[config.source] ?? []
     if (config.fields.length === 0) return all
-    return all.filter((field) => config.fields.includes(field.key))
+    // Respeita a ordem escolhida na config (a TV mostra as colunas nessa ordem).
+    return config.fields
+      .map((key) => all.find((field) => field.key === key))
+      .filter((field): field is (typeof all)[number] => Boolean(field))
   }, [config.source, config.fields])
 
-  const rows = React.useMemo(() => {
-    const enriched = withDerivedFields(config.source, items)
-    const filtered = enriched.filter((row) =>
-      passesFilters(row, config.filters),
-    )
-    return sortRows(filtered, config)
-  }, [items, config])
+  const rows = React.useMemo(
+    () => viewRows(withDerivedFields(config.source, items), config),
+    [items, config],
+  )
 
   if (isLoading) {
     return (
@@ -59,7 +62,12 @@ export function ViewWidget({
 
   if (rows.length === 0) {
     return (
-      <div className='flex h-full items-center justify-center text-muted-foreground text-sm'>
+      <div
+        className={cn(
+          'flex h-full items-center justify-center text-muted-foreground',
+          tv ? 'text-2xl' : 'text-sm',
+        )}
+      >
         Nenhum registro.
       </div>
     )
@@ -67,11 +75,22 @@ export function ViewWidget({
 
   return (
     <div className='h-full overflow-auto'>
-      <Table containerClassName='overflow-x-visible'>
-        <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md'>
+      <Table
+        containerClassName='overflow-x-visible'
+        className={cn(tv && 'text-[clamp(1rem,1.1vw,2.2rem)]')}
+      >
+        <TableHeader
+          className={cn(
+            'sticky top-0 z-10 backdrop-blur-md',
+            tv ? 'bg-zinc-900/90' : 'bg-card/85',
+          )}
+        >
           <TableRow>
             {fields.map((field) => (
-              <TableHead key={field.key} className='whitespace-nowrap'>
+              <TableHead
+                key={field.key}
+                className={cn('whitespace-nowrap', tv && 'h-auto py-2')}
+              >
                 {field.label}
               </TableHead>
             ))}
@@ -81,7 +100,10 @@ export function ViewWidget({
           {rows.map((row) => (
             <TableRow key={String(row.id)}>
               {fields.map((field) => (
-                <TableCell key={field.key} className='whitespace-nowrap'>
+                <TableCell
+                  key={field.key}
+                  className={cn('whitespace-nowrap', tv && 'py-2.5')}
+                >
                   {formatValue(row[field.key])}
                 </TableCell>
               ))}
