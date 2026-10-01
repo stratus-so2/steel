@@ -36,6 +36,25 @@ export function sdTicketNotificationHref(slug: string, number: number): string {
 }
 
 /**
+ * Hora local (0–23) de `at` no fuso `timeZone` — usada pelo resumo diário,
+ * que roda de hora em hora e só dispara na hora combinada do workspace.
+ * Fuso inválido cai no horário UTC.
+ */
+export function sdLocalHour(at: Date, timeZone: string): number {
+  try {
+    return Number(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        hour: '2-digit',
+      }).format(at),
+    )
+  } catch {
+    return at.getUTCHours()
+  }
+}
+
+/**
  * Chamado (p. ex. `SdTicketWithRelations`, ou o recorte da aprovação
  * pública) → o que o motor usa.
  */

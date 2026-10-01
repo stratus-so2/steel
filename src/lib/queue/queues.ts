@@ -26,6 +26,8 @@ import {
   QueueName,
   type ServicedeskAiJob,
   type ServicedeskAiJobPayload,
+  type ServicedeskDigestJob,
+  type ServicedeskDigestJobPayload,
   type ServicedeskSlaJob,
   type ServicedeskSlaJobPayload,
   type StatusCollectJob,
@@ -77,6 +79,7 @@ let statusCollectQueue: Queue | null = null
 let usageRollupQueue: Queue | null = null
 let servicedeskSlaQueue: Queue | null = null
 let servicedeskAiQueue: Queue | null = null
+let servicedeskDigestQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -499,6 +502,33 @@ export function getServicedeskAiQueue(): Queue<
   >
 }
 
+/**
+ * Resumo diário: sem retry. O tick é horário e só dispara na hora local
+ * combinada do workspace — repetir um job que já enviou resumos mandaria
+ * e-mail duplicado.
+ */
+export function getServicedeskDigestQueue(): Queue<
+  ServicedeskDigestJobPayload[ServicedeskDigestJob],
+  unknown,
+  ServicedeskDigestJob
+> {
+  if (!servicedeskDigestQueue) {
+    servicedeskDigestQueue = new Queue(QueueName.ServicedeskDigest, {
+      connection: getQueueConnection(),
+      defaultJobOptions: {
+        removeOnComplete: { age: 60 * 60 * 24 * 7, count: 100 },
+        removeOnFail: { age: 60 * 60 * 24 * 7 },
+        attempts: 1,
+      },
+    })
+  }
+  return servicedeskDigestQueue as Queue<
+    ServicedeskDigestJobPayload[ServicedeskDigestJob],
+    unknown,
+    ServicedeskDigestJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -523,6 +553,7 @@ export async function closeQueues(): Promise<void> {
     usageRollupQueue?.close(),
     servicedeskSlaQueue?.close(),
     servicedeskAiQueue?.close(),
+    servicedeskDigestQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -545,4 +576,5 @@ export async function closeQueues(): Promise<void> {
   usageRollupQueue = null
   servicedeskSlaQueue = null
   servicedeskAiQueue = null
+  servicedeskDigestQueue = null
 }
