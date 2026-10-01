@@ -4,24 +4,34 @@ import { logger } from '@/lib/axiom/logger'
 import { sdMailboxConflict, sdMailboxNotFound } from '@/src/errors'
 import { encryptConnectionSecret } from '@/src/lib/crypto'
 import { err, ok, type Result } from '@/src/lib/result'
+import { enqueueSdMailboxSync } from '@/src/lib/servicedesk/mail-queue'
 import {
   type SdImapConfig,
   type SdSmtpConfig,
   verifySdImap,
   verifySdSmtp,
 } from '@/src/lib/servicedesk/mail-transport'
-import { toSdMailboxDTO } from '@/src/mappers/sd-mailbox.mapper'
+import {
+  toSdMailboxDTO,
+  toSdTicketMailMessageDTO,
+} from '@/src/mappers/sd-mailbox.mapper'
 import {
   SdMailboxRepository,
   type SdMailboxRow,
+  SdMailMessageRepository,
 } from '@/src/repositories/sd-mailbox.repository'
 import type {
   CreateSdMailboxDTO,
   UpdateSdMailboxDTO,
 } from '@/src/schemas/sd-mailbox.schema'
-import type { SdMailboxDTO, SdMailboxTestDTO } from '@/types/sd-mailbox'
+import type {
+  SdMailboxDTO,
+  SdMailboxTestDTO,
+  SdTicketMailMessageDTO,
+} from '@/types/sd-mailbox'
 import { SdAccess } from './sd-access'
 import { decryptSdMailbox } from './sd-mail-credentials'
+import { loadSdTicketTab } from './sd-ticket-tab-support'
 
 /**
  * Caixas de e-mail do ServiceDesk: cadastro só pelos admins do módulo
@@ -241,6 +251,8 @@ export const SdMailboxService = {
       workspaceId,
       mailboxId: saved.value.id,
     })
+    // Adianta a primeira leitura (o tick de 1 min pegaria logo depois).
+    void enqueueSdMailboxSync(saved.value.id)
     return ok(toSdMailboxDTO(saved.value))
   },
 
@@ -327,5 +339,24 @@ export const SdMailboxService = {
       messages: result.messages,
       smtp: result.smtp,
     })
+  },
+
+  /**
+   * E-mails trocados num chamado, para o histórico marcar de quem veio e
+   * com que assunto. Mesma visibilidade do chamado (agente ou solicitante
+   * dono) — a rota do chamado já é por id, número ou código.
+   */
+  async listTicketMail(
+    actorId: string,
+    workspaceId: string,
+    ticketRef: string,
+  ): Promise<Result<SdTicketMailMessageDTO[]>> {
+    const scope = await loadSdTicketTab(actorId, workspaceId, ticketRef, 'VIEW')
+    if (!scope.ok) return scope
+    const rows = await SdMailMessageRepository.listByTicket(
+      scope.value.ticket.id,
+    )
+    if (!rows.ok) return rows
+    return ok(rows.value.map(toSdTicketMailMessageDTO))
   },
 }

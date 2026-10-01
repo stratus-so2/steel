@@ -21,6 +21,7 @@ export const QueueName = {
   UsageRollup: 'usage-rollup',
   ServicedeskSla: 'servicedesk-sla',
   ServicedeskAi: 'servicedesk-ai',
+  ServicedeskMail: 'servicedesk-mail',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -374,4 +375,23 @@ export type ServicedeskAiJobPayload = {
     conversationId: string
     messageId: string
   }
+}
+
+/**
+ * Canal de e-mail do ServiceDesk (1×/min): lê por IMAP as caixas ativas
+ * (`SdMailbox`) e abre/atualiza chamados com o que chegou
+ * (`SdMailInboundService`). `SyncMailbox` é a leitura de uma caixa só,
+ * enfileirada pela tela de configurações.
+ */
+export const ServicedeskMailJob = {
+  PollMailboxes: 'poll-mailboxes',
+  SyncMailbox: 'sync-mailbox',
+} as const
+
+export type ServicedeskMailJob =
+  (typeof ServicedeskMailJob)[keyof typeof ServicedeskMailJob]
+
+export type ServicedeskMailJobPayload = {
+  [ServicedeskMailJob.PollMailboxes]: Record<string, never>
+  [ServicedeskMailJob.SyncMailbox]: { mailboxId: string }
 }
