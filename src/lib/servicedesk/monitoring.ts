@@ -1,6 +1,12 @@
 import { createHash } from 'node:crypto'
 import type { SdMonitorSeverityMapEntryDTO } from '@/src/schemas/sd-monitor-source.schema'
 
+export {
+  SD_GENERIC_PAYLOAD_EXAMPLE,
+  SD_ZABBIX_MEDIA_TYPE_FIELDS,
+  sdZabbixPayloadExample,
+} from './monitor-fields'
+
 /**
  * Leitura do alerta que chega na entrada pública de monitoramento.
  *
@@ -42,28 +48,6 @@ export interface SdMonitorEvent {
   tags: string[]
   /** Início informado pela origem (`null` = usa a hora do recebimento). */
   startedAt: Date | null
-}
-
-export const SD_ZABBIX_MEDIA_TYPE_FIELDS = [
-  ['eventId', '{EVENT.ID}'],
-  ['eventValue', '{EVENT.VALUE}'],
-  ['eventStatus', '{EVENT.STATUS}'],
-  ['eventName', '{EVENT.NAME}'],
-  ['eventSeverity', '{EVENT.SEVERITY}'],
-  ['eventDate', '{EVENT.DATE}'],
-  ['eventTime', '{EVENT.TIME}'],
-  ['eventTags', '{EVENT.TAGS}'],
-  ['hostName', '{HOST.NAME}'],
-  ['hostIp', '{HOST.IP}'],
-  ['message', '{ALERT.MESSAGE}'],
-] as const
-
-/** Corpo que o script do tipo de mídia do Zabbix deve enviar. */
-export function sdZabbixPayloadExample(): string {
-  const body = SD_ZABBIX_MEDIA_TYPE_FIELDS.map(
-    ([field, macro]) => `  "${field}": "${macro}"`,
-  ).join(',\n')
-  return `{\n${body}\n}`
 }
 
 const MAX_SUBJECT = 200

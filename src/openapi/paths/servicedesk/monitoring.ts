@@ -1,5 +1,9 @@
 import { z } from 'zod'
 import {
+  SD_GENERIC_PAYLOAD_EXAMPLE,
+  sdZabbixPayloadExample,
+} from '@/src/lib/servicedesk/monitor-fields'
+import {
   CreateSdMonitorSourceSchema,
   ListSdMonitorAlertsSchema,
   ListSdMonitorSourcesSchema,
@@ -61,22 +65,16 @@ const SOURCE_PARAM = {
 const ZABBIX_SCRIPT = `Cole no script do tipo de mídia "Webhook" do Zabbix:
 
 \`\`\`json
-{
-  "eventId": "{EVENT.ID}",
-  "eventValue": "{EVENT.VALUE}",
-  "eventStatus": "{EVENT.STATUS}",
-  "eventName": "{EVENT.NAME}",
-  "eventSeverity": "{EVENT.SEVERITY}",
-  "eventDate": "{EVENT.DATE}",
-  "eventTime": "{EVENT.TIME}",
-  "eventTags": "{EVENT.TAGS}",
-  "hostName": "{HOST.NAME}",
-  "hostIp": "{HOST.IP}",
-  "message": "{ALERT.MESSAGE}"
-}
+${sdZabbixPayloadExample()}
 \`\`\`
 
-O formato genérico é \`{ externalId, status, severity, host, subject, body, tags, startedAt }\`, com \`status\` em \`PROBLEM\`/\`FIRING\` ou \`OK\`/\`RESOLVED\`. Sem \`externalId\`, a chave de deduplicação é o SHA-256 de \`host|assunto\`.`
+O formato genérico é:
+
+\`\`\`json
+${SD_GENERIC_PAYLOAD_EXAMPLE}
+\`\`\`
+
+com \`status\` em \`PROBLEM\`/\`FIRING\` ou \`OK\`/\`RESOLVED\`. Sem \`externalId\`, a chave de deduplicação é o SHA-256 de \`host|assunto\`.`
 
 export const sdMonitoringRoutes: RouteConfig[] = [
   {

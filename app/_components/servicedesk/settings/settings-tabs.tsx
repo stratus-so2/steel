@@ -12,6 +12,7 @@ import {
   FormIcon,
   Layers01Icon,
   Message01Icon,
+  RadarIcon,
   Settings02Icon,
   Tag01Icon,
   WhatsappIcon,
@@ -28,6 +29,7 @@ import { SdDepartmentsTab } from './departments-tab'
 import { SdEscalationTab } from './escalation-tab'
 import { SdFlowsTab } from './flows-tab'
 import { SdGeneralTab } from './general-tab'
+import { SdMonitoringTab } from './monitoring-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdSlaTab } from './sla-tab'
@@ -151,6 +153,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     icon: BoxIcon,
     description: 'Catálogo de peças e custos unitários.',
     component: SdPartsTab,
+  },
+  {
+    id: 'monitoring',
+    label: 'Monitoramento',
+    icon: RadarIcon,
+    description:
+      'Origens que abrem chamado sozinhas (Zabbix ou webhook genérico): URL com token, mapa severidade → prioridade, encerramento automático na normalização e alertas recebidos.',
+    component: SdMonitoringTab,
   },
   {
     id: 'whatsapp',
