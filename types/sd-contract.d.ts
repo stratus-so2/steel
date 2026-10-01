@@ -57,7 +57,7 @@ export interface SdContractCustomerSummaryDTO {
 export interface SdContractDTO {
   id: string
   workspaceId: string
-  customer: SdContractCustomerSummaryDTO | null
+  customer: SdContractCustomerSummaryDTO
   name: string
   code: string | null
   status: SdContractStatusDTO
@@ -79,7 +79,7 @@ export interface SdContractDTO {
   rates: SdContractRateDTO[]
   /** Período aberto do ciclo corrente, quando já existe. */
   currentPeriod: SdContractPeriodDTO | null
-  createdBy: SdUserSummaryDTO | null
+  createdBy: SdUserSummaryDTO
   createdAt: string
   updatedAt: string
 }

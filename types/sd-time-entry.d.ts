@@ -9,7 +9,7 @@ export interface SdTimeEntryDTO {
   contractId: string | null
   periodId: string | null
   source: SdTimeEntrySourceDTO
-  user: SdUserSummaryDTO | null
+  user: SdUserSummaryDTO
   /** ISO 8601. `endedAt` nulo = cronômetro em andamento. */
   startedAt: string
   endedAt: string | null
