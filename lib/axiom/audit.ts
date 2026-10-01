@@ -101,6 +101,14 @@ export type AuditEntity =
   | 'sd_contact'
   | 'sd_config_item'
   | 'sd_config_item_type'
+  // ServiceDesk — abas do chamado
+  | 'sd_ticket_message'
+  | 'sd_ticket_attachment'
+  | 'sd_ticket_task'
+  | 'sd_ticket_cost'
+  | 'sd_ticket_part'
+  | 'sd_ticket_approval'
+  | 'sd_ticket_signature'
 
 export type AuditAction =
   | 'create'
@@ -144,6 +152,10 @@ export type AuditAction =
   | 'resolve'
   | 'unresolve'
   | 'escalate'
+  | 'respond'
+  | 'sign'
+  | 'reorder'
+  | 'verify'
 
 type AuditOutcome = 'success' | 'failure'
 

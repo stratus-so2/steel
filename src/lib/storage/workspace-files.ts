@@ -58,11 +58,14 @@ export const WORKSPACE_BUCKETS: readonly WorkspaceBucket[] = [
   },
   {
     // ServiceDesk (privado): mídia da base de conhecimento em
-    // `<ws>/kb/<articleId>/...`; anexos e assinaturas dos chamados também
-    // gravam aqui, sempre com o workspace na frente da chave.
+    // `<ws>/kb/<articleId>/...`, anexos dos chamados em
+    // `<ws>/tickets/<ticketId>/<cuid>-<nome>` e assinaturas em
+    // `<ws>/tickets/<ticketId>/signatures/<cuid>.png` — sempre com o
+    // workspace na frente da chave.
     name: 'servicedesk',
     public: false,
-    writtenBy: 'src/services/sd-kb-media.service.ts',
+    writtenBy:
+      'src/services/sd-kb-media.service.ts, src/services/sd-ticket-attachment.service.ts, src/services/sd-ticket-signature.service.ts',
   },
 ] as const
 

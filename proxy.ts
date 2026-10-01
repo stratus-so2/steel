@@ -18,7 +18,9 @@ const PUBLIC_ROUTES = [
   '/api/crm/integrations', '/api/crm/workflows', '/api/crm/landing-pages',
   '/f', '/p', '/l', '/api/social/blob',
   // Descadastro LGPD de campanhas de e-mail: link sem sessão (token HMAC)
-  '/unsubscribe', '/api/crm/unsubscribe'
+  '/unsubscribe', '/api/crm/unsubscribe',
+  // Aprovação de chamado do ServiceDesk por e-mail: link sem sessão (token)
+  '/servicedesk/approval', '/api/servicedesk/approvals'
 ]
 
 function buildCspHeader(nonce: string): string {

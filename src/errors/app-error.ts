@@ -816,3 +816,30 @@ export const sdWhatsappNotConfigured = (
 export const sdAiDisabled = (
   message = 'O agente de IA do ServiceDesk está desativado',
 ): AppError => appError('SD_AI_DISABLED', message)
+
+export const sdMessageNotFound = (): AppError =>
+  appError('SD_MESSAGE_NOT_FOUND', 'Mensagem não encontrada')
+
+export const sdMessageForbidden = (
+  message = 'Só o autor altera a mensagem, em até 15 minutos',
+): AppError => appError('SD_MESSAGE_FORBIDDEN', message)
+
+export const sdTaskNotFound = (): AppError =>
+  appError('SD_TASK_NOT_FOUND', 'Tarefa não encontrada')
+
+export const sdCostNotFound = (): AppError =>
+  appError('SD_COST_NOT_FOUND', 'Custo não encontrado')
+
+export const sdTicketPartNotFound = (): AppError =>
+  appError('SD_TICKET_PART_NOT_FOUND', 'Peça do chamado não encontrada')
+
+export const sdPartStatusInvalid = (
+  message = 'Mudança de status da peça não permitida',
+): AppError => appError('SD_PART_STATUS_INVALID', message)
+
+export const sdPartOutOfStock = (
+  message = 'Estoque insuficiente para instalar a peça',
+): AppError => appError('SD_PART_OUT_OF_STOCK', message)
+
+export const sdSignatureNotFound = (): AppError =>
+  appError('SD_SIGNATURE_NOT_FOUND', 'Assinatura não encontrada')

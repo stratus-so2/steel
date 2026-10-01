@@ -188,6 +188,21 @@ export const TAG_GROUPS = [
           'Chamados ITIL (incidente, requisição, mudança, problema): abertura, quadro kanban, fases, SLA, participantes, escalonamento, rastreabilidade e tempo real. Agentes veem todos; solicitantes só os próprios.',
       },
       {
+        name: 'ServiceDesk · Histórico e anexos',
+        description:
+          'Chat do chamado: mensagens públicas e notas internas (só agentes), edição/exclusão pelo autor em até 15 minutos e anexos (imagem, vídeo, áudio, documento — até 25 MB, bucket privado servido por rota autenticada).',
+      },
+      {
+        name: 'ServiceDesk · Execução do atendimento',
+        description:
+          'Tarefas com responsável, prazo e ordem; custos por categoria (faturável ou não); peças do catálogo ou texto livre com fluxo de status e baixa de estoque. Só agentes.',
+      },
+      {
+        name: 'ServiceDesk · Aprovações e assinaturas',
+        description:
+          'Pedidos de aprovação por e-mail com link público (token de uso único guardado como SHA-256; a primeira resposta decide) e assinaturas digitais (PNG + SHA-256 da imagem e de um snapshot do chamado).',
+      },
+      {
         name: 'ServiceDesk · Visões salvas',
         description:
           'Filtros, colunas e modo (kanban/lista/tabela) salvos do quadro de chamados — pessoais ou compartilhados.',

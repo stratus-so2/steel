@@ -460,6 +460,14 @@ export const ERROR_CODES = {
     status: 422,
   },
   SD_AI_DISABLED: { code: 'SD_AI_DISABLED', status: 403 },
+  SD_MESSAGE_NOT_FOUND: { code: 'SD_MESSAGE_NOT_FOUND', status: 404 },
+  SD_MESSAGE_FORBIDDEN: { code: 'SD_MESSAGE_FORBIDDEN', status: 403 },
+  SD_TASK_NOT_FOUND: { code: 'SD_TASK_NOT_FOUND', status: 404 },
+  SD_COST_NOT_FOUND: { code: 'SD_COST_NOT_FOUND', status: 404 },
+  SD_TICKET_PART_NOT_FOUND: { code: 'SD_TICKET_PART_NOT_FOUND', status: 404 },
+  SD_PART_STATUS_INVALID: { code: 'SD_PART_STATUS_INVALID', status: 422 },
+  SD_PART_OUT_OF_STOCK: { code: 'SD_PART_OUT_OF_STOCK', status: 409 },
+  SD_SIGNATURE_NOT_FOUND: { code: 'SD_SIGNATURE_NOT_FOUND', status: 404 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
