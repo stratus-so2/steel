@@ -131,7 +131,7 @@ describe('/api/workspaces/[id]/notifications', () => {
       `/api/workspaces/${workspace.id}/notifications?folder=spam`,
       user.cookie,
     )
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(422)
   })
 })
 
@@ -266,7 +266,7 @@ describe('POST /api/workspaces/[id]/notifications/actions', () => {
       { action: 'spam', ids: [] },
       user.cookie,
     )
-    expect(invalid.status).toBe(400)
+    expect(invalid.status).toBe(422)
 
     const forbidden = await postJson(
       url,

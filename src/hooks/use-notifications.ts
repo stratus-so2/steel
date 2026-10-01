@@ -189,6 +189,47 @@ export function useNotificationTicketSummary(
 }
 
 /**
+ * Uma conexão SSE por workspace, compartilhada entre quem chamar o hook (o
+ * botão do cabeçalho e a caixa de entrada ficam montados ao mesmo tempo). O
+ * contador de assinantes fecha o `EventSource` quando o último sai.
+ */
+const streams = new Map<
+  string,
+  { source: EventSource; listeners: Set<() => void> }
+>()
+
+function subscribeToStream(
+  workspaceId: string,
+  onEvent: () => void,
+): () => void {
+  let stream = streams.get(workspaceId)
+  if (!stream) {
+    const source = new EventSource(
+      `/api/workspaces/${workspaceId}/notifications/events`,
+    )
+    stream = { source, listeners: new Set() }
+    source.onmessage = () => {
+      for (const listener of stream?.listeners ?? []) listener()
+    }
+    // Erro de rede: o próprio EventSource reconecta; nada a fazer aqui além
+    // de não derrubar a tela.
+    source.onerror = () => undefined
+    streams.set(workspaceId, stream)
+  }
+
+  const current = stream
+  current.listeners.add(onEvent)
+
+  return () => {
+    current.listeners.delete(onEvent)
+    if (current.listeners.size === 0) {
+      current.source.close()
+      streams.delete(workspaceId)
+    }
+  }
+}
+
+/**
  * Tempo real: SSE genérico `/notifications/events`. Qualquer notificação nova
  * do usuário invalida as queries de notificação, então a lista e o contador
  * do cabeçalho se atualizam sem recarregar. Ambiente sem `EventSource`
@@ -203,18 +244,10 @@ export function useNotificationStream(workspaceId: string | undefined) {
       return
     }
 
-    const source = new EventSource(
-      `/api/workspaces/${workspaceId}/notifications/events`,
-    )
-    source.onmessage = () => {
+    return subscribeToStream(workspaceId, () => {
       queryClient.invalidateQueries({
         queryKey: NOTIFICATIONS_KEY(workspaceId),
       })
-    }
-    // Erro de rede: o próprio EventSource reconecta; nada a fazer aqui além
-    // de não derrubar a tela.
-    source.onerror = () => undefined
-
-    return () => source.close()
+    })
   }, [workspaceId, queryClient])
 }
