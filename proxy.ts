@@ -79,6 +79,10 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
+  // O Next lê a CSP **da requisição** para carimbar o nonce nos `<script>`
+  // que ele mesmo emite. Sem isto, com `strict-dynamic` o navegador ignora
+  // `'self'`, bloqueia os chunks, a página não hidrata e nada é clicável.
+  requestHeaders.set('Content-Security-Policy', buildCspHeader(nonce))
 
   const { pathname } = request.nextUrl
 
