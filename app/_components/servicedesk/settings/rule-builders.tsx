@@ -1243,6 +1243,8 @@ export const SD_DEFAULT_ESCALATION_ACTIONS: SdEscalationActions = {
   reassignUserId: null,
   raisePriority: false,
   email: false,
+  notifyOnCall: false,
+  reassignToOnCall: false,
 }
 
 /** Editor controlado de `SdEscalationActions`. */
@@ -1261,7 +1263,8 @@ export function SdEscalationActionsEditor({
   const functionalMissing =
     value.kind === 'FUNCTIONAL' &&
     !value.reassignDepartmentId &&
-    !value.reassignUserId
+    !value.reassignUserId &&
+    !value.reassignToOnCall
 
   return (
     <div className='flex flex-col gap-3'>
@@ -1306,10 +1309,26 @@ export function SdEscalationActionsEditor({
       </div>
       {functionalMissing ? (
         <p className='text-xs text-destructive'>
-          Escalonamento funcional exige um departamento ou responsável de
-          destino.
+          Escalonamento funcional exige um departamento, um responsável de
+          destino ou o plantão.
         </p>
       ) : null}
+      <div className='flex flex-col gap-1 rounded-lg border border-border bg-muted/40 px-3 py-2'>
+        <span className='font-medium text-xs'>Plantão (on-call)</span>
+        <ToggleRow
+          label='Passar para quem está de plantão'
+          description='Camada 1 no primeiro nível, camada seguinte a cada nível. Dentro do expediente da escala, ou sem ninguém de plantão, vale o destino acima.'
+          checked={value.reassignToOnCall}
+          disabled={disabled}
+          onCheckedChange={(v) => set({ reassignToOnCall: v })}
+        />
+        <ToggleRow
+          label='Avisar o plantão e a retaguarda'
+          checked={value.notifyOnCall}
+          disabled={disabled}
+          onCheckedChange={(v) => set({ notifyOnCall: v })}
+        />
+      </div>
       <div className='grid gap-x-4 sm:grid-cols-2'>
         <ToggleRow
           label='Notificar o responsável'
@@ -1362,6 +1381,8 @@ export function summarizeSdEscalationActions(
     parts.push(`+${actions.notifyUserIds.length} pessoa(s)`)
   if (actions.reassignDepartmentId || actions.reassignUserId)
     parts.push('reatribui')
+  if (actions.reassignToOnCall) parts.push('passa ao plantão')
+  if (actions.notifyOnCall) parts.push('avisa plantão')
   if (actions.raisePriority) parts.push('sobe prioridade')
   if (actions.email) parts.push('e-mail')
   return parts.join(' · ')

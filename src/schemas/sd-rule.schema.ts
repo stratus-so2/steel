@@ -189,14 +189,28 @@ export const SdEscalationActionsSchema = z
     reassignUserId: id.nullable().default(null),
     raisePriority: z.boolean().default(false),
     email: z.boolean().default(false),
+    /**
+     * Plantão (on-call) do departamento do chamado: avisa quem está de
+     * plantão na camada do nível escalonado (e na retaguarda acima dela).
+     */
+    notifyOnCall: z.boolean().default(false),
+    /**
+     * Passa o chamado para quem está de plantão: camada 1 no primeiro
+     * escalonamento, camada seguinte a cada nível. Sem ninguém de plantão
+     * (ou dentro do expediente, quando a escala tem calendário), vale o
+     * destino normal da regra.
+     */
+    reassignToOnCall: z.boolean().default(false),
   })
   .refine(
     (a) =>
       a.kind !== 'FUNCTIONAL' ||
       a.reassignDepartmentId !== null ||
-      a.reassignUserId !== null,
+      a.reassignUserId !== null ||
+      a.reassignToOnCall,
     {
-      message: 'Escalonamento funcional exige um departamento ou responsável',
+      message:
+        'Escalonamento funcional exige um departamento, um responsável ou o plantão',
       path: ['reassignDepartmentId'],
     },
   )

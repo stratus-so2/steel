@@ -95,3 +95,22 @@ export async function sdOnCallEscalationTarget(
     resolution: resolution.value,
   })
 }
+
+/**
+ * Quem avisar no escalonamento: o responsável da camada alvo e os da
+ * retaguarda (camadas de nível maior), sem repetir e sem vazios.
+ */
+export function sdOnCallNotifyUserIds(
+  resolution: SdOnCallResolution,
+  level: number,
+): string[] {
+  const target = sdOnCallSlotForLevel(resolution, level)
+  const ids = new Set<string>()
+  if (target?.userId) ids.add(target.userId)
+  for (const slot of resolution.layers) {
+    if (slot.level > (target?.level ?? level) && slot.userId) {
+      ids.add(slot.userId)
+    }
+  }
+  return [...ids]
+}
