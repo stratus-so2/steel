@@ -16,6 +16,7 @@ import {
   Notification03Icon,
   RadarIcon,
   Settings02Icon,
+  ShieldKeyIcon,
   Tag01Icon,
   WhatsappIcon,
   WorkflowSquare01Icon,
@@ -34,6 +35,7 @@ import { SdGeneralTab } from './general-tab'
 import { SdMailSettingsTab } from './mail-tab'
 import { SdMonitoringTab } from './monitoring-tab'
 import { SdNotificationsTab } from './notifications-tab'
+import { SdOnCallTab } from './oncall-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdSlaTab } from './sla-tab'
@@ -125,6 +127,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Regras automáticas de escalonamento funcional e hierárquico disparadas pelo SLA.',
     component: SdEscalationTab,
+  },
+  {
+    id: 'oncall',
+    label: 'Plantão',
+    icon: ShieldKeyIcon,
+    description:
+      'Escalas de plantão (on-call): camadas (primeira chamada, retaguarda…), rodízio dos participantes, trocas pontuais e a linha do tempo das próximas duas semanas. Fora do expediente, o escalonamento chama quem está de plantão.',
+    component: SdOnCallTab,
   },
   {
     id: 'automations',

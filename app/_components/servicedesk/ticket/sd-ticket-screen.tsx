@@ -56,6 +56,7 @@ import type { SdConfigBootstrapDTO } from '@/types/sd-config'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { SdCreateTicketSheet } from './sd-create-ticket-sheet'
 import { SdFollowButton } from './sd-follow-button'
+import { SdOnCallBadge } from './sd-oncall-badge'
 import { SdOptionSelect } from './sd-option-select'
 import { useSdPhaseMover } from './sd-phase-mover'
 import { SdRichTextEditor, SdRichTextView } from './sd-rich-text-editor'
@@ -285,6 +286,10 @@ function Header({
             Escalonado N{ticket.escalationLevel}
           </span>
         ) : null}
+        <SdOnCallBadge
+          workspaceId={workspaceId}
+          departmentId={ticket.department?.id}
+        />
         {ticket.parent ? (
           <Link
             href={`/${slug}/servicedesk/tickets/${ticket.parent.number}`}
