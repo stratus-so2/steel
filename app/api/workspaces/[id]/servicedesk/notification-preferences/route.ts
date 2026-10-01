@@ -1,0 +1,85 @@
+import type { NextRequest } from 'next/server'
+import { withAxiom } from '@/lib/axiom/server'
+import { getAuthSession } from '@/src/lib/auth-session'
+import { requireConsent } from '@/src/lib/consent'
+import { apiLimiter, consume } from '@/src/lib/rate-limit'
+import { UpdateSdNotificationPreferencesSchema } from '@/src/schemas/sd-notification.schema'
+import { SdNotificationService } from '@/src/services/sd-notification.service'
+import { readJsonBody } from '@/utils/http-request'
+import {
+  handleError,
+  standardError,
+  successResponse,
+} from '@/utils/http-response'
+
+type Params = { params: Promise<{ id: string }> }
+
+const ROUTE =
+  '/api/workspaces/[id]/servicedesk/notification-preferences' as const
+
+/** Matriz evento × canal do próprio usuário, agrupada por tema. */
+export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
+  const auth = await getAuthSession()
+  if (!auth.ok) return handleError(auth.error)
+
+  const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
+  if (!limit.ok) return handleError(limit.error)
+
+  const { id } = await ctx.params
+  const result = await SdNotificationService.get(auth.value.user.id, id)
+  if (!result.ok) return handleError(result.error)
+
+  return successResponse(result.value)
+})
+
+export const PUT = withAxiom(async (request: NextRequest, ctx: Params) => {
+  const auth = await getAuthSession()
+  if (!auth.ok) return handleError(auth.error)
+
+  const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
+  if (!limit.ok) return handleError(limit.error)
+
+  const consent = await requireConsent(auth.value.user.id, `PUT ${ROUTE}`)
+  if (!consent.ok) return handleError(consent.error)
+
+  const [{ id }, json] = await Promise.all([ctx.params, readJsonBody(request)])
+  if (!json.ok) return handleError(json.error)
+  const parsed = UpdateSdNotificationPreferencesSchema.safeParse(json.value)
+  if (!parsed.success) {
+    return standardError(
+      'VALIDATION_ERROR',
+      'Dados inválidos',
+      parsed.error.issues,
+    )
+  }
+
+  const result = await SdNotificationService.update(
+    auth.value.user.id,
+    id,
+    parsed.data,
+  )
+  if (!result.ok) return handleError(result.error)
+
+  return successResponse(result.value)
+})
+
+/** Restaurar padrões: apaga as preferências salvas do usuário. */
+export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
+  const auth = await getAuthSession()
+  if (!auth.ok) return handleError(auth.error)
+
+  const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
+  if (!limit.ok) return handleError(limit.error)
+
+  const consent = await requireConsent(auth.value.user.id, `DELETE ${ROUTE}`)
+  if (!consent.ok) return handleError(consent.error)
+
+  const { id } = await ctx.params
+  const result = await SdNotificationService.restoreDefaults(
+    auth.value.user.id,
+    id,
+  )
+  if (!result.ok) return handleError(result.error)
+
+  return successResponse(result.value)
+})

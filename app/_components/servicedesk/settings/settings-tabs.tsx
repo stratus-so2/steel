@@ -12,6 +12,7 @@ import {
   FormIcon,
   Layers01Icon,
   Message01Icon,
+  Notification03Icon,
   RadarIcon,
   Settings02Icon,
   Tag01Icon,
@@ -30,6 +31,7 @@ import { SdEscalationTab } from './escalation-tab'
 import { SdFlowsTab } from './flows-tab'
 import { SdGeneralTab } from './general-tab'
 import { SdMonitoringTab } from './monitoring-tab'
+import { SdNotificationsTab } from './notifications-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdSlaTab } from './sla-tab'
@@ -169,6 +171,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Conexões de WhatsApp do ServiceDesk (Z-API ou Meta), conexão ativa, teste das credenciais e a URL do webhook.',
     component: SdWhatsappSettingsTab,
+  },
+  {
+    id: 'notifications',
+    label: 'Notificações',
+    icon: Notification03Icon,
+    description:
+      'Suas preferências de aviso (evento × canal), só para você: no app, por e-mail e por WhatsApp. Inclui o resumo diário.',
+    component: SdNotificationsTab,
   },
   {
     id: 'ai',

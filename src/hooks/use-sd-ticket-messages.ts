@@ -17,6 +17,8 @@ export interface SendSdTicketMessageInput {
   body: string
   visibility?: SdMessageVisibilityDTO
   attachmentIds?: string[]
+  /** Agentes citados com `@` (dispara `ticket.mentioned`). */
+  mentionedUserIds?: string[]
 }
 
 /**

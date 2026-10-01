@@ -55,6 +55,7 @@ import {
 import type { SdConfigBootstrapDTO } from '@/types/sd-config'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { SdCreateTicketSheet } from './sd-create-ticket-sheet'
+import { SdFollowButton } from './sd-follow-button'
 import { SdOptionSelect } from './sd-option-select'
 import { useSdPhaseMover } from './sd-phase-mover'
 import { SdRichTextEditor, SdRichTextView } from './sd-rich-text-editor'
@@ -298,63 +299,66 @@ function Header({
           </Link>
         ) : null}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant='outline'
-                size='icon-sm'
-                className='ml-auto'
-                aria-label='Ações do chamado'
-              >
-                <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
-              </Button>
-            }
-          />
-          <DropdownMenuContent align='end' className='w-52'>
-            <DropdownMenuItem onClick={() => onTab('escalation')}>
-              <SteelIcon icon={ArrowUpDoubleIcon} strokeWidth={2} />
-              Escalonar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setCreatingChild(true)}>
-              <SteelIcon icon={HierarchyIcon} strokeWidth={2} />
-              Adicionar item filho
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLinkingParent(true)}>
-              <SteelIcon icon={Link01Icon} strokeWidth={2} />
-              {ticket.parent ? 'Trocar item pai' : 'Vincular item pai'}
-            </DropdownMenuItem>
-            {ticket.parent ? (
-              <DropdownMenuItem
-                onClick={() =>
-                  setParent.mutate(null, {
-                    onSuccess: () => notify.success('Item pai removido.'),
-                    onError: notify.error,
-                  })
-                }
-              >
-                <SteelIcon icon={Unlink01Icon} strokeWidth={2} />
-                Remover item pai
-              </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuItem onClick={copyLink}>
-              <SteelIcon icon={Copy01Icon} strokeWidth={2} />
-              Copiar link
-            </DropdownMenuItem>
-            {isAdmin ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant='destructive'
-                  onClick={() => setDeleting(true)}
+        <div className='ml-auto flex items-center gap-2'>
+          <SdFollowButton workspaceId={workspaceId} ticketRef={ticket.id} />
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant='outline'
+                  size='icon-sm'
+                  aria-label='Ações do chamado'
                 >
-                  <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                  Excluir chamado
+                  <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align='end' className='w-52'>
+              <DropdownMenuItem onClick={() => onTab('escalation')}>
+                <SteelIcon icon={ArrowUpDoubleIcon} strokeWidth={2} />
+                Escalonar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setCreatingChild(true)}>
+                <SteelIcon icon={HierarchyIcon} strokeWidth={2} />
+                Adicionar item filho
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLinkingParent(true)}>
+                <SteelIcon icon={Link01Icon} strokeWidth={2} />
+                {ticket.parent ? 'Trocar item pai' : 'Vincular item pai'}
+              </DropdownMenuItem>
+              {ticket.parent ? (
+                <DropdownMenuItem
+                  onClick={() =>
+                    setParent.mutate(null, {
+                      onSuccess: () => notify.success('Item pai removido.'),
+                      onError: notify.error,
+                    })
+                  }
+                >
+                  <SteelIcon icon={Unlink01Icon} strokeWidth={2} />
+                  Remover item pai
                 </DropdownMenuItem>
-              </>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              ) : null}
+              <DropdownMenuItem onClick={copyLink}>
+                <SteelIcon icon={Copy01Icon} strokeWidth={2} />
+                Copiar link
+              </DropdownMenuItem>
+              {isAdmin ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant='destructive'
+                    onClick={() => setDeleting(true)}
+                  >
+                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                    Excluir chamado
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <EditableTitle

@@ -75,6 +75,26 @@ export function sdMentionQuery(text: string): string | null {
   return match ? (match[2] ?? '') : null
 }
 
+/**
+ * Ids dos agentes escolhidos no `@` que **continuam** citados no texto: o
+ * usuário pode apagar a menção depois de escolher, e aí ela não deve ir
+ * para o servidor. Compara pelo nome inserido (`@Nome`).
+ */
+export function sdResolveMentions(
+  text: string,
+  picked: { id: string; name: string }[],
+): string[] {
+  const seen = new Set<string>()
+  const ids: string[] = []
+  for (const agent of picked) {
+    if (seen.has(agent.id)) continue
+    if (!text.includes(`@${agent.name}`)) continue
+    seen.add(agent.id)
+    ids.push(agent.id)
+  }
+  return ids
+}
+
 let pendingSeq = 0
 
 export function SdMessageComposer({
@@ -94,6 +114,7 @@ export function SdMessageComposer({
   const [text, setText] = useState('')
   const [visibility, setVisibility] = useState<SdMessageVisibilityDTO>('PUBLIC')
   const [pending, setPending] = useState<PendingFile[]>([])
+  const [picked, setPicked] = useState<{ id: string; name: string }[]>([])
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [cannedOpen, setCannedOpen] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -175,9 +196,11 @@ export function SdMessageComposer({
         body: text.trim(),
         visibility: isAgent ? visibility : 'PUBLIC',
         attachmentIds: readyIds,
+        mentionedUserIds: sdResolveMentions(text, picked),
       })
       setText('')
       setPending([])
+      setPicked([])
     } catch (error) {
       notify.error(error, 'Erro ao enviar a mensagem')
     }
@@ -188,8 +211,15 @@ export function SdMessageComposer({
     setCannedOpen(false)
   }
 
-  function applyMention(name: string) {
-    setText((current) => current.replace(/@[\p{L}\p{N}._-]*$/u, `@${name} `))
+  function applyMention(agent: { id: string; name: string }) {
+    setText((current) =>
+      current.replace(/@[\p{L}\p{N}._-]*$/u, `@${agent.name} `),
+    )
+    setPicked((current) =>
+      current.some((a) => a.id === agent.id)
+        ? current
+        : [...current, { id: agent.id, name: agent.name }],
+    )
   }
 
   function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
@@ -332,7 +362,7 @@ export function SdMessageComposer({
                   type='button'
                   role='option'
                   aria-selected={false}
-                  onClick={() => applyMention(a.name)}
+                  onClick={() => applyMention(a)}
                   className='w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
                 >
                   {a.name}

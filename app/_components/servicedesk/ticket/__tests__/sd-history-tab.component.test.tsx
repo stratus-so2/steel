@@ -69,6 +69,7 @@ function message(
     channel: 'PLATFORM',
     body: 'O servidor caiu de novo',
     attachments: [],
+    mentionedUserIds: [],
     editedAt: null,
     createdAt: '2026-09-21T12:00:00.000Z',
     canEdit: false,
