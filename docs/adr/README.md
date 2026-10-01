@@ -27,3 +27,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0006 | [Assistente de IA central via Claude Code em container; sem dados pessoais de clientes nos prompts](./0006-central-ai-assistant-claude-code.md) | Aceita | 2026-09-13 |
 | 0007 | [IA multi-provedor (OpenAI + Anthropic) habilitada por workspace](./0007-multi-provider-ai-per-workspace.md) | Aceita (implementada) | 2026-09-18 |
 | 0008 | [ServiceDesk ITIL 4 com motor configurável por workspace](./0008-servicedesk-itil-configurable-engine.md) | Aceita | 2026-09-21 |
+| 0009 | [Construir a imagem num runner hospedado; deploy segue no servidor](./0009-build-image-on-hosted-runner.md) | Aceita | 2026-10-01 |

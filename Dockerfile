@@ -34,11 +34,12 @@ ENV NEXT_PUBLIC_AXIOM_DATASET=$NEXT_PUBLIC_AXIOM_DATASET
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV SKIP_ENV_VALIDATION="true"
 
-# O runner de build self-hosted tem ~3.8GB de RAM total — sem um teto no heap
-# do V8, prisma generate/esbuild podem crescer até o OOM killer matar o
-# processo (o teto do Turbopack em si vem de `turbopackMemoryLimit` no
-# next.config.ts).
-ENV NODE_OPTIONS="--max-old-space-size=2048"
+# Teto do heap do V8 no build. O padrão 2048 cabe numa máquina pequena (o
+# runner self-hosted tem ~3.8GB); o CD, que builda num runner hospedado,
+# passa um valor maior via build-arg. Sem teto, prisma generate/esbuild
+# crescem até o OOM killer matar o processo.
+ARG NODE_BUILD_MEMORY=2048
+ENV NODE_OPTIONS="--max-old-space-size=${NODE_BUILD_MEMORY}"
 
 RUN corepack enable pnpm && \
     pnpm prisma:generate && \

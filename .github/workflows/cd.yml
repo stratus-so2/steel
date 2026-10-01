@@ -81,7 +81,11 @@ jobs:
   build:
     name: Build, Scan & Push Image
     needs: version
-    runs-on: self-hosted
+    # Runner hospedado (16GB): o build do Next não cabe mais nos ~3.8GB do
+    # runner self-hosted — passou a morrer com `ResourceExhausted` depois que
+    # o ServiceDesk e o editor da base de conhecimento entraram. A imagem vai
+    # para o GHCR e o deploy continua no runner do servidor (ADR 0009).
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
@@ -128,6 +132,7 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
           build-args: |
+            NODE_BUILD_MEMORY=6144
             NEXT_PUBLIC_URL=${{ env.DEPLOY_URL }}
             NEXT_PUBLIC_AXIOM_TOKEN=${{ secrets.NEXT_PUBLIC_AXIOM_TOKEN }}
             NEXT_PUBLIC_AXIOM_DATASET=${{ secrets.NEXT_PUBLIC_AXIOM_DATASET }}
