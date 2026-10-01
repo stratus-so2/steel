@@ -15,6 +15,7 @@ import {
   Message01Icon,
   Notification03Icon,
   RadarIcon,
+  RepeatIcon,
   Settings02Icon,
   ShieldKeyIcon,
   Tag01Icon,
@@ -38,6 +39,7 @@ import { SdNotificationsTab } from './notifications-tab'
 import { SdOnCallTab } from './oncall-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
+import { SdRecurringTab } from './recurring-tab'
 import { SdSlaTab } from './sla-tab'
 import { SdTemplatesTab } from './templates-tab'
 import { SdWhatsappSettingsTab } from './whatsapp-tab'
@@ -158,6 +160,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Modelos de chamado com valores padrão e checklist de tarefas (requisições e mudanças padrão).',
     component: SdTemplatesTab,
+  },
+  {
+    id: 'recurring',
+    label: 'Recorrentes',
+    icon: RepeatIcon,
+    description:
+      'Rotinas que abrem chamado sozinhas (manutenção preventiva, limpeza, backup, vistoria): agenda no fuso da regra, pré-visualização das próximas ocorrências e histórico do que abriu, pulou ou falhou.',
+    component: SdRecurringTab,
   },
   {
     id: 'canned-responses',

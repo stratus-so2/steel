@@ -23,6 +23,7 @@ import {
   SdWarrantyBadge,
 } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
 import { SdInfoRow } from '@/app/_components/servicedesk/directory/shared/sd-form-bits'
+import { SdConfigItemRoutines } from '@/app/_components/servicedesk/recurring/sd-recurring-bits'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -50,7 +51,8 @@ function attributeText(value: string | number | boolean): string {
 
 /**
  * Detalhe do CI: Dados (com atributos do tipo e garantia), Relacionamentos
- * (cadeia de pais → item → filhos, navegável) e Chamados.
+ * (cadeia de pais → item → filhos, navegável), Chamados e Rotinas (os
+ * chamados recorrentes que incidem sobre este item).
  */
 export function SdConfigItemDetailSheet({
   workspaceId,
@@ -155,6 +157,7 @@ export function SdConfigItemDetailSheet({
                 Relacionamentos ({item.children.length})
               </TabsTrigger>
               <TabsTrigger value='tickets'>Chamados</TabsTrigger>
+              <TabsTrigger value='routines'>Rotinas</TabsTrigger>
             </TabsList>
             <div className='min-h-0 flex-1 overflow-y-auto px-6 py-4'>
               <TabsContent value='data'>
@@ -298,6 +301,14 @@ export function SdConfigItemDetailSheet({
 
               <TabsContent value='tickets'>
                 <SdLinkedTickets slug={slug} tickets={item.recentTickets} />
+              </TabsContent>
+
+              <TabsContent value='routines'>
+                <SdConfigItemRoutines
+                  workspaceId={workspaceId}
+                  configItemId={item.id}
+                  slug={slug}
+                />
               </TabsContent>
             </div>
           </Tabs>
