@@ -16,6 +16,12 @@ export type NotificationKindDTO =
   | 'SD_TICKET_CSAT'
   | 'SD_DIGEST'
 
+export type NotificationModuleDTO =
+  | 'SERVICE_DESK'
+  | 'COMMUNICATION'
+  | 'CRM'
+  | 'OTHER'
+
 export interface NotificationDTO {
   id: string
   workspaceId: string
@@ -24,10 +30,40 @@ export interface NotificationDTO {
   body: string
   href: string | null
   read: boolean
+  /** ISO 8601, ou `null` quando não lida. */
+  readAt: string | null
+  archived: boolean
+  /** ISO 8601, ou `null` quando não arquivada. */
+  archivedAt: string | null
+  /** Módulo de origem, derivado do `kind` (`src/lib/notification-kind.ts`). */
+  module: NotificationModuleDTO
+  /** Nome do módulo em pt-BR — o "remetente" da linha. */
+  moduleLabel: string
+  /** O que aconteceu, em pt-BR (ex.: "SLA em risco"). */
+  kindLabel: string
+  /** Chave de ícone resolvida pela interface. */
+  icon: string
+  /** Cor base Tailwind do marcador (ex.: `amber`). */
+  color: string
   createdAt: string
+}
+
+/** Contagem por pasta, para os marcadores das abas. */
+export interface NotificationFolderCountsDTO {
+  all: number
+  unread: number
+  archived: number
 }
 
 export interface NotificationListDTO {
   items: NotificationDTO[]
   unreadCount: number
+  /** Id para a próxima página, ou `null` no fim da lista. */
+  nextCursor: string | null
+  counts: NotificationFolderCountsDTO
+}
+
+/** Resultado de uma ação (individual ou em lote). */
+export interface NotificationActionResultDTO {
+  updated: number
 }
