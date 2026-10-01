@@ -113,6 +113,34 @@ const MESSAGES = [
   }),
 ]
 
+/** E-mail que gerou a mensagem `m5` (marcador do histórico). */
+const MAIL = [
+  {
+    id: 'mm1',
+    ticketMessageId: 'm5',
+    direction: 'INBOUND' as const,
+    fromAddress: 'cliente@cliente.com',
+    fromName: 'Cliente Silva',
+    toAddresses: ['suporte@empresa.com.br'],
+    ccAddresses: [],
+    subject: '[INC-000007] Impressora parada',
+    automatic: false,
+    createdAt: '2026-09-21T12:10:00.000Z',
+  },
+  {
+    id: 'mm2',
+    ticketMessageId: 'm6',
+    direction: 'OUTBOUND' as const,
+    fromAddress: 'suporte@empresa.com.br',
+    fromName: 'Suporte',
+    toAddresses: ['cliente@cliente.com'],
+    ccAddresses: [],
+    subject: null,
+    automatic: true,
+    createdAt: '2026-09-21T12:11:00.000Z',
+  },
+]
+
 const CANNED = [
   {
     id: 'c1',
@@ -133,6 +161,10 @@ function routes(extra: Parameters<typeof mockFetch>[0] = []) {
     {
       match: `${TAB_URL}/messages?`,
       data: { items: MESSAGES, nextBefore: 'm0' },
+    },
+    {
+      match: `/servicedesk/mail/tickets/${TICKET_ID}/messages`,
+      data: MAIL,
     },
     { match: '/servicedesk/config', data: { cannedResponses: CANNED } },
     { match: '/servicedesk/agents', data: AGENTS },
@@ -297,6 +329,78 @@ describe('SdTicketHistoryTab — agent', () => {
         ),
       ).toBe(true),
     )
+  })
+})
+
+describe('SdTicketHistoryTab — canal de e-mail', () => {
+  it('marks the EMAIL messages with their from/to and subject', async () => {
+    mockFetch([
+      {
+        match: `${TAB_URL}/messages?`,
+        data: {
+          items: [
+            message({
+              id: 'm5',
+              channel: 'EMAIL',
+              authorKind: 'CONTACT',
+              author: null,
+              contact: { id: 'c1', name: 'Cliente Silva' },
+              body: 'A impressora não liga',
+            }),
+            message({
+              id: 'm6',
+              channel: 'EMAIL',
+              authorKind: 'AGENT',
+              author: user('u-agent', 'Ana Agente'),
+              body: 'Trocamos o toner',
+            }),
+            message({ id: 'm7', body: 'Mensagem da plataforma' }),
+          ],
+          nextBefore: null,
+        },
+      },
+      {
+        match: `/servicedesk/mail/tickets/${TICKET_ID}/messages`,
+        data: MAIL,
+      },
+      { match: '/servicedesk/config', data: { cannedResponses: CANNED } },
+      { match: '/servicedesk/agents', data: AGENTS },
+    ])
+    renderWithQuery(<SdTicketHistoryTab {...tabProps('agent')} />)
+
+    expect(await screen.findByText('A impressora não liga')).toBeTruthy()
+    const markers = screen.getAllByTestId('sd-message-mail')
+    expect(markers).toHaveLength(2)
+    expect(markers[0].textContent).toContain('De:')
+    expect(markers[0].textContent).toContain('Cliente Silva')
+    expect(markers[0].textContent).toContain('[INC-000007] Impressora parada')
+    // Saída sem assunto e automática: mostra o destinatário e o selo.
+    expect(markers[1].textContent).toContain('Para:')
+    expect(markers[1].textContent).toContain('cliente@cliente.com')
+    expect(markers[1].textContent).toContain('Mensagem automática')
+    expect(screen.getAllByText('via e-mail').length).toBe(2)
+  })
+
+  it('shows no marker when the ticket has no e-mail', async () => {
+    mockFetch([
+      {
+        match: `${TAB_URL}/messages?`,
+        data: {
+          items: [message({ id: 'm9', channel: 'EMAIL' })],
+          nextBefore: null,
+        },
+      },
+      {
+        match: `/servicedesk/mail/tickets/${TICKET_ID}/messages`,
+        data: [],
+      },
+      { match: '/servicedesk/config', data: { cannedResponses: CANNED } },
+      { match: '/servicedesk/agents', data: AGENTS },
+    ])
+    renderWithQuery(<SdTicketHistoryTab {...tabProps('agent')} />)
+
+    await screen.findByText('O servidor caiu de novo')
+    expect(screen.queryByTestId('sd-message-mail')).toBeNull()
   })
 })
 

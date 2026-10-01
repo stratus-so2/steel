@@ -32,6 +32,9 @@ export const CrmSocialPostsTickCron = '* * * * *' as const
 /** Frequência do tick de SLA do ServiceDesk (risco, violação, escalonamento). */
 export const ServicedeskSlaCron = '* * * * *' as const
 
+/** Frequência da leitura das caixas de e-mail do ServiceDesk (IMAP). */
+export const ServicedeskMailCron = '* * * * *' as const
+
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 

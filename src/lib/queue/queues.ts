@@ -26,6 +26,8 @@ import {
   QueueName,
   type ServicedeskAiJob,
   type ServicedeskAiJobPayload,
+  type ServicedeskMailJob,
+  type ServicedeskMailJobPayload,
   type ServicedeskSlaJob,
   type ServicedeskSlaJobPayload,
   type StatusCollectJob,
@@ -77,6 +79,7 @@ let statusCollectQueue: Queue | null = null
 let usageRollupQueue: Queue | null = null
 let servicedeskSlaQueue: Queue | null = null
 let servicedeskAiQueue: Queue | null = null
+let servicedeskMailQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -499,6 +502,28 @@ export function getServicedeskAiQueue(): Queue<
   >
 }
 
+/**
+ * Canal de e-mail do ServiceDesk. Uma tentativa só: a leitura volta no
+ * minuto seguinte e repetir o IMAP na hora costuma bater no mesmo erro.
+ */
+export function getServicedeskMailQueue(): Queue<
+  ServicedeskMailJobPayload[ServicedeskMailJob],
+  unknown,
+  ServicedeskMailJob
+> {
+  if (!servicedeskMailQueue) {
+    servicedeskMailQueue = new Queue(QueueName.ServicedeskMail, {
+      connection: getQueueConnection(),
+      defaultJobOptions: { ...defaultJobOptions, attempts: 1 },
+    })
+  }
+  return servicedeskMailQueue as Queue<
+    ServicedeskMailJobPayload[ServicedeskMailJob],
+    unknown,
+    ServicedeskMailJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -523,6 +548,7 @@ export async function closeQueues(): Promise<void> {
     usageRollupQueue?.close(),
     servicedeskSlaQueue?.close(),
     servicedeskAiQueue?.close(),
+    servicedeskMailQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -545,4 +571,5 @@ export async function closeQueues(): Promise<void> {
   usageRollupQueue = null
   servicedeskSlaQueue = null
   servicedeskAiQueue = null
+  servicedeskMailQueue = null
 }

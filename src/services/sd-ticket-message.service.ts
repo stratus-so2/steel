@@ -26,6 +26,7 @@ import type {
   SdTicketMessagePageDTO,
 } from '@/types/sd-ticket-message'
 import { fireSdAutomations } from './sd-automation-engine'
+import { SdMailOutboundService } from './sd-mail-outbound.service'
 import { SdTicketEngine } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
 import { SdTicketNotifier } from './sd-ticket-notifier'
@@ -219,6 +220,24 @@ export const SdTicketMessageService = {
     await publishSdTicketTab(ticket, 'ticket.message', actorId, internal)
     if (!internal) {
       void fireSdAutomations('MESSAGE_RECEIVED', ticket.id, { actorId })
+      // Chamado que veio por e-mail: a resposta pública do agente volta
+      // para quem abriu, pela mesma caixa (fatia do canal de e-mail).
+      if (ctx.isAgent) {
+        void SdMailOutboundService.sendTicketReply({
+          workspaceId,
+          ticketId: ticket.id,
+          ticketMessageId: message.id,
+          body: message.body,
+        }).then((sent) => {
+          if (!sent.ok) {
+            logger.warn('servicedesk.message.mail_reply_failed', {
+              workspaceId,
+              ticketId: ticket.id,
+              reason: sent.error.code,
+            })
+          }
+        })
+      }
     }
     auditMutation({
       entity: 'sd_ticket_message',

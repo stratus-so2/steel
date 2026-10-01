@@ -115,6 +115,8 @@ export type AuditEntity =
   // ServiceDesk — canais de entrada
   | 'sd_monitor_source'
   | 'sd_monitor_alert'
+  // ServiceDesk — canal de e-mail
+  | 'sd_mailbox'
 
 export type AuditAction =
   | 'create'
