@@ -7,6 +7,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type ReactNode, useState } from 'react'
 import { SdAiCopilotPanel } from '@/app/_components/servicedesk/ai/copilot-panel'
+import { SdTicketMonitorBlock } from '@/app/_components/servicedesk/monitoring/sd-ticket-monitor-block'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   Collapsible,
@@ -352,6 +353,7 @@ export function SdTicketSidebar({
         {field('urgencyId', 'Urgência')}
         {field('classificationId', 'Classificação')}
         <ReadRow label='Canal'>{SD_CHANNEL_LABEL[ticket.channel]}</ReadRow>
+        <SdTicketMonitorBlock workspaceId={workspaceId} ticket={ticket} />
       </Section>
 
       <Section title='Atendimento'>

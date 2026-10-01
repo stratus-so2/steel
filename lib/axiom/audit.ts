@@ -112,6 +112,9 @@ export type AuditEntity =
   | 'sd_ticket_signature'
   // ServiceDesk — WhatsApp e IA
   | 'sd_ai_conversation'
+  // ServiceDesk — canais de entrada
+  | 'sd_monitor_source'
+  | 'sd_monitor_alert'
 
 export type AuditAction =
   | 'create'

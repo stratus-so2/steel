@@ -162,6 +162,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | ticket-tabs | `sd-ticket-message`, `-attachment`, `-task`, `-cost`, `-part`, `-approval`, `-signature`, abas do chamado (a de Escalonamento usa o service da fatia tickets), página pública de aprovação |
 | whatsapp-ai | conexão WhatsApp do módulo, webhook → chamado, aba WhatsApp, `sd-ai*` (copiloto, pré-atendimento, triagem) |
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
+| monitoring | `sd-monitor-source`, `sd-monitor-alert`, `src/lib/servicedesk/{monitoring,monitor-fields}.ts`, entrada pública `servicedesk/monitoring/[token]`, aba Monitoramento das configurações, bloco de origem na tela do chamado |
 
 ## Operação
 
@@ -184,6 +185,26 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 - **IA**: Configurações > IA liga copiloto, triagem e pré-atendimento. Usa o
   provedor e a cota do workspace (ADR 0007); sem chave ou com cota estourada,
   a interface explica em vez de falhar silenciosamente.
+- **Monitoramento**: Configurações > Monitoramento cria a origem (Zabbix ou
+  webhook genérico). O token da URL pública é sorteado na criação, **aparece
+  uma única vez** e fica guardado só como SHA-256 (`SdMonitorSource.tokenHash`);
+  perdeu, gere outro — o anterior deixa de valer na hora. No Zabbix: Alertas >
+  Tipos de mídia > novo **Webhook** com a URL, método POST e o JSON das macros
+  (`{EVENT.ID}`, `{EVENT.VALUE}`, `{EVENT.STATUS}`, `{EVENT.NAME}`,
+  `{EVENT.SEVERITY}`, `{EVENT.DATE}`, `{EVENT.TIME}`, `{EVENT.TAGS}`,
+  `{HOST.NAME}`, `{HOST.IP}`, `{ALERT.MESSAGE}` — a tela mostra o corpo pronto
+  para copiar). Um webhook próprio pode mandar
+  `{ externalId, status, severity, host, subject, body, tags, startedAt }`.
+  A entrada deduplica por `(origem, externalId)`: o mesmo alerta reenviado
+  atualiza a linha e não abre um segundo chamado. PROBLEM abre o chamado com os
+  padrões da origem (tipo, departamento, categoria, cliente), prioridade pelo
+  mapa severidade → prioridade, canal `API` e ator de sistema, casando o host
+  com o item de configuração (nome, código ou IP). OK/RESOLVED fecha o alerta e,
+  com `autoResolve`, move o chamado para a fase RESOLVED do tipo com a solução
+  automática; se a fase exigir algo que o monitoramento não preenche (campos
+  obrigatórios, aprovação, classificação da solução), o chamado recebe uma
+  mensagem pública explicando em vez de ser encerrado. O mesmo alerta voltando
+  dentro de `flappingWindowMinutes` reabre o chamado anterior.
 - **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
   acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
   conhecimento.
