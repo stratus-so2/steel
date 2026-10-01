@@ -22,7 +22,6 @@ export default async function SdKnowledgePage({
       workspaceId={viewer.workspaceId}
       workspaceSlug={slug}
       isAgent={viewer.isAgent}
-      canCreate={viewer.canCreate}
     />
   )
 }

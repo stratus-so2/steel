@@ -194,9 +194,7 @@ describe('<SdKbHome />', () => {
       },
       { match: /\/servicedesk\/knowledge$/, data: LIST },
     ])
-    renderWithQuery(
-      <SdKbHome workspaceId={WS} workspaceSlug='acme' isAgent canCreate />,
-    )
+    renderWithQuery(<SdKbHome workspaceId={WS} workspaceSlug='acme' isAgent />)
     expect(await screen.findByRole('button', { name: /Rede/ })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Vazia/ })).toBeNull()
     expect(

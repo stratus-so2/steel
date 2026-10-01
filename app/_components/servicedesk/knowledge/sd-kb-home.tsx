@@ -31,12 +31,10 @@ export function SdKbHome({
   workspaceId,
   workspaceSlug,
   isAgent,
-  canCreate,
 }: {
   workspaceId: string
   workspaceSlug: string
   isAgent: boolean
-  canCreate: boolean
 }) {
   const [q, setQ] = useState('')
   const [categoryId, setCategoryId] = useState<string>()
