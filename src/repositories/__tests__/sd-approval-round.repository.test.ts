@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   seedSdApprovalRound,
   seedSdCabBoard,
-  seedSdCabMember,
   seedSdRoundApproval,
 } from '@/src/__tests__/factories/sd-change.factory'
 import { seedSdTicket } from '@/src/__tests__/factories/sd-ticket.factory'
@@ -255,46 +254,6 @@ describe('SdApprovalRoundRepository', () => {
       ),
     ).toBe(0)
     expect(await statusOf(round.id)).toBe('PENDING')
-  })
-
-  it('lists the required approval ids of the round', async () => {
-    const { workspace, admin, ana, bruno, ticket, board } = await setup()
-    await seedSdCabMember(board.id, ana.id, true)
-    await seedSdCabMember(board.id, bruno.id, false)
-    const round = await seedSdApprovalRound(workspace.id, ticket.id, admin.id, {
-      boardId: board.id,
-    })
-    const required = await seedSdRoundApproval(
-      workspace.id,
-      ticket.id,
-      round.id,
-      admin.id,
-      { approverUserId: ana.id },
-    )
-    await seedSdRoundApproval(workspace.id, ticket.id, round.id, admin.id, {
-      approverUserId: bruno.id,
-    })
-
-    expect(
-      expectOk(
-        await SdApprovalRoundRepository.findRequiredApprovalIds(round.id),
-      ),
-    ).toEqual([required.id])
-  })
-
-  it('has no required ids without a board', async () => {
-    const { workspace, admin, ticket } = await setup()
-    const round = await seedSdApprovalRound(workspace.id, ticket.id, admin.id)
-    await seedSdRoundApproval(workspace.id, ticket.id, round.id, admin.id)
-
-    expect(
-      expectOk(
-        await SdApprovalRoundRepository.findRequiredApprovalIds(round.id),
-      ),
-    ).toEqual([])
-    expect(
-      expectOk(await SdApprovalRoundRepository.findRequiredApprovalIds('nope')),
-    ).toEqual([])
   })
 
   it('lists the open round ids of a ticket', async () => {

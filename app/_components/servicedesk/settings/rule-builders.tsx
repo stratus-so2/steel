@@ -38,11 +38,13 @@ import {
   type SdEscalationActions,
   SdEscalationActionsSchema,
 } from '@/src/schemas/sd-rule.schema'
+import { SD_CHANGE_TYPES, SD_RISK_LEVELS } from '@/src/schemas/sd-ticket.schema'
 import type {
   SdCategoryTreeDTO,
   SdConfigBootstrapDTO,
   SdDepartmentTreeDTO,
 } from '@/types/sd-config'
+import { SD_CHANGE_TYPE_LABEL, SD_RISK_LABEL } from '../ticket/sd-ticket-meta'
 import {
   FieldBlock,
   SD_PHASE_CATEGORY_OPTIONS,
@@ -188,6 +190,18 @@ const FIELDS: FieldMeta[] = [
     group: 'Cadastros',
     kind: 'id',
   },
+  {
+    field: 'changeType',
+    label: 'Tipo de mudança',
+    group: 'Mudança',
+    kind: 'enum',
+  },
+  {
+    field: 'changeRisk',
+    label: 'Risco da mudança',
+    group: 'Mudança',
+    kind: 'enum',
+  },
 ]
 
 const OPERATOR_LABEL: Record<(typeof SD_CONDITION_OPERATORS)[number], string> =
@@ -304,6 +318,16 @@ function useFieldOptions() {
           return (config?.classifications ?? [])
             .filter((c) => c.kind === 'TICKET')
             .map((c) => ({ value: c.id, label: c.name }))
+        case 'changeType':
+          return SD_CHANGE_TYPES.map((value) => ({
+            value,
+            label: SD_CHANGE_TYPE_LABEL[value],
+          }))
+        case 'changeRisk':
+          return SD_RISK_LEVELS.map((value) => ({
+            value,
+            label: SD_RISK_LABEL[value],
+          }))
         case 'departmentId':
           return departments
         case 'assigneeId':

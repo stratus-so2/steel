@@ -7,7 +7,13 @@ import { SD_USER_SUMMARY_SELECT } from './sd-ticket.repository'
 import { SD_APPROVAL_INCLUDE } from './sd-ticket-approval.repository'
 
 const include = {
-  board: { select: { id: true, name: true } },
+  board: {
+    select: {
+      id: true,
+      name: true,
+      members: { select: { userId: true, required: true } },
+    },
+  },
   requestedBy: { select: SD_USER_SUMMARY_SELECT },
   approvals: {
     include: SD_APPROVAL_INCLUDE,
@@ -208,28 +214,6 @@ export const SdApprovalRoundRepository = {
         }),
       ])
       return ids.length
-    })
-  },
-
-  /** Membros obrigatórios da rodada, por id de pedido. */
-  async findRequiredApprovalIds(id: string): Promise<Result<string[]>> {
-    return sdDb('Failed to read ServiceDesk round members', async () => {
-      const round = await prisma.sdApprovalRound.findUnique({
-        where: { id },
-        select: {
-          boardId: true,
-          approvals: { select: { id: true, approverUserId: true } },
-        },
-      })
-      if (!round?.boardId) return []
-      const required = await prisma.sdCabMember.findMany({
-        where: { boardId: round.boardId, required: true },
-        select: { userId: true },
-      })
-      const userIds = new Set(required.map((m) => m.userId))
-      return round.approvals
-        .filter((a) => a.approverUserId && userIds.has(a.approverUserId))
-        .map((a) => a.id)
     })
   },
 

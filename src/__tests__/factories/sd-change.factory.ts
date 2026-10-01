@@ -95,7 +95,11 @@ export function createFakeSdApprovalRound(
     decidedAt: null,
     createdAt: fixed(),
     updatedAt: fixed(),
-    board: { id: 'board1', name: 'CAB de infraestrutura' },
+    board: {
+      id: 'board1',
+      name: 'CAB de infraestrutura',
+      members: [{ userId: 'u1', required: false }],
+    },
     requestedBy: author(),
     approvals: [],
     ...overrides,
