@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { seedMembership } from '@/src/__tests__/factories/membership.factory'
 import {
   seedSdNotificationPreference,
@@ -12,7 +12,7 @@ import {
 } from '@/src/__tests__/factories/sd-ticket-context.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
-import { expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { SdNotificationRepository } from '../sd-notification.repository'
 
@@ -448,6 +448,114 @@ describe('SdNotificationRepository.digestCounts', () => {
   })
 
   it('limita os destaques a cinco chamados', async () => {
+    const { workspace, user } = await setup()
+    const open = await seedSdPhase(workspace.id, {
+      name: 'Em atendimento',
+      category: 'IN_PROGRESS',
+      position: 1,
+    })
+    for (let i = 0; i < 7; i++) {
+      await seedSdTicket(workspace.id, open.id, { assigneeId: user.id })
+    }
+    const counts = expectOk(
+      await SdNotificationRepository.digestCounts(workspace.id, user.id, RISK),
+    )
+    expect(counts.queue).toBe(7)
+    expect(counts.highlights).toHaveLength(5)
+  })
+})
+
+describe('SdNotificationRepository — falhas viram DATABASE_ERROR', () => {
+  it('mapeia cada consulta que explode', async () => {
+    const boom = new Error('boom')
+    const spies = [
+      vi.spyOn(prisma.sdNotificationPreference, 'findMany'),
+      vi.spyOn(prisma, '$transaction'),
+      vi.spyOn(prisma.sdNotificationPreference, 'deleteMany'),
+      vi.spyOn(prisma.sdTicketFollower, 'findMany'),
+      vi.spyOn(prisma.sdTicketFollower, 'createMany'),
+      vi.spyOn(prisma.sdTicketFollower, 'deleteMany'),
+      vi.spyOn(prisma.sdDepartmentMember, 'findMany'),
+      vi.spyOn(prisma.membership, 'findMany'),
+      vi.spyOn(prisma.sdContact, 'findMany'),
+      vi.spyOn(prisma.sdContact, 'findFirst'),
+      vi.spyOn(prisma.sdTicket, 'count'),
+    ]
+    for (const spy of spies) spy.mockRejectedValue(boom)
+
+    expectErr(
+      await SdNotificationRepository.listPreferences('ws', 'u'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.listPreferencesForEvent(
+        'ws',
+        ['u'],
+        'ticket.message',
+      ),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.upsertPreferences('ws', 'u', [
+        { event: 'ticket.message', channel: 'EMAIL', enabled: false },
+      ]),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.deletePreferences('ws', 'u'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.listDigestUserIds(
+        'ws',
+        'digest.daily',
+        'EMAIL',
+      ),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.listFollowers('t'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.listFollowerIds('t'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.addFollower('t', 'u'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.removeFollower('t', 'u'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.filterAgentIds('ws', ['u']),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.findRecipients('ws', ['u']),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.findWhatsappNumbers('ws', ['u']),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.findContactChannels('ws', 'c'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdNotificationRepository.digestCounts('ws', 'u', RISK),
+      'DATABASE_ERROR',
+    )
+
+    for (const spy of spies) spy.mockRestore()
+  })
+})
+
+describe('SdNotificationRepository.digestCounts — limite', () => {
+  it('não quebra com muitos chamados', async () => {
     const { workspace, user } = await setup()
     const open = await seedSdPhase(workspace.id, {
       name: 'Em atendimento',

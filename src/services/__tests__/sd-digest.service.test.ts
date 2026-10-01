@@ -107,6 +107,12 @@ describe('SdDigestService.runTick — janela do dia', () => {
     expect((await SdDigestService.runTick(DUE)).due).toBe(1)
   })
 
+  it('usa o relógio atual quando `now` não é informado', async () => {
+    const result = await SdDigestService.runTick()
+    expect(result.workspaces).toBe(1)
+    expect(ctxRepo.findDefaultCalendar).toHaveBeenCalledWith('ws1')
+  })
+
   it('conta erro quando a lista de workspaces falha', async () => {
     ctxRepo.listEnabledWorkspaceIds.mockResolvedValue(err(databaseError()))
     const result = await SdDigestService.runTick(DUE)

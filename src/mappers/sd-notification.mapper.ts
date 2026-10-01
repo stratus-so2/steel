@@ -6,6 +6,7 @@ import {
   SD_NOTIFICATION_EVENTS,
   SD_NOTIFICATION_GROUPS,
   type SdNotificationEventSpec,
+  type SdNotificationGroup,
 } from '@/src/config/servicedesk-notifications'
 import type { SdTicketFollowerRow } from '@/src/repositories/sd-notification.repository'
 import type {
@@ -69,10 +70,12 @@ export function toSdNotificationPreferencesDTO(input: {
   rows: Pick<SdNotificationPreference, 'event' | 'channel' | 'enabled'>[]
   isAgent: boolean
   whatsappAvailable: boolean
+  /** Agrupamento usado (injetável para teste); padrão: o do catálogo. */
+  groups?: SdNotificationGroup[]
 }): SdNotificationPreferencesDTO {
   const saved = sdPreferenceIndex(input.rows)
   const groups: SdNotificationGroupDTO[] = []
-  for (const group of SD_NOTIFICATION_GROUPS) {
+  for (const group of input.groups ?? SD_NOTIFICATION_GROUPS) {
     const events = group.events
       .map((key) => BY_KEY.get(key))
       .filter((spec): spec is SdNotificationEventSpec => spec !== undefined)

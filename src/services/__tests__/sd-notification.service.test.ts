@@ -306,6 +306,19 @@ describe('notifySdEvent — visibilidade', () => {
     expect(sendEmail).not.toHaveBeenCalled()
   })
 
+  it('nem consulta quem é agente quando não há ninguém', async () => {
+    const out = expectOk(
+      await notifySdEvent({
+        workspaceId: WS,
+        event: 'ticket.internal_note',
+        ticket: ticket({ assigneeId: null }),
+        payload,
+      }),
+    )
+    expect(out.skipped).toBe('no_recipients')
+    expect(repo.filterAgentIds).not.toHaveBeenCalled()
+  })
+
   it('propaga erro ao checar quem é agente', async () => {
     repo.filterAgentIds.mockResolvedValue(err(databaseError()))
     expectErr(

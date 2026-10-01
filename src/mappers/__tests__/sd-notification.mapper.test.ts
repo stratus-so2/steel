@@ -100,6 +100,21 @@ describe('toSdNotificationPreferencesDTO', () => {
     expect(keys).toEqual(SD_NOTIFICATION_EVENTS.map((e) => e.key).sort())
   })
 
+  it('ignora chave de grupo que não existe no catálogo', () => {
+    const dto = toSdNotificationPreferencesDTO({
+      rows: [],
+      isAgent: true,
+      whatsappAvailable: false,
+      groups: [
+        { label: 'Misto', events: ['ticket.message', 'nao.existe'] },
+        { label: 'Vazio', events: ['tambem.nao'] },
+      ],
+    })
+    expect(dto.groups).toHaveLength(1)
+    expect(dto.groups[0]).toMatchObject({ label: 'Misto' })
+    expect(dto.groups[0].events.map((e) => e.event)).toEqual(['ticket.message'])
+  })
+
   it('esconde eventos `agentOnly` e grupos que ficam vazios do solicitante', () => {
     const dto = toSdNotificationPreferencesDTO({
       rows: [],
