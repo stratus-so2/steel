@@ -181,7 +181,7 @@ describe('route/status/error rows', () => {
         status: 401,
         errorCode: 'UNAUTHORIZED',
         route: '/api/x',
-        errorMessage: 'Nao autenticado',
+        errorMessage: 'Não autenticado',
         count: 7,
         lastSeen: 1789822294348000000,
       },
@@ -191,7 +191,7 @@ describe('route/status/error rows', () => {
       status: 401,
       code: 'UNAUTHORIZED',
       route: '/api/x',
-      message: 'Nao autenticado',
+      message: 'Não autenticado',
       count: 7,
       lastSeen: '2026-09-19T12:51:34.348Z',
     })

@@ -30,6 +30,6 @@ describe('getAuthSession()', () => {
     const result = await getAuthSession()
 
     const error = expectErr(result, 'UNAUTHORIZED')
-    expect(error.message).toBe('Nao autenticado')
+    expect(error.message).toBe('Não autenticado')
   })
 })

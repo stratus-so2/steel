@@ -81,7 +81,7 @@ const ROUTES: RouteSpec[] = [
     p50: 35,
     errorRate4xx: 0.004,
     errorRate5xx: 0.001,
-    codes: [[401, 'UNAUTHORIZED', 'Nao autenticado']],
+    codes: [[401, 'UNAUTHORIZED', 'Não autenticado']],
   },
   {
     route: '/api/workspaces/[id]/whatsapp/conversations',

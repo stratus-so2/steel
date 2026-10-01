@@ -97,7 +97,7 @@ describe('UserService', () => {
       const result = await UserService.getProfile('user-1')
 
       const error = expectErr(result, 'RESOURCE_NOT_FOUND')
-      expect(error.message).toBe('User not found')
+      expect(error.message).toBe('Registro não encontrado')
     })
   })
 

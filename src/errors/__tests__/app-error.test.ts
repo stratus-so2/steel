@@ -87,11 +87,12 @@ describe('AppError factories', () => {
   })
 
   describe('notFound()', () => {
-    it('should include resource name in message', () => {
+    it('should use a pt-BR message and keep the resource in details', () => {
       const error = notFound('User')
 
       expect(error.code).toBe('RESOURCE_NOT_FOUND')
-      expect(error.message).toBe('User not found')
+      expect(error.message).toBe('Registro não encontrado')
+      expect(error.details).toEqual({ resource: 'User' })
     })
   })
 

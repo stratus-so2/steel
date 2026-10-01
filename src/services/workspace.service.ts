@@ -90,7 +90,7 @@ export const WorkspaceService = {
         reason: 'insufficient_role',
         meta: { role: membership.value.role },
       })
-      return err(forbidden('Apneas OWNER ou ADMIN podem editar o workspace'))
+      return err(forbidden('Apenas OWNER ou ADMIN podem editar o workspace'))
     }
 
     const result = await WorkspaceRepository.update(workspaceId, dto)

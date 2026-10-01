@@ -31,8 +31,12 @@ export const moduleDisabled = (
   message = 'Módulo não habilitado para esta workspace',
 ): AppError => appError('MODULE_DISABLED', message)
 
+/**
+ * Recurso inexistente. A mensagem é pt-BR (vai para o usuário); o nome
+ * técnico do recurso fica em `details.resource` para log e depuração.
+ */
 export const notFound = (resource: string): AppError =>
-  appError('RESOURCE_NOT_FOUND', `${resource} not found`)
+  appError('RESOURCE_NOT_FOUND', 'Registro não encontrado', { resource })
 
 export const conflict = (message: string): AppError =>
   appError('CONFLICT', message)
@@ -56,7 +60,7 @@ export const rateLimited = (
 ): AppError => appError('RATE_LIMITED', message, { retryAfterSeconds })
 
 export const projectNotFound = (): AppError =>
-  appError('PROJECT_NOT_FOUND', 'Project not found')
+  appError('PROJECT_NOT_FOUND', 'Projeto não encontrado')
 
 export const projectForbidden = (
   message = 'Sem acesso a este projeto',
