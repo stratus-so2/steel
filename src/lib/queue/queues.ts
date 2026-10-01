@@ -30,6 +30,8 @@ import {
   type ServicedeskDigestJobPayload,
   type ServicedeskMailJob,
   type ServicedeskMailJobPayload,
+  type ServicedeskRecurringJob,
+  type ServicedeskRecurringJobPayload,
   type ServicedeskSlaJob,
   type ServicedeskSlaJobPayload,
   type StatusCollectJob,
@@ -83,6 +85,7 @@ let servicedeskSlaQueue: Queue | null = null
 let servicedeskAiQueue: Queue | null = null
 let servicedeskMailQueue: Queue | null = null
 let servicedeskDigestQueue: Queue | null = null
+let servicedeskRecurringQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -554,6 +557,29 @@ export function getServicedeskDigestQueue(): Queue<
   >
 }
 
+/**
+ * Chamados recorrentes do ServiceDesk. Uma tentativa só: o tick volta em 5
+ * minutos e a trava `(recurringId, scheduledFor)` já garante que reprocessar
+ * não duplica chamado.
+ */
+export function getServicedeskRecurringQueue(): Queue<
+  ServicedeskRecurringJobPayload[ServicedeskRecurringJob],
+  unknown,
+  ServicedeskRecurringJob
+> {
+  if (!servicedeskRecurringQueue) {
+    servicedeskRecurringQueue = new Queue(QueueName.ServicedeskRecurring, {
+      connection: getQueueConnection(),
+      defaultJobOptions: { ...defaultJobOptions, attempts: 1 },
+    })
+  }
+  return servicedeskRecurringQueue as Queue<
+    ServicedeskRecurringJobPayload[ServicedeskRecurringJob],
+    unknown,
+    ServicedeskRecurringJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -580,6 +606,7 @@ export async function closeQueues(): Promise<void> {
     servicedeskAiQueue?.close(),
     servicedeskMailQueue?.close(),
     servicedeskDigestQueue?.close(),
+    servicedeskRecurringQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -604,4 +631,5 @@ export async function closeQueues(): Promise<void> {
   servicedeskAiQueue = null
   servicedeskMailQueue = null
   servicedeskDigestQueue = null
+  servicedeskRecurringQueue = null
 }

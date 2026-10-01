@@ -41,6 +41,13 @@ export const ServicedeskMailCron = '* * * * *' as const
  */
 export const ServicedeskDigestCron = '5 * * * *' as const
 
+/**
+ * Chamados recorrentes do ServiceDesk (manutenção preventiva): a cada 5
+ * minutos. A regra guarda o horário exato da ocorrência, então o tick só
+ * precisa ser frequente o bastante para não atrasar a abertura.
+ */
+export const ServicedeskRecurringCron = '*/5 * * * *' as const
+
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 

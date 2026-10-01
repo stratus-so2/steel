@@ -189,6 +189,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `servicedesk-ai` | IA do ServiceDesk: triagem automática do chamado na abertura (categoria, prioridade, departamento, tags) quando `aiAutoTriageEnabled` | sob demanda |
 | `servicedesk-mail` | Canal de e-mail do ServiceDesk: lê por IMAP as caixas ativas (`SdMailbox`), abre chamado ou anexa a resposta à thread, registra tudo em `SdMailMessage` ([ServiceDesk](../servicedesk/README.md)) | a cada 1 min (+ sob demanda por caixa) |
 | `servicedesk-digest` | resumo diário opcional do ServiceDesk: o que ficou pendente com o agente (fila, SLA apertado, aguardando resposta). Só para quem marcou `digest.daily` nas preferências; sem retry (`attempts: 1`) para não reenviar ([ServiceDesk](../servicedesk/README.md)) | a cada hora (envia na hora local do workspace, `SD_DIGEST_HOUR`) |
+| `servicedesk-recurring` | chamados recorrentes / manutenção preventiva: abre o chamado das rotinas com `nextRunAt` vencido (ator de sistema), registra a ocorrência e recalcula o próximo disparo no fuso da regra. Idempotente pelo par `(recurringId, scheduledFor)`; sem retry (`attempts: 1`) ([ServiceDesk](../servicedesk/README.md)) | a cada 5 min |
 
 Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
 
