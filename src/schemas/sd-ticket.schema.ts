@@ -100,6 +100,12 @@ export const UpdateSdTicketSchema = z
     solutionClassificationId: nullableId,
     csatScore: z.number().int().min(1).max(5).nullable().optional(),
     csatComment: clearableText(2000),
+    /**
+     * Agenda o período planejado mesmo com congelamento ou conflito de
+     * janela (só admin do ServiceDesk). Não é campo do chamado: vira opção
+     * do motor e o que foi ignorado é registrado na rastreabilidade.
+     */
+    confirmChangeSchedule: z.boolean().optional(),
     ...editable,
   })
   .refine((d) => Object.keys(d).length > 0, {

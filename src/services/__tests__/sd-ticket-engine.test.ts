@@ -17,6 +17,9 @@ import type { SdCategoryNode } from '@/src/repositories/sd-ticket-context.reposi
 vi.mock('@/src/repositories/sd-ticket.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/repositories/sd-automation.repository')
+vi.mock('@/src/repositories/sd-approval-round.repository')
+vi.mock('@/src/repositories/sd-change-window.repository')
+vi.mock('@/src/repositories/sd-change-schedule.repository')
 vi.mock('@/src/lib/servicedesk/realtime')
 vi.mock('@/src/services/sd-notification.service', () => ({
   notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
@@ -29,9 +32,13 @@ vi.mock('@/src/services/sd-ticket-event-recorder', async (orig) => ({
   recordSdTicketEvent: vi.fn(async () => ({ ok: true, value: 1 })),
 }))
 
+import { createFakeSdChangeWindow } from '@/src/__tests__/factories/sd-change.factory'
 import { createFakeSdNotifyOutcome } from '@/src/__tests__/factories/sd-notification.factory'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
+import { SdApprovalRoundRepository } from '@/src/repositories/sd-approval-round.repository'
 import { SdAutomationRepository } from '@/src/repositories/sd-automation.repository'
+import { SdChangeScheduleRepository } from '@/src/repositories/sd-change-schedule.repository'
+import { SdChangeWindowRepository } from '@/src/repositories/sd-change-window.repository'
 import { SdTicketRepository } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { notifySdEvent } from '../sd-notification.service'
@@ -51,6 +58,9 @@ import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const ticketRepo = vi.mocked(SdTicketRepository)
 const autoRepo = vi.mocked(SdAutomationRepository)
+const roundRepo = vi.mocked(SdApprovalRoundRepository)
+const windowRepo = vi.mocked(SdChangeWindowRepository)
+const scheduleRepo = vi.mocked(SdChangeScheduleRepository)
 const recordMock = vi.mocked(recordSdTicketEvent)
 const notifyMock = vi.mocked(notifySdEvent)
 const publishMock = vi.mocked(publishSdTicketEvent)
@@ -127,7 +137,10 @@ beforeEach(() => {
   ctxRepo.findDefaultCalendar.mockResolvedValue(ok(null))
   ctxRepo.findWorkspaceOwnerId.mockResolvedValue(ok('owner'))
   ctxRepo.listTransitions.mockResolvedValue(ok([]))
-  ctxRepo.findLatestApprovalStatus.mockResolvedValue(ok('APPROVED'))
+  ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValue(ok('APPROVED'))
+  roundRepo.hasApprovedRound.mockResolvedValue(ok(false))
+  windowRepo.listForRange.mockResolvedValue(ok([]))
+  scheduleRepo.findConflicts.mockResolvedValue(ok([]))
   ctxRepo.countSolutionClassifications.mockResolvedValue(ok(0))
   ctxRepo.countSignatures.mockResolvedValue(ok(1))
   ctxRepo.findCategory.mockResolvedValue(ok(null))
@@ -961,6 +974,130 @@ describe('create', () => {
   })
 })
 
+describe('update · agenda da mudança', () => {
+  const change = () =>
+    ticket({
+      type: 'CHANGE',
+      configItemId: 'ci1',
+      departmentId: 'd1',
+      plannedStartAt: null,
+      plannedEndAt: null,
+    })
+  const schedule = {
+    plannedStartAt: new Date('2026-10-10T02:00:00.000Z'),
+    plannedEndAt: new Date('2026-10-10T06:00:00.000Z'),
+  }
+  const freeze = () =>
+    createFakeSdChangeWindow({
+      id: 'w1',
+      name: 'Congelamento de outubro',
+      kind: 'FREEZE',
+      startsAt: new Date('2026-10-01T00:00:00.000Z'),
+      endsAt: new Date('2026-11-01T00:00:00.000Z'),
+    })
+
+  it('schedules freely when no window and no rival touch the period', async () => {
+    expectOk(await SdTicketEngine.update(change(), schedule, agent, config()))
+    expect(windowRepo.listForRange).toHaveBeenCalled()
+  })
+
+  it('does not look at the calendar when the window did not move', async () => {
+    expectOk(
+      await SdTicketEngine.update(change(), { title: 'x' }, agent, config()),
+    )
+    expect(windowRepo.listForRange).not.toHaveBeenCalled()
+  })
+
+  it('refuses a freeze window with SD_CHANGE_FROZEN', async () => {
+    windowRepo.listForRange.mockResolvedValue(ok([freeze()]))
+    const e = expectErr(
+      await SdTicketEngine.update(change(), schedule, agent, config()),
+      'SD_CHANGE_FROZEN',
+    )
+    expect(e.message).toContain('Congelamento de outubro')
+    expect(e.message).toContain('administrador')
+    expect(ticketRepo.update).not.toHaveBeenCalled()
+  })
+
+  it('refuses a rival change on the same config item with SD_CHANGE_CONFLICT', async () => {
+    scheduleRepo.findConflicts.mockResolvedValue(
+      ok([
+        {
+          id: 't-rival',
+          number: 7,
+          type: 'CHANGE',
+          title: 'Outra mudança',
+          plannedStartAt: schedule.plannedStartAt,
+          plannedEndAt: schedule.plannedEndAt,
+          changeType: null,
+          changeRisk: null,
+          configItemId: 'ci1',
+          departmentId: 'd1',
+          phase: { id: 'p', name: 'Planejada', category: 'IN_PROGRESS' },
+          configItem: { id: 'ci1', name: 'Servidor' },
+          assignee: null,
+        },
+      ]),
+    )
+    const e = expectErr(
+      await SdTicketEngine.update(change(), schedule, agent, config()),
+      'SD_CHANGE_CONFLICT',
+    )
+    expect(e.message).toContain('#7')
+  })
+
+  it('lets an admin confirm and records what was ignored', async () => {
+    windowRepo.listForRange.mockResolvedValue(ok([freeze()]))
+    expectOk(
+      await SdTicketEngine.update(change(), schedule, admin, config(), {
+        confirmChangeSchedule: true,
+      }),
+    )
+    const forced = recordMock.mock.calls
+      .flatMap(([events]) => (Array.isArray(events) ? events : [events]))
+      .find((event) => event.action === 'change.schedule_forced')
+    expect(forced).toBeDefined()
+    expect(forced?.meta).toEqual({ kinds: ['FREEZE'] })
+  })
+
+  it('refuses an agent confirmation (only admins may force)', async () => {
+    windowRepo.listForRange.mockResolvedValue(ok([freeze()]))
+    expectErr(
+      await SdTicketEngine.update(change(), schedule, agent, config(), {
+        confirmChangeSchedule: true,
+      }),
+      'SD_CHANGE_FROZEN',
+    )
+  })
+
+  it('ignores a freeze window scoped to another config item', async () => {
+    windowRepo.listForRange.mockResolvedValue(
+      ok([createFakeSdChangeWindow({ ...freeze(), configItemIds: ['outro'] })]),
+    )
+    expectOk(await SdTicketEngine.update(change(), schedule, agent, config()))
+  })
+
+  it('propagates a database error from the calendar', async () => {
+    windowRepo.listForRange.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdTicketEngine.update(change(), schedule, agent, config()),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('skips the check for a ticket that is not a change', async () => {
+    windowRepo.listForRange.mockResolvedValue(ok([freeze()]))
+    expectOk(
+      await SdTicketEngine.update(
+        ticket({ type: 'INCIDENT' }),
+        schedule,
+        agent,
+        config(),
+      ),
+    )
+  })
+})
+
 describe('update', () => {
   it('returns the same ticket when nothing changes', async () => {
     const t = ticket()
@@ -1595,23 +1732,47 @@ describe('changePhase', () => {
 
   it('requires an approved approval when configured', async () => {
     ctxRepo.findPhase.mockResolvedValue(ok(phase({ requiresApproval: true })))
-    ctxRepo.findLatestApprovalStatus.mockResolvedValueOnce(ok('PENDING'))
+    ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValueOnce(
+      ok('PENDING'),
+    )
     expectErr(
       await SdTicketEngine.changePhase(ticket(), 'ph-target', agent, config()),
       'SD_APPROVAL_REQUIRED',
     )
-    ctxRepo.findLatestApprovalStatus.mockResolvedValueOnce(ok(null))
+    ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValueOnce(ok(null))
     expectErr(
       await SdTicketEngine.changePhase(ticket(), 'ph-target', agent, config()),
       'SD_APPROVAL_REQUIRED',
     )
-    ctxRepo.findLatestApprovalStatus.mockResolvedValueOnce(err(databaseError()))
+    ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValueOnce(
+      err(databaseError()),
+    )
     expectErr(
       await SdTicketEngine.changePhase(ticket(), 'ph-target', agent, config()),
       'DATABASE_ERROR',
     )
     expectOk(
       await SdTicketEngine.changePhase(ticket(), 'ph-target', agent, config()),
+    )
+  })
+
+  it('accepts an approved CAB round instead of a standalone approval', async () => {
+    ctxRepo.findPhase.mockResolvedValue(ok(phase({ requiresApproval: true })))
+    ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValue(ok('PENDING'))
+    roundRepo.hasApprovedRound.mockResolvedValue(ok(true))
+    expectOk(
+      await SdTicketEngine.changePhase(ticket(), 'ph-target', agent, config()),
+    )
+    // Com a rodada aprovada o pedido avulso nem é consultado.
+    expect(ctxRepo.findLatestStandaloneApprovalStatus).not.toHaveBeenCalled()
+  })
+
+  it('propagates a database error while reading the CAB rounds', async () => {
+    ctxRepo.findPhase.mockResolvedValue(ok(phase({ requiresApproval: true })))
+    roundRepo.hasApprovedRound.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdTicketEngine.changePhase(ticket(), 'ph-target', agent, config()),
+      'DATABASE_ERROR',
     )
   })
 

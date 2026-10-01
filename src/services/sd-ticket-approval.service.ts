@@ -31,6 +31,7 @@ import type {
   SdPublicApprovalDTO,
   SdTicketApprovalDTO,
 } from '@/types/sd-ticket-approval'
+import { registerSdRoundVote } from './sd-approval-round.service'
 import { fireSdAutomations } from './sd-automation-engine'
 import { notifySdEvent, type SdNotifyInput } from './sd-notification.service'
 import { SdTicketEngine, sdTicketCode } from './sd-ticket-engine'
@@ -508,6 +509,7 @@ export const SdTicketApprovalService = {
       status: dto.decision,
       comment: dto.comment ?? null,
       at,
+      roundId: approval.roundId,
     })
     if (!result.ok) return result
     if (!result.value.responded) return err(sdApprovalNotPending())
@@ -546,6 +548,8 @@ export const SdTicketApprovalService = {
         userIds: [approval.requestedById],
       },
     })
+    // Voto de uma rodada do comitê: reapura o quórum e fecha se der.
+    if (approval.roundId) await registerSdRoundVote(approval.id)
     await publishApproval(ticket, approval.approverUserId)
     void fireSdAutomations('APPROVAL_RESPONDED', ticket.id, {
       actorId: approval.approverUserId,

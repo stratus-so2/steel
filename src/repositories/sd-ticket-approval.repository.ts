@@ -185,8 +185,13 @@ export const SdTicketApprovalRepository = {
 
   /**
    * Registra a resposta se o pedido ainda está PENDING e dentro da
-   * validade, e cancela os outros pedidos pendentes do chamado (a primeira
-   * resposta decide). `responded: false` = perdeu a corrida / não pendente.
+   * validade, e cancela os outros pedidos **avulsos** pendentes do chamado (a
+   * primeira resposta decide). `responded: false` = perdeu a corrida / não
+   * pendente.
+   *
+   * Pedido de uma **rodada do comitê** (`roundId`) não cancela ninguém: a
+   * rodada precisa dos outros votos para apurar o quórum e é ela que cancela
+   * o que sobrou ao fechar (`SdApprovalRoundService`).
    */
   async respond(params: {
     id: string
@@ -194,6 +199,8 @@ export const SdTicketApprovalRepository = {
     status: 'APPROVED' | 'REJECTED'
     comment: string | null
     at: Date
+    /** Rodada do pedido; com rodada, os irmãos não são cancelados. */
+    roundId?: string | null
   }): Promise<Result<{ responded: boolean; canceledIds: string[] }>> {
     try {
       return ok(
@@ -211,9 +218,11 @@ export const SdTicketApprovalRepository = {
             },
           })
           if (updated.count === 0) return { responded: false, canceledIds: [] }
+          if (params.roundId) return { responded: true, canceledIds: [] }
           const siblings = await tx.sdTicketApproval.findMany({
             where: {
               ticketId: params.ticketId,
+              roundId: null,
               status: 'PENDING',
               id: { not: params.id },
             },
