@@ -1,6 +1,7 @@
-import type {
-  SdChangeOccurrence,
-  SdChangeWindowSource,
+import {
+  expandSdChangeWindow,
+  type SdChangeOccurrence,
+  type SdChangeWindowSource,
 } from '@/src/lib/servicedesk/change-calendar'
 import type { SdScheduledChange } from '@/src/repositories/sd-change-schedule.repository'
 import type { SdChangeWindowWithAuthor } from '@/src/repositories/sd-change-window.repository'
@@ -109,4 +110,34 @@ export function toSdChangeCalendarEntryDTO(
     conflictTicketIds: extra.conflictTicketIds ?? [],
     frozenWindowIds: extra.frozenWindowIds ?? [],
   }
+}
+
+interface SdWindowOccurrence {
+  window: SdChangeWindowWithAuthor
+  startsAt: Date
+  endsAt: Date
+  recurring: boolean
+}
+
+/**
+ * Expande as janelas candidatas e devolve as ocorrências do intervalo, já
+ * emparelhadas com a janela de origem (o que o calendário e a checagem de
+ * agenda consomem).
+ */
+export function sdExpandWindows(
+  windows: SdChangeWindowWithAuthor[],
+  range: { from: Date; to: Date },
+): SdWindowOccurrence[] {
+  return windows
+    .flatMap((window) =>
+      expandSdChangeWindow(toSdChangeWindowSource(window), range).map(
+        (occurrence) => ({
+          window,
+          startsAt: occurrence.startsAt,
+          endsAt: occurrence.endsAt,
+          recurring: occurrence.recurring,
+        }),
+      ),
+    )
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
 }

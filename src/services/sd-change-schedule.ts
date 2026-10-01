@@ -5,7 +5,10 @@ import {
   sdPeriodsOverlap,
   sdWindowApplies,
 } from '@/src/lib/servicedesk/change-calendar'
-import { toSdChangeOccurrenceDTO } from '@/src/mappers/sd-change-window.mapper'
+import {
+  sdExpandWindows,
+  toSdChangeOccurrenceDTO,
+} from '@/src/mappers/sd-change-window.mapper'
 import { SdChangeScheduleRepository } from '@/src/repositories/sd-change-schedule.repository'
 import { SdChangeWindowRepository } from '@/src/repositories/sd-change-window.repository'
 import type {
@@ -13,7 +16,6 @@ import type {
   SdChangeWindowOccurrenceDTO,
   SdTicketChangeScheduleDTO,
 } from '@/types/sd-change'
-import { sdExpandWindows } from './sd-change-window.service'
 
 /**
  * Agenda da mudança: congelamento e conflito de janela.

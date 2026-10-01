@@ -3,21 +3,19 @@ import { logger } from '@/lib/axiom/logger'
 import { sdChangeWindowInvalid } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
-  expandSdChangeWindow,
   sdPeriodsOverlap,
   sdWindowApplies,
 } from '@/src/lib/servicedesk/change-calendar'
 import {
+  sdExpandWindows,
   toSdChangeCalendarEntryDTO,
   toSdChangeOccurrenceDTO,
   toSdChangeWindowDTO,
-  toSdChangeWindowSource,
 } from '@/src/mappers/sd-change-window.mapper'
 import { SdChangeScheduleRepository } from '@/src/repositories/sd-change-schedule.repository'
 import {
   type SdChangeWindowData,
   SdChangeWindowRepository,
-  type SdChangeWindowWithAuthor,
 } from '@/src/repositories/sd-change-window.repository'
 import type {
   CreateSdChangeWindowDTO,
@@ -98,32 +96,6 @@ function toData(
       : Prisma.DbNull
   }
   return data
-}
-
-interface SdWindowOccurrence {
-  window: SdChangeWindowWithAuthor
-  startsAt: Date
-  endsAt: Date
-  recurring: boolean
-}
-
-/** Expande as janelas candidatas e devolve as ocorrências do intervalo. */
-export function sdExpandWindows(
-  windows: SdChangeWindowWithAuthor[],
-  range: { from: Date; to: Date },
-): SdWindowOccurrence[] {
-  return windows
-    .flatMap((window) =>
-      expandSdChangeWindow(toSdChangeWindowSource(window), range).map(
-        (occurrence) => ({
-          window,
-          startsAt: occurrence.startsAt,
-          endsAt: occurrence.endsAt,
-          recurring: occurrence.recurring,
-        }),
-      ),
-    )
-    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
 }
 
 export const SdChangeWindowService = {

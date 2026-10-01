@@ -268,6 +268,11 @@ export const TAG_GROUPS = [
           'Rotinas periódicas (manutenção preventiva): agenda no fuso da regra (frequência, intervalo, dias, horário, vigência e antecedência), valores do chamado gerado, pré-visualização das próximas ocorrências, histórico de "abriu, pulou ou falhou" e o "gerar agora". O worker abre os chamados com ator de sistema, de forma idempotente por ocorrência.',
       },
       {
+        name: 'ServiceDesk · Mudanças e CAB',
+        description:
+          'Calendário de mudanças: janelas de manutenção e de congelamento (com recorrência simplificada e alvo por item de configuração ou departamento), as ocorrências expandidas do intervalo e as mudanças posicionadas pela janela planejada, com congelamento e conflito de item já detectados — aviso, não bloqueio: um admin confirma e o que foi ignorado fica na rastreabilidade. Inclui os comitês de mudança (CAB) com membros, votos obrigatórios, quórum e seleção por condições, e as rodadas de aprovação do chamado (um pedido por membro, contagem de votos e fechamento automático).',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',
