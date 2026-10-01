@@ -53,6 +53,10 @@ export const PERMISSION_RESOURCES = [
   'sd-settings',
   // ServiceDesk — canais de entrada e portal do contato externo
   'sd-channels',
+  // ServiceDesk — contratos e horas, mudanças (CAB) e plantão
+  'sd-contracts',
+  'sd-change-calendar',
+  'sd-oncall',
 ] as const
 export type PermissionResource = (typeof PERMISSION_RESOURCES)[number]
 
@@ -90,6 +94,10 @@ const MEMBER_ENTITIES = new Set<PermissionResource>([
   'sd-knowledge',
   'sd-dashboards',
   'sd-portal',
+  // Agente aponta hora e enxerga a agenda de mudanças e o plantão; mexer em
+  // contrato e em escala é coisa de admin (MEMBER_READONLY abaixo).
+  'sd-change-calendar',
+  'sd-oncall',
 ])
 
 /**
@@ -105,6 +113,7 @@ const MEMBER_READONLY = new Set<PermissionResource>([
   'message-templates',
   'sd-settings',
   'sd-channels',
+  'sd-contracts',
 ])
 
 function fullMatrix(): PermissionMap {

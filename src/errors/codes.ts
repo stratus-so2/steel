@@ -509,6 +509,47 @@ export const ERROR_CODES = {
     status: 422,
   },
 
+  // ServiceDesk — contratos, mudanças (CAB), plantão e recorrência
+  SD_CONTRACT_NOT_FOUND: { code: 'SD_CONTRACT_NOT_FOUND', status: 404 },
+  SD_CONTRACT_INACTIVE: { code: 'SD_CONTRACT_INACTIVE', status: 422 },
+  SD_CONTRACT_OVERLAP: { code: 'SD_CONTRACT_OVERLAP', status: 409 },
+  SD_CONTRACT_PERIOD_NOT_FOUND: {
+    code: 'SD_CONTRACT_PERIOD_NOT_FOUND',
+    status: 404,
+  },
+  SD_CONTRACT_PERIOD_CLOSED: { code: 'SD_CONTRACT_PERIOD_CLOSED', status: 409 },
+  SD_TIME_ENTRY_NOT_FOUND: { code: 'SD_TIME_ENTRY_NOT_FOUND', status: 404 },
+  SD_TIME_ENTRY_RUNNING: { code: 'SD_TIME_ENTRY_RUNNING', status: 409 },
+  SD_TIME_ENTRY_INVALID: { code: 'SD_TIME_ENTRY_INVALID', status: 422 },
+  SD_CHANGE_WINDOW_NOT_FOUND: {
+    code: 'SD_CHANGE_WINDOW_NOT_FOUND',
+    status: 404,
+  },
+  SD_CHANGE_WINDOW_INVALID: { code: 'SD_CHANGE_WINDOW_INVALID', status: 422 },
+  SD_CHANGE_FROZEN: { code: 'SD_CHANGE_FROZEN', status: 409 },
+  SD_CHANGE_CONFLICT: { code: 'SD_CHANGE_CONFLICT', status: 409 },
+  SD_CAB_BOARD_NOT_FOUND: { code: 'SD_CAB_BOARD_NOT_FOUND', status: 404 },
+  SD_CAB_QUORUM_INVALID: { code: 'SD_CAB_QUORUM_INVALID', status: 422 },
+  SD_APPROVAL_ROUND_NOT_FOUND: {
+    code: 'SD_APPROVAL_ROUND_NOT_FOUND',
+    status: 404,
+  },
+  SD_APPROVAL_ROUND_CLOSED: { code: 'SD_APPROVAL_ROUND_CLOSED', status: 409 },
+  SD_ONCALL_SCHEDULE_NOT_FOUND: {
+    code: 'SD_ONCALL_SCHEDULE_NOT_FOUND',
+    status: 404,
+  },
+  SD_ONCALL_LAYER_INVALID: { code: 'SD_ONCALL_LAYER_INVALID', status: 422 },
+  SD_ONCALL_OVERRIDE_OVERLAP: {
+    code: 'SD_ONCALL_OVERRIDE_OVERLAP',
+    status: 409,
+  },
+  SD_RECURRING_NOT_FOUND: { code: 'SD_RECURRING_NOT_FOUND', status: 404 },
+  SD_RECURRING_SCHEDULE_INVALID: {
+    code: 'SD_RECURRING_SCHEDULE_INVALID',
+    status: 422,
+  },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

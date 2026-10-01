@@ -156,6 +156,18 @@ model User {
   sdPortalAccessesSent      SdPortalAccess[]           @relation("SdPortalAccessRequestedBy")
   sdNotificationPreferences SdNotificationPreference[] @relation("SdNotificationPreferenceUser")
   sdTicketsFollowed         SdTicketFollower[]         @relation("SdTicketFollowerUser")
+  sdContractsCreated        SdContract[]               @relation("SdContractCreatedBy")
+  sdContractPeriodsClosed   SdContractPeriod[]         @relation("SdContractPeriodClosedBy")
+  sdTimeEntries             SdTimeEntry[]              @relation("SdTimeEntryUser")
+  sdChangeWindowsCreated    SdChangeWindow[]           @relation("SdChangeWindowCreatedBy")
+  sdCabBoardsCreated        SdCabBoard[]               @relation("SdCabBoardCreatedBy")
+  sdCabMemberships          SdCabMember[]              @relation("SdCabMemberUser")
+  sdApprovalRoundsRequested SdApprovalRound[]          @relation("SdApprovalRoundRequestedBy")
+  sdOnCallSchedulesCreated  SdOnCallSchedule[]         @relation("SdOnCallScheduleCreatedBy")
+  sdOnCallParticipations    SdOnCallParticipant[]      @relation("SdOnCallParticipantUser")
+  sdOnCallOverridesTaken    SdOnCallOverride[]         @relation("SdOnCallOverrideUser")
+  sdOnCallOverridesCreated  SdOnCallOverride[]         @relation("SdOnCallOverrideCreatedBy")
+  sdRecurringTicketsCreated SdRecurringTicket[]        @relation("SdRecurringTicketCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -437,6 +449,16 @@ model Workspace {
   sdMonitorAlerts           SdMonitorAlert[]
   sdPortalAccesses          SdPortalAccess[]
   sdNotificationPreferences SdNotificationPreference[]
+  sdContracts               SdContract[]
+  sdContractPeriods         SdContractPeriod[]
+  sdTimeEntries             SdTimeEntry[]
+  sdChangeWindows           SdChangeWindow[]
+  sdCabBoards               SdCabBoard[]
+  sdApprovalRounds          SdApprovalRound[]
+  sdOnCallSchedules         SdOnCallSchedule[]
+  sdOnCallOverrides         SdOnCallOverride[]
+  sdRecurringTickets        SdRecurringTicket[]
+  sdRecurringTicketRuns     SdRecurringTicketRun[]
 
   @@index([status])
   @@map("workspaces")
@@ -3841,14 +3863,15 @@ model SdDepartment {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
-  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent      SdDepartment?        @relation("SdDepartmentTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children    SdDepartment[]       @relation("SdDepartmentTree")
-  calendar    SdBusinessCalendar?  @relation(fields: [calendarId], references: [id], onDelete: SetNull)
-  members     SdDepartmentMember[]
-  tickets     SdTicket[]
-  categories  SdCategory[]
-  configItems SdConfigItem[]
+  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent          SdDepartment?        @relation("SdDepartmentTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children        SdDepartment[]       @relation("SdDepartmentTree")
+  calendar        SdBusinessCalendar?  @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  members         SdDepartmentMember[]
+  tickets         SdTicket[]
+  categories      SdCategory[]
+  configItems     SdConfigItem[]
+  onCallSchedules SdOnCallSchedule[]
 
   @@index([workspaceId])
   @@index([parentId])
@@ -3911,6 +3934,8 @@ model SdCustomer {
   ticketsAsClient  SdTicket[]          @relation("SdTicketCustomer")
   ticketsAsCompany SdTicket[]          @relation("SdTicketCompany")
   configItems      SdConfigItem[]
+  contracts        SdContract[]
+  recurringTickets SdRecurringTicket[]
 
   @@index([workspaceId, kind])
   @@index([workspaceId, document])
@@ -4016,16 +4041,17 @@ model SdConfigItem {
   updatedAt     DateTime           @updatedAt @map("updated_at")
   deletedAt     DateTime?          @map("deleted_at")
 
-  workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  type          SdConfigItemType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
-  parent        SdConfigItem?     @relation("SdConfigItemTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children      SdConfigItem[]    @relation("SdConfigItemTree")
-  customer      SdCustomer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  department    SdDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  owner         User?             @relation("SdConfigItemOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  createdBy     User              @relation("SdConfigItemCreatedBy", fields: [createdById], references: [id])
-  tickets       SdTicket[]
-  monitorAlerts SdMonitorAlert[]
+  workspace        Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type             SdConfigItemType?   @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  parent           SdConfigItem?       @relation("SdConfigItemTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children         SdConfigItem[]      @relation("SdConfigItemTree")
+  customer         SdCustomer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  department       SdDepartment?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  owner            User?               @relation("SdConfigItemOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy        User                @relation("SdConfigItemCreatedBy", fields: [createdById], references: [id])
+  tickets          SdTicket[]
+  monitorAlerts    SdMonitorAlert[]
+  recurringTickets SdRecurringTicket[]
 
   @@index([workspaceId])
   @@index([customerId])
@@ -4142,10 +4168,11 @@ model SdPriority {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  workspace  Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  matrix     SdPriorityMatrix[]
-  slaTargets SdSlaTarget[]
-  tickets    SdTicket[]
+  workspace     Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  matrix        SdPriorityMatrix[]
+  slaTargets    SdSlaTarget[]
+  tickets       SdTicket[]
+  contractRates SdContractRate[]
 
   @@unique([workspaceId, level])
   @@map("sd_priorities")
@@ -4256,9 +4283,10 @@ model SdBusinessCalendar {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  slaPolicies SdSlaPolicy[]
-  departments SdDepartment[]
+  workspace       Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slaPolicies     SdSlaPolicy[]
+  departments     SdDepartment[]
+  onCallSchedules SdOnCallSchedule[]
 
   @@map("sd_business_calendars")
 }
@@ -4285,6 +4313,7 @@ model SdSlaPolicy {
   targets    SdSlaTarget[]
   categories SdCategory[]
   tickets    SdTicket[]
+  contracts  SdContract[]
 
   @@index([workspaceId, position])
   @@map("sd_sla_policies")
@@ -4400,8 +4429,9 @@ model SdTicketTemplate {
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
 
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  tickets   SdTicket[]
+  workspace        Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tickets          SdTicket[]
+  recurringTickets SdRecurringTicket[]
 
   @@index([workspaceId, ticketType])
   @@map("sd_ticket_templates")
@@ -4488,6 +4518,8 @@ model SdTicket {
   customFields             Json            @default("{}") @map("custom_fields")
   // SLA
   slaPolicyId              String?         @map("sla_policy_id")
+  /// Contrato do cliente aplicado a este chamado (horas e valor).
+  contractId               String?         @map("contract_id")
   firstResponseDueAt       DateTime?       @map("first_response_due_at")
   resolutionDueAt          DateTime?       @map("resolution_due_at")
   firstRespondedAt         DateTime?       @map("first_responded_at")
@@ -4524,30 +4556,31 @@ model SdTicket {
   updatedAt                DateTime        @updatedAt @map("updated_at")
   deletedAt                DateTime?       @map("deleted_at")
 
-  workspace              Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  phase                  SdPhase               @relation(fields: [phaseId], references: [id])
-  impact                 SdImpact?             @relation(fields: [impactId], references: [id], onDelete: SetNull)
-  urgency                SdUrgency?            @relation(fields: [urgencyId], references: [id], onDelete: SetNull)
-  priority               SdPriority?           @relation(fields: [priorityId], references: [id], onDelete: SetNull)
-  severity               SdSeverity?           @relation(fields: [severityId], references: [id], onDelete: SetNull)
-  category               SdCategory?           @relation("SdTicketCategory", fields: [categoryId], references: [id], onDelete: SetNull)
-  subcategory            SdCategory?           @relation("SdTicketSubcategory", fields: [subcategoryId], references: [id], onDelete: SetNull)
-  service                SdCategory?           @relation("SdTicketService", fields: [serviceId], references: [id], onDelete: SetNull)
-  classification         SdClassification?     @relation("SdTicketClassification", fields: [classificationId], references: [id], onDelete: SetNull)
-  solutionClassification SdClassification?     @relation("SdTicketSolutionClassification", fields: [solutionClassificationId], references: [id], onDelete: SetNull)
-  customer               SdCustomer?           @relation("SdTicketCustomer", fields: [customerId], references: [id], onDelete: SetNull)
-  company                SdCustomer?           @relation("SdTicketCompany", fields: [companyId], references: [id], onDelete: SetNull)
-  contact                SdContact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  configItem             SdConfigItem?         @relation(fields: [configItemId], references: [id], onDelete: SetNull)
-  department             SdDepartment?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  assignee               User?                 @relation("SdTicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  requester              User?                 @relation("SdTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
-  createdBy              User?                 @relation("SdTicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  template               SdTicketTemplate?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  parent                 SdTicket?             @relation("SdTicketTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children               SdTicket[]            @relation("SdTicketTree")
-  whatsappConversation   WhatsAppConversation? @relation(fields: [whatsappConversationId], references: [id], onDelete: SetNull)
-  slaPolicy              SdSlaPolicy?          @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  workspace              Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  phase                  SdPhase                @relation(fields: [phaseId], references: [id])
+  impact                 SdImpact?              @relation(fields: [impactId], references: [id], onDelete: SetNull)
+  urgency                SdUrgency?             @relation(fields: [urgencyId], references: [id], onDelete: SetNull)
+  priority               SdPriority?            @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+  severity               SdSeverity?            @relation(fields: [severityId], references: [id], onDelete: SetNull)
+  category               SdCategory?            @relation("SdTicketCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory            SdCategory?            @relation("SdTicketSubcategory", fields: [subcategoryId], references: [id], onDelete: SetNull)
+  service                SdCategory?            @relation("SdTicketService", fields: [serviceId], references: [id], onDelete: SetNull)
+  classification         SdClassification?      @relation("SdTicketClassification", fields: [classificationId], references: [id], onDelete: SetNull)
+  solutionClassification SdClassification?      @relation("SdTicketSolutionClassification", fields: [solutionClassificationId], references: [id], onDelete: SetNull)
+  customer               SdCustomer?            @relation("SdTicketCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  company                SdCustomer?            @relation("SdTicketCompany", fields: [companyId], references: [id], onDelete: SetNull)
+  contact                SdContact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  configItem             SdConfigItem?          @relation(fields: [configItemId], references: [id], onDelete: SetNull)
+  department             SdDepartment?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignee               User?                  @relation("SdTicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  requester              User?                  @relation("SdTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  createdBy              User?                  @relation("SdTicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  template               SdTicketTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  parent                 SdTicket?              @relation("SdTicketTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children               SdTicket[]             @relation("SdTicketTree")
+  whatsappConversation   WhatsAppConversation?  @relation(fields: [whatsappConversationId], references: [id], onDelete: SetNull)
+  slaPolicy              SdSlaPolicy?           @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  contract               SdContract?            @relation(fields: [contractId], references: [id], onDelete: SetNull)
   participants           SdTicketParticipant[]
   messages               SdTicketMessage[]
   attachments            SdTicketAttachment[]
@@ -4562,6 +4595,9 @@ model SdTicket {
   mailMessages           SdMailMessage[]
   monitorAlerts          SdMonitorAlert[]
   followers              SdTicketFollower[]
+  timeEntries            SdTimeEntry[]
+  approvalRounds         SdApprovalRound[]
+  recurringRuns          SdRecurringTicketRun[]
 
   @@unique([workspaceId, number])
   @@index([workspaceId, type, phaseId])
@@ -4736,16 +4772,19 @@ model SdTicketApproval {
   message        String?
   comment        String?
   requestedById  String           @map("requested_by_id")
+  /// Rodada de aprovação (CAB) a que o pedido pertence, se houver.
+  roundId        String?          @map("round_id")
   sentAt         DateTime?        @map("sent_at")
   respondedAt    DateTime?        @map("responded_at")
   expiresAt      DateTime         @map("expires_at")
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  ticket      SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  approver    User?     @relation("SdTicketApprovalApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
-  requestedBy User      @relation("SdTicketApprovalRequestedBy", fields: [requestedById], references: [id])
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket      SdTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  approver    User?            @relation("SdTicketApprovalApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+  requestedBy User             @relation("SdTicketApprovalRequestedBy", fields: [requestedById], references: [id])
+  round       SdApprovalRound? @relation(fields: [roundId], references: [id], onDelete: SetNull)
 
   @@index([ticketId])
   @@index([workspaceId, status])
@@ -5034,29 +5073,29 @@ enum SdMailDirection {
 /// (`Message-ID`/`In-Reply-To`) para a resposta do cliente cair no mesmo
 /// chamado, e serve de trava contra processar duas vezes.
 model SdMailMessage {
-  id          String          @id @default(cuid())
-  workspaceId String          @map("workspace_id")
-  mailboxId   String          @map("mailbox_id")
-  ticketId    String?         @map("ticket_id")
-  messageId   String          @map("message_id")
-  inReplyTo   String?         @map("in_reply_to")
+  id              String          @id @default(cuid())
+  workspaceId     String          @map("workspace_id")
+  mailboxId       String          @map("mailbox_id")
+  ticketId        String?         @map("ticket_id")
+  messageId       String          @map("message_id")
+  inReplyTo       String?         @map("in_reply_to")
   /// `References` do cabeçalho, do mais antigo ao mais novo.
-  references  String[]        @default([])
-  direction   SdMailDirection
-  fromAddress String          @map("from_address")
-  fromName    String?         @map("from_name")
-  toAddresses String[]        @default([]) @map("to_addresses")
-  ccAddresses String[]        @default([]) @map("cc_addresses")
-  subject     String?
+  references      String[]        @default([])
+  direction       SdMailDirection
+  fromAddress     String          @map("from_address")
+  fromName        String?         @map("from_name")
+  toAddresses     String[]        @default([]) @map("to_addresses")
+  ccAddresses     String[]        @default([]) @map("cc_addresses")
+  subject         String?
   /// Corpo já limpo (sem citação e assinatura), usado na mensagem do chamado.
-  bodyText    String?         @map("body_text")
+  bodyText        String?         @map("body_text")
   /// Mensagem automática (férias, bounce): não abre nem reabre chamado.
-  automatic   Boolean         @default(false)
+  automatic       Boolean         @default(false)
   /// Mensagem do histórico gerada por este e-mail (marcador da aba Histórico).
-  ticketMessageId String?     @map("ticket_message_id")
-  processedAt DateTime?       @map("processed_at")
-  error       String?
-  createdAt   DateTime        @default(now()) @map("created_at")
+  ticketMessageId String?         @map("ticket_message_id")
+  processedAt     DateTime?       @map("processed_at")
+  error           String?
+  createdAt       DateTime        @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   mailbox   SdMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
@@ -5212,4 +5251,455 @@ model SdTicketFollower {
   @@id([ticketId, userId])
   @@index([userId])
   @@map("sd_ticket_followers")
+}
+
+// ============================================================================
+// ServiceDesk — Leva 3 de features: contratos e horas, calendário de mudanças
+// com CAB, plantão (on-call) e chamados recorrentes.
+// Ver docs/servicedesk/README.md.
+// ============================================================================
+
+enum SdContractStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  ENDED
+}
+
+enum SdContractBillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+/// Contrato de atendimento de um cliente: franquia de horas, valor da hora e
+/// as regras que decidem quanto custa cada apontamento.
+model SdContract {
+  id              String                 @id @default(cuid())
+  workspaceId     String                 @map("workspace_id")
+  customerId      String                 @map("customer_id")
+  name            String
+  code            String?
+  status          SdContractStatus       @default(DRAFT)
+  startsAt        DateTime               @map("starts_at")
+  endsAt          DateTime?              @map("ends_at")
+  billingCycle    SdContractBillingCycle @default(MONTHLY) @map("billing_cycle")
+  /// Franquia do período em minutos (0 = tudo é cobrado à parte).
+  includedMinutes Int                    @default(0) @map("included_minutes")
+  /// Sobra da franquia acumula para o período seguinte.
+  carryOver       Boolean                @default(false) @map("carry_over")
+  /// Valor da hora dentro e fora da franquia.
+  hourlyRate      Decimal                @default(0) @map("hourly_rate") @db.Decimal(14, 2)
+  overtimeRate    Decimal?               @map("overtime_rate") @db.Decimal(14, 2)
+  /// Arredondamento do apontamento, em minutos (ex.: 15) e mínimo por
+  /// chamado (ex.: 30) — práticas comuns de contrato de suporte.
+  roundingMinutes Int                    @default(1) @map("rounding_minutes")
+  minimumMinutes  Int                    @default(0) @map("minimum_minutes")
+  /// Tipos cobertos (vazio = todos) e SLA que o contrato promete.
+  ticketTypes     SdTicketType[]         @default([]) @map("ticket_types")
+  slaPolicyId     String?                @map("sla_policy_id")
+  notes           String?
+  createdById     String                 @map("created_by_id")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  deletedAt       DateTime?              @map("deleted_at")
+
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer    SdCustomer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  slaPolicy   SdSlaPolicy?       @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  createdBy   User               @relation("SdContractCreatedBy", fields: [createdById], references: [id])
+  rates       SdContractRate[]
+  periods     SdContractPeriod[]
+  timeEntries SdTimeEntry[]
+  tickets     SdTicket[]
+
+  @@index([workspaceId, status])
+  @@index([customerId])
+  @@index([deletedAt])
+  @@map("sd_contracts")
+}
+
+enum SdRateWindow {
+  BUSINESS_HOURS
+  AFTER_HOURS
+  WEEKEND
+  HOLIDAY
+}
+
+/// Valor da hora por combinação (tipo × prioridade × janela). A primeira
+/// regra que casa vence; sem regra, vale o valor do contrato.
+model SdContractRate {
+  id         String        @id @default(cuid())
+  contractId String        @map("contract_id")
+  ticketType SdTicketType? @map("ticket_type")
+  priorityId String?       @map("priority_id")
+  window     SdRateWindow  @default(BUSINESS_HOURS)
+  hourlyRate Decimal       @map("hourly_rate") @db.Decimal(14, 2)
+  /// Multiplicador aplicado ao tempo (ex.: 1.5 em plantão).
+  multiplier Decimal       @default(1) @db.Decimal(6, 2)
+  position   Int           @default(0)
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  contract SdContract  @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  priority SdPriority? @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+
+  @@index([contractId, position])
+  @@map("sd_contract_rates")
+}
+
+enum SdContractPeriodStatus {
+  OPEN
+  CLOSED
+}
+
+/// Fechamento do período: quanto foi usado, quanto passou da franquia e o
+/// valor apurado. Gerado pelo worker e fechado por um admin.
+model SdContractPeriod {
+  id              String                 @id @default(cuid())
+  workspaceId     String                 @map("workspace_id")
+  contractId      String                 @map("contract_id")
+  periodStart     DateTime               @map("period_start")
+  periodEnd       DateTime               @map("period_end")
+  status          SdContractPeriodStatus @default(OPEN)
+  /// Franquia do período (inclui saldo acumulado, quando `carryOver`).
+  includedMinutes Int                    @default(0) @map("included_minutes")
+  usedMinutes     Int                    @default(0) @map("used_minutes")
+  billableMinutes Int                    @default(0) @map("billable_minutes")
+  overageMinutes  Int                    @default(0) @map("overage_minutes")
+  carriedMinutes  Int                    @default(0) @map("carried_minutes")
+  amount          Decimal                @default(0) @db.Decimal(14, 2)
+  closedAt        DateTime?              @map("closed_at")
+  closedById      String?                @map("closed_by_id")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contract    SdContract    @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  closedBy    User?         @relation("SdContractPeriodClosedBy", fields: [closedById], references: [id], onDelete: SetNull)
+  timeEntries SdTimeEntry[]
+
+  @@unique([contractId, periodStart])
+  @@index([workspaceId, status])
+  @@map("sd_contract_periods")
+}
+
+enum SdTimeEntrySource {
+  TIMER
+  MANUAL
+}
+
+/// Apontamento de tempo no chamado. Cronômetro aberto = `endedAt` nulo;
+/// `minutes` é o valor já arredondado pela regra do contrato.
+model SdTimeEntry {
+  id          String            @id @default(cuid())
+  workspaceId String            @map("workspace_id")
+  ticketId    String            @map("ticket_id")
+  userId      String            @map("user_id")
+  contractId  String?           @map("contract_id")
+  periodId    String?           @map("period_id")
+  source      SdTimeEntrySource @default(TIMER)
+  startedAt   DateTime          @map("started_at")
+  endedAt     DateTime?         @map("ended_at")
+  minutes     Int               @default(0)
+  billable    Boolean           @default(true)
+  window      SdRateWindow      @default(BUSINESS_HOURS)
+  /// Valor apurado do apontamento (congelado no fechamento).
+  amount      Decimal?          @db.Decimal(14, 2)
+  description String?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User              @relation("SdTimeEntryUser", fields: [userId], references: [id], onDelete: Cascade)
+  contract  SdContract?       @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  period    SdContractPeriod? @relation(fields: [periodId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([workspaceId, userId, startedAt])
+  @@index([periodId])
+  @@index([deletedAt])
+  @@map("sd_time_entries")
+}
+
+enum SdChangeWindowKind {
+  MAINTENANCE
+  FREEZE
+}
+
+/// Janela de manutenção (quando pode mexer) ou de congelamento (quando não
+/// pode). Serve de pano de fundo do calendário de mudanças.
+model SdChangeWindow {
+  id            String             @id @default(cuid())
+  workspaceId   String             @map("workspace_id")
+  name          String
+  kind          SdChangeWindowKind @default(MAINTENANCE)
+  startsAt      DateTime           @map("starts_at")
+  endsAt        DateTime           @map("ends_at")
+  /// Repetição opcional (RRULE simplificada: FREQ/INTERVAL/BYDAY).
+  recurrence    Json?
+  timezone      String             @default("America/Sao_Paulo")
+  configItemIds String[]           @default([]) @map("config_item_ids")
+  departmentIds String[]           @default([]) @map("department_ids")
+  description   String?
+  createdById   String             @map("created_by_id")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  deletedAt     DateTime?          @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("SdChangeWindowCreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId, startsAt])
+  @@map("sd_change_windows")
+}
+
+/// Comitê de mudanças (CAB): quem aprova e quantas aprovações bastam.
+model SdCabBoard {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  name        String
+  description String?
+  /// Quantas aprovações fecham a rodada (0 = todos os membros).
+  quorum      Int       @default(0)
+  /// Uma reprovação encerra a rodada como reprovada.
+  rejectEnds  Boolean   @default(true) @map("reject_ends")
+  /// Condições do chamado que fazem este comitê ser o responsável
+  /// (`SdConditionsSchema`): tipo de mudança, risco, departamento…
+  conditions  Json      @default("[]")
+  active      Boolean   @default(true)
+  position    Int       @default(0)
+  createdById String    @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User              @relation("SdCabBoardCreatedBy", fields: [createdById], references: [id])
+  members   SdCabMember[]
+  rounds    SdApprovalRound[]
+
+  @@index([workspaceId, position])
+  @@map("sd_cab_boards")
+}
+
+model SdCabMember {
+  id       String  @id @default(cuid())
+  boardId  String  @map("board_id")
+  userId   String  @map("user_id")
+  /// Voto obrigatório: a rodada não fecha sem ele, mesmo com quórum.
+  required Boolean @default(false)
+
+  board SdCabBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User       @relation("SdCabMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([userId])
+  @@map("sd_cab_members")
+}
+
+enum SdApprovalRoundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+  EXPIRED
+}
+
+/// Rodada de aprovação: agrupa os pedidos (`SdTicketApproval`) enviados
+/// juntos e guarda a regra de quórum aplicada. Pedido avulso continua
+/// funcionando sem rodada.
+model SdApprovalRound {
+  id            String                @id @default(cuid())
+  workspaceId   String                @map("workspace_id")
+  ticketId      String                @map("ticket_id")
+  boardId       String?               @map("board_id")
+  status        SdApprovalRoundStatus @default(PENDING)
+  quorum        Int                   @default(1)
+  rejectEnds    Boolean               @default(true) @map("reject_ends")
+  requestedById String                @map("requested_by_id")
+  decidedAt     DateTime?             @map("decided_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket      SdTicket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  board       SdCabBoard?        @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  requestedBy User               @relation("SdApprovalRoundRequestedBy", fields: [requestedById], references: [id])
+  approvals   SdTicketApproval[]
+
+  @@index([ticketId])
+  @@index([workspaceId, status])
+  @@map("sd_approval_rounds")
+}
+
+enum SdOnCallRotation {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+}
+
+/// Escala de plantão de um time: camadas (primeira chamada, segunda…) com
+/// rodízio entre os participantes.
+model SdOnCallSchedule {
+  id            String           @id @default(cuid())
+  workspaceId   String           @map("workspace_id")
+  departmentId  String?          @map("department_id")
+  name          String
+  timezone      String           @default("America/Sao_Paulo")
+  rotation      SdOnCallRotation @default(WEEKLY)
+  /// Início do rodízio e hora da virada (ex.: "09:00").
+  rotationStart DateTime         @map("rotation_start")
+  handoffTime   String           @default("09:00") @map("handoff_time")
+  /// Só vale fora do expediente do calendário informado (opcional).
+  calendarId    String?          @map("calendar_id")
+  active        Boolean          @default(true)
+  createdById   String           @map("created_by_id")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  deletedAt     DateTime?        @map("deleted_at")
+
+  workspace  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  department SdDepartment?       @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  calendar   SdBusinessCalendar? @relation(fields: [calendarId], references: [id], onDelete: SetNull)
+  createdBy  User                @relation("SdOnCallScheduleCreatedBy", fields: [createdById], references: [id])
+  layers     SdOnCallLayer[]
+  overrides  SdOnCallOverride[]
+
+  @@index([workspaceId, active])
+  @@map("sd_oncall_schedules")
+}
+
+model SdOnCallLayer {
+  id         String @id @default(cuid())
+  scheduleId String @map("schedule_id")
+  name       String
+  /// 1 = primeira chamada, 2 = retaguarda…
+  level      Int    @default(1)
+
+  schedule     SdOnCallSchedule      @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  participants SdOnCallParticipant[]
+
+  @@unique([scheduleId, level])
+  @@map("sd_oncall_layers")
+}
+
+model SdOnCallParticipant {
+  id       String @id @default(cuid())
+  layerId  String @map("layer_id")
+  userId   String @map("user_id")
+  position Int    @default(0)
+
+  layer SdOnCallLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  user  User          @relation("SdOnCallParticipantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([layerId, userId])
+  @@index([userId])
+  @@map("sd_oncall_participants")
+}
+
+/// Troca pontual: quem cobre o plantão nesta janela, no lugar do rodízio.
+model SdOnCallOverride {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  scheduleId  String   @map("schedule_id")
+  layerId     String?  @map("layer_id")
+  userId      String   @map("user_id")
+  startsAt    DateTime @map("starts_at")
+  endsAt      DateTime @map("ends_at")
+  reason      String?
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  schedule  SdOnCallSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user      User             @relation("SdOnCallOverrideUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("SdOnCallOverrideCreatedBy", fields: [createdById], references: [id])
+
+  @@index([scheduleId, startsAt])
+  @@map("sd_oncall_overrides")
+}
+
+enum SdRecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum SdRecurringRunStatus {
+  CREATED
+  SKIPPED
+  FAILED
+}
+
+/// Chamado recorrente (manutenção preventiva, rotina periódica): agenda +
+/// modelo do chamado que será aberto.
+model SdRecurringTicket {
+  id              String                @id @default(cuid())
+  workspaceId     String                @map("workspace_id")
+  name            String
+  description     String?
+  active          Boolean               @default(true)
+  ticketType      SdTicketType          @map("ticket_type")
+  templateId      String?               @map("template_id")
+  /// Valores do chamado gerado (mesma forma do `SdTicketTemplate.defaults`).
+  defaults        Json                  @default("{}")
+  customerId      String?               @map("customer_id")
+  configItemId    String?               @map("config_item_id")
+  departmentId    String?               @map("department_id")
+  assigneeId      String?               @map("assignee_id")
+  // Agenda
+  frequency       SdRecurrenceFrequency @default(MONTHLY)
+  interval        Int                   @default(1)
+  /// DAILY/WEEKLY: dias da semana (0=domingo). MONTHLY: dia do mês.
+  byWeekday       Int[]                 @default([]) @map("by_weekday")
+  byMonthday      Int?                  @map("by_monthday")
+  atTime          String                @default("08:00") @map("at_time")
+  timezone        String                @default("America/Sao_Paulo")
+  startsAt        DateTime              @map("starts_at")
+  endsAt          DateTime?             @map("ends_at")
+  /// Abre o chamado com N minutos de antecedência da ocorrência.
+  leadTimeMinutes Int                   @default(0) @map("lead_time_minutes")
+  /// Não abre outra ocorrência enquanto a anterior estiver aberta.
+  skipIfOpen      Boolean               @default(true) @map("skip_if_open")
+  lastRunAt       DateTime?             @map("last_run_at")
+  nextRunAt       DateTime?             @map("next_run_at")
+  createdById     String                @map("created_by_id")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  deletedAt       DateTime?             @map("deleted_at")
+
+  workspace  Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template   SdTicketTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  customer   SdCustomer?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  configItem SdConfigItem?          @relation(fields: [configItemId], references: [id], onDelete: SetNull)
+  createdBy  User                   @relation("SdRecurringTicketCreatedBy", fields: [createdById], references: [id])
+  runs       SdRecurringTicketRun[]
+
+  @@index([workspaceId, active, nextRunAt])
+  @@index([deletedAt])
+  @@map("sd_recurring_tickets")
+}
+
+/// Ocorrência de um chamado recorrente — o histórico de "abriu, pulou ou
+/// falhou", e a trava de idempotência por horário agendado.
+model SdRecurringTicketRun {
+  id           String               @id @default(cuid())
+  workspaceId  String               @map("workspace_id")
+  recurringId  String               @map("recurring_id")
+  scheduledFor DateTime             @map("scheduled_for")
+  status       SdRecurringRunStatus @default(CREATED)
+  ticketId     String?              @map("ticket_id")
+  reason       String?
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  recurring SdRecurringTicket @relation(fields: [recurringId], references: [id], onDelete: Cascade)
+  ticket    SdTicket?         @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@unique([recurringId, scheduledFor])
+  @@index([workspaceId, createdAt])
+  @@map("sd_recurring_ticket_runs")
 }

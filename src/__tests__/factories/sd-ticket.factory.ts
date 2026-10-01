@@ -65,6 +65,7 @@ export function createFakeSdTicket(
     tags: [],
     customFields: {},
     slaPolicyId: null,
+    contractId: null,
     firstResponseDueAt: null,
     resolutionDueAt: null,
     firstRespondedAt: null,

@@ -162,6 +162,7 @@ export function createFakeSdTicketApproval(
     message: null,
     comment: null,
     requestedById: 'u1',
+    roundId: null,
     sentAt: null,
     respondedAt: null,
     expiresAt: new Date('2026-09-28T12:00:00.000Z'),

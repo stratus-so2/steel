@@ -917,3 +917,81 @@ export const sdPortalContactInactive = (
 export const sdNotificationEventUnknown = (
   message = 'Evento de notificação desconhecido',
 ): AppError => appError('SD_NOTIFICATION_EVENT_UNKNOWN', message)
+
+// ServiceDesk — contratos, mudanças (CAB), plantão e recorrência
+
+export const sdContractNotFound = (): AppError =>
+  appError('SD_CONTRACT_NOT_FOUND', 'Contrato não encontrado')
+
+export const sdContractInactive = (
+  message = 'O contrato não está vigente',
+): AppError => appError('SD_CONTRACT_INACTIVE', message)
+
+export const sdContractOverlap = (
+  message = 'O cliente já tem um contrato vigente neste período',
+): AppError => appError('SD_CONTRACT_OVERLAP', message)
+
+export const sdContractPeriodNotFound = (): AppError =>
+  appError('SD_CONTRACT_PERIOD_NOT_FOUND', 'Período do contrato não encontrado')
+
+export const sdContractPeriodClosed = (
+  message = 'Este período já foi fechado',
+): AppError => appError('SD_CONTRACT_PERIOD_CLOSED', message)
+
+export const sdTimeEntryNotFound = (): AppError =>
+  appError('SD_TIME_ENTRY_NOT_FOUND', 'Apontamento não encontrado')
+
+export const sdTimeEntryRunning = (
+  message = 'Você já tem um cronômetro em andamento',
+): AppError => appError('SD_TIME_ENTRY_RUNNING', message)
+
+export const sdTimeEntryInvalid = (
+  message = 'Apontamento inválido (verifique início, fim e duração)',
+): AppError => appError('SD_TIME_ENTRY_INVALID', message)
+
+export const sdChangeWindowNotFound = (): AppError =>
+  appError('SD_CHANGE_WINDOW_NOT_FOUND', 'Janela de manutenção não encontrada')
+
+export const sdChangeWindowInvalid = (
+  message = 'Janela inválida (o fim precisa ser depois do início)',
+): AppError => appError('SD_CHANGE_WINDOW_INVALID', message)
+
+export const sdChangeFrozen = (
+  message = 'Há um congelamento de mudanças nesta janela',
+): AppError => appError('SD_CHANGE_FROZEN', message)
+
+export const sdChangeConflict = (
+  message = 'Outra mudança já está agendada para este item no mesmo período',
+): AppError => appError('SD_CHANGE_CONFLICT', message)
+
+export const sdCabBoardNotFound = (): AppError =>
+  appError('SD_CAB_BOARD_NOT_FOUND', 'Comitê de mudanças não encontrado')
+
+export const sdCabQuorumInvalid = (
+  message = 'Quórum inválido para os membros do comitê',
+): AppError => appError('SD_CAB_QUORUM_INVALID', message)
+
+export const sdApprovalRoundNotFound = (): AppError =>
+  appError('SD_APPROVAL_ROUND_NOT_FOUND', 'Rodada de aprovação não encontrada')
+
+export const sdApprovalRoundClosed = (
+  message = 'Esta rodada de aprovação já foi encerrada',
+): AppError => appError('SD_APPROVAL_ROUND_CLOSED', message)
+
+export const sdOnCallScheduleNotFound = (): AppError =>
+  appError('SD_ONCALL_SCHEDULE_NOT_FOUND', 'Escala de plantão não encontrada')
+
+export const sdOnCallLayerInvalid = (
+  message = 'Camada de plantão inválida',
+): AppError => appError('SD_ONCALL_LAYER_INVALID', message)
+
+export const sdOnCallOverrideOverlap = (
+  message = 'Já existe uma troca de plantão neste período',
+): AppError => appError('SD_ONCALL_OVERRIDE_OVERLAP', message)
+
+export const sdRecurringNotFound = (): AppError =>
+  appError('SD_RECURRING_NOT_FOUND', 'Chamado recorrente não encontrado')
+
+export const sdRecurringScheduleInvalid = (
+  message = 'Agenda do chamado recorrente inválida',
+): AppError => appError('SD_RECURRING_SCHEDULE_INVALID', message)
