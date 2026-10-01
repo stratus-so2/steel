@@ -20,6 +20,7 @@ export const QueueName = {
   StatusCollect: 'status-collect',
   UsageRollup: 'usage-rollup',
   ServicedeskSla: 'servicedesk-sla',
+  ServicedeskAi: 'servicedesk-ai',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -351,4 +352,26 @@ export type ServicedeskSlaJob =
 
 export type ServicedeskSlaJobPayload = {
   [ServicedeskSlaJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Agente de IA do ServiceDesk (`SdAiService`): triagem automática de um
+ * chamado recém-aberto e a resposta da IA a uma mensagem recebida numa
+ * conversa do WhatsApp do ServiceDesk (pré-atendimento ou resposta
+ * automática enquanto o chamado não tem atendente).
+ */
+export const ServicedeskAiJob = {
+  TriageTicket: 'triage-ticket',
+  WhatsappReply: 'whatsapp-reply',
+} as const
+
+export type ServicedeskAiJob =
+  (typeof ServicedeskAiJob)[keyof typeof ServicedeskAiJob]
+
+export type ServicedeskAiJobPayload = {
+  [ServicedeskAiJob.TriageTicket]: { ticketId: string }
+  [ServicedeskAiJob.WhatsappReply]: {
+    conversationId: string
+    messageId: string
+  }
 }

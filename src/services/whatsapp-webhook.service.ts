@@ -1,6 +1,8 @@
 import type {
+  ModuleKind,
   WhatsAppConnection,
   WhatsAppContact,
+  WhatsAppMessage,
   WhatsAppMessageStatus,
 } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
@@ -26,11 +28,15 @@ import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.m
 import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppAiConfigRepository } from '@/src/repositories/whatsapp-ai-config.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
-import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
+import {
+  WhatsAppConversationRepository,
+  type WhatsAppConversationScope,
+} from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repository'
 import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
+import { SdWhatsappInboundService } from './sd-whatsapp-inbound.service'
 import { reopenWhatsAppConversation } from './whatsapp-conversation.service'
 
 export interface InboundWhatsAppMessage {
@@ -44,6 +50,35 @@ export interface InboundWhatsAppMessage {
   rawMediaUrl?: string
   quotedProviderMessageId?: string
   contactPayload?: { name: string; waId: string }
+}
+
+/**
+ * Conexões do ServiceDesk (`module = SERVICE_DESK`) passam pelo mesmo
+ * pipeline (contato, conversa, mensagem, mídia), mas com conversas separadas
+ * por conexão, sem IA/sentimento/opt-out do zap, sem eventos no tempo real do
+ * zap (essas conversas não existem para o módulo Comunicação) e, no fim,
+ * roteadas para os chamados (`SdWhatsappInboundService`).
+ */
+function isServiceDesk(connection: Pick<WhatsAppConnection, 'module'>) {
+  return connection.module === 'SERVICE_DESK'
+}
+
+function conversationScope(
+  connection: WhatsAppConnection,
+): WhatsAppConversationScope {
+  return isServiceDesk(connection)
+    ? { connectionId: connection.id }
+    : { module: 'COMMUNICATION' }
+}
+
+/** Repassa ao ServiceDesk a mudança de uma mensagem de conexão dele. */
+async function notifyServiceDesk(
+  module: ModuleKind | undefined,
+  message: WhatsAppMessage,
+): Promise<boolean> {
+  if (module !== 'SERVICE_DESK') return false
+  await SdWhatsappInboundService.onMessageUpdated(message)
+  return true
 }
 
 async function resolveReplyToMessageId(
@@ -154,15 +189,21 @@ export const WhatsAppWebhookService = {
     })
     if (!contact.ok) return contact
 
-    const aiConfig =
-      await WhatsAppAiConfigRepository.findByWorkspace(workspaceId)
-    if (!aiConfig.ok) return aiConfig
-    const aiConfigActive = aiConfig.value?.active ?? false
+    const serviceDesk = isServiceDesk(connection)
+    const scope = conversationScope(connection)
+    let aiConfigActive = false
+    if (!serviceDesk) {
+      const aiConfig =
+        await WhatsAppAiConfigRepository.findByWorkspace(workspaceId)
+      if (!aiConfig.ok) return aiConfig
+      aiConfigActive = aiConfig.value?.active ?? false
+    }
 
     const existingConversation =
       await WhatsAppConversationRepository.findActiveByContact(
         workspaceId,
         contact.value.id,
+        scope,
       )
     if (!existingConversation.ok) return existingConversation
 
@@ -171,8 +212,10 @@ export const WhatsAppWebhookService = {
 
     if (existingConversation.value) {
       const conversation = existingConversation.value
-      aiActive = conversation.aiActive
-      if (!conversation.aiActive && !conversation.aiHandoff && aiConfigActive) {
+      // No ServiceDesk a IA do zap nunca responde (o pré-atendimento é do
+      // ServiceDesk e usa as próprias colunas `aiActive`/`aiHandoff`).
+      aiActive = serviceDesk ? false : conversation.aiActive
+      if (!aiActive && !conversation.aiHandoff && aiConfigActive) {
         aiActive = true
       }
 
@@ -181,7 +224,7 @@ export const WhatsAppWebhookService = {
         {
           unreadCount: { increment: 1 },
           lastMessageAt: new Date(),
-          aiActive,
+          ...(serviceDesk ? {} : { aiActive }),
         },
       )
       if (!updated.ok) return updated
@@ -194,6 +237,7 @@ export const WhatsAppWebhookService = {
         await WhatsAppConversationRepository.findLatestClosedByContact(
           workspaceId,
           contact.value.id,
+          scope,
         )
       if (!closed.ok) return closed
 
@@ -250,6 +294,16 @@ export const WhatsAppWebhookService = {
       await getWhatsappMediaQueue().add(WhatsappMediaJob.DownloadInboundMedia, {
         messageId: message.value.id,
       })
+    }
+
+    if (serviceDesk) {
+      await SdWhatsappInboundService.routeInbound({
+        connection,
+        conversationId,
+        contact: contact.value,
+        message: message.value,
+      })
+      return ok(undefined)
     }
 
     await publishWhatsAppEvent(workspaceId, {
@@ -313,10 +367,12 @@ export const WhatsAppWebhookService = {
     })
     if (!contact.ok) return contact
 
+    const scope = conversationScope(connection)
     const existingConversation =
       await WhatsAppConversationRepository.findActiveByContact(
         workspaceId,
         contact.value.id,
+        scope,
       )
     if (!existingConversation.ok) return existingConversation
 
@@ -341,6 +397,7 @@ export const WhatsAppWebhookService = {
         await WhatsAppConversationRepository.findLatestClosedByContact(
           workspaceId,
           contact.value.id,
+          scope,
         )
       if (!closed.ok) return closed
 
@@ -394,6 +451,14 @@ export const WhatsAppWebhookService = {
       await getWhatsappMediaQueue().add(WhatsappMediaJob.DownloadInboundMedia, {
         messageId: message.value.id,
       })
+    }
+
+    if (isServiceDesk(connection)) {
+      await SdWhatsappInboundService.routeOutboundDevice({
+        conversationId,
+        message: message.value,
+      })
+      return ok(undefined)
     }
 
     await publishWhatsAppEvent(workspaceId, {
@@ -499,9 +564,11 @@ export const WhatsAppWebhookService = {
     return ok(undefined)
   },
 
+  /** `module` = módulo da conexão que recebeu o webhook (padrão: zap). */
   async ingestInboundReaction(input: {
     providerMessageId: string
     emoji: string
+    module?: ModuleKind
   }): Promise<Result<void>> {
     const result =
       await WhatsAppMessageRepository.updateReactionByProviderMessageId(
@@ -510,6 +577,9 @@ export const WhatsAppWebhookService = {
       )
     if (!result.ok) return result
     if (!result.value) return ok(undefined)
+    if (await notifyServiceDesk(input.module, result.value)) {
+      return ok(undefined)
+    }
 
     await publishWhatsAppEvent(result.value.workspaceId, {
       type: 'message.updated',
@@ -520,9 +590,11 @@ export const WhatsAppWebhookService = {
     return ok(undefined)
   },
 
+  /** `module` = módulo da conexão que recebeu o webhook (padrão: zap). */
   async ingestStatusUpdate(input: {
     providerMessageId: string
     status: WhatsAppMessageStatus
+    module?: ModuleKind
   }): Promise<Result<void>> {
     const result =
       await WhatsAppMessageRepository.updateStatusByProviderMessageId(
@@ -531,6 +603,9 @@ export const WhatsAppWebhookService = {
       )
     if (!result.ok) return result
     if (!result.value) return ok(undefined)
+    if (await notifyServiceDesk(input.module, result.value)) {
+      return ok(undefined)
+    }
 
     await publishWhatsAppEvent(result.value.workspaceId, {
       type: 'message.updated',

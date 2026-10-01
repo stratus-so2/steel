@@ -1,7 +1,7 @@
+import type { AiUsageFeature } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
 import { aiProviderUnavailable, aiQuotaExceeded } from '@/src/errors'
 import {
-  type AiFeature,
   type AiModelDefinition,
   type AiProvider,
   type AiUsageTokens,
@@ -14,7 +14,10 @@ import {
   tokensToUsd,
 } from '@/src/lib/ai/quota'
 import { err, ok, type Result } from '@/src/lib/result'
-import { toEffectiveAiSettings } from '@/src/mappers/ai-settings.mapper'
+import {
+  type EffectiveAiSettings,
+  toEffectiveAiSettings,
+} from '@/src/mappers/ai-settings.mapper'
 import {
   AiUsageRepository,
   UserAiPreferenceRepository,
@@ -22,8 +25,28 @@ import {
 } from '@/src/repositories/ai-settings.repository'
 import { AI_FEATURE_SETTING_FIELDS, isModelUsable } from './ai-settings.service'
 
+/**
+ * Modelo padrão de cada funcionalidade. As do ServiceDesk ainda não têm
+ * seletor próprio em Ajustes > Steel IA e herdam o de uma equivalente:
+ * copiloto (conversa com o agente) = assistente do CRM; pré-atendimento
+ * (conversa com o solicitante) = resposta automática do WhatsApp; triagem
+ * (classificação) = análise de sentimento.
+ */
+const MODEL_FIELD_BY_FEATURE: Record<
+  AiUsageFeature,
+  keyof Pick<
+    EffectiveAiSettings,
+    'crmAssistantModel' | 'whatsappReplyModel' | 'whatsappSentimentModel'
+  >
+> = {
+  ...AI_FEATURE_SETTING_FIELDS,
+  SERVICEDESK_COPILOT: 'crmAssistantModel',
+  SERVICEDESK_PRE_SERVICE: 'whatsappReplyModel',
+  SERVICEDESK_TRIAGE: 'whatsappSentimentModel',
+}
+
 export interface PreparedAiCall {
-  feature: AiFeature
+  feature: AiUsageFeature
   provider: AiProvider
   model: AiModelDefinition
   usdPer1kTokens: number
@@ -46,7 +69,7 @@ export const AiUsageService = {
    */
   async prepare(
     workspaceId: string,
-    feature: AiFeature,
+    feature: AiUsageFeature,
     userId?: string | null,
   ): Promise<Result<PreparedAiCall>> {
     const row = await WorkspaceAiSettingsRepository.findByWorkspace(workspaceId)
@@ -63,7 +86,7 @@ export const AiUsageService = {
       if (preference.value) candidates.push(preference.value.modelKey)
     }
     candidates.push(
-      settings[AI_FEATURE_SETTING_FIELDS[feature]],
+      settings[MODEL_FIELD_BY_FEATURE[feature]],
       ...settings.enabledModels,
     )
 

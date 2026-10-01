@@ -24,6 +24,8 @@ import {
   type DataRetentionJob,
   type DataRetentionJobPayload,
   QueueName,
+  type ServicedeskAiJob,
+  type ServicedeskAiJobPayload,
   type ServicedeskSlaJob,
   type ServicedeskSlaJobPayload,
   type StatusCollectJob,
@@ -74,6 +76,7 @@ let databaseBackupQueue: Queue | null = null
 let statusCollectQueue: Queue | null = null
 let usageRollupQueue: Queue | null = null
 let servicedeskSlaQueue: Queue | null = null
+let servicedeskAiQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -474,6 +477,28 @@ export function getServicedeskSlaQueue(): Queue<
   >
 }
 
+/**
+ * IA do ServiceDesk. Duas tentativas: falha de provedor já vira desfecho
+ * (`failed`/`skipped`) no service; só erro de banco volta a tentar.
+ */
+export function getServicedeskAiQueue(): Queue<
+  ServicedeskAiJobPayload[ServicedeskAiJob],
+  unknown,
+  ServicedeskAiJob
+> {
+  if (!servicedeskAiQueue) {
+    servicedeskAiQueue = new Queue(QueueName.ServicedeskAi, {
+      connection: getQueueConnection(),
+      defaultJobOptions: { ...defaultJobOptions, attempts: 2 },
+    })
+  }
+  return servicedeskAiQueue as Queue<
+    ServicedeskAiJobPayload[ServicedeskAiJob],
+    unknown,
+    ServicedeskAiJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -497,6 +522,7 @@ export async function closeQueues(): Promise<void> {
     statusCollectQueue?.close(),
     usageRollupQueue?.close(),
     servicedeskSlaQueue?.close(),
+    servicedeskAiQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -518,4 +544,5 @@ export async function closeQueues(): Promise<void> {
   statusCollectQueue = null
   usageRollupQueue = null
   servicedeskSlaQueue = null
+  servicedeskAiQueue = null
 }

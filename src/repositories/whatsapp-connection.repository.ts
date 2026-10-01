@@ -1,16 +1,23 @@
-import type { Prisma, WhatsAppConnection } from '@prisma/client'
+import type { ModuleKind, Prisma, WhatsAppConnection } from '@prisma/client'
 import { whatsappConnectionConflict } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
+/**
+ * Toda leitura por workspace é escopada pelo módulo dono da conexão
+ * (`COMMUNICATION` = zap, padrão; `SERVICE_DESK` = chamados): o zap nunca
+ * enxerga as conexões do ServiceDesk e vice-versa. Os webhooks resolvem a
+ * conexão pela instância/número, sem escopo, e leem `connection.module`.
+ */
 export const WhatsAppConnectionRepository = {
   async listByWorkspace(
     workspaceId: string,
+    module: ModuleKind = 'COMMUNICATION',
   ): Promise<Result<WhatsAppConnection[]>> {
     try {
       const connections = await prisma.whatsAppConnection.findMany({
-        where: { workspaceId },
+        where: { workspaceId, module },
         orderBy: { createdAt: 'asc' },
       })
       return ok(connections)
@@ -22,10 +29,11 @@ export const WhatsAppConnectionRepository = {
   async findById(
     id: string,
     workspaceId: string,
+    module: ModuleKind = 'COMMUNICATION',
   ): Promise<Result<WhatsAppConnection | null>> {
     try {
       const connection = await prisma.whatsAppConnection.findFirst({
-        where: { id, workspaceId },
+        where: { id, workspaceId, module },
       })
       return ok(connection)
     } catch (error) {

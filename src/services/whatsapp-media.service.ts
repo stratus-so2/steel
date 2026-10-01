@@ -8,6 +8,7 @@ import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
 import { toWhatsAppMessageDTO } from '@/src/mappers/whatsapp-message.mapper'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
+import { SdWhatsappInboundService } from './sd-whatsapp-inbound.service'
 
 export type WhatsAppInboundMediaOutcome =
   | { status: 'skipped'; reason: 'no_media' | 'conversation_missing' }
@@ -62,6 +63,12 @@ export const WhatsAppMediaService = {
       mediaUrl: stored.value.url,
     })
     if (!updated.ok) return updated
+
+    // Conexão do ServiceDesk: avisa a aba WhatsApp do chamado, não o zap.
+    if (conversation.value.connection.module === 'SERVICE_DESK') {
+      await SdWhatsappInboundService.onMessageUpdated(updated.value)
+      return ok({ status: 'downloaded', url: stored.value.url })
+    }
 
     await publishWhatsAppEvent(message.workspaceId, {
       type: 'message.updated',

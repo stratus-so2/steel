@@ -109,6 +109,8 @@ export type AuditEntity =
   | 'sd_ticket_part'
   | 'sd_ticket_approval'
   | 'sd_ticket_signature'
+  // ServiceDesk — WhatsApp e IA
+  | 'sd_ai_conversation'
 
 export type AuditAction =
   | 'create'
@@ -156,6 +158,8 @@ export type AuditAction =
   | 'sign'
   | 'reorder'
   | 'verify'
+  | 'link'
+  | 'unlink'
 
 type AuditOutcome = 'success' | 'failure'
 

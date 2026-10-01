@@ -4903,22 +4903,26 @@ model SdTicketKbLink {
 /// Conversa do agente de IA do ServiceDesk (copiloto do agente ou
 /// pré-atendimento do solicitante).
 model SdAiConversation {
-  id          String   @id @default(cuid())
-  workspaceId String   @map("workspace_id")
-  userId      String?  @map("user_id")
+  id                     String   @id @default(cuid())
+  workspaceId            String   @map("workspace_id")
+  userId                 String?  @map("user_id")
   /// COPILOT (agente, dentro de um chamado) | PRE_SERVICE (portal/WhatsApp).
-  mode        String
-  ticketId    String?  @map("ticket_id")
+  mode                   String
+  ticketId               String?  @map("ticket_id")
   /// Resultado do pré-atendimento: resolved_by_kb | ticket_opened | abandoned
-  outcome     String?
-  messages    Json     @default("[]")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  outcome                String?
+  messages               Json     @default("[]")
+  /// Pré-atendimento pelo WhatsApp: conversa do WhatsApp (conexão do
+  /// ServiceDesk) em que a IA está atendendo. Nulo no portal e no copiloto.
+  whatsappConversationId String?  @map("whatsapp_conversation_id")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User?     @relation("SdAiConversationUser", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, userId])
   @@index([ticketId])
+  @@index([whatsappConversationId])
   @@map("sd_ai_conversations")
 }

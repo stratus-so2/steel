@@ -125,11 +125,12 @@ export const POST = withAxiom(async (request: NextRequest) => {
     return new Response('Instância não encontrada', { status: 404 })
   }
 
-  // Webhook público: a workspace vem da conexão, e o módulo precisa estar
-  // habilitado para ela — senão nada é ingerido.
+  // Webhook público: a workspace vem da conexão, e o módulo dono dela
+  // (Comunicação ou ServiceDesk) precisa estar habilitado — senão nada é
+  // ingerido. Conexões do ServiceDesk funcionam sem o módulo Comunicação.
   const moduleEnabled = await assertModuleEnabled(
     connection.workspaceId,
-    'COMMUNICATION',
+    connection.module,
   )
   if (!moduleEnabled.ok) {
     return new Response('Módulo desabilitado', { status: 403 })
@@ -150,6 +151,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
       await WhatsAppWebhookService.ingestStatusUpdate({
         providerMessageId: body.messageId,
         status: mapped,
+        module: connection.module,
       })
     }
     return new Response('STATUS_RECEIVED', { status: 200 })
@@ -164,13 +166,20 @@ export const POST = withAxiom(async (request: NextRequest) => {
     await WhatsAppWebhookService.ingestInboundReaction({
       providerMessageId: referencedMessageId,
       emoji: body.reaction?.value ?? '',
+      module: connection.module,
     })
     return new Response('REACTION_RECEIVED', { status: 200 })
   }
 
   if (body.isGroup) {
     const groupJid = body.phone
-    if (!groupJid || !body.messageId || body.fromMe) {
+    // Grupos são do zap: a conexão do ServiceDesk atende só conversas 1:1.
+    if (
+      !groupJid ||
+      !body.messageId ||
+      body.fromMe ||
+      connection.module !== 'COMMUNICATION'
+    ) {
       return new Response('IGNORED', { status: 200 })
     }
     const content = extractMessageContent(body)

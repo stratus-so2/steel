@@ -192,11 +192,12 @@ export const POST = withAxiom(async (request: NextRequest) => {
     return new Response('Número não encontrado', { status: 404 })
   }
 
-  // Webhook público: a workspace vem da conexão, e o módulo precisa estar
-  // habilitado para ela — senão nada é ingerido.
+  // Webhook público: a workspace vem da conexão, e o módulo dono dela
+  // (Comunicação ou ServiceDesk) precisa estar habilitado — senão nada é
+  // ingerido. Conexões do ServiceDesk funcionam sem o módulo Comunicação.
   const moduleEnabled = await assertModuleEnabled(
     connection.workspaceId,
-    'COMMUNICATION',
+    connection.module,
   )
   if (!moduleEnabled.ok) {
     return new Response('Módulo desabilitado', { status: 403 })
@@ -214,6 +215,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
       await WhatsAppWebhookService.ingestStatusUpdate({
         providerMessageId: status.id,
         status: mapped,
+        module: connection.module,
       })
     }
     return new Response('STATUS_RECEIVED', { status: 200 })
@@ -229,6 +231,7 @@ export const POST = withAxiom(async (request: NextRequest) => {
       await WhatsAppWebhookService.ingestInboundReaction({
         providerMessageId: message.reaction.message_id,
         emoji: message.reaction.emoji ?? '',
+        module: connection.module,
       })
     }
     return new Response('REACTION_RECEIVED', { status: 200 })
