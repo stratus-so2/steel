@@ -105,7 +105,8 @@ describe('servicedesk notification preferences', () => {
       { items: [{ event: 'nao.existe', channel: 'EMAIL', enabled: true }] },
       agent.cookie,
     )
-    expect(badEvent.status).toBe(400)
+    // O Zod recusa a chave fora do catálogo antes de chegar ao service.
+    expect(badEvent.status).toBe(422)
     expect((await badEvent.json()).error.code).toBe('VALIDATION_ERROR')
 
     const badChannel = await putJson(
