@@ -37,6 +37,10 @@ src/openapi/
   paths/public.ts      APIs públicas do CRM (/crm/*)
   paths/crm.ts         CRM interno (/workspaces/{id}/crm/**)       ← a preencher
   paths/whatsapp.ts    Comunicação (/workspaces/{id}/whatsapp/**, /whatsapp/**) ← a preencher
+  paths/servicedesk.ts ServiceDesk — junta as listas por fatia de
+                       paths/servicedesk/*.ts (config, directory, ticket-tabs,
+                       dashboards-portal, whatsapp-ai)
+  paths/servicedesk-tickets.ts  chamados, visões salvas e SSE do ServiceDesk
   undocumented/*.ts    operações ainda sem documentação (só encolhe)
   route-inventory.ts   varre app/api/**/route.ts (métodos exportados → paths)
   document.ts          monta o documento (ordenado, determinístico)
