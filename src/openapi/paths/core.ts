@@ -9,7 +9,10 @@ import {
   CreateInvitationSchema,
   InviteToProjectSchema,
 } from '@/src/schemas/invitation.schema'
-import { MarkNotificationsReadSchema } from '@/src/schemas/notification.schema'
+import {
+  MarkNotificationsReadSchema,
+  NotificationBulkActionSchema,
+} from '@/src/schemas/notification.schema'
 import { UpdateNotificationSettingSchema } from '@/src/schemas/notification-settings.schema'
 import {
   CreateProfileSchema,
@@ -55,6 +58,7 @@ import {
   InvitationDTO,
   MediaUrlDTO,
   NotificationListDTO,
+  NotificationRealtimeEventDTO,
   NotificationSettingDTO,
   ProfileDTO,
   ProjectDTO,
@@ -693,9 +697,80 @@ const workspaces: RouteConfig[] = [
     tags: ['Configurações do workspace'],
     summary: 'Notificações in-app',
     description:
-      'Caixa de entrada do usuário no workspace (ex.: alertas de sentimento negativo no WhatsApp), com a contagem de não lidas.',
+      'Caixa de entrada do usuário no workspace (ServiceDesk, Comunicação e, quando houver, CRM), no formato de cliente de e-mail: pasta, filtro por módulo e tipo, busca em título/corpo e paginação por cursor. Cada pessoa só vê as próprias notificações; as excluídas nunca aparecem.',
+    query: {
+      type: 'object',
+      properties: {
+        folder: {
+          type: 'string',
+          enum: ['all', 'unread', 'archived'],
+          description:
+            'Pasta. `all` (padrão) esconde as arquivadas; `archived` mostra só elas.',
+        },
+        module: {
+          type: 'string',
+          enum: ['SERVICE_DESK', 'COMMUNICATION', 'CRM', 'OTHER'],
+          description: 'Módulo de origem, derivado do `kind`.',
+        },
+        kind: {
+          type: 'string',
+          description:
+            'Tipo do evento (`Notification.kind`). Combinado com um `module` de outro grupo, devolve lista vazia.',
+        },
+        search: {
+          type: 'string',
+          description: 'Busca em título e corpo (ignora maiúsculas).',
+        },
+        cursor: {
+          type: 'string',
+          description: 'Id da última notificação da página anterior.',
+        },
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 50,
+          description: 'Tamanho da página (padrão 25).',
+        },
+      },
+    },
     responses: {
       200: { description: 'Notificações.', schema: NotificationListDTO },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/notifications/actions',
+    tags: ['Configurações do workspace'],
+    summary: 'Ações na caixa de entrada',
+    description:
+      'Ação de cliente de e-mail em até 100 notificações **do próprio usuário** (ids de outra pessoa são ignorados e não contam em `updated`): `read`, `unread`, `archive`, `unarchive`, `delete` (exclusão lógica) e `restore`, que é o "desfazer" da exclusão e o único que enxerga as já excluídas. A mesma rota serve a ação de uma linha e a ação em lote.',
+    body: NotificationBulkActionSchema,
+    responses: {
+      200: {
+        description: 'Quantidade atualizada.',
+        schema: z.object({ updated: z.number().int() }),
+      },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/notifications/events',
+    tags: ['Configurações do workspace'],
+    summary: 'Tempo real da caixa de entrada (SSE)',
+    description:
+      'Server-Sent Events (`text/event-stream`) via Redis pub/sub (canal `notifications:workspace:<id>`), **genérico**: toda notificação in-app criada por `NotificationService.notifyUsers` passa por aqui, de qualquer módulo. Ao conectar: `: connected`; heartbeat `: ping` a cada 25 s; cada evento: `data: <json>` — só um aviso (`type`, `kind`, `at`), então recarregue pelas rotas normais. Cada conexão recebe apenas os eventos das próprias notificações; a lista de destinatários nunca sai do servidor. Sem replay nem rate limit.',
+    rateLimit: false,
+    responses: {
+      200: {
+        description: 'Stream SSE aberto.',
+        envelope: false,
+        contentType: 'text/event-stream',
+        schema: NotificationRealtimeEventDTO,
+        example:
+          ': connected\n\ndata: {"type":"notification.created","kind":"SD_SLA_BREACHED","at":"2026-10-01T12:00:00.000Z"}\n\n: ping\n\n',
+      },
     },
     errors: WORKSPACE_MEMBER_ERRORS,
   },

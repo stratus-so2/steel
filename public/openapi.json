@@ -33447,10 +33447,68 @@
         "tags": ["Configurações do workspace"],
         "summary": "Notificações in-app",
         "operationId": "getWorkspacesByIdNotifications",
-        "description": "Caixa de entrada do usuário no workspace (ex.: alertas de sentimento negativo no WhatsApp), com a contagem de não lidas.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Caixa de entrada do usuário no workspace (ServiceDesk, Comunicação e, quando houver, CRM), no formato de cliente de e-mail: pasta, filtro por módulo e tipo, busca em título/corpo e paginação por cursor. Cada pessoa só vê as próprias notificações; as excluídas nunca aparecem.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "folder",
+            "in": "query",
+            "required": false,
+            "description": "Pasta. `all` (padrão) esconde as arquivadas; `archived` mostra só elas.",
+            "schema": {
+              "type": "string",
+              "enum": ["all", "unread", "archived"]
+            }
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": false,
+            "description": "Módulo de origem, derivado do `kind`.",
+            "schema": {
+              "type": "string",
+              "enum": ["SERVICE_DESK", "COMMUNICATION", "CRM", "OTHER"]
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "description": "Tipo do evento (`Notification.kind`). Combinado com um `module` de outro grupo, devolve lista vazia.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Busca em título e corpo (ignora maiúsculas).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Id da última notificação da página anterior.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Tamanho da página (padrão 25).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
           }
         ],
         "responses": {
@@ -33484,6 +33542,131 @@
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/notifications/actions": {
+      "post": {
+        "tags": ["Configurações do workspace"],
+        "summary": "Ações na caixa de entrada",
+        "operationId": "postWorkspacesByIdNotificationsActions",
+        "description": "Ação de cliente de e-mail em até 100 notificações **do próprio usuário** (ids de outra pessoa são ignorados e não contam em `updated`): `read`, `unread`, `archive`, `unarchive`, `delete` (exclusão lógica) e `restore`, que é o \"desfazer\" da exclusão e o único que enxerga as já excluídas. A mesma rota serve a ação de uma linha e a ação em lote.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["read", "unread", "archive", "unarchive", "delete", "restore"]
+                  },
+                  "ids": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                "required": ["action", "ids"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Quantidade atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "updated": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": ["updated"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/notifications/events": {
+      "get": {
+        "tags": ["Configurações do workspace"],
+        "summary": "Tempo real da caixa de entrada (SSE)",
+        "operationId": "getWorkspacesByIdNotificationsEvents",
+        "description": "Server-Sent Events (`text/event-stream`) via Redis pub/sub (canal `notifications:workspace:<id>`), **genérico**: toda notificação in-app criada por `NotificationService.notifyUsers` passa por aqui, de qualquer módulo. Ao conectar: `: connected`; heartbeat `: ping` a cada 25 s; cada evento: `data: <json>` — só um aviso (`type`, `kind`, `at`), então recarregue pelas rotas normais. Cada conexão recebe apenas os eventos das próprias notificações; a lista de destinatários nunca sai do servidor. Sem replay nem rate limit.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream SSE aberto.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationRealtimeEvent"
+                },
+                "example": ": connected\n\ndata: {\"type\":\"notification.created\",\"kind\":\"SD_SLA_BREACHED\",\"at\":\"2026-10-01T12:00:00.000Z\"}\n\n: ping\n\n"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           }
         },
         "security": [
@@ -99390,21 +99573,141 @@
                 "read": {
                   "type": "boolean"
                 },
+                "readAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Quando foi lida, ou `null`."
+                },
+                "archived": {
+                  "type": "boolean"
+                },
+                "archivedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Quando foi arquivada, ou `null`."
+                },
+                "module": {
+                  "type": "string",
+                  "enum": ["SERVICE_DESK", "COMMUNICATION", "CRM", "OTHER"],
+                  "description": "Módulo de origem, derivado do `kind`."
+                },
+                "moduleLabel": {
+                  "type": "string",
+                  "description": "Nome do módulo em pt-BR.",
+                  "example": "ServiceDesk"
+                },
+                "kindLabel": {
+                  "type": "string",
+                  "description": "O que aconteceu, em pt-BR.",
+                  "example": "SLA violado"
+                },
+                "icon": {
+                  "type": "string",
+                  "description": "Chave de ícone resolvida pela interface.",
+                  "example": "alarm"
+                },
+                "color": {
+                  "type": "string",
+                  "description": "Cor base do marcador.",
+                  "example": "rose"
+                },
                 "createdAt": {
                   "type": "string",
                   "format": "date-time"
                 }
               },
-              "required": ["id", "workspaceId", "kind", "title", "body", "href", "read", "createdAt"]
+              "required": [
+                "id",
+                "workspaceId",
+                "kind",
+                "title",
+                "body",
+                "href",
+                "read",
+                "readAt",
+                "archived",
+                "archivedAt",
+                "module",
+                "moduleLabel",
+                "kindLabel",
+                "icon",
+                "color",
+                "createdAt"
+              ]
             }
           },
           "unreadCount": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cursor da próxima página, ou `null` no fim."
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "all": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "unread": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "archived": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": ["all", "unread", "archived"],
+            "description": "Contagem por pasta (marcadores das abas)."
           }
         },
-        "required": ["items", "unreadCount"]
+        "required": ["items", "unreadCount", "nextCursor", "counts"]
+      },
+      "NotificationRealtimeEvent": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "notification.created"
+          },
+          "kind": {
+            "type": "string",
+            "example": "SD_SLA_BREACHED"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["type", "kind", "at"]
       },
       "NotificationSetting": {
         "type": "object",
