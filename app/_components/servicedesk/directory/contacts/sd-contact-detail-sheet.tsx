@@ -17,6 +17,7 @@ import {
   SdPill,
 } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
 import { SdInfoRow } from '@/app/_components/servicedesk/directory/shared/sd-form-bits'
+import { SdPortalAccessButton } from '@/app/_components/servicedesk/external-portal'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -66,6 +67,13 @@ export function SdContactDetailSheet({
                 </SheetDescription>
               </div>
               <div className='flex shrink-0 gap-1'>
+                <SdPortalAccessButton
+                  workspaceId={workspaceId}
+                  contactId={contact.id}
+                  contactEmail={contact.email}
+                  contactName={contact.name}
+                  label='Portal'
+                />
                 <Button
                   variant='outline'
                   size='sm'
