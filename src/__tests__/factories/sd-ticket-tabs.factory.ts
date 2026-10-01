@@ -66,6 +66,7 @@ export function createFakeSdTicketMessage(
     channel: 'PLATFORM',
     body: 'Olá, estamos verificando.',
     whatsappMessageId: null,
+    mentionedUserIds: [],
     editedAt: null,
     createdAt: fixed(),
     deletedAt: null,
