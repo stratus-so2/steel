@@ -571,11 +571,13 @@ export const SdMailInboundService = {
     if (!found.ok) return found
     if (!found.value) return ok({ ...EMPTY })
     const mailbox = found.value
+    // Leitura manual de uma caixa pausada não a religa.
+    const paused = mailbox.status === 'PAUSED'
 
     const credentials = await decryptSdMailbox(mailbox)
     if (!credentials.ok) {
       await SdMailboxRepository.markSync(mailbox.id, {
-        status: 'ERROR',
+        status: paused ? 'PAUSED' : 'ERROR',
         statusError: credentials.error.message,
         lastSyncAt: new Date(),
       })
@@ -599,7 +601,7 @@ export const SdMailInboundService = {
         message,
       })
       await SdMailboxRepository.markSync(mailbox.id, {
-        status: 'ERROR',
+        status: paused ? 'PAUSED' : 'ERROR',
         statusError: message,
         lastSyncAt: new Date(),
       })
@@ -626,7 +628,7 @@ export const SdMailInboundService = {
     }
 
     await SdMailboxRepository.markSync(mailbox.id, {
-      status: 'ACTIVE',
+      status: paused ? 'PAUSED' : 'ACTIVE',
       statusError: null,
       lastSeenUid: fetched.lastUid ?? mailbox.lastSeenUid,
       lastSyncAt: new Date(),

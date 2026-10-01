@@ -935,6 +935,45 @@ describe('syncMailbox', () => {
     )
   })
 
+  it('keeps a paused mailbox paused on a manual read', async () => {
+    mailboxes.findByIdUnscoped.mockResolvedValue(
+      ok(mailbox({ status: 'PAUSED' })),
+    )
+    expectOk(await SdMailInboundService.syncMailbox('mb1'))
+    expect(mailboxes.markSync).toHaveBeenCalledWith(
+      'mb1',
+      expect.objectContaining({ status: 'PAUSED', statusError: null }),
+    )
+  })
+
+  it.each([
+    [
+      'the credentials fail',
+      async () => {
+        const { decryptConnectionSecret } = await import('@/src/lib/crypto')
+        vi.mocked(decryptConnectionSecret).mockRejectedValueOnce(
+          new Error('chave trocada'),
+        )
+      },
+    ],
+    [
+      'the IMAP read fails',
+      async () => {
+        fetchMail.mockRejectedValue(new Error('conexão recusada'))
+      },
+    ],
+  ])('keeps a paused mailbox paused when %s', async (_label, arrange) => {
+    mailboxes.findByIdUnscoped.mockResolvedValue(
+      ok(mailbox({ status: 'PAUSED' })),
+    )
+    await arrange()
+    expectOk(await SdMailInboundService.syncMailbox('mb1'))
+    expect(mailboxes.markSync).toHaveBeenCalledWith(
+      'mb1',
+      expect.objectContaining({ status: 'PAUSED' }),
+    )
+  })
+
   it('propagates a configuration failure', async () => {
     engine.loadConfig.mockResolvedValue(err(databaseError()))
     expectErr(await SdMailInboundService.syncMailbox('mb1'), 'DATABASE_ERROR')
