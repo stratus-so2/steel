@@ -93,7 +93,7 @@ resto exige o cookie `better-auth.session_token`).
 | ------ | -- | -------------- |
 | **CRM** | `[workspace-slug]/crm/*` — leads, pessoas, empresas, oportunidades, pipelines, propostas, produtos, forecast, cotas, relatórios, dashboards, campanhas de e-mail, listas, landing pages, formulários, workflows, redes sociais, IA | `src/services/crm-*.service.ts`, `app/api/crm/*` (forms, landing pages, propostas, integrações, workflows) |
 | **Comunicação (WhatsApp)** | `[workspace-slug]/zap/*` — conversas, contatos, grupos, templates, respostas rápidas, transmissões, dashboards, relatórios, configurações | `src/services/whatsapp-*.service.ts`, `src/lib/whatsapp/*` (Meta Cloud API e Z-API), webhooks em `app/api/whatsapp/webhook/{meta,zapi}`, tempo real via SSE `app/api/whatsapp/events` (Redis pub/sub) |
-| **ServiceDesk** | `[workspace-slug]/servicedesk` | casca; domínio ainda em construção |
+| **ServiceDesk (ITIL 4)** | `[workspace-slug]/servicedesk/*` — início, quadros de chamados (incidente, requisição, mudança, problema) em kanban/lista/tabela, tela do chamado com abas (histórico/chat, WhatsApp, tarefas, custos, aprovação, peças, itens filhos, escalonamento, rastreabilidade, assinatura, conhecimento), cadastros (clientes, empresas, contatos, CMDB), base de conhecimento, painéis (+ modo TV), portal do solicitante e configurações | `src/services/sd-*.service.ts` + `SdTicketEngine`, `src/lib/servicedesk/*` (SLA em minutos úteis, condições, realtime), `app/api/workspaces/[id]/servicedesk/**`, aprovação pública em `app/api/servicedesk/approvals/[token]`, filas `servicedesk-sla` e `servicedesk-ai` — ver [ServiceDesk](../servicedesk/README.md) e [ADR 0008](../adr/0008-servicedesk-itil-configurable-engine.md) |
 | **Base (Nexo)** | auth, onboarding, settings (membros, billing, conexões), wiki, IA, sticky notes, short links, `/status`, referência da API (Scalar em `/reference`, gerada de `src/openapi/` — ver [API](../api.md)) | `src/services/{workspace,membership,invitation,subscription,user,...}.service.ts` |
 
 Campanhas de e-mail e transmissões do WhatsApp respeitam o descadastro LGPD
@@ -148,6 +148,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `status-collect` | probes do `/status` ([ADR 0004](../adr/0004-status-collection-worker-jobs.md)) | core 1 min, periféricos 5 min |
 | `usage-rollup` | copia o uso por módulo do Redis para `module_usage_daily` ([métricas](../admin-metrics.md)) | a cada 15 min |
 | `servicedesk-sla` | SLA dos chamados do ServiceDesk: marca risco/violação (uma vez), notifica, roda regras de escalonamento e automações de SLA, fecha RESOLVED após `autoCloseResolvedAfterHours` ([ServiceDesk](../servicedesk/README.md)) | a cada 1 min |
+| `servicedesk-ai` | IA do ServiceDesk: triagem automática do chamado na abertura (categoria, prioridade, departamento, tags) quando `aiAutoTriageEnabled` | sob demanda |
 
 Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
 
