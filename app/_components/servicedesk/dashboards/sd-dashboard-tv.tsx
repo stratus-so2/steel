@@ -69,9 +69,15 @@ export function sdTvInterval(interval: string | undefined): number {
   return Math.min(3600, Math.max(10, seconds))
 }
 
-function useClock(): Date {
-  const [now, setNow] = React.useState(() => new Date())
+/**
+ * Relógio da TV. Começa `null` e só marca a hora depois de montar: o HTML do
+ * servidor e o do cliente nasceriam com segundos diferentes, o que quebra a
+ * hidratação (React #418).
+ */
+function useClock(): Date | null {
+  const [now, setNow] = React.useState<Date | null>(null)
   React.useEffect(() => {
+    setNow(new Date())
     const timer = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
@@ -172,7 +178,9 @@ export function SdDashboardTv({
   const current = dashboards.find((d) => d.id === currentId)
 
   const [refreshKey, setRefreshKey] = React.useState(0)
-  const [refreshedAt, setRefreshedAt] = React.useState(() => new Date())
+  // Igual ao relógio: só depois de montar, para o HTML do servidor e o do
+  // cliente baterem na hidratação.
+  const [refreshedAt, setRefreshedAt] = React.useState<Date | null>(null)
   const lastRefresh = React.useRef(Date.now())
 
   const refresh = React.useCallback(() => {
@@ -182,6 +190,8 @@ export function SdDashboardTv({
   }, [])
 
   React.useEffect(() => {
+    // Primeira marcação depois de montar (o servidor não carimba hora).
+    setRefreshedAt(new Date())
     const timer = setInterval(refresh, REFRESH_MS)
     return () => clearInterval(timer)
   }, [refresh])
@@ -248,7 +258,10 @@ export function SdDashboardTv({
   return (
     <div
       className={cn(
-        'fixed inset-0 z-50 flex flex-col bg-zinc-950 text-zinc-50',
+        // `dark` escopa os tokens do tema escuro para dentro do overlay: sem
+        // isto os widgets (que usam `text-foreground`) ficam pretos sobre o
+        // fundo preto da TV quando o usuário está no tema claro.
+        'dark fixed inset-0 z-50 flex flex-col bg-zinc-950 text-zinc-50',
         idle && 'cursor-none',
       )}
     >
@@ -258,7 +271,7 @@ export function SdDashboardTv({
             {current?.title || 'Painel'}
           </h1>
           <p className='mt-0.5 text-sm text-zinc-400 2xl:text-lg'>
-            Atualizado às {CLOCK.format(refreshedAt)}
+            {refreshedAt ? `Atualizado às ${CLOCK.format(refreshedAt)}` : ''}
             {rotation.length > 1
               ? ` · painel ${index + 1} de ${rotation.length}`
               : ''}
@@ -267,10 +280,10 @@ export function SdDashboardTv({
         <div className='text-right'>
           <p className='font-semibold text-3xl tabular-nums 2xl:text-6xl'>
             <span className='sr-only'>Hora atual: </span>
-            {CLOCK.format(now)}
+            {now ? CLOCK.format(now) : '--:--:--'}
           </p>
           <p className='text-sm text-zinc-400 capitalize 2xl:text-lg'>
-            {DAY.format(now)}
+            {now ? DAY.format(now) : ''}
           </p>
         </div>
         <div className='flex items-center gap-2'>
