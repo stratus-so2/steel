@@ -72610,7 +72610,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 404,
-                  "message": "Project not found",
+                  "message": "Projeto não encontrado",
                   "error": {
                     "code": "PROJECT_NOT_FOUND"
                   }
@@ -72633,7 +72633,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 404,
-                  "message": "Project not found",
+                  "message": "Projeto não encontrado",
                   "error": {
                     "code": "PROJECT_NOT_FOUND"
                   }
