@@ -816,3 +816,11 @@ export const sdWhatsappNotConfigured = (
 export const sdAiDisabled = (
   message = 'O agente de IA do ServiceDesk está desativado',
 ): AppError => appError('SD_AI_DISABLED', message)
+
+export const sdCsatAlreadySubmitted = (
+  message = 'Este atendimento já foi avaliado',
+): AppError => appError('SD_CSAT_ALREADY_SUBMITTED', message)
+
+export const sdCsatNotAvailable = (
+  message = 'A avaliação só fica disponível depois que o chamado é resolvido',
+): AppError => appError('SD_CSAT_NOT_AVAILABLE', message)

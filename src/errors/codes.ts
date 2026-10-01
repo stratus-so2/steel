@@ -460,6 +460,8 @@ export const ERROR_CODES = {
     status: 422,
   },
   SD_AI_DISABLED: { code: 'SD_AI_DISABLED', status: 403 },
+  SD_CSAT_ALREADY_SUBMITTED: { code: 'SD_CSAT_ALREADY_SUBMITTED', status: 409 },
+  SD_CSAT_NOT_AVAILABLE: { code: 'SD_CSAT_NOT_AVAILABLE', status: 422 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

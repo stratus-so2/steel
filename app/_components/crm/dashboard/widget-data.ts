@@ -55,15 +55,22 @@ export function passesFilters(row: Row, filters: Filter[]): boolean {
   })
 }
 
+function compareCells(a: unknown, b: unknown): number {
+  if (typeof a === 'number' && typeof b === 'number') return a - b
+  return String(a ?? '').localeCompare(String(b ?? ''), 'pt-BR', {
+    numeric: true,
+  })
+}
+
+/** Ordena por campos; números comparam como números, vazios vão para o fim. */
 export function sortRows(rows: Row[], config: ViewConfig): Row[] {
   if (config.sort.length === 0) return rows
   return [...rows].sort((a, b) => {
     for (const { field, direction } of config.sort) {
-      const cmp = String(a[field] ?? '').localeCompare(
-        String(b[field] ?? ''),
-        'pt-BR',
-        { numeric: true },
-      )
+      const aEmpty = a[field] === null || a[field] === undefined
+      const bEmpty = b[field] === null || b[field] === undefined
+      if (aEmpty !== bEmpty) return aEmpty ? 1 : -1
+      const cmp = compareCells(a[field], b[field])
       if (cmp !== 0) return direction === 'asc' ? cmp : -cmp
     }
     return 0

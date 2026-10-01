@@ -137,6 +137,8 @@ export {
   sdConfigItemTypeNotFound,
   sdConfigNotFound,
   sdContactNotFound,
+  sdCsatAlreadySubmitted,
+  sdCsatNotAvailable,
   sdCustomerDocumentConflict,
   sdCustomerNotFound,
   sdCustomFieldInvalid,
