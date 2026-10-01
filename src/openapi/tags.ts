@@ -238,6 +238,11 @@ export const TAG_GROUPS = [
           'Copiloto do agente (resumo, sugestão de resposta, classificação, rascunho da solução e conversa livre sobre o chamado) e pré-atendimento do solicitante (portal e WhatsApp): resolve pela base de conhecimento ou abre o chamado já triado. Usa o provedor e a cota de IA do workspace (ADR 0007); o contexto enviado vai com dados pessoais mascarados.',
       },
       {
+        name: 'ServiceDesk · Monitoramento',
+        description:
+          'Origens de monitoramento (Zabbix e webhook genérico) e a entrada pública que abre chamado a partir do alerta: token por origem guardado como SHA-256, deduplicação por evento, mapa severidade → prioridade, vínculo com o item de configuração pelo host, encerramento automático na normalização e reabertura por instabilidade (flapping).',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

@@ -53,7 +53,7 @@ export interface SdMonitorAlertDTO {
     id: string
     number: number
     title: string
-    phase: string | null
+    phase: string
   } | null
   startedAt: string
   resolvedAt: string | null

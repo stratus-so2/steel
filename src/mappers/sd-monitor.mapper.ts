@@ -66,7 +66,7 @@ export function toSdMonitorAlertDTO(
           id: alert.ticket.id,
           number: alert.ticket.number,
           title: alert.ticket.title,
-          phase: alert.ticket.phase?.name ?? null,
+          phase: alert.ticket.phase.name,
         }
       : null,
     startedAt: alert.startedAt.toISOString(),
