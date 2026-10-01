@@ -114,7 +114,7 @@ describe('/api/workspaces/[id]/servicedesk/mailboxes', () => {
       { ...MAILBOX, address: 'nao-e-email' },
       owner.cookie,
     )
-    expect(invalid.status).toBe(400)
+    expect(invalid.status).toBe(422)
     expect((await invalid.json()).error.code).toBe('VALIDATION_ERROR')
   })
 
@@ -149,7 +149,7 @@ describe('/api/workspaces/[id]/servicedesk/mailboxes', () => {
       {},
       owner.cookie,
     )
-    expect(empty.status).toBe(400)
+    expect(empty.status).toBe(422)
   })
 
   it('reports SD_MAILBOX_NOT_FOUND for another workspace mailbox', async () => {
