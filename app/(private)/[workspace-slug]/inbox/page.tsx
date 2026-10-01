@@ -33,7 +33,9 @@ export default async function InboxPage({
   if (!membership.ok || !membership.value) notFound()
 
   return (
-    <div className='h-full w-full overflow-y-auto'>
+    // A caixa de entrada rola por dentro (lista e painel de leitura têm a
+    // própria rolagem), como num cliente de e-mail.
+    <div className='flex h-full min-h-0 w-full flex-col overflow-hidden'>
       <HeaderInternalNavigation>
         <HeaderBreadcrumbList>
           <HeaderBreadcrumbCrumb title='Caixa de entrada'>
@@ -45,7 +47,7 @@ export default async function InboxPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6'>
+      <div className='min-h-0 flex-1'>
         <NotificationInbox workspaceId={membership.value.workspaceId} />
       </div>
     </div>

@@ -33,12 +33,7 @@ export const NotificationListQuerySchema = z.object({
   search: z.string().trim().min(1).max(200).optional(),
   /** Id da última notificação da página anterior. */
   cursor: z.string().min(1).optional(),
-  limit: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(50)
-    .default(NOTIFICATION_PAGE_SIZE),
+  limit: z.coerce.number().int().min(1).max(50).default(NOTIFICATION_PAGE_SIZE),
 })
 
 export type NotificationListQueryDTO = z.infer<

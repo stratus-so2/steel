@@ -229,7 +229,9 @@ export function notificationKindInfo(kind: string): NotificationKindInfo {
 }
 
 /** Todos os tipos conhecidos de um módulo (filtro por módulo da listagem). */
-export function notificationKindsOfModule(module: NotificationModule): string[] {
+export function notificationKindsOfModule(
+  module: NotificationModule,
+): string[] {
   return Object.keys(NOTIFICATION_KINDS).filter(
     (kind) => NOTIFICATION_KINDS[kind].module === module,
   )

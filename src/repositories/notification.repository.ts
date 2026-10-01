@@ -24,7 +24,9 @@ export interface NotificationListParams {
  * arquivadas, `archived` mostra só elas — a lógica de pastas de um cliente de
  * e-mail.
  */
-function folderWhere(folder: NotificationFolder): Prisma.NotificationWhereInput {
+function folderWhere(
+  folder: NotificationFolder,
+): Prisma.NotificationWhereInput {
   if (folder === 'archived') return { archivedAt: { not: null } }
   if (folder === 'unread') return { archivedAt: null, readAt: null }
   return { archivedAt: null }
@@ -51,7 +53,9 @@ function listWhere(
 }
 
 /** Dados da ação de cliente de e-mail aplicada em lote. */
-function actionData(action: NotificationAction): Prisma.NotificationUpdateInput {
+function actionData(
+  action: NotificationAction,
+): Prisma.NotificationUpdateInput {
   const now = new Date()
   switch (action) {
     case 'read':
@@ -111,9 +115,7 @@ export const NotificationRepository = {
         where: listWhere(params),
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         take: params.limit + 1,
-        ...(params.cursor
-          ? { cursor: { id: params.cursor }, skip: 1 }
-          : {}),
+        ...(params.cursor ? { cursor: { id: params.cursor }, skip: 1 } : {}),
       })
       const hasMore = rows.length > params.limit
       const items = hasMore ? rows.slice(0, params.limit) : rows

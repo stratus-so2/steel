@@ -231,9 +231,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       ),
     ).toEqual({ all: 2, unread: 1, archived: 1 })
     expect(
-      expectOk(
-        await NotificationRepository.countUnread(workspace.id, user.id),
-      ),
+      expectOk(await NotificationRepository.countUnread(workspace.id, user.id)),
     ).toBe(1)
 
     const archived = expectOk(
@@ -298,9 +296,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
     ).toBe(1)
 
     expect(
-      expectOk(
-        await NotificationRepository.countUnread(workspace.id, user.id),
-      ),
+      expectOk(await NotificationRepository.countUnread(workspace.id, user.id)),
     ).toBe(3)
   })
 
@@ -393,9 +389,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       ).map((n) => n.title),
     ).toEqual(['Sentimento negativo: Maria', 'Chamado INC-000123 atribuído'])
     expect(
-      expectOk(
-        await NotificationRepository.countUnread(workspace.id, user.id),
-      ),
+      expectOk(await NotificationRepository.countUnread(workspace.id, user.id)),
     ).toBe(2)
 
     // "Marcar todas" não mexe nas arquivadas.

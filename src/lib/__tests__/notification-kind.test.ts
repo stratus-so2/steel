@@ -77,9 +77,9 @@ describe('notificationModuleOf / notificationKindsOfModule', () => {
 
     expect(sd).toContain('SD_TICKET_ASSIGNED')
     expect(sd).not.toContain('WHATSAPP_NEGATIVE_SENTIMENT')
-    expect(sd.every((kind) => notificationModuleOf(kind) === 'SERVICE_DESK')).toBe(
-      true,
-    )
+    expect(
+      sd.every((kind) => notificationModuleOf(kind) === 'SERVICE_DESK'),
+    ).toBe(true)
     expect(notificationKindsOfModule('COMMUNICATION')).toEqual([
       'WHATSAPP_NEGATIVE_SENTIMENT',
     ])
@@ -98,7 +98,9 @@ describe('notificationTicketRef', () => {
       ticketRef: '123',
     })
     expect(
-      notificationTicketRef('/acme/servicedesk/tickets/INC-000123?aba=historico'),
+      notificationTicketRef(
+        '/acme/servicedesk/tickets/INC-000123?aba=historico',
+      ),
     ).toEqual({ slug: 'acme', ticketRef: 'INC-000123' })
   })
 
@@ -108,6 +110,8 @@ describe('notificationTicketRef', () => {
     expect(notificationTicketRef('')).toBeNull()
     expect(notificationTicketRef('/acme/zap?conversa=c1')).toBeNull()
     expect(notificationTicketRef('/acme/servicedesk/tickets')).toBeNull()
-    expect(notificationTicketRef('https://x.com/a/servicedesk/tickets/1')).toBeNull()
+    expect(
+      notificationTicketRef('https://x.com/a/servicedesk/tickets/1'),
+    ).toBeNull()
   })
 })
