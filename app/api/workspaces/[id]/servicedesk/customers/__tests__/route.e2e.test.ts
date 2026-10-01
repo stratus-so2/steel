@@ -10,6 +10,7 @@ import {
   postJson,
 } from '@/src/__tests__/helpers/e2e'
 import { BASE_URL } from '@/src/__tests__/setup.e2e'
+import { prisma } from '@/src/lib/prisma'
 
 const base = (workspaceId: string) =>
   `/api/workspaces/${workspaceId}/servicedesk/customers`
@@ -45,6 +46,27 @@ describe('GET /api/workspaces/[id]/servicedesk/customers', () => {
 describe('customers CRUD', () => {
   it('creates, lists, searches, reads, updates and deletes', async () => {
     const { user, workspace } = await authenticatedOwner()
+    // Campo customizado precisa existir: o service valida os valores contra
+    // as definições da entidade (chave sem definição é recusada).
+    await prisma.sdCustomFieldDefinition.create({
+      data: {
+        workspaceId: workspace.id,
+        entity: 'CUSTOMER',
+        key: 'segmento',
+        label: 'Segmento',
+        type: 'TEXT',
+      },
+    })
+
+    const unknownField = await postJson(
+      base(workspace.id),
+      { name: 'Sem definição', customFields: { inexistente: 'x' } },
+      user.cookie,
+    )
+    expect(unknownField.status).toBe(422)
+    expect((await unknownField.json()).error.code).toBe(
+      'SD_CUSTOM_FIELD_INVALID',
+    )
 
     const created = await postJson(
       base(workspace.id),
