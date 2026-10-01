@@ -62,6 +62,16 @@ Modelos: bloco `ServiceDesk` no fim de `prisma/schema.prisma` (tabelas `sd_*`).
   dia, feriados, 24×7). "Em risco" a partir de `slaAtRiskPercent`.
 - **Escalonamento**: manual (funcional = outro departamento; hierárquico =
   líder / nível +1) ou automático por `SdEscalationRule` no tick do worker.
+  As ações da regra podem chamar o **plantão** (`notifyOnCall`,
+  `reassignToOnCall`): o chamado vai para quem está na camada do nível
+  escalonado (1 no primeiro, 2 no seguinte…) e o aviso inclui a retaguarda.
+  Dentro do expediente da escala, ou sem ninguém de plantão, vale o destino
+  normal da regra — ninguém fica sem responsável.
+- **Plantão (on-call)**: `SdOnCallSchedule` (departamento, fuso, rodízio
+  DAILY/WEEKLY/BIWEEKLY, início do rodízio, hora da virada, calendário de
+  expediente opcional) → `SdOnCallLayer` (1 = primeira chamada, 2 =
+  retaguarda…) → `SdOnCallParticipant` (ordem do rodízio), mais
+  `SdOnCallOverride` (troca pontual com período e motivo).
 - **Automação**: `SdAutomationRule` (evento → condições → ações), avaliadas
   por `position`, com `stopProcessing`. Condições: `{field, operator, value}`
   com operadores `equals | not_equals | in | not_in | contains | is_empty |
@@ -132,6 +142,47 @@ assinaturas, WhatsApp/IA):
   `servicedesk-sla` (1 min) marca risco/violação uma única vez, notifica
   (responsável + líderes), roda `SdEscalationRule` e as automações
   `SLA_AT_RISK`/`SLA_BREACHED` e fecha RESOLVED vencidos.
+
+## Plantão (contrato para as outras fatias)
+
+Quem responde fora do horário sai de uma escala, não da boa vontade do líder
+fixo do departamento.
+
+- **Lib pura** `src/lib/servicedesk/oncall.ts`: `resolveSdOnCall(at,
+  schedule, overrides)` devolve o responsável de cada camada;
+  `sdOnCallPeriodAt`, `sdOnCallTimeline(schedule, overrides, from, to)`,
+  `isWithinSdBusinessHours(at, calendar)` e `sdOnCallOverridesOverlap`. O
+  rodízio é determinístico: a âncora é `handoffTime` no dia civil de
+  `rotationStart`, no **fuso da escala**, e cada período é `[âncora + k·P,
+  âncora + (k+1)·P)` contado em dias civis (sobrevive ao horário de verão e
+  não depende do fuso do servidor). Troca vence o rodízio; camada sem
+  participante devolve `userId: null`.
+- **Sem autorização** (para quem já resolveu o acesso):
+  `resolveSdOnCallForDepartment(workspaceId, departmentId, at)`,
+  `sdOnCallEscalationTarget(workspaceId, departmentId, at, level)` e
+  `sdOnCallNotifyUserIds(resolution, level)`
+  (`src/services/sd-oncall-resolver.ts`). O target só vem quando a escala
+  está valendo (`applies`: ativa **e** fora do expediente do calendário).
+  A escala do departamento vem antes da escala geral do workspace
+  (`departmentId = null`), que serve de rede.
+- **Service** `SdOnCallService` (`list/get/create/update/remove`,
+  `addLayer/updateLayer/removeLayer`, `setParticipants`,
+  `listOverrides/createOverride/removeOverride`, `now`, `timeline`): admin do
+  módulo mantém, agente consulta (`sd-oncall` × `VIEW`). Troca sobreposta na
+  mesma camada responde `SD_ONCALL_OVERRIDE_OVERLAP`.
+- **API** `app/api/workspaces/[id]/servicedesk/oncall/**`: `GET|POST /`,
+  `GET|PATCH|DELETE /[scheduleId]`, `POST /[scheduleId]/layers`,
+  `PATCH|DELETE /[scheduleId]/layers/[layerId]`, `PUT
+  /[scheduleId]/layers/[layerId]/participants` (a **ordem do array é a ordem
+  do rodízio**: adiciona, remove e reordena), `GET
+  /[scheduleId]/timeline?from&days`, `GET /now?departmentId&at`, `GET|POST
+  /overrides` e `DELETE /overrides/[overrideId]`.
+- **UI**: aba "Plantão" das configurações (`oncall-tab.tsx`) e o selo
+  `<SdOnCallBadge workspaceId departmentId />`
+  (`app/_components/servicedesk/ticket/sd-oncall-badge.tsx`), que só aparece
+  quando a escala está valendo. Hooks em `src/hooks/use-sd-oncall.ts`
+  (`useSdOnCallSchedules`, `useSdOnCallOverrides`, `useSdOnCallTimeline`,
+  `useSdOnCallNow`, `useSdOnCallMutations`).
 
 ## Notificações (central do módulo)
 
@@ -214,6 +265,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | notifications | `src/config/servicedesk-notifications.ts`, `sd-notification` (schema/mapper/repository/service = motor + preferências), `sd-ticket-follower.service.ts`, `sd-digest.service.ts`, `src/lib/servicedesk/notify.ts`, fila `servicedesk-digest`, aba "Notificações", botão Seguir, menções no composer |
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
 | monitoring | `sd-monitor-source`, `sd-monitor-alert`, `src/lib/servicedesk/{monitoring,monitor-fields}.ts`, entrada pública `servicedesk/monitoring/[token]`, aba Monitoramento das configurações, bloco de origem na tela do chamado |
+| oncall | `sd-oncall` (schema/mapper/repository/service), `sd-oncall-resolver.ts`, `src/lib/servicedesk/oncall.ts`, API `servicedesk/oncall/**`, aba "Plantão", selo `SdOnCallBadge`, e as ações `notifyOnCall`/`reassignToOnCall` do escalonamento |
 | mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
 
 ## Operação
@@ -284,6 +336,14 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   obrigatórios, aprovação, classificação da solução), o chamado recebe uma
   mensagem pública explicando em vez de ser encerrado. O mesmo alerta voltando
   dentro de `flappingWindowMinutes` reabre o chamado anterior.
+- **Plantão**: Configurações > Plantão cria a escala (time, fuso, rodízio,
+  início e hora da virada; opcionalmente um calendário de expediente, e aí a
+  escala só vale **fora** dele), as camadas (1 = primeira chamada) e os
+  participantes — arraste para mudar a ordem da vez. A linha do tempo mostra
+  quem cobre cada período nas próximas duas semanas, já com as trocas. Para
+  o escalonamento usar a escala, ligue "Passar para quem está de plantão" e
+  "Avisar o plantão" na regra (Configurações > Escalonamento); sem ninguém de
+  plantão o chamado continua indo para o líder, como antes.
 - **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
   acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
   conhecimento.
