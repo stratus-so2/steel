@@ -563,7 +563,7 @@ describe('portal do contato externo — avaliação', () => {
       { score: 5 },
       cookie,
     )
-    expect(response.status).toBe(409)
+    expect(response.status).toBe(422)
     expect((await response.json()).error.code).toBe('SD_CSAT_NOT_AVAILABLE')
   })
 })
