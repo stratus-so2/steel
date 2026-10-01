@@ -3,6 +3,7 @@ import { sdConfigRoutes } from './servicedesk/config'
 import { sdDashboardsPortalRoutes } from './servicedesk/dashboards-portal'
 import { sdDirectoryRoutes } from './servicedesk/directory'
 import { sdMonitoringRoutes } from './servicedesk/monitoring'
+import { sdNotificationRoutes } from './servicedesk/notifications'
 import { sdTicketTabRoutes } from './servicedesk/ticket-tabs'
 import { sdWhatsappAiRoutes } from './servicedesk/whatsapp-ai'
 
@@ -17,6 +18,7 @@ const routes: RouteConfig[] = [
   ...sdDirectoryRoutes,
   ...sdMonitoringRoutes,
   ...sdTicketTabRoutes,
+  ...sdNotificationRoutes,
   ...sdDashboardsPortalRoutes,
   ...sdWhatsappAiRoutes,
 ]

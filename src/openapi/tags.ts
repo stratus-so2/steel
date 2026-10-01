@@ -243,6 +243,11 @@ export const TAG_GROUPS = [
           'Origens de monitoramento (Zabbix e webhook genérico) e a entrada pública que abre chamado a partir do alerta: token por origem guardado como SHA-256, deduplicação por evento, mapa severidade → prioridade, vínculo com o item de configuração pelo host, encerramento automático na normalização e reabertura por instabilidade (flapping).',
       },
       {
+        name: 'ServiceDesk · Notificações',
+        description:
+          'Central de notificações do módulo: preferências do próprio usuário (matriz evento × canal — no app, e-mail e WhatsApp, com os padrões do catálogo e o resumo diário opcional) e seguir/parar de seguir um chamado para receber seus eventos.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',
