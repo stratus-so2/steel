@@ -10,7 +10,9 @@ vi.mock('@/src/repositories/notification.repository')
 vi.mock('@/src/lib/notifications/realtime', () => ({
   publishNotificationEvent: vi.fn().mockResolvedValue(undefined),
 }))
+vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 
+import { auditMutation } from '@/lib/axiom/audit'
 import { publishNotificationEvent } from '@/src/lib/notifications/realtime'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { NotificationRepository } from '@/src/repositories/notification.repository'
@@ -19,6 +21,7 @@ import { NotificationService } from '../notification.service'
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedNotificationRepo = vi.mocked(NotificationRepository)
 const mockedPublish = vi.mocked(publishNotificationEvent)
+const mockedAuditMutation = vi.mocked(auditMutation)
 
 function row(overrides: Partial<Notification> = {}): Notification {
   return {
@@ -224,7 +227,7 @@ describe('NotificationService.applyAction', () => {
     })
   })
 
-  it('should accept the undo of a deletion', async () => {
+  it('should accept the undo of a deletion and audit it', async () => {
     asMember()
     mockedNotificationRepo.applyAction.mockResolvedValue(ok(1))
 
@@ -236,6 +239,26 @@ describe('NotificationService.applyAction', () => {
         }),
       ),
     ).toEqual({ updated: 1 })
+    expect(mockedAuditMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'notification',
+        action: 'restore',
+        actorId: 'u1',
+        meta: { workspaceId: 'ws1', updated: 1 },
+      }),
+    )
+  })
+
+  it('should not audit reading or archiving', async () => {
+    asMember()
+    mockedNotificationRepo.applyAction.mockResolvedValue(ok(1))
+
+    await NotificationService.applyAction('u1', 'ws1', {
+      action: 'read',
+      ids: ['n1'],
+    })
+
+    expect(mockedAuditMutation).not.toHaveBeenCalled()
   })
 
   it('should forbid non-members', async () => {
@@ -349,6 +372,28 @@ describe('NotificationService failure paths', () => {
       }),
       'DATABASE_ERROR',
     )
+    expect(mockedAuditMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'notification',
+        action: 'delete',
+        outcome: 'failure',
+        reason: 'DATABASE_ERROR',
+      }),
+    )
+  })
+
+  it('applyAction() should not audit a non-destructive failure', async () => {
+    asMember()
+    mockedNotificationRepo.applyAction.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await NotificationService.applyAction('u1', 'ws1', {
+        action: 'read',
+        ids: ['n1'],
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedAuditMutation).not.toHaveBeenCalled()
   })
 
   it('notifyUsers() should propagate a creation failure without publishing', async () => {

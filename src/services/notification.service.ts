@@ -114,6 +114,11 @@ export const NotificationService = {
     if (!membership.ok) return membership
 
     const ids = Array.from(new Set(dto.ids))
+    // Só a dupla destrutiva vai para o audit: ler/arquivar o usuário desfaz
+    // na própria tela, excluir tira um aviso de vista (LGPD: conteúdo dele).
+    const audited =
+      dto.action === 'delete' || dto.action === 'restore' ? dto.action : null
+
     const updated = await NotificationRepository.applyAction({
       workspaceId,
       userId: actorId,
@@ -121,23 +126,23 @@ export const NotificationService = {
       action: dto.action,
     })
     if (!updated.ok) {
-      auditMutation({
-        entity: 'notification',
-        action: dto.action,
-        actorId,
-        outcome: 'failure',
-        reason: updated.error.code,
-        meta: { workspaceId, requested: ids.length },
-      })
+      if (audited) {
+        auditMutation({
+          entity: 'notification',
+          action: audited,
+          actorId,
+          outcome: 'failure',
+          reason: updated.error.code,
+          meta: { workspaceId, requested: ids.length },
+        })
+      }
       return updated
     }
 
-    // Exclusão é a única ação que o usuário não vê desfazer sozinho; registra
-    // no audit para rastrear perda de aviso (LGPD: conteúdo próprio).
-    if (dto.action === 'delete' || dto.action === 'restore') {
+    if (audited) {
       auditMutation({
         entity: 'notification',
-        action: dto.action,
+        action: audited,
         actorId,
         meta: { workspaceId, updated: updated.value },
       })

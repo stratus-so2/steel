@@ -77,6 +77,17 @@ describe('publishNotificationEvent', () => {
       expect.objectContaining({ workspaceId: 'ws1', message: 'redis down' }),
     )
   })
+
+  it('should stringify a rejection that is not an Error', async () => {
+    publish.mockRejectedValue('ECONNRESET')
+
+    await publishNotificationEvent('ws1', ['u1'], event)
+
+    expect(logger.error).toHaveBeenCalledWith(
+      'notifications.realtime.publish_failed',
+      expect.objectContaining({ message: 'ECONNRESET' }),
+    )
+  })
 })
 
 describe('subscribeNotificationEvents', () => {
@@ -120,5 +131,25 @@ describe('subscribeNotificationEvents', () => {
         expect.objectContaining({ workspaceId: 'ws1', message: 'no redis' }),
       ),
     )
+  })
+
+  it('should stringify a subscription rejection that is not an Error', async () => {
+    subscribe.mockRejectedValue('nope')
+    subscribeNotificationEvents('ws1', vi.fn())
+
+    await vi.waitFor(() =>
+      expect(logger.error).toHaveBeenCalledWith(
+        'notifications.realtime.subscribe_failed',
+        expect.objectContaining({ message: 'nope' }),
+      ),
+    )
+  })
+
+  it('should still close the connection when quitting fails', async () => {
+    quit.mockRejectedValue(new Error('already closed'))
+    const stop = subscribeNotificationEvents('ws1', vi.fn())
+
+    expect(() => stop()).not.toThrow()
+    await vi.waitFor(() => expect(quit).toHaveBeenCalled())
   })
 })
