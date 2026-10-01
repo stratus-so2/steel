@@ -139,5 +139,11 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)'],
+  // Fora do proxy: assets do Next, ícones/imagens e `theme-init.js` (roda
+  // antes da primeira pintura e precisa responder mesmo sem sessão). Nada de
+  // excluir extensões em bloco: `/openapi.json`, por exemplo, continua
+  // passando pelo gate de autenticação.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|theme-init.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)',
+  ],
 }

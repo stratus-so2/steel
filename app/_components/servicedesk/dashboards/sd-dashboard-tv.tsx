@@ -334,7 +334,9 @@ export function SdDashboardTv({
                   className='flex h-full w-full flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900'
                 >
                   <div className='shrink-0 border-zinc-800 border-b px-4 py-2'>
-                    <span className='truncate font-medium text-sm text-zinc-400 uppercase tracking-widest 2xl:text-lg'>
+                    {/* Duas linhas em vez de cortar: títulos como
+                        "SLA cumprido (30 dias)" não cabem numa só. */}
+                    <span className='line-clamp-2 font-medium text-sm text-zinc-400 uppercase tracking-wide 2xl:text-lg'>
                       {widgetTitle(widget)}
                     </span>
                   </div>
