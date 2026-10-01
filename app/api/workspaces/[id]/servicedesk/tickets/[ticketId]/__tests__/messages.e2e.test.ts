@@ -203,6 +203,31 @@ describe('ticket messages — chat', () => {
     expect(row.reopenCount).toBe(1)
   })
 
+  it('keeps only workspace agents in the mentions', async () => {
+    const { workspace, agent, requester, ticket } = await setupTabs()
+    const outsider = await createAuthenticatedUser()
+    const res = await postJson(
+      `${tabApi(workspace.id, ticket.id)}/messages`,
+      {
+        body: 'Veja isso @Agente',
+        // O solicitante não atende e o de fora não é do workspace; o próprio
+        // autor nunca se cita.
+        mentionedUserIds: [agent.id, requester.id, outsider.id],
+      },
+      agent.cookie,
+    )
+    expect(res.status).toBe(201)
+    expect((await res.json()).data.mentionedUserIds).toEqual([])
+
+    const second = await postJson(
+      `${tabApi(workspace.id, ticket.id)}/messages`,
+      { body: 'Agora sim @Agente', mentionedUserIds: [agent.id] },
+      requester.cookie,
+    )
+    expect(second.status).toBe(201)
+    expect((await second.json()).data.mentionedUserIds).toEqual([agent.id])
+  })
+
   it('refuses new messages on a closed ticket', async () => {
     const { workspace, agent, ticket, flow } = await setupTabs()
     await prisma.sdTicket.update({
