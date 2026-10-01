@@ -33,11 +33,15 @@ vi.mock('../sd-ticket-notifier', () => ({
 vi.mock('../sd-automation-engine', () => ({
   fireSdAutomations: vi.fn(async () => undefined),
 }))
+vi.mock('../sd-mail-outbound.service', () => ({
+  SdMailOutboundService: { sendTicketReply: vi.fn() },
+}))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { SdTicketAttachmentRepository } from '@/src/repositories/sd-ticket-attachment.repository'
 import { SdTicketMessageRepository } from '@/src/repositories/sd-ticket-message.repository'
 import { fireSdAutomations } from '../sd-automation-engine'
+import { SdMailOutboundService } from '../sd-mail-outbound.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { SdTicketMessageService } from '../sd-ticket-message.service'
@@ -50,6 +54,7 @@ const attachments = vi.mocked(SdTicketAttachmentRepository)
 const engine = vi.mocked(SdTicketEngine)
 const notify = vi.mocked(SdTicketNotifier.notify)
 const publish = vi.mocked(publishSdTicketTab)
+const mailReply = vi.mocked(SdMailOutboundService.sendTicketReply)
 
 const guest = createFakeSdUserSummary({ id: 'guest' })
 const participants = [{ userId: 'guest', user: guest }]
@@ -73,6 +78,7 @@ beforeEach(() => {
   )
   repo.filterAgentIds.mockResolvedValue(ok(['guest']))
   engine.reopen.mockResolvedValue(ok({} as never))
+  mailReply.mockResolvedValue(ok('skipped'))
 })
 
 describe('list', () => {
@@ -171,6 +177,40 @@ describe('create', () => {
       }),
     )
     expect(engine.reopen).not.toHaveBeenCalled()
+  })
+
+  it('hands a public agent reply to the mail channel (fatia do canal de e-mail)', async () => {
+    const dto = expectOk(
+      await SdTicketMessageService.create('u1', 'ws1', 't1', input),
+    )
+    expect(mailReply).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      ticketId: 't1',
+      ticketMessageId: dto.id,
+      body: 'Reiniciei o servidor',
+    })
+  })
+
+  it('logs when the mail channel refuses the reply, without failing the message', async () => {
+    mailReply.mockResolvedValue(err(databaseError()))
+    expectOk(await SdTicketMessageService.create('u1', 'ws1', 't1', input))
+    await vi.waitFor(() => expect(mailReply).toHaveBeenCalled())
+  })
+
+  it('does not e-mail an internal note nor a requester reply', async () => {
+    await SdTicketMessageService.create('u1', 'ws1', 't1', {
+      ...input,
+      visibility: 'INTERNAL',
+    })
+    expect(mailReply).not.toHaveBeenCalled()
+
+    load.mockResolvedValue(
+      ok(
+        sdTabScope({ userId: 'req', isAgent: false, ticket: { participants } }),
+      ),
+    )
+    await SdTicketMessageService.create('req', 'ws1', 't1', input)
+    expect(mailReply).not.toHaveBeenCalled()
   })
 
   it('internal notes: no first response, agents only, no automation', async () => {
