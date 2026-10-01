@@ -14,6 +14,7 @@ import {
   Message01Icon,
   Settings02Icon,
   Tag01Icon,
+  WhatsappIcon,
   WorkflowSquare01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { ComponentType } from 'react'
@@ -31,6 +32,7 @@ import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdSlaTab } from './sla-tab'
 import { SdTemplatesTab } from './templates-tab'
+import { SdWhatsappSettingsTab } from './whatsapp-tab'
 
 /**
  * Registro das abas de `/[slug]/servicedesk/settings`. Para adicionar uma
@@ -149,6 +151,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     icon: BoxIcon,
     description: 'Catálogo de peças e custos unitários.',
     component: SdPartsTab,
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    icon: WhatsappIcon,
+    description:
+      'Conexões de WhatsApp do ServiceDesk (Z-API ou Meta), conexão ativa, teste das credenciais e a URL do webhook.',
+    component: SdWhatsappSettingsTab,
   },
   {
     id: 'ai',
