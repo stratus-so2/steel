@@ -46,7 +46,10 @@ describe('SdSeedService.seedDefaults', () => {
     expect(repo.apply).toHaveBeenCalledWith(WS, 'admin', SD_SEED_PLAN)
     expect(logger.info).toHaveBeenCalledWith(
       'servicedesk.seed.applied',
-      expect.objectContaining({ workspaceId: WS, phases: 30 }),
+      expect.objectContaining({
+        workspaceId: WS,
+        summary: JSON.stringify(summary),
+      }),
     )
     expect(auditMutation).toHaveBeenCalledWith(
       expect.objectContaining({

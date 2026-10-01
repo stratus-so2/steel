@@ -42,7 +42,12 @@ export const SdSeedService = {
       })
       return result
     }
-    logger.info('servicedesk.seed.applied', { workspaceId, ...result.value })
+    // Resumo serializado: espalhar as 15 contagens criaria 15 colunas no
+    // dataset do Axiom (limite de 257), e a ingestão passa a ser recusada.
+    logger.info('servicedesk.seed.applied', {
+      workspaceId,
+      summary: JSON.stringify(result.value),
+    })
     auditMutation({
       entity: 'sd_seed',
       action: 'create',
