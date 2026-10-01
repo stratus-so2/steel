@@ -3,7 +3,6 @@ import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import {
   SD_DIGEST_EVENT,
   SD_DIGEST_HOUR,
-  sdNotificationEvent,
 } from '@/src/config/servicedesk-notifications'
 import { sendSdDailyDigestEmail } from '@/src/lib/mail/servicedesk/send-sd-daily-digest'
 import {
@@ -98,15 +97,15 @@ async function digestFor(
     return
   }
 
-  const spec = sdNotificationEvent(SD_DIGEST_EVENT)
   const queueHref = `/${workspace.slug}/servicedesk`
   let delivered = false
 
-  if (channels.inApp && spec) {
+  if (channels.inApp) {
     const created = await NotificationService.notifyUsers({
       workspaceId: workspace.id,
       userIds: [userId],
-      kind: spec.kind,
+      // Mesmo `kind` que o catálogo declara para `digest.daily`.
+      kind: 'SD_DIGEST',
       title: 'Resumo do ServiceDesk',
       body: sdDigestBody(counts.value),
       href: queueHref,
