@@ -12,6 +12,7 @@ import type {
 import {
   filterSdCannedResponses,
   sdMentionQuery,
+  sdResolveMentions,
 } from '../history/sd-message-composer'
 import { SdTicketHistoryTab } from '../tabs/history-tab'
 import {
@@ -165,6 +166,22 @@ describe('composer helpers', () => {
     expect(sdMentionQuery('oi @')).toBe('')
     expect(sdMentionQuery('email@x')).toBeNull()
   })
+
+  it('keeps only the picked mentions still present in the text', () => {
+    const picked = [
+      { id: 'a', name: 'Ana Agente' },
+      { id: 'b', name: 'Bruno' },
+      { id: 'a', name: 'Ana Agente' },
+    ]
+    expect(sdResolveMentions('Veja @Ana Agente e @Bruno', picked)).toEqual([
+      'a',
+      'b',
+    ])
+    // A menção apagada do texto não vai para o servidor.
+    expect(sdResolveMentions('Veja @Bruno', picked)).toEqual(['b'])
+    expect(sdResolveMentions('sem menção', picked)).toEqual([])
+    expect(sdResolveMentions('@Ana Agente', [])).toEqual([])
+  })
 })
 
 describe('SdTicketHistoryTab — agent', () => {
@@ -213,6 +230,7 @@ describe('SdTicketHistoryTab — agent', () => {
         body: 'Logs anexados',
         visibility: 'INTERNAL',
         attachmentIds: ['up1'],
+        mentionedUserIds: [],
       }),
     )
     await waitFor(() =>
@@ -264,14 +282,39 @@ describe('SdTicketHistoryTab — agent', () => {
     )
   })
 
-  it('mentions an agent with "@"', async () => {
-    routes()
+  it('mentions an agent with "@" and sends the mentioned ids', async () => {
+    const spy = routes()
     renderWithQuery(<SdTicketHistoryTab {...tabProps('agent')} />)
     await screen.findByText('O servidor caiu de novo')
     const box = screen.getByLabelText('Mensagem')
     fireEvent.change(box, { target: { value: 'Veja @An' } })
     fireEvent.click(await screen.findByRole('option', { name: 'Ana Agente' }))
     expect((box as HTMLTextAreaElement).value).toBe('Veja @Ana Agente ')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar mensagem' }))
+    await waitFor(() =>
+      expect(fetchBody(spy, `${TAB_URL}/messages`)).toMatchObject({
+        body: 'Veja @Ana Agente',
+        mentionedUserIds: ['u-agent'],
+      }),
+    )
+  })
+
+  it('drops a mention the agent erased before sending', async () => {
+    const spy = routes()
+    renderWithQuery(<SdTicketHistoryTab {...tabProps('agent')} />)
+    await screen.findByText('O servidor caiu de novo')
+    const box = screen.getByLabelText('Mensagem')
+    fireEvent.change(box, { target: { value: 'Veja @An' } })
+    fireEvent.click(await screen.findByRole('option', { name: 'Ana Agente' }))
+    fireEvent.change(box, { target: { value: 'Deixa, resolvi sozinho' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar mensagem' }))
+    await waitFor(() =>
+      expect(fetchBody(spy, `${TAB_URL}/messages`)).toMatchObject({
+        mentionedUserIds: [],
+      }),
+    )
   })
 
   it('edits and deletes an own message', async () => {
@@ -320,6 +363,7 @@ describe('SdTicketHistoryTab — requester / closed', () => {
         body: 'Obrigado',
         visibility: 'PUBLIC',
         attachmentIds: [],
+        mentionedUserIds: [],
       }),
     )
     expect(
