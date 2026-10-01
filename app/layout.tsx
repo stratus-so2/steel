@@ -18,8 +18,6 @@ export const metadata: Metadata = {
     'Steel brings projects, docs, and AI-powered workflows into one unified workspace so teams and agents can plan, execute, and stay aligned.',
 }
 
-const THEME_INIT_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )steel\\.theme=([^;]+)/);var t=m?decodeURIComponent(m[1]):'SYSTEM';var dark=t==='DARK'||(t==='SYSTEM'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',dark)}catch(e){}})()`
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,7 +30,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Tema antes da primeira pintura. Arquivo estático (não inline):
+            a casca pré-renderizada não recebe o nonce da CSP. */}
+        <script src='/theme-init.js' />
       </head>
       <body className='root antialiased bg-background text-primary h-screen'>
         <Suspense>

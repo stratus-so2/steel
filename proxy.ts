@@ -23,10 +23,19 @@ const PUBLIC_ROUTES = [
   '/servicedesk/approval', '/api/servicedesk/approvals'
 ]
 
+/**
+ * CSP da aplicação. **Sem `'strict-dynamic'`**: com Cache Components (PPR) a
+ * casca do HTML é pré-renderizada no build, então os `<script src>` dos
+ * chunks nascem sem nonce; `'strict-dynamic'` faz o navegador ignorar o
+ * `'self'` e bloquear todos eles — a página renderiza, nunca hidrata e nada
+ * fica clicável. Os bundles são arquivos nossos, de mesma origem, cobertos
+ * por `'self'`; o nonce segue valendo para os scripts inline que o Next gera
+ * nas partes dinâmicas.
+ */
 function buildCspHeader(nonce: string): string {
   return `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${NODE_ENV === 'development' ? " 'unsafe-eval'" : ''};
+    script-src 'self' 'nonce-${nonce}'${NODE_ENV === 'development' ? " 'unsafe-eval'" : ''};
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
