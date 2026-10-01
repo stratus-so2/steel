@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { seedSdContact } from '@/src/__tests__/factories/sd-contact.factory'
 import { seedSdCustomer } from '@/src/__tests__/factories/sd-customer.factory'
 import { seedSdPortalAccess } from '@/src/__tests__/factories/sd-portal.factory'
@@ -860,5 +860,132 @@ describe('SdPortalRepository.formOptions', () => {
       urgencies: [],
       customFields: [],
     })
+  })
+})
+
+describe('SdPortalRepository — falhas do banco', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('maps every read failure to DATABASE_ERROR', async () => {
+    const boom = () => Promise.reject(new Error('boom'))
+    vi.spyOn(prisma.sdPortalAccess, 'findUnique').mockImplementation(
+      boom as never,
+    )
+    vi.spyOn(prisma.sdPortalAccess, 'findMany').mockImplementation(
+      boom as never,
+    )
+    vi.spyOn(prisma.sdContact, 'findFirst').mockImplementation(boom as never)
+    vi.spyOn(prisma.sdContact, 'findMany').mockImplementation(boom as never)
+    vi.spyOn(prisma.sdTicket, 'findFirst').mockImplementation(boom as never)
+    vi.spyOn(prisma.sdTicket, 'findMany').mockImplementation(boom as never)
+    vi.spyOn(prisma.sdTicketMessage, 'findMany').mockImplementation(
+      boom as never,
+    )
+    vi.spyOn(prisma.sdTicketAttachment, 'findFirst').mockImplementation(
+      boom as never,
+    )
+    vi.spyOn(prisma.sdCategory, 'findMany').mockImplementation(boom as never)
+
+    const scope = { workspaceId: 'ws', contactId: 'c', customerIds: [] }
+    expectErr(
+      await SdPortalRepository.findByTokenHash('hash'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.findBySessionHash('hash'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.listByContact('ws', 'c', 10),
+      'DATABASE_ERROR',
+    )
+    expectErr(await SdPortalRepository.findContact('c', 'ws'), 'DATABASE_ERROR')
+    expectErr(
+      await SdPortalRepository.findActiveContactsByEmail('a@b.c'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.listTickets({
+        scope,
+        status: 'open',
+        page: 1,
+        pageSize: 10,
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.findTicketByNumber(scope, 1),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.listPublicMessages('t', 10),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.findPublicAttachment('a', 't'),
+      'DATABASE_ERROR',
+    )
+    expectErr(await SdPortalRepository.formOptions('ws'), 'DATABASE_ERROR')
+  })
+
+  it('maps every write failure to DATABASE_ERROR', async () => {
+    const now = new Date()
+    expectErr(
+      await SdPortalRepository.createAccess({
+        workspaceId: 'missing',
+        contactId: 'missing',
+        tokenHash: 'h',
+        email: 'a@b.c',
+        requestedById: null,
+        expiresAt: now,
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.closeSession('missing'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await SdPortalRepository.createContactMessage({
+        workspaceId: 'missing',
+        ticketId: 'missing',
+        contactId: 'missing',
+        body: 'x',
+        attachments: [],
+      }),
+      'DATABASE_ERROR',
+    )
+
+    const boom = () => Promise.reject(new Error('boom'))
+    vi.spyOn(prisma.sdPortalAccess, 'updateMany').mockImplementation(
+      boom as never,
+    )
+    expectErr(
+      await SdPortalRepository.consume({
+        id: 'x',
+        usedAt: now,
+        sessionHash: 'h',
+        sessionExpiresAt: now,
+      }),
+      'DATABASE_ERROR',
+    )
+    expectErr(await SdPortalRepository.revoke('x', 'ws', now), 'DATABASE_ERROR')
+    expectErr(
+      await SdPortalRepository.revokePending('c', now),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('reports a revoke whose read-back disappeared', async () => {
+    const { workspace, ana } = await setup()
+    const { access } = await seedSdPortalAccess(workspace.id, ana.id)
+    vi.spyOn(prisma.sdPortalAccess, 'findUnique').mockResolvedValue(
+      null as never,
+    )
+    expect(
+      expectOk(
+        await SdPortalRepository.revoke(access.id, workspace.id, new Date()),
+      ),
+    ).toBeNull()
   })
 })

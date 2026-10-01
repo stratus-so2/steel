@@ -197,12 +197,13 @@ function scopeFor(
   }
 }
 
-async function buildContext(
+/** Monta o contexto da sessão — não falha: só reorganiza o que já veio. */
+function buildContext(
   access: SdPortalAccessWithContact,
   settings: SdSettings,
-): Promise<Result<SdPortalSessionContext>> {
+): SdPortalSessionContext {
   const { customers, customerIds } = scopeFor(access.contact, settings)
-  return ok({
+  return {
     accessId: access.id,
     contact: {
       id: access.contact.id,
@@ -220,7 +221,7 @@ async function buildContext(
     settings,
     prefixes: resolveSdTicketPrefixes(settings.ticketPrefixes),
     expiresAt: access.sessionExpiresAt ?? new Date(0),
-  })
+  }
 }
 
 export const SdPortalAccessService = {
@@ -379,11 +380,10 @@ export const SdPortalAccessService = {
       )
     }
 
-    const context = await buildContext(
+    const context = buildContext(
       { ...access, usedAt: now, sessionExpiresAt: expiresAt },
       settings.value,
     )
-    if (!context.ok) return context
 
     auditMutation({
       entity: 'sd_portal_session',
@@ -405,8 +405,8 @@ export const SdPortalAccessService = {
     return ok({
       sessionToken,
       expiresAt,
-      session: SdPortalAccessService.toSessionDTO(context.value),
-      context: context.value,
+      session: SdPortalAccessService.toSessionDTO(context),
+      context,
     })
   },
 
@@ -444,7 +444,7 @@ export const SdPortalAccessService = {
     if (!settings.ok) return settings
     if (!settings.value.portalEnabled) return err(sdPortalDisabled())
 
-    return buildContext(access, settings.value)
+    return ok(buildContext(access, settings.value))
   },
 
   /** Recorte da sessão que a UI pública recebe. */

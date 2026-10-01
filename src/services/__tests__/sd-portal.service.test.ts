@@ -407,6 +407,39 @@ describe('SdPortalService.createTicket', () => {
 })
 
 describe('SdPortalService.reply', () => {
+  it('notifies the assignee and the participants of the ticket', async () => {
+    ticketRepo.findById.mockResolvedValue(
+      ok(
+        createFakeSdTicket({
+          id: 'ticket1',
+          assigneeId: 'u1',
+          participants: [
+            {
+              userId: 'u9',
+              user: {
+                id: 'u9',
+                name: 'Participante',
+                email: 'p@x',
+                image: null,
+              },
+            },
+          ],
+        }),
+      ),
+    )
+
+    expectOk(
+      await SdPortalService.reply(
+        session(),
+        'INC-000012',
+        { body: 'oi', attachmentCount: 0 },
+        [],
+      ),
+    )
+
+    expect(notifier.notify.mock.calls[0][0].userIds).toEqual(['u1', 'u9'])
+  })
+
   it('posts a public CONTACT message, notifies the team and traces it', async () => {
     const dto = expectOk(
       await SdPortalService.reply(
@@ -1007,6 +1040,19 @@ describe('SdPortalService.knowledge', () => {
 
   it('searches with portalOnly and keeps the excerpt', async () => {
     kbRepo.search.mockResolvedValue(ok([{ ...article, rank: 0.8 }]) as never)
+    kbCatalog.listCategoriesWithCounts.mockResolvedValue(
+      ok([
+        {
+          id: 'cat1',
+          name: 'Acessos',
+          icon: null,
+          description: null,
+          parentId: null,
+          portalVisible: true,
+          articleCount: 1,
+        },
+      ]),
+    )
     const dto = expectOk(
       await SdPortalService.knowledge(session(), { q: 'senha', limit: 10 }),
     )
@@ -1016,6 +1062,9 @@ describe('SdPortalService.knowledge', () => {
       limit: 10,
     })
     expect(dto.articles[0]).toHaveProperty('excerpt')
+    expect(dto.categories).toEqual([
+      { id: 'cat1', name: 'Acessos', icon: null },
+    ])
     expect(kbRepo.listByWorkspace).not.toHaveBeenCalled()
   })
 

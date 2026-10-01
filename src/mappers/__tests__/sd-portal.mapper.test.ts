@@ -261,6 +261,15 @@ describe('toSdPortalTicketDetailDTO', () => {
     expect(dto.resolvedAt).toBe('2026-10-01T18:00:00.000Z')
   })
 
+  it('says nothing was informed when there is no urgency', () => {
+    const dto = toSdPortalTicketDetailDTO(
+      createFakeSdPortalTicket({ urgency: null }),
+      [],
+      { prefixes: PREFIXES, contactId: 'contact1' },
+    )
+    expect(dto.urgencyName).toBeNull()
+  })
+
   it('blocks replying and rating on a canceled or already rated ticket', () => {
     const canceled = toSdPortalTicketDetailDTO(
       createFakeSdPortalTicket({

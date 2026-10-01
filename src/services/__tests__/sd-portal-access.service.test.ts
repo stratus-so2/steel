@@ -172,6 +172,25 @@ describe('SdPortalAccessService.issue', () => {
     )
   })
 
+  it('propagates a failure of the settings lookup', async () => {
+    actAs('agent')
+    context.ensureSettings.mockResolvedValue(err(databaseError('x')))
+    expectErr(
+      await SdPortalAccessService.issue('u1', WS, { contactId: 'contact1' }),
+      'DATABASE_ERROR',
+    )
+    expect(repo.createAccess).not.toHaveBeenCalled()
+  })
+
+  it('propagates a failure of the workspace lookup', async () => {
+    actAs('agent')
+    context.findWorkspace.mockResolvedValue(err(databaseError('x')))
+    expectErr(
+      await SdPortalAccessService.issue('u1', WS, { contactId: 'contact1' }),
+      'DATABASE_ERROR',
+    )
+  })
+
   it('propagates a missing contact and a missing workspace', async () => {
     actAs('agent')
     repo.findContact.mockResolvedValue(err(databaseError('boom')))
