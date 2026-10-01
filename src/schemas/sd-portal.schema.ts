@@ -18,12 +18,20 @@ export const SdPortalTokenSchema = z
   .string()
   .refine(isSdPortalToken, 'Link de acesso inválido')
 
+/**
+ * E-mail normalizado **antes** de validar (o contato digita com espaço e
+ * maiúsculas), sempre em minúsculas.
+ */
+const portalEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(255, 'E-mail muito longo')
+  .pipe(z.email('Informe um e-mail válido'))
+
 /** O contato pede um link informando o e-mail (resposta sempre genérica). */
 export const RequestSdPortalLinkSchema = z.object({
-  email: z
-    .email('Informe um e-mail válido')
-    .max(255, 'E-mail muito longo')
-    .transform((value) => value.trim().toLowerCase()),
+  email: portalEmail,
 })
 export type RequestSdPortalLinkDTO = z.infer<typeof RequestSdPortalLinkSchema>
 
@@ -31,11 +39,7 @@ export type RequestSdPortalLinkDTO = z.infer<typeof RequestSdPortalLinkSchema>
 export const IssueSdPortalAccessSchema = z.object({
   contactId: sdId,
   /** Envia para outro endereço que não o cadastrado (ex.: e-mail corporativo). */
-  email: z
-    .email('Informe um e-mail válido')
-    .max(255)
-    .transform((value) => value.trim().toLowerCase())
-    .optional(),
+  email: portalEmail.optional(),
 })
 export type IssueSdPortalAccessDTO = z.infer<typeof IssueSdPortalAccessSchema>
 
