@@ -2,6 +2,7 @@ import type { OpenApiRegistry, RouteConfig } from '../registry'
 import { sdConfigRoutes } from './servicedesk/config'
 import { sdDashboardsPortalRoutes } from './servicedesk/dashboards-portal'
 import { sdDirectoryRoutes } from './servicedesk/directory'
+import { sdExternalPortalRoutes } from './servicedesk/external-portal'
 import { sdTicketTabRoutes } from './servicedesk/ticket-tabs'
 import { sdWhatsappAiRoutes } from './servicedesk/whatsapp-ai'
 
@@ -16,6 +17,7 @@ const routes: RouteConfig[] = [
   ...sdDirectoryRoutes,
   ...sdTicketTabRoutes,
   ...sdDashboardsPortalRoutes,
+  ...sdExternalPortalRoutes,
   ...sdWhatsappAiRoutes,
 ]
 
