@@ -3,6 +3,7 @@ import { sdConfigRoutes } from './servicedesk/config'
 import { sdDashboardsPortalRoutes } from './servicedesk/dashboards-portal'
 import { sdDirectoryRoutes } from './servicedesk/directory'
 import { sdTicketTabRoutes } from './servicedesk/ticket-tabs'
+import { sdWhatsappAiRoutes } from './servicedesk/whatsapp-ai'
 
 /**
  * ServiceDesk — `app/api/workspaces/[id]/servicedesk/**` (sessão + membro +
@@ -15,6 +16,7 @@ const routes: RouteConfig[] = [
   ...sdDirectoryRoutes,
   ...sdTicketTabRoutes,
   ...sdDashboardsPortalRoutes,
+  ...sdWhatsappAiRoutes,
 ]
 
 export function registerServiceDeskPaths(registry: OpenApiRegistry): void {

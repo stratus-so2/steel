@@ -228,6 +228,16 @@ export const TAG_GROUPS = [
           'Painéis customizáveis (motor de dashboards com fontes de chamados, custos, eventos e artigos): contagem, soma, média, % de SLA, MTTR, backlog, criados × resolvidos, CSAT. Padrões "Dashboard analítico" e "KPIs (TV)"; modo TV em tela cheia. Só agentes.',
       },
       {
+        name: 'ServiceDesk · WhatsApp',
+        description:
+          'Conexões de WhatsApp próprias do módulo (Z-API ou Meta Cloud API, credenciais cifradas, webhook e teste), conversas do ServiceDesk e a aba WhatsApp do chamado: vincular/iniciar/desvincular, janela de 24 h da Meta, envio de texto, arquivo e modelo aprovado — tudo espelhado no histórico do chamado.',
+      },
+      {
+        name: 'ServiceDesk · Agente de IA',
+        description:
+          'Copiloto do agente (resumo, sugestão de resposta, classificação, rascunho da solução e conversa livre sobre o chamado) e pré-atendimento do solicitante (portal e WhatsApp): resolve pela base de conhecimento ou abre o chamado já triado. Usa o provedor e a cota de IA do workspace (ADR 0007); o contexto enviado vai com dados pessoais mascarados.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',
