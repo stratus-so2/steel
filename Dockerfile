@@ -34,10 +34,11 @@ ENV NEXT_PUBLIC_AXIOM_DATASET=$NEXT_PUBLIC_AXIOM_DATASET
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV SKIP_ENV_VALIDATION="true"
 
-# Teto do heap do V8 no build. O padrão 2048 cabe numa máquina pequena (o
-# runner self-hosted tem ~3.8GB); o CD, que builda num runner hospedado,
-# passa um valor maior via build-arg. Sem teto, prisma generate/esbuild
-# crescem até o OOM killer matar o processo.
+# Teto do heap do V8 no build. O padrão 2048 cabe numa máquina pequena; o CD,
+# que builda num runner hospedado, passa um valor maior via build-arg. Sem
+# teto, prisma generate/esbuild crescem até o OOM killer matar o processo.
+# Atenção: isto limita só o V8 — a memória do Turbopack não entra aqui, e é
+# ela que estourou no servidor (ADR 0009).
 ARG NODE_BUILD_MEMORY=2048
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_BUILD_MEMORY}"
 

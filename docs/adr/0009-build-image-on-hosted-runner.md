@@ -7,8 +7,9 @@
 ## Contexto
 
 O [ADR 0005](./0005-self-hosted-runner-on-prod-server.md) colocou todo o CD
-num runner self-hosted dentro do servidor de produção. O servidor tem ~3,8 GB
-de RAM, divididos com o app, o worker, Postgres, Redis e MinIO.
+num runner self-hosted dentro do servidor de produção. O servidor tem 7,8 GB
+de RAM (≈6,5 GB livres fora de pico), divididos com o app, o worker,
+Postgres, Redis e MinIO.
 
 Com a entrada do **ServiceDesk** (ADR 0008) e do editor Plate da base de
 conhecimento, o `pnpm build` dentro do Docker passou a estourar a memória: o
@@ -16,9 +17,10 @@ job `Build, Scan & Push Image` morreu com
 `ResourceExhausted: process "/bin/sh -c … pnpm build …" did not complete`
 (run 36864191635), bloqueando a publicação mesmo com o CI verde.
 
-Baixar o teto do heap do V8 não resolve — o processo já roda com
-`--max-old-space-size=2048` e o limite real é a RAM da máquina, que também
-precisa atender produção durante o build.
+Baixar o teto do heap do V8 não resolve: o processo já roda com
+`--max-old-space-size=2048` e esse teto vale só para o V8 — o grosso da
+memória é do Turbopack, que não é limitado por ele. Mesmo com ~6,5 GB livres
+o pico do build estourou, e ele ainda disputaria memória com a produção.
 
 ## Decisão
 
