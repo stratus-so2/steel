@@ -1,7 +1,7 @@
 import type { Prisma, SdApprovalRoundStatus } from '@prisma/client'
 import { sdApprovalRoundNotFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
-import { ok, type Result } from '@/src/lib/result'
+import type { Result } from '@/src/lib/result'
 import { sdDb, sdDbFind } from './sd-config-db'
 import { SD_USER_SUMMARY_SELECT } from './sd-ticket.repository'
 import { SD_APPROVAL_INCLUDE } from './sd-ticket-approval.repository'
@@ -235,15 +235,12 @@ export const SdApprovalRoundRepository = {
 
   /** Rodadas abertas do chamado, só os ids (cancelamento em lote). */
   async listOpenIds(ticketId: string): Promise<Result<string[]>> {
-    const rows = await sdDb(
-      'Failed to list ServiceDesk open approval rounds',
-      () =>
-        prisma.sdApprovalRound.findMany({
-          where: { ticketId, status: OPEN },
-          select: { id: true },
-        }),
-    )
-    if (!rows.ok) return rows
-    return ok(rows.value.map((row) => row.id))
+    return sdDb('Failed to list ServiceDesk open approval rounds', async () => {
+      const rows = await prisma.sdApprovalRound.findMany({
+        where: { ticketId, status: OPEN },
+        select: { id: true },
+      })
+      return rows.map((row) => row.id)
+    })
   },
 }

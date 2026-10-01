@@ -38,14 +38,13 @@ export type SdScheduledChange = Prisma.SdTicketGetPayload<{
 /** Fases que já não disputam a janela. */
 const DONE_CATEGORIES = ['CLOSED', 'CANCELED'] as const
 
-function scheduled(
-  range: { from: Date; to: Date } | null,
-): Prisma.SdTicketWhereInput {
+/** Mudança não excluída cuja janela planejada cruza `[from, to)`. */
+function scheduled(range: { from: Date; to: Date }): Prisma.SdTicketWhereInput {
   return {
     type: 'CHANGE',
     deletedAt: null,
-    plannedStartAt: range ? { not: null, lt: range.to } : { not: null },
-    plannedEndAt: range ? { not: null, gt: range.from } : { not: null },
+    plannedStartAt: { not: null, lt: range.to },
+    plannedEndAt: { not: null, gt: range.from },
   }
 }
 
