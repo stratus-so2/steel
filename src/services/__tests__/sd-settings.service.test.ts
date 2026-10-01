@@ -34,6 +34,7 @@ function settingsRow(overrides: Partial<SdSettings> = {}): SdSettings {
     whatsappConnectionId: null,
     portalEnabled: true,
     portalTicketTypes: ['INCIDENT', 'SERVICE_REQUEST'],
+    portalCompanyScope: true,
     requireSignatureOnClose: false,
     requireSolutionOnResolve: true,
     autoCloseResolvedAfterHours: 72,

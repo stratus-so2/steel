@@ -36,6 +36,7 @@ export const UpdateSdSettingsSchema = z
       .max(4)
       .transform((types) => [...new Set(types)])
       .optional(),
+    portalCompanyScope: z.boolean().optional(),
     requireSignatureOnClose: z.boolean().optional(),
     requireSolutionOnResolve: z.boolean().optional(),
     autoCloseResolvedAfterHours: z.number().int().min(0).max(8760).optional(),

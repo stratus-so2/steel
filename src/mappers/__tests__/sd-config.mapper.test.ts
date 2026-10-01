@@ -81,6 +81,7 @@ describe('sd-settings mapper', () => {
     whatsappConnectionId: null,
     portalEnabled: true,
     portalTicketTypes: ['INCIDENT'],
+    portalCompanyScope: true,
     requireSignatureOnClose: false,
     requireSolutionOnResolve: true,
     autoCloseResolvedAfterHours: 72,

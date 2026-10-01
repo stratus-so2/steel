@@ -40,9 +40,10 @@ export async function recordSdTicketEvent(
 
 /** `actorKind` do evento a partir de quem agiu. */
 export function sdEventActorKind(actor: {
-  kind: 'user' | 'system'
+  kind: 'user' | 'system' | 'contact'
   isAgent?: boolean
 }): SdMessageAuthorKind {
+  if (actor.kind === 'contact') return 'CONTACT'
   if (actor.kind === 'system') return 'SYSTEM'
   return actor.isAgent ? 'AGENT' : 'REQUESTER'
 }

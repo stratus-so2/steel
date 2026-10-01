@@ -3781,6 +3781,9 @@ model SdSettings {
   portalEnabled               Boolean        @default(true) @map("portal_enabled")
   /// Tipos que o solicitante pode abrir pelo portal.
   portalTicketTypes           SdTicketType[] @default([INCIDENT, SERVICE_REQUEST]) @map("portal_ticket_types")
+  /// Portal externo (link mágico): o contato vê os chamados das empresas
+  /// dele (`SdContactCustomer`), não só aqueles em que é o contato.
+  portalCompanyScope          Boolean        @default(true) @map("portal_company_scope")
   requireSignatureOnClose     Boolean        @default(false) @map("require_signature_on_close")
   requireSolutionOnResolve    Boolean        @default(true) @map("require_solution_on_resolve")
   /// Fecha automaticamente chamados RESOLVED após N horas (0 = desligado).
