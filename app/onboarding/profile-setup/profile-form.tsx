@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { authClient } from '@/src/lib/auth-client'
+import { authErrorMessage } from '@/src/lib/auth-error-messages'
 import { type ProfileSetupState, saveProfileSetup } from './actions'
 
 type TwoFAMode = 'idle' | 'enabling' | 'disabling'
@@ -113,7 +114,7 @@ export function ProfileForm({
       })
       setTwoFABusy(false)
       if (error) {
-        setTwoFAError(error.message ?? 'Não foi possível ativar a 2FA')
+        setTwoFAError(authErrorMessage(error, 'Não foi possível ativar a 2FA'))
         return
       }
       setIs2FAEnabled(true)
@@ -128,7 +129,7 @@ export function ProfileForm({
     })
     setTwoFABusy(false)
     if (error) {
-      setTwoFAError(error.message ?? 'Não foi possível desativar a 2FA')
+      setTwoFAError(authErrorMessage(error, 'Não foi possível desativar a 2FA'))
       return
     }
     setIs2FAEnabled(false)

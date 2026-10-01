@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch'
 import { TabsContent } from '@/components/ui/tabs'
 import { notify } from '@/lib/notify'
 import { authClient } from '@/src/lib/auth-client'
+import { authErrorMessage } from '@/src/lib/auth-error-messages'
 import { useCookieConsent } from '../../cookie-consent/provider'
 
 export function UserModalSecurityTab({ tab }: { tab: string }) {
@@ -57,7 +58,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
     })
     setPwBusy(false)
     if (error) {
-      notify.error(error.message ?? 'Não foi possível enviar o e-mail')
+      notify.error(authErrorMessage(error, 'Não foi possível enviar o e-mail'))
       return
     }
     notify.success(
@@ -96,7 +97,9 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
       })
       setTwoFactorBusy(false)
       if (error) {
-        setTwoFactorError(error.message ?? 'Não foi possível ativar a 2FA')
+        setTwoFactorError(
+          authErrorMessage(error, 'Não foi possível ativar a 2FA'),
+        )
         return
       }
       setBackupCodes(data?.backupCodes ?? [])
@@ -113,7 +116,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
       setTwoFactorBusy(false)
       if (error) {
         setTwoFactorError(
-          error.message ?? 'Não foi possível gerar novos códigos',
+          authErrorMessage(error, 'Não foi possível gerar novos códigos'),
         )
         return
       }
@@ -129,7 +132,9 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
     })
     setTwoFactorBusy(false)
     if (error) {
-      setTwoFactorError(error.message ?? 'Não foi possível desativar a 2FA')
+      setTwoFactorError(
+        authErrorMessage(error, 'Não foi possível desativar a 2FA'),
+      )
       return
     }
     setTwoFactorMode('idle')

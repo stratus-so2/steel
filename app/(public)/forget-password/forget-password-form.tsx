@@ -9,6 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/src/lib/auth-client'
+import { authErrorMessage } from '@/src/lib/auth-error-messages'
 
 export function ForgetPasswordForm() {
   const [error, setError] = useState<string | null>(null)
@@ -38,8 +39,10 @@ export function ForgetPasswordForm() {
 
       if (requestError) {
         setError(
-          requestError.message ??
+          authErrorMessage(
+            requestError,
             'Não foi possível enviar o e-mail de redefinição',
+          ),
         )
         return
       }

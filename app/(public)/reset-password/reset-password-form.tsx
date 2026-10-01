@@ -10,6 +10,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/src/lib/auth-client'
+import { authErrorMessage } from '@/src/lib/auth-error-messages'
 
 interface ResetPasswordFormProps {
   token?: string
@@ -61,8 +62,10 @@ export function ResetPasswordForm({
 
       if (resetError) {
         setError(
-          resetError.message ??
+          authErrorMessage(
+            resetError,
             'Não foi possível redefinir a senha. O link pode ter expirado.',
+          ),
         )
         return
       }

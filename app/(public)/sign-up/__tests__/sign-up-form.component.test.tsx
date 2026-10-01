@@ -121,17 +121,20 @@ describe('<SignUpForm />', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
-  it('surfaces the API error and keeps the form', async () => {
+  it('surfaces the translated API error and keeps the form', async () => {
+    // O Better Auth responde em inglês; a tela mostra a versão pt-BR.
     auth.signUpEmail.mockResolvedValue({
       data: null,
-      error: { message: 'Usuário já existe' },
+      error: { code: 'USER_ALREADY_EXISTS', message: 'User already exists.' },
     })
     render(<SignUpForm />)
     fill()
     acceptBoth()
     submit()
 
-    expect(await screen.findByText('Usuário já existe')).toBeTruthy()
+    expect(
+      await screen.findByText('Já existe uma conta com esse e-mail'),
+    ).toBeTruthy()
     expect(screen.queryByText('Confirme seu e-mail')).toBeNull()
     expect(
       (screen.getByRole('button', { name: 'Criar conta' }) as HTMLButtonElement)

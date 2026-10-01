@@ -44,15 +44,20 @@ describe('<ForgetPasswordForm />', () => {
     expect(screen.queryByPlaceholderText('nome@empresa.com')).toBeNull()
   })
 
-  it('shows the API error and keeps the form available', async () => {
+  it('shows the translated API error and keeps the form available', async () => {
+    // O Better Auth responde em inglês; a tela mostra a versão pt-BR.
     auth.requestPasswordReset.mockResolvedValue({
       data: null,
-      error: { message: 'Muitas tentativas' },
+      error: { status: 429, message: 'Too many requests' },
     })
     render(<ForgetPasswordForm />)
     submitEmail('ana@empresa.com')
 
-    expect(await screen.findByText('Muitas tentativas')).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'Muitas tentativas. Espere um pouco e tente de novo',
+      ),
+    ).toBeTruthy()
     expect(screen.queryByText('Verifique seu e-mail.')).toBeNull()
     const button = screen.getByRole('button', {
       name: 'Enviar link de redefinição',
