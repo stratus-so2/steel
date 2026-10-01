@@ -150,10 +150,10 @@ assinaturas, WhatsApp/IA):
 Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 `src/schemas/sd-rule.schema.ts` (condições e ações das regras).
 
-## Fatias e dono de cada arquivo (construção em paralelo)
+## Mapa do código por fatia
 
-| Fatia | Dono de |
-| ----- | ------- |
+| Fatia | Arquivos |
+| ----- | -------- |
 | config | `sd-settings`, `sd-department`, `sd-category`, `sd-classification`, `sd-priority` (impacto, urgência, prioridade, matriz, severidade), `sd-phase` (+ transições), `sd-calendar`, `sd-sla-policy`, `sd-escalation-rule`, `sd-automation-rule`, `sd-custom-field`, `sd-ticket-template`, `sd-canned-response`, `sd-part`, `sd-seed.service.ts`, `sd-access.ts`, tela `/settings` |
 | tickets | `sd-ticket`, `sd-ticket-participant`, `sd-ticket-event`, `sd-ticket-escalation` (service manual + automático), `sd-saved-view`, `src/lib/servicedesk/{sla,conditions,ticket-code,realtime}.ts`, SSE `servicedesk/events`, motor de automação, fila `servicedesk-sla` |
 | directory | `sd-customer`, `sd-contact`, `sd-config-item` (+ tipos), `src/lib/servicedesk/{document,viacep}.ts`, telas de cadastro |
@@ -162,3 +162,30 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | ticket-tabs | `sd-ticket-message`, `-attachment`, `-task`, `-cost`, `-part`, `-approval`, `-signature`, abas do chamado (a de Escalonamento usa o service da fatia tickets), página pública de aprovação |
 | whatsapp-ai | conexão WhatsApp do módulo, webhook → chamado, aba WhatsApp, `sd-ai*` (copiloto, pré-atendimento, triagem) |
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
+
+## Operação
+
+- **Ligar o módulo**: o admin global libera `SERVICE_DESK` no painel
+  (`/admin/workspaces/[id]/module-access`). Isso dispara o seed ITIL
+  (`SdSeedService`) e os dois dashboards padrão
+  (`SdDashboardSeedService`) — ambos idempotentes. Para workspaces antigos:
+  `pnpm seed:servicedesk`.
+- **Primeiros passos no workspace**: Configurações > Departamentos (coloque
+  os agentes num time — quem não está em nenhum vira solicitante) →
+  Catálogo → SLA → Fluxos, se quiser mudar as fases. O resto já vem semeado.
+- **Filas do worker**: `servicedesk-sla` (1 min: risco/violação, escalonamento,
+  automações de SLA e fechamento automático de resolvidos) e `servicedesk-ai`
+  (triagem automática na abertura, quando ligada).
+- **WhatsApp**: Configurações > WhatsApp cria a conexão do módulo
+  (`WhatsAppConnection.module = SERVICE_DESK`, separada da do zap) e aponta a
+  ativa em `SdSettings.whatsappConnectionId`. O webhook já roteia mensagens
+  para o chamado aberto da conversa, ou abre um novo (ou entrega ao
+  pré-atendimento da IA, se ligado).
+- **IA**: Configurações > IA liga copiloto, triagem e pré-atendimento. Usa o
+  provedor e a cota do workspace (ADR 0007); sem chave ou com cota estourada,
+  a interface explica em vez de falhar silenciosamente.
+- **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
+  acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
+  conhecimento.
+- **Modo TV**: `/[slug]/servicedesk/dashboards/[id]/tv` (tela cheia, atualiza
+  sozinho; `?rotate=id1,id2&interval=60` alterna painéis).
