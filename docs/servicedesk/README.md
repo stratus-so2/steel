@@ -162,6 +162,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | ticket-tabs | `sd-ticket-message`, `-attachment`, `-task`, `-cost`, `-part`, `-approval`, `-signature`, abas do chamado (a de Escalonamento usa o service da fatia tickets), página pública de aprovação |
 | whatsapp-ai | conexão WhatsApp do módulo, webhook → chamado, aba WhatsApp, `sd-ai*` (copiloto, pré-atendimento, triagem) |
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
+| mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
 
 ## Operação
 
@@ -174,13 +175,31 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   os agentes num time — quem não está em nenhum vira solicitante) →
   Catálogo → SLA → Fluxos, se quiser mudar as fases. O resto já vem semeado.
 - **Filas do worker**: `servicedesk-sla` (1 min: risco/violação, escalonamento,
-  automações de SLA e fechamento automático de resolvidos) e `servicedesk-ai`
-  (triagem automática na abertura, quando ligada).
+  automações de SLA e fechamento automático de resolvidos), `servicedesk-ai`
+  (triagem automática na abertura, quando ligada) e `servicedesk-mail`
+  (1 min: leitura das caixas de e-mail por IMAP).
 - **WhatsApp**: Configurações > WhatsApp cria a conexão do módulo
   (`WhatsAppConnection.module = SERVICE_DESK`, separada da do zap) e aponta a
   ativa em `SdSettings.whatsappConnectionId`. O webhook já roteia mensagens
   para o chamado aberto da conversa, ou abre um novo (ou entrega ao
   pré-atendimento da IA, se ligado).
+- **E-mail**: Configurações > E-mail cadastra as caixas (`SdMailbox`: IMAP
+  obrigatório, SMTP opcional, senhas cifradas com `CONNECTION_SECRETS`).
+  A cada minuto o worker lê o que chegou desde `lastSeenUid` e, por mensagem:
+  dedupe por `(mailboxId, Message-ID)` → listas de remetentes e limite por
+  hora → resposta automática/devolução (`Auto-Submitted`, `X-Autoreply`,
+  `Precedence: bulk`, `Return-Path` vazio) fica registrada em `SdMailMessage`
+  com `automatic` e não abre nem reabre chamado → `In-Reply-To`/`References`
+  (ou o código no assunto) viram mensagem no histórico do chamado (canal
+  EMAIL, autor CONTACT quando o e-mail casa com um contato) → senão abre
+  chamado com os padrões da caixa, criando o contato se
+  `createUnknownContacts`. O corpo chega limpo (sem citação nem assinatura,
+  `src/lib/servicedesk/mail-text.ts`) e os anexos vão para o bucket
+  `servicedesk` como anexos do chamado. Com `sendAcknowledgement`, o
+  remetente recebe o código de volta. A resposta **pública** de um agente no
+  histórico sai pela caixa (SMTP próprio ou a camada de e-mail do Steel com
+  `Reply-To` da caixa), encadeada e com o código no assunto; `MAIL_DRY_RUN`
+  registra sem enviar.
 - **IA**: Configurações > IA liga copiloto, triagem e pré-atendimento. Usa o
   provedor e a cota do workspace (ADR 0007); sem chave ou com cota estourada,
   a interface explica em vez de falhar silenciosamente.
