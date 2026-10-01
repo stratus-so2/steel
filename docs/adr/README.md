@@ -28,3 +28,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0007 | [IA multi-provedor (OpenAI + Anthropic) habilitada por workspace](./0007-multi-provider-ai-per-workspace.md) | Aceita (implementada) | 2026-09-18 |
 | 0008 | [ServiceDesk ITIL 4 com motor configurável por workspace](./0008-servicedesk-itil-configurable-engine.md) | Aceita | 2026-09-21 |
 | 0009 | [Construir a imagem num runner hospedado; deploy segue no servidor](./0009-build-image-on-hosted-runner.md) | Aceita | 2026-10-01 |
+| 0010 | [PRs de vida curta quando as fatias são construídas em paralelo](./0010-short-lived-prs-for-parallel-slices.md) | Aceita | 2026-10-01 |
