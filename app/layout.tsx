@@ -10,6 +10,7 @@ import { Providers } from './_components/providers'
 import { CookieConsentBanner } from './_components/user/cookie-consent/banner'
 import { ConsentedTrackers } from './_components/user/cookie-consent/consented-trackers'
 import { CookieConsentInit } from './_components/user/cookie-consent/init'
+import '@/src/lib/zod-locale'
 
 export const metadata: Metadata = {
   title: 'AI-native project management | Steel',

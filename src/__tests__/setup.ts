@@ -1,3 +1,4 @@
+import '@/src/lib/zod-locale'
 import 'dotenv/config'
 import { vi } from 'vitest'
 

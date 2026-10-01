@@ -4,6 +4,7 @@ import { annotateRequest } from '@/src/lib/analytics/request-context'
 import type { AppError } from '@/src/errors/app-error'
 import type { ErrorCode } from '@/src/errors/codes'
 import type { ErrorResponse, SuccessResponse } from '@/types/http-response'
+import '@/src/lib/zod-locale'
 
 export type { ErrorCode }
 

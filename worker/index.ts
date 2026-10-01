@@ -27,6 +27,7 @@ import { processWhatsappConversationLifecycle } from '../src/lib/queue/processor
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
 import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-sentiment'
 import { closeQueues } from '../src/lib/queue/queues'
+import '../src/lib/zod-locale'
 import {
   scheduleCrmCompetitorSyncJobs,
   scheduleCrmProposalExpiryJobs,
