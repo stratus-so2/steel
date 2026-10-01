@@ -200,6 +200,10 @@ jobs:
       MINIO_ENDPOINT: http://localhost:9000
       MINIO_USER: ci-minio-user
       MINIO_PASSWORD: ci-minio-password-not-real
+      # Cifra as credenciais de conexão (Postgres externo por módulo, Z-API e
+      # Meta do WhatsApp). Sem ela, criar uma conexão responde 500 e os e2e
+      # do ServiceDesk/WhatsApp quebram.
+      CONNECTION_SECRETS: 1:ci-connection-secret-not-real-0123456789abcdef
     steps:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
