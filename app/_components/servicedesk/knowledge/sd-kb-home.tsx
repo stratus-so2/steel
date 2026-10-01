@@ -19,7 +19,6 @@ import type {
 } from '@/types/sd-kb-article'
 import { SdKbArticleList } from './sd-kb-article-list'
 import { SdKbCategoryCards } from './sd-kb-category-cards'
-import { SdKbCreateButton } from './sd-kb-create-button'
 import { SdKbSearchBox } from './sd-kb-search-box'
 import { sdKbHelpfulRatio, sdKbRelativeTime, sdKbTop } from './sd-kb-utils'
 
@@ -77,13 +76,8 @@ export function SdKbHome({
                 : 'Encontre respostas antes de abrir um chamado.'}
             </p>
           </div>
-          {canCreate && (
-            <SdKbCreateButton
-              workspaceId={workspaceId}
-              workspaceSlug={workspaceSlug}
-              categoryId={categoryId}
-            />
-          )}
+          {/* Criar artigo fica só no cabeçalho da seção (layout da base),
+              para não repetir o mesmo botão duas vezes nesta tela. */}
         </div>
         <SdKbSearchBox value={q} onChange={setQ} />
         {isAgent && articles.data && (

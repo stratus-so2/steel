@@ -203,7 +203,8 @@ describe('<SdKbHome />', () => {
       await screen.findByText(/2 artigos · 1 publicados · 1 rascunhos/),
     ).toBeTruthy()
     expect(screen.getByText('Mais vistos')).toBeTruthy()
-    expect(screen.getByRole('button', { name: /Novo artigo/ })).toBeTruthy()
+    // "Novo artigo" vive no cabeçalho da seção (layout), não nesta tela.
+    expect(screen.queryByRole('button', { name: /Novo artigo/ })).toBeNull()
 
     fireEvent.change(screen.getByLabelText('Buscar artigos'), {
       target: { value: 'vpn' },
