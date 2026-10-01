@@ -395,14 +395,13 @@ export function sdOnCallTimeline(
     }))
   }
 
+  // Uma borda por virada do rodízio. O fim do período que contém `cursor` é
+  // sempre depois dele (o período tem ao menos um dia), então o laço anda.
   const bounds = new Set<number>([start])
   let cursor = sdOnCallPeriodAt(from, schedule).end.getTime()
-  // Uma borda por virada do rodízio; `MAX` protege de um período degenerado.
-  for (let i = 0; i < 400 && cursor < end; i++) {
+  while (cursor < end) {
     bounds.add(cursor)
-    const next = sdOnCallPeriodAt(new Date(cursor), schedule).end.getTime()
-    if (next <= cursor) break
-    cursor = next
+    cursor = sdOnCallPeriodAt(new Date(cursor), schedule).end.getTime()
   }
   for (const override of overrides) {
     for (const edge of [
@@ -414,18 +413,15 @@ export function sdOnCallTimeline(
   }
   const points = [...bounds].sort((a, b) => a - b)
 
-  return sorted.map((layer) => {
-    const segments: SdOnCallSegment[] = []
-    for (const [index, point] of points.entries()) {
-      const slot = sdOnCallUserAt(
-        new Date(point),
-        schedule,
-        overrides,
-        layer.level,
-      )
-      if (!slot) continue
+  // `resolveSdOnCall` devolve as camadas na mesma ordem de `sorted`, então
+  // basta acumular por índice — um `resolve` por borda, não por camada.
+  const byLayer: SdOnCallSegment[][] = sorted.map(() => [])
+  for (const [index, point] of points.entries()) {
+    const stop = index + 1 < points.length ? points[index + 1] : end
+    const { layers } = resolveSdOnCall(new Date(point), schedule, overrides)
+    for (const [position, slot] of layers.entries()) {
+      const segments = byLayer[position]
       const previous = segments[segments.length - 1]
-      const stop = index + 1 < points.length ? points[index + 1] : end
       if (
         previous &&
         previous.userId === slot.userId &&
@@ -443,13 +439,14 @@ export function sdOnCallTimeline(
         overrideId: slot.overrideId,
       })
     }
-    return {
-      layerId: layer.id,
-      layerName: layer.name,
-      level: layer.level,
-      segments,
-    }
-  })
+  }
+
+  return sorted.map((layer, position) => ({
+    layerId: layer.id,
+    layerName: layer.name,
+    level: layer.level,
+    segments: byLayer[position],
+  }))
 }
 
 /** Janela mínima de uma troca, para a checagem de sobreposição. */
