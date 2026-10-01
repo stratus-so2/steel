@@ -1,6 +1,8 @@
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import { sdTicketForbidden, validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import {
   SdTicketRepository,
@@ -10,6 +12,7 @@ import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.
 import { SdTicketParticipantRepository } from '@/src/repositories/sd-ticket-participant.repository'
 import type { SdUserSummaryDTO } from '@/types/sd-ticket'
 import { SdAccess, type SdAccessContext } from './sd-access'
+import { notifySdEvent } from './sd-notification.service'
 import {
   type SdActor,
   type SdEngineConfig,
@@ -22,7 +25,6 @@ import {
   recordSdTicketEvent,
   sdEventActorKind,
 } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import { canViewSdTicket } from './sd-ticket-visibility'
 
 function summaries(t: SdTicketWithRelations): SdUserSummaryDTO[] {
@@ -94,15 +96,25 @@ export async function addSdTicketParticipant(
     toValue: { id: userId, label: label ?? userId },
   })
   const code = sdTicketCode(ticket, config.prefixes)
-  await SdTicketNotifier.notify({
+  const sent = await notifySdEvent({
     workspaceId: ticket.workspaceId,
-    userIds: [userId],
-    excludeUserIds: [sdActorUserId(actor)],
-    kind: 'SD_TICKET_MESSAGE',
-    ticket: { number: ticket.number, code, title: ticket.title },
-    title: `Você agora participa de ${code}`,
-    body: ticket.title,
+    event: 'ticket.participant_added',
+    ticket: sdNotifyTicketOf(ticket, code),
+    actorId: sdActorUserId(actor),
+    audience: 'payload',
+    payload: {
+      title: `Você agora participa de ${code}`,
+      body: ticket.title,
+      userIds: [userId],
+    },
   })
+  if (!sent.ok) {
+    logger.warn('servicedesk.participant.notify_failed', {
+      workspaceId: ticket.workspaceId,
+      ticketId: ticket.id,
+      reason: sent.error.code,
+    })
+  }
   await publishParticipants(fresh.value, actor)
   return ok(fresh.value)
 }

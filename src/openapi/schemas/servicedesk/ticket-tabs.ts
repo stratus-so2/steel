@@ -53,6 +53,9 @@ export const SdTicketMessageDTO = dto(
       .string()
       .meta({ example: 'Reiniciamos o serviço, pode testar? 🙂' }),
     attachments: z.array(SdTicketAttachmentDTO),
+    mentionedUserIds: z.array(z.string()).meta({
+      description: 'Agentes citados com `@` nesta mensagem.',
+    }),
     editedAt: nullableDateTime(),
     createdAt: dateTime(),
     canEdit: z.boolean().meta({

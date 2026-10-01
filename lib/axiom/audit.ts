@@ -110,6 +110,9 @@ export type AuditEntity =
   | 'sd_ticket_part'
   | 'sd_ticket_approval'
   | 'sd_ticket_signature'
+  // ServiceDesk — central de notificações
+  | 'sd_notification_preference'
+  | 'sd_ticket_follower'
   // ServiceDesk — WhatsApp e IA
   | 'sd_ai_conversation'
   // ServiceDesk — canais de entrada

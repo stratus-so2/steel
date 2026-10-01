@@ -87,7 +87,7 @@ export function SdSettingsShell({ workspaceId }: { workspaceId: string }) {
               </p>
             ) : (
               <>
-                {!canEdit ? <ReadOnlyNotice /> : null}
+                {!canEdit && !active.personal ? <ReadOnlyNotice /> : null}
                 <ActiveTab />
               </>
             )}

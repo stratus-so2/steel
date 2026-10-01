@@ -133,6 +133,56 @@ assinaturas, WhatsApp/IA):
   (responsável + líderes), roda `SdEscalationRule` e as automações
   `SLA_AT_RISK`/`SLA_BREACHED` e fecha RESOLVED vencidos.
 
+## Notificações (central do módulo)
+
+Um único motor avisa todo mundo: `notifySdEvent({ workspaceId, event,
+ticket, actorId?, audience?, payload })`
+(`src/services/sd-notification.service.ts`). O **catálogo**
+`src/config/servicedesk-notifications.ts` (`SD_NOTIFICATION_EVENTS`) é o
+contrato — chave do evento, tipo da notificação in-app
+(`Notification.kind`), público, canais oferecidos, canais ligados por padrão
+e o flag `agentOnly`. Evento novo entra lá (e num grupo de
+`SD_NOTIFICATION_GROUPS`, que é a ordem da tela); chave fora do catálogo
+devolve `SD_NOTIFICATION_EVENT_UNKNOWN`.
+
+O que o motor faz, em ordem: resolve o público pelo catálogo (`assignee`,
+`participants`, `followers`, `requester`, `contact`, `departmentLeads`,
+`mentioned`) → soma `payload.userIds` → tira o autor (`actorId`), os
+excluídos e os duplicados → evento `agentOnly` só segue para quem atende
+(nunca solicitante nem contato externo) → cada canal respeita
+`SdNotificationPreference` (sem linha = padrão do catálogo) → entrega
+**IN_APP** (`Notification`, aparece em `/[slug]/inbox`), **EMAIL** (React
+Email, respeita `MAIL_DRY_RUN`) e **WHATSAPP** (só com conexão do
+ServiceDesk `CONNECTED`; sem conexão silencia com log). Nunca lança: falha
+de canal vira log e o resto segue; só erro de banco vira `err`.
+
+- `audience: 'payload'` ignora o público do catálogo e usa apenas
+  `payload.userIds` — é o caso da ação "notificar" das automações, do
+  pedido de aprovação e da tarefa atribuída, em que quem dispara já
+  escolheu os destinatários.
+- Monte o `ticket` com `sdNotifyTicketOf(ticket, code)`
+  (`src/lib/servicedesk/notify.ts`, puro — não puxa o service).
+- **Seguir chamado** (`SdTicketFollower`): `SdTicketFollowerService`
+  (list/follow/unfollow, sempre em nome de quem chamou, idempotente) e
+  `GET|POST|DELETE .../servicedesk/tickets/[ticketId]/followers`. Quem segue
+  entra no público `followers`.
+- **Menções**: `SdTicketMessage.mentionedUserIds` (coluna nova) guarda os
+  agentes citados com `@` no composer; o service filtra para agentes do
+  workspace e dispara `ticket.mentioned`.
+- **Preferências por usuário**: `SdNotificationService.get/update/
+  restoreDefaults` e `GET|PUT|DELETE
+  .../servicedesk/notification-preferences`; tela na aba "Notificações" de
+  `/settings`. Não há visão de administrador — cada um configura a sua.
+- **Resumo diário** (`digest.daily`, desligado por padrão): fila
+  `servicedesk-digest` (de hora em hora; `SdDigestService.runTick` só envia
+  aos workspaces cuja hora local é `SD_DIGEST_HOUR`, o que dá um envio por
+  dia sem carimbo de controle — por isso a fila usa `attempts: 1`). Fila
+  vazia não gera resumo.
+- A antiga flag "enviar e-mail" das regras de escalonamento e da ação
+  "notificar" das automações **não força mais e-mail**: o canal é a
+  preferência de cada destinatário (o valor da regra vai para o log como
+  `ruleEmail`).
+
 ## Rotas de UI
 
 | Rota (`/[slug]/servicedesk/…`) | Tela |
@@ -161,6 +211,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | ticket-ui | quadros, filtros, visões salvas, tela do chamado (casca + cabeçalho + campos), início |
 | ticket-tabs | `sd-ticket-message`, `-attachment`, `-task`, `-cost`, `-part`, `-approval`, `-signature`, abas do chamado (a de Escalonamento usa o service da fatia tickets), página pública de aprovação |
 | whatsapp-ai | conexão WhatsApp do módulo, webhook → chamado, aba WhatsApp, `sd-ai*` (copiloto, pré-atendimento, triagem) |
+| notifications | `src/config/servicedesk-notifications.ts`, `sd-notification` (schema/mapper/repository/service = motor + preferências), `sd-ticket-follower.service.ts`, `sd-digest.service.ts`, `src/lib/servicedesk/notify.ts`, fila `servicedesk-digest`, aba "Notificações", botão Seguir, menções no composer |
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
 | monitoring | `sd-monitor-source`, `sd-monitor-alert`, `src/lib/servicedesk/{monitoring,monitor-fields}.ts`, entrada pública `servicedesk/monitoring/[token]`, aba Monitoramento das configurações, bloco de origem na tela do chamado |
 | mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
@@ -179,6 +230,15 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   automações de SLA e fechamento automático de resolvidos), `servicedesk-ai`
   (triagem automática na abertura, quando ligada) e `servicedesk-mail`
   (1 min: leitura das caixas de e-mail por IMAP).
+- **Filas do worker**: `servicedesk-sla` (1 min: risco/violação,
+  escalonamento, automações de SLA e fechamento automático de resolvidos),
+  `servicedesk-ai` (triagem automática na abertura, quando ligada) e
+  `servicedesk-digest` (de hora em hora; manda o resumo diário a quem optou,
+  na hora local do workspace).
+- **Notificações**: Configurações > Notificações é a tela de **cada
+  usuário** (não é configuração do workspace). O canal WhatsApp só aparece
+  quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as
+  escolhas e volta ao catálogo.
 - **WhatsApp**: Configurações > WhatsApp cria a conexão do módulo
   (`WhatsAppConnection.module = SERVICE_DESK`, separada da do zap) e aponta a
   ativa em `SdSettings.whatsappConnectionId`. O webhook já roteia mensagens

@@ -46,6 +46,8 @@ export interface SdTicketMessageDTO {
   /** Texto puro (com emoji). */
   body: string
   attachments: SdTicketAttachmentDTO[]
+  /** Agentes citados com `@` nesta mensagem. */
+  mentionedUserIds: string[]
   editedAt: string | null
   createdAt: string
   /** O usuário atual pode editar/excluir (autor, em até 15 minutos). */

@@ -25,8 +25,8 @@ vi.mock('../sd-ticket-event-recorder', () => ({
   sdEventActorKind: (a: { kind: string; isAgent?: boolean }) =>
     a.kind === 'system' ? 'SYSTEM' : a.isAgent ? 'AGENT' : 'REQUESTER',
 }))
-vi.mock('../sd-ticket-notifier', () => ({
-  SdTicketNotifier: { notify: vi.fn() },
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
 }))
 vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../sd-ticket-engine')>()),
@@ -40,9 +40,9 @@ import { SdAccessRepository } from '@/src/repositories/sd-access.repository'
 import { SdTicketRepository } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { SdTicketParticipantRepository } from '@/src/repositories/sd-ticket-participant.repository'
+import { notifySdEvent } from '../sd-notification.service'
 import { SdTicketEngine, sdSystemActor } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 import {
   addSdTicketParticipant,
   SdTicketParticipantService,
@@ -128,8 +128,12 @@ describe('addSdTicketParticipant', () => {
         toValue: { id: 'g', label: 'Convidado' },
       }),
     )
-    expect(SdTicketNotifier.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userIds: ['g'], kind: 'SD_TICKET_MESSAGE' }),
+    expect(notifySdEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'ticket.participant_added',
+        audience: 'payload',
+        payload: expect.objectContaining({ userIds: ['g'] }),
+      }),
     )
     expect(publishSdTicketEvent).toHaveBeenCalledWith(
       'ws1',

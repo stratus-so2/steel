@@ -72,6 +72,7 @@ export function toSdTicketMessageDTO(
     channel: row.channel,
     body: row.body,
     attachments: row.attachments.map(toSdTicketAttachmentDTO),
+    mentionedUserIds: row.mentionedUserIds,
     editedAt: row.editedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     canEdit: until !== null && until.getTime() > now.getTime(),

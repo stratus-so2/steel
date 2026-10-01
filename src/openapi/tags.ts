@@ -248,6 +248,11 @@ export const TAG_GROUPS = [
           'Caixas de e-mail monitoradas por IMAP (credenciais cifradas, teste de conexão, leitura sob demanda, pausa), padrões do chamado aberto por e-mail, listas de remetentes e confirmação automática de abertura. A resposta pública do agente volta pela caixa, encadeada e com o código do chamado no assunto.',
       },
       {
+        name: 'ServiceDesk · Notificações',
+        description:
+          'Central de notificações do módulo: preferências do próprio usuário (matriz evento × canal — no app, e-mail e WhatsApp, com os padrões do catálogo e o resumo diário opcional) e seguir/parar de seguir um chamado para receber seus eventos.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

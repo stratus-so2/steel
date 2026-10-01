@@ -13,6 +13,7 @@ import {
   Layers01Icon,
   Mail01Icon,
   Message01Icon,
+  Notification03Icon,
   RadarIcon,
   Settings02Icon,
   Tag01Icon,
@@ -32,6 +33,7 @@ import { SdFlowsTab } from './flows-tab'
 import { SdGeneralTab } from './general-tab'
 import { SdMailSettingsTab } from './mail-tab'
 import { SdMonitoringTab } from './monitoring-tab'
+import { SdNotificationsTab } from './notifications-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdSlaTab } from './sla-tab'
@@ -53,6 +55,11 @@ export interface SdSettingsTabDefinition {
   /** Frase curta exibida no topo da aba. */
   description: string
   component: ComponentType
+  /**
+   * Aba de preferências **do usuário**, não do workspace: todo mundo edita
+   * as suas, então o aviso de "modo leitura" dos não-admins não se aplica.
+   */
+  personal?: boolean
 }
 
 export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
@@ -179,6 +186,15 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Conexões de WhatsApp do ServiceDesk (Z-API ou Meta), conexão ativa, teste das credenciais e a URL do webhook.',
     component: SdWhatsappSettingsTab,
+  },
+  {
+    id: 'notifications',
+    label: 'Notificações',
+    icon: Notification03Icon,
+    description:
+      'Suas preferências de aviso (evento × canal), só para você: no app, por e-mail e por WhatsApp. Inclui o resumo diário.',
+    component: SdNotificationsTab,
+    personal: true,
   },
   {
     id: 'ai',

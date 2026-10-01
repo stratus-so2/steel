@@ -1,5 +1,4 @@
 import type {
-  NotificationKind,
   Prisma,
   SdAutomationEvent,
   SdAutomationRule,
@@ -8,6 +7,7 @@ import { logger } from '@/lib/axiom/logger'
 import { sdConfigNotFound, validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { evaluateSdConditions } from '@/src/lib/servicedesk/conditions'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import { SdAutomationRepository } from '@/src/repositories/sd-automation.repository'
 import {
@@ -20,6 +20,7 @@ import {
   SdAutomationActionsSchema,
   SdConditionsSchema,
 } from '@/src/schemas/sd-rule.schema'
+import { notifySdEvent } from './sd-notification.service'
 import {
   type SdActor,
   type SdEngineChanges,
@@ -31,7 +32,6 @@ import {
 } from './sd-ticket-engine'
 import { escalateSdTicket } from './sd-ticket-escalator'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import { addSdTicketParticipant } from './sd-ticket-participant.service'
 import {
   applySdTemplateDefaults,
@@ -65,14 +65,19 @@ export interface SdAutomationRunOptions {
   actorId?: string | null
 }
 
-const NOTIFY_KIND: Record<SdAutomationEvent, NotificationKind> = {
-  TICKET_CREATED: 'SD_TICKET_MESSAGE',
-  TICKET_UPDATED: 'SD_TICKET_MESSAGE',
-  PHASE_CHANGED: 'SD_TICKET_MESSAGE',
-  MESSAGE_RECEIVED: 'SD_TICKET_MESSAGE',
-  APPROVAL_RESPONDED: 'SD_APPROVAL_RESPONDED',
-  SLA_AT_RISK: 'SD_SLA_AT_RISK',
-  SLA_BREACHED: 'SD_SLA_BREACHED',
+/**
+ * Evento do catálogo de notificações usado pela ação "notificar" de cada
+ * gatilho: define o tipo da notificação in-app e quais canais o usuário pode
+ * ligar. Os destinatários são os da própria ação (`audience: 'payload'`).
+ */
+const NOTIFY_EVENT: Record<SdAutomationEvent, string> = {
+  TICKET_CREATED: 'ticket.created_in_department',
+  TICKET_UPDATED: 'ticket.phase_changed',
+  PHASE_CHANGED: 'ticket.phase_changed',
+  MESSAGE_RECEIVED: 'ticket.message',
+  APPROVAL_RESPONDED: 'approval.responded',
+  SLA_AT_RISK: 'sla.at_risk',
+  SLA_BREACHED: 'sla.breached',
 }
 
 /** Campos que `set_field` pode alterar (além de `phaseId` e `customFields.*`). */
@@ -301,24 +306,33 @@ async function execute(
         if (!found.ok) return found
         leads = found.value
       }
-      await SdTicketNotifier.notify({
+      const sent = await notifySdEvent({
         workspaceId: t.workspaceId,
-        userIds: [
-          ...p.userIds,
-          ...(p.assignee ? [t.assigneeId] : []),
-          ...(p.requester ? [t.requesterId] : []),
-          ...leads,
-        ],
-        kind: NOTIFY_KIND[ctx.event],
-        ticket: {
-          number: t.number,
-          code: sdTicketCode(t, ctx.config.prefixes),
-          title: t.title,
+        event: NOTIFY_EVENT[ctx.event],
+        ticket: sdNotifyTicketOf(t, sdTicketCode(t, ctx.config.prefixes)),
+        // A regra escolheu os destinatários; não somamos o público do evento.
+        audience: 'payload',
+        payload: {
+          title: p.title,
+          body: p.message || t.title,
+          userIds: [
+            ...p.userIds,
+            ...(p.assignee ? [t.assigneeId] : []),
+            ...(p.requester ? [t.requesterId] : []),
+            ...leads,
+          ],
+          // Antes forçava e-mail; hoje o canal é a preferência de cada um.
+          meta: { via: 'automation', ruleEmail: p.email ?? false },
         },
-        title: p.title,
-        body: p.message || t.title,
-        email: p.email,
       })
+      if (!sent.ok) {
+        logger.warn('servicedesk.automation.notify_failed', {
+          workspaceId: t.workspaceId,
+          ticketId: t.id,
+          event: ctx.event,
+          reason: sent.error.code,
+        })
+      }
       return ok(t)
     }
     case 'post_message': {

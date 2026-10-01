@@ -9,6 +9,7 @@ import {
 } from '@/src/errors'
 import { sendSdApprovalRequestEmail } from '@/src/lib/mail/servicedesk/send-sd-approval-request'
 import { err, ok, type Result } from '@/src/lib/result'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import {
   toSdPublicApprovalDTO,
@@ -31,9 +32,9 @@ import type {
   SdTicketApprovalDTO,
 } from '@/types/sd-ticket-approval'
 import { fireSdAutomations } from './sd-automation-engine'
+import { notifySdEvent, type SdNotifyInput } from './sd-notification.service'
 import { SdTicketEngine, sdTicketCode } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import {
   loadSdTicketTab,
   publishSdTicketTab,
@@ -41,6 +42,19 @@ import {
 } from './sd-ticket-tab-support'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Notificar nunca derruba o fluxo da aprovação: falha vira log. */
+async function notifyApproval(input: SdNotifyInput): Promise<void> {
+  const sent = await notifySdEvent(input)
+  if (!sent.ok) {
+    logger.warn('servicedesk.approval.notify_failed', {
+      workspaceId: input.workspaceId,
+      ticketId: input.ticket.id,
+      event: input.event,
+      reason: sent.error.code,
+    })
+  }
+}
 
 const EXPIRES_FORMAT = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'America/Sao_Paulo',
@@ -317,6 +331,18 @@ export const SdTicketApprovalService = {
       })),
       meta: { expiresAt: expiresAt.toISOString(), sent: sent.length },
     })
+    await notifyApproval({
+      workspaceId,
+      event: 'approval.requested',
+      ticket: sdNotifyTicketOf(ticket, scope.code),
+      actorId,
+      audience: 'payload',
+      payload: {
+        title: `Aprovação pendente em ${scope.code}`,
+        body: dto.message?.trim() || ticket.title,
+        userIds: created.value.map((a) => a.approverUserId),
+      },
+    })
     await publishSdTicketTab(ticket, 'ticket.approval', actorId, true)
     auditMutation({
       entity: 'sd_ticket_approval',
@@ -509,14 +535,16 @@ export const SdTicketApprovalService = {
         canceled: result.value.canceledIds.length,
       },
     })
-    await SdTicketNotifier.notify({
+    await notifyApproval({
       workspaceId: approval.workspaceId,
-      userIds: [approval.requestedById, ticket.assigneeId],
-      excludeUserIds: [approval.approverUserId],
-      kind: 'SD_APPROVAL_RESPONDED',
-      ticket: { number: ticket.number, code: code.value, title: ticket.title },
-      title: `${who} ${approved ? 'aprovou' : 'reprovou'} ${code.value}`,
-      body: dto.comment?.trim() || ticket.title,
+      event: 'approval.responded',
+      ticket: sdNotifyTicketOf(ticket, code.value),
+      actorId: approval.approverUserId,
+      payload: {
+        title: `${who} ${approved ? 'aprovou' : 'reprovou'} ${code.value}`,
+        body: dto.comment?.trim() || ticket.title,
+        userIds: [approval.requestedById],
+      },
     })
     await publishApproval(ticket, approval.approverUserId)
     void fireSdAutomations('APPROVAL_RESPONDED', ticket.id, {

@@ -7,10 +7,12 @@ import {
   sdTicketForbidden,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import {
   sdMessageEditableUntil,
   toSdTicketMessageDTO,
 } from '@/src/mappers/sd-ticket-message.mapper'
+import { SdNotificationRepository } from '@/src/repositories/sd-notification.repository'
 import { SdTicketAttachmentRepository } from '@/src/repositories/sd-ticket-attachment.repository'
 import {
   SdTicketMessageRepository,
@@ -27,9 +29,9 @@ import type {
 } from '@/types/sd-ticket-message'
 import { fireSdAutomations } from './sd-automation-engine'
 import { SdMailOutboundService } from './sd-mail-outbound.service'
+import { notifySdEvent, type SdNotifyInput } from './sd-notification.service'
 import { SdTicketEngine } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import {
   loadSdTicketTab,
   publishSdTicketTab,
@@ -49,9 +51,10 @@ function preview(body: string, attachments: number): string {
 }
 
 /**
- * Quem é avisado de uma mensagem: responsável, participantes e solicitante
- * (este nunca numa nota interna); numa nota interna, só quem é agente.
- * O autor nunca.
+ * Quem é avisado de uma mensagem sai do catálogo: `ticket.message`
+ * (responsável, participantes, seguidores, solicitante e contato) ou
+ * `ticket.internal_note` (`agentOnly` — nunca vai ao cliente). O autor
+ * nunca. Quem foi citado recebe `ticket.mentioned` à parte.
  */
 async function notifyMessage(
   scope: SdTicketTabScope,
@@ -59,31 +62,48 @@ async function notifyMessage(
 ): Promise<void> {
   const { ticket, ctx, code } = scope
   const internal = message.visibility === 'INTERNAL'
-  let recipients = [
-    ticket.assigneeId,
-    ...ticket.participants.map((p) => p.userId),
-    ...(internal ? [] : [ticket.requesterId, ticket.contact?.userId]),
-  ].filter((id): id is string => typeof id === 'string')
+  const body = preview(message.body, message.attachments.length)
+  const notifyTicket = sdNotifyTicketOf(ticket, code)
 
-  if (internal) {
-    const agents = await SdTicketMessageRepository.filterAgentIds(
-      ticket.workspaceId,
-      recipients,
-    )
-    recipients = agents.ok ? agents.value : []
-  }
-
-  await SdTicketNotifier.notify({
+  await notifyMessageEvent({
     workspaceId: ticket.workspaceId,
-    userIds: recipients,
-    excludeUserIds: [ctx.userId],
-    kind: 'SD_TICKET_MESSAGE',
-    ticket: { number: ticket.number, code, title: ticket.title },
-    title: internal
-      ? `Nova nota interna em ${code}`
-      : `Nova mensagem em ${code}`,
-    body: preview(message.body, message.attachments.length),
+    event: internal ? 'ticket.internal_note' : 'ticket.message',
+    ticket: notifyTicket,
+    actorId: ctx.userId,
+    payload: {
+      title: internal
+        ? `Nova nota interna em ${code}`
+        : `Nova mensagem em ${code}`,
+      body,
+    },
   })
+
+  if (message.mentionedUserIds.length > 0) {
+    await notifyMessageEvent({
+      workspaceId: ticket.workspaceId,
+      event: 'ticket.mentioned',
+      ticket: notifyTicket,
+      actorId: ctx.userId,
+      payload: {
+        title: `Você foi citado em ${code}`,
+        body,
+        userIds: message.mentionedUserIds,
+      },
+    })
+  }
+}
+
+/** `notifySdEvent` com o log de falha — notificar nunca derruba o fluxo. */
+async function notifyMessageEvent(input: SdNotifyInput): Promise<void> {
+  const sent = await notifySdEvent(input)
+  if (!sent.ok) {
+    logger.warn('servicedesk.message.notify_failed', {
+      workspaceId: input.workspaceId,
+      ticketId: input.ticket.id,
+      event: input.event,
+      reason: sent.error.code,
+    })
+  }
 }
 
 /** Resposta do solicitante num chamado RESOLVED reabre (se configurado). */
@@ -186,6 +206,20 @@ export const SdTicketMessageService = {
       return err(sdAttachmentNotFound())
     }
 
+    // Menções: só agentes do workspace, e nunca o próprio autor.
+    const mentions = Array.from(new Set(dto.mentionedUserIds ?? [])).filter(
+      (id) => id !== actorId,
+    )
+    let mentionedUserIds: string[] = []
+    if (mentions.length > 0) {
+      const agents = await SdNotificationRepository.filterAgentIds(
+        workspaceId,
+        mentions,
+      )
+      if (!agents.ok) return agents
+      mentionedUserIds = agents.value
+    }
+
     const created = await SdTicketMessageRepository.create({
       workspaceId,
       ticketId: ticket.id,
@@ -194,6 +228,7 @@ export const SdTicketMessageService = {
       visibility: dto.visibility,
       body: dto.body,
       attachmentIds,
+      mentionedUserIds,
     })
     if (!created.ok) return created
     const message = created.value
@@ -213,6 +248,9 @@ export const SdTicketMessageService = {
         messageId: message.id,
         visibility: message.visibility,
         attachments: message.attachments.length,
+        ...(mentionedUserIds.length > 0
+          ? { mentions: mentionedUserIds.length }
+          : {}),
       },
     })
     await maybeReopen(scope)

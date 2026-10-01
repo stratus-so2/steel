@@ -22,6 +22,7 @@ export const QueueName = {
   ServicedeskSla: 'servicedesk-sla',
   ServicedeskAi: 'servicedesk-ai',
   ServicedeskMail: 'servicedesk-mail',
+  ServicedeskDigest: 'servicedesk-digest',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -394,4 +395,21 @@ export type ServicedeskMailJob =
 export type ServicedeskMailJobPayload = {
   [ServicedeskMailJob.PollMailboxes]: Record<string, never>
   [ServicedeskMailJob.SyncMailbox]: { mailboxId: string }
+}
+
+/**
+ * Resumo diário opcional do ServiceDesk (`SdDigestService.runTick`). O tick
+ * roda de hora em hora e só envia aos agentes do workspace cuja hora local é
+ * a combinada (`SD_DIGEST_HOUR`) — por isso cada agente recebe no máximo um
+ * resumo por dia sem precisar de carimbo de controle.
+ */
+export const ServicedeskDigestJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type ServicedeskDigestJob =
+  (typeof ServicedeskDigestJob)[keyof typeof ServicedeskDigestJob]
+
+export type ServicedeskDigestJobPayload = {
+  [ServicedeskDigestJob.RunTick]: Record<string, never>
 }

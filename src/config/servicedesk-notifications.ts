@@ -1,4 +1,4 @@
-import type { SdNotificationChannel } from '@prisma/client'
+import type { NotificationKind, SdNotificationChannel } from '@prisma/client'
 
 /**
  * Catálogo de notificações do ServiceDesk: o que o módulo avisa, para quem e
@@ -27,6 +27,8 @@ export type SdNotificationAudience = (typeof SD_NOTIFICATION_AUDIENCES)[number]
 export interface SdNotificationEventSpec {
   /** Chave estável usada na preferência e no log. */
   key: string
+  /** Tipo da notificação in-app (`Notification.kind`). */
+  kind: NotificationKind
   label: string
   description: string
   audience: SdNotificationAudience[]
@@ -41,9 +43,20 @@ export interface SdNotificationEventSpec {
 const ALL: SdNotificationChannel[] = ['IN_APP', 'EMAIL', 'WHATSAPP']
 const APP_MAIL: SdNotificationChannel[] = ['IN_APP', 'EMAIL']
 
+/**
+ * Resumo diário: preferência por usuário (desligada por padrão) lida pelo job
+ * `servicedesk-digest`. Fica no catálogo para aparecer na mesma matriz da
+ * tela de preferências, mas nunca passa pelo motor (`audience` vazio).
+ */
+export const SD_DIGEST_EVENT = 'digest.daily'
+
+/** Hora local do workspace em que o resumo diário é enviado. */
+export const SD_DIGEST_HOUR = 8
+
 export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   {
     key: 'ticket.assigned',
+    kind: 'SD_TICKET_ASSIGNED',
     label: 'Chamado atribuído a você',
     description: 'Quando um chamado passa a ser seu.',
     audience: ['assignee'],
@@ -53,6 +66,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.created_in_department',
+    kind: 'SD_TICKET_CREATED',
     label: 'Chamado novo na sua fila',
     description: 'Abertura de chamado no departamento em que você atende.',
     audience: ['departmentLeads'],
@@ -62,6 +76,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.message',
+    kind: 'SD_TICKET_MESSAGE',
     label: 'Nova mensagem no chamado',
     description: 'Resposta pública no histórico de um chamado que você segue.',
     audience: ['assignee', 'participants', 'followers', 'requester', 'contact'],
@@ -70,6 +85,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.internal_note',
+    kind: 'SD_TICKET_MESSAGE',
     label: 'Nota interna',
     description: 'Nota interna registrada no chamado (nunca vai ao cliente).',
     audience: ['assignee', 'participants', 'followers'],
@@ -79,6 +95,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.mentioned',
+    kind: 'SD_TICKET_MENTIONED',
     label: 'Você foi citado',
     description: 'Alguém citou você numa mensagem do chamado.',
     audience: ['mentioned'],
@@ -88,6 +105,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.phase_changed',
+    kind: 'SD_TICKET_PHASE_CHANGED',
     label: 'Mudança de fase',
     description: 'O chamado avançou (ou voltou) de fase.',
     audience: ['assignee', 'participants', 'followers', 'requester', 'contact'],
@@ -96,6 +114,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.resolved',
+    kind: 'SD_TICKET_RESOLVED',
     label: 'Chamado resolvido',
     description: 'A solução foi registrada e o chamado foi resolvido.',
     audience: ['requester', 'contact', 'participants', 'followers'],
@@ -104,6 +123,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.reopened',
+    kind: 'SD_TICKET_REOPENED',
     label: 'Chamado reaberto',
     description: 'O solicitante respondeu e o chamado voltou para a fila.',
     audience: ['assignee', 'departmentLeads', 'followers'],
@@ -113,6 +133,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'sla.at_risk',
+    kind: 'SD_SLA_AT_RISK',
     label: 'SLA em risco',
     description: 'O prazo está perto do limite configurado.',
     audience: ['assignee', 'departmentLeads'],
@@ -122,6 +143,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'sla.breached',
+    kind: 'SD_SLA_BREACHED',
     label: 'SLA violado',
     description: 'O prazo de resposta ou de resolução estourou.',
     audience: ['assignee', 'departmentLeads'],
@@ -131,6 +153,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.escalated',
+    kind: 'SD_TICKET_ESCALATED',
     label: 'Chamado escalonado',
     description: 'Escalonamento funcional ou hierárquico registrado.',
     audience: ['assignee', 'departmentLeads', 'followers'],
@@ -140,14 +163,27 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'approval.requested',
+    kind: 'SD_APPROVAL_REQUESTED',
     label: 'Aprovação solicitada',
     description: 'Pedido de aprovação enviado a você.',
-    audience: ['participants'],
+    // Só in-app: o e-mail do pedido sai pelo fluxo de aprovação, com o link
+    // público do token — avisar de novo por e-mail seria duplicar.
+    audience: [],
+    channels: ['IN_APP'],
+    defaultChannels: ['IN_APP'],
+  },
+  {
+    key: 'ticket.participant_added',
+    kind: 'SD_TICKET_CREATED',
+    label: 'Você entrou num chamado',
+    description: 'Alguém te adicionou como participante de um chamado.',
+    audience: [],
     channels: APP_MAIL,
     defaultChannels: APP_MAIL,
   },
   {
     key: 'approval.responded',
+    kind: 'SD_APPROVAL_RESPONDED',
     label: 'Aprovação respondida',
     description: 'Um aprovador aprovou ou reprovou.',
     audience: ['assignee', 'participants', 'followers'],
@@ -157,6 +193,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'task.assigned',
+    kind: 'SD_TASK_ASSIGNED',
     label: 'Tarefa atribuída',
     description: 'Uma tarefa do chamado ficou com você.',
     audience: ['assignee'],
@@ -166,6 +203,7 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
   },
   {
     key: 'ticket.csat',
+    kind: 'SD_TICKET_CSAT',
     label: 'Avaliação recebida',
     description: 'O solicitante avaliou o atendimento.',
     audience: ['assignee', 'departmentLeads'],
@@ -173,6 +211,57 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
     defaultChannels: ['IN_APP'],
     agentOnly: true,
   },
+  {
+    key: SD_DIGEST_EVENT,
+    kind: 'SD_DIGEST',
+    label: 'Resumo diário',
+    description:
+      'Uma vez por dia, no horário do workspace: o que ficou pendente com você (fila, SLA em risco, aguardando resposta).',
+    // Sem público: não é disparado por um chamado, e sim pelo job
+    // `servicedesk-digest`, que lê a preferência de cada agente.
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: [],
+    agentOnly: true,
+  },
+]
+
+/**
+ * Agrupamento por tema da matriz de preferências (a ordem é a da tela).
+ * Toda chave de `SD_NOTIFICATION_EVENTS` precisa estar em exatamente um
+ * grupo — o teste do catálogo garante isso.
+ */
+export interface SdNotificationGroup {
+  label: string
+  events: string[]
+}
+
+export const SD_NOTIFICATION_GROUPS: SdNotificationGroup[] = [
+  {
+    label: 'Chamados',
+    events: [
+      'ticket.assigned',
+      'ticket.created_in_department',
+      'ticket.participant_added',
+      'ticket.phase_changed',
+      'ticket.resolved',
+      'ticket.reopened',
+      'ticket.csat',
+    ],
+  },
+  {
+    label: 'Conversas',
+    events: ['ticket.message', 'ticket.internal_note', 'ticket.mentioned'],
+  },
+  {
+    label: 'SLA e escalonamento',
+    events: ['sla.at_risk', 'sla.breached', 'ticket.escalated'],
+  },
+  {
+    label: 'Aprovações e tarefas',
+    events: ['approval.requested', 'approval.responded', 'task.assigned'],
+  },
+  { label: 'Resumos', events: [SD_DIGEST_EVENT] },
 ]
 
 const BY_KEY = new Map(SD_NOTIFICATION_EVENTS.map((e) => [e.key, e]))

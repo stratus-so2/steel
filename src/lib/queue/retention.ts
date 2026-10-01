@@ -34,6 +34,12 @@ export const ServicedeskSlaCron = '* * * * *' as const
 
 /** Frequência da leitura das caixas de e-mail do ServiceDesk (IMAP). */
 export const ServicedeskMailCron = '* * * * *' as const
+/**
+ * Resumo diário do ServiceDesk: de hora em hora, no minuto 5. O service só
+ * envia aos workspaces cuja hora local é a combinada (`SD_DIGEST_HOUR`), o
+ * que dá exatamente um envio por dia por workspace.
+ */
+export const ServicedeskDigestCron = '5 * * * *' as const
 
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const

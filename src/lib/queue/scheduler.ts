@@ -8,6 +8,7 @@ import {
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
   DataRetentionJob,
+  ServicedeskDigestJob,
   ServicedeskMailJob,
   ServicedeskSlaJob,
   StatusCollectJob,
@@ -24,6 +25,7 @@ import {
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
   getDataRetentionQueue,
+  getServicedeskDigestQueue,
   getServicedeskMailQueue,
   getServicedeskSlaQueue,
   getStatusCollectQueue,
@@ -41,6 +43,7 @@ import {
   DatabaseBackupCron,
   RetentionCron,
   RetentionTimezone,
+  ServicedeskDigestCron,
   ServicedeskMailCron,
   ServicedeskSlaCron,
   StatusCollectCron,
@@ -294,6 +297,21 @@ export async function scheduleServicedeskMailJobs(): Promise<void> {
   logger.info('queue.scheduler.servicedesk_mail_registered', {
     component: 'Worker',
     pattern: ServicedeskMailCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskDigestJobs(): Promise<void> {
+  const queue = getServicedeskDigestQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskDigestJob.RunTick,
+    { pattern: ServicedeskDigestCron, tz: RetentionTimezone },
+    { name: ServicedeskDigestJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_digest_registered', {
+    component: 'Worker',
+    pattern: ServicedeskDigestCron,
     timezone: RetentionTimezone,
   })
 }
