@@ -4,7 +4,7 @@ import type {
   SdPhaseCategory,
   SdTicketType,
 } from '@prisma/client'
-import { err, ok, type Result } from '@/src/lib/result'
+import { ok, type Result } from '@/src/lib/result'
 import type { SdConditionFacts } from '@/src/lib/servicedesk/conditions'
 import { validateSdCustomFieldValues } from '@/src/lib/servicedesk/custom-fields'
 import { sdHtmlToText } from '@/src/lib/servicedesk/html'

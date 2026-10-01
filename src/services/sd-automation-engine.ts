@@ -189,7 +189,7 @@ async function applyTemplate(
     templateId,
   )
   if (!tpl.ok) return tpl
-  if (!tpl.value || !tpl.value.active || tpl.value.ticketType !== t.type) {
+  if (!tpl.value?.active || tpl.value.ticketType !== t.type) {
     return err(sdConfigNotFound())
   }
   // Só preenche o que está vazio no chamado.

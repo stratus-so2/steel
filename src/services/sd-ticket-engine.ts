@@ -240,7 +240,7 @@ async function loadNode(
 ): Promise<Result<SdCategoryNode>> {
   const node = await SdTicketContextRepository.findCategory(workspaceId, id)
   if (!node.ok) return node
-  if (!node.value || !node.value.active) return err(sdCategoryNotFound())
+  if (!node.value?.active) return err(sdCategoryNotFound())
   if (
     node.value.ticketTypes.length > 0 &&
     !node.value.ticketTypes.includes(type)
@@ -567,8 +567,7 @@ export const SdTicketEngine = {
       )
       if (!tpl.ok) return tpl
       if (
-        !tpl.value ||
-        !tpl.value.active ||
+        !tpl.value?.active ||
         tpl.value.ticketType !== input.type ||
         (input.portal && !tpl.value.portalVisible)
       ) {
@@ -1036,7 +1035,7 @@ export const SdTicketEngine = {
     )
     if (!found.ok) return found
     const target = found.value
-    if (!target || !target.active || target.ticketType !== ticket.type) {
+    if (!target?.active || target.ticketType !== ticket.type) {
       return err(sdPhaseNotFound())
     }
     if (target.id === ticket.phaseId) return ok(ticket)
