@@ -224,7 +224,7 @@ function CreateMailboxDialog({ workspaceId }: { workspaceId: string }) {
               <Label htmlFor='sd-mail-imap-user'>Usuário</Label>
               <Input
                 id='sd-mail-imap-user'
-                required
+                placeholder='o endereço acima'
                 value={form.imapUser}
                 onChange={(event) => set('imapUser', event.target.value)}
               />
