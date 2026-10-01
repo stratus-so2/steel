@@ -131,10 +131,10 @@ function roundStarts(
   base: Date,
   recurrence: SdChangeRecurrenceInput,
   step: number,
-  useByDay: boolean,
+  byDay: readonly string[],
 ): Date[] {
-  if (useByDay) {
-    return weeklyStarts(base, step * recurrence.interval * 7, recurrence.byDay)
+  if (byDay.length > 0) {
+    return weeklyStarts(base, step * recurrence.interval * 7, byDay)
   }
   if (recurrence.freq === 'MONTHLY') {
     return [addMonths(base, step * recurrence.interval)]
@@ -171,7 +171,10 @@ export function expandSdChangeWindow(
   range: SdDateRange,
 ): SdChangeOccurrence[] {
   const baseMs = window.startsAt.getTime()
-  const durationMs = Math.max(0, window.endsAt.getTime() - baseMs)
+  const durationMs = window.endsAt.getTime() - baseMs
+  // Janela sem duração (ou invertida) não ocupa período nenhum: sem
+  // ocorrências. O service recusa gravar uma assim (`SD_CHANGE_WINDOW_INVALID`).
+  if (durationMs <= 0) return []
 
   const take = (start: Date): SdChangeOccurrence => ({
     windowId: window.id,
@@ -189,15 +192,19 @@ export function expandSdChangeWindow(
   }
 
   const limit = untilLimit(recurrence)
-  const useByDay = recurrence.freq === 'WEEKLY' && recurrence.byDay.length > 0
-  const perRound = useByDay ? recurrence.byDay.length : 1
+  const byDay =
+    recurrence.freq === 'WEEKLY'
+      ? recurrence.byDay.filter((day) => WEEK_DAY_INDEX[day] !== undefined)
+      : []
+  const perRound = byDay.length > 0 ? byDay.length : 1
   // Dias de `byDay` anteriores ao início não entram na série nem consomem
   // `count` — só existem porque a rodada começa no domingo.
-  const skipped = useByDay
-    ? weeklyStarts(window.startsAt, 0, recurrence.byDay).filter(
-        (start) => start.getTime() < baseMs,
-      ).length
-    : 0
+  const skipped =
+    byDay.length > 0
+      ? weeklyStarts(window.startsAt, 0, byDay).filter(
+          (start) => start.getTime() < baseMs,
+        ).length
+      : 0
   const maxOrdinal = recurrence.count ?? Number.POSITIVE_INFINITY
 
   const firstStep = firstStepFor(window.startsAt, recurrence, range.from)
@@ -205,7 +212,7 @@ export function expandSdChangeWindow(
   const out: SdChangeOccurrence[] = []
 
   for (let step = firstStep; step < lastStep; step++) {
-    const starts = roundStarts(window.startsAt, recurrence, step, useByDay)
+    const starts = roundStarts(window.startsAt, recurrence, step, byDay)
     let done = false
     for (let i = 0; i < starts.length; i++) {
       const start = starts[i]
