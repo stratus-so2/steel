@@ -481,6 +481,34 @@ export const ERROR_CODES = {
   SD_CSAT_ALREADY_SUBMITTED: { code: 'SD_CSAT_ALREADY_SUBMITTED', status: 409 },
   SD_CSAT_NOT_AVAILABLE: { code: 'SD_CSAT_NOT_AVAILABLE', status: 422 },
 
+  // ServiceDesk — canais, portal externo e notificações
+  SD_MAILBOX_NOT_FOUND: { code: 'SD_MAILBOX_NOT_FOUND', status: 404 },
+  SD_MAILBOX_CONFLICT: { code: 'SD_MAILBOX_CONFLICT', status: 409 },
+  SD_MAILBOX_CONNECTION_FAILED: {
+    code: 'SD_MAILBOX_CONNECTION_FAILED',
+    status: 502,
+  },
+  SD_MONITOR_SOURCE_NOT_FOUND: {
+    code: 'SD_MONITOR_SOURCE_NOT_FOUND',
+    status: 404,
+  },
+  SD_MONITOR_TOKEN_INVALID: { code: 'SD_MONITOR_TOKEN_INVALID', status: 401 },
+  SD_MONITOR_PAYLOAD_INVALID: {
+    code: 'SD_MONITOR_PAYLOAD_INVALID',
+    status: 422,
+  },
+  SD_PORTAL_LINK_INVALID: { code: 'SD_PORTAL_LINK_INVALID', status: 401 },
+  SD_PORTAL_LINK_EXPIRED: { code: 'SD_PORTAL_LINK_EXPIRED', status: 410 },
+  SD_PORTAL_SESSION_EXPIRED: { code: 'SD_PORTAL_SESSION_EXPIRED', status: 401 },
+  SD_PORTAL_CONTACT_INACTIVE: {
+    code: 'SD_PORTAL_CONTACT_INACTIVE',
+    status: 403,
+  },
+  SD_NOTIFICATION_EVENT_UNKNOWN: {
+    code: 'SD_NOTIFICATION_EVENT_UNKNOWN',
+    status: 422,
+  },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

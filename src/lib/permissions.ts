@@ -51,6 +51,8 @@ export const PERMISSION_RESOURCES = [
   'sd-dashboards',
   'sd-portal',
   'sd-settings',
+  // ServiceDesk — canais de entrada e portal do contato externo
+  'sd-channels',
 ] as const
 export type PermissionResource = (typeof PERMISSION_RESOURCES)[number]
 
@@ -102,6 +104,7 @@ const MEMBER_READONLY = new Set<PermissionResource>([
   'broadcasts',
   'message-templates',
   'sd-settings',
+  'sd-channels',
 ])
 
 function fullMatrix(): PermissionMap {

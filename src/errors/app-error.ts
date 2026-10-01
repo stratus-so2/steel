@@ -870,3 +870,50 @@ export const sdCsatAlreadySubmitted = (
 export const sdCsatNotAvailable = (
   message = 'A avaliação só fica disponível depois que o chamado é resolvido',
 ): AppError => appError('SD_CSAT_NOT_AVAILABLE', message)
+
+// ServiceDesk — canais, portal externo e notificações
+
+export const sdMailboxNotFound = (): AppError =>
+  appError('SD_MAILBOX_NOT_FOUND', 'Caixa de e-mail não encontrada')
+
+export const sdMailboxConflict = (
+  message = 'Já existe uma caixa com este endereço',
+): AppError => appError('SD_MAILBOX_CONFLICT', message)
+
+export const sdMailboxConnectionFailed = (
+  message = 'Não foi possível conectar à caixa de e-mail',
+): AppError => appError('SD_MAILBOX_CONNECTION_FAILED', message)
+
+export const sdMonitorSourceNotFound = (): AppError =>
+  appError(
+    'SD_MONITOR_SOURCE_NOT_FOUND',
+    'Origem de monitoramento não encontrada',
+  )
+
+export const sdMonitorTokenInvalid = (
+  message = 'Token de monitoramento inválido',
+): AppError => appError('SD_MONITOR_TOKEN_INVALID', message)
+
+export const sdMonitorPayloadInvalid = (
+  message = 'Alerta em formato inválido',
+): AppError => appError('SD_MONITOR_PAYLOAD_INVALID', message)
+
+export const sdPortalLinkInvalid = (
+  message = 'Link de acesso inválido ou já utilizado',
+): AppError => appError('SD_PORTAL_LINK_INVALID', message)
+
+export const sdPortalLinkExpired = (
+  message = 'O link de acesso expirou. Peça um novo',
+): AppError => appError('SD_PORTAL_LINK_EXPIRED', message)
+
+export const sdPortalSessionExpired = (
+  message = 'Sua sessão expirou. Abra o link do e-mail de novo',
+): AppError => appError('SD_PORTAL_SESSION_EXPIRED', message)
+
+export const sdPortalContactInactive = (
+  message = 'Este contato não tem mais acesso ao portal',
+): AppError => appError('SD_PORTAL_CONTACT_INACTIVE', message)
+
+export const sdNotificationEventUnknown = (
+  message = 'Evento de notificação desconhecido',
+): AppError => appError('SD_NOTIFICATION_EVENT_UNKNOWN', message)

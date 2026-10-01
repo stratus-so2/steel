@@ -122,35 +122,40 @@ model User {
   crmEmailMessagesCreated            CrmEmailMessage[]             @relation("CrmEmailMessageCreatedBy")
   crmCalendarEventsCreated           CrmCalendarEvent[]            @relation("CrmCalendarEventCreatedBy")
 
-  sdDepartmentMemberships  SdDepartmentMember[]  @relation("SdDepartmentMemberUser")
-  sdCustomersCreated       SdCustomer[]          @relation("SdCustomerCreatedBy")
-  sdContactsLinked         SdContact[]           @relation("SdContactUser")
-  sdContactsCreated        SdContact[]           @relation("SdContactCreatedBy")
-  sdConfigItemsOwned       SdConfigItem[]        @relation("SdConfigItemOwner")
-  sdConfigItemsCreated     SdConfigItem[]        @relation("SdConfigItemCreatedBy")
-  sdCannedResponsesCreated SdCannedResponse[]    @relation("SdCannedResponseCreatedBy")
-  sdTicketsAssigned        SdTicket[]            @relation("SdTicketAssignee")
-  sdTicketsRequested       SdTicket[]            @relation("SdTicketRequester")
-  sdTicketsCreated         SdTicket[]            @relation("SdTicketCreatedBy")
-  sdTicketParticipations   SdTicketParticipant[] @relation("SdTicketParticipantUser")
-  sdTicketMessages         SdTicketMessage[]     @relation("SdTicketMessageAuthor")
-  sdTicketAttachments      SdTicketAttachment[]  @relation("SdTicketAttachmentUploader")
-  sdTicketTasksAssigned    SdTicketTask[]        @relation("SdTicketTaskAssignee")
-  sdTicketTasksCreated     SdTicketTask[]        @relation("SdTicketTaskCreatedBy")
-  sdTicketCostsFor         SdTicketCost[]        @relation("SdTicketCostUser")
-  sdTicketCostsCreated     SdTicketCost[]        @relation("SdTicketCostCreatedBy")
-  sdTicketPartsCreated     SdTicketPart[]        @relation("SdTicketPartCreatedBy")
-  sdTicketApprovalsToGive  SdTicketApproval[]    @relation("SdTicketApprovalApprover")
-  sdTicketApprovalsAsked   SdTicketApproval[]    @relation("SdTicketApprovalRequestedBy")
-  sdTicketEscalations      SdTicketEscalation[]  @relation("SdTicketEscalationCreatedBy")
-  sdTicketEvents           SdTicketEvent[]       @relation("SdTicketEventActor")
-  sdTicketSignatures       SdTicketSignature[]   @relation("SdTicketSignatureSignedBy")
-  sdSavedViews             SdSavedView[]         @relation("SdSavedViewUser")
-  sdKbArticlesCreated      SdKbArticle[]         @relation("SdKbArticleAuthor")
-  sdKbArticlesUpdated      SdKbArticle[]         @relation("SdKbArticleEditor")
-  sdKbComments             SdKbComment[]         @relation("SdKbCommentAuthor")
-  sdKbCommentsResolved     SdKbComment[]         @relation("SdKbCommentResolver")
-  sdAiConversations        SdAiConversation[]    @relation("SdAiConversationUser")
+  sdDepartmentMemberships   SdDepartmentMember[]       @relation("SdDepartmentMemberUser")
+  sdCustomersCreated        SdCustomer[]               @relation("SdCustomerCreatedBy")
+  sdContactsLinked          SdContact[]                @relation("SdContactUser")
+  sdContactsCreated         SdContact[]                @relation("SdContactCreatedBy")
+  sdConfigItemsOwned        SdConfigItem[]             @relation("SdConfigItemOwner")
+  sdConfigItemsCreated      SdConfigItem[]             @relation("SdConfigItemCreatedBy")
+  sdCannedResponsesCreated  SdCannedResponse[]         @relation("SdCannedResponseCreatedBy")
+  sdTicketsAssigned         SdTicket[]                 @relation("SdTicketAssignee")
+  sdTicketsRequested        SdTicket[]                 @relation("SdTicketRequester")
+  sdTicketsCreated          SdTicket[]                 @relation("SdTicketCreatedBy")
+  sdTicketParticipations    SdTicketParticipant[]      @relation("SdTicketParticipantUser")
+  sdTicketMessages          SdTicketMessage[]          @relation("SdTicketMessageAuthor")
+  sdTicketAttachments       SdTicketAttachment[]       @relation("SdTicketAttachmentUploader")
+  sdTicketTasksAssigned     SdTicketTask[]             @relation("SdTicketTaskAssignee")
+  sdTicketTasksCreated      SdTicketTask[]             @relation("SdTicketTaskCreatedBy")
+  sdTicketCostsFor          SdTicketCost[]             @relation("SdTicketCostUser")
+  sdTicketCostsCreated      SdTicketCost[]             @relation("SdTicketCostCreatedBy")
+  sdTicketPartsCreated      SdTicketPart[]             @relation("SdTicketPartCreatedBy")
+  sdTicketApprovalsToGive   SdTicketApproval[]         @relation("SdTicketApprovalApprover")
+  sdTicketApprovalsAsked    SdTicketApproval[]         @relation("SdTicketApprovalRequestedBy")
+  sdTicketEscalations       SdTicketEscalation[]       @relation("SdTicketEscalationCreatedBy")
+  sdTicketEvents            SdTicketEvent[]            @relation("SdTicketEventActor")
+  sdTicketSignatures        SdTicketSignature[]        @relation("SdTicketSignatureSignedBy")
+  sdSavedViews              SdSavedView[]              @relation("SdSavedViewUser")
+  sdKbArticlesCreated       SdKbArticle[]              @relation("SdKbArticleAuthor")
+  sdKbArticlesUpdated       SdKbArticle[]              @relation("SdKbArticleEditor")
+  sdKbComments              SdKbComment[]              @relation("SdKbCommentAuthor")
+  sdKbCommentsResolved      SdKbComment[]              @relation("SdKbCommentResolver")
+  sdAiConversations         SdAiConversation[]         @relation("SdAiConversationUser")
+  sdMailboxesCreated        SdMailbox[]                @relation("SdMailboxCreatedBy")
+  sdMonitorSourcesCreated   SdMonitorSource[]          @relation("SdMonitorSourceCreatedBy")
+  sdPortalAccessesSent      SdPortalAccess[]           @relation("SdPortalAccessRequestedBy")
+  sdNotificationPreferences SdNotificationPreference[] @relation("SdNotificationPreferenceUser")
+  sdTicketsFollowed         SdTicketFollower[]         @relation("SdTicketFollowerUser")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -390,42 +395,48 @@ model Workspace {
   crmLeadContactAttempts CrmLeadContactAttempt[]
   crmLeadMeetings        CrmLeadMeeting[]
 
-  sdSettings               SdSettings?
-  sdDepartments            SdDepartment[]
-  sdCustomers              SdCustomer[]
-  sdContacts               SdContact[]
-  sdConfigItemTypes        SdConfigItemType[]
-  sdConfigItems            SdConfigItem[]
-  sdCategories             SdCategory[]
-  sdClassifications        SdClassification[]
-  sdImpacts                SdImpact[]
-  sdUrgencies              SdUrgency[]
-  sdPriorities             SdPriority[]
-  sdPriorityMatrix         SdPriorityMatrix[]
-  sdSeverities             SdSeverity[]
-  sdPhases                 SdPhase[]
-  sdPhaseTransitions       SdPhaseTransition[]
-  sdBusinessCalendars      SdBusinessCalendar[]
-  sdSlaPolicies            SdSlaPolicy[]
-  sdEscalationRules        SdEscalationRule[]
-  sdAutomationRules        SdAutomationRule[]
-  sdCustomFieldDefinitions SdCustomFieldDefinition[]
-  sdTicketTemplates        SdTicketTemplate[]
-  sdCannedResponses        SdCannedResponse[]
-  sdParts                  SdPart[]
-  sdTickets                SdTicket[]
-  sdTicketMessages         SdTicketMessage[]
-  sdTicketAttachments      SdTicketAttachment[]
-  sdTicketTasks            SdTicketTask[]
-  sdTicketCosts            SdTicketCost[]
-  sdTicketParts            SdTicketPart[]
-  sdTicketApprovals        SdTicketApproval[]
-  sdTicketEscalations      SdTicketEscalation[]
-  sdTicketEvents           SdTicketEvent[]
-  sdTicketSignatures       SdTicketSignature[]
-  sdSavedViews             SdSavedView[]
-  sdKbArticles             SdKbArticle[]
-  sdAiConversations        SdAiConversation[]
+  sdSettings                SdSettings?
+  sdDepartments             SdDepartment[]
+  sdCustomers               SdCustomer[]
+  sdContacts                SdContact[]
+  sdConfigItemTypes         SdConfigItemType[]
+  sdConfigItems             SdConfigItem[]
+  sdCategories              SdCategory[]
+  sdClassifications         SdClassification[]
+  sdImpacts                 SdImpact[]
+  sdUrgencies               SdUrgency[]
+  sdPriorities              SdPriority[]
+  sdPriorityMatrix          SdPriorityMatrix[]
+  sdSeverities              SdSeverity[]
+  sdPhases                  SdPhase[]
+  sdPhaseTransitions        SdPhaseTransition[]
+  sdBusinessCalendars       SdBusinessCalendar[]
+  sdSlaPolicies             SdSlaPolicy[]
+  sdEscalationRules         SdEscalationRule[]
+  sdAutomationRules         SdAutomationRule[]
+  sdCustomFieldDefinitions  SdCustomFieldDefinition[]
+  sdTicketTemplates         SdTicketTemplate[]
+  sdCannedResponses         SdCannedResponse[]
+  sdParts                   SdPart[]
+  sdTickets                 SdTicket[]
+  sdTicketMessages          SdTicketMessage[]
+  sdTicketAttachments       SdTicketAttachment[]
+  sdTicketTasks             SdTicketTask[]
+  sdTicketCosts             SdTicketCost[]
+  sdTicketParts             SdTicketPart[]
+  sdTicketApprovals         SdTicketApproval[]
+  sdTicketEscalations       SdTicketEscalation[]
+  sdTicketEvents            SdTicketEvent[]
+  sdTicketSignatures        SdTicketSignature[]
+  sdSavedViews              SdSavedView[]
+  sdKbArticles              SdKbArticle[]
+  sdAiConversations         SdAiConversation[]
+  sdMailboxes               SdMailbox[]
+  sdMailMessages            SdMailMessage[]
+  sdMonitorSources          SdMonitorSource[]
+  sdMonitorAlerts           SdMonitorAlert[]
+  sdPortalAccesses          SdPortalAccess[]
+  sdNotificationPreferences SdNotificationPreference[]
 
   @@index([status])
   @@map("workspaces")
@@ -3914,12 +3925,13 @@ model SdContact {
   updatedAt    DateTime  @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at")
 
-  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User?               @relation("SdContactUser", fields: [userId], references: [id], onDelete: SetNull)
-  createdBy User                @relation("SdContactCreatedBy", fields: [createdById], references: [id])
-  customers SdContactCustomer[]
-  tickets   SdTicket[]
-  messages  SdTicketMessage[]
+  workspace      Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user           User?               @relation("SdContactUser", fields: [userId], references: [id], onDelete: SetNull)
+  createdBy      User                @relation("SdContactCreatedBy", fields: [createdById], references: [id])
+  customers      SdContactCustomer[]
+  portalAccesses SdPortalAccess[]
+  tickets        SdTicket[]
+  messages       SdTicketMessage[]
 
   @@index([workspaceId])
   @@index([workspaceId, email])
@@ -3992,15 +4004,16 @@ model SdConfigItem {
   updatedAt     DateTime           @updatedAt @map("updated_at")
   deletedAt     DateTime?          @map("deleted_at")
 
-  workspace  Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  type       SdConfigItemType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
-  parent     SdConfigItem?     @relation("SdConfigItemTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children   SdConfigItem[]    @relation("SdConfigItemTree")
-  customer   SdCustomer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  department SdDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  owner      User?             @relation("SdConfigItemOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  createdBy  User              @relation("SdConfigItemCreatedBy", fields: [createdById], references: [id])
-  tickets    SdTicket[]
+  workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  type          SdConfigItemType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  parent        SdConfigItem?     @relation("SdConfigItemTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children      SdConfigItem[]    @relation("SdConfigItemTree")
+  customer      SdCustomer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  department    SdDepartment?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  owner         User?             @relation("SdConfigItemOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy     User              @relation("SdConfigItemCreatedBy", fields: [createdById], references: [id])
+  tickets       SdTicket[]
+  monitorAlerts SdMonitorAlert[]
 
   @@index([workspaceId])
   @@index([customerId])
@@ -4534,6 +4547,9 @@ model SdTicket {
   events                 SdTicketEvent[]
   signatures             SdTicketSignature[]
   kbLinks                SdTicketKbLink[]
+  mailMessages           SdMailMessage[]
+  monitorAlerts          SdMonitorAlert[]
+  followers              SdTicketFollower[]
 
   @@unique([workspaceId, number])
   @@index([workspaceId, type, phaseId])
@@ -4925,4 +4941,259 @@ model SdAiConversation {
   @@index([ticketId])
   @@index([whatsappConversationId])
   @@map("sd_ai_conversations")
+}
+
+// ============================================================================
+// ServiceDesk — Leva 2 de features: canais de entrada (e-mail e
+// monitoramento), portal do contato externo e preferências de notificação.
+// Ver docs/servicedesk/README.md.
+// ============================================================================
+
+enum SdMailboxProtocol {
+  IMAP
+}
+
+enum SdMailboxStatus {
+  ACTIVE
+  ERROR
+  PAUSED
+}
+
+/// Caixa de e-mail que vira chamado. Credenciais cifradas com
+/// `CONNECTION_SECRETS`, como as demais conexões do produto.
+model SdMailbox {
+  id                    String            @id @default(cuid())
+  workspaceId           String            @map("workspace_id")
+  name                  String
+  /// Endereço que recebe (e de onde as respostas saem).
+  address               String
+  protocol              SdMailboxProtocol @default(IMAP)
+  status                SdMailboxStatus   @default(ACTIVE)
+  statusError           String?           @map("status_error")
+  imapHost              String            @map("imap_host")
+  imapPort              Int               @default(993) @map("imap_port")
+  imapSecure            Boolean           @default(true) @map("imap_secure")
+  imapUser              String            @map("imap_user")
+  encryptedImapPassword String            @map("encrypted_imap_password")
+  /// Pasta monitorada e para onde a mensagem vai depois de processada.
+  folder                String            @default("INBOX")
+  processedFolder       String?           @map("processed_folder")
+  smtpHost              String?           @map("smtp_host")
+  smtpPort              Int?              @map("smtp_port")
+  smtpSecure            Boolean           @default(true) @map("smtp_secure")
+  smtpUser              String?           @map("smtp_user")
+  encryptedSmtpPassword String?           @map("encrypted_smtp_password")
+  /// Padrões aplicados ao chamado aberto por esta caixa.
+  defaultType           SdTicketType      @default(INCIDENT) @map("default_type")
+  defaultDepartmentId   String?           @map("default_department_id")
+  defaultCategoryId     String?           @map("default_category_id")
+  defaultPriorityId     String?           @map("default_priority_id")
+  /// Remetentes aceitos/bloqueados (vazio = qualquer um).
+  allowedSenders        String[]          @default([]) @map("allowed_senders")
+  blockedSenders        String[]          @default([]) @map("blocked_senders")
+  /// Abre chamado para remetente sem contato cadastrado.
+  createUnknownContacts Boolean           @default(true) @map("create_unknown_contacts")
+  /// Responde automaticamente confirmando a abertura.
+  sendAcknowledgement   Boolean           @default(true) @map("send_acknowledgement")
+  lastSyncAt            DateTime?         @map("last_sync_at")
+  lastSeenUid           Int?              @map("last_seen_uid")
+  createdById           String            @map("created_by_id")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+  deletedAt             DateTime?         @map("deleted_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User            @relation("SdMailboxCreatedBy", fields: [createdById], references: [id])
+  messages  SdMailMessage[]
+
+  @@unique([workspaceId, address])
+  @@index([workspaceId, status])
+  @@map("sd_mailboxes")
+}
+
+enum SdMailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+/// Mensagem de e-mail ligada a um chamado — guarda o cabeçalho de thread
+/// (`Message-ID`/`In-Reply-To`) para a resposta do cliente cair no mesmo
+/// chamado, e serve de trava contra processar duas vezes.
+model SdMailMessage {
+  id          String          @id @default(cuid())
+  workspaceId String          @map("workspace_id")
+  mailboxId   String          @map("mailbox_id")
+  ticketId    String?         @map("ticket_id")
+  messageId   String          @map("message_id")
+  inReplyTo   String?         @map("in_reply_to")
+  /// `References` do cabeçalho, do mais antigo ao mais novo.
+  references  String[]        @default([])
+  direction   SdMailDirection
+  fromAddress String          @map("from_address")
+  fromName    String?         @map("from_name")
+  toAddresses String[]        @default([]) @map("to_addresses")
+  ccAddresses String[]        @default([]) @map("cc_addresses")
+  subject     String?
+  /// Corpo já limpo (sem citação e assinatura), usado na mensagem do chamado.
+  bodyText    String?         @map("body_text")
+  /// Mensagem automática (férias, bounce): não abre nem reabre chamado.
+  automatic   Boolean         @default(false)
+  processedAt DateTime?       @map("processed_at")
+  error       String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  mailbox   SdMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  ticket    SdTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@unique([mailboxId, messageId])
+  @@index([ticketId])
+  @@index([workspaceId, createdAt])
+  @@map("sd_mail_messages")
+}
+
+enum SdMonitorKind {
+  ZABBIX
+  WEBHOOK
+}
+
+enum SdMonitorAlertStatus {
+  OPEN
+  RESOLVED
+  IGNORED
+}
+
+/// Origem de monitoramento que abre chamado (Zabbix ou webhook genérico).
+/// O token é guardado como hash; o valor só aparece na criação.
+model SdMonitorSource {
+  id                    String        @id @default(cuid())
+  workspaceId           String        @map("workspace_id")
+  name                  String
+  kind                  SdMonitorKind @default(ZABBIX)
+  tokenHash             String        @unique @map("token_hash")
+  active                Boolean       @default(true)
+  /// Padrões do chamado gerado.
+  ticketType            SdTicketType  @default(INCIDENT) @map("ticket_type")
+  departmentId          String?       @map("department_id")
+  categoryId            String?       @map("category_id")
+  customerId            String?       @map("customer_id")
+  /// severidade da origem → prioridade do ServiceDesk:
+  /// [{"from":"disaster","priorityId":"..."}]
+  severityMap           Json          @default("[]") @map("severity_map")
+  /// Fecha o chamado quando o alerta normaliza.
+  autoResolve           Boolean       @default(true) @map("auto_resolve")
+  /// Reabre o chamado anterior se o mesmo alerta voltar dentro de N minutos.
+  flappingWindowMinutes Int           @default(30) @map("flapping_window_minutes")
+  lastEventAt           DateTime?     @map("last_event_at")
+  createdById           String        @map("created_by_id")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  deletedAt             DateTime?     @map("deleted_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("SdMonitorSourceCreatedBy", fields: [createdById], references: [id])
+  alerts    SdMonitorAlert[]
+
+  @@index([workspaceId])
+  @@map("sd_monitor_sources")
+}
+
+/// Alerta recebido. `externalId` deduplica (o mesmo problema reenviado não
+/// abre outro chamado) e liga o evento de normalização ao chamado certo.
+model SdMonitorAlert {
+  id           String               @id @default(cuid())
+  workspaceId  String               @map("workspace_id")
+  sourceId     String               @map("source_id")
+  ticketId     String?              @map("ticket_id")
+  externalId   String               @map("external_id")
+  status       SdMonitorAlertStatus @default(OPEN)
+  severity     String?
+  host         String?
+  configItemId String?              @map("config_item_id")
+  subject      String
+  body         String?
+  payload      Json?
+  startedAt    DateTime             @default(now()) @map("started_at")
+  resolvedAt   DateTime?            @map("resolved_at")
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source     SdMonitorSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  ticket     SdTicket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  configItem SdConfigItem?   @relation(fields: [configItemId], references: [id], onDelete: SetNull)
+
+  @@unique([sourceId, externalId])
+  @@index([workspaceId, status])
+  @@index([ticketId])
+  @@map("sd_monitor_alerts")
+}
+
+/// Acesso do contato externo ao portal, por link mágico enviado no e-mail.
+/// `tokenHash` = SHA-256 do token do link; a sessão criada depois tem vida
+/// curta e cookie próprio (não é sessão do Better Auth).
+model SdPortalAccess {
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  contactId        String    @map("contact_id")
+  tokenHash        String    @unique @map("token_hash")
+  email            String
+  /// Enviado por (agente) ou `null` quando o próprio contato pediu o link.
+  requestedById    String?   @map("requested_by_id")
+  expiresAt        DateTime  @map("expires_at")
+  usedAt           DateTime? @map("used_at")
+  /// Sessão aberta a partir do link (hash do cookie) e sua validade.
+  sessionHash      String?   @unique @map("session_hash")
+  sessionExpiresAt DateTime? @map("session_expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  contact     SdContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  requestedBy User?     @relation("SdPortalAccessRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, contactId])
+  @@index([expiresAt])
+  @@map("sd_portal_accesses")
+}
+
+enum SdNotificationChannel {
+  IN_APP
+  EMAIL
+  WHATSAPP
+}
+
+/// Preferência de notificação por usuário × evento × canal. Sem linha, vale
+/// o padrão do evento (`src/config/servicedesk-notifications.ts`).
+model SdNotificationPreference {
+  id          String                @id @default(cuid())
+  workspaceId String                @map("workspace_id")
+  userId      String                @map("user_id")
+  /// Chave do evento: ticket.assigned, ticket.message, sla.at_risk...
+  event       String
+  channel     SdNotificationChannel
+  enabled     Boolean               @default(true)
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("SdNotificationPreferenceUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId, event, channel])
+  @@index([workspaceId, userId])
+  @@map("sd_notification_preferences")
+}
+
+/// Quem acompanha um chamado sem ser responsável nem participante — recebe
+/// as notificações públicas dele ("seguir chamado").
+model SdTicketFollower {
+  ticketId  String   @map("ticket_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket SdTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User     @relation("SdTicketFollowerUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, userId])
+  @@index([userId])
+  @@map("sd_ticket_followers")
 }
