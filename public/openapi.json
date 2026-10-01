@@ -5239,8 +5239,7 @@
                 "properties": {
                   "email": {
                     "type": "string",
-                    "maxLength": 255,
-                    "format": "email"
+                    "maxLength": 255
                   }
                 },
                 "required": ["email"]
@@ -49947,8 +49946,7 @@
                   },
                   "email": {
                     "type": "string",
-                    "maxLength": 255,
-                    "format": "email"
+                    "maxLength": 255
                   }
                 },
                 "required": ["contactId"]

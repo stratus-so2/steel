@@ -128,6 +128,7 @@ describe('sd-settings mapper', () => {
       ticketPrefixes: dto.ticketPrefixes,
       portalEnabled: true,
       portalTicketTypes: ['INCIDENT'],
+      portalCompanyScope: true,
       requireSignatureOnClose: false,
       requireSolutionOnResolve: true,
       reopenOnRequesterReply: true,
