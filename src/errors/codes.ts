@@ -460,6 +460,16 @@ export const ERROR_CODES = {
     status: 422,
   },
   SD_AI_DISABLED: { code: 'SD_AI_DISABLED', status: 403 },
+  SD_AI_CONVERSATION_NOT_FOUND: {
+    code: 'SD_AI_CONVERSATION_NOT_FOUND',
+    status: 404,
+  },
+  SD_AI_CONVERSATION_CLOSED: { code: 'SD_AI_CONVERSATION_CLOSED', status: 409 },
+  SD_WHATSAPP_CONVERSATION_NOT_FOUND: {
+    code: 'SD_WHATSAPP_CONVERSATION_NOT_FOUND',
+    status: 404,
+  },
+  SD_WHATSAPP_WINDOW_CLOSED: { code: 'SD_WHATSAPP_WINDOW_CLOSED', status: 422 },
 
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },

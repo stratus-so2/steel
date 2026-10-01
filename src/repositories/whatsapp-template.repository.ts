@@ -4,12 +4,13 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
 export const WhatsAppTemplateRepository = {
+  /** Modelos das conexões do zap (os do ServiceDesk ficam de fora). */
   async listByWorkspace(
     workspaceId: string,
   ): Promise<Result<WhatsAppTemplate[]>> {
     try {
       const templates = await prisma.whatsAppTemplate.findMany({
-        where: { workspaceId },
+        where: { workspaceId, connection: { module: 'COMMUNICATION' } },
         orderBy: { name: 'asc' },
       })
       return ok(templates)

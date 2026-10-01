@@ -816,3 +816,17 @@ export const sdWhatsappNotConfigured = (
 export const sdAiDisabled = (
   message = 'O agente de IA do ServiceDesk está desativado',
 ): AppError => appError('SD_AI_DISABLED', message)
+
+export const sdAiConversationNotFound = (): AppError =>
+  appError('SD_AI_CONVERSATION_NOT_FOUND', 'Conversa com a IA não encontrada')
+
+export const sdAiConversationClosed = (): AppError =>
+  appError('SD_AI_CONVERSATION_CLOSED', 'Este atendimento com a IA já foi encerrado')
+
+export const sdWhatsappConversationNotFound = (
+  message = 'O chamado não tem conversa de WhatsApp vinculada',
+): AppError => appError('SD_WHATSAPP_CONVERSATION_NOT_FOUND', message)
+
+export const sdWhatsappWindowClosed = (
+  message = 'Fora da janela de 24 h do WhatsApp: envie um modelo aprovado',
+): AppError => appError('SD_WHATSAPP_WINDOW_CLOSED', message)

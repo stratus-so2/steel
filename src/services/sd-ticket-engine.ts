@@ -26,6 +26,7 @@ import {
 } from '@/src/errors'
 import type { AppError } from '@/src/errors/app-error'
 import { err, ok, type Result } from '@/src/lib/result'
+import { enqueueSdAiTriage } from '@/src/lib/servicedesk/ai-queue'
 import { evaluateSdConditions } from '@/src/lib/servicedesk/conditions'
 import { sanitizeSdHtml } from '@/src/lib/servicedesk/html'
 import {
@@ -777,6 +778,8 @@ export const SdTicketEngine = {
     })
     await notifyAssigned(ticket, config, actor)
     await publish(ticket, 'ticket.created', actor)
+    // Triagem por IA (fatia whatsapp-ai): só enfileira se estiver ligada.
+    await enqueueSdAiTriage(settings, ticket.id)
     logger.info('servicedesk.ticket.created', {
       workspaceId,
       ticketId: ticket.id,

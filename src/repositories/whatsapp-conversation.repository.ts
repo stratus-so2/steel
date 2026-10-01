@@ -1,4 +1,8 @@
-import type { Prisma, WhatsAppConversation } from '@prisma/client'
+import type {
+  ModuleKind,
+  Prisma,
+  WhatsAppConversation,
+} from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
@@ -15,6 +19,27 @@ export type WhatsAppConversationWithPreview =
 
 export type WhatsAppConversationWithConnection =
   Prisma.WhatsAppConversationGetPayload<{ include: { connection: true } }>
+
+/**
+ * Escopo das buscas de conversa por contato: as conversas de uma conexão
+ * (ServiceDesk) ou de todas as conexões de um módulo (zap).
+ */
+export type WhatsAppConversationScope =
+  | { connectionId: string }
+  | { module: ModuleKind }
+
+/** Só as conversas do zap: as das conexões do ServiceDesk ficam de fora. */
+const ZAP_ONLY = {
+  connection: { module: 'COMMUNICATION' as const },
+} satisfies Prisma.WhatsAppConversationWhereInput
+
+function scopeWhere(
+  scope: WhatsAppConversationScope,
+): Prisma.WhatsAppConversationWhereInput {
+  return 'connectionId' in scope
+    ? { connectionId: scope.connectionId }
+    : { connection: { module: scope.module } }
+}
 
 /** Filtro de status da listagem: um status exato ou `OPEN` (não fechadas —
  * a caixa de entrada ativa). */
@@ -38,6 +63,7 @@ export const WhatsAppConversationRepository = {
       const conversations = await prisma.whatsAppConversation.findMany({
         where: {
           workspaceId,
+          ...ZAP_ONLY,
           deletedAt: null,
           archivedAt: filters.archived ? { not: null } : null,
           ...(filters.status === 'OPEN'
@@ -64,13 +90,14 @@ export const WhatsAppConversationRepository = {
     }
   },
 
+  /** Conversa do zap (as do ServiceDesk não aparecem por aqui). */
   async findById(
     id: string,
     workspaceId: string,
   ): Promise<Result<WhatsAppConversationWithPreview | null>> {
     try {
       const conversation = await prisma.whatsAppConversation.findFirst({
-        where: { id, workspaceId },
+        where: { id, workspaceId, ...ZAP_ONLY },
         include: conversationListInclude,
       })
       return ok(conversation)
@@ -109,12 +136,14 @@ export const WhatsAppConversationRepository = {
   async findActiveByContact(
     workspaceId: string,
     contactId: string,
+    scope: WhatsAppConversationScope = { module: 'COMMUNICATION' },
   ): Promise<Result<WhatsAppConversation | null>> {
     try {
       const conversation = await prisma.whatsAppConversation.findFirst({
         where: {
           workspaceId,
           contactId,
+          ...scopeWhere(scope),
           status: { in: ['NEW', 'IN_PROGRESS'] },
         },
         orderBy: { createdAt: 'desc' },
@@ -130,10 +159,17 @@ export const WhatsAppConversationRepository = {
   async findLatestClosedByContact(
     workspaceId: string,
     contactId: string,
+    scope: WhatsAppConversationScope = { module: 'COMMUNICATION' },
   ): Promise<Result<WhatsAppConversation | null>> {
     try {
       const conversation = await prisma.whatsAppConversation.findFirst({
-        where: { workspaceId, contactId, status: 'CLOSED', deletedAt: null },
+        where: {
+          workspaceId,
+          contactId,
+          status: 'CLOSED',
+          deletedAt: null,
+          ...scopeWhere(scope),
+        },
         orderBy: { updatedAt: 'desc' },
       })
       return ok(conversation)
@@ -156,6 +192,7 @@ export const WhatsAppConversationRepository = {
       const conversations = await prisma.whatsAppConversation.findMany({
         where: {
           workspaceId: input.workspaceIds,
+          ...ZAP_ONLY,
           deletedAt: null,
           status: { in: ['NEW', 'IN_PROGRESS'] },
           OR: [

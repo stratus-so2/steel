@@ -101,6 +101,8 @@ export type AuditEntity =
   | 'sd_contact'
   | 'sd_config_item'
   | 'sd_config_item_type'
+  // ServiceDesk — WhatsApp e IA
+  | 'sd_ai_conversation'
 
 export type AuditAction =
   | 'create'
@@ -144,6 +146,8 @@ export type AuditAction =
   | 'resolve'
   | 'unresolve'
   | 'escalate'
+  | 'link'
+  | 'unlink'
 
 type AuditOutcome = 'success' | 'failure'
 
