@@ -53,6 +53,7 @@ export const WORKSPACE_CHILD_MODELS: Record<string, (ws: string) => Where> = {
   sdContactCustomer: (ws) => ({ contact: { workspaceId: ws } }),
   sdSlaTarget: (ws) => ({ policy: { workspaceId: ws } }),
   sdTicketParticipant: (ws) => ({ ticket: { workspaceId: ws } }),
+  sdTicketFollower: (ws) => ({ ticket: { workspaceId: ws } }),
   sdTicketKbLink: (ws) => ({ ticket: { workspaceId: ws } }),
   sdTicketFollower: (ws) => ({ ticket: { workspaceId: ws } }),
   sdKbComment: (ws) => ({ article: { workspaceId: ws } }),

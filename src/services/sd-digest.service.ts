@@ -6,7 +6,10 @@ import {
   sdNotificationEvent,
 } from '@/src/config/servicedesk-notifications'
 import { sendSdDailyDigestEmail } from '@/src/lib/mail/servicedesk/send-sd-daily-digest'
-import { sdLocalHour, sdTicketNotificationHref } from '@/src/lib/servicedesk/notify'
+import {
+  sdLocalHour,
+  sdTicketNotificationHref,
+} from '@/src/lib/servicedesk/notify'
 import {
   formatSdTicketCode,
   resolveSdTicketPrefixes,

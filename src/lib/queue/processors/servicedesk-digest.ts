@@ -1,8 +1,8 @@
 import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
 import {
-  SdDigestService,
   type SdDigestResult,
+  SdDigestService,
 } from '@/src/services/sd-digest.service'
 import { ServicedeskDigestJob } from '../jobs'
 
