@@ -29,3 +29,8 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0008 | [ServiceDesk ITIL 4 com motor configurável por workspace](./0008-servicedesk-itil-configurable-engine.md) | Aceita | 2026-09-21 |
 | 0009 | [Construir a imagem num runner hospedado; deploy segue no servidor](./0009-build-image-on-hosted-runner.md) | Aceita | 2026-10-01 |
 | 0010 | [PRs de vida curta quando as fatias são construídas em paralelo](./0010-short-lived-prs-for-parallel-slices.md) | Aceita | 2026-10-01 |
+| 0011 | [CSP com nonce, sem `strict-dynamic`, por causa do Cache Components](./0011-csp-nonce-without-strict-dynamic.md) | Aceita | 2026-10-01 |
+| 0012 | [Módulos opt-in por workspace e banco próprio por módulo](./0012-modules-opt-in-and-per-module-database.md) | Aceita | anterior a 2026-09 |
+| 0013 | [RBAC por perfil (recurso × ação) com negação por padrão](./0013-rbac-profiles-deny-by-default.md) | Aceita | anterior a 2026-09 |
+| 0014 | [Storage S3 na imagem Silo (fork do MinIO)](./0014-minio-replaced-by-silo-fork.md) | Aceita | 2026-10-01 |
+| 0015 | [Suíte dividida em projetos e piso de cobertura de 95%](./0015-test-projects-and-coverage-floor.md) | Aceita | 2026-09-19 |
