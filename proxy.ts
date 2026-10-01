@@ -20,7 +20,9 @@ const PUBLIC_ROUTES = [
   // Descadastro LGPD de campanhas de e-mail: link sem sessão (token HMAC)
   '/unsubscribe', '/api/crm/unsubscribe',
   // Aprovação de chamado do ServiceDesk por e-mail: link sem sessão (token)
-  '/servicedesk/approval', '/api/servicedesk/approvals'
+  '/servicedesk/approval', '/api/servicedesk/approvals',
+  // Abertura de chamado por monitoramento: webhook sem sessão (token na URL)
+  '/api/servicedesk/monitoring'
 ]
 
 /**
