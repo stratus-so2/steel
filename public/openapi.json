@@ -193,6 +193,14 @@
       "description": "Painéis customizáveis (motor de dashboards com fontes de chamados, custos, eventos e artigos): contagem, soma, média, % de SLA, MTTR, backlog, criados × resolvidos, CSAT. Padrões \"Dashboard analítico\" e \"KPIs (TV)\"; modo TV em tela cheia. Só agentes."
     },
     {
+      "name": "ServiceDesk · WhatsApp",
+      "description": "Conexões de WhatsApp próprias do módulo (Z-API ou Meta Cloud API, credenciais cifradas, webhook e teste), conversas do ServiceDesk e a aba WhatsApp do chamado: vincular/iniciar/desvincular, janela de 24 h da Meta, envio de texto, arquivo e modelo aprovado — tudo espelhado no histórico do chamado."
+    },
+    {
+      "name": "ServiceDesk · Agente de IA",
+      "description": "Copiloto do agente (resumo, sugestão de resposta, classificação, rascunho da solução e conversa livre sobre o chamado) e pré-atendimento do solicitante (portal e WhatsApp): resolve pela base de conhecimento ou abre o chamado já triado. Usa o provedor e a cota de IA do workspace (ADR 0007); o contexto enviado vai com dados pessoais mascarados."
+    },
+    {
       "name": "ServiceDesk · CMDB",
       "description": "Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis."
     },
@@ -323,6 +331,8 @@
         "ServiceDesk · Configurações",
         "ServiceDesk · Clientes e contatos",
         "ServiceDesk · Painéis",
+        "ServiceDesk · WhatsApp",
+        "ServiceDesk · Agente de IA",
         "ServiceDesk · CMDB"
       ]
     },
@@ -1096,7 +1106,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_16"
+            "$ref": "#/components/responses/400_BAD_REQUEST_18"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -7624,7 +7634,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "503": {
-            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
           }
         },
         "security": [
@@ -7713,7 +7723,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "503": {
-            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
           }
         },
         "security": [
@@ -8564,7 +8574,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "402": {
-            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED_2"
           },
           "403": {
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED_2"
@@ -8579,7 +8589,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "503": {
-            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_3"
           }
         },
         "security": [
@@ -14788,7 +14798,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -15948,7 +15958,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_8"
+            "$ref": "#/components/responses/400_BAD_REQUEST_10"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -16102,7 +16112,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_7"
+            "$ref": "#/components/responses/400_BAD_REQUEST_9"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -21085,7 +21095,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_14"
+            "$ref": "#/components/responses/400_BAD_REQUEST_16"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -25109,7 +25119,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_10"
+            "$ref": "#/components/responses/400_BAD_REQUEST_12"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -25594,7 +25604,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_PROPOSAL_NOT_FOUND"
@@ -26018,7 +26028,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -29131,7 +29141,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_12"
+            "$ref": "#/components/responses/400_BAD_REQUEST_14"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -29338,13 +29348,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_5"
+            "$ref": "#/components/responses/400_BAD_REQUEST_6"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_42"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_44"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_CRM_SOCIAL_CONNECTION_NOT_FOUND"
@@ -29439,7 +29449,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_6"
+            "$ref": "#/components/responses/400_BAD_REQUEST_8"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -34355,6 +34365,811 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/ai/pre-service": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Conversar com o pré-atendimento (portal)",
+        "operationId": "postWorkspacesByIdServicedeskAiPreService",
+        "description": "Uma mensagem do solicitante. Sem `conversationId`, começa uma conversa nova. A IA responde com a base de conhecimento, cita artigos, indica a próxima ação (`answer`, `collect_info`, `resolved`, `open_ticket`) e mantém o rascunho do chamado. Palavras de transbordo (`aiHandoffKeywords`) pulam a chamada ao provedor e já sugerem abrir o chamado. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado; solicitantes precisam do portal ligado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Turno da IA.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiPreServiceReply"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_AI_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_AI_CONVERSATION_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/pre-service/{conversationId}/close": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Encerrar o pré-atendimento sem chamado",
+        "operationId": "postWorkspacesByIdServicedeskAiPreServiceByConversationIdClose",
+        "description": "Marca o desfecho da conversa: `resolved_by_kb` (resolvido por um artigo) ou `abandoned` (desistência). Alimenta a métrica de desvio de chamados.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa de pré-atendimento (`SdAiConversation`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": ["resolved_by_kb", "abandoned"]
+                  }
+                },
+                "required": ["outcome"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversa encerrada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_AI_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_AI_CONVERSATION_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/pre-service/{conversationId}/ticket": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Abrir o chamado do pré-atendimento",
+        "operationId": "postWorkspacesByIdServicedeskAiPreServiceByConversationIdTicket",
+        "description": "Cria o chamado (canal `PORTAL`) com o rascunho da IA, sobrescrito pelo que o solicitante editar, e grava a transcrição como primeira mensagem (autor IA). Se o catálogo sugerido não servir ao tipo, o chamado é aberto sem catálogo. Dispara as automações `TICKET_CREATED`. Auditado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conversa de pré-atendimento (`SdAiConversation`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 10000
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Chamado aberto.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiOpenedTicket"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_AI_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_AI_CONVERSATION_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/tickets/{ticketId}/chat": {
+      "get": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Conversa do copiloto neste chamado",
+        "operationId": "getWorkspacesByIdServicedeskAiTicketsByTicketIdChat",
+        "description": "Histórico da conversa deste agente com o copiloto (uma por agente e chamado); `null` quando ainda não existe. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa ou `null`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "anyOf": [
+                            {
+                              "$ref": "#/components/schemas/SdAiConversation"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Perguntar ao copiloto sobre o chamado",
+        "operationId": "postWorkspacesByIdServicedeskAiTicketsByTicketIdChat",
+        "description": "Pergunta livre com o chamado e a base de conhecimento como contexto. Cria a conversa na primeira mensagem. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "required": ["message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversa com a resposta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Limpar a conversa do copiloto",
+        "operationId": "deleteWorkspacesByIdServicedeskAiTicketsByTicketIdChat",
+        "description": "Apaga a conversa deste agente neste chamado. Sem conversa, responde 200 do mesmo jeito. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Limpa (`data: null`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/tickets/{ticketId}/classification": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Sugerir a classificação do chamado (copiloto)",
+        "operationId": "postWorkspacesByIdServicedeskAiTicketsByTicketIdClassification",
+        "description": "Catálogo (categoria > subcategoria > serviço), impacto, urgência, prioridade, departamento e tags — só ids que existem no catálogo do workspace e formam um caminho válido. Apenas sugere: aplicar é com `PATCH /workspaces/{id}/servicedesk/tickets/{ticketId}`. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sugestões.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiClassification"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/tickets/{ticketId}/reply": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Sugerir a próxima resposta pública (copiloto)",
+        "operationId": "postWorkspacesByIdServicedeskAiTicketsByTicketIdReply",
+        "description": "Texto pronto para o agente revisar e enviar; `instructions` orienta o tom ou o conteúdo. Não envia nada por conta própria. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "instructions": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sugestão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiText"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/tickets/{ticketId}/solution": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Rascunhar a solução (copiloto)",
+        "operationId": "postWorkspacesByIdServicedeskAiTicketsByTicketIdSolution",
+        "description": "Texto para o campo \"Solução\" (causa, o que foi feito, como validar). Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rascunho.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiText"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/ai/tickets/{ticketId}/summary": {
+      "post": {
+        "tags": ["ServiceDesk · Agente de IA"],
+        "summary": "Resumir o chamado (copiloto)",
+        "operationId": "postWorkspacesByIdServicedeskAiTicketsByTicketIdSummary",
+        "description": "Resumo para quem vai assumir o chamado, gravado em `aiSummary` e registrado como evento `ai.summary`. Consome a cota de IA do workspace (ADR 0007). O contexto enviado ao provedor tem dados pessoais mascarados. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdAiText"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/servicedesk/automation-rules": {
       "get": {
         "tags": ["ServiceDesk · Configurações"],
@@ -37258,7 +38073,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CEP_NOT_FOUND"
@@ -37955,7 +38770,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
           },
           "409": {
             "$ref": "#/components/responses/409_SD_CONFIG_CONFLICT_3"
@@ -38100,7 +38915,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_ITEM_TYPE_NOT_FOUND"
@@ -38172,7 +38987,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_ITEM_TYPE_NOT_FOUND"
@@ -44783,7 +45598,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           }
         },
         "security": [
@@ -46429,7 +47244,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_15"
+            "$ref": "#/components/responses/400_BAD_REQUEST_17"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -46873,7 +47688,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
@@ -46959,7 +47774,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
@@ -51464,7 +52279,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
@@ -52042,7 +52857,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -52690,7 +53505,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -53144,7 +53959,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_11"
+            "$ref": "#/components/responses/400_BAD_REQUEST_13"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -53371,7 +54186,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -54733,7 +55548,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -55025,7 +55840,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -55495,7 +56310,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_PHASE_NOT_FOUND"
@@ -55877,7 +56692,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -56663,6 +57478,1295 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/whatsapp/connections": {
+      "get": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Listar conexões de WhatsApp do ServiceDesk",
+        "operationId": "getWorkspacesByIdServicedeskWhatsappConnections",
+        "description": "Conexões com `module = SERVICE_DESK`, com o caminho do webhook a configurar no provedor e qual delas é a ativa. Credenciais nunca voltam. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conexões.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdWhatsappConnection"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Cadastrar conexão de WhatsApp",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappConnections",
+        "description": "Z-API (instância + token) ou Meta Cloud API (phone number id + WABA + access token). As credenciais são cifradas com `CONNECTION_SECRETS`. A **primeira** conexão criada vira a ativa do módulo. Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "const": "ZAPI"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "phoneNumber": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 20,
+                        "pattern": "^\\d+$"
+                      },
+                      "zapiInstanceId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "zapiToken": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 255
+                      },
+                      "zapiClientToken": {
+                        "type": "string",
+                        "maxLength": 255
+                      }
+                    },
+                    "required": ["provider", "label", "phoneNumber", "zapiInstanceId", "zapiToken"]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "provider": {
+                        "type": "string",
+                        "const": "META"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "phoneNumber": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 20,
+                        "pattern": "^\\d+$"
+                      },
+                      "metaPhoneNumberId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "metaWabaId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "metaAccessToken": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4000
+                      }
+                    },
+                    "required": [
+                      "provider",
+                      "label",
+                      "phoneNumber",
+                      "metaPhoneNumberId",
+                      "metaWabaId",
+                      "metaAccessToken"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdWhatsappConnection"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/connections/{connectionId}": {
+      "patch": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Atualizar conexão de WhatsApp",
+        "operationId": "patchWorkspacesByIdServicedeskWhatsappConnectionsByConnectionId",
+        "description": "Renomeia ou troca as credenciais (recifradas). Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conexão de WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "zapiToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "zapiClientToken": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "metaAccessToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdWhatsappConnection"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Remover conexão de WhatsApp",
+        "operationId": "deleteWorkspacesByIdServicedeskWhatsappConnectionsByConnectionId",
+        "description": "Se era a ativa, o ServiceDesk fica sem WhatsApp (`whatsappConnectionId` volta a `null`). Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conexão de WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removida (`data: null`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/connections/{connectionId}/qr-code": {
+      "get": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "QR code da Z-API",
+        "operationId": "getWorkspacesByIdServicedeskWhatsappConnectionsByConnectionIdQrCode",
+        "description": "Imagem para parear o número. Só conexões Z-API — na Meta responde 400. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conexão de WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR code ou já conectado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdWhatsappQrCode"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_3"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/connections/{connectionId}/test": {
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Testar a conexão no provedor",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappConnectionsByConnectionIdTest",
+        "description": "Consulta o provedor e grava o resultado em `status`/`statusError`. Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "connectionId",
+            "in": "path",
+            "required": true,
+            "description": "Id da conexão de WhatsApp.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado do teste.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdWhatsappConnectionTest"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/conversations": {
+      "get": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Listar conversas do WhatsApp do ServiceDesk",
+        "operationId": "getWorkspacesByIdServicedeskWhatsappConversations",
+        "description": "Conversas das conexões do módulo, mais recentes primeiro, para vincular a um chamado. `?q=` busca por nome do contato ou número. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdWhatsappConversation"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}": {
+      "get": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Estado da aba WhatsApp do chamado",
+        "operationId": "getWorkspacesByIdServicedeskWhatsappTicketsByTicketId",
+        "description": "Conexão ativa do módulo, conversa vinculada, janela de 24 h da Meta e o número sugerido (WhatsApp do contato do chamado). Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado da aba.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTicketWhatsapp"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Desvincular a conversa do chamado",
+        "operationId": "deleteWorkspacesByIdServicedeskWhatsappTicketsByTicketId",
+        "description": "As mensagens já espelhadas no histórico continuam lá. Gera o evento `whatsapp.unlinked`. Auditado. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado da aba sem conversa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTicketWhatsapp"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}/link": {
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Vincular uma conversa ao chamado",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappTicketsByTicketIdLink",
+        "description": "A conversa precisa ser de uma conexão do ServiceDesk. Gera o evento `whatsapp.linked`. Auditado. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "conversationId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": ["conversationId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Estado da aba.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTicketWhatsapp"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}/media": {
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Enviar arquivo pelo WhatsApp do chamado",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappTicketsByTicketIdMedia",
+        "description": "Multipart com o campo `file` (imagem, vídeo, áudio ou documento, até 16 MB) e `caption` opcional. O arquivo vai para o bucket de mídia do WhatsApp. Mesmas regras de janela do texto. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário (limite de upload); ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Arquivo (até 16 MB)."
+                  },
+                  "caption": {
+                    "type": "string",
+                    "description": "Legenda (até 1024)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_7"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_TICKET_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_WHATSAPP_WINDOW_CLOSED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_3"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}/messages": {
+      "get": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Listar mensagens da conversa do chamado",
+        "operationId": "getWorkspacesByIdServicedeskWhatsappTicketsByTicketIdMessages",
+        "description": "Das mais novas para as mais antigas (`?cursor=<messageId>&limit=50`). Sem conversa vinculada, lista vazia. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppMessage"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Enviar texto pelo WhatsApp do chamado",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappTicketsByTicketIdMessages",
+        "description": "Texto livre: na Meta, só dentro da janela de 24 h desde a última mensagem do contato (fora dela, use o modelo). A mensagem é espelhada no histórico como resposta pública do agente (canal WHATSAPP), marca a primeira resposta do SLA e tira a IA da conversa. Auditado. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": ["text"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_TICKET_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_WHATSAPP_WINDOW_CLOSED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_3"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}/start": {
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Iniciar (ou retomar) a conversa com um número",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappTicketsByTicketIdStart",
+        "description": "Sem `waId`, usa o WhatsApp do contato do chamado. Reaproveita a conversa ativa do contato na conexão e vincula ao chamado (a IA não responde nessa conversa: entra como atendimento humano). Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "waId": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "pattern": "^[\\d\\s()+-]*$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Estado da aba.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTicketWhatsapp"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_WHATSAPP_NOT_CONFIGURED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}/template": {
+      "post": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Enviar modelo aprovado pelo WhatsApp do chamado",
+        "operationId": "postWorkspacesByIdServicedeskWhatsappTicketsByTicketIdTemplate",
+        "description": "O único envio possível fora da janela de 24 h da Meta. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `EDIT` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateName": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 20
+                  },
+                  "components": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {}
+                  }
+                },
+                "required": ["templateName", "language"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensagem enviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WhatsAppMessage"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_TICKET_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_3"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/whatsapp/tickets/{ticketId}/templates": {
+      "get": {
+        "tags": ["ServiceDesk · WhatsApp"],
+        "summary": "Listar modelos aprovados",
+        "operationId": "getWorkspacesByIdServicedeskWhatsappTicketsByTicketIdTemplates",
+        "description": "Modelos `APPROVED` da conexão da conversa vinculada (ou da conexão ativa). Sem conexão, lista vazia. Acesso: sessão + membro com o módulo **ServiceDesk** habilitado e a permissão `sd-tickets` × `VIEW` (OWNER/ADMIN sempre passam). Só agentes (membros de um departamento).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Modelos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdWhatsappTemplate"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/whatsapp/ai-config": {
       "get": {
         "tags": ["Comunicação · IA"],
@@ -56914,7 +59018,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE"
@@ -57091,7 +59195,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -57358,7 +59462,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_BROADCAST_NOT_FOUND"
@@ -57481,7 +59585,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_43"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_45"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -57917,7 +60021,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -58002,7 +60106,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
           },
           "409": {
             "$ref": "#/components/responses/409_CONFLICT_2"
@@ -58083,7 +60187,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -58192,7 +60296,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -58261,7 +60365,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -58409,7 +60513,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -58421,7 +60525,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "502": {
-            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_4"
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_5"
           }
         },
         "security": [
@@ -58637,7 +60741,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -58930,7 +61034,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_13"
+            "$ref": "#/components/responses/400_BAD_REQUEST_15"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -59002,7 +61106,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -60059,7 +62163,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -60126,7 +62230,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -60206,7 +62310,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -60275,7 +62379,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -60341,7 +62445,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -60851,7 +62955,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -60971,7 +63075,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_7"
@@ -61079,7 +63183,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_20"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
@@ -61157,7 +63261,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_18"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_19"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
@@ -61224,7 +63328,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -61305,7 +63409,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -61374,7 +63478,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_GROUP_NOT_FOUND"
@@ -61461,7 +63565,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -61549,7 +63653,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -61625,7 +63729,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -61637,7 +63741,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "502": {
-            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_3"
+            "$ref": "#/components/responses/502_WHATSAPP_PROVIDER_ERROR_4"
           }
         },
         "security": [
@@ -61694,7 +63798,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -61784,7 +63888,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_GROUP_NOT_FOUND"
@@ -61872,7 +63976,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -61964,7 +64068,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -62054,7 +64158,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_12"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_WHATSAPP_GROUP_NOT_FOUND"
@@ -62123,7 +64227,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+            "$ref": "#/components/responses/400_BAD_REQUEST_11"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -62186,7 +64290,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_41"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_43"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -62268,7 +64372,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_38"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_40"
           },
           "409": {
             "$ref": "#/components/responses/409_WHATSAPP_QUICK_REPLY_CONFLICT"
@@ -62366,7 +64470,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_40"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_42"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
@@ -62438,7 +64542,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_39"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_41"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_QUICK_REPLY_NOT_FOUND"
@@ -62495,7 +64599,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -62964,7 +65068,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -63027,7 +65131,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -63513,7 +65617,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -63582,7 +65686,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -63645,7 +65749,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -63716,7 +65820,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_14"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -63931,7 +66035,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_39"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -64106,13 +66210,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_3"
+            "$ref": "#/components/responses/400_BAD_REQUEST_4"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -64187,13 +66291,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_4"
+            "$ref": "#/components/responses/400_BAD_REQUEST_5"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_38"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND"
@@ -64331,6 +66435,29 @@
             },
             "examples": {
               "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Conexão Meta, sem credenciais ou falha no provedor",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "QR code está disponível apenas para conexões Z-API",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_4": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
                 "summary": "BAD_REQUEST — Conexão Z-API ou Meta sem WABA/token",
                 "value": {
                   "success": false,
@@ -64356,7 +66483,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_4": {
+      "400_BAD_REQUEST_5": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64390,7 +66517,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_5": {
+      "400_BAD_REQUEST_6": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64446,7 +66573,30 @@
           }
         }
       },
-      "400_BAD_REQUEST_6": {
+      "400_BAD_REQUEST_7": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Multipart sem o campo `file` ou maior que o limite",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Envie o arquivo no campo \"file\"",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_8": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64469,7 +66619,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_7": {
+      "400_BAD_REQUEST_9": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64503,7 +66653,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_8": {
+      "400_BAD_REQUEST_10": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64537,7 +66687,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_9": {
+      "400_BAD_REQUEST_11": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64582,7 +66732,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_10": {
+      "400_BAD_REQUEST_12": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64616,7 +66766,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_11": {
+      "400_BAD_REQUEST_13": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64638,7 +66788,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_12": {
+      "400_BAD_REQUEST_14": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64672,7 +66822,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_13": {
+      "400_BAD_REQUEST_15": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64695,7 +66845,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_14": {
+      "400_BAD_REQUEST_16": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64718,7 +66868,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_15": {
+      "400_BAD_REQUEST_17": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64740,7 +66890,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_16": {
+      "400_BAD_REQUEST_18": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -64959,6 +67109,28 @@
         }
       },
       "402_AI_QUOTA_EXCEEDED": {
+        "description": "Cota esgotada: `AI_QUOTA_EXCEEDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_QUOTA_EXCEEDED": {
+                "summary": "AI_QUOTA_EXCEEDED — Cota mensal de IA do workspace esgotada",
+                "value": {
+                  "success": false,
+                  "statusCode": 402,
+                  "error": {
+                    "code": "AI_QUOTA_EXCEEDED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "402_AI_QUOTA_EXCEEDED_2": {
         "description": "Cota esgotada: `AI_QUOTA_EXCEEDED`",
         "content": {
           "application/json": {
@@ -65756,7 +67928,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `EDIT`",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -65778,13 +67961,24 @@
                 }
               },
               "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED",
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
                 "value": {
                   "success": false,
                   "statusCode": 403,
                   "message": "Módulo não habilitado para esta workspace",
                   "error": {
                     "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "FORBIDDEN_3": {
+                "summary": "FORBIDDEN — Agente ou solicitante sem perfil de admin do módulo",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas administradores do ServiceDesk podem alterar a configuração",
+                  "error": {
+                    "code": "FORBIDDEN"
                   }
                 }
               }
@@ -65801,7 +67995,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `VIEW`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `EDIT`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -65846,7 +68040,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `VIEW`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `VIEW`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -65891,6 +68085,51 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `reports` × `VIEW`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
@@ -65927,7 +68166,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_15": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -65983,51 +68222,6 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_16": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `CREATE`",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Permissão insuficiente",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_17": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
@@ -66037,18 +68231,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `CREATE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `groups` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -66104,7 +68287,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `DELETE`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `CREATE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -66160,7 +68343,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `EDIT`",
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `DELETE`",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -66216,6 +68399,62 @@
                 }
               },
               "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `dashboards` × `EDIT`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
@@ -66252,7 +68491,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66297,7 +68536,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66342,7 +68581,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66387,7 +68626,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66432,7 +68671,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66477,7 +68716,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66522,7 +68761,63 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Agente ou solicitante sem perfil de admin do módulo",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas administradores do ServiceDesk podem alterar a configuração",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66578,7 +68873,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66634,7 +68929,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66690,7 +68985,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66746,7 +69041,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66813,7 +69108,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_32": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66869,7 +69164,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_33": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66914,7 +69209,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_34": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -66959,7 +69254,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_35": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67004,7 +69299,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_36": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_38": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67049,7 +69344,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_37": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_39": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67094,7 +69389,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_38": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_40": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67139,7 +69434,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_39": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_41": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67184,7 +69479,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_40": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_42": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67229,7 +69524,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_41": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_43": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67274,7 +69569,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_42": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_44": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -67330,7 +69625,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_43": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_45": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -68258,6 +70553,95 @@
           }
         }
       },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_PORTAL_DISABLED_SD_AI_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_PORTAL_DISABLED`, `SD_AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_AI_DISABLED": {
+                "summary": "SD_AI_DISABLED — `aiEnabled` ou `aiPreServiceEnabled` desligado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O pré-atendimento por IA está desativado",
+                  "error": {
+                    "code": "SD_AI_DISABLED"
+                  }
+                }
+              },
+              "SD_PORTAL_DISABLED": {
+                "summary": "SD_PORTAL_DISABLED — Portal do solicitante desligado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O portal do solicitante está desativado",
+                  "error": {
+                    "code": "SD_PORTAL_DISABLED"
+                  }
+                }
+              },
+              "SD_AI_DISABLED_2": {
+                "summary": "SD_AI_DISABLED — `aiEnabled` desligado nas configurações",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O agente de IA do ServiceDesk está desativado",
+                  "error": {
+                    "code": "SD_AI_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`",
         "content": {
@@ -68669,6 +71053,84 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Sem acesso a este chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
@@ -68727,7 +71189,74 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Sem acesso a este chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -68805,6 +71334,173 @@
           }
         }
       },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`, `SD_AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Sem acesso a este chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              },
+              "SD_AI_DISABLED": {
+                "summary": "SD_AI_DISABLED — `aiEnabled` desligado nas configurações",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O agente de IA do ServiceDesk está desativado",
+                  "error": {
+                    "code": "SD_AI_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_SD_AI_DISABLED_2": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`, `SD_AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Sem acesso a este chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              },
+              "SD_AI_DISABLED": {
+                "summary": "SD_AI_DISABLED — `aiEnabled` desligado nas configurações",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O agente de IA do ServiceDesk está desativado",
+                  "error": {
+                    "code": "SD_AI_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_PORTAL_DISABLED`",
         "content": {
@@ -68874,6 +71570,106 @@
                   "success": false,
                   "statusCode": 403,
                   "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_PORTAL_DISABLED_SD_AI_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_PORTAL_DISABLED`, `SD_AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_AI_DISABLED": {
+                "summary": "SD_AI_DISABLED — `aiEnabled` ou `aiPreServiceEnabled` desligado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O pré-atendimento por IA está desativado",
+                  "error": {
+                    "code": "SD_AI_DISABLED"
+                  }
+                }
+              },
+              "SD_PORTAL_DISABLED": {
+                "summary": "SD_PORTAL_DISABLED — Portal do solicitante desligado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O portal do solicitante está desativado",
+                  "error": {
+                    "code": "SD_PORTAL_DISABLED"
+                  }
+                }
+              },
+              "SD_AI_DISABLED_2": {
+                "summary": "SD_AI_DISABLED — `aiEnabled` desligado nas configurações",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O agente de IA do ServiceDesk está desativado",
+                  "error": {
+                    "code": "SD_AI_DISABLED"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — `type` fora de `portalTicketTypes`",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este tipo de chamado não pode ser aberto pelo portal",
                   "error": {
                     "code": "SD_TICKET_FORBIDDEN"
                   }
@@ -71296,6 +74092,29 @@
           }
         }
       },
+      "404_SD_AI_CONVERSATION_NOT_FOUND": {
+        "description": "Não encontrado: `SD_AI_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_AI_CONVERSATION_NOT_FOUND": {
+                "summary": "SD_AI_CONVERSATION_NOT_FOUND — Conversa inexistente, de outro usuário ou de outro canal",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa com a IA não encontrada",
+                  "error": {
+                    "code": "SD_AI_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_SD_APPROVAL_NOT_FOUND": {
         "description": "Não encontrado: `SD_APPROVAL_NOT_FOUND`",
         "content": {
@@ -72486,6 +75305,74 @@
           }
         }
       },
+      "404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_WHATSAPP_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "SD_WHATSAPP_CONVERSATION_NOT_FOUND — O chamado não tem conversa vinculada",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "O chamado não tem conversa de WhatsApp vinculada",
+                  "error": {
+                    "code": "SD_WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_TICKET_NOT_FOUND_SD_WHATSAPP_CONVERSATION_NOT_FOUND_2": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_WHATSAPP_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_WHATSAPP_CONVERSATION_NOT_FOUND": {
+                "summary": "SD_WHATSAPP_CONVERSATION_NOT_FOUND — Conversa inexistente ou de uma conexão de outro módulo",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "SD_WHATSAPP_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND": {
         "description": "Não encontrado: `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND`",
         "content": {
@@ -72542,6 +75429,29 @@
             "examples": {
               "WHATSAPP_CONNECTION_NOT_FOUND": {
                 "summary": "WHATSAPP_CONNECTION_NOT_FOUND",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conexão do WhatsApp não encontrada",
+                  "error": {
+                    "code": "WHATSAPP_CONNECTION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_WHATSAPP_CONNECTION_NOT_FOUND_2": {
+        "description": "Não encontrado: `WHATSAPP_CONNECTION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_CONNECTION_NOT_FOUND": {
+                "summary": "WHATSAPP_CONNECTION_NOT_FOUND — Conexão inexistente ou de outro módulo (Comunicação)",
                 "value": {
                   "success": false,
                   "statusCode": 404,
@@ -73982,6 +76892,29 @@
                   "message": "Slug já está em uso neste workspace",
                   "error": {
                     "code": "PROJECT_SLUG_CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_AI_CONVERSATION_CLOSED": {
+        "description": "Conflito com o estado atual: `SD_AI_CONVERSATION_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_AI_CONVERSATION_CLOSED": {
+                "summary": "SD_AI_CONVERSATION_CLOSED — Conversa já encerrada",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este atendimento com a IA já foi encerrado",
+                  "error": {
+                    "code": "SD_AI_CONVERSATION_CLOSED"
                   }
                 }
               }
@@ -76617,6 +79550,133 @@
           }
         }
       },
+      "422_VALIDATION_ERROR_SD_WHATSAPP_NOT_CONFIGURED": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_WHATSAPP_NOT_CONFIGURED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_WHATSAPP_NOT_CONFIGURED": {
+                "summary": "SD_WHATSAPP_NOT_CONFIGURED — Nenhuma conexão ativa no módulo",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Nenhuma conexão de WhatsApp configurada no ServiceDesk",
+                  "error": {
+                    "code": "SD_WHATSAPP_NOT_CONFIGURED"
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — Sem `waId` e o contato do chamado não tem WhatsApp",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Informe o número do WhatsApp (com DDI e DDD)",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_WHATSAPP_WINDOW_CLOSED": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_WHATSAPP_WINDOW_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_WHATSAPP_WINDOW_CLOSED": {
+                "summary": "SD_WHATSAPP_WINDOW_CLOSED — Janela de 24 h fechada (Meta) — só modelo aprovado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Fora da janela de 24 h do WhatsApp: envie um modelo aprovado",
+                  "error": {
+                    "code": "SD_WHATSAPP_WINDOW_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_WHATSAPP_WINDOW_CLOSED_2": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_WHATSAPP_WINDOW_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — MIME fora da lista, arquivo vazio ou acima de 16 MB",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Tipo de arquivo não suportado",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              },
+              "SD_WHATSAPP_WINDOW_CLOSED": {
+                "summary": "SD_WHATSAPP_WINDOW_CLOSED — Janela de 24 h fechada (Meta)",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Fora da janela de 24 h do WhatsApp: envie um modelo aprovado",
+                  "error": {
+                    "code": "SD_WHATSAPP_WINDOW_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_VALIDATION_ERROR_WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE": {
         "description": "Dados inválidos: `VALIDATION_ERROR`, `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE`",
         "content": {
@@ -77649,6 +80709,29 @@
             },
             "examples": {
               "WHATSAPP_PROVIDER_ERROR": {
+                "summary": "WHATSAPP_PROVIDER_ERROR — O provedor recusou o envio",
+                "value": {
+                  "success": false,
+                  "statusCode": 502,
+                  "message": "Falha ao comunicar com o provedor do WhatsApp",
+                  "error": {
+                    "code": "WHATSAPP_PROVIDER_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "502_WHATSAPP_PROVIDER_ERROR_4": {
+        "description": "Falha em serviço externo: `WHATSAPP_PROVIDER_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WHATSAPP_PROVIDER_ERROR": {
                 "summary": "WHATSAPP_PROVIDER_ERROR — A Z-API não devolveu link",
                 "value": {
                   "success": false,
@@ -77663,7 +80746,7 @@
           }
         }
       },
-      "502_WHATSAPP_PROVIDER_ERROR_4": {
+      "502_WHATSAPP_PROVIDER_ERROR_5": {
         "description": "Falha em serviço externo: `WHATSAPP_PROVIDER_ERROR`",
         "content": {
           "application/json": {
@@ -77695,7 +80778,7 @@
             },
             "examples": {
               "AI_PROVIDER_UNAVAILABLE": {
-                "summary": "AI_PROVIDER_UNAVAILABLE",
+                "summary": "AI_PROVIDER_UNAVAILABLE — O provedor falhou ou devolveu resposta inutilizável",
                 "value": {
                   "success": false,
                   "statusCode": 503,
@@ -77710,6 +80793,29 @@
         }
       },
       "503_AI_PROVIDER_UNAVAILABLE_2": {
+        "description": "Serviço indisponível: `AI_PROVIDER_UNAVAILABLE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_PROVIDER_UNAVAILABLE": {
+                "summary": "AI_PROVIDER_UNAVAILABLE",
+                "value": {
+                  "success": false,
+                  "statusCode": 503,
+                  "message": "Nenhum provedor de IA habilitado está disponível neste ambiente",
+                  "error": {
+                    "code": "AI_PROVIDER_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "503_AI_PROVIDER_UNAVAILABLE_3": {
         "description": "Serviço indisponível: `AI_PROVIDER_UNAVAILABLE`",
         "content": {
           "application/json": {
@@ -92349,6 +95455,386 @@
         },
         "required": ["id", "name", "email", "image", "isAdmin", "isAgent", "departments"]
       },
+      "SdAiArticleCard": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "excerpt": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "title", "excerpt"]
+      },
+      "SdAiClassification": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "service": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "impact": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "urgency": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "department": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["id", "name"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Item do catálogo do workspace (`null` = sem sugestão)."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["vpn", "acesso"]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "reasoning": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "subcategory",
+          "service",
+          "impact",
+          "urgency",
+          "priority",
+          "department",
+          "tags",
+          "confidence",
+          "reasoning"
+        ]
+      },
+      "SdAiConversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["COPILOT", "PRE_SERVICE"]
+          },
+          "ticketId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["resolved_by_kb", "ticket_opened", "abandoned"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` = conversa em andamento."
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdAiMessage"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "mode", "ticketId", "outcome", "messages", "createdAt", "updatedAt"]
+      },
+      "SdAiMessage": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant"]
+          },
+          "content": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdAiArticleCard"
+            }
+          }
+        },
+        "required": ["role", "content", "at"]
+      },
+      "SdAiOpenedTicket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "code": {
+            "type": "string",
+            "example": "INC-000123"
+          }
+        },
+        "required": ["id", "number", "code"]
+      },
+      "SdAiPreServiceReply": {
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/SdAiConversation"
+          },
+          "reply": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["answer", "collect_info", "resolved", "open_ticket"]
+          },
+          "articles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdAiArticleCard"
+            }
+          },
+          "suggestOpenTicket": {
+            "type": "boolean",
+            "description": "Pronto para abrir chamado (decisão da IA, palavra de transbordo ou pouca confiança)."
+          },
+          "ticketDraft": {
+            "$ref": "#/components/schemas/SdAiTicketDraft"
+          }
+        },
+        "required": ["conversation", "reply", "action", "articles", "suggestOpenTicket", "ticketDraft"]
+      },
+      "SdAiText": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Texto gerado pelo copiloto, pronto para revisão."
+          }
+        },
+        "required": ["text"]
+      },
+      "SdAiTicketDraft": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+          },
+          "categoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subcategoryId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "serviceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "urgencyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "type",
+          "categoryId",
+          "subcategoryId",
+          "serviceId",
+          "urgencyId"
+        ]
+      },
       "SdAutomationRule": {
         "type": "object",
         "properties": {
@@ -100806,6 +104292,71 @@
           "updatedAt"
         ]
       },
+      "SdTicketWhatsapp": {
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "description": "Há conexão ativa do ServiceDesk configurada."
+          },
+          "connection": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["ZAPI", "META"]
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["DISCONNECTED", "CONNECTING", "CONNECTED", "ERROR"]
+                  }
+                },
+                "required": ["id", "label", "provider", "phoneNumber", "status"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conversation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdWhatsappConversation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "window": {
+            "$ref": "#/components/schemas/SdWhatsappWindow"
+          },
+          "suggestedWaId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "WhatsApp do contato do chamado (para iniciar a conversa).",
+            "example": "5511999998888"
+          }
+        },
+        "required": ["configured", "connection", "conversation", "window", "suggestedWaId"]
+      },
       "SdUserSummary": {
         "type": "object",
         "properties": {
@@ -100831,6 +104382,310 @@
           }
         },
         "required": ["id", "name", "email", "image"]
+      },
+      "SdWhatsappConnection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["ZAPI", "META"]
+          },
+          "label": {
+            "type": "string",
+            "example": "Suporte TI"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "example": "5511988887777"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DISCONNECTED", "CONNECTING", "CONNECTED", "ERROR"]
+          },
+          "statusError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "zapiInstanceId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metaPhoneNumberId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metaWabaId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active": {
+            "type": "boolean",
+            "description": "É a conexão ativa do ServiceDesk (`SdSettings.whatsappConnectionId`)."
+          },
+          "webhookPath": {
+            "type": "string",
+            "description": "Caminho do webhook a configurar no provedor (sem o domínio). Z-API inclui `?secret=`; Meta é a URL única da plataforma.",
+            "example": "/api/whatsapp/webhook/zapi?secret=abc123"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "label",
+          "phoneNumber",
+          "status",
+          "statusError",
+          "zapiInstanceId",
+          "metaPhoneNumberId",
+          "metaWabaId",
+          "active",
+          "webhookPath",
+          "createdAt"
+        ]
+      },
+      "SdWhatsappConnectionTest": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DISCONNECTED", "CONNECTING", "CONNECTED", "ERROR"]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["connected", "status", "error"]
+      },
+      "SdWhatsappConversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "waId": {
+                "type": "string",
+                "example": "5511999998888"
+              },
+              "avatarUrl": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["id", "name", "waId", "avatarUrl"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["NEW", "IN_PROGRESS", "CLOSED"]
+          },
+          "aiActive": {
+            "type": "boolean",
+            "description": "A IA do ServiceDesk está atendendo esta conversa."
+          },
+          "aiHandoff": {
+            "type": "boolean",
+            "description": "Transbordo para humano — a IA não responde mais aqui."
+          },
+          "lastMessageAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastMessagePreview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "openTicket": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "code": {
+                    "type": "string",
+                    "example": "INC-000123"
+                  }
+                },
+                "required": ["id", "number", "code"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Chamado em aberto já vinculado à conversa."
+          }
+        },
+        "required": [
+          "id",
+          "connectionId",
+          "contact",
+          "status",
+          "aiActive",
+          "aiHandoff",
+          "lastMessageAt",
+          "lastMessagePreview",
+          "openTicket"
+        ]
+      },
+      "SdWhatsappQrCode": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["connected", "awaiting_scan"]
+          },
+          "qrCodeBase64": {
+            "description": "Imagem do QR code (data URI ou base64), enquanto não pareou.",
+            "type": "string"
+          }
+        },
+        "required": ["status"]
+      },
+      "SdWhatsappTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "retorno_chamado"
+          },
+          "language": {
+            "type": "string",
+            "example": "pt_BR"
+          },
+          "category": {
+            "type": "string",
+            "example": "UTILITY"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Texto do corpo, com as variáveis `{{1}}`…"
+          },
+          "variableCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["id", "name", "language", "category", "body", "variableCount"]
+      },
+      "SdWhatsappWindow": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fim da janela de 24 h (Meta); `null` na Z-API ou fechada."
+          },
+          "requiresTemplate": {
+            "type": "boolean",
+            "description": "Fora da janela na Meta: só modelo aprovado."
+          }
+        },
+        "required": ["open", "expiresAt", "requiresTemplate"]
       },
       "ShortLink": {
         "type": "object",
