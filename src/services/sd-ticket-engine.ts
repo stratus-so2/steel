@@ -29,6 +29,7 @@ import { err, ok, type Result } from '@/src/lib/result'
 import { enqueueSdAiTriage } from '@/src/lib/servicedesk/ai-queue'
 import { evaluateSdConditions } from '@/src/lib/servicedesk/conditions'
 import { sanitizeSdHtml } from '@/src/lib/servicedesk/html'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import {
   publishSdTicketEvent,
   type SdTicketRealtimeEventType,
@@ -61,12 +62,12 @@ import {
 import { SdConditionsSchema } from '@/src/schemas/sd-rule.schema'
 import type { CreateSdTicketDTO } from '@/src/schemas/sd-ticket.schema'
 import type { SdAccessContext } from './sd-access'
+import { notifySdEvent } from './sd-notification.service'
 import {
   recordSdTicketEvent,
   type SdTicketEventInput,
   sdEventActorKind,
 } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import {
   applySdTemplateDefaults,
   buildSdTicketFacts,
@@ -412,24 +413,76 @@ function ticketCalendar(t: SdTicketWithRelations): SdCalendar {
 /* Notificações                                                         */
 /* ------------------------------------------------------------------ */
 
+/** Aviso de um evento do catálogo sobre o chamado (motor de notificações). */
+async function notifyEvent(
+  event: string,
+  t: SdTicketWithRelations,
+  config: SdEngineConfig,
+  actor: SdActor,
+  payload: { title: string; body: string },
+): Promise<void> {
+  const code = sdTicketCode(t, config.prefixes)
+  const sent = await notifySdEvent({
+    workspaceId: t.workspaceId,
+    event,
+    ticket: sdNotifyTicketOf(t, code),
+    actorId: sdActorUserId(actor),
+    payload,
+  })
+  if (!sent.ok) {
+    logger.warn('servicedesk.ticket.notify_failed', {
+      workspaceId: t.workspaceId,
+      ticketId: t.id,
+      event,
+      reason: sent.error.code,
+    })
+  }
+}
+
 async function notifyAssigned(
   t: SdTicketWithRelations,
   config: SdEngineConfig,
   actor: SdActor,
 ): Promise<void> {
   if (!t.assigneeId) return
-  await SdTicketNotifier.notify({
-    workspaceId: t.workspaceId,
-    userIds: [t.assigneeId],
-    excludeUserIds: [sdActorUserId(actor)],
-    kind: 'SD_TICKET_ASSIGNED',
-    ticket: {
-      number: t.number,
-      code: sdTicketCode(t, config.prefixes),
-      title: t.title,
-    },
-    title: `${sdTicketCode(t, config.prefixes)} atribuído a você`,
+  const code = sdTicketCode(t, config.prefixes)
+  await notifyEvent('ticket.assigned', t, config, actor, {
+    title: `${code} atribuído a você`,
     body: t.title,
+  })
+}
+
+/**
+ * Mudança de fase: resolvido e reaberto têm evento próprio no catálogo
+ * (públicos e canais diferentes); as outras fases caem em
+ * `ticket.phase_changed`.
+ */
+async function notifyPhaseChange(
+  before: SdTicketWithRelations,
+  after: SdTicketWithRelations,
+  target: { name: string; category: SdPhaseCategory },
+  config: SdEngineConfig,
+  actor: SdActor,
+  reopened: boolean,
+): Promise<void> {
+  const code = sdTicketCode(after, config.prefixes)
+  if (target.category === 'RESOLVED') {
+    await notifyEvent('ticket.resolved', after, config, actor, {
+      title: `${code} resolvido`,
+      body: after.solution?.trim() || after.title,
+    })
+    return
+  }
+  if (reopened) {
+    await notifyEvent('ticket.reopened', after, config, actor, {
+      title: `${code} reaberto`,
+      body: `Voltou de "${before.phase.name}" para "${target.name}".`,
+    })
+    return
+  }
+  await notifyEvent('ticket.phase_changed', after, config, actor, {
+    title: `${code} mudou de fase`,
+    body: `${before.phase.name} → ${target.name}`,
   })
 }
 
@@ -776,6 +829,10 @@ export const SdTicketEngine = {
       },
     })
     await notifyAssigned(ticket, config, actor)
+    await notifyEvent('ticket.created_in_department', ticket, config, actor, {
+      title: `Novo na fila: ${sdTicketCode(ticket, config.prefixes)}`,
+      body: ticket.title,
+    })
     await publish(ticket, 'ticket.created', actor)
     // Triagem por IA (fatia whatsapp-ai): só enfileira se estiver ligada.
     await enqueueSdAiTriage(settings, ticket.id)
@@ -1225,6 +1282,7 @@ export const SdTicketEngine = {
       })
     }
     await recordSdTicketEvent(events)
+    await notifyPhaseChange(ticket, after, target, config, actor, reopened)
     await publish(after, 'ticket.phase_changed', actor)
     return ok(after)
   },

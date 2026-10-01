@@ -51,4 +51,4 @@ export const SD_MESSAGE_MAX_MENTIONS = 20
 export const SdMessageMentionsSchema = z
   .array(sdId)
   .max(SD_MESSAGE_MAX_MENTIONS, 'Menções demais numa mensagem')
-  .default([])
+  .optional()

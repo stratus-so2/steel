@@ -19,15 +19,15 @@ vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   SdTicketEngine: { touchActivity: vi.fn() },
 }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
-vi.mock('../sd-ticket-notifier', () => ({
-  SdTicketNotifier: { notify: vi.fn() },
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
 }))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { SdTicketTaskRepository } from '@/src/repositories/sd-ticket-task.repository'
+import { notifySdEvent } from '../sd-notification.service'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 import { loadSdTicketTab, publishSdTicketTab } from '../sd-ticket-tab-support'
 import { SdTicketTaskService } from '../sd-ticket-task.service'
 
@@ -42,7 +42,7 @@ function sdEventAction(
 const load = vi.mocked(loadSdTicketTab)
 const repo = vi.mocked(SdTicketTaskRepository)
 const ctxRepo = vi.mocked(SdTicketContextRepository)
-const notify = vi.mocked(SdTicketNotifier.notify)
+const notify = vi.mocked(notifySdEvent)
 const record = vi.mocked(recordSdTicketEvent)
 
 beforeEach(() => {
@@ -113,9 +113,13 @@ describe('create', () => {
     expect(repo.create.mock.calls[0]?.[0]).not.toHaveProperty('completedAt')
     expect(ctxRepo.findNonMembers).toHaveBeenCalledWith('ws1', ['a1'])
     expect(notify.mock.calls[0]?.[0]).toMatchObject({
-      userIds: ['a1'],
-      excludeUserIds: ['u1'],
-      title: 'Tarefa atribuída a você em INC-000007',
+      event: 'task.assigned',
+      actorId: 'u1',
+      audience: 'payload',
+      payload: {
+        userIds: ['a1'],
+        title: 'Tarefa atribuída a você em INC-000007',
+      },
     })
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'task.created' }),
@@ -241,7 +245,8 @@ describe('update', () => {
         assigneeId: 'a2',
       }),
     )
-    expect(notify.mock.calls[0]?.[0].userIds).toEqual(['a2'])
+    expect(notify.mock.calls[0]?.[0].event).toBe('task.assigned')
+    expect(notify.mock.calls[0]?.[0].payload.userIds).toEqual(['a2'])
 
     notify.mockClear()
     expectOk(

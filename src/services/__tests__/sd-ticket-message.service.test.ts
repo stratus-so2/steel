@@ -11,6 +11,7 @@ import { err, ok } from '@/src/lib/result'
 import { ListSdTicketMessagesSchema } from '@/src/schemas/sd-ticket-message.schema'
 
 vi.mock('@/lib/axiom/audit')
+vi.mock('@/src/repositories/sd-notification.repository')
 vi.mock('@/src/repositories/sd-ticket-message.repository')
 vi.mock('@/src/repositories/sd-ticket-attachment.repository')
 vi.mock('../sd-ticket-tab-support', async (importOriginal) => ({
@@ -27,28 +28,30 @@ vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   },
 }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
-vi.mock('../sd-ticket-notifier', () => ({
-  SdTicketNotifier: { notify: vi.fn() },
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
 }))
 vi.mock('../sd-automation-engine', () => ({
   fireSdAutomations: vi.fn(async () => undefined),
 }))
 
 import { auditMutation } from '@/lib/axiom/audit'
+import { SdNotificationRepository } from '@/src/repositories/sd-notification.repository'
 import { SdTicketAttachmentRepository } from '@/src/repositories/sd-ticket-attachment.repository'
 import { SdTicketMessageRepository } from '@/src/repositories/sd-ticket-message.repository'
 import { fireSdAutomations } from '../sd-automation-engine'
+import { notifySdEvent } from '../sd-notification.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { SdTicketMessageService } from '../sd-ticket-message.service'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 import { loadSdTicketTab, publishSdTicketTab } from '../sd-ticket-tab-support'
 
 const load = vi.mocked(loadSdTicketTab)
 const repo = vi.mocked(SdTicketMessageRepository)
 const attachments = vi.mocked(SdTicketAttachmentRepository)
+const notificationRepo = vi.mocked(SdNotificationRepository)
 const engine = vi.mocked(SdTicketEngine)
-const notify = vi.mocked(SdTicketNotifier.notify)
+const notify = vi.mocked(notifySdEvent)
 const publish = vi.mocked(publishSdTicketTab)
 
 const guest = createFakeSdUserSummary({ id: 'guest' })
@@ -71,7 +74,7 @@ beforeEach(() => {
       }),
     ),
   )
-  repo.filterAgentIds.mockResolvedValue(ok(['guest']))
+  notificationRepo.filterAgentIds.mockResolvedValue(ok(['a2']))
   engine.reopen.mockResolvedValue(ok({} as never))
 })
 
@@ -151,10 +154,12 @@ describe('create', () => {
       expect.objectContaining({ action: 'message.posted', actorKind: 'AGENT' }),
     )
     const notice = notify.mock.calls[0]?.[0]
-    expect(notice?.userIds).toEqual(['u1', 'guest', 'req'])
-    expect(notice?.excludeUserIds).toEqual(['u1'])
-    expect(notice?.kind).toBe('SD_TICKET_MESSAGE')
-    expect(notice?.title).toBe('Nova mensagem em INC-000007')
+    expect(notice?.event).toBe('ticket.message')
+    expect(notice?.actorId).toBe('u1')
+    expect(notice?.ticket.code).toBe('INC-000007')
+    expect(notice?.ticket.assigneeId).toBe('u1')
+    expect(notice?.ticket.participantIds).toEqual(['guest'])
+    expect(notice?.payload.title).toBe('Nova mensagem em INC-000007')
     expect(publish).toHaveBeenCalledWith(
       expect.objectContaining({ id: 't1' }),
       'ticket.message',
@@ -198,24 +203,62 @@ describe('create', () => {
       }),
     )
     expect(engine.markFirstResponse).not.toHaveBeenCalled()
-    expect(repo.filterAgentIds).toHaveBeenCalledWith('ws1', ['a2', 'guest'])
-    expect(notify.mock.calls[0]?.[0].userIds).toEqual(['guest'])
-    expect(notify.mock.calls[0]?.[0].title).toBe(
+    // O público (`agentOnly`) é resolvido pelo motor, não aqui.
+    expect(notify.mock.calls[0]?.[0].event).toBe('ticket.internal_note')
+    expect(notify.mock.calls[0]?.[0].payload.title).toBe(
       'Nova nota interna em INC-000007',
     )
     expect(publish.mock.calls[0]?.[3]).toBe(true)
     expect(fireSdAutomations).not.toHaveBeenCalled()
   })
 
-  it('notifies nobody on an internal note when the agent lookup fails', async () => {
-    repo.filterAgentIds.mockResolvedValue(err(databaseError()))
+  it('keeps only workspace agents as mentions and fires ticket.mentioned', async () => {
+    repo.create.mockResolvedValue(
+      ok(createFakeSdTicketMessage({ mentionedUserIds: ['a2'] })),
+    )
     expectOk(
       await SdTicketMessageService.create('u1', 'ws1', 't1', {
         ...input,
-        visibility: 'INTERNAL',
+        // `u1` é o autor e `nobody` não é agente: ambos caem fora.
+        mentionedUserIds: ['a2', 'nobody', 'u1'],
       }),
     )
-    expect(notify.mock.calls[0]?.[0].userIds).toEqual([])
+    expect(notificationRepo.filterAgentIds).toHaveBeenCalledWith('ws1', [
+      'a2',
+      'nobody',
+    ])
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ mentionedUserIds: ['a2'] }),
+    )
+    const mention = notify.mock.calls.find(
+      (call) => call[0].event === 'ticket.mentioned',
+    )?.[0]
+    expect(mention?.payload.userIds).toEqual(['a2'])
+    expect(mention?.payload.title).toBe('Você foi citado em INC-000007')
+    expect(recordSdTicketEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({ mentions: 1 }),
+      }),
+    )
+  })
+
+  it('stops when the mention lookup fails', async () => {
+    notificationRepo.filterAgentIds.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdTicketMessageService.create('u1', 'ws1', 't1', {
+        ...input,
+        mentionedUserIds: ['a2'],
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(repo.create).not.toHaveBeenCalled()
+  })
+
+  it('does not fire ticket.mentioned without mentions', async () => {
+    expectOk(await SdTicketMessageService.create('u1', 'ws1', 't1', input))
+    expect(
+      notify.mock.calls.some((call) => call[0].event === 'ticket.mentioned'),
+    ).toBe(false)
   })
 
   it('requesters cannot write internal notes', async () => {
@@ -292,7 +335,7 @@ describe('create', () => {
     )
     expect(dto.attachments).toHaveLength(1)
     expect(attachments.findUnattached).toHaveBeenCalledWith(['a1'], 't1')
-    expect(notify.mock.calls[0]?.[0].body).toBe('1 anexo(s)')
+    expect(notify.mock.calls[0]?.[0].payload.body).toBe('1 anexo(s)')
 
     attachments.findUnattached.mockResolvedValue(
       ok([{ id: 'a1', uploadedById: 'someone', kind: 'IMAGE' }]),
@@ -322,7 +365,7 @@ describe('create', () => {
         body: long,
       }),
     )
-    const body = notify.mock.calls[0]?.[0].body ?? ''
+    const body = notify.mock.calls[0]?.[0].payload.body ?? ''
     expect(body).toHaveLength(140)
     expect(body.endsWith('…')).toBe(true)
   })

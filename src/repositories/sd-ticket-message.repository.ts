@@ -36,6 +36,8 @@ export interface SdTicketMessageCreateData {
   body: string
   /** Anexos já enviados (soltos) que passam a pertencer à mensagem. */
   attachmentIds: string[]
+  /** Agentes citados com `@` no texto. */
+  mentionedUserIds?: string[]
 }
 
 /** Histórico do chamado (`SdTicketMessage`). Sem regra de negócio. */

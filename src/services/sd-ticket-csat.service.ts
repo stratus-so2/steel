@@ -6,12 +6,14 @@ import {
   sdTicketForbidden,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import { SdTicketCsatRepository } from '@/src/repositories/sd-ticket-csat.repository'
 import type { SubmitSdTicketCsatDTO } from '@/src/schemas/sd-ticket-csat.schema'
 import type { SdTicketCsatDTO } from '@/types/sd-dashboard'
 import { SdAccess } from './sd-access'
-import { SdTicketEngine } from './sd-ticket-engine'
+import { notifySdEvent } from './sd-notification.service'
+import { SdTicketEngine, sdTicketCode } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
 import { canViewSdTicket } from './sd-ticket-visibility'
 
@@ -107,6 +109,24 @@ export const SdTicketCsatService = {
         contactUserId: t.contact?.userId ?? null,
       },
     )
+    const notified = await notifySdEvent({
+      workspaceId,
+      event: 'ticket.csat',
+      ticket: sdNotifyTicketOf(t, sdTicketCode(t, config.value.prefixes)),
+      actorId,
+      payload: {
+        title: `Avaliação ${dto.score}/5 em ${sdTicketCode(t, config.value.prefixes)}`,
+        body: comment ?? t.title,
+        meta: { score: dto.score },
+      },
+    })
+    if (!notified.ok) {
+      logger.warn('servicedesk.csat.notify_failed', {
+        workspaceId,
+        ticketId: t.id,
+        reason: notified.error.code,
+      })
+    }
     auditMutation({
       entity: 'sd_ticket_csat',
       action: 'create',

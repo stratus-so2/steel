@@ -15,7 +15,9 @@ import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.reposit
 
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/repositories/sd-ticket-escalation.repository')
-vi.mock('@/src/services/sd-ticket-notifier')
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
+}))
 vi.mock('@/src/services/sd-ticket-event-recorder', async (orig) => ({
   ...(await orig<typeof import('../sd-ticket-event-recorder')>()),
   recordSdTicketEvent: vi.fn(async () => ({ ok: true, value: 1 })),
@@ -26,8 +28,10 @@ vi.mock('@/src/services/sd-ticket-engine', async (orig) => ({
 }))
 
 import type { SdEscalationRule } from '@prisma/client'
+import { createFakeSdNotifyOutcome } from '@/src/__tests__/factories/sd-notification.factory'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { SdTicketEscalationRepository } from '@/src/repositories/sd-ticket-escalation.repository'
+import { notifySdEvent } from '../sd-notification.service'
 import {
   type SdActor,
   SdTicketEngine,
@@ -35,12 +39,11 @@ import {
 } from '../sd-ticket-engine'
 import { escalateSdTicket, runSdEscalationRule } from '../sd-ticket-escalator'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const escRepo = vi.mocked(SdTicketEscalationRepository)
 const update = vi.mocked(SdTicketEngine.update)
-const notify = vi.mocked(SdTicketNotifier.notify)
+const notify = vi.mocked(notifySdEvent)
 const record = vi.mocked(recordSdTicketEvent)
 
 const config = {
@@ -80,7 +83,7 @@ beforeEach(() => {
   escRepo.create.mockImplementation(async (data) =>
     ok(createFakeSdEscalation({ ...(data as object) })),
   )
-  notify.mockResolvedValue(ok(1))
+  notify.mockResolvedValue(ok(createFakeSdNotifyOutcome()))
   record.mockResolvedValue(ok(1))
 })
 
@@ -127,10 +130,12 @@ describe('escalateSdTicket — functional', () => {
     )
     expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: 'SD_TICKET_ESCALATED',
-        userIds: [null],
-        excludeUserIds: ['u1'],
-        title: 'INC-000001 escalonado',
+        event: 'ticket.escalated',
+        actorId: 'u1',
+        payload: expect.objectContaining({
+          userIds: [],
+          title: 'INC-000001 escalonado',
+        }),
       }),
     )
   })
@@ -157,8 +162,10 @@ describe('escalateSdTicket — functional', () => {
     expect(update.mock.calls[0][1]).toEqual({ assigneeId: 'u9' })
     expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({
-        userIds: ['n1', 'lead1', 'lead2'],
-        email: true,
+        payload: expect.objectContaining({
+          userIds: ['n1', 'lead1', 'lead2'],
+          meta: expect.objectContaining({ ruleEmail: true }),
+        }),
       }),
     )
   })
@@ -262,8 +269,10 @@ describe('escalateSdTicket — hierarchical', () => {
     expect(out.escalation.toLevel).toBe(2)
     expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({
-        userIds: ['lead1', 'lead1', 'lead2'],
-        title: 'INC-000001 escalonado (nível 2)',
+        payload: expect.objectContaining({
+          userIds: ['lead1', 'lead2'],
+          title: 'INC-000001 escalonado (nível 2)',
+        }),
       }),
     )
   })
@@ -300,8 +309,13 @@ describe('escalateSdTicket — hierarchical', () => {
       escalationLevel: 1,
       assigneeId: 'lead2',
     })
+    // `notifyDepartmentLeads: false` zera os alvos extras; o novo
+    // responsável ainda chega pelo público `assignee` do catálogo.
     expect(notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userIds: ['lead2'] }),
+      expect.objectContaining({
+        ticket: expect.objectContaining({ assigneeId: 'lead2' }),
+        payload: expect.objectContaining({ userIds: [] }),
+      }),
     )
   })
 

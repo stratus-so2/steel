@@ -1,6 +1,8 @@
 import type { SdEscalationRule, SdEscalationTrigger } from '@prisma/client'
+import { logger } from '@/lib/axiom/logger'
 import { sdDepartmentNotFound, validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import {
@@ -8,6 +10,7 @@ import {
   type SdTicketEscalationWithActor,
 } from '@/src/repositories/sd-ticket-escalation.repository'
 import { SdEscalationActionsSchema } from '@/src/schemas/sd-rule.schema'
+import { notifySdEvent } from './sd-notification.service'
 import {
   type SdActor,
   type SdEngineChanges,
@@ -20,7 +23,6 @@ import {
   recordSdTicketEvent,
   sdEventActorKind,
 } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 
 /**
  * Núcleo do escalonamento (sem autorização), usado pelo escalonamento
@@ -187,20 +189,34 @@ export async function escalateSdTicket(
   })
 
   const code = sdTicketCode(after, config.prefixes)
-  await SdTicketNotifier.notify({
+  const sent = await notifySdEvent({
     workspaceId: ticket.workspaceId,
-    userIds: [
-      ...(input.notifyUserIds ?? []),
-      ...(input.notifyAssignee === false ? [] : [after.assigneeId]),
-      ...notifyLeads,
-    ],
-    excludeUserIds: [sdActorUserId(actor)],
-    kind: 'SD_TICKET_ESCALATED',
-    ticket: { number: after.number, code, title: after.title },
-    title: `${code} escalonado${input.kind === 'HIERARCHICAL' ? ` (nível ${after.escalationLevel})` : ''}`,
-    body: input.reason,
-    email: input.email,
+    event: 'ticket.escalated',
+    ticket: sdNotifyTicketOf(after, code),
+    actorId: sdActorUserId(actor),
+    payload: {
+      title: `${code} escalonado${input.kind === 'HIERARCHICAL' ? ` (nível ${after.escalationLevel})` : ''}`,
+      body: input.reason,
+      // Alvos escolhidos no escalonamento, além do público do catálogo.
+      userIds: [...(input.notifyUserIds ?? []), ...notifyLeads],
+      // `notifyAssignee: false` tira o responsável deste disparo.
+      excludeUserIds:
+        input.notifyAssignee === false ? [after.assigneeId] : undefined,
+      meta: {
+        kind: input.kind,
+        automatic: input.automatic ?? false,
+        // Antes forçava e-mail; hoje o canal é a preferência de cada um.
+        ruleEmail: input.email ?? false,
+      },
+    },
   })
+  if (!sent.ok) {
+    logger.warn('servicedesk.escalation.notify_failed', {
+      workspaceId: ticket.workspaceId,
+      ticketId: ticket.id,
+      reason: sent.error.code,
+    })
+  }
 
   return ok({ ticket: after, escalation: escalation.value })
 }

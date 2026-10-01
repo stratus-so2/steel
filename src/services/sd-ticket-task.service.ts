@@ -1,7 +1,9 @@
 import type { SdTaskStatus } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import { validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import {
   toSdTicketTaskDTO,
   toSdTicketTaskListDTO,
@@ -20,9 +22,9 @@ import type {
   SdTicketTaskDTO,
   SdTicketTaskListDTO,
 } from '@/types/sd-ticket-task'
+import { notifySdEvent } from './sd-notification.service'
 import { SdTicketEngine } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import {
   loadSdTicketTab,
   publishSdTicketTab,
@@ -59,15 +61,25 @@ async function notifyAssignee(
 ): Promise<void> {
   if (!assigneeId) return
   const { ticket, code, ctx } = scope
-  await SdTicketNotifier.notify({
+  const sent = await notifySdEvent({
     workspaceId: ticket.workspaceId,
-    userIds: [assigneeId],
-    excludeUserIds: [ctx.userId],
-    kind: 'SD_TICKET_MESSAGE',
-    ticket: { number: ticket.number, code, title: ticket.title },
-    title: `Tarefa atribuída a você em ${code}`,
-    body: title,
+    event: 'task.assigned',
+    ticket: sdNotifyTicketOf(ticket, code),
+    actorId: ctx.userId,
+    audience: 'payload',
+    payload: {
+      title: `Tarefa atribuída a você em ${code}`,
+      body: title,
+      userIds: [assigneeId],
+    },
   })
+  if (!sent.ok) {
+    logger.warn('servicedesk.task.notify_failed', {
+      workspaceId: ticket.workspaceId,
+      ticketId: ticket.id,
+      reason: sent.error.code,
+    })
+  }
 }
 
 /** Carimbo de conclusão conforme a mudança de status. */

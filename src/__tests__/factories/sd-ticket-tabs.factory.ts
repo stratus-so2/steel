@@ -188,8 +188,11 @@ export function createFakeSdTicketApprovalWithTicket(
       description: '<p>Janela sábado</p>',
       assigneeId: null,
       requesterId: null,
+      departmentId: null,
       deletedAt: null,
       phase: { name: 'Aguardando aprovação' },
+      participants: [],
+      contact: null,
     },
     ...overrides,
   }

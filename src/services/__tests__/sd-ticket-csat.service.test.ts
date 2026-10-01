@@ -11,8 +11,12 @@ import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.reposit
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-ticket-csat.repository')
-vi.mock('@/src/services/sd-ticket-engine', () => ({
+vi.mock('@/src/services/sd-ticket-engine', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sd-ticket-engine')>()),
   SdTicketEngine: { loadConfig: vi.fn(), resolveRef: vi.fn() },
+}))
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
 }))
 vi.mock('@/src/services/sd-ticket-event-recorder', () => ({
   recordSdTicketEvent: vi.fn(async () => ok(1)),

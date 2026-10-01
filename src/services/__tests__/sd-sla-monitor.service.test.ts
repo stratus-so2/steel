@@ -22,8 +22,8 @@ vi.mock('@/src/repositories/sd-ticket-escalation.repository')
 vi.mock('../sd-automation-engine', () => ({ runSdAutomations: vi.fn() }))
 vi.mock('../sd-ticket-escalator', () => ({ runSdEscalationRule: vi.fn() }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
-vi.mock('../sd-ticket-notifier', () => ({
-  SdTicketNotifier: { notify: vi.fn() },
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
 }))
 vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../sd-ticket-engine')>()),
@@ -35,11 +35,11 @@ import { SdTicketRepository } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { SdTicketEscalationRepository } from '@/src/repositories/sd-ticket-escalation.repository'
 import { runSdAutomations } from '../sd-automation-engine'
+import { notifySdEvent } from '../sd-notification.service'
 import { SdSlaMonitorService } from '../sd-sla-monitor.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { runSdEscalationRule } from '../sd-ticket-escalator'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 
 const NOW = new Date('2026-09-21T14:00:00Z')
 const ticketRepo = vi.mocked(SdTicketRepository)
@@ -131,17 +131,25 @@ describe('SdSlaMonitorService.runTick', () => {
         meta: { timers: ['resolução'] },
       }),
     )
-    expect(SdTicketNotifier.notify).toHaveBeenCalledWith(
+    expect(notifySdEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: 'SD_SLA_BREACHED',
-        userIds: ['a1', 'lead'],
-        title: 'SLA violado: INC-000009 (1ª resposta)',
+        event: 'sla.breached',
+        ticket: expect.objectContaining({
+          code: 'INC-000009',
+          assigneeId: 'a1',
+          departmentId: 'd1',
+        }),
+        payload: expect.objectContaining({
+          title: 'SLA violado: INC-000009 (1ª resposta)',
+        }),
       }),
     )
-    expect(SdTicketNotifier.notify).toHaveBeenCalledWith(
+    expect(notifySdEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: 'SD_SLA_AT_RISK',
-        title: 'SLA em risco: INC-000009 (resolução)',
+        event: 'sla.at_risk',
+        payload: expect.objectContaining({
+          title: 'SLA em risco: INC-000009 (resolução)',
+        }),
       }),
     )
     expect(automations).toHaveBeenCalledWith('SLA_BREACHED', 't1')
@@ -164,10 +172,11 @@ describe('SdSlaMonitorService.runTick', () => {
     const result = await SdSlaMonitorService.runTick(NOW)
     expect(result.breached).toBe(2)
     expect(result.atRisk).toBe(0)
-    expect(SdTicketNotifier.notify).toHaveBeenCalledWith(
+    expect(notifySdEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        userIds: ['a1'],
-        title: 'SLA violado: INC-000009 (1ª resposta e resolução)',
+        payload: expect.objectContaining({
+          title: 'SLA violado: INC-000009 (1ª resposta e resolução)',
+        }),
       }),
     )
   })
@@ -189,13 +198,12 @@ describe('SdSlaMonitorService.runTick', () => {
     expect(automations).not.toHaveBeenCalled()
   })
 
-  it('treats a failing leads lookup as no leads', async () => {
-    ctxRepo.listDepartmentLeadIds.mockResolvedValue(err(databaseError()))
+  it('logs a failed notification without stopping the tick', async () => {
+    vi.mocked(notifySdEvent).mockResolvedValueOnce(err(databaseError('nope')))
     setOpen([slaTicket()])
-    await SdSlaMonitorService.runTick(NOW)
-    expect(SdTicketNotifier.notify).toHaveBeenCalledWith(
-      expect.objectContaining({ userIds: ['a1'] }),
-    )
+    const result = await SdSlaMonitorService.runTick(NOW)
+    expect(result.breached).toBe(1)
+    expect(result.errors).toBe(0)
   })
 
   it('processes tickets in batches of 200', async () => {

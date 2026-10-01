@@ -1,5 +1,6 @@
 import z from 'zod'
 import { sdId } from './sd-config.schema'
+import { SdMessageMentionsSchema } from './sd-notification.schema'
 
 /** Tamanho máximo do texto de uma mensagem do chamado. */
 export const SD_MESSAGE_MAX_LENGTH = 10_000
@@ -26,6 +27,8 @@ export const CreateSdTicketMessageSchema = z
       .array(sdId)
       .max(SD_MESSAGE_MAX_ATTACHMENTS, 'Anexos demais numa mensagem')
       .default([]),
+    /** Agentes citados com `@` (dispara `ticket.mentioned`). */
+    mentionedUserIds: SdMessageMentionsSchema,
   })
   .refine((data) => data.body.length > 0 || data.attachmentIds.length > 0, {
     message: 'Escreva uma mensagem ou anexe um arquivo',

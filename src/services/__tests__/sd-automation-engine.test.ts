@@ -18,7 +18,9 @@ vi.mock('@/src/repositories/sd-ticket.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/repositories/sd-automation.repository')
 vi.mock('@/src/lib/servicedesk/realtime')
-vi.mock('@/src/services/sd-ticket-notifier')
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
+}))
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
@@ -44,15 +46,16 @@ vi.mock('@/src/services/sd-ticket-participant.service', () => ({
 
 import type { SdAutomationEvent, SdAutomationRule } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
+import { createFakeSdNotifyOutcome } from '@/src/__tests__/factories/sd-notification.factory'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import { SdAutomationRepository } from '@/src/repositories/sd-automation.repository'
 import { SdTicketRepository } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { fireSdAutomations, runSdAutomations } from '../sd-automation-engine'
+import { notifySdEvent } from '../sd-notification.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { escalateSdTicket } from '../sd-ticket-escalator'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 import { addSdTicketParticipant } from '../sd-ticket-participant.service'
 
 const ticketRepo = vi.mocked(SdTicketRepository)
@@ -61,7 +64,7 @@ const autoRepo = vi.mocked(SdAutomationRepository)
 const engine = vi.mocked(SdTicketEngine)
 const escalate = vi.mocked(escalateSdTicket)
 const addParticipant = vi.mocked(addSdTicketParticipant)
-const notify = vi.mocked(SdTicketNotifier.notify)
+const notify = vi.mocked(notifySdEvent)
 const record = vi.mocked(recordSdTicketEvent)
 const publish = vi.mocked(publishSdTicketEvent)
 
@@ -129,7 +132,7 @@ beforeEach(() => {
   autoRepo.insertTasks.mockResolvedValue(ok(1))
   ctxRepo.listDepartmentLeadIds.mockResolvedValue(ok(['lead']))
   ctxRepo.findWorkspaceOwnerId.mockResolvedValue(ok('owner'))
-  notify.mockResolvedValue(ok(1))
+  notify.mockResolvedValue(ok(createFakeSdNotifyOutcome()))
   record.mockResolvedValue(ok(1))
   publish.mockResolvedValue(undefined)
 })
@@ -356,11 +359,11 @@ describe('runSdAutomations — actions', () => {
 
   describe('notify', () => {
     it.each([
-      ['TICKET_CREATED', 'SD_TICKET_MESSAGE'],
-      ['APPROVAL_RESPONDED', 'SD_APPROVAL_RESPONDED'],
-      ['SLA_AT_RISK', 'SD_SLA_AT_RISK'],
-      ['SLA_BREACHED', 'SD_SLA_BREACHED'],
-    ] as const)('maps %s to %s and gathers recipients', async (event, kind) => {
+      ['TICKET_CREATED', 'ticket.created_in_department'],
+      ['APPROVAL_RESPONDED', 'approval.responded'],
+      ['SLA_AT_RISK', 'sla.at_risk'],
+      ['SLA_BREACHED', 'sla.breached'],
+    ] as const)('maps %s to %s and gathers recipients', async (event, notifyEvent) => {
       rules(
         rule(
           [
@@ -383,12 +386,15 @@ describe('runSdAutomations — actions', () => {
       expectOk(await run(event))
       expect(notify).toHaveBeenCalledWith({
         workspaceId: 'ws1',
-        userIds: ['x', 'a1', 'r1', 'lead'],
-        kind,
-        ticket: { number: 1, code: 'INC-000001', title: current.title },
-        title: 'Olha',
-        body: current.title,
-        email: true,
+        event: notifyEvent,
+        audience: 'payload',
+        ticket: expect.objectContaining({ code: 'INC-000001' }),
+        payload: {
+          title: 'Olha',
+          body: current.title,
+          userIds: ['x', 'a1', 'r1', 'lead'],
+          meta: { via: 'automation', ruleEmail: true },
+        },
       })
     })
 
@@ -404,7 +410,13 @@ describe('runSdAutomations — actions', () => {
       )
       expectOk(await run())
       expect(notify).toHaveBeenCalledWith(
-        expect.objectContaining({ userIds: [], body: 'corpo', email: false }),
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            userIds: [],
+            body: 'corpo',
+            meta: { via: 'automation', ruleEmail: false },
+          }),
+        }),
       )
       expect(ctxRepo.listDepartmentLeadIds).not.toHaveBeenCalled()
       current = createFakeSdTicket({ id: 't1', departmentId: 'd1' })

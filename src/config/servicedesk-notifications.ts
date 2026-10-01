@@ -166,7 +166,18 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
     kind: 'SD_APPROVAL_REQUESTED',
     label: 'Aprovação solicitada',
     description: 'Pedido de aprovação enviado a você.',
-    audience: ['participants'],
+    // Só in-app: o e-mail do pedido sai pelo fluxo de aprovação, com o link
+    // público do token — avisar de novo por e-mail seria duplicar.
+    audience: [],
+    channels: ['IN_APP'],
+    defaultChannels: ['IN_APP'],
+  },
+  {
+    key: 'ticket.participant_added',
+    kind: 'SD_TICKET_CREATED',
+    label: 'Você entrou num chamado',
+    description: 'Alguém te adicionou como participante de um chamado.',
+    audience: [],
     channels: APP_MAIL,
     defaultChannels: APP_MAIL,
   },
@@ -231,6 +242,7 @@ export const SD_NOTIFICATION_GROUPS: SdNotificationGroup[] = [
     events: [
       'ticket.assigned',
       'ticket.created_in_department',
+      'ticket.participant_added',
       'ticket.phase_changed',
       'ticket.resolved',
       'ticket.reopened',

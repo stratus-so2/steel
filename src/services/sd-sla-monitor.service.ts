@@ -6,6 +6,7 @@ import type {
 } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
 import { evaluateSdConditions } from '@/src/lib/servicedesk/conditions'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { computeSlaState, parseSdCalendar } from '@/src/lib/servicedesk/sla'
 import {
   SdTicketRepository,
@@ -15,6 +16,7 @@ import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.
 import { SdTicketEscalationRepository } from '@/src/repositories/sd-ticket-escalation.repository'
 import { SdConditionsSchema } from '@/src/schemas/sd-rule.schema'
 import { runSdAutomations } from './sd-automation-engine'
+import { notifySdEvent } from './sd-notification.service'
 import {
   type SdActor,
   type SdEngineConfig,
@@ -24,7 +26,6 @@ import {
 } from './sd-ticket-engine'
 import { runSdEscalationRule } from './sd-ticket-escalator'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
-import { SdTicketNotifier } from './sd-ticket-notifier'
 import { sdTicketRowFacts } from './sd-ticket-rules'
 
 /**
@@ -68,31 +69,34 @@ interface WorkspaceRun {
   result: SdSlaTickResult
 }
 
-async function leadsOf(departmentId: string | null): Promise<string[]> {
-  if (!departmentId) return []
-  const leads =
-    await SdTicketContextRepository.listDepartmentLeadIds(departmentId)
-  return leads.ok ? leads.value : []
-}
-
 async function notifySla(
   t: SdTicketWithRelations,
   run: WorkspaceRun,
-  kind: 'SD_SLA_AT_RISK' | 'SD_SLA_BREACHED',
+  event: 'sla.at_risk' | 'sla.breached',
   what: string,
 ): Promise<void> {
   const code = sdTicketCode(t, run.config.prefixes)
-  await SdTicketNotifier.notify({
+  const breached = event === 'sla.breached'
+  const sent = await notifySdEvent({
     workspaceId: t.workspaceId,
-    userIds: [t.assigneeId, ...(await leadsOf(t.departmentId))],
-    kind,
-    ticket: { number: t.number, code, title: t.title },
-    title:
-      kind === 'SD_SLA_BREACHED'
+    event,
+    ticket: sdNotifyTicketOf(t, code),
+    payload: {
+      title: breached
         ? `SLA violado: ${code} (${what})`
         : `SLA em risco: ${code} (${what})`,
-    body: t.title,
+      body: t.title,
+      meta: { what },
+    },
   })
+  if (!sent.ok) {
+    logger.warn('servicedesk.sla.notify_failed', {
+      workspaceId: t.workspaceId,
+      ticketId: t.id,
+      event,
+      reason: sent.error.code,
+    })
+  }
 }
 
 /** `candidates` já vem filtrado pelo gatilho; aqui NO_UPDATE + condições. */
@@ -171,7 +175,7 @@ async function processTicket(t: SdTicketWithRelations, run: WorkspaceRun) {
     })
   }
   if (breachedWhat.length > 0) {
-    await notifySla(t, run, 'SD_SLA_BREACHED', breachedWhat.join(' e '))
+    await notifySla(t, run, 'sla.breached', breachedWhat.join(' e '))
   }
 
   const atRisk = timers.filter((i) => i.timer.state === 'at_risk')
@@ -197,7 +201,7 @@ async function processTicket(t: SdTicketWithRelations, run: WorkspaceRun) {
       await notifySla(
         t,
         run,
-        'SD_SLA_AT_RISK',
+        'sla.at_risk',
         atRisk.map((i) => i.label).join(' e '),
       )
     }

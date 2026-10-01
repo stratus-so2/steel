@@ -13,6 +13,10 @@ import {
 } from '@/src/errors'
 import { sendSdTicketNotificationEmail } from '@/src/lib/mail/servicedesk/send-sd-ticket-notification'
 import { err, ok, type Result } from '@/src/lib/result'
+import {
+  type SdNotifyTicket,
+  sdTicketNotificationHref,
+} from '@/src/lib/servicedesk/notify'
 import { normalizeSdWhatsappNumber } from '@/src/lib/servicedesk/whatsapp'
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import {
@@ -20,7 +24,6 @@ import {
   toSdNotificationPreferencesDTO,
 } from '@/src/mappers/sd-notification.mapper'
 import { SdNotificationRepository } from '@/src/repositories/sd-notification.repository'
-import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import type { UpdateSdNotificationPreferencesDTO } from '@/src/schemas/sd-notification.schema'
@@ -38,32 +41,6 @@ import { SdAccess } from './sd-access'
  *
  * Nunca lança: cada canal é isolado — falha vira log e o resto segue.
  */
-
-/**
- * Contato do chamado. Os canais (e-mail/WhatsApp) não vêm aqui: quando o
- * contato não é usuário da plataforma, o motor os lê do cadastro na hora
- * da entrega — assim o chamador não precisa carregá-los.
- */
-export interface SdNotifyContact {
-  id: string
-  name: string
-  /** Usuário da plataforma vinculado ao contato, se houver. */
-  userId: string | null
-}
-
-/** O mínimo que o motor precisa saber do chamado. */
-export interface SdNotifyTicket {
-  id: string
-  number: number
-  /** `INC-000123`. */
-  code: string
-  title: string
-  assigneeId: string | null
-  requesterId: string | null
-  departmentId: string | null
-  participantIds: string[]
-  contact: SdNotifyContact | null
-}
 
 export interface SdNotifyPayload {
   /** Frase principal (título in-app e assunto do e-mail). */
@@ -85,6 +62,12 @@ export interface SdNotifyInput {
   ticket: SdNotifyTicket
   /** Quem causou o evento — nunca é notificado. */
   actorId?: string | null
+  /**
+   * `catalog` (padrão) resolve o público do evento; `payload` usa só
+   * `payload.userIds` — é o caso da ação "notificar" das automações, em que
+   * o admin já escolheu quem avisar.
+   */
+  audience?: 'catalog' | 'payload'
   payload: SdNotifyPayload
 }
 
@@ -107,45 +90,6 @@ const EMPTY: Omit<SdNotifyOutcome, 'event'> = {
   email: 0,
   whatsapp: 0,
   skipped: 'no_recipients',
-}
-
-/** Caminho interno da tela do chamado. */
-export function sdTicketNotificationHref(slug: string, number: number): string {
-  return `/${slug}/servicedesk/tickets/${number}`
-}
-
-/** `SdTicketWithRelations` → o recorte que o motor usa. */
-export function sdNotifyTicketOf(
-  ticket: Pick<
-    SdTicketWithRelations,
-    | 'id'
-    | 'number'
-    | 'title'
-    | 'assigneeId'
-    | 'requesterId'
-    | 'departmentId'
-    | 'participants'
-    | 'contact'
-  >,
-  code: string,
-): SdNotifyTicket {
-  return {
-    id: ticket.id,
-    number: ticket.number,
-    code,
-    title: ticket.title,
-    assigneeId: ticket.assigneeId,
-    requesterId: ticket.requesterId,
-    departmentId: ticket.departmentId,
-    participantIds: ticket.participants.map((p) => p.userId),
-    contact: ticket.contact
-      ? {
-          id: ticket.contact.id,
-          name: ticket.contact.name,
-          userId: ticket.contact.userId,
-        }
-      : null,
-  }
 }
 
 function clean(ids: (string | null | undefined)[]): string[] {
@@ -348,16 +292,16 @@ export async function notifySdEvent(
   const excluded = new Set(
     clean([...(input.payload.excludeUserIds ?? []), input.actorId]),
   )
+  const fromCatalog =
+    input.audience === 'payload' ? [] : await resolveAudience(spec, input)
   const candidates = Array.from(
-    new Set([
-      ...(await resolveAudience(spec, input)),
-      ...clean(input.payload.userIds ?? []),
-    ]),
+    new Set([...fromCatalog, ...clean(input.payload.userIds ?? [])]),
   ).filter((id) => !excluded.has(id))
 
   // Contato externo (sem usuário): só eventos abertos ao cliente.
   const contact = input.ticket.contact
   const externalContact =
+    input.audience !== 'payload' &&
     !spec.agentOnly &&
     spec.audience.includes('contact') &&
     contact !== null &&

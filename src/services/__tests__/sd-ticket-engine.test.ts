@@ -18,7 +18,9 @@ vi.mock('@/src/repositories/sd-ticket.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/repositories/sd-automation.repository')
 vi.mock('@/src/lib/servicedesk/realtime')
-vi.mock('@/src/services/sd-ticket-notifier')
+vi.mock('@/src/services/sd-notification.service', () => ({
+  notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
+}))
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
@@ -27,10 +29,12 @@ vi.mock('@/src/services/sd-ticket-event-recorder', async (orig) => ({
   recordSdTicketEvent: vi.fn(async () => ({ ok: true, value: 1 })),
 }))
 
+import { createFakeSdNotifyOutcome } from '@/src/__tests__/factories/sd-notification.factory'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import { SdAutomationRepository } from '@/src/repositories/sd-automation.repository'
 import { SdTicketRepository } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import { notifySdEvent } from '../sd-notification.service'
 import {
   type SdActor,
   type SdEngineCreateInput,
@@ -43,13 +47,12 @@ import {
   selectSdSlaPolicy,
 } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
-import { SdTicketNotifier } from '../sd-ticket-notifier'
 
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const ticketRepo = vi.mocked(SdTicketRepository)
 const autoRepo = vi.mocked(SdAutomationRepository)
 const recordMock = vi.mocked(recordSdTicketEvent)
-const notifyMock = vi.mocked(SdTicketNotifier.notify)
+const notifyMock = vi.mocked(notifySdEvent)
 const publishMock = vi.mocked(publishSdTicketEvent)
 
 const NOW = new Date('2026-09-21T12:00:00.000Z')
@@ -129,7 +132,7 @@ beforeEach(() => {
   ctxRepo.countSignatures.mockResolvedValue(ok(1))
   ctxRepo.findCategory.mockResolvedValue(ok(null))
   autoRepo.insertTasks.mockResolvedValue(ok(1))
-  notifyMock.mockResolvedValue(ok(1))
+  notifyMock.mockResolvedValue(ok(createFakeSdNotifyOutcome()))
   publishMock.mockResolvedValue(undefined)
   recordMock.mockResolvedValue(ok(1))
   ticketRepo.createWithNumber.mockImplementation(async (ws, data) =>
@@ -300,7 +303,10 @@ describe('create', () => {
         toValue: { id: 'new', label: 'INC-000042' },
       }),
     )
-    expect(notifyMock).not.toHaveBeenCalled()
+    // Sem responsável: só o aviso de "novo na fila" (líderes do time).
+    expect(notifyMock.mock.calls.map((call) => call[0].event)).toEqual([
+      'ticket.created_in_department',
+    ])
     expect(publishMock).toHaveBeenCalledWith(
       'ws1',
       expect.objectContaining({ type: 'ticket.created', actorId: 'u1' }),
@@ -924,10 +930,15 @@ describe('create', () => {
       )
       expect(notifyMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          kind: 'SD_TICKET_ASSIGNED',
-          userIds: ['u7'],
-          excludeUserIds: ['u1'],
-          title: 'INC-000042 atribuído a você',
+          event: 'ticket.assigned',
+          actorId: 'u1',
+          ticket: expect.objectContaining({
+            code: 'INC-000042',
+            assigneeId: 'u7',
+          }),
+          payload: expect.objectContaining({
+            title: 'INC-000042 atribuído a você',
+          }),
         }),
       )
     })
@@ -1055,7 +1066,14 @@ describe('update', () => {
       await SdTicketEngine.update(t, { assigneeId: 'u2' }, agent, config()),
     )
     expect(notifyMock).toHaveBeenCalledWith(
-      expect.objectContaining({ userIds: ['u2'] }),
+      expect.objectContaining({
+        event: 'ticket.assigned',
+        ticket: expect.objectContaining({
+          assigneeId: 'u2',
+          participantIds: ['p1'],
+          contact: { id: 'c', name: 'C', userId: 'cu' },
+        }),
+      }),
     )
     expect(publishMock).toHaveBeenCalledWith(
       'ws1',

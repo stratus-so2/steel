@@ -27,8 +27,13 @@ const PUBLIC_INCLUDE = {
       description: true,
       assigneeId: true,
       requesterId: true,
+      departmentId: true,
       deletedAt: true,
       phase: { select: { name: true } },
+      // Público das notificações de aprovação (motor em
+      // `sd-notification.service.ts`).
+      participants: { select: { userId: true } },
+      contact: { select: { id: true, name: true, userId: true } },
     },
   },
 } as const satisfies Prisma.SdTicketApprovalInclude
