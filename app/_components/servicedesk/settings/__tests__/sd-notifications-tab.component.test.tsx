@@ -76,6 +76,11 @@ describe('SD_SETTINGS_TABS', () => {
     const tab = SD_SETTINGS_TABS.find((item) => item.id === 'notifications')
     expect(tab?.label).toBe('Notificações')
     expect(tab?.component).toBe(SdNotificationsTab)
+    // Preferência do usuário: sem aviso de "modo leitura" para não-admins.
+    expect(tab?.personal).toBe(true)
+    expect(
+      SD_SETTINGS_TABS.filter((item) => item.personal).map((item) => item.id),
+    ).toEqual(['notifications'])
   })
 })
 

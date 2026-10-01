@@ -53,6 +53,11 @@ export interface SdSettingsTabDefinition {
   /** Frase curta exibida no topo da aba. */
   description: string
   component: ComponentType
+  /**
+   * Aba de preferências **do usuário**, não do workspace: todo mundo edita
+   * as suas, então o aviso de "modo leitura" dos não-admins não se aplica.
+   */
+  personal?: boolean
 }
 
 export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
@@ -179,6 +184,7 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Suas preferências de aviso (evento × canal), só para você: no app, por e-mail e por WhatsApp. Inclui o resumo diário.',
     component: SdNotificationsTab,
+    personal: true,
   },
   {
     id: 'ai',
