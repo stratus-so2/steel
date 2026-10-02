@@ -17,6 +17,17 @@ const publicEnv = {
   NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 }
 
+/**
+ * Opcional que trata `""` como ausente, não só `undefined`.
+ *
+ * Um `.env` com `NEXT_PUBLIC_SENTRY_DSN=` (linha presente, valor vazio) é o
+ * estado natural de quem ainda não criou a conta — e sem isto o
+ * `z.url().optional()` recusaria a string vazia e o app **não subiria**. É o
+ * mesmo `blankOptional` que `lib/env/_server.ts` já usa.
+ */
+const blankOptional = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional())
+
 const publicEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']),
   NEXT_PUBLIC_AXIOM_TOKEN: z.string().startsWith('xaat-'),
@@ -26,12 +37,12 @@ const publicEnvSchema = z.object({
   // Opcionais de propósito: sem chave, o PostHog nunca carrega e nunca pede
   // nada à rede — o app sobe igual (mesmo contrato do
   // `src/lib/storage/offsite-backup.ts`).
-  NEXT_PUBLIC_POSTHOG_KEY: z.string().startsWith('phc_').optional(),
+  NEXT_PUBLIC_POSTHOG_KEY: blankOptional(z.string().startsWith('phc_')),
   NEXT_PUBLIC_POSTHOG_HOST: z.url().startsWith('https://'),
   // Mesmo contrato para o Sentry: sem DSN, sem SDK, sem rede.
-  NEXT_PUBLIC_SENTRY_DSN: z.url().startsWith('https://').optional(),
-  NEXT_PUBLIC_SENTRY_RELEASE: z.string().min(1).max(200).optional(),
-  NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.string().min(1).max(64).optional(),
+  NEXT_PUBLIC_SENTRY_DSN: blankOptional(z.url().startsWith('https://')),
+  NEXT_PUBLIC_SENTRY_RELEASE: blankOptional(z.string().min(1).max(200)),
+  NEXT_PUBLIC_SENTRY_ENVIRONMENT: blankOptional(z.string().min(1).max(64)),
 })
 
 const validatedPublicEnv =

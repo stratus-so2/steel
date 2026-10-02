@@ -75,6 +75,15 @@ Duas restrições pesaram na forma:
   `SENTRY_PROJECT` e `SENTRY_AUTH_TOKEN` existem. Um erro de credencial, uma
   oscilação de rede ou um rate limit do Sentry **avisam e seguem** — nunca
   viram deploy quebrado.
+- **As cinco `NEXT_PUBLIC_*` são de build time**, e por isso entram como
+  build-args no `Dockerfile` e vêm de GitHub Secrets no `cd.yml`. Conferido no
+  navegador, com build de produção: um DSN definido apenas em runtime chega ao
+  servidor, ao edge e à CSP do `proxy.ts` — a origem aparece no `connect-src` —
+  mas **não** ao navegador (`window.__SENTRY__` indefinido e nenhuma
+  requisição de ingestão depois de um erro não tratado). A chave do PostHog é
+  lida pelo próprio `next.config.ts`, para montar o rewrite de `/ingest`, o que
+  é build time por definição. `SENTRY_AUTH_TOKEN` é credencial e entra por
+  secret mount, não por build-arg, para não ficar numa camada da imagem.
 
 ## Consequências
 
@@ -87,11 +96,23 @@ Duas restrições pesaram na forma:
   problema de banda e a decisão tem de ser revisitada.
 - **Enquanto o dono não criar as contas**, as duas integrações ficam inertes:
   nenhum erro aparece no Sentry e nenhum evento no PostHog. Nada mais muda.
-- **Pendência conhecida:** o Google Analytics, que ficou como estava, carrega
-  seu script de `googletagmanager.com`, origem que o `script-src 'self'
-  'nonce-…'` recusa — e o script é injetado pelo cliente depois da hidratação,
-  sem nonce. Na prática ele provavelmente não coleta nada. Decidir: nomear a
-  origem explicitamente ou tirar o GA e ficar com PostHog + Axiom.
+- **Pendência conhecida e medida:** o Google Analytics, que ficou como estava,
+  carrega seu script de `googletagmanager.com`, origem que o `script-src`
+  recusa — e o `@next/third-parties/google` injeta a tag pelo cliente depois da
+  hidratação, portanto sem nonce. Na build de produção, depois de aceitar o
+  banner de cookies, o Chromium reporta:
+
+  ```
+  Loading the script 'https://www.googletagmanager.com/gtag/js?id=G-…'
+  violates the following Content Security Policy directive:
+  "script-src 'self' 'nonce-…'". Note that 'script-src-elem' was not
+  explicitly set, so 'script-src' is used as a fallback.
+  The action has been blocked.
+  ```
+
+  Ou seja: **o GA não coleta nada hoje**. Decidir: nomear a origem
+  explicitamente em `script-src` (e o host de coleta em `connect-src`), ou
+  tirar o GA e ficar com PostHog + Axiom.
 - **Quem for mexer na CSP**: a verificação não é ler o cabeçalho, é abrir a
   build de produção no navegador e **clicar**. Página que renderiza e não
   hidrata parece saudável de longe.

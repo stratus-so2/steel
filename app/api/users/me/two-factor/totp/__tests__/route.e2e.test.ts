@@ -85,7 +85,25 @@ function authHeaders(cookie?: string) {
   }
 }
 
-/** Liga a 2FA pelo endpoint do better-auth e devolve o segredo do app. */
+/** Junta os `Set-Cookie` de uma resposta no formato de um header `Cookie`. */
+function cookiesFrom(res: Response): string {
+  return (res.headers.getSetCookie?.() ?? [])
+    .map((entry) => entry.split(';')[0])
+    .join('; ')
+}
+
+/**
+ * Liga a 2FA pelo endpoint do better-auth e devolve o segredo do app **e o
+ * cookie novo**.
+ *
+ * O `enable()` com `skipVerificationOnEnable: true` **rotaciona a sessão**:
+ * ele cria uma sessão nova e apaga a anterior (é o que faz `twoFactorEnabled`
+ * valer imediatamente sem recarregar). Quem continuar usando o cookie antigo
+ * leva 401 em tudo depois disso. Na interface isso é transparente — o
+ * `authClient` guarda o cookie da resposta e a aba de segurança ainda chama
+ * `getSession({ disableCookieCache: true })` —, mas um cliente HTTP precisa
+ * trocar o cookie na mão.
+ */
 async function enableTwoFactor(cookie: string) {
   const res = await fetch(`${BASE_URL}/api/auth/two-factor/enable`, {
     method: 'POST',
@@ -94,9 +112,11 @@ async function enableTwoFactor(cookie: string) {
   })
   expect(res.status).toBe(200)
   const body = await res.json()
+  const refreshed = cookiesFrom(res)
   return {
     secret: secretFromUri(body.totpURI),
     backupCodes: body.backupCodes as string[],
+    cookie: refreshed || cookie,
   }
 }
 
@@ -120,8 +140,9 @@ describe('GET /api/users/me/two-factor/totp', () => {
   })
 
   it('reports a secret once the better-auth enable ran', async () => {
-    const { cookie } = await createAuthenticatedUser()
-    await enableTwoFactor(cookie)
+    const user = await createAuthenticatedUser()
+    // O `enable()` rotaciona a sessão; daqui para frente vale o cookie novo.
+    const { cookie } = await enableTwoFactor(user.cookie)
 
     const body = await (
       await getJson('/api/users/me/two-factor/totp', cookie)
@@ -168,8 +189,8 @@ describe('POST /api/users/me/two-factor/totp', () => {
   })
 
   it('refuses a wrong code and leaves the flag off', async () => {
-    const { id, cookie } = await createAuthenticatedUser()
-    const { secret } = await enableTwoFactor(cookie)
+    const user = await createAuthenticatedUser()
+    const { secret, cookie } = await enableTwoFactor(user.cookie)
     // Um código de um passo distante o bastante para cair fora da janela.
     const wrong = totpCode(secret, 50)
 
@@ -181,13 +202,15 @@ describe('POST /api/users/me/two-factor/totp', () => {
 
     expect(res.status).toBe(401)
     expect((await res.json()).error.code).toBe('TOTP_INVALID_CODE')
-    const user = await prisma.user.findUniqueOrThrow({ where: { id } })
-    expect(user.twoFactorTotpEnabled).toBe(false)
+    const stored = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    })
+    expect(stored.twoFactorTotpEnabled).toBe(false)
   })
 
   it('confirms the app with a real code and turns the flag on', async () => {
-    const { id, cookie } = await createAuthenticatedUser()
-    const { secret } = await enableTwoFactor(cookie)
+    const user = await createAuthenticatedUser()
+    const { secret, cookie } = await enableTwoFactor(user.cookie)
 
     const res = await postJson(
       '/api/users/me/two-factor/totp',
@@ -201,22 +224,24 @@ describe('POST /api/users/me/two-factor/totp', () => {
       totpEnabled: true,
       hasSecret: true,
     })
-    const user = await prisma.user.findUniqueOrThrow({ where: { id } })
-    expect(user.twoFactorTotpEnabled).toBe(true)
+    const stored = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+    })
+    expect(stored.twoFactorTotpEnabled).toBe(true)
   })
 })
 
 describe('DELETE /api/users/me/two-factor/totp', () => {
   async function enrolledUser() {
     const user = await createAuthenticatedUser()
-    const { secret } = await enableTwoFactor(user.cookie)
+    const { secret, cookie } = await enableTwoFactor(user.cookie)
     const confirmed = await postJson(
       '/api/users/me/two-factor/totp',
       { code: totpCode(secret) },
-      user.cookie,
+      cookie,
     )
     expect(confirmed.status).toBe(200)
-    return { ...user, secret }
+    return { ...user, secret, cookie }
   }
 
   async function deleteTotp(body: unknown, cookie?: string) {
@@ -286,8 +311,8 @@ describe('the second factor at sign-in', () => {
    * o desafio, o código válido é aceito e volta uma sessão.
    */
   it('accepts a valid authenticator code and issues a session', async () => {
-    const { email, cookie } = await createAuthenticatedUser()
-    const { secret } = await enableTwoFactor(cookie)
+    const user = await createAuthenticatedUser()
+    const { secret, cookie } = await enableTwoFactor(user.cookie)
     expect(
       (
         await postJson(
@@ -302,14 +327,12 @@ describe('the second factor at sign-in', () => {
     const signIn = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ email, password: PASSWORD }),
+      body: JSON.stringify({ email: user.email, password: PASSWORD }),
     })
     expect(signIn.status).toBe(200)
     expect((await signIn.json()).twoFactorRedirect).toBe(true)
 
-    const challengeCookie = (signIn.headers.getSetCookie?.() ?? [])
-      .map((entry) => entry.split(';')[0])
-      .join('; ')
+    const challengeCookie = cookiesFrom(signIn)
     expect(challengeCookie).toContain('two_factor')
 
     const verify = await fetch(`${BASE_URL}/api/auth/two-factor/verify-totp`, {
@@ -326,8 +349,8 @@ describe('the second factor at sign-in', () => {
   })
 
   it('refuses a wrong authenticator code at the challenge', async () => {
-    const { email, cookie } = await createAuthenticatedUser()
-    const { secret } = await enableTwoFactor(cookie)
+    const user = await createAuthenticatedUser()
+    const { secret, cookie } = await enableTwoFactor(user.cookie)
     await postJson(
       '/api/users/me/two-factor/totp',
       { code: totpCode(secret) },
@@ -337,11 +360,9 @@ describe('the second factor at sign-in', () => {
     const signIn = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ email, password: PASSWORD }),
+      body: JSON.stringify({ email: user.email, password: PASSWORD }),
     })
-    const challengeCookie = (signIn.headers.getSetCookie?.() ?? [])
-      .map((entry) => entry.split(';')[0])
-      .join('; ')
+    const challengeCookie = cookiesFrom(signIn)
 
     const verify = await fetch(`${BASE_URL}/api/auth/two-factor/verify-totp`, {
       method: 'POST',
