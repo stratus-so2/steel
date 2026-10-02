@@ -37,6 +37,8 @@ export type SdConfigResource =
   | 'ticket-templates'
   | 'canned-responses'
   | 'parts'
+  | 'change-windows'
+  | 'cab-boards'
 
 type QueryParams = Record<string, string | boolean | undefined>
 
