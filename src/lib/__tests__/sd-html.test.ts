@@ -1,5 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeSdHtml, sdHtmlToText } from '@/src/lib/servicedesk/html'
+import {
+  escapeSdHtmlText,
+  sanitizeSdHtml,
+  sdHtmlToText,
+} from '@/src/lib/servicedesk/html'
+
+describe('escapeSdHtmlText', () => {
+  it('escapes the five characters that break out of HTML', () => {
+    expect(escapeSdHtmlText(`&<>"'`)).toBe('&amp;&lt;&gt;&quot;&#39;')
+  })
+
+  it('escapes the ampersand first, so entities are not double-escaped', () => {
+    expect(escapeSdHtmlText('a & b < c')).toBe('a &amp; b &lt; c')
+    expect(escapeSdHtmlText('&lt;script&gt;')).toBe('&amp;lt;script&amp;gt;')
+  })
+
+  it('neutralises a script tag injected in plain text', () => {
+    expect(escapeSdHtmlText('<script>alert(1)</script>')).toBe(
+      '&lt;script&gt;alert(1)&lt;/script&gt;',
+    )
+  })
+
+  it('leaves text without special characters untouched', () => {
+    expect(escapeSdHtmlText('CPU alta no SRV-01')).toBe('CPU alta no SRV-01')
+    expect(escapeSdHtmlText('')).toBe('')
+  })
+})
 
 describe('sanitizeSdHtml', () => {
   it('keeps allowed formatting', () => {

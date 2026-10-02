@@ -145,9 +145,18 @@ export interface WorkspaceFileRefs {
   missingLegacyKeys: number
 }
 
-/** Extrai as chaves de um bucket citadas numa URL dentro de um JSON. */
+/**
+ * Extrai as chaves de um bucket citadas numa URL dentro de um JSON.
+ *
+ * `bucket` sempre vem de `LEGACY_FLAT_BUCKETS` (constantes deste módulo), mas
+ * o nome é escapado de todo jeito: o custo é zero e tira a correção da
+ * responsabilidade de quem chama. O Semgrep ainda aponta
+ * `detect-non-literal-regexp` aqui por a regex não ser literal — o prefixo é
+ * variável por natureza, já que a função roda para cada bucket legado.
+ */
 function referencedKeys(json: string, bucket: string): Set<string> {
-  const pattern = new RegExp(`/${bucket}/([A-Za-z0-9._\\-/]+)`, 'g')
+  const safeBucket = bucket.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`/${safeBucket}/([A-Za-z0-9._\\-/]+)`, 'g')
   const keys = new Set<string>()
   for (const match of json.matchAll(pattern)) {
     const key = match[1]

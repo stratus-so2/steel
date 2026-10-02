@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { escapeSdHtmlText as esc } from '@/src/lib/servicedesk/html'
 import type { SdMonitorSeverityMapEntryDTO } from '@/src/schemas/sd-monitor-source.schema'
 
 export {
@@ -306,13 +307,4 @@ export function sdMonitorTicketBody(
     : ''
   // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format
   return `<p>Chamado aberto automaticamente pelo monitoramento.</p><ul>${list}</ul>${message}`
-}
-
-function esc(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
 }
