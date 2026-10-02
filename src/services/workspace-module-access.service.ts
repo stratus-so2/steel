@@ -91,11 +91,11 @@ export const WorkspaceModuleAccessService = {
       meta: { module },
     })
 
-    // Dashboards/relatórios padrão do zap e pipeline padrão do CRM — não
-    // bloqueiam a concessão do módulo se o seed falhar. A decisão de não
-    // bloquear continua; o que mudou é que a falha agora volta em
-    // `seedWarnings`, em vez de ficar só no log, para quem habilitou saber
-    // que o módulo foi liberado pela metade.
+    // Default zap dashboards/reports and the default CRM pipeline — a failing
+    // seed does not block granting the module. That decision stands; what
+    // changed is that the failure now comes back in `seedWarnings` instead of
+    // living only in the log, so whoever enabled it knows the module was
+    // granted half-configured.
     const seedWarnings: string[] = []
     const warn = (event: string, error: unknown, message: string) => {
       logger.error(event, { workspaceId, actorId, error })

@@ -209,7 +209,7 @@ function sdDay(value: string): string {
     : value
 }
 
-/** A ordenação saiu do padrão (mais recentes primeiro)? */
+/** Has the ordering left the default (newest first)? */
 export function sdSortChanged(sort: SdSortField, order: 'asc' | 'desc') {
   return sort !== SD_BOARD_DEFAULTS.sort || order !== SD_BOARD_DEFAULTS.order
 }
@@ -231,7 +231,7 @@ function Field({
   )
 }
 
-/** Seção do popover de filtros — mantém as ~20 dimensões legíveis. */
+/** A section of the filter popover — keeps the ~20 dimensions readable. */
 function Group({
   title,
   children,
@@ -249,7 +249,7 @@ function Group({
   )
 }
 
-/** Atalhos de um clique (meus, não atribuídos, SLA…) — dentro do popover. */
+/** One-click shortcuts (mine, unassigned, SLA…) — inside the popover. */
 function QuickFilters({
   filters,
   onChange,
@@ -287,7 +287,7 @@ function QuickFilters({
   )
 }
 
-/** Campos do popover "Filtrar" (todos os filtros da API de chamados). */
+/** Fields of the "Filtrar" popover (every filter the ticket API takes). */
 function AdvancedFilters({
   workspaceId,
   filters,
@@ -686,7 +686,7 @@ function AdvancedFilters({
   )
 }
 
-/** Campos do popover "Ordenar" — ordenação e, na lista, o agrupamento. */
+/** Fields of the "Ordenar" popover — sorting and, in list mode, grouping. */
 function SortFields({
   sort,
   order,
@@ -763,7 +763,7 @@ function SortFields({
   )
 }
 
-/** Tag removível dos filtros/ordenação ativos — o desenho do CRM. */
+/** Removable tag for the active filters and ordering — the CRM design. */
 function Chip({
   icon,
   label,
@@ -801,11 +801,11 @@ function Chip({
 }
 
 /**
- * Barra dos quadros no padrão das grades do CRM: **três** controles à vista —
- * busca (atalho `/`), `Filtrar` e `Ordenar` — e o estado ativo como chips
- * removíveis abaixo. As ~20 dimensões de filtro continuam todas disponíveis,
- * agrupadas dentro do popover; os atalhos ("Meus chamados", "SLA violado"…)
- * também, em vez de ocuparem a barra permanentemente.
+ * Board toolbar in the shape of the CRM grids: **three** visible controls —
+ * search (`/` shortcut), `Filtrar` and `Ordenar` — with the active state as
+ * removable chips below. All ~20 filter dimensions remain available, grouped
+ * inside the popover; so do the shortcuts ("Meus chamados", "SLA violado"…),
+ * instead of taking up the bar permanently.
  */
 export function SdFilterBar({
   workspaceId,
@@ -832,10 +832,10 @@ export function SdFilterBar({
   sort: SdSortField
   order: 'asc' | 'desc'
   onSortChange: (sort: SdSortField, order: 'asc' | 'desc') => void
-  /** Agrupamento da lista — some do popover nos outros modos. */
+  /** List grouping — leaves the popover in the other modes. */
   group?: SdListGroup
   onGroupChange?: (group: SdListGroup) => void
-  /** Controles extras à direita (modo, visões, colunas, novo chamado). */
+  /** Extra controls on the right (mode, views, columns, new ticket). */
   children?: React.ReactNode
 }) {
   const [search, setSearch] = useState(filters.q ?? '')

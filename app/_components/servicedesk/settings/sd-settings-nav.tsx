@@ -2,7 +2,7 @@
 
 import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import {
   ContextHeader,
   ContextSidebar,
@@ -16,26 +16,26 @@ import { cn } from '@/lib/utils'
 import { SD_SETTINGS_TABS, type SdSettingsTabDefinition } from './settings-tabs'
 
 /**
- * Navegação das configurações do ServiceDesk na barra de contexto do módulo.
+ * ServiceDesk settings navigation, living in the module context rail.
  *
- * Antes as 24 seções moravam numa segunda barra **dentro** da tela: um trilho
- * de 240px colado no trilho do módulo (dois trilhos lado a lado no desktop) e,
- * abaixo de `md`, uma barra horizontal extra logo sob o breadcrumb. Nenhuma
- * outra tela do app faz isso — CRM e Comunicação põem a navegação de
- * configuração na `ContextSidebar` do módulo e deixam o conteúdo respirar.
- * Aqui o trilho do módulo passa a mostrar as seções enquanto se está em
- * `/servicedesk/settings`, agrupadas em acordeões (`NavGroupAccordion`, o
- * mesmo recurso que o CRM usa em Marketing e Social).
+ * The 24 sections used to sit in a second bar *inside* the screen: a 240px
+ * rail glued to the module rail (two rails side by side on desktop) and,
+ * below `md`, an extra horizontal bar right under the breadcrumb. No other
+ * screen in the app does this — CRM and Comunicação put their settings
+ * navigation in the module `ContextSidebar` and let the content breathe. Here
+ * the module rail shows the sections while the route is
+ * `/servicedesk/settings`, grouped into accordions (`NavGroupAccordion`, the
+ * same device CRM uses for Marketing and Social).
  *
- * A seção ativa continua em `?tab=`, e não em segmento de rota: há link de
- * e-mail já enviado, notificação no app e rota de OAuth apontando para
- * `settings?tab=reports`, `?tab=whatsapp` e `?tab=integrations`.
+ * The active section stays in `?tab=` rather than a route segment: e-mails
+ * already sent, an in-app notification and an OAuth redirect point at
+ * `settings?tab=reports`, `?tab=whatsapp` and `?tab=integrations`.
  */
 
 /**
- * Agrupamento só de apresentação — o registro (`SD_SETTINGS_TABS`) segue
- * plano e na mesma ordem, que é o que os testes das abas afirmam. Uma aba
- * nova que ninguém listou aqui cai em "Outros" em vez de desaparecer.
+ * Presentation-only grouping — the registry (`SD_SETTINGS_TABS`) stays flat
+ * and in the same order, which is what the tab tests assert. A new tab nobody
+ * listed here lands in "Outros" instead of vanishing.
  */
 const GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Geral', ids: ['general', 'departments'] },
@@ -62,7 +62,7 @@ const GROUPS: { label: string; ids: string[] }[] = [
   { label: 'Preferências', ids: ['notifications', 'ai'] },
 ]
 
-/** Abas de cada grupo, na ordem do registro, + as não listadas em "Outros". */
+/** Each group's tabs in registry order, plus unlisted ones under "Outros". */
 export function sdSettingsNavGroups(
   tabs: SdSettingsTabDefinition[] = SD_SETTINGS_TABS,
 ): { label: string; tabs: SdSettingsTabDefinition[] }[] {
@@ -78,7 +78,7 @@ export function sdSettingsNavGroups(
     : grouped
 }
 
-/** Item de seção: um `<Link>` de verdade, ativo por `?tab=`. */
+/** Section item: a real `<Link>`, marked active by `?tab=`. */
 function SdSettingsNavItem({
   tab,
   base,
@@ -136,23 +136,4 @@ export function SdSettingsNav({ base }: { base: string }) {
       ))}
     </ContextSidebar>
   )
-}
-
-/**
- * Troca o trilho do módulo pelo das configurações quando a rota é
- * `/servicedesk/settings`. O layout é server component e não lê `pathname`,
- * então a decisão vem para o cliente e o menu do módulo entra como children.
- */
-export function SdContextRail({
-  base,
-  children,
-}: {
-  base: string
-  children: React.ReactNode
-}) {
-  const pathname = usePathname()
-  if (pathname.startsWith(`${base}/settings`)) {
-    return <SdSettingsNav base={base} />
-  }
-  return children
 }

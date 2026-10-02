@@ -1,24 +1,24 @@
 /**
- * Busca, ordenação e paginação **no cliente** para as telas de risco.
+ * Client-side search, sorting and pagination for the risk screens.
  *
- * `SdDataTable` é controlada e espera que quem usa pagine; as duas rotas de
- * risco (`/risk/tickets` e `/risk/clusters`) só aceitam `level`/`status` e
- * `limit` — não têm `page`, `sort` nem `q`. Em vez de mexer no contrato da
- * API por causa de uma tela, a lista (no máximo 50 e 30 itens) é recortada
- * aqui. Se um dia a previsão passar a render centenas de chamados, isto vira
- * paginação de verdade no service.
+ * `SdDataTable` is controlled and expects its caller to paginate; the two risk
+ * routes (`/risk/tickets` and `/risk/clusters`) only accept `level`/`status`
+ * and `limit` — they have no `page`, `sort` or `q`. Rather than change the API
+ * contract for one screen, the list (at most 50 and 30 items) is sliced here.
+ * If the prediction ever yields hundreds of tickets, this becomes real
+ * pagination in the service.
  */
 
 export type SdSortable = string | number | null | undefined
 
 export interface SdLocalTableOptions<T> {
-  /** Busca já com debounce (`q` do `useSdTableState`). */
+  /** Already-debounced search (`q` from `useSdTableState`). */
   q?: string
-  /** Texto de cada linha onde a busca procura. */
+  /** The text of each row the search looks into. */
   searchText: (row: T) => string
   sort: string
   order: 'asc' | 'desc'
-  /** Valor comparável de cada coluna ordenável. */
+  /** Comparable value of each sortable column. */
   sortValue: (row: T, sort: string) => SdSortable
   page: number
   pageSize: number
@@ -27,13 +27,13 @@ export interface SdLocalTableOptions<T> {
 export interface SdLocalTableResult<T> {
   rows: T[]
   total: number
-  /** Página efetiva: a lista pode encurtar e deixar a página atual vazia. */
+  /** Effective page: the list can shrink and leave the current page empty. */
   page: number
 }
 
 export function sdCompareSortable(a: SdSortable, b: SdSortable): number {
-  // Vazio sempre por último, independente da direção: uma coluna sem valor
-  // no topo da fila de risco não diz nada a ninguém.
+  // Empty always sorts last, whichever direction is asked for: a column with
+  // no value at the top of the risk queue tells nobody anything.
   if (a === b) return 0
   if (a === null || a === undefined) return 1
   if (b === null || b === undefined) return -1

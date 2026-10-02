@@ -9,11 +9,12 @@ export interface WorkspaceModuleAccessDTO {
   createdAt: string
   updatedAt: string
   /**
-   * Seeds que falharam ao liberar o módulo, em pt-BR. A liberação não é
-   * bloqueada por um seed que falha (decisão mantida), mas antes a falha só
-   * ia para o log: quem habilitava recebia sucesso e o módulo ficava pela
-   * metade — foi assim que um workspace ficou sem nenhuma fase ITIL e com o
-   * kanban em branco. Vazio quando tudo correu bem.
+   * Seeds that failed while granting the module, worded in pt-BR for display.
+   * A failing seed does not block the grant (that decision stands), but the
+   * failure used to go only to the log: whoever enabled the module got a clean
+   * success and the module stayed half-configured — which is how a workspace
+   * ended up with no ITIL phase at all and a blank kanban. Empty when every
+   * seed succeeded.
    */
   seedWarnings: string[]
 }

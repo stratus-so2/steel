@@ -31,13 +31,13 @@ import { SdRiskBadge } from './sd-risk-badge'
 import { sdLocalTable } from './sd-risk-table'
 
 /**
- * Fila de chamados por risco na **tabela padrão** do módulo (`SdDataTable`,
- * a mesma de clientes, empresas e itens de configuração), em vez do layout
- * próprio que a tela tinha: três pílulas de faixa acima de uma lista de
- * linhas sem cabeçalho, sem ordenação, sem busca e sem colunas.
+ * Risk-ranked ticket queue on the module's **standard table** (`SdDataTable`,
+ * the same one customers, companies and configuration items use), replacing
+ * the bespoke layout this screen had: three band pills above a list of
+ * headerless rows, with no sorting, no search and no column control.
  *
- * A faixa de risco virou um campo do popover "Filtrar" — é o mesmo parâmetro
- * `level` que a rota já aceitava.
+ * The risk band became a field in the "Filtrar" popover — it is the same
+ * `level` parameter the route already accepted.
  */
 
 const LEVELS: SdRiskLevelDTO[] = ['HIGH', 'MEDIUM', 'LOW']

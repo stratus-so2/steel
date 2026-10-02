@@ -9,16 +9,16 @@ import { ReadOnlyNotice, SdSettingsProvider } from './sd-settings-kit'
 import { SD_SETTINGS_TABS } from './settings-tabs'
 
 /**
- * Conteúdo das configurações do ServiceDesk: a seção ativa (`?tab=`) do
- * registro em `settings-tabs.tsx`. Não-admins veem tudo em modo leitura.
+ * ServiceDesk settings content: the active section (`?tab=`) from the registry
+ * in `settings-tabs.tsx`. Non-admins see everything read-only.
  *
- * A navegação pelas 24 seções **não** mora aqui: ela vive na barra de
- * contexto do módulo (`SdSettingsNav`, trocada pelo `SdContextRail` do
- * layout). Antes esta tela desenhava um segundo trilho de 240px ao lado do
- * trilho do módulo — e, abaixo de `md`, uma segunda barra horizontal sob o
- * breadcrumb —, o que nenhuma outra tela do app faz. O corpo agora é o do
- * resto da casa: título + descrição em `H3`/`Muted` e as seções em largura
- * cheia, como nas configurações do workspace e do CRM.
+ * Navigating the 24 sections does **not** live here: it lives in the module
+ * context rail (`SdSettingsNav`, swapped in by the layout's `SdContextRail`).
+ * This screen used to draw a second 240px rail next to the module rail — and,
+ * below `md`, a second horizontal bar under the breadcrumb — which no other
+ * screen in the app does. The body is now the house one: title + description
+ * in `H3`/`Muted` and full-width sections, like the workspace and CRM
+ * settings.
  */
 export function SdSettingsShell({ workspaceId }: { workspaceId: string }) {
   const searchParams = useSearchParams()

@@ -210,7 +210,7 @@ export function SdKanbanView({
   slug: string
   loading?: boolean
   showType?: boolean
-  /** Tela de "sem coluna nenhuma" — sem isso o quadro ficava em branco. */
+  /** The "no columns at all" screen — without it the board went blank. */
   empty?: React.ReactNode
   onMove: (ticket: SdTicketDTO, columnId: string) => void
   onCreate?: (columnId: string) => void

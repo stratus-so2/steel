@@ -29,9 +29,9 @@ export default async function SdRiskPage({
       icon={AlertDiamondIcon}
       isAgent={ctx.isAgent}
     >
-      {/* Duas tabelas padrão empilhadas: cada seção fica com a sua metade e
-          rola por dentro. Um único container com `overflow-auto` em volta
-          quebraria o cabeçalho fixo das duas. */}
+      {/* Two standard tables stacked: each section keeps its own half and
+          scrolls inside it. A single surrounding `overflow-auto` container
+          would break the sticky header of both. */}
       <div className='flex h-full min-h-0 flex-col'>
         <p className='shrink-0 px-4 pt-3 text-muted-foreground text-xs'>
           A nota de risco é uma heurística explicável calculada pelo worker a

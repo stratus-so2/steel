@@ -84,7 +84,7 @@ export function useAdminModuleAccess(workspaceId: string) {
       }
     }
     await refetch()
-    // Seeds que falharam: a liberação valeu, mas o módulo ficou pela metade.
+    // Failed seeds: the grant went through, but half-configured.
     return {
       ok: true as const,
       seedWarnings: json.data?.seedWarnings ?? [],

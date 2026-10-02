@@ -286,8 +286,8 @@ describe('WorkspaceModuleAccessService', () => {
         true,
       )
 
-      // A liberação vale, mas a falha do seed volta no DTO: antes ela só
-      // ficava no log e quem habilitou recebia um sucesso limpo.
+      // The grant stands, but the seed failure comes back in the DTO: it used
+      // to live only in the log and the caller got a clean success.
       expect(expectOk(result).seedWarnings).toEqual([
         expect.stringContaining('painéis e relatórios padrão do WhatsApp'),
       ])
@@ -458,8 +458,8 @@ describe('WorkspaceModuleAccessService failure paths', () => {
     )
     mockedSdDashboardSeed.seedDefaults.mockResolvedValue(ok({ created: [] }))
 
-    // O ServiceDesk fica liberado, mas sem fase nenhuma: o quadro monta uma
-    // coluna por fase, então o aviso é a única pista de que falta configurar.
+    // ServiceDesk is granted but has no phase at all: the board builds one
+    // column per phase, so the warning is the only hint config is missing.
     expect(
       expectOk(
         await WorkspaceModuleAccessService.setEnabled(

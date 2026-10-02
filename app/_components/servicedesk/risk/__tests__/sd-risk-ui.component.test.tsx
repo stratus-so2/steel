@@ -190,15 +190,15 @@ describe('SdIncidentClusters', () => {
     renderWithQuery(<SdIncidentClusters workspaceId={WS} slug={SLUG} />)
 
     expect(await screen.findByText('3 incidentes')).toBeTruthy()
-    // Na tabela padrão a assinatura aparece uma vez, na célula: a lista de
-    // incidentes aninhada saiu do cartão e virou a ficha do grupo.
+    // On the standard table the signature shows once, in its cell: the nested
+    // incident list left the card and became the group record.
     expect(screen.getAllByText('Servidor de e-mail fora do ar')).toHaveLength(1)
     expect(screen.queryByText('INC-000001')).toBeNull()
     expect(screen.getByRole('button', { name: /Abrir problema/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Descartar/ })).toBeTruthy()
   })
 
-  it('abre a ficha do grupo com os incidentes ao clicar na linha', async () => {
+  it('opens the group record with its incidents on a row click', async () => {
     mockFetch([{ match: '/servicedesk/risk/clusters', data: [cluster()] }])
     renderWithQuery(<SdIncidentClusters workspaceId={WS} slug={SLUG} />)
 
@@ -209,7 +209,7 @@ describe('SdIncidentClusters', () => {
     expect(screen.getByText(/mesma assinatura/)).toBeTruthy()
   })
 
-  it('busca pela assinatura e pelo código do incidente', async () => {
+  it('searches by signature and by incident code', async () => {
     mockFetch([
       {
         match: '/servicedesk/risk/clusters',

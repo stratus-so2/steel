@@ -46,21 +46,21 @@ import { SD_RISK_TONE } from './sd-risk-badge'
 import { sdLocalTable } from './sd-risk-table'
 
 /**
- * Sugestões de problema: incidentes parecidos agrupados pelo worker
- * (`scan-clusters`). Abrir o problema é **ação do agente** — a análise
- * nunca abre nada sozinha (ADR 0016).
+ * Problem suggestions: similar incidents grouped by the worker
+ * (`scan-clusters`). Opening the problem is an **agent action** — the analysis
+ * never opens anything on its own (ADR 0016).
  *
- * Passou de uma pilha de cartões, cada um com uma lista de incidentes
- * aninhada, para a **tabela padrão** (`SdDataTable`). Os incidentes do grupo
- * não cabem numa célula e `SdDataTable` não expande linha, então eles vão
- * para um diálogo, aberto clicando na linha — o mesmo gesto das telas de
- * cadastros, que abrem a ficha do registro.
+ * This went from a stack of cards, each with a nested incident list, to the
+ * **standard table** (`SdDataTable`). A group's incidents do not fit in a cell
+ * and `SdDataTable` has no row expansion, so they moved into a dialog opened
+ * by clicking the row — the same gesture the directory screens use to open a
+ * record.
  */
 
 /**
- * Confirmação de "problema já aberto". O tema não tem token de sucesso, então
- * a cor fica nesta constante (padrão do repositório, legível nos dois temas)
- * em vez de solta no JSX.
+ * The "problem already opened" confirmation. The theme has no success token,
+ * so the colour lives in this constant (the repository's convention, legible
+ * in both themes) instead of loose in the JSX.
  */
 const DONE_TONE = SD_TONE_TEXT.emerald
 
@@ -103,7 +103,7 @@ function ClusterTickets({
   )
 }
 
-/** Ficha do grupo: os incidentes que entraram nele e o que foi feito. */
+/** Group record: the incidents that landed in it and what was decided. */
 function ClusterDetailDialog({
   cluster,
   slug,
@@ -237,7 +237,7 @@ function OpenProblemDialog({
   )
 }
 
-/** Botões de "descartar" e "abrir problema" — só no grupo ainda não tratado. */
+/** The dismiss and open-problem buttons — only on an untreated group. */
 function ClusterActions({
   workspaceId,
   cluster,
@@ -289,8 +289,8 @@ function clusterColumns({
       hideable: false,
       className: 'w-32',
       cell: (cluster) => (
-        // Grupo repetido é sinal de atenção: reusa a faixa média do selo de
-        // risco em vez de espalhar uma cor nova.
+        // A repeated group is a warning sign: it reuses the risk badge's
+        // medium band instead of spreading a new colour around.
         <span
           className={cn(
             'inline-flex h-5 items-center gap-1 rounded-md border px-1.5 font-medium text-[11px] tabular-nums',

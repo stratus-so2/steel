@@ -15,8 +15,8 @@ export function HeaderBreadcrumbCrumb({
     <Tooltip>
       <TooltipTrigger
         render={
-          <li className='gap-1.5 inline-flex items-center font-semibold text-xs'>
-            {children} {title}
+          <li className='gap-1.5 inline-flex min-w-0 items-center font-semibold text-xs'>
+            {children} <span className='truncate'>{title}</span>
           </li>
         }
       />

@@ -3,7 +3,7 @@ import type { WorkspaceModuleAccessDTO } from '@/types/workspace-module-access'
 
 export function toWorkspaceModuleAccessDTO(
   access: WorkspaceModuleAccess,
-  /** Seeds que falharam na liberação — ver `seedWarnings` no DTO. */
+  /** Seeds that failed during the grant — see `seedWarnings` on the DTO. */
   seedWarnings: string[] = [],
 ): WorkspaceModuleAccessDTO {
   return {

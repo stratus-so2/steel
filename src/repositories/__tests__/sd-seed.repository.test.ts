@@ -303,7 +303,7 @@ describe('SdSeedRepository.applyPhases', () => {
       INCIDENT.map((_, index) => index),
     )
     expect(phases.filter((p) => p.isInitial)).toHaveLength(1)
-    // Os outros tipos não são tocados.
+    // The other types are left alone.
     expect(
       await prisma.sdPhase.count({
         where: { workspaceId: workspace.id, ticketType: 'CHANGE' },
@@ -323,7 +323,7 @@ describe('SdSeedRepository.applyPhases', () => {
         isInitial: true,
       },
     })
-    // Uma fase com o mesmo nome de um padrão: não pode duplicar.
+    // A phase sharing a default's name: it must not be duplicated.
     await prisma.sdPhase.create({
       data: {
         workspaceId: workspace.id,
@@ -345,7 +345,7 @@ describe('SdSeedRepository.applyPhases', () => {
     })
     expect(phases).toHaveLength(INCIDENT.length + 1)
     expect(phases.filter((p) => p.name === INCIDENT[0].name)).toHaveLength(1)
-    // A fase inicial continua sendo a do admin, e a ordem segue depois dela.
+    // The initial phase stays the admin's, and positions follow after it.
     expect(phases.filter((p) => p.isInitial).map((p) => p.name)).toEqual([
       'Aberto',
     ])

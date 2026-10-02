@@ -9,12 +9,12 @@ import type { SdTicketTypeDTO } from '@/types/sd-ticket'
 import { SD_TICKET_TYPE_LABEL } from '../ticket/sd-ticket-meta'
 
 /**
- * Cria as fases padrão ITIL de um tipo, só as que faltam.
+ * Creates the default ITIL phases of one ticket type, only the missing ones.
  *
- * Existe porque a única saída para um fluxo sem fase era "Restaurar padrões
- * ITIL", na aba Geral, que mexe em escalas, calendários, SLAs, catálogo e
- * regras — agressivo demais para resolver um quadro vazio. Usado na aba
- * Fluxos e no estado vazio do quadro.
+ * It exists because the only way out of a flow with no phases was "Restaurar
+ * padrões ITIL" on the General tab, which also touches scales, calendars,
+ * SLAs, the catalog and the rules — far too blunt for fixing an empty board.
+ * Used by the Fluxos tab and by the board's empty state.
  */
 export function SdSeedPhasesButton({
   workspaceId,

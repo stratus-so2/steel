@@ -6,10 +6,10 @@ import { SdFilterBar } from '../sd-filter-bar'
 import { SdNoPhasesNotice } from '../sd-no-phases-notice'
 
 /**
- * O passe visual: a barra dos quadros tem de mostrar **três** controles de
- * consulta, como as grades do CRM (busca, `Filtrar`, `Ordenar`), e não as ~20
- * dimensões nem os 7 atalhos espalhados — era isso que fazia o ServiceDesk
- * parecer outro produto.
+ * The visual pass: the board toolbar must show **three** query controls, like
+ * the CRM grids (search, `Filtrar`, `Ordenar`), not the ~20 dimensions nor the
+ * 7 shortcuts spread across it — that was what made ServiceDesk look like a
+ * different product.
  */
 
 const WS = 'ws-1'
@@ -45,7 +45,7 @@ describe('<SdFilterBar />', () => {
     expect(screen.getByRole('button', { name: /Filtrar/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Ordenar/ })).toBeTruthy()
 
-    // Nenhum atalho ocupa a barra: eles vivem dentro do popover.
+    // No shortcut takes up the bar: they live inside the popover.
     for (const quick of SD_QUICK_FILTERS) {
       expect(screen.queryByRole('button', { name: quick.label })).toBeNull()
     }
@@ -54,7 +54,7 @@ describe('<SdFilterBar />', () => {
 
     expect(await screen.findByText('Atalhos')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Meus chamados' })).toBeTruthy()
-    // E as ~20 dimensões continuam todas lá, agrupadas.
+    // And all ~20 dimensions are still there, grouped.
     for (const group of [
       'Classificação',
       'Atribuição',
@@ -105,7 +105,7 @@ describe('<SdFilterBar />', () => {
       },
     )
 
-    // Ordenação fora do padrão: badge na barra e chip removível.
+    // Non-default ordering: a badge on the bar and a removable chip.
     expect(screen.getByRole('button', { name: /Ordenar\s*1/ })).toBeTruthy()
     expect(screen.getByText('Prioridade')).toBeTruthy()
     expect(
@@ -114,7 +114,7 @@ describe('<SdFilterBar />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Ordenar/ }))
 
-    // O agrupamento da lista também mora aqui, em vez de um select na barra.
+    // List grouping lives here too, instead of a select on the bar.
     expect(await screen.findByLabelText('Agrupar por')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Título decrescente' }))
 
@@ -143,7 +143,7 @@ describe('<SdNoPhasesNotice />', () => {
     expect(
       screen.getByRole('link', { name: /Configurações/ }).getAttribute('href'),
     ).toBe(`/${SLUG}/servicedesk/settings?tab=flows`)
-    // Só admin semeia.
+    // Only an admin seeds.
     expect(
       screen.queryByRole('button', { name: /Criar as fases padrão/ }),
     ).toBeNull()
@@ -186,7 +186,7 @@ describe('<SdNoPhasesNotice />', () => {
     expect(
       screen.getByText('Nenhum tipo de chamado tem fases configuradas'),
     ).toBeTruthy()
-    // Sem tipo não há fase padrão a criar: só o caminho da configuração.
+    // With no type there are no default phases to create: only the settings path.
     expect(
       screen.queryByRole('button', { name: /Criar as fases padrão/ }),
     ).toBeNull()

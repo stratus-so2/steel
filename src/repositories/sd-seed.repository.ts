@@ -29,7 +29,7 @@ export type SdSeedSummary = Record<
   number
 >
 
-/** Resultado da semeadura sob demanda das fases de um tipo. */
+/** Result of seeding one ticket type's phases on demand. */
 export interface SdSeedPhasesSummary {
   created: number
   kept: number
@@ -145,14 +145,14 @@ async function seedCatalog(
 
 export const SdSeedRepository = {
   /**
-   * Semeia as fases padrão de **um** tipo criando só as que faltam, casadas
-   * por nome, e preservando as que o admin já tem.
+   * Seeds the default phases of **one** ticket type, creating only the missing
+   * ones (matched by name) and preserving whatever the admin already has.
    *
-   * `apply` pula o tipo inteiro assim que existe qualquer fase, o que deixa
-   * sem saída o fluxo meio-feito (uma fase só, ou todas desativadas): o
-   * quadro monta uma coluna e parece quebrado, e "restaurar padrões" não
-   * conserta. Daqui vem o botão "Criar as fases padrão" da aba Fluxos e do
-   * estado vazio do quadro.
+   * `apply` skips the whole type as soon as any phase exists, which leaves a
+   * half-built flow (a single phase, or all of them inactive) with no way out:
+   * the board renders one column and looks broken, and "restore defaults"
+   * does not fix it. This backs the "create the default phases" button on the
+   * Fluxos tab and in the board's empty state.
    */
   async applyPhases(
     workspaceId: string,
@@ -171,8 +171,8 @@ export const SdSeedRepository = {
           return { created: 0, kept: existing.length }
         }
 
-        // A fase inicial é uma por tipo: se já existe, as novas entram sem
-        // a marca, e a ordem continua depois da última fase do admin.
+        // There is one initial phase per type: if one already exists, the new
+        // ones arrive unmarked, and positions continue after the admin's last.
         let initialTaken = existing.some((p) => p.isInitial)
         let position =
           existing.reduce((max, p) => Math.max(max, p.position), -1) + 1

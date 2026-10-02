@@ -114,7 +114,7 @@ export const SD_SORT_FIELDS: SdSortField[] = [
   'firstResponseDueAt',
 ]
 
-/** Rótulo de cada campo de ordenação — popover "Ordenar" e chip ativo. */
+/** Label of each sort field — the "Ordenar" popover and the active chip. */
 export const SD_SORT_FIELD_LABEL: Record<SdSortField, string> = {
   createdAt: 'Aberto em',
   updatedAt: 'Atualizado em',

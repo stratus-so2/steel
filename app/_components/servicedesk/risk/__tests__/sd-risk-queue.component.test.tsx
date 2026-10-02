@@ -7,9 +7,9 @@ import { SdRiskQueue } from '../sd-risk-overview'
 import { sdCompareSortable, sdLocalTable } from '../sd-risk-table'
 
 /**
- * A fila de risco não tinha teste nenhum — era o layout próprio mais
- * desprotegido do módulo. Agora que ela é a tabela padrão, estes casos
- * travam o que a tela ganhou: colunas, busca, ordenação e o filtro de faixa.
+ * The risk queue had no test at all — the module's most unprotected bespoke
+ * layout. Now that it is the standard table, these cases pin down what the
+ * screen gained: columns, search, sorting and the band filter.
  */
 
 const WS = 'ws-1'
@@ -88,7 +88,7 @@ describe('sdLocalTable()', () => {
   })
 
   it('clamps a page the shortened list no longer has', () => {
-    // Filtrar enquanto se está na página 2 não pode deixar a tabela vazia.
+    // Filtering while on page 2 must not leave the table empty.
     const result = sdLocalTable(rows, { ...base, q: 'al', page: 2 })
     expect(result.page).toBe(1)
     expect(result.rows).toHaveLength(1)
@@ -109,7 +109,7 @@ describe('<SdRiskQueue />', () => {
     expect(await screen.findByText('Risco alto · 74')).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: /Risco/ })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: /Código/ })).toBeTruthy()
-    // Barra da tabela padrão, não as três pílulas de antes.
+    // The standard table toolbar, not the three pills it used to have.
     expect(screen.getByLabelText('Buscar')).toBeTruthy()
     expect(screen.getByRole('button', { name: /Colunas/ })).toBeTruthy()
   })
@@ -142,7 +142,7 @@ describe('<SdRiskQueue />', () => {
       target: { value: 'INC-000002' },
     })
 
-    // A busca tem debounce: o que sai da tabela é o que prova o filtro.
+    // The search is debounced: what leaves the table is what proves it.
     await waitFor(() => expect(screen.queryByText('INC-000001')).toBeNull())
     expect(screen.getByText('INC-000002')).toBeTruthy()
     expect(screen.getByText('VPN')).toBeTruthy()

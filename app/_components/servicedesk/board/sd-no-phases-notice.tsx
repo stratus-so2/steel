@@ -12,13 +12,13 @@ import { SdSeedPhasesButton } from '../settings/sd-seed-phases-button'
 import { SD_TICKET_TYPE_LABEL } from '../ticket/sd-ticket-meta'
 
 /**
- * Quadro sem nenhuma coluna porque o fluxo do tipo não tem fase cadastrada.
+ * A board with no columns at all, because the type's flow has no phases.
  *
- * O kanban monta uma coluna por fase (`sdTypePhases`), então um fluxo vazio
- * dava um quadro em branco, sem texto nenhum — foi o que fez o dono conviver
- * com o "kanban sempre vazio" sem descobrir que faltava configuração. Aqui a
- * tela diz o que falta, leva para Configurações > Fluxos e, para admin, cria
- * as fases padrão do tipo na hora.
+ * The kanban builds one column per phase (`sdTypePhases`), so an empty flow
+ * produced a blank board with no text whatsoever — which is how the "always
+ * empty kanban" survived without anyone realising configuration was missing.
+ * This tells the user what is missing, links to Configurações > Fluxos and,
+ * for an admin, creates the type's default phases on the spot.
  */
 export function SdNoPhasesNotice({
   workspaceId,
@@ -28,7 +28,7 @@ export function SdNoPhasesNotice({
 }: {
   workspaceId: string
   slug: string
-  /** `null` no quadro "Todos": nenhum tipo tem fase. */
+  /** `null` on the "Todos" board: no type has any phase. */
   type: SdTicketTypeDTO | null
   isAdmin?: boolean
 }) {

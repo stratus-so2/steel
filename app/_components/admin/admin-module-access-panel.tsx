@@ -21,9 +21,9 @@ export function AdminModuleAccessPanel({
   workspaceId: string
 }) {
   const { access, isLoading, setEnabled } = useAdminModuleAccess(workspaceId)
-  // Seeds que falharam na última liberação, por módulo. Ficam na tela (e não
-  // só num toast que passa) porque o módulo segue liberado pela metade até
-  // alguém agir.
+  // Seeds that failed in the last grant, per module. They stay on screen (not
+  // only in a toast that fades) because the module remains half-configured
+  // until somebody acts.
   const [warnings, setWarnings] = useState<
     Partial<Record<ModuleKind, string[]>>
   >({})

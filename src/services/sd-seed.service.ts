@@ -79,9 +79,9 @@ export const SdSeedService = {
   },
 
   /**
-   * Fases padrão de um tipo, sob demanda, criando só as que faltam. É a saída
-   * para o fluxo sem fase nenhuma (quadro vazio) sem recorrer a "restaurar
-   * padrões", que mexe em tudo.
+   * Default phases of one ticket type, on demand, creating only what is
+   * missing. This is the way out of a flow with no phases at all (an empty
+   * board) without resorting to "restore defaults", which touches everything.
    */
   async seedPhases(
     actorId: string,

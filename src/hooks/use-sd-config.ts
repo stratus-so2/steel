@@ -181,8 +181,9 @@ export function useRestoreSdDefaults(workspaceId: string) {
 }
 
 /**
- * Cria as fases padrão ITIL de um tipo, só as que faltam. Saída para o fluxo
- * sem fase nenhuma (quadro vazio) sem restaurar todos os padrões.
+ * Creates the default ITIL phases of one ticket type, only the missing ones.
+ * The way out of a flow with no phases (an empty board) without restoring
+ * every default.
  */
 export function useSeedSdPhases(workspaceId: string) {
   const invalidate = useInvalidateSdConfig(workspaceId)

@@ -24,7 +24,10 @@ import {
   NavItem,
 } from '@/app/_components/navigation/sidebar-context'
 import { loadSdDirectoryContext } from '@/app/_components/servicedesk/directory/sd-directory-context'
-import { SdContextRail } from '@/app/_components/servicedesk/settings/sd-settings-nav'
+import { SdKbContextNav } from '@/app/_components/servicedesk/knowledge/sd-kb-context-nav'
+import { getSdKbViewer } from '@/app/_components/servicedesk/knowledge/sd-kb-server-context'
+import { SdSettingsNav } from '@/app/_components/servicedesk/settings/sd-settings-nav'
+import { SdContextRail } from '@/app/_components/servicedesk/shell/sd-context-rail'
 import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function ServiceDeskLayout({
@@ -42,10 +45,29 @@ export default async function ServiceDeskLayout({
   if (!ctx) notFound()
   const base = `/${slug}/servicedesk`
 
+  // Alternative rails: settings and the knowledge base replace the module
+  // menu instead of drawing a second bar inside the page. `getSdKbViewer` is
+  // `cache()`d — the knowledge layout calls the very same one.
+  const kb = await getSdKbViewer(slug)
+  const settingsNav = <SdSettingsNav base={base} />
+  const knowledgeNav = kb ? (
+    <SdKbContextNav
+      workspaceId={kb.workspaceId}
+      slug={slug}
+      canEdit={kb.canEdit}
+      canCreate={kb.canCreate}
+      canDelete={kb.canDelete}
+    />
+  ) : null
+
   if (!ctx.isAgent) {
     return (
       <>
-        <SdContextRail base={base}>
+        <SdContextRail
+          base={base}
+          settingsNav={settingsNav}
+          knowledgeNav={knowledgeNav}
+        >
           <ContextSidebar>
             <ContextHeader title='ServiceDesk' />
             <NavGroup>
@@ -65,7 +87,11 @@ export default async function ServiceDeskLayout({
 
   return (
     <>
-      <SdContextRail base={base}>
+      <SdContextRail
+        base={base}
+        settingsNav={settingsNav}
+        knowledgeNav={knowledgeNav}
+      >
         <ContextSidebar>
           <ContextHeader title='ServiceDesk' />
           <NavGroup>

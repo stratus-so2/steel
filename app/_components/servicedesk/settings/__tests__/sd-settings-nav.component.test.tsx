@@ -5,9 +5,9 @@ import { SdSettingsNav, sdSettingsNavGroups } from '../sd-settings-nav'
 import { SD_SETTINGS_TABS } from '../settings-tabs'
 
 /**
- * As 24 seções saíram da segunda barra dentro da tela e foram para a barra de
- * contexto do módulo, agrupadas. O que não pode acontecer é uma seção ficar
- * inalcançável no caminho: é isso que estes casos travam.
+ * The 24 sections moved out of the second bar inside the screen and into the
+ * module context rail, grouped. What must not happen is a section becoming
+ * unreachable along the way: that is what these cases pin down.
  */
 
 const BASE = '/acme/servicedesk'
@@ -60,9 +60,9 @@ describe('<SdSettingsNav />', () => {
         .getAttribute('href'),
     ).toBe(BASE)
 
-    // Grupo fechado não monta os itens, então o que se verifica aqui é o
-    // grupo aberto; que nenhuma seção fica fora de grupo algum é o que o
-    // `sdSettingsNavGroups()` acima garante.
+    // A collapsed group does not mount its items, so what is checked here is
+    // the open group; that no section is left out of every group is what
+    // `sdSettingsNavGroups()` above guarantees.
     const hrefs = [...container.querySelectorAll('a')].map((a) =>
       a.getAttribute('href'),
     )
@@ -78,8 +78,8 @@ describe('<SdSettingsNav />', () => {
   it('opens only the group of the active section', () => {
     renderWithQuery(<SdSettingsNav base={BASE} />)
 
-    // `?tab=sla` está em "Atendimento": só ele abre, para o trilho não virar
-    // a mesma parede de 24 itens que a segunda barra era.
+    // `?tab=sla` sits in "Atendimento": only that one opens, so the rail does
+    // not become the same 24-item wall the second bar was.
     const open = screen
       .getAllByRole('button', { expanded: true })
       .map((node) => node.textContent)
