@@ -29,7 +29,7 @@ import {
 } from '@/src/lib/servicedesk/report-sla'
 import { parseSdCalendar } from '@/src/lib/servicedesk/sla'
 import { resolveSdTicketPrefixes } from '@/src/lib/servicedesk/ticket-code'
-import { putObject } from '@/src/lib/storage/s3'
+import { ensureBucket, putObject } from '@/src/lib/storage/s3'
 import { toSdReportRunDTO } from '@/src/mappers/sd-report.mapper'
 import {
   SdReportDataRepository,
@@ -365,6 +365,7 @@ export async function generateSdReport(
       range,
       now,
     )
+    if (files.length > 0) await ensureBucket(SD_REPORT_BUCKET)
     for (const file of files) {
       await putObject({
         bucket: SD_REPORT_BUCKET,

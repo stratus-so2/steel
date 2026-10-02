@@ -28,7 +28,7 @@ vi.mock('../notification.service', () => ({
 import { sendSdSlaReportEmail } from '@/src/lib/mail/servicedesk/send-sd-sla-report'
 import { getServicedeskReportsQueue } from '@/src/lib/queue/queues'
 import { renderSdSlaReportPdf } from '@/src/lib/servicedesk/report-pdf'
-import { putObject } from '@/src/lib/storage/s3'
+import { ensureBucket, putObject } from '@/src/lib/storage/s3'
 import {
   SdReportDataRepository,
   SdReportRunRepository,
@@ -48,6 +48,7 @@ const data = vi.mocked(SdReportDataRepository)
 const context = vi.mocked(SdTicketContextRepository)
 const mail = vi.mocked(sendSdSlaReportEmail)
 const upload = vi.mocked(putObject)
+const bucket = vi.mocked(ensureBucket)
 const pdf = vi.mocked(renderSdSlaReportPdf)
 const notify = vi.mocked(NotificationService.notifyUsers)
 const queueFactory = vi.mocked(getServicedeskReportsQueue)
@@ -145,6 +146,7 @@ beforeEach(() => {
   context.listEnabledWorkspaceIds.mockResolvedValue(ok([WS]))
   pdf.mockResolvedValue(Buffer.from('%PDF-1.7 fake'))
   upload.mockResolvedValue(undefined)
+  bucket.mockResolvedValue(undefined)
   mail.mockResolvedValue({ id: 'email-1' } as never)
   notify.mockResolvedValue(ok(1))
 })
@@ -177,6 +179,7 @@ describe('generateSdReport()', () => {
     expect(summary.volume.opened).toBe(2)
     expect(summary.violationCount).toBe(2)
 
+    expect(bucket).toHaveBeenCalledWith('servicedesk')
     expect(upload).toHaveBeenCalledTimes(2)
     expect(upload).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -236,6 +239,16 @@ describe('generateSdReport()', () => {
     )
 
     expect(mail).not.toHaveBeenCalled()
+    expect(run.status).toBe('GENERATED')
+  })
+
+  it('does not touch the bucket when no format was asked', async () => {
+    const run = expectOk(
+      await generateSdReport({ ...baseInput, formats: [], recipients: [] }),
+    )
+
+    expect(bucket).not.toHaveBeenCalled()
+    expect(upload).not.toHaveBeenCalled()
     expect(run.status).toBe('GENERATED')
   })
 

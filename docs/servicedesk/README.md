@@ -295,7 +295,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
 | contratos e horas | `sd-contract` (schema/mapper/repository/service), `sd-contract-period.repository.ts`, `sd-contract-billing.service.ts` (períodos e consolidação), `sd-contract-stamp.ts` (gancho do motor), `sd-time-entry` (schema/mapper/repository/service), `src/lib/servicedesk/billing.ts`, fila `servicedesk-billing`, aba Configurações > Contratos, aba "Horas" do chamado, bloco Contrato na tela do cliente |
 | inbox | `notification` (schema/mapper/repository/service da caixa), `app/_components/notifications/*` (lista, painel de leitura, ícone por tipo), `src/lib/notification-kind.ts` (tabela pura de tipo → rótulo/ícone/cor), rota `/inbox` |
-| relatórios agendados | `sd-scheduled-report` + `sd-report-run` (schema/mapper/repository/service), `src/lib/servicedesk/report-sla.ts` (apuração pura), `src/lib/servicedesk/report-pdf.ts` e `report-csv.ts`, fila `servicedesk-reports`, aba Configurações > Relatórios, histórico de execuções |
+| relatórios agendados | `sd-report` (schema/mapper/repository/service — `SdScheduledReport` + `SdReportRun`) + `sd-report-runner.ts` (geração sem autorização, compartilhada com a fila), `src/lib/servicedesk/{report-sla,report-schedule,report-csv,report-files}.ts` e `report-pdf.tsx`, `src/lib/mail/servicedesk/send-sd-sla-report.ts` + `components/emails/servicedesk/sd-sla-report.tsx`, fila `servicedesk-reports`, API `servicedesk/reports/**`, aba Configurações > Relatórios e o histórico de execuções |
 | kcs | `sd-kb-review` (schema/mapper/repository/service), ciclo de vida do artigo (`IN_REVIEW`, `reviewDueAt`, `lastReviewedAt`, `reuseCount`), "criar artigo a partir deste chamado" com rascunho pela IA, sugestão na abertura, marcador `resolvedTicket` no vínculo chamado↔artigo |
 | risco preditivo | `src/lib/servicedesk/risk.ts` (tabela de fatores e faixas — ADR 0016), `sd-risk.service.ts` + `sd-ticket-risk-prediction.repository.ts`, `sd-incident-cluster` (agrupamento e sugestão de problema), fila `servicedesk-risk`, selo de risco no quadro e na tela do chamado |
 | integrações | `sd-integration` + `sd-integration-link` (schema/mapper/repository/service), `src/lib/servicedesk/{slack,github}.ts`, OAuth do Slack por workspace, webhooks `servicedesk/integrations/{slack,github}`, fila `servicedesk-integrations`, aba Configurações > Integrações, bloco de vínculos na tela do chamado |
@@ -321,7 +321,9 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   na hora local do workspace), `servicedesk-recurring` (5 min: abre os
   chamados das rotinas recorrentes vencidas, idempotente por ocorrência) e
   `servicedesk-billing` (00:20: abre o período do ciclo de cada contrato
-  ativo e fecha o anterior, consolidando as horas).
+  ativo e fecha o anterior, consolidando as horas) e `servicedesk-reports`
+  (de hora em hora, :10: enfileira e gera os relatórios de SLA agendados,
+  idempotente por `(reportId, periodStart)`).
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as
@@ -421,6 +423,27 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   sobra da franquia acumula para o período seguinte apenas com `carryOver`.
   Os cálculos ficam na lib pura `src/lib/servicedesk/billing.ts`.
 
+- **Relatórios de SLA**: Configurações > Relatórios agenda o relatório do
+  cliente (recorte por clientes, departamento e tipos — vazio = todos —,
+  período apurado, formatos PDF/CSV, dia 1–28, hora e **fuso do relatório**,
+  destinatários e a opção de somar os responsáveis das contas). A fila
+  `servicedesk-reports` roda de hora em hora (:10): enfileira um
+  `generate-report` por agendamento vencido com o período já carimbado e
+  recalcula o próximo envio; a geração apura o período (volume, % de SLA de
+  primeira resposta e de resolução, violações listadas, MTTR e tempo médio de
+  resposta em **horário útil** do calendário do chamado, CSAT e as quebras
+  por departamento, cliente e prioridade), grava PDF/CSV no bucket privado
+  `servicedesk` (`<ws>/reports/<runId>.<ext>`) e manda o e-mail com o resumo
+  no corpo e os arquivos anexos (acima de 8 MB vai só o link do histórico;
+  `MAIL_DRY_RUN` registra sem enviar). A trava é `(reportId, periodStart)`:
+  reprocessar o job **não** reenvia. "Gerar agora" apura na hora — com
+  agendamento ou pontual, inclusive sem destinatário (os arquivos ficam no
+  histórico) — e avisa quem pediu pelo evento `report.ready`. Como a API do
+  MinIO não é pública, o download sai pela rota autenticada
+  `reports/runs/[runId]/download?format=PDF|CSV`, que confere `sd-reports`
+  a cada pedido. Hoje o cadastro de cliente não tem coluna de responsável,
+  então "responsáveis das contas" = o e-mail do cliente + o de quem mantém
+  o cadastro.
 - **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
   acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
   conhecimento.
