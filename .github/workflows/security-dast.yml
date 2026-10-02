@@ -37,24 +37,74 @@ jobs:
   headers-check:
     name: Security Headers Validation
     runs-on: ubuntu-latest
+    env:
+      BASE_URL: https://homologacao.stratustelecom.com.br
     steps:
-      - name: Check security headers
+      # Três classes de resposta, porque cada uma passa por um caminho
+      # diferente e já divergiu em produção (ZAP #1/#3/#4/#5/#6):
+      #   - página pública: proxy.ts (CSP com nonce) + headers do next.config;
+      #   - asset estático: fora do matcher do proxy, só next.config;
+      #   - redirect do middleware (`/robots.txt` quando não há rota): a
+      #     resposta é montada no proxy e não chega ao route handler.
+      # Se qualquer uma perder um header, o CI falha aqui em vez de aparecer
+      # no relatório semanal do ZAP.
+      - name: Check security headers on page, static asset and redirect
         run: |
-          RESPONSE=$(curl -sI https://homologacao.stratustelecom.com.br)
-          echo "$RESPONSE"
+          set -uo pipefail
 
-          check_header() {
-            if echo "$RESPONSE" | grep -qi "$1"; then
-              echo "OK: $1"
-            else
-              echo "MISSING: $1" && exit 1
-            fi
+          check_url() {
+            local url="$1"
+            shift
+            echo "--- $url"
+            local response
+            response=$(curl -sS -D - -o /dev/null --max-time 30 "$url")
+            echo "$response"
+            local header
+            for header in "$@"; do
+              if echo "$response" | grep -qi "^$header:"; then
+                echo "OK: $header"
+              else
+                echo "MISSING: $header on $url"
+                exit 1
+              fi
+            done
           }
 
-          check_header "x-frame-options"
-          check_header "x-content-type-options"
-          check_header "strict-transport-security"
-          check_header "content-security-policy"
-          check_header "referrer-policy"
+          # `/` e `/sign-in` são públicas e ganham CSP com nonce no proxy.
+          for page in / /sign-in; do
+            check_url "${BASE_URL}${page}" \
+              x-frame-options x-content-type-options strict-transport-security \
+              content-security-policy referrer-policy permissions-policy
+          done
+
+          # Asset estático: fora do matcher do proxy (só next.config).
+          CHUNK=$(curl -sS --max-time 30 "${BASE_URL}/sign-in" \
+            | grep -oE '/_next/static/[^"]+\.js' | head -1)
+          if [ -z "$CHUNK" ]; then
+            echo "Could not find a _next/static chunk to probe" && exit 1
+          fi
+          check_url "${BASE_URL}${CHUNK}" \
+            x-frame-options x-content-type-options strict-transport-security \
+            content-security-policy
+
+          # Redirect do middleware para o login (rota inexistente e privada).
+          check_url "${BASE_URL}/robots.txt" \
+            x-frame-options x-content-type-options strict-transport-security
 
           echo "All security headers present."
+
+      # Informativo: o `Server` é do nginx do servidor, que não está neste
+      # repositório. Enquanto `server_tokens off;` não for aplicado, o ZAP
+      # segue reportando 10036 (ver docs/runbooks/health-check.md).
+      - name: Report Server header exposure
+        run: |
+          SERVER=$(curl -sS -D - -o /dev/null --max-time 30 "${BASE_URL}/" \
+            | grep -i '^server:' || true)
+          echo "${SERVER:-no Server header}"
+          case "$SERVER" in
+            *[0-9].[0-9]*)
+              echo "::warning title=Server header leaks version::${SERVER} - set 'server_tokens off;' in the nginx config"
+              ;;
+            *)
+              echo "Server header does not expose a version." ;;
+          esac
