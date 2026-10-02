@@ -59,6 +59,7 @@ import {
   sdTypeKanbanColumns,
 } from './sd-board-kanban'
 import {
+  SD_BOARD_DEFAULTS,
   type SdBoardFilters,
   type SdBoardMode,
   type SdBoardState,
@@ -425,6 +426,15 @@ export function SdTicketBoard({
         sort={state.sort}
         order={state.order}
         onSortChange={(sort, order) => update({ sort, order, page: 1 })}
+        onClearAll={() =>
+          replace({
+            ...state,
+            filters: {},
+            sort: SD_BOARD_DEFAULTS.sort,
+            order: SD_BOARD_DEFAULTS.order,
+            page: 1,
+          })
+        }
         group={state.mode === 'list' ? state.group : undefined}
         onGroupChange={(group) => update({ group })}
       >

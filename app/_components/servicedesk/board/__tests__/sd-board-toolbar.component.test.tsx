@@ -21,6 +21,7 @@ function renderBar(
 ) {
   const onChange = vi.fn()
   const onSortChange = vi.fn()
+  const onClearAll = vi.fn()
   const view = renderWithQuery(
     <SdFilterBar
       workspaceId={WS}
@@ -31,10 +32,11 @@ function renderBar(
       sort='createdAt'
       order='desc'
       onSortChange={onSortChange}
+      onClearAll={onClearAll}
       {...overrides}
     />,
   )
-  return { ...view, onChange, onSortChange }
+  return { ...view, onChange, onSortChange, onClearAll }
 }
 
 describe('<SdFilterBar />', () => {
@@ -92,6 +94,22 @@ describe('<SdFilterBar />', () => {
     expect(
       screen.queryByRole('button', { name: /Remover ordenação/ }),
     ).toBeNull()
+  })
+
+  it('clears filters and ordering in a single update', () => {
+    // Two calls would not do: the board's `onChange` and `onSortChange` both
+    // close over the same render's state, so the second `replace` would put
+    // the captured filters back and undo the first.
+    const { onChange, onSortChange, onClearAll } = renderBar(
+      { sla: 'breached' },
+      { sort: 'title', order: 'asc' },
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Limpar tudo' }))
+
+    expect(onClearAll).toHaveBeenCalledTimes(1)
+    expect(onChange).not.toHaveBeenCalled()
+    expect(onSortChange).not.toHaveBeenCalled()
   })
 
   it('sorts from the popover and shows the active ordering as a chip', async () => {

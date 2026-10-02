@@ -818,6 +818,7 @@ export function SdFilterBar({
   sort,
   order,
   onSortChange,
+  onClearAll,
   group,
   onGroupChange,
   children,
@@ -832,6 +833,13 @@ export function SdFilterBar({
   sort: SdSortField
   order: 'asc' | 'desc'
   onSortChange: (sort: SdSortField, order: 'asc' | 'desc') => void
+  /**
+   * Clears filters and ordering in **one** update. Separate `onChange` +
+   * `onSortChange` calls would not do: both of the board's handlers close over
+   * the same render's state, so the second `replace` would put the filters it
+   * captured back into the URL and undo the first.
+   */
+  onClearAll: () => void
   /** List grouping — leaves the popover in the other modes. */
   group?: SdListGroup
   onGroupChange?: (group: SdListGroup) => void
@@ -978,8 +986,7 @@ export function SdFilterBar({
             className='text-muted-foreground'
             onClick={() => {
               setSearch('')
-              onChange({})
-              onSortChange(SD_BOARD_DEFAULTS.sort, SD_BOARD_DEFAULTS.order)
+              onClearAll()
             }}
           >
             Limpar tudo
