@@ -132,6 +132,10 @@ export type AuditEntity =
   | 'sd_change_window'
   | 'sd_cab_board'
   | 'sd_approval_round'
+  // ServiceDesk — contratos e apontamento de horas
+  | 'sd_contract'
+  | 'sd_contract_period'
+  | 'sd_time_entry'
 
 export type AuditAction =
   | 'create'

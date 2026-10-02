@@ -27,6 +27,7 @@ export const SD_TICKET_REALTIME_EVENT_TYPES = [
   'ticket.message',
   'ticket.task',
   'ticket.cost',
+  'ticket.time',
   'ticket.part',
   'ticket.attachment',
   'ticket.approval',

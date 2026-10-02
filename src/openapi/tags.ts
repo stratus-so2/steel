@@ -273,6 +273,11 @@ export const TAG_GROUPS = [
           'Calendário de mudanças: janelas de manutenção e de congelamento (com recorrência simplificada e alvo por item de configuração ou departamento), as ocorrências expandidas do intervalo e as mudanças posicionadas pela janela planejada, com congelamento e conflito de item já detectados — aviso, não bloqueio: um admin confirma e o que foi ignorado fica na rastreabilidade. Inclui os comitês de mudança (CAB) com membros, votos obrigatórios, quórum e seleção por condições, e as rodadas de aprovação do chamado (um pedido por membro, contagem de votos e fechamento automático).',
       },
       {
+        name: 'ServiceDesk · Contratos e horas',
+        description:
+          'Contratos de atendimento (franquia de horas, valor da hora, arredondamento, mínimo por chamado e a tabela de valores por tipo × prioridade × janela), os períodos de faturamento com consumo e excedente, e o apontamento de horas no chamado: cronômetro (um aberto por usuário) e lançamento manual. O período fechado congela os apontamentos.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

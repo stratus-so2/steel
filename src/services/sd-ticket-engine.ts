@@ -65,6 +65,7 @@ import type { SdChangeWarningDTO } from '@/types/sd-change'
 import type { SdAccessContext } from './sd-access'
 import { sdTicketApprovalSatisfied } from './sd-approval-gate'
 import { sdAssertChangeSchedule } from './sd-change-schedule'
+import { resolveSdTicketContractId } from './sd-contract-stamp'
 import { notifySdEvent } from './sd-notification.service'
 import {
   recordSdTicketEvent,
@@ -787,6 +788,13 @@ export const SdTicketEngine = {
       serviceId: catalog.value.serviceId,
       classificationId: input.classificationId ?? null,
       customerId: input.customerId ?? null,
+      // Contrato vigente do cliente (fatia de contratos e horas).
+      contractId: await resolveSdTicketContractId(
+        workspaceId,
+        input.customerId,
+        input.type,
+        now,
+      ),
       companyId: input.companyId ?? null,
       contactId: input.contactId ?? null,
       configItemId: input.configItemId ?? null,
@@ -1004,6 +1012,19 @@ export const SdTicketEngine = {
         : null
     }
     if (next.tags !== undefined) data.tags = Array.from(new Set(next.tags))
+
+    // Trocar o cliente recarimba o contrato (fatia de contratos e horas).
+    if (
+      next.customerId !== undefined &&
+      next.customerId !== ticket.customerId
+    ) {
+      data.contractId = await resolveSdTicketContractId(
+        ticket.workspaceId,
+        next.customerId,
+        ticket.type,
+        now,
+      )
+    }
 
     // SLA: nova prioridade → nova política/prazos (a partir da abertura).
     if (

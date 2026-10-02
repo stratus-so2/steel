@@ -24,6 +24,7 @@ export const QueueName = {
   ServicedeskMail: 'servicedesk-mail',
   ServicedeskDigest: 'servicedesk-digest',
   ServicedeskRecurring: 'servicedesk-recurring',
+  ServicedeskBilling: 'servicedesk-billing',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -430,4 +431,22 @@ export type ServicedeskRecurringJob =
 
 export type ServicedeskRecurringJobPayload = {
   [ServicedeskRecurringJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Faturamento dos contratos de atendimento
+ * (`SdContractBillingService.runTick`). O tick diário abre o período do
+ * ciclo corrente de cada contrato ativo e fecha os anteriores já vencidos,
+ * consolidando os apontamentos de hora. Idempotente por
+ * `(contractId, periodStart)`.
+ */
+export const ServicedeskBillingJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type ServicedeskBillingJob =
+  (typeof ServicedeskBillingJob)[keyof typeof ServicedeskBillingJob]
+
+export type ServicedeskBillingJobPayload = {
+  [ServicedeskBillingJob.RunTick]: Record<string, never>
 }

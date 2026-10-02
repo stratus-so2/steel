@@ -265,6 +265,8 @@ de canal vira log e o resto segue; só erro de banco vira `err`.
 | `/changes/calendar` | calendário de mudanças (mês/semana): janelas de manutenção e congelamento como faixas de fundo, mudanças pela janela planejada, conflitos destacados e painel do dia |
 | `/tickets/[number]` | tela do chamado (abas: Histórico, WhatsApp, Tarefas, Custos, Aprovação, Mudança — só em `CHANGE` —, Peças, Itens filhos, Escalonamento, Rastreabilidade, Assinatura, Conhecimento) |
 | `/customers`, `/companies`, `/contacts`, `/config-items` | cadastros |
+| `/tickets/[number]` | tela do chamado (abas: Histórico, WhatsApp, Tarefas, Horas, Custos, Aprovação, Peças, Itens filhos, Escalonamento, Rastreabilidade, Assinatura, Conhecimento) |
+| `/customers`, `/companies`, `/contacts`, `/config-items` | cadastros (o cliente tem a aba Contrato, com o consumo do período) |
 | `/knowledge`, `/knowledge/[articleId]` | base de conhecimento |
 | `/dashboards`, `/dashboards/[id]`, `/dashboards/[id]/tv` | painéis |
 | `/settings` | configurações (abas; "Recorrentes" = rotinas preventivas) |
@@ -291,6 +293,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | recurring | `sd-recurring-ticket` (schema/mapper/repository/service) + `sd-recurring-ticket-runner.ts`, `src/lib/servicedesk/recurrence.ts`, fila `servicedesk-recurring`, aba Configurações > Recorrentes, aba "Rotinas" do item de configuração |
 | change-cab | `sd-change-window`, `sd-change-schedule.ts` (gancho de congelamento/conflito no `SdTicketEngine.update`), `sd-cab-board`, `sd-approval-round`, `sd-approval-gate.ts` (fase com `requiresApproval` aceita rodada aprovada), `sd-ticket-change-schedule.service.ts`, `src/lib/servicedesk/change-calendar.ts` (expansão pura da recorrência), tela `/changes/calendar`, aba "Mudanças" das configurações e aba "Mudança" do chamado |
 | mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
+| contratos e horas | `sd-contract` (schema/mapper/repository/service), `sd-contract-period.repository.ts`, `sd-contract-billing.service.ts` (períodos e consolidação), `sd-contract-stamp.ts` (gancho do motor), `sd-time-entry` (schema/mapper/repository/service), `src/lib/servicedesk/billing.ts`, fila `servicedesk-billing`, aba Configurações > Contratos, aba "Horas" do chamado, bloco Contrato na tela do cliente |
 
 ## Operação
 
@@ -310,8 +313,10 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   escalonamento, automações de SLA e fechamento automático de resolvidos),
   `servicedesk-ai` (triagem automática na abertura, quando ligada) e
   `servicedesk-digest` (de hora em hora; manda o resumo diário a quem optou,
-  na hora local do workspace) e `servicedesk-recurring` (5 min: abre os
-  chamados das rotinas recorrentes vencidas, idempotente por ocorrência).
+  na hora local do workspace), `servicedesk-recurring` (5 min: abre os
+  chamados das rotinas recorrentes vencidas, idempotente por ocorrência) e
+  `servicedesk-billing` (00:20: abre o período do ciclo de cada contrato
+  ativo e fecha o anterior, consolidando as horas).
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as
@@ -376,6 +381,41 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   ocorrências com a mesma lib que o worker usa. "Gerar agora" serve para
   testar a configuração sem esperar o horário. A aba "Rotinas" do item de
   configuração mostra as rotinas que incidem sobre ele.
+- **Contratos e horas**: Configurações > Contratos cadastra o contrato do
+  cliente (vigência, ciclo, franquia em minutos, valor da hora, hora de
+  excedente, arredondamento, mínimo por chamado, tipos cobertos e a política
+  de SLA que define o calendário). Um cliente não pode ter dois contratos
+  **ativos** com vigência sobreposta (`SD_CONTRACT_OVERLAP`). A **tabela de
+  valores** (`SdContractRate`) sobrepõe o valor da hora por tipo ×
+  prioridade × janela (`BUSINESS_HOURS`, `AFTER_HOURS`, `WEEKEND`,
+  `HOLIDAY`), com multiplicador; a primeira regra que casa vence (`position`,
+  curinga com `null`).
+
+  Ao abrir o chamado — e ao trocar o cliente — o motor carimba
+  `SdTicket.contractId` com o contrato vigente que cobre o tipo
+  (`resolveSdTicketContractId`, nunca interrompe a abertura). Na aba
+  **"Horas"** o agente usa o cronômetro (`start`/`resume` abrem um trecho,
+  `pause`/`stop` fecham; **um cronômetro aberto por usuário** em todo o
+  workspace) ou lança manualmente. Ao fechar o trecho, o servidor arredonda
+  **para cima** no múltiplo de `roundingMinutes`, aplica `minimumMinutes` no
+  primeiro apontamento do dia naquele chamado, resolve a janela pelo
+  calendário de expediente e calcula o valor. Chamado sem contrato registra
+  o tempo sem valor. O agente edita e apaga o próprio apontamento enquanto o
+  período está aberto; o admin mexe em qualquer um; período fechado congela
+  tudo (`SD_CONTRACT_PERIOD_CLOSED`).
+
+  O **período** (`SdContractPeriod`) é o ciclo de faturamento, ancorado no
+  calendário (mensal no dia 1, trimestral em jan/abr/jul/out, anual em 1º de
+  janeiro) e único por `(contractId, periodStart)`. A fila
+  `servicedesk-billing` (00:20, diária) abre o período do ciclo corrente de
+  cada contrato ativo e fecha os anteriores já vencidos; o admin também
+  fecha à mão pela tela. No fechamento, a franquia (`includedMinutes` + o
+  saldo acumulado quando `carryOver`) cobre os apontamentos faturáveis em
+  ordem cronológica e só o excedente é cobrado, pela hora de excedente
+  (`overtimeRate`, ou a hora da regra específica quando ela casou). O que
+  sobra da franquia acumula para o período seguinte apenas com `carryOver`.
+  Os cálculos ficam na lib pura `src/lib/servicedesk/billing.ts`.
+
 - **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
   acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
   conhecimento.

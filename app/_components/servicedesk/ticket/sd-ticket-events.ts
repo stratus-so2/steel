@@ -92,6 +92,10 @@ const ACTIVITY_TITLES: Record<string, string> = {
   'signature.created': 'coletou a assinatura',
   'kb.linked': 'vinculou um artigo',
   'kb.unlinked': 'desvinculou um artigo',
+  'time.started': 'iniciou o cronômetro',
+  'time.logged': 'apontou horas',
+  'time.updated': 'ajustou um apontamento',
+  'time.removed': 'removeu um apontamento',
 }
 
 export function sdDescribeEvent(event: SdTicketEventDTO): SdEventDescription {

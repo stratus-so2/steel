@@ -15,6 +15,7 @@ export type SdTicketTabFeature =
   | 'approval-rounds'
   | 'change-schedule'
   | 'signatures'
+  | 'time-entries'
 
 export function sdTicketTabKey(
   workspaceId: string,

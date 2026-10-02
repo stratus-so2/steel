@@ -8,6 +8,7 @@ import {
   Building03Icon,
   CheckListIcon,
   Clock01Icon,
+  DollarCircleIcon,
   File02Icon,
   Flowchart01Icon,
   FormIcon,
@@ -30,6 +31,7 @@ import { SdCannedResponsesTab } from './canned-responses-tab'
 import { SdCatalogTab } from './catalog-tab'
 import { SdChangesTab } from './changes-tab'
 import { SdClassificationsTab } from './classifications-tab'
+import { SdContractsTab } from './contracts-tab'
 import { SdCustomFieldsTab } from './custom-fields-tab'
 import { SdDepartmentsTab } from './departments-tab'
 import { SdEscalationTab } from './escalation-tab'
@@ -192,6 +194,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     icon: BoxIcon,
     description: 'Catálogo de peças e custos unitários.',
     component: SdPartsTab,
+  },
+  {
+    id: 'contracts',
+    label: 'Contratos',
+    icon: DollarCircleIcon,
+    description:
+      'Contratos de atendimento: franquia de horas, valor da hora, arredondamento, mínimo por chamado, regras de valor (tipo × prioridade × janela) e o histórico de períodos com consumo e excedente.',
+    component: SdContractsTab,
   },
   {
     id: 'monitoring',
