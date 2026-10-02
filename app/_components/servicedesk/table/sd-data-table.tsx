@@ -277,7 +277,7 @@ export function SdDataTable<T extends { id: string }>({
 
       <div className='no-scrollbar min-h-0 flex-1 overflow-auto rounded-xl border bg-card/40 shadow-xs'>
         <Table className='min-w-full'>
-          <TableHeader className='sticky top-0 z-10 bg-card/85 backdrop-blur-md [&_th]:h-11 [&_th]:font-medium [&_th]:text-muted-foreground [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider'>
+          <TableHeader className='sticky top-0 z-10 bg-card [&_th]:h-11 [&_th]:font-medium [&_th]:text-muted-foreground [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider'>
             <TableRow>
               {visible.map((column) => {
                 const active = column.sortKey && sort === column.sortKey

@@ -18,6 +18,9 @@ import { cn } from '@/lib/utils'
 import type { SdLinkedTicketDTO } from '@/types/sd-directory'
 import {
   formatSdDate,
+  SD_ACTIVE_LABEL,
+  SD_ACTIVE_TONE,
+  SD_STATE_TONE,
   SD_TICKET_PREFIX,
   SD_TICKET_TYPE_LABEL,
 } from './sd-directory-labels'
@@ -45,10 +48,16 @@ export function SdPill({
 const PHASE_TONE: Record<SdLinkedTicketDTO['phaseCategory'], string> = {
   NEW: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
   IN_PROGRESS: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  WAITING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  RESOLVED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  CLOSED: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300',
-  CANCELED: 'bg-zinc-500/10 text-zinc-500 line-through',
+  WAITING: SD_STATE_TONE.warn,
+  RESOLVED: SD_STATE_TONE.ok,
+  CLOSED: SD_STATE_TONE.neutral,
+  CANCELED: `${SD_STATE_TONE.neutral} line-through`,
+}
+
+/** Pílula "Ativo/Inativo" dos cadastros (clientes, empresas, contatos). */
+export function SdActivePill({ active }: { active: boolean }) {
+  const key = active ? 'ACTIVE' : 'INACTIVE'
+  return <SdPill className={SD_ACTIVE_TONE[key]}>{SD_ACTIVE_LABEL[key]}</SdPill>
 }
 
 /** Aba "Chamados" dos cadastros: últimos chamados vinculados. */
@@ -61,14 +70,19 @@ export function SdLinkedTickets({
 }) {
   if (tickets.length === 0) {
     return (
-      <div className='flex flex-col items-center gap-2 py-10 text-center text-muted-foreground text-sm'>
-        <SteelIcon icon={Ticket01Icon} strokeWidth={1.8} className='size-5' />
-        Nenhum chamado vinculado ainda.
+      <div className='flex min-h-48 flex-col items-center justify-center gap-3 py-10 text-center'>
+        <div className='flex size-12 items-center justify-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground'>
+          <SteelIcon icon={Ticket01Icon} strokeWidth={1.8} className='size-5' />
+        </div>
+        <p className='font-medium text-sm'>Nenhum chamado vinculado</p>
+        <p className='text-muted-foreground text-xs'>
+          Os chamados abertos para este cadastro aparecem aqui.
+        </p>
       </div>
     )
   }
   return (
-    <ul className='divide-y rounded-lg border'>
+    <ul className='divide-y divide-border rounded-lg border border-border'>
       {tickets.map((t) => (
         <li key={t.id}>
           <Link
@@ -105,10 +119,10 @@ export function SdWarrantyBadge({ until }: { until: string | null }) {
   )
   const tone =
     days < 0
-      ? 'bg-red-500/10 text-red-700 dark:text-red-300'
+      ? SD_STATE_TONE.bad
       : days <= 30
-        ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
-        : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+        ? SD_STATE_TONE.warn
+        : SD_STATE_TONE.ok
   const label =
     days < 0
       ? `Vencida em ${formatSdDate(until)}`

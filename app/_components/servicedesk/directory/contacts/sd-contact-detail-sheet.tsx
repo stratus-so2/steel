@@ -147,7 +147,7 @@ export function SdContactDetailSheet({
                         href={`https://wa.me/${contact.whatsapp}`}
                         target='_blank'
                         rel='noreferrer'
-                        className='text-emerald-600 hover:underline'
+                        className='font-medium hover:underline'
                       >
                         {formatPhone(contact.whatsapp)}
                       </a>
@@ -194,7 +194,7 @@ export function SdContactDetailSheet({
                           <SteelIcon
                             icon={StarIcon}
                             strokeWidth={2}
-                            className='size-4 fill-amber-400 text-amber-500'
+                            className='size-4 fill-highlight text-highlight'
                           />
                         ) : (
                           <span className='size-4' />

@@ -18,6 +18,7 @@ import {
   SD_PERSON_TYPE_LABEL,
 } from '@/app/_components/servicedesk/directory/shared/sd-directory-labels'
 import {
+  SdActivePill,
   SdConfirmDelete,
   SdLinkedTickets,
   SdPill,
@@ -98,11 +99,7 @@ export function SdCustomerDetailSheet({
                       {formatDocument(customer.document)}
                     </span>
                   ) : null}
-                  {customer.active ? null : (
-                    <SdPill className='bg-zinc-500/10 text-zinc-500'>
-                      Inativo
-                    </SdPill>
-                  )}
+                  {customer.active ? null : <SdActivePill active={false} />}
                 </SheetDescription>
               </div>
               <div className='flex shrink-0 gap-1'>
@@ -191,7 +188,7 @@ export function SdCustomerDetailSheet({
                         href={`https://wa.me/${customer.whatsapp}`}
                         target='_blank'
                         rel='noreferrer'
-                        className='text-emerald-600 hover:underline'
+                        className='font-medium hover:underline'
                       >
                         {formatPhone(customer.whatsapp)}
                       </a>
@@ -249,7 +246,7 @@ export function SdCustomerDetailSheet({
                               <SteelIcon
                                 icon={StarIcon}
                                 strokeWidth={2}
-                                className='size-3.5 text-amber-500'
+                                className='size-3.5 fill-highlight text-highlight'
                                 aria-label='Contato principal'
                               />
                             ) : null}

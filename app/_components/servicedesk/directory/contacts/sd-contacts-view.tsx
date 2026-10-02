@@ -6,7 +6,10 @@ import {
   StarIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
-import { SdPill } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
+import {
+  SdActivePill,
+  SdPill,
+} from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
 import { SdImportDialog } from '@/app/_components/servicedesk/directory/shared/sd-import-dialog'
 import { SdCustomerPicker } from '@/app/_components/servicedesk/pickers'
 import {
@@ -56,7 +59,7 @@ const COLUMNS: SdColumn<SdContactDTO>[] = [
                 <SteelIcon
                   icon={StarIcon}
                   strokeWidth={2}
-                  className='size-3 fill-amber-400 text-amber-500'
+                  className='size-3 fill-highlight text-highlight'
                 />
               ) : null}
               {cu.name}
@@ -86,7 +89,7 @@ const COLUMNS: SdColumn<SdContactDTO>[] = [
           target='_blank'
           rel='noreferrer'
           onClick={(e) => e.stopPropagation()}
-          className='whitespace-nowrap text-emerald-600 hover:underline'
+          className='whitespace-nowrap font-medium hover:underline'
         >
           {formatPhone(c.whatsapp)}
         </a>
@@ -112,14 +115,7 @@ const COLUMNS: SdColumn<SdContactDTO>[] = [
   {
     id: 'active',
     header: 'Situação',
-    cell: (c) =>
-      c.active ? (
-        <SdPill className='bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'>
-          Ativo
-        </SdPill>
-      ) : (
-        <SdPill className='bg-zinc-500/10 text-zinc-500'>Inativo</SdPill>
-      ),
+    cell: (c) => <SdActivePill active={c.active} />,
   },
 ]
 

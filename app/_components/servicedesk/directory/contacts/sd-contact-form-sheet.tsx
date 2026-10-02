@@ -303,7 +303,7 @@ export function SdContactFormSheet({
                         className={cn(
                           'size-4',
                           c.isPrimary
-                            ? 'fill-amber-400 text-amber-500'
+                            ? 'fill-highlight text-highlight'
                             : 'text-muted-foreground',
                         )}
                       />

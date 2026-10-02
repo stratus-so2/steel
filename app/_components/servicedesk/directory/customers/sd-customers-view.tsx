@@ -9,7 +9,7 @@ import {
   SD_PERSON_TYPE_LABEL,
   UF_OPTIONS,
 } from '@/app/_components/servicedesk/directory/shared/sd-directory-labels'
-import { SdPill } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
+import { SdActivePill } from '@/app/_components/servicedesk/directory/shared/sd-directory-widgets'
 import { SdImportDialog } from '@/app/_components/servicedesk/directory/shared/sd-import-dialog'
 import {
   type SdColumn,
@@ -78,7 +78,7 @@ const COLUMNS: SdColumn<SdCustomerDTO>[] = [
           target='_blank'
           rel='noreferrer'
           onClick={(e) => e.stopPropagation()}
-          className='whitespace-nowrap text-emerald-600 hover:underline'
+          className='whitespace-nowrap font-medium hover:underline'
         >
           {formatPhone(c.whatsapp)}
         </a>
@@ -117,14 +117,7 @@ const COLUMNS: SdColumn<SdCustomerDTO>[] = [
   {
     id: 'active',
     header: 'Situação',
-    cell: (c) =>
-      c.active ? (
-        <SdPill className='bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'>
-          Ativo
-        </SdPill>
-      ) : (
-        <SdPill className='bg-zinc-500/10 text-zinc-500'>Inativo</SdPill>
-      ),
+    cell: (c) => <SdActivePill active={c.active} />,
   },
   {
     id: 'createdAt',

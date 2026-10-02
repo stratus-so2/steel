@@ -17,6 +17,7 @@ import {
   validateDocument,
   whatsappLink,
 } from '@/src/lib/servicedesk/document'
+import { SD_STATE_TONE } from './sd-directory-labels'
 import { maskPhone } from './sd-masks'
 
 /** Seção do formulário (título + descrição + campos em grade). */
@@ -107,7 +108,7 @@ export function SdDocumentInput({
           className={cn(
             '-translate-y-1/2 absolute top-1/2 right-2 inline-flex items-center gap-1 text-xs',
             !complete && 'text-muted-foreground',
-            complete && valid && 'text-emerald-600 dark:text-emerald-400',
+            complete && valid && SD_STATE_TONE.okText,
             complete && !valid && 'text-destructive',
           )}
         >
@@ -156,11 +157,7 @@ export function SdPhoneInput({
           title='Abrir no WhatsApp'
           className={buttonVariants({ variant: 'outline', size: 'icon' })}
         >
-          <SteelIcon
-            icon={WhatsappIcon}
-            strokeWidth={2}
-            className='text-emerald-600'
-          />
+          <SteelIcon icon={WhatsappIcon} strokeWidth={2} />
           <span className='sr-only'>Abrir no WhatsApp</span>
         </a>
       ) : whatsapp ? (

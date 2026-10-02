@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { notify } from '@/lib/notify'
 import { csvToRecords, type SdCsvRecords } from '@/src/lib/servicedesk/csv'
 import type { SdImportResultDTO } from '@/types/sd-directory'
+import { SD_STATE_TONE } from './sd-directory-labels'
 
 const MAX_ROWS = 1000
 
@@ -166,7 +167,7 @@ export function SdImportDialog({
 
         {result ? (
           <div className='flex flex-col gap-2 text-sm'>
-            <p className='flex items-center gap-2 text-emerald-700 dark:text-emerald-300'>
+            <p className={`flex items-center gap-2 ${SD_STATE_TONE.okText}`}>
               <SteelIcon
                 icon={CheckmarkCircle02Icon}
                 strokeWidth={2}

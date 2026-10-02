@@ -23,12 +23,32 @@ export const SD_CI_STATUS_LABEL: Record<SdConfigItemStatusDTO, string> = {
   RETIRED: 'Aposentado',
 }
 
+/**
+ * Tons de estado reaproveitados pelo diretório. Mapa fechado no formato do
+ * repositório (`app/_components/notifications/notification-kind-icon.tsx`):
+ * `bg-<c>-500/10 text-<c>-700 dark:text-<c>-300` tem contraste nos dois temas
+ * e, escrito por inteiro aqui, é visível ao Tailwind. Estado neutro e estado
+ * de erro usam token semântico (`muted`, `destructive`) — não têm cor própria.
+ */
+export const SD_STATE_TONE = {
+  /** Positivo: registro ativo, importação concluída, garantia em dia. */
+  ok: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  /** Positivo sem superfície (texto e ícone). */
+  okText: 'text-emerald-700 dark:text-emerald-300',
+  /** Atenção: vence em breve. */
+  warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  /** Negativo: vencido, recusado. */
+  bad: 'bg-destructive/10 text-destructive',
+  /** Neutro: inativo, encerrado, sem informação. */
+  neutral: 'bg-muted text-muted-foreground',
+} as const
+
 export const SD_CI_STATUS_TONE: Record<SdConfigItemStatusDTO, string> = {
   PLANNED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
   IN_STOCK: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
-  ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  MAINTENANCE: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  RETIRED: 'bg-zinc-500/10 text-zinc-500',
+  ACTIVE: SD_STATE_TONE.ok,
+  MAINTENANCE: SD_STATE_TONE.warn,
+  RETIRED: SD_STATE_TONE.neutral,
 }
 
 export const SD_RISK_LABEL: Record<SdRiskLevelDTO, string> = {
@@ -42,7 +62,17 @@ export const SD_RISK_TONE: Record<SdRiskLevelDTO, string> = {
   LOW: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
   MEDIUM: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
   HIGH: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
-  VERY_HIGH: 'bg-red-500/10 text-red-700 dark:text-red-300',
+  VERY_HIGH: SD_STATE_TONE.bad,
+}
+
+export const SD_ACTIVE_LABEL: Record<'ACTIVE' | 'INACTIVE', string> = {
+  ACTIVE: 'Ativo',
+  INACTIVE: 'Inativo',
+}
+
+export const SD_ACTIVE_TONE: Record<'ACTIVE' | 'INACTIVE', string> = {
+  ACTIVE: SD_STATE_TONE.ok,
+  INACTIVE: SD_STATE_TONE.neutral,
 }
 
 /** Prefixos padrão do ITIL (o workspace pode ter outros em SdSettings). */

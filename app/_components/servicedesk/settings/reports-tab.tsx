@@ -110,11 +110,15 @@ const STATUS_LABEL: Record<SdReportRunStatusDTO, string> = {
   FAILED: 'Falhou',
 }
 
+/**
+ * Tons das execuções: mapa fechado no formato do repositório
+ * (`bg-<c>-500/10 text-<c>-700 dark:text-<c>-300`). A falha usa o token
+ * `destructive`, que já é o vermelho do tema.
+ */
 const STATUS_TONE: Record<SdReportRunStatusDTO, string> = {
   GENERATED: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
   SENT: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  FAILED:
-    'border-destructive/40 bg-destructive/10 text-destructive dark:text-red-300',
+  FAILED: 'border-destructive/40 bg-destructive/10 text-destructive',
 }
 
 /** "Dia 1 às 07:00 (America/Sao_Paulo)". */

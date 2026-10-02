@@ -77,11 +77,11 @@ const STATUS: Record<SdMailboxStatusDTO, { label: string; className: string }> =
     },
     PAUSED: {
       label: 'Pausada',
-      className: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+      className: 'bg-muted text-muted-foreground',
     },
     ERROR: {
       label: 'Com erro',
-      className: 'bg-red-500/10 text-red-700 dark:text-red-300',
+      className: 'bg-destructive/10 text-destructive',
     },
   }
 
@@ -446,7 +446,7 @@ function MailboxCard({
         <SteelIcon
           icon={MailOpen01Icon}
           strokeWidth={2}
-          className='text-sky-600 dark:text-sky-400'
+          className='text-muted-foreground'
         />
         <span className='font-medium text-sm'>{mailbox.name}</span>
         <Badge variant='outline'>{mailbox.address}</Badge>
@@ -464,7 +464,7 @@ function MailboxCard({
       </p>
 
       {mailbox.statusError ? (
-        <p className='rounded-lg bg-red-500/10 px-3 py-2 text-red-700 text-xs dark:text-red-300'>
+        <p className='rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive text-xs'>
           {mailbox.statusError}
         </p>
       ) : null}

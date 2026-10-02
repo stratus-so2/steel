@@ -198,7 +198,7 @@ export function EmptyState({ children }: { children: ReactNode }) {
 
 export function ReadOnlyNotice() {
   return (
-    <div className='flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300'>
+    <div className='flex items-start gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3 text-muted-foreground text-sm'>
       <SteelIcon
         icon={InformationCircleIcon}
         strokeWidth={2}
@@ -224,10 +224,10 @@ export function ColorDot({
     <span
       aria-hidden
       className={cn(
-        'inline-block size-2.5 shrink-0 rounded-full ring-1 ring-black/10',
+        'inline-block size-2.5 shrink-0 rounded-full ring-1 ring-border',
         className,
       )}
-      style={{ backgroundColor: color ?? '#94a3b8' }}
+      style={{ backgroundColor: color ?? 'var(--muted-foreground)' }}
     />
   )
 }
