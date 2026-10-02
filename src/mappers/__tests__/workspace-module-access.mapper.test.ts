@@ -22,7 +22,20 @@ describe('toWorkspaceModuleAccessDTO()', () => {
       grantedById: 'u-1',
       createdAt: access.createdAt.toISOString(),
       updatedAt: access.updatedAt.toISOString(),
+      seedWarnings: [],
     })
+  })
+
+  it('should carry the seed warnings of the grant', () => {
+    const access = createFakeWorkspaceModuleAccess({ module: 'SERVICE_DESK' })
+
+    const dto = toWorkspaceModuleAccessDTO(access, [
+      'Os padrões ITIL do ServiceDesk não foram criados.',
+    ])
+
+    expect(dto.seedWarnings).toEqual([
+      'Os padrões ITIL do ServiceDesk não foram criados.',
+    ])
   })
 
   it('should serialize createdAt/updatedAt as ISO strings', () => {
