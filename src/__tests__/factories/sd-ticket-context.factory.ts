@@ -69,6 +69,7 @@ export function createFakeSdSettings(
     slaAtRiskPercent: 80,
     reopenOnRequesterReply: true,
     autoAssignRoundRobin: false,
+    kbReviewIntervalDays: 180,
     aiEnabled: false,
     aiPreServiceEnabled: false,
     aiAutoTriageEnabled: false,

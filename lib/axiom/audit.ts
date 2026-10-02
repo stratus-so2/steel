@@ -74,6 +74,7 @@ export type AuditEntity =
   | 'user_ai_preference'
   | 'sd_kb_article'
   | 'sd_kb_comment'
+  | 'sd_kb_review'
   | 'sd_ticket_kb_link'
   // ServiceDesk — configuração
   | 'sd_settings'
@@ -189,6 +190,7 @@ export type AuditAction =
   | 'verify'
   | 'link'
   | 'unlink'
+  | 'request'
 
 type AuditOutcome = 'success' | 'failure'
 

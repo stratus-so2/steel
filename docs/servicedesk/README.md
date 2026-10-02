@@ -343,7 +343,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | contratos e horas | `sd-contract` (schema/mapper/repository/service), `sd-contract-period.repository.ts`, `sd-contract-billing.service.ts` (períodos e consolidação), `sd-contract-stamp.ts` (gancho do motor), `sd-time-entry` (schema/mapper/repository/service), `src/lib/servicedesk/billing.ts`, fila `servicedesk-billing`, aba Configurações > Contratos, aba "Horas" do chamado, bloco Contrato na tela do cliente |
 | inbox | `notification` (schema/mapper/repository/service da caixa), `app/_components/notifications/*` (lista, painel de leitura, ícone por tipo), `src/lib/notification-kind.ts` (tabela pura de tipo → rótulo/ícone/cor), rota `/inbox` |
 | relatórios agendados | `sd-report` (schema/mapper/repository/service — `SdScheduledReport` + `SdReportRun`) + `sd-report-runner.ts` (geração sem autorização, compartilhada com a fila), `src/lib/servicedesk/{report-sla,report-schedule,report-csv,report-files}.ts` e `report-pdf.tsx`, `src/lib/mail/servicedesk/send-sd-sla-report.ts` + `components/emails/servicedesk/sd-sla-report.tsx`, fila `servicedesk-reports`, API `servicedesk/reports/**`, aba Configurações > Relatórios e o histórico de execuções |
-| kcs | `sd-kb-review` (schema/mapper/repository/service), ciclo de vida do artigo (`IN_REVIEW`, `reviewDueAt`, `lastReviewedAt`, `reuseCount`), "criar artigo a partir deste chamado" com rascunho pela IA, sugestão na abertura, marcador `resolvedTicket` no vínculo chamado↔artigo |
+| kcs | `sd-kb-review` (schema/mapper/repository/service), `sd-kb-draft.service.ts` (artigo a partir do chamado, com rascunho da IA), `src/lib/servicedesk/kcs.ts` (esqueleto KCS, prompt e aritmética da validade), `markResolved`/`suggestForDraft` em `sd-kb-ticket-link.service.ts`, rotas `servicedesk/knowledge/{reviews,review-settings,stats,draft,suggest/draft}` e `knowledge/[articleId]/{reviews,review-interval,resolved}`, painel `SdKbReviewPanel`, `SdKbCuration`, `SdKbDraftSuggestions`, checagem diária no tique do `servicedesk-digest` |
 | risco preditivo | `src/lib/servicedesk/risk.ts` (tabela de fatores e faixas — ADR 0016), `risk-compute.ts` e `incident-cluster.ts` (libs puras), `sd-risk.{schema,mapper,repository,service}`, fila `servicedesk-risk`, API `servicedesk/risk/**`, selo `SdRiskBadge`/`SdRiskWidget` no quadro, na lista, na tabela e na tela do chamado, filtro rápido "Risco alto", tela `/risk` |
 | integrações | `sd-integration` + `sd-integration-link` (schema/mapper/repository/service), `src/lib/servicedesk/{slack,github}.ts`, OAuth do Slack por workspace, webhooks `servicedesk/integrations/{slack,github}`, fila `servicedesk-integrations`, aba Configurações > Integrações, bloco de vínculos na tela do chamado |
 
@@ -362,7 +362,8 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   `servicedesk-ai` (triagem automática na abertura, quando ligada),
   `servicedesk-mail` (1 min: leitura das caixas por IMAP),
   `servicedesk-digest` (de hora em hora; manda o resumo diário a quem optou,
-  na hora local do workspace), `servicedesk-recurring` (5 min: abre os
+  na hora local do workspace, e no mesmo tique avisa os artigos da base
+  com revisão vencida), `servicedesk-recurring` (5 min: abre os
   chamados das rotinas recorrentes vencidas, idempotente por ocorrência),
   `servicedesk-billing` (00:20: abre o período do ciclo de cada contrato
   ativo e fecha o anterior, consolidando as horas), `servicedesk-reports`

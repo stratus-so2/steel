@@ -42,6 +42,7 @@ export function toSdSettingsDTO(settings: SdSettings): SdSettingsDTO {
     slaAtRiskPercent: settings.slaAtRiskPercent,
     reopenOnRequesterReply: settings.reopenOnRequesterReply,
     autoAssignRoundRobin: settings.autoAssignRoundRobin,
+    kbReviewIntervalDays: settings.kbReviewIntervalDays,
     aiEnabled: settings.aiEnabled,
     aiPreServiceEnabled: settings.aiPreServiceEnabled,
     aiAutoTriageEnabled: settings.aiAutoTriageEnabled,

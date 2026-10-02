@@ -1,14 +1,21 @@
 'use client'
 
 import {
+  Add01Icon,
   BookOpen01Icon,
+  CheckmarkCircle02Icon,
   Link01Icon,
   Search01Icon,
   SparklesIcon,
   Unlink01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { SdKbArticleView } from '@/app/_components/servicedesk/knowledge'
+import {
+  SdKbArticleView,
+  SdKbReviewDueBadge,
+  SdKbStatusBadge,
+} from '@/app/_components/servicedesk/knowledge'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,8 +27,11 @@ import {
 } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import {
+  useDraftSdKbArticleFromTicket,
   useLinkSdKbArticle,
+  useMarkSdKbResolved,
   useSdKbSearch,
   useSdKbSuggestions,
   useSdTicketKbLinks,
@@ -35,20 +45,24 @@ function ArticleRow({
   article,
   excerpt,
   linked,
+  resolved,
   busy,
   canEdit,
   onOpen,
   onLink,
   onUnlink,
+  onToggleResolved,
 }: {
   article: SdKbArticleSummaryDTO
   excerpt?: string
   linked: boolean
+  resolved: boolean
   busy: boolean
   canEdit: boolean
   onOpen: () => void
   onLink: () => void
   onUnlink: () => void
+  onToggleResolved: () => void
 }) {
   return (
     <li className='flex items-start gap-3 border-b px-3 py-2.5 last:border-b-0'>
@@ -62,8 +76,16 @@ function ArticleRow({
         onClick={onOpen}
         className='flex min-w-0 flex-1 flex-col text-left'
       >
-        <span className='truncate font-medium text-sm hover:underline'>
-          {article.title}
+        <span className='flex min-w-0 items-center gap-2'>
+          <span className='truncate font-medium text-sm hover:underline'>
+            {article.title || 'Sem título'}
+          </span>
+          {canEdit && article.status !== 'PUBLISHED' ? (
+            <SdKbStatusBadge status={article.status} />
+          ) : null}
+          {canEdit ? (
+            <SdKbReviewDueBadge reviewDueAt={article.reviewDueAt} />
+          ) : null}
         </span>
         {excerpt ? (
           <span className='line-clamp-2 text-muted-foreground text-xs'>
@@ -74,46 +96,81 @@ function ArticleRow({
             {article.tags.map((t) => `#${t}`).join(' ')}
           </span>
         ) : null}
+        {article.reuseCount > 0 ? (
+          <span className='text-muted-foreground text-xs'>
+            Resolveu {article.reuseCount}{' '}
+            {article.reuseCount === 1 ? 'chamado' : 'chamados'}
+          </span>
+        ) : null}
       </button>
       {canEdit ? (
-        linked ? (
+        <div className='flex shrink-0 items-center gap-1'>
           <Button
-            variant='ghost'
+            variant={resolved ? 'secondary' : 'ghost'}
             size='xs'
             disabled={busy}
-            onClick={onUnlink}
-            aria-label={`Desvincular ${article.title}`}
+            aria-pressed={resolved}
+            title={
+              resolved
+                ? 'Este artigo resolveu o chamado'
+                : 'Marcar como o artigo que resolveu'
+            }
+            aria-label={
+              resolved
+                ? `Desmarcar ${article.title} como artigo que resolveu`
+                : `Marcar ${article.title} como artigo que resolveu`
+            }
+            onClick={onToggleResolved}
           >
-            <SteelIcon icon={Unlink01Icon} strokeWidth={2} />
-            Desvincular
+            <SteelIcon
+              icon={CheckmarkCircle02Icon}
+              strokeWidth={2}
+              className={cn(resolved && 'text-emerald-600')}
+            />
+            Resolveu
           </Button>
-        ) : (
-          <Button
-            variant='outline'
-            size='xs'
-            disabled={busy}
-            onClick={onLink}
-            aria-label={`Vincular ${article.title}`}
-          >
-            <SteelIcon icon={Link01Icon} strokeWidth={2} />
-            Vincular
-          </Button>
-        )
+          {linked ? (
+            <Button
+              variant='ghost'
+              size='xs'
+              disabled={busy}
+              aria-label={`Desvincular ${article.title}`}
+              onClick={onUnlink}
+            >
+              <SteelIcon icon={Unlink01Icon} strokeWidth={2} />
+              Desvincular
+            </Button>
+          ) : (
+            <Button
+              variant='outline'
+              size='xs'
+              disabled={busy}
+              aria-label={`Vincular ${article.title}`}
+              onClick={onLink}
+            >
+              <SteelIcon icon={Link01Icon} strokeWidth={2} />
+              Vincular
+            </Button>
+          )}
+        </div>
       ) : null}
     </li>
   )
 }
 
 /**
- * Conhecimento: artigos vinculados ao chamado, sugestões pelo conteúdo do
- * chamado e busca na base para vincular/desvincular; o artigo abre num
- * painel lateral (`SdKbArticleView`).
+ * Conhecimento (KCS): artigos vinculados ao chamado — com o marcador "este
+ * resolveu" que alimenta o reuso —, sugestões pelo conteúdo do chamado, busca
+ * na base e a ação "criar artigo a partir deste chamado" (rascunho KCS, com
+ * texto da IA quando o workspace tem IA). O artigo abre num painel lateral.
  */
 export function SdTicketKnowledgeTab({
   workspaceId,
+  slug,
   ticket,
   mode,
 }: SdTicketTabProps) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const q = useDebouncedValue(search.trim())
@@ -126,8 +183,13 @@ export function SdTicketKnowledgeTab({
   )
   const link = useLinkSdKbArticle(workspaceId, ticket.id)
   const unlink = useUnlinkSdKbArticle(workspaceId, ticket.id)
+  const markResolved = useMarkSdKbResolved(workspaceId, ticket.id)
+  const draft = useDraftSdKbArticleFromTicket(workspaceId)
   const linkedIds = new Set((links.data ?? []).map((l) => l.article.id))
-  const busy = link.isPending || unlink.isPending
+  const resolvedIds = new Set(
+    (links.data ?? []).filter((l) => l.resolvedTicket).map((l) => l.article.id),
+  )
+  const busy = link.isPending || unlink.isPending || markResolved.isPending
   const canEdit = mode === 'agent'
 
   const row = (article: SdKbArticleSummaryDTO, excerpt?: string) => (
@@ -136,6 +198,7 @@ export function SdTicketKnowledgeTab({
       article={article}
       excerpt={excerpt}
       linked={linkedIds.has(article.id)}
+      resolved={resolvedIds.has(article.id)}
       busy={busy}
       canEdit={canEdit}
       onOpen={() => setOpen(article.id)}
@@ -151,6 +214,20 @@ export function SdTicketKnowledgeTab({
           onError: notify.error,
         })
       }
+      onToggleResolved={() =>
+        markResolved.mutate(
+          { articleId: article.id, resolved: !resolvedIds.has(article.id) },
+          {
+            onSuccess: () =>
+              notify.success(
+                resolvedIds.has(article.id)
+                  ? 'Marcação removida.'
+                  : 'Artigo marcado como o que resolveu.',
+              ),
+            onError: notify.error,
+          },
+        )
+      }
     />
   )
 
@@ -159,14 +236,44 @@ export function SdTicketKnowledgeTab({
   return (
     <div className='grid gap-6 p-4 lg:grid-cols-2'>
       <section className='flex flex-col gap-3'>
-        <h3 className='font-semibold text-sm'>
-          Artigos vinculados
-          {links.data?.length ? (
-            <span className='ml-1.5 text-muted-foreground text-xs'>
-              {links.data.length}
-            </span>
+        <div className='flex flex-wrap items-center justify-between gap-2'>
+          <h3 className='font-semibold text-sm'>
+            Artigos vinculados
+            {links.data?.length ? (
+              <span className='ml-1.5 text-muted-foreground text-xs'>
+                {links.data.length}
+              </span>
+            ) : null}
+          </h3>
+          {canEdit ? (
+            <Button
+              size='xs'
+              variant='outline'
+              disabled={draft.isPending}
+              onClick={() =>
+                draft.mutate(
+                  { ticketId: ticket.id },
+                  {
+                    onSuccess: (result) => {
+                      notify.success(
+                        result.aiUsed
+                          ? 'Rascunho escrito pela IA. Revise antes de publicar.'
+                          : 'Rascunho criado com as seções do KCS.',
+                      )
+                      router.push(
+                        `/${slug}/servicedesk/knowledge/${result.article.id}`,
+                      )
+                    },
+                    onError: notify.error,
+                  },
+                )
+              }
+            >
+              <SteelIcon icon={Add01Icon} strokeWidth={2} />
+              {draft.isPending ? 'Escrevendo…' : 'Criar artigo deste chamado'}
+            </Button>
           ) : null}
-        </h3>
+        </div>
         {links.isLoading ? (
           <Skeleton className='h-16 w-full' />
         ) : links.data?.length ? (

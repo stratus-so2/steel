@@ -246,6 +246,18 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
     agentOnly: true,
   },
   {
+    key: 'kb.review_decided',
+    kind: 'SD_KB_REVIEW',
+    label: 'Revisão de artigo decidida',
+    description:
+      'O revisor aprovou (e publicou) ou pediu mudanças num artigo seu.',
+    // Sem público: quem avisa é o serviço de KCS, com o autor do artigo.
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: APP_MAIL,
+    agentOnly: true,
+  },
+  {
     key: 'kb.review_due',
     kind: 'SD_KB_REVIEW',
     label: 'Artigo com revisão vencida',
@@ -320,7 +332,7 @@ export const SD_NOTIFICATION_GROUPS: SdNotificationGroup[] = [
   },
   {
     label: 'Base de conhecimento',
-    events: ['kb.review_requested', 'kb.review_due'],
+    events: ['kb.review_requested', 'kb.review_decided', 'kb.review_due'],
   },
   {
     label: 'Aprovações e tarefas',

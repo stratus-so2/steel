@@ -62,7 +62,8 @@ import type { SdKbArticleDTO } from '@/types/sd-kb-article'
 import { SdKbArticleList } from './sd-kb-article-list'
 import { SdKbArticleMeta } from './sd-kb-article-meta'
 import { SdKbArticleView } from './sd-kb-article-view'
-import { SdKbStatusBadge } from './sd-kb-status-badge'
+import { SdKbReviewPanel } from './sd-kb-review-panel'
+import { SdKbReviewDueBadge, SdKbStatusBadge } from './sd-kb-status-badge'
 import { SdKbTagsInput } from './sd-kb-tags-input'
 import { SdKbToc } from './sd-kb-toc'
 import { sdKbHelpfulRatio } from './sd-kb-utils'
@@ -226,6 +227,7 @@ export function SdKbArticleEditor({
       <div className='flex h-11 shrink-0 items-center justify-between gap-2 border-b px-4'>
         <div className='flex min-w-0 items-center gap-2'>
           <SdKbStatusBadge status={article.status} />
+          <SdKbReviewDueBadge reviewDueAt={article.reviewDueAt} />
           <SaveIndicator state={saveState} />
         </div>
         <div className='flex items-center gap-1'>
@@ -507,6 +509,7 @@ export function SdKbArticleEditor({
             <aside className='hidden space-y-6 pb-10 lg:block'>
               <div className='sticky top-4 space-y-6'>
                 <SdKbToc content={content} containerSelector={editorSelector} />
+                <SdKbReviewPanel workspaceId={workspaceId} article={article} />
                 <section className='space-y-1 rounded-lg border p-3 text-sm'>
                   <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
                     Utilidade
@@ -518,6 +521,10 @@ export function SdKbArticleEditor({
                     {ratio === null
                       ? 'Ainda sem votos.'
                       : `${ratio}% acharam útil`}
+                  </p>
+                  <p className='text-muted-foreground text-xs'>
+                    Resolveu {article.reuseCount}{' '}
+                    {article.reuseCount === 1 ? 'chamado' : 'chamados'}
                   </p>
                 </section>
                 {(related.data?.length ?? 0) > 0 && (

@@ -43,6 +43,7 @@ export const UpdateSdSettingsSchema = z
     slaAtRiskPercent: z.number().int().min(1).max(99).optional(),
     reopenOnRequesterReply: z.boolean().optional(),
     autoAssignRoundRobin: z.boolean().optional(),
+    kbReviewIntervalDays: z.number().int().min(1).max(3650).optional(),
     aiEnabled: z.boolean().optional(),
     aiPreServiceEnabled: z.boolean().optional(),
     aiAutoTriageEnabled: z.boolean().optional(),

@@ -56,6 +56,11 @@ export const SdSettingsDTO = dto(
     slaAtRiskPercent: z.number().int(),
     reopenOnRequesterReply: z.boolean(),
     autoAssignRoundRobin: z.boolean(),
+    kbReviewIntervalDays: z.number().int().meta({
+      description:
+        'KCS: validade padrão (em dias) da revisão dos artigos da base.',
+      example: 180,
+    }),
     aiEnabled: z.boolean(),
     aiPreServiceEnabled: z.boolean(),
     aiAutoTriageEnabled: z.boolean(),

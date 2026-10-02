@@ -138,6 +138,8 @@ export const SdKbArticleRepository = {
     visibility?: SdKbVisibility
     tags?: string[]
     createdById: string
+    /** KCS: chamado que originou o artigo. */
+    sourceTicketId?: string
   }): Promise<Result<SdKbArticleWithRefs>> {
     try {
       const siblingCount = await prisma.sdKbArticle.count({
@@ -156,6 +158,7 @@ export const SdKbArticleRepository = {
           categoryId: data.categoryId,
           visibility: data.visibility,
           tags: data.tags,
+          sourceTicketId: data.sourceTicketId,
           content: EMPTY_CONTENT,
           position: siblingCount,
           createdById: data.createdById,

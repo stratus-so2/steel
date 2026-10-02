@@ -7,10 +7,17 @@ export {
   SdKbArticleView,
   type SdKbArticleViewProps,
 } from './sd-kb-article-view'
+export { SdKbCuration } from './sd-kb-curation'
+export { SdKbDraftSuggestions } from './sd-kb-draft-suggestions'
 export {
   SdKbPortalBrowser,
   type SdKbPortalBrowserProps,
 } from './sd-kb-portal-browser'
+export { SdKbReviewPanel } from './sd-kb-review-panel'
 export { SdKbSearchBox } from './sd-kb-search-box'
-export { SdKbStatusBadge, SdKbVisibilityBadge } from './sd-kb-status-badge'
+export {
+  SdKbReviewDueBadge,
+  SdKbStatusBadge,
+  SdKbVisibilityBadge,
+} from './sd-kb-status-badge'
 export { SdKbVote } from './sd-kb-vote'

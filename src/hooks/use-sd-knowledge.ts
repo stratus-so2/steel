@@ -17,6 +17,13 @@ import type {
   SdTicketKbLinkDTO,
 } from '@/types/sd-kb-article'
 import type { SdKbCommentDTO } from '@/types/sd-kb-comment'
+import type {
+  SdKbDraftFromTicketDTO,
+  SdKbReviewDTO,
+  SdKbReviewSettingsDTO,
+  SdKbReviewStateDTO,
+  SdKbStatsResultDTO,
+} from '@/types/sd-kb-review'
 import { apiFetch, apiSend } from './_fetch'
 
 /**
@@ -65,6 +72,20 @@ export const sdKbKeys = {
     ['sd-kb', workspaceId, 'ticket-links', ticketId] as const,
   suggestions: (workspaceId: string, ticketId: string) =>
     ['sd-kb', workspaceId, 'suggest', ticketId] as const,
+  reviewState: (workspaceId: string, articleId: string) =>
+    ['sd-kb', workspaceId, 'review-state', articleId] as const,
+  reviews: (workspaceId: string, filters: SdKbReviewFilters) =>
+    ['sd-kb', workspaceId, 'reviews', filters] as const,
+  reviewSettings: (workspaceId: string) =>
+    ['sd-kb', workspaceId, 'review-settings'] as const,
+  stats: (workspaceId: string, limit: number) =>
+    ['sd-kb', workspaceId, 'stats', limit] as const,
+}
+
+export interface SdKbReviewFilters {
+  status?: 'PENDING' | 'APPROVED' | 'CHANGES_REQUESTED'
+  mine?: boolean
+  limit?: number
 }
 
 export interface SdKbSearchFilters {
@@ -533,5 +554,224 @@ export function useUnlinkSdKbArticle(workspaceId: string, ticketId: string) {
         queryKey: sdKbKeys.ticketLinks(workspaceId, ticketId),
       })
     },
+  })
+}
+
+// ─── KCS: revisão, validade, reuso e curadoria ──────────────────────────────
+
+/** Estado da revisão do artigo (validade, prazo, pendência e histórico). */
+export function useSdKbReviewState(workspaceId: string, articleId: string) {
+  return useQuery({
+    queryKey: sdKbKeys.reviewState(workspaceId, articleId),
+    queryFn: () =>
+      apiFetch<SdKbReviewStateDTO>(
+        `${base(workspaceId)}/${articleId}/reviews`,
+        undefined,
+        'Erro ao carregar a revisão do artigo',
+      ),
+    enabled: !!workspaceId && !!articleId,
+    staleTime: 30 * 1000,
+  })
+}
+
+/** Fila de revisões do workspace (ou só as minhas). */
+export function useSdKbReviews(
+  workspaceId: string,
+  filters: SdKbReviewFilters = {},
+) {
+  return useQuery({
+    queryKey: sdKbKeys.reviews(workspaceId, filters),
+    queryFn: () =>
+      apiFetch<SdKbReviewDTO[]>(
+        `${base(workspaceId)}/reviews${query({
+          status: filters.status,
+          mine: filters.mine ? 'true' : undefined,
+          limit: filters.limit,
+        })}`,
+        undefined,
+        'Erro ao carregar as revisões',
+      ),
+    enabled: !!workspaceId,
+    staleTime: 30 * 1000,
+  })
+}
+
+/** Invalida o artigo, a revisão e a árvore depois de uma mudança de ciclo. */
+function useSyncReview(workspaceId: string, articleId: string) {
+  const queryClient = useQueryClient()
+  return (state: SdKbReviewStateDTO) => {
+    queryClient.setQueryData(
+      sdKbKeys.reviewState(workspaceId, articleId),
+      state,
+    )
+    queryClient.invalidateQueries({ queryKey: sdKbKeys.all(workspaceId) })
+  }
+}
+
+export function useRequestSdKbReview(workspaceId: string, articleId: string) {
+  const sync = useSyncReview(workspaceId, articleId)
+  return useMutation({
+    mutationFn: (data: { reviewerId: string; comment?: string }) =>
+      apiFetch<SdKbReviewStateDTO>(
+        `${base(workspaceId)}/${articleId}/reviews`,
+        json('POST', data),
+        'Erro ao pedir revisão',
+      ),
+    onSuccess: sync,
+  })
+}
+
+export function useDecideSdKbReview(workspaceId: string, articleId: string) {
+  const sync = useSyncReview(workspaceId, articleId)
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      ...data
+    }: {
+      reviewId: string
+      decision: 'APPROVE' | 'REQUEST_CHANGES'
+      comment?: string
+      reviewIntervalDays?: number | null
+    }) =>
+      apiFetch<SdKbReviewStateDTO>(
+        `${base(workspaceId)}/reviews/${reviewId}`,
+        json('PATCH', data),
+        'Erro ao registrar a decisão',
+      ),
+    onSuccess: sync,
+  })
+}
+
+export function useCancelSdKbReview(workspaceId: string, articleId: string) {
+  const sync = useSyncReview(workspaceId, articleId)
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiFetch<SdKbReviewStateDTO>(
+        `${base(workspaceId)}/reviews/${reviewId}`,
+        { method: 'DELETE' },
+        'Erro ao cancelar a revisão',
+      ),
+    onSuccess: sync,
+  })
+}
+
+export function useSetSdKbReviewInterval(
+  workspaceId: string,
+  articleId: string,
+) {
+  const sync = useSyncReview(workspaceId, articleId)
+  return useMutation({
+    mutationFn: (reviewIntervalDays: number | null) =>
+      apiFetch<SdKbReviewStateDTO>(
+        `${base(workspaceId)}/${articleId}/review-interval`,
+        json('PATCH', { reviewIntervalDays }),
+        'Erro ao alterar a validade da revisão',
+      ),
+    onSuccess: sync,
+  })
+}
+
+export function useSdKbReviewSettings(workspaceId: string) {
+  return useQuery({
+    queryKey: sdKbKeys.reviewSettings(workspaceId),
+    queryFn: () =>
+      apiFetch<SdKbReviewSettingsDTO>(
+        `${base(workspaceId)}/review-settings`,
+        undefined,
+        'Erro ao carregar a validade padrão',
+      ),
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+/** Painel de curadoria (mais reusados, vencidos, sem reuso). */
+export function useSdKbStats(workspaceId: string, limit = 5) {
+  return useQuery({
+    queryKey: sdKbKeys.stats(workspaceId, limit),
+    queryFn: () =>
+      apiFetch<SdKbStatsResultDTO>(
+        `${base(workspaceId)}/stats${query({ limit })}`,
+        undefined,
+        'Erro ao carregar os números da base',
+      ),
+    enabled: !!workspaceId,
+    staleTime: 60 * 1000,
+  })
+}
+
+/** "Este artigo resolveu o chamado" — é o que conta no reuso (KCS). */
+export function useMarkSdKbResolved(workspaceId: string, ticketId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      articleId,
+      resolved,
+    }: {
+      articleId: string
+      resolved: boolean
+    }) =>
+      apiFetch<SdTicketKbLinkDTO>(
+        `${base(workspaceId)}/${articleId}/resolved`,
+        json('PATCH', { ticketId, resolved }),
+        'Erro ao marcar o artigo que resolveu',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: sdKbKeys.ticketLinks(workspaceId, ticketId),
+      })
+      queryClient.invalidateQueries({ queryKey: sdKbKeys.all(workspaceId) })
+    },
+  })
+}
+
+/** Cria o rascunho KCS a partir do chamado (com IA, quando disponível). */
+export function useDraftSdKbArticleFromTicket(workspaceId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: {
+      ticketId: string
+      useAi?: boolean
+      categoryId?: string
+    }) =>
+      apiFetch<SdKbDraftFromTicketDTO>(
+        `${base(workspaceId)}/draft`,
+        json('POST', data),
+        'Erro ao criar o artigo a partir do chamado',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sdKbKeys.all(workspaceId) })
+    },
+  })
+}
+
+/** Sugestões para um chamado que ainda não existe (tela de abertura). */
+export function useSdKbDraftSuggestions(
+  workspaceId: string,
+  input: { title: string; description?: string; categoryIds?: string[] },
+  enabled = true,
+) {
+  const title = input.title.trim()
+  return useQuery({
+    queryKey: [
+      'sd-kb',
+      workspaceId,
+      'suggest-draft',
+      title,
+      input.categoryIds ?? [],
+    ] as const,
+    queryFn: () =>
+      apiFetch<SdKbSearchResultDTO[]>(
+        `${base(workspaceId)}/suggest/draft`,
+        json('POST', {
+          title,
+          description: input.description ?? '',
+          categoryIds: input.categoryIds ?? [],
+        }),
+        'Erro ao sugerir artigos',
+      ),
+    enabled: !!workspaceId && enabled && title.length >= 3,
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000,
   })
 }

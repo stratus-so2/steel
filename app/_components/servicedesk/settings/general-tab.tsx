@@ -50,6 +50,7 @@ type Draft = Pick<
   | 'slaAtRiskPercent'
   | 'reopenOnRequesterReply'
   | 'autoAssignRoundRobin'
+  | 'kbReviewIntervalDays'
 >
 
 function toDraft(settings: SdSettingsDTO): Draft {
@@ -66,6 +67,7 @@ function toDraft(settings: SdSettingsDTO): Draft {
     slaAtRiskPercent: settings.slaAtRiskPercent,
     reopenOnRequesterReply: settings.reopenOnRequesterReply,
     autoAssignRoundRobin: settings.autoAssignRoundRobin,
+    kbReviewIntervalDays: settings.kbReviewIntervalDays,
   }
 }
 
@@ -273,6 +275,19 @@ export function SdGeneralTab() {
               min={1}
               max={99}
               suffix='%'
+              disabled={!canEdit}
+            />
+          </FieldBlock>
+          <FieldBlock
+            label='Validade da revisão dos artigos'
+            hint='Padrão do KCS: depois de aprovado, o artigo volta para revisão neste prazo. Cada artigo pode ter o seu.'
+          >
+            <NumberInput
+              value={draft.kbReviewIntervalDays}
+              onCommit={(value) => set('kbReviewIntervalDays', value ?? 180)}
+              min={1}
+              max={3650}
+              suffix='dias'
               disabled={!canEdit}
             />
           </FieldBlock>
