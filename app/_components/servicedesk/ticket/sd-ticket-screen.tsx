@@ -43,6 +43,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { useSdAgents, useSdConfig, useSdMe } from '@/src/hooks/use-sd-config'
 import { useSdTicketKbLinks } from '@/src/hooks/use-sd-knowledge'
 import {

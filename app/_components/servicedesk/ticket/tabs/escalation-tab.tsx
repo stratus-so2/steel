@@ -28,6 +28,12 @@ import type { SdTicketTabProps } from './types'
 
 type Kind = 'FUNCTIONAL' | 'HIERARCHICAL'
 
+/** Tom do tipo de escalonamento, pelo mapa fechado do módulo. */
+const KIND_TONE: Record<Kind, string> = {
+  HIERARCHICAL: SD_TONE.violet,
+  FUNCTIONAL: SD_TONE.sky,
+}
+
 function departmentName(
   tree: SdDepartmentTreeDTO[],
   id: string | null,

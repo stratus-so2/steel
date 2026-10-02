@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { useSdAgents, useSdConfig } from '@/src/hooks/use-sd-config'
 import {
   useDismissSdIncidentCluster,
