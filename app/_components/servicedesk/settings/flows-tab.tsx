@@ -47,6 +47,7 @@ import type {
   SdPhaseDTO,
   SdTicketTypeDTO,
 } from '@/types/sd-config'
+import { SdSeedPhasesButton } from './sd-seed-phases-button'
 import {
   ColorDot,
   ColorInput,
@@ -238,15 +239,37 @@ function PhasesSection({
       description='Arraste para mudar a ordem das colunas do kanban. A fase inicial recebe os chamados novos deste tipo.'
       actions={
         canEdit ? (
-          <Button size='sm' onClick={() => setEditing('new')}>
-            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-            Nova fase
-          </Button>
+          <div className='flex items-center gap-2'>
+            {phases.length > 0 ? (
+              <SdSeedPhasesButton
+                workspaceId={workspaceId}
+                ticketType={ticketType}
+                variant='outline'
+              />
+            ) : null}
+            <Button size='sm' onClick={() => setEditing('new')}>
+              <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+              Nova fase
+            </Button>
+          </div>
         ) : null
       }
     >
       {!loading && phases.length === 0 ? (
-        <EmptyState>Nenhuma fase cadastrada para este tipo.</EmptyState>
+        <EmptyState>
+          <span className='flex flex-col items-center gap-3'>
+            <span>
+              Nenhuma fase cadastrada para este tipo — o kanban deste quadro
+              fica sem coluna e sem chamado.
+            </span>
+            {canEdit ? (
+              <SdSeedPhasesButton
+                workspaceId={workspaceId}
+                ticketType={ticketType}
+              />
+            ) : null}
+          </span>
+        </EmptyState>
       ) : (
         <SortableList
           items={phases}

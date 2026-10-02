@@ -2,10 +2,12 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import type { Result } from '@/src/lib/result'
 import {
+  type SdSeedPhasesSummary,
   SdSeedRepository,
   type SdSeedSummary,
 } from '@/src/repositories/sd-seed.repository'
 import { sdAdminMutation } from './sd-config-support'
+import type { SdTicketTypeDTO } from '@/types/sd-ticket'
 import { SD_SEED_PLAN, type SdSeedPlan } from './sd-seed-data'
 
 /**
@@ -73,6 +75,33 @@ export const SdSeedService = {
       action: 'restore',
       targetId: workspaceId,
       run: () => SdSeedRepository.apply(workspaceId, actorId, SD_SEED_PLAN),
+    })
+  },
+
+  /**
+   * Fases padrão de um tipo, sob demanda, criando só as que faltam. É a saída
+   * para o fluxo sem fase nenhuma (quadro vazio) sem recorrer a "restaurar
+   * padrões", que mexe em tudo.
+   */
+  async seedPhases(
+    actorId: string,
+    workspaceId: string,
+    ticketType: SdTicketTypeDTO,
+    plan: SdSeedPlan = SD_SEED_PLAN,
+  ): Promise<Result<SdSeedPhasesSummary>> {
+    return sdAdminMutation({
+      actorId,
+      workspaceId,
+      entity: 'sd_seed',
+      action: 'restore',
+      targetId: workspaceId,
+      meta: { ticketType },
+      run: () =>
+        SdSeedRepository.applyPhases(
+          workspaceId,
+          ticketType,
+          plan.phases[ticketType],
+        ),
     })
   },
 }

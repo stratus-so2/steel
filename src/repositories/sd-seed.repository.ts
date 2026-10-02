@@ -4,6 +4,7 @@ import type { Result } from '@/src/lib/result'
 import { SD_DEFAULT_TICKET_PREFIXES } from '@/src/schemas/sd-settings.schema'
 import type {
   SdSeedCatalogNode,
+  SdSeedPhase,
   SdSeedPlan,
   SdSeedScale,
 } from '@/src/services/sd-seed-data'
@@ -27,6 +28,12 @@ export type SdSeedSummary = Record<
   | 'automationRules',
   number
 >
+
+/** Resultado da semeadura sob demanda das fases de um tipo. */
+export interface SdSeedPhasesSummary {
+  created: number
+  kept: number
+}
 
 type Tx = Prisma.TransactionClient
 
@@ -137,6 +144,63 @@ async function seedCatalog(
 }
 
 export const SdSeedRepository = {
+  /**
+   * Semeia as fases padrão de **um** tipo criando só as que faltam, casadas
+   * por nome, e preservando as que o admin já tem.
+   *
+   * `apply` pula o tipo inteiro assim que existe qualquer fase, o que deixa
+   * sem saída o fluxo meio-feito (uma fase só, ou todas desativadas): o
+   * quadro monta uma coluna e parece quebrado, e "restaurar padrões" não
+   * conserta. Daqui vem o botão "Criar as fases padrão" da aba Fluxos e do
+   * estado vazio do quadro.
+   */
+  async applyPhases(
+    workspaceId: string,
+    ticketType: SdTicketType,
+    phases: SdSeedPhase[],
+  ): Promise<Result<SdSeedPhasesSummary>> {
+    return sdDb('Failed to seed ServiceDesk phases', () =>
+      prisma.$transaction(async (tx) => {
+        const existing = await tx.sdPhase.findMany({
+          where: { workspaceId, ticketType },
+          select: { name: true, position: true, isInitial: true },
+        })
+        const names = new Set(existing.map((p) => p.name))
+        const missing = phases.filter((p) => !names.has(p.name))
+        if (missing.length === 0) {
+          return { created: 0, kept: existing.length }
+        }
+
+        // A fase inicial é uma por tipo: se já existe, as novas entram sem
+        // a marca, e a ordem continua depois da última fase do admin.
+        let initialTaken = existing.some((p) => p.isInitial)
+        let position =
+          existing.reduce((max, p) => Math.max(max, p.position), -1) + 1
+
+        const created = await tx.sdPhase.createMany({
+          data: missing.map((p) => {
+            const isInitial = !!p.isInitial && !initialTaken
+            initialTaken ||= isInitial
+            return {
+              workspaceId,
+              ticketType,
+              name: p.name,
+              color: p.color,
+              category: p.category,
+              completionPercent: p.completionPercent,
+              position: position++,
+              isInitial,
+              pausesSla: !!p.pausesSla,
+              requiresApproval: !!p.requiresApproval,
+              requiredFields: p.requiredFields ?? [],
+            }
+          }),
+        })
+        return { created: created.count, kept: existing.length }
+      }),
+    )
+  },
+
   /**
    * Aplica o plano numa transação. Idempotente: calendários, políticas,
    * classificações, modelos, regras e departamentos por nome; escalas por

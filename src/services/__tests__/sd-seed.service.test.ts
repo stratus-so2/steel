@@ -103,6 +103,59 @@ describe('SdSeedService.restoreDefaults', () => {
   })
 })
 
+describe('SdSeedService.seedPhases', () => {
+  it('seeds only the missing phases of one type', async () => {
+    repo.applyPhases.mockResolvedValue(ok({ created: 7, kept: 1 }))
+
+    expect(
+      expectOk(await SdSeedService.seedPhases('u1', WS, 'INCIDENT')),
+    ).toEqual({ created: 7, kept: 1 })
+    expect(repo.applyPhases).toHaveBeenCalledWith(
+      WS,
+      'INCIDENT',
+      SD_SEED_PLAN.phases.INCIDENT,
+    )
+    expect(auditMutation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'sd_seed',
+        action: 'restore',
+        targetId: WS,
+        meta: expect.objectContaining({ ticketType: 'INCIDENT' }),
+      }),
+    )
+  })
+
+  it('accepts a custom plan', async () => {
+    repo.applyPhases.mockResolvedValue(ok({ created: 0, kept: 0 }))
+    const plan = {
+      ...SD_SEED_PLAN,
+      phases: { ...SD_SEED_PLAN.phases, CHANGE: [] },
+    } as SdSeedPlan
+
+    expectOk(await SdSeedService.seedPhases('u1', WS, 'CHANGE', plan))
+    expect(repo.applyPhases).toHaveBeenCalledWith(WS, 'CHANGE', [])
+  })
+
+  it('propagates a repository failure', async () => {
+    repo.applyPhases.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdSeedService.seedPhases('u1', WS, 'PROBLEM'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it.each([
+    ['requester', 'FORBIDDEN'],
+    ['agent', 'FORBIDDEN'],
+    ['stranger', 'FORBIDDEN'],
+    ['disabled', 'MODULE_DISABLED'],
+  ] as const)('denies %s', async (actor, code) => {
+    actAs(actor)
+    expectErr(await SdSeedService.seedPhases('u1', WS, 'INCIDENT'), code)
+    expect(repo.applyPhases).not.toHaveBeenCalled()
+  })
+})
+
 describe('SD_SEED_PLAN sanity', () => {
   it('has exactly one initial phase per ticket type with valid percents', () => {
     for (const phases of Object.values(SD_SEED_PLAN.phases)) {

@@ -112,6 +112,15 @@ export const ReorderSdPhasesSchema = z.object({
 })
 export type ReorderSdPhasesDTO = z.infer<typeof ReorderSdPhasesSchema>
 
+/**
+ * Semeia as fases padrão ITIL de um tipo criando só as que faltam — a saída
+ * para o fluxo sem fase nenhuma, sem restaurar todos os padrões.
+ */
+export const SeedSdPhasesSchema = z.object({
+  ticketType: SdTicketTypeEnum,
+})
+export type SeedSdPhasesDTO = z.infer<typeof SeedSdPhasesSchema>
+
 export const SdPhaseTransitionsQuerySchema = z.object({
   type: SdTicketTypeEnum,
 })

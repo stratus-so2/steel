@@ -3,6 +3,8 @@ import type { WorkspaceModuleAccessDTO } from '@/types/workspace-module-access'
 
 export function toWorkspaceModuleAccessDTO(
   access: WorkspaceModuleAccess,
+  /** Seeds que falharam na liberação — ver `seedWarnings` no DTO. */
+  seedWarnings: string[] = [],
 ): WorkspaceModuleAccessDTO {
   return {
     id: access.id,
@@ -12,5 +14,6 @@ export function toWorkspaceModuleAccessDTO(
     grantedById: access.grantedById,
     createdAt: access.createdAt.toISOString(),
     updatedAt: access.updatedAt.toISOString(),
+    seedWarnings,
   }
 }

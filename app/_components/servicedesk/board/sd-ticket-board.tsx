@@ -70,6 +70,7 @@ import {
 import { SdFilterBar } from './sd-filter-bar'
 import { SdKanbanView } from './sd-kanban-view'
 import { SdListView } from './sd-list-view'
+import { SdNoPhasesNotice } from './sd-no-phases-notice'
 import {
   SdSavedViewsMenu,
   sdDefaultViewKey,
@@ -132,6 +133,7 @@ function writeHiddenColumns(boardKey: string, hidden: string[]) {
 interface ModeProps {
   workspaceId: string
   slug: string
+  isAdmin: boolean
   state: SdBoardState
   filters: SdTicketFilters
   config: SdConfigBootstrapDTO | undefined
@@ -150,6 +152,7 @@ function TypeKanban({
   onCreate,
   onShowMore,
   workspaceId,
+  isAdmin,
 }: ModeProps & { type: SdTicketTypeDTO }) {
   const board = useSdTicketKanban(workspaceId, {
     ...filters,
@@ -162,6 +165,14 @@ function TypeKanban({
       columns={columns}
       slug={slug}
       loading={board.isLoading || !config}
+      empty={
+        <SdNoPhasesNotice
+          workspaceId={workspaceId}
+          slug={slug}
+          type={type}
+          isAdmin={isAdmin}
+        />
+      }
       onMove={(ticket, phaseId) => onMove(ticket, phaseId)}
       onCreate={(phaseId) => onCreate({ type, phaseId })}
       onShowMore={onShowMore}
@@ -177,6 +188,7 @@ function AllKanban({
   config,
   onMove,
   onShowMore,
+  isAdmin,
 }: ModeProps) {
   const types = filters.types?.length ? filters.types : SD_TICKET_TYPES
   const boards = useQueries({
@@ -203,6 +215,14 @@ function AllKanban({
       slug={slug}
       loading={loading}
       showType
+      empty={
+        <SdNoPhasesNotice
+          workspaceId={workspaceId}
+          slug={slug}
+          type={types.length === 1 ? types[0] : null}
+          isAdmin={isAdmin}
+        />
+      }
       onMove={(ticket, category) => {
         const phase = sdPhaseForCategory(config, ticket.type, category)
         if (!phase) {
@@ -382,6 +402,7 @@ export function SdTicketBoard({
   const modeProps: ModeProps = {
     workspaceId,
     slug,
+    isAdmin,
     state,
     filters,
     config: config.data,
