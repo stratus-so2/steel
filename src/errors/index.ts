@@ -226,6 +226,8 @@ export {
   seatLimitReached,
   storageError,
   subscriptionCancelFailed,
+  totpInvalidCode,
+  totpNotEnabled,
   unauthorized,
   usernameConflict,
   validationError,

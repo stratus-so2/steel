@@ -121,6 +121,26 @@ export const MediaUrlDTO = dto(
     .meta({ description: 'URL pública do arquivo enviado.' }),
 )
 
+export const TotpStatusDTO = dto(
+  'TotpStatus',
+  z
+    .object({
+      twoFactorEnabled: z.boolean().meta({
+        description:
+          'Interruptor único do plugin two-factor do better-auth: vale para o OTP por e-mail e para o aplicativo autenticador.',
+      }),
+      totpEnabled: z.boolean().meta({
+        description:
+          'A conta escaneou o QR e confirmou um código que o aplicativo gerou.',
+      }),
+      hasSecret: z.boolean().meta({
+        description:
+          'Já existe segredo TOTP gravado para a conta (o enable() do plugin rodou).',
+      }),
+    })
+    .meta({ description: 'Estado do segundo fator da conta da sessão.' }),
+)
+
 /* ------------------------------- workspaces ------------------------------ */
 
 export const WorkspaceDTO = dto(
