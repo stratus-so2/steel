@@ -12,6 +12,10 @@ const consentFieldsSchema = {
   user: {
     acceptedTermsAt: { type: 'date', required: false },
     acceptedPrivacyAt: { type: 'date', required: false },
+    // Aplicativo autenticador confirmado. A aba de segurança lê isto de
+    // `session.user` para distinguir 2FA por e-mail de 2FA por app;
+    // `input: false` no servidor garante que só o nosso serviço escreve.
+    twoFactorTotpEnabled: { type: 'boolean', required: false },
   },
 } as const
 

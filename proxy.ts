@@ -5,7 +5,12 @@ import {
 } from 'next/server'
 import { logger } from '@/lib/axiom/server'
 import { logRequest } from '@/lib/axiom/request-log'
-import { NODE_ENV } from '@/lib/env/env'
+import {
+  NEXT_PUBLIC_POSTHOG_KEY,
+  NEXT_PUBLIC_SENTRY_DSN,
+  NODE_ENV,
+} from '@/lib/env/env'
+import { POSTHOG_PROXY_PATH } from '@/lib/posthog/constants'
 import { geolocateRequest } from '@/src/lib/analytics/geoip'
 
 const PUBLIC_ROUTES = [
@@ -31,8 +36,35 @@ const PUBLIC_ROUTES = [
   '/api/servicedesk/integrations/github',
   // Portal do contato externo do ServiceDesk: link mágico + sessão própria
   // no cookie `sd.portal_session` (sem Better Auth; escopo no service)
-  '/suporte', '/api/servicedesk/portal'
+  '/suporte', '/api/servicedesk/portal',
+  // Proxy reverso do PostHog (o next.config.ts reescreve direto para o
+  // PostHog). Analytics é coletado nas páginas públicas também, onde ninguém
+  // tem sessão, então o gate de autenticação responderia cada beacon com um
+  // redirect. Só entra na lista quando há chave configurada.
+  ...(NEXT_PUBLIC_POSTHOG_KEY ? [POSTHOG_PROXY_PATH] : []),
 ]
+
+/**
+ * Origem de ingestão do Sentry, derivada do DSN em vez de escrita à mão: o
+ * subdomínio carrega o id da organização e a região
+ * (`o123.ingest.de.sentry.io`), e um deploy sem DSN não ganha host extra
+ * nenhum na CSP. O `tunnelRoute` do SDK evitaria a entrada, mas transforma o
+ * app num POST não autenticado que encaminha para terceiro e manda todo
+ * payload de erro pelo único VPS — uma origem na CSP é a superfície menor.
+ *
+ * O PostHog **não** aparece aqui de propósito: ele é alcançado pelo rewrite
+ * de mesma origem `/ingest`, então `'self'` já cobre.
+ */
+function sentryConnectSrc(): string {
+  if (!NEXT_PUBLIC_SENTRY_DSN) return ''
+  try {
+    return ` ${new URL(NEXT_PUBLIC_SENTRY_DSN).origin}`
+  } catch {
+    // DSN malformado não pode derrubar a CSP inteira: sem origem extra, o
+    // SDK simplesmente não consegue enviar.
+    return ''
+  }
+}
 
 /**
  * CSP da aplicação. **Sem `'strict-dynamic'`**: com Cache Components (PPR) a
@@ -42,6 +74,24 @@ const PUBLIC_ROUTES = [
  * fica clicável. Os bundles são arquivos nossos, de mesma origem, cobertos
  * por `'self'`; o nonce segue valendo para os scripts inline que o Next gera
  * nas partes dinâmicas.
+ *
+ * `connect-src` lista **nominalmente** cada serviço que o navegador pode
+ * alcançar: Axiom (log e web vitals), jsdelivr (o Scalar em `/docs`) e o
+ * Sentry quando há DSN. `va.vercel-scripts.com` saiu junto com o
+ * `@vercel/analytics`: os beacons dele postavam em `/_vercel/insights/*` da
+ * nossa própria origem, um caminho que só existe na Vercel e aqui respondia
+ * 307 para `/sign-in`, então a entrada não protegia nada que fosse coletado.
+ *
+ * O PostHog não adiciona origem nenhuma: ele fala com `/ingest` de mesma
+ * origem (ver `next.config.ts`), coberto por `'self'`.
+ *
+ * O **Google Analytics não está liberado em nenhuma diretiva**, e isso é
+ * conhecido: o `@next/third-parties/google` injeta a tag de
+ * `googletagmanager.com` do lado do cliente, depois da hidratação, portanto
+ * sem nonce — e `script-src 'self' 'nonce-…'` a recusa. Na prática o GA não
+ * coleta nada aqui. Fica como está por decisão do dono do produto; a
+ * pendência está registrada nas consequências do ADR 0017 (nomear a origem
+ * ou tirar o GA).
  */
 function buildCspHeader(nonce: string): string {
   return `
@@ -50,7 +100,7 @@ function buildCspHeader(nonce: string): string {
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.axiom.co https://va.vercel-scripts.com https://cdn.jsdelivr.net${NODE_ENV === 'development' ? ' ws://localhost:4444' : ''};
+    connect-src 'self' https://*.axiom.co https://cdn.jsdelivr.net${sentryConnectSrc()}${NODE_ENV === 'development' ? ' ws://localhost:4444' : ''};
     frame-ancestors 'none';
     form-action 'self';
     base-uri 'self';

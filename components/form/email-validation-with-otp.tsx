@@ -23,6 +23,13 @@ interface EmailValidationWithOtpProps {
   isPending?: boolean
   error?: string | null
   onUseBackupCode?: () => void
+  /**
+   * Oferecido quando a conta também pode ter um aplicativo autenticador. A
+   * tela de login não consegue saber se tem (não há sessão, e responder
+   * contaria a terceiros o que o endereço usa), então o atalho fica sempre
+   * visível no segundo fator e o código errado simplesmente não passa.
+   */
+  onUseAuthenticator?: () => void
 }
 
 export function EmailValidationWithOtp({
@@ -32,7 +39,8 @@ export function EmailValidationWithOtp({
   onResend,
   isPending,
   error,
-  onUseBackupCode
+  onUseBackupCode,
+  onUseAuthenticator,
 }: EmailValidationWithOtpProps) {
   const [otp, setOtp] = useState('')
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS)
@@ -135,13 +143,22 @@ export function EmailValidationWithOtp({
               ? 'Reenviando...'
               : 'Reenviar código'}
         </Button>
+        {onUseAuthenticator && (
+          <button
+            type='button'
+            onClick={onUseAuthenticator}
+            className='text-sm text-primary hover:underline'
+          >
+            Usar o código do aplicativo autenticador
+          </button>
+        )}
         {onUseBackupCode && (
           <button
             type='button'
             onClick={onUseBackupCode}
             className='text-sm text-primary hover:underline'
           >
-            Não consegue acessar o e-mail? Usar um código de backup
+            Não consegue acessar o e-mail? Usar um código de recuperação
           </button>
         )}
       </div>

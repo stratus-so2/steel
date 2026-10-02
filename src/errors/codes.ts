@@ -607,6 +607,14 @@ export const ERROR_CODES = {
     status: 502,
   },
 
+  // Segundo fator por aplicativo autenticador (TOTP)
+  // A conta não tem segredo TOTP ainda: o `twoFactor.enable()` do better-auth
+  // nunca rodou, então não há o que confirmar nem o que desligar.
+  TOTP_NOT_ENABLED: { code: 'TOTP_NOT_ENABLED', status: 409 },
+  // O código de 6 dígitos não confere (ou a janela de 30s já passou). 401
+  // porque é prova de posse recusada, não corpo malformado.
+  TOTP_INVALID_CODE: { code: 'TOTP_INVALID_CODE', status: 401 },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

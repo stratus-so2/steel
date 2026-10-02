@@ -15,6 +15,7 @@ export function createFakeUser(overrides?: Partial<User>): User {
     image: null,
     coverImage: null,
     twoFactorEnabled: false,
+    twoFactorTotpEnabled: false,
     isPlatformAdmin: false,
     deletionScheduledAt: null,
     acceptedTermsAt: null,
@@ -52,7 +53,9 @@ export function createFakeUserDTO(overrides?: Partial<UserDTO>): UserDTO {
 }
 
 export async function seedUser(
-  overrides?: Partial<Pick<User, 'name' | 'email'>>,
+  overrides?: Partial<
+    Pick<User, 'name' | 'email' | 'twoFactorEnabled' | 'twoFactorTotpEnabled'>
+  >,
 ) {
   const id = createId()
 

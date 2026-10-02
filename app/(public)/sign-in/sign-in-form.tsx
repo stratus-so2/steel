@@ -13,8 +13,12 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/src/lib/auth-client'
 import { authErrorMessage } from '@/src/lib/auth-error-messages'
+import {
+  lastTwoFactorMethod,
+  rememberTwoFactorMethod,
+} from '@/src/lib/two-factor-method-hint'
 
-type Step = 'form' | 'otp' | 'backup'
+type Step = 'form' | 'otp' | 'totp' | 'backup'
 
 export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
   const { push } = useRouter()
@@ -29,6 +33,7 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
   const [isPending, setIsPending] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [backupCode, setBackupCode] = useState('')
+  const [totpCode, setTotpCode] = useState('')
 
   const signUpHref =
     redirectTo === '/'
@@ -68,8 +73,21 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
 
     if (data && 'twoFactorRedirect' in data && data.twoFactorRedirect) {
       setEmail(submittedEmail)
-      setStep('otp')
       setIsPending(false)
+
+      // Qual etapa abrir. A resposta do better-auth traz `twoFactorMethods`,
+      // mas como o plugin marca `verified` na ativação (a 2FA desta conta
+      // começa por e-mail), ela lista `totp` para toda conta com 2FA — mesmo
+      // quem nunca escaneou um QR. Então a decisão vem da dica local deste
+      // navegador, que registra o fator usado da última vez. Dica errada
+      // custa um clique: as duas etapas e os códigos de recuperação seguem
+      // alcançáveis daqui.
+      if (lastTwoFactorMethod() === 'totp') {
+        setStep('totp')
+        return
+      }
+
+      setStep('otp')
       const { error: sendError } = await authClient.twoFactor.sendOtp()
       if (sendError) {
         setOtpError(
@@ -98,7 +116,44 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
       return
     }
 
+    rememberTwoFactorMethod('otp')
     push(redirectTo)
+  }
+
+  /** Código do aplicativo autenticador (TOTP). */
+  async function handleVerifyTotp(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!totpCode.trim()) {
+      setOtpError('Informe o código do aplicativo')
+      return
+    }
+    setOtpError(null)
+    setIsVerifying(true)
+    const { error: verifyError } = await authClient.twoFactor.verifyTotp({
+      code: totpCode.trim(),
+    })
+    setIsVerifying(false)
+
+    if (verifyError) {
+      setOtpError(authErrorMessage(verifyError, 'Código inválido ou expirado'))
+      return
+    }
+
+    rememberTwoFactorMethod('totp')
+    push(redirectTo)
+  }
+
+  /** Vai para a etapa de e-mail e pede o código, que ainda não foi enviado. */
+  async function switchToEmailOtp() {
+    setOtpError(null)
+    setTotpCode('')
+    setStep('otp')
+    const { error: sendError } = await authClient.twoFactor.sendOtp()
+    if (sendError) {
+      setOtpError(
+        authErrorMessage(sendError, 'Não foi possível enviar o código'),
+      )
+    }
   }
 
   async function handleResend() {
@@ -231,6 +286,10 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
             onResend={handleResend}
             isPending={isVerifying}
             error={otpError}
+            onUseAuthenticator={() => {
+              setStep('totp')
+              setOtpError(null)
+            }}
             onUseBackupCode={() => {
               setStep('backup')
               setOtpError(null)
@@ -238,10 +297,59 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
           />
         )}
 
+        {step === 'totp' && (
+          <>
+            <div>
+              <H4>Abra seu aplicativo autenticador.</H4>
+              <H4 className='text-muted-foreground'>
+                Digite o código de 6 dígitos que ele está mostrando agora.
+              </H4>
+            </div>
+            <form onSubmit={handleVerifyTotp} className='w-full space-y-4'>
+              <Field data-invalid={!!otpError || undefined}>
+                <FieldLabel>Código do aplicativo</FieldLabel>
+                <Input
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value)}
+                  placeholder='000000'
+                  inputMode='numeric'
+                  autoComplete='one-time-code'
+                  autoFocus
+                  disabled={isVerifying}
+                />
+                {otpError && <FieldError>{otpError}</FieldError>}
+              </Field>
+              <Button type='submit' className='w-full' disabled={isVerifying}>
+                {isVerifying ? 'Verificando...' : 'Verificar código'}
+              </Button>
+              <div className='flex flex-col items-center gap-2 text-center text-sm'>
+                <button
+                  type='button'
+                  onClick={switchToEmailOtp}
+                  className='text-primary hover:underline'
+                >
+                  Receber o código por e-mail
+                </button>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setStep('backup')
+                    setOtpError(null)
+                    setTotpCode('')
+                  }}
+                  className='text-primary hover:underline'
+                >
+                  Perdeu o aplicativo? Usar um código de recuperação
+                </button>
+              </div>
+            </form>
+          </>
+        )}
+
         {step === 'backup' && (
           <>
             <div>
-              <H4>Use um código de backup.</H4>
+              <H4>Use um código de recuperação.</H4>
               <H4 className='text-muted-foreground'>
                 Digite um dos códigos que você guardou ao ativar a verificação
                 em duas etapas.
@@ -252,7 +360,7 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
               className='w-full space-y-4'
             >
               <Field data-invalid={!!otpError || undefined}>
-                <FieldLabel>Código de backup</FieldLabel>
+                <FieldLabel>Código de recuperação</FieldLabel>
                 <Input
                   value={backupCode}
                   onChange={(e) => setBackupCode(e.target.value)}
@@ -265,17 +373,27 @@ export function SignInForm({ redirectTo = '/' }: { redirectTo?: string }) {
               <Button type='submit' className='w-full' disabled={isVerifying}>
                 {isVerifying ? 'Verificando...' : 'Verificar código'}
               </Button>
-              <div className='text-center text-sm'>
+              <div className='flex flex-col items-center gap-2 text-center text-sm'>
                 <button
                   type='button'
                   onClick={() => {
-                    setStep('otp')
+                    setBackupCode('')
+                    void switchToEmailOtp()
+                  }}
+                  className='text-primary hover:underline'
+                >
+                  Receber o código por e-mail
+                </button>
+                <button
+                  type='button'
+                  onClick={() => {
+                    setStep('totp')
                     setOtpError(null)
                     setBackupCode('')
                   }}
                   className='text-primary hover:underline'
                 >
-                  Usar o código enviado por e-mail
+                  Usar o código do aplicativo autenticador
                 </button>
               </div>
             </form>

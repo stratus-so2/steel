@@ -16,6 +16,12 @@ import {
 interface CookieConsentCtx {
   consent: CookieConsent
   isAuthenticated: boolean
+  /**
+   * Id do usuário logado, ou `null` para visitante anônimo. É o único
+   * identificador que o `<PostHogTracker />` manda para o PostHog — nunca
+   * nome, e-mail ou username.
+   */
+  userId: string | null
   setConsent: (next: 'accepted' | 'rejected') => void
 }
 
@@ -24,12 +30,16 @@ const Ctx = createContext<CookieConsentCtx | null>(null)
 interface ProviderProps {
   initial: CookieConsent
   isAuthenticated: boolean
+  /** Opcional: as telas que montam o provider só para ler/gravar o consent
+   *  (configurações, testes) não precisam informar. */
+  userId?: string | null
   children: ReactNode
 }
 
 export function CookieConsentProvider({
   initial,
   isAuthenticated,
+  userId = null,
   children,
 }: ProviderProps) {
   const [consent, setConsentState] = useState<CookieConsent>(initial)
@@ -54,7 +64,7 @@ export function CookieConsentProvider({
   )
 
   return (
-    <Ctx.Provider value={{ consent, isAuthenticated, setConsent }}>
+    <Ctx.Provider value={{ consent, isAuthenticated, userId, setConsent }}>
       {children}
     </Ctx.Provider>
   )

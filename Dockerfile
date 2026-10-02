@@ -31,6 +31,41 @@ ENV NEXT_PUBLIC_AXIOM_TOKEN=$NEXT_PUBLIC_AXIOM_TOKEN
 ARG NEXT_PUBLIC_AXIOM_DATASET
 ENV NEXT_PUBLIC_AXIOM_DATASET=$NEXT_PUBLIC_AXIOM_DATASET
 
+# Observabilidade (Sentry + PostHog). Estas PRECISAM existir no build, não só
+# no .env do servidor: verificado no navegador com build de produção — um DSN
+# definido apenas em runtime chega ao servidor, ao edge e à CSP do proxy.ts,
+# mas NÃO ao navegador (`window.__SENTRY__` indefinido, nenhuma requisição de
+# ingestão depois de um erro não tratado). A chave do PostHog é lida pelo
+# próprio next.config.ts, para montar o rewrite de `/ingest`, que é build time
+# por definição.
+#
+# Todas são opcionais: sem elas o build passa igual e as duas integrações
+# ficam inertes (ADR 0017).
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+
+ARG NEXT_PUBLIC_SENTRY_RELEASE
+ENV NEXT_PUBLIC_SENTRY_RELEASE=$NEXT_PUBLIC_SENTRY_RELEASE
+
+ARG NEXT_PUBLIC_SENTRY_ENVIRONMENT
+ENV NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT
+
+ARG NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY
+
+ARG NEXT_PUBLIC_POSTHOG_HOST
+ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST
+
+# Upload de source map do Sentry. `SENTRY_ORG`/`SENTRY_PROJECT` não são
+# segredo; o token é, e entra como secret mount (mesmo padrão do
+# hugeicons_token) para não ficar numa camada da imagem. Sem os três o plugin
+# do next.config.ts fica inerte e o build segue.
+ARG SENTRY_ORG
+ENV SENTRY_ORG=$SENTRY_ORG
+
+ARG SENTRY_PROJECT
+ENV SENTRY_PROJECT=$SENTRY_PROJECT
+
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 ENV SKIP_ENV_VALIDATION="true"
 
@@ -42,7 +77,11 @@ ENV SKIP_ENV_VALIDATION="true"
 ARG NODE_BUILD_MEMORY=2048
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_BUILD_MEMORY}"
 
-RUN corepack enable pnpm && \
+RUN --mount=type=secret,id=sentry_auth_token \
+    corepack enable pnpm && \
+    if [ -f /run/secrets/sentry_auth_token ]; then \
+      export SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token)"; \
+    fi && \
     pnpm prisma:generate && \
     pnpm build && \
     pnpm worker:build

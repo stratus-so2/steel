@@ -1065,3 +1065,16 @@ export const sdIntegrationSignatureInvalid = (
 export const sdIntegrationRequestFailed = (
   message = 'O serviço externo não respondeu como esperado',
 ): AppError => appError('SD_INTEGRATION_REQUEST_FAILED', message)
+
+/**
+ * A conta não tem segredo TOTP: o `twoFactor.enable()` do better-auth nunca
+ * rodou para ela, então não há código a confirmar nem aplicativo a desligar.
+ */
+export const totpNotEnabled = (
+  message = 'Ative a verificação em duas etapas antes de usar um aplicativo autenticador',
+): AppError => appError('TOTP_NOT_ENABLED', message)
+
+/** O código de 6 dígitos do aplicativo não confere (ou a janela já passou). */
+export const totpInvalidCode = (
+  message = 'Código inválido ou expirado',
+): AppError => appError('TOTP_INVALID_CODE', message)

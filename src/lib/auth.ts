@@ -118,6 +118,17 @@ export const auth = betterAuth({
       username: { type: 'string', input: false, required: false },
       acceptedTermsAt: { type: 'date', input: true, required: false },
       acceptedPrivacyAt: { type: 'date', input: true, required: false },
+      // Aplicativo autenticador confirmado. Declarado aqui para a sessão
+      // carregar o campo (`session.user.twoFactorTotpEnabled`), do mesmo jeito
+      // que já carrega `twoFactorEnabled`: a aba de segurança precisa
+      // distinguir "2FA por e-mail" de "2FA por app". `input: false` porque
+      // quem escreve é o nosso serviço, depois de verificar um código real —
+      // nunca o corpo de um request.
+      twoFactorTotpEnabled: {
+        type: 'boolean',
+        input: false,
+        required: false,
+      },
     },
   },
   account: {
@@ -319,13 +330,44 @@ export const auth = betterAuth({
       },
     }),
     twoFactor({
-      // O 2º fator é OTP por e-mail (enviado ao e-mail já verificado da
-      // conta), não TOTP/authenticator — não há etapa de scan/verify no
-      // toggle. Sem isso, `twoFactor.enable()` não persiste `twoFactorEnabled`
-      // e a ativação "some" ao recarregar a sessão.
+      // Nome que o aplicativo autenticador mostra ao lado do código.
+      issuer: 'Steel',
+      // Nesta versão do better-auth (1.6.x) o `enable()` é um interruptor
+      // único: ele grava o segredo, gera os códigos de backup e devolve a
+      // `totpURI` de uma vez, sem parâmetro `method`. Mantemos
+      // `skipVerificationOnEnable: true` porque o fluxo que já existe é o OTP
+      // por e-mail — o endereço já está verificado nesse ponto, não sobra
+      // nada a provar, e sem isso `twoFactorEnabled` não persistiria e a
+      // ativação "sumiria" ao recarregar a sessão.
+      //
+      // O aplicativo autenticador exige um passo a mais, que é nosso:
+      // `users.two_factor_totp_enabled` só vira `true` depois de
+      // `POST /api/users/me/two-factor/totp` verificar um código que o app
+      // realmente gerou (ver `src/services/two-factor.service.ts`). Ninguém
+      // fica com "aplicativo ativo" por um QR que nunca escaneou.
       skipVerificationOnEnable: true,
+      // O plugin reserva 10 tentativas; cinco bastam para um código de 6
+      // dígitos e cortam a superfície de adivinhação pela metade. Os dois
+      // valores eram implícitos antes — e o lockout escreve em colunas de
+      // `two_factors` que o schema só ganhou na migration
+      // `two_factor_totp_and_lockout`.
+      accountLockout: {
+        enabled: true,
+        maxFailedAttempts: 5,
+        durationSeconds: 900,
+      },
+      totpOptions: {
+        // Janela padrão do RFC 6238, que é o que todo aplicativo
+        // autenticador assume (Google Authenticator, 1Password, Bitwarden).
+        period: 30,
+        digits: 6,
+      },
       otpOptions: {
         period: 5,
+        // O padrão é "plain": o segundo fator vivo ficaria em texto claro na
+        // tabela de verificação, então quem tivesse leitura nela poderia
+        // concluir o login de outra pessoa.
+        storeOTP: 'hashed',
         async sendOTP({ user, otp }) {
           try {
             await sendVerify2faAccessOtp({

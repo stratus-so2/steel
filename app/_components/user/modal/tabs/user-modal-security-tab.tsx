@@ -17,7 +17,9 @@ import { TabsContent } from '@/components/ui/tabs'
 import { notify } from '@/lib/notify'
 import { authClient } from '@/src/lib/auth-client'
 import { authErrorMessage } from '@/src/lib/auth-error-messages'
+import { rememberTwoFactorMethod } from '@/src/lib/two-factor-method-hint'
 import { useCookieConsent } from '../../cookie-consent/provider'
+import { UserModalSecurityTotp } from './user-modal-security-totp'
 
 export function UserModalSecurityTab({ tab }: { tab: string }) {
   const { data: session, isPending } = authClient.useSession()
@@ -105,6 +107,10 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
       setBackupCodes(data?.backupCodes ?? [])
       setTwoFactorMode('idle')
       setTwoFactorPassword('')
+      // Este toggle liga o 2º fator por e-mail. A dica local diz ao próximo
+      // login neste navegador em qual etapa abrir; quem cadastrar o
+      // aplicativo depois sobrescreve com 'totp'.
+      rememberTwoFactorMethod('otp')
       await authClient.getSession({ query: { disableCookieCache: true } })
       return
     }
@@ -146,7 +152,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
     if (!backupCodes) return
     try {
       await navigator.clipboard.writeText(backupCodes.join('\n'))
-      notify.success('Códigos de backup copiados')
+      notify.success('Códigos de recuperação copiados')
     } catch {
       // ignore
     }
@@ -198,7 +204,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
               <FieldDescription>
                 {hasPassword === false
                   ? 'Defina uma senha antes de ativar a verificação em duas etapas.'
-                  : 'Receba um código de 6 dígitos por e-mail no login para reforçar a segurança da sua conta.'}
+                  : 'Pede um segundo código no login. Por padrão ele vai por e-mail; com a 2FA ligada você também pode cadastrar um aplicativo autenticador.'}
               </FieldDescription>
             </FieldContent>
             <Switch
@@ -214,6 +220,18 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
           </Field>
 
           {twoFactorEnabled && twoFactorMode === 'idle' && (
+            <UserModalSecurityTotp
+              canUsePassword={hasPassword === true}
+              twoFactorEnabled={twoFactorEnabled}
+              onSessionChanged={async () => {
+                await authClient.getSession({
+                  query: { disableCookieCache: true },
+                })
+              }}
+            />
+          )}
+
+          {twoFactorEnabled && twoFactorMode === 'idle' && (
             <div className='flex justify-end'>
               <Button
                 type='button'
@@ -221,7 +239,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
                 size='sm'
                 onClick={startRegenerateBackupCodes}
               >
-                Gerar novos códigos de backup
+                Gerar novos códigos de recuperação
               </Button>
             </div>
           )}
@@ -236,7 +254,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
                   {twoFactorMode === 'enabling'
                     ? 'Senha para ativar a 2FA'
                     : twoFactorMode === 'regenerating'
-                      ? 'Senha para gerar novos códigos de backup'
+                      ? 'Senha para gerar novos códigos de recuperação'
                       : 'Senha para desativar a 2FA'}
                 </FieldLabel>
                 <Input
@@ -274,7 +292,7 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
           {backupCodes && backupCodes.length > 0 && (
             <div className='flex flex-col gap-3 border-t border-border pt-4'>
               <div>
-                <p className='text-sm font-medium'>Códigos de backup</p>
+                <p className='text-sm font-medium'>Códigos de recuperação</p>
                 <Muted>
                   Guarde estes códigos em local seguro. Cada um só pode ser
                   usado uma vez e não serão exibidos novamente.

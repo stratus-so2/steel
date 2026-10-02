@@ -70,6 +70,9 @@ const serverEnv = {
   AXIOM_QUERY_URL: process.env.AXIOM_QUERY_URL,
   ANALYTICS_FIXTURES: process.env.ANALYTICS_FIXTURES,
   GEOIP_DB_PATH: process.env.GEOIP_DB_PATH,
+  SENTRY_ORG: process.env.SENTRY_ORG,
+  SENTRY_PROJECT: process.env.SENTRY_PROJECT,
+  SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
 }
 
 /** String opcional que trata `""` como ausente (não só `undefined`). */
@@ -259,6 +262,14 @@ const serverEnvSchema = z.object({
   // "Signing Secret" do app do Slack: assina todo request que o Slack manda
   // (eventos, atalhos, slash commands). Sem ele o webhook recusa tudo.
   SLACK_SIGNING_SECRET: blankOptional,
+  // Credenciais de **build** do Sentry: só servem para subir source maps, o
+  // que acontece apenas no build de imagem do CD. Sem as três, o plugin do
+  // `next.config.ts` fica inerte (nenhum release criado, nenhum upload) e o
+  // build segue — o DSN de runtime é `NEXT_PUBLIC_SENTRY_DSN`, público, em
+  // `lib/env/env.ts`.
+  SENTRY_ORG: blankOptional,
+  SENTRY_PROJECT: blankOptional,
+  SENTRY_AUTH_TOKEN: blankOptional,
 })
 
 const validatedServerEnv =
@@ -335,4 +346,7 @@ export const {
   SLACK_CLIENT_ID,
   SLACK_CLIENT_SECRET,
   SLACK_SIGNING_SECRET,
+  SENTRY_ORG,
+  SENTRY_PROJECT,
+  SENTRY_AUTH_TOKEN,
 } = validatedServerEnv

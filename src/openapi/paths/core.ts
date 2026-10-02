@@ -34,6 +34,10 @@ import {
 } from '@/src/schemas/sticky-note.schema'
 import { CreateSubscriptionSchema } from '@/src/schemas/subscription.schema'
 import { TalkToSalesSchema } from '@/src/schemas/talk-to-sales.schema'
+import {
+  confirmTotpSchema,
+  disableTotpSchema,
+} from '@/src/schemas/two-factor.schema'
 import { UpdateUserSchema } from '@/src/schemas/user.schema'
 import { UpdateUserPreferenceSchema } from '@/src/schemas/user-preference.schema'
 import {
@@ -67,6 +71,7 @@ import {
   StatusSnapshotDTO,
   StickyNoteDTO,
   SubscriptionDTO,
+  TotpStatusDTO,
   UserDTO,
   UserPreferenceDTO,
   WorkspaceAiSettingsDTO,
@@ -213,6 +218,60 @@ const user: RouteConfig[] = [
         schema: z.object({ accepted: z.boolean() }),
       },
     },
+  },
+  {
+    method: 'get',
+    path: '/users/me/two-factor/totp',
+    tags: ['Usuário'],
+    summary: 'Estado do aplicativo autenticador',
+    description:
+      'Estado do segundo fator da conta da sessão. `twoFactorEnabled` é o interruptor único do better-auth (vale para o OTP por e-mail **e** para o aplicativo); `totpEnabled` diz que a conta escaneou o QR e confirmou um código; `hasSecret` diz que já existe segredo TOTP gravado. Ativar/desativar a 2FA, pedir o OTP por e-mail, consumir código de backup e gerar os códigos de recuperação são endpoints do better-auth em `/api/auth/two-factor/*`.',
+    responses: {
+      200: { description: 'Estado atual.', schema: TotpStatusDTO },
+    },
+  },
+  {
+    method: 'post',
+    path: '/users/me/two-factor/totp',
+    tags: ['Usuário'],
+    summary: 'Confirmar o aplicativo autenticador',
+    description:
+      'Confirma o cadastro do aplicativo com o primeiro código de 6 dígitos. É o único caminho que liga `totpEnabled`, e só liga depois de o código ser aceito — ninguém fica com aplicativo ativo por um QR que nunca escaneou. Obtenha a `totpURI` antes com `POST /api/auth/two-factor/enable` (conta sem 2FA) ou `POST /api/auth/two-factor/get-totp-uri` (conta que já tem 2FA por e-mail).',
+    rateLimit: 'user',
+    body: confirmTotpSchema,
+    responses: {
+      200: { description: 'Aplicativo confirmado.', schema: TotpStatusDTO },
+    },
+    errors: [
+      {
+        code: 'TOTP_NOT_ENABLED',
+        when: 'A conta não tem segredo TOTP: ative a 2FA antes',
+      },
+      {
+        code: 'TOTP_INVALID_CODE',
+        when: 'O código não confere ou a janela de 30 s já passou',
+      },
+    ],
+  },
+  {
+    method: 'delete',
+    path: '/users/me/two-factor/totp',
+    tags: ['Usuário'],
+    summary: 'Desligar o aplicativo autenticador',
+    description:
+      'Desliga o aplicativo e mantém o OTP por e-mail de pé. Exige a senha, como ativar e desativar a 2FA já exigem: é rebaixamento de segurança e uma sessão roubada não pode conseguir isso sozinha. O segredo TOTP fica gravado e só volta a valer depois de uma nova confirmação.',
+    rateLimit: 'user',
+    body: disableTotpSchema,
+    responses: {
+      200: { description: 'Aplicativo desligado.', schema: TotpStatusDTO },
+    },
+    errors: [
+      {
+        code: 'TOTP_NOT_ENABLED',
+        when: 'A conta não tem aplicativo autenticador ligado',
+      },
+      { code: 'INVALID_CREDENTIALS', when: 'A senha informada não confere' },
+    ],
   },
   {
     method: 'post',

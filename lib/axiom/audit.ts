@@ -210,6 +210,12 @@ type AuditAuthEvent =
   | 'auth.reset_password.send_failed'
   | 'auth.reset_password.completed'
   | 'auth.2fa_otp.send_failed'
+  // Aplicativo autenticador (TOTP): confirmação do primeiro código, recusa de
+  // um código inválido e desligamento com senha. Eventos sensíveis para a
+  // LGPD — mudam a força do acesso à conta.
+  | 'auth.2fa_totp.enabled'
+  | 'auth.2fa_totp.confirm_failed'
+  | 'auth.2fa_totp.disabled'
   | 'auth.welcome_email.send_failed'
   | 'auth.sign_in.success'
   | 'auth.sign_in.failure'
