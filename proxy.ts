@@ -6,6 +6,7 @@ import {
 import { logger } from '@/lib/axiom/server'
 import { logRequest } from '@/lib/axiom/request-log'
 import {
+  NEXT_PUBLIC_GA_ID,
   NEXT_PUBLIC_POSTHOG_KEY,
   NEXT_PUBLIC_SENTRY_DSN,
   NODE_ENV,
@@ -55,6 +56,20 @@ const PUBLIC_ROUTES = [
  * O PostHog **não** aparece aqui de propósito: ele é alcançado pelo rewrite
  * de mesma origem `/ingest`, então `'self'` já cobre.
  */
+/**
+ * Origens do Google Analytics, só quando há medidor configurado. O script vem
+ * do `googletagmanager.com`; a coleta vai para os dois domínios, porque o
+ * gtag alterna entre eles conforme a versão e a região.
+ */
+function googleAnalyticsSrc(): { script: string; connect: string } {
+  if (!NEXT_PUBLIC_GA_ID) return { script: '', connect: '' }
+  return {
+    script: ' https://www.googletagmanager.com',
+    connect:
+      ' https://www.googletagmanager.com https://www.google-analytics.com',
+  }
+}
+
 function sentryConnectSrc(): string {
   if (!NEXT_PUBLIC_SENTRY_DSN) return ''
   try {
@@ -85,22 +100,25 @@ function sentryConnectSrc(): string {
  * O PostHog não adiciona origem nenhuma: ele fala com `/ingest` de mesma
  * origem (ver `next.config.ts`), coberto por `'self'`.
  *
- * O **Google Analytics não está liberado em nenhuma diretiva**, e isso é
- * conhecido: o `@next/third-parties/google` injeta a tag de
- * `googletagmanager.com` do lado do cliente, depois da hidratação, portanto
- * sem nonce — e `script-src 'self' 'nonce-…'` a recusa. Na prática o GA não
- * coleta nada aqui. Fica como está por decisão do dono do produto; a
- * pendência está registrada nas consequências do ADR 0017 (nomear a origem
- * ou tirar o GA).
+ * O **Google Analytics é liberado nominalmente** quando há `NEXT_PUBLIC_GA_ID`:
+ * `script-src` ganha `googletagmanager.com` e `connect-src` ganha o
+ * `googletagmanager.com` mais o `google-analytics.com`, que é para onde os
+ * eventos são enviados. Sem isso o GA não coletava nada — o
+ * `@next/third-parties/google` injeta a tag depois da hidratação, portanto
+ * sem nonce, e `script-src 'self' 'nonce-…'` a recusava em silêncio (medido
+ * no navegador: *"Loading the script 'https://www.googletagmanager.com/gtag/js'
+ * violates the following Content Security Policy directive"*). Sem
+ * `NEXT_PUBLIC_GA_ID` nenhuma dessas origens entra na política.
  */
 function buildCspHeader(nonce: string): string {
+  const ga = googleAnalyticsSrc()
   return `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}'${NODE_ENV === 'development' ? " 'unsafe-eval'" : ''};
+    script-src 'self' 'nonce-${nonce}'${ga.script}${NODE_ENV === 'development' ? " 'unsafe-eval'" : ''};
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self';
-    connect-src 'self' https://*.axiom.co https://cdn.jsdelivr.net${sentryConnectSrc()}${NODE_ENV === 'development' ? ' ws://localhost:4444' : ''};
+    connect-src 'self' https://*.axiom.co https://cdn.jsdelivr.net${sentryConnectSrc()}${ga.connect}${NODE_ENV === 'development' ? ' ws://localhost:4444' : ''};
     frame-ancestors 'none';
     form-action 'self';
     base-uri 'self';

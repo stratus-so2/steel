@@ -24,7 +24,8 @@ pnpm dev                  # start infra (docker + migrations) then `next dev` on
 pnpm infra                # docker:start + prisma:migrate:dev (no dev server)
 pnpm docker:create        # first run only — create & start infra containers
 pnpm build                # prisma generate + next build
-pnpm start                # next start on :3001
+pnpm start                # roda a build standalone (node .next/standalone/server.js)
+pnpm start:dev-server     # next start on :3001 — só para e2e local; `next start` não serve a build standalone
 pnpm check                # biome check --fix (lint + format + organize imports)
 pnpm check:ci             # biome check, no writes (use this to verify CI will pass)
 pnpm version:sync [tag]   # stamp package.json/openapi.json from a CalVer tag (ADR 0003)
@@ -131,7 +132,7 @@ Services own authorization (ownership checks like `value.userId !== actorId → 
 - **Base (from Nexo):** user, workspace, membership, invitation, subscription/coupon (AbacatePay), sticky-note, short-link, project, wiki, changelog, talk-to-sales, consent, status.
 - **CRM** (`src/services/crm-*.service.ts`, UI `app/(private)/[workspace-slug]/crm/*`, public/integration APIs under `app/api/crm/*`): leads (with pipeline/stage gating, scoring and routing rules), people, companies, opportunities, pipelines, proposals + templates, products, forecast, quotas, tasks, notes, activities, custom fields, reports, dashboards, e-mail campaigns/templates/sync, mailing lists, landing pages, forms, workflows, integration keys, competitors, social (Facebook/Instagram/TikTok/X/LinkedIn/YouTube/Google Ads/Analytics) and the CRM AI assistant (OpenAI or Anthropic per workspace settings, with a monthly usage quota — ADR 0007, `src/lib/ai/`).
 - **Comunicação / WhatsApp** (`src/services/whatsapp-*.service.ts`, `src/lib/whatsapp/*`, UI `app/(private)/[workspace-slug]/zap/*`): connections (Meta Cloud API and Z-API), conversations, messages, contacts, groups, templates, quick replies, broadcasts (+ CSV import), dashboards, AI config + knowledge documents, AI auto-reply and sentiment. Webhooks at `app/api/whatsapp/webhook/{meta,zapi}`; realtime via SSE `app/api/whatsapp/events` over Redis pub/sub (`src/lib/whatsapp/realtime.ts`).
-- **ServiceDesk (ITIL 4)** (`src/services/sd-*.service.ts` + `SdTicketEngine`, `src/lib/servicedesk/*`, UI `app/(private)/[workspace-slug]/servicedesk/*`, API `app/api/workspaces/[id]/servicedesk/**` and the public approval link `app/api/servicedesk/approvals/[token]`): tickets for the four practices (incident, service request, change, problem) with configurable phases (% complete, transitions, SLA pause), impact × urgency priority matrix, severities, catalog (category > subcategory > service), SLA/OLA over business calendars, escalation and automation rules, custom fields, templates, CMDB, customers/companies/contacts, knowledge base (Plate editor), chat/history with attachments, tasks, costs, parts, e-mail approvals, digital signature, traceability, WhatsApp inside the ticket, AI copilot/pre-service/triage, dashboards (+ TV mode) and the requester portal. Queues `servicedesk-sla` and `servicedesk-ai`. See `docs/servicedesk/README.md` and ADR 0008.
+- **ServiceDesk (ITIL 4)** (`src/services/sd-*.service.ts` + `SdTicketEngine`, `src/lib/servicedesk/*`, UI `app/(private)/[workspace-slug]/servicedesk/*`, API `app/api/workspaces/[id]/servicedesk/**` and the public approval link `app/api/servicedesk/approvals/[token]`): tickets for the four practices (incident, service request, change, problem) with configurable phases (% complete, transitions, SLA pause), impact × urgency priority matrix, severities, catalog (category > subcategory > service), SLA/OLA over business calendars, escalation and automation rules, custom fields, templates, CMDB, customers/companies/contacts, knowledge base (Plate editor), chat/history with attachments, tasks, costs, parts, e-mail approvals, digital signature, traceability, WhatsApp inside the ticket, AI copilot/pre-service/triage, dashboards (+ TV mode) and the requester portal. Também: **relatórios de SLA agendados** (PDF/CSV no MinIO, envio para destinatários configuráveis), **KCS** (artigo a partir do chamado com rascunho da IA, revisão, validade e métrica de reuso), **risco preditivo** (heurística explicável, ADR 0016) e **integrações Slack/GitHub**. Filas: `servicedesk-{sla,ai,mail,digest,recurring,billing,reports,risk,integrations}`. **Cor do módulo vem só de `app/_components/servicedesk/sd-tone.ts`** — `SD_TONE`, `SD_TONE_SOFT`, `SD_TONE_TEXT`, `SD_TONE_FILL`; nenhuma tela monta `bg-<cor>-500/10` por conta própria, e o resto usa token semântico. See `docs/servicedesk/README.md` and ADR 0008.
 
 ### Module access (multi-tenancy)
 
@@ -141,7 +142,15 @@ Everything is scoped by workspace (slug in the URL). Modules (`enum ModuleKind`:
 
 Better Auth (`src/lib/auth.ts`) with the Prisma adapter, argon2 hashing, email+password, Google/GitHub OAuth, email-OTP and two-factor plugins. IDs are cuid2. Lifecycle hooks (`sendResetPassword`, `afterEmailVerification`, etc.) trigger transactional emails and audit logging. `getAuthSession()` (`src/lib/auth-session.ts`) is the server-side accessor that returns a `Result`.
 
+Second factor has two methods: **OTP por e-mail** e **TOTP** (app autenticador, com QR, chave manual e 10 códigos de recuperação). `users.two_factor_totp_enabled` marca quem confirmou o app — o `twoFactorEnabled` do plugin é um interruptor único e não distingue método; a tela de login escolhe a etapa por uma dica em `localStorage`, para quem usa app não receber e-mail inútil.
+
 The app runs **its own Redis-backed rate limiting** (`src/lib/rate-limit.ts`) on auth routes; Better Auth's built-in limiter is enabled only in production and disabled when `DISABLE_AUTH_RATE_LIMIT=true` (set during e2e, which runs `next start` in production mode). `MAIL_DRY_RUN=true` stops all Resend sends.
+
+### Observabilidade
+
+Três ferramentas, com papéis distintos: **Axiom** (log estruturado, auditoria LGPD e o painel de analytics do admin), **Sentry** (erro no servidor, no edge e no cliente — `instrumentation.ts`, `instrumentation-client.ts`, `sentry.{server,edge}.config.ts`) e **PostHog** (produto). Os dois últimos entram pelo cookie-consent (`app/_components/user/cookie-consent/`), então nada carrega sem consentimento, e ficam **inertes sem chave** — um deploy sem DSN sobe igual.
+
+`NEXT_PUBLIC_SENTRY_DSN` e `NEXT_PUBLIC_POSTHOG_KEY` são resolvidas em **build time**: precisam estar nos **GitHub Secrets** e nos build-args do `Dockerfile`/`cd.yml`, não só no `.env` do servidor — senão chegam ao servidor e à CSP mas não ao navegador. O PostHog não adiciona origem à CSP (rewrite `/ingest` de mesma origem); o Sentry adiciona uma, derivada do DSN; o Google Analytics é liberado nominalmente quando há `NEXT_PUBLIC_GA_ID`. Ver ADR 0017.
 
 ### Request middleware — `proxy.ts`
 
