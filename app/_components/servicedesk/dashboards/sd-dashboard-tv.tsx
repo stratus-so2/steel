@@ -139,7 +139,7 @@ function TvButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className='flex size-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white'
+      className='flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground'
     >
       <SteelIcon icon={icon} strokeWidth={2} className='size-4' />
     </button>
@@ -260,17 +260,20 @@ export function SdDashboardTv({
       className={cn(
         // `dark` escopa os tokens do tema escuro para dentro do overlay: sem
         // isto os widgets (que usam `text-foreground`) ficam pretos sobre o
-        // fundo preto da TV quando o usuário está no tema claro.
-        'dark fixed inset-0 z-50 flex flex-col bg-zinc-950 text-zinc-50',
+        // fundo preto da TV quando o usuário está no tema claro. A casca da
+        // TV também usa só token (`background`/`card`/`border`/
+        // `muted-foreground`), que neste escopo já resolve na paleta escura —
+        // nenhuma cor crua, nada que volte a ler o tema claro.
+        'dark fixed inset-0 z-50 flex flex-col bg-background text-foreground',
         idle && 'cursor-none',
       )}
     >
-      <header className='flex shrink-0 items-center gap-4 border-zinc-800 border-b px-6 py-3'>
+      <header className='flex shrink-0 items-center gap-4 border-border border-b px-6 py-3'>
         <div className='min-w-0 flex-1'>
           <h1 className='truncate font-semibold text-2xl tracking-tight 2xl:text-4xl'>
             {current?.title || 'Painel'}
           </h1>
-          <p className='mt-0.5 text-sm text-zinc-400 2xl:text-lg'>
+          <p className='mt-0.5 text-muted-foreground text-sm 2xl:text-lg'>
             {refreshedAt ? `Atualizado às ${CLOCK.format(refreshedAt)}` : ''}
             {rotation.length > 1
               ? ` · painel ${index + 1} de ${rotation.length}`
@@ -282,7 +285,7 @@ export function SdDashboardTv({
             <span className='sr-only'>Hora atual: </span>
             {now ? CLOCK.format(now) : '--:--:--'}
           </p>
-          <p className='text-sm text-zinc-400 capitalize 2xl:text-lg'>
+          <p className='text-muted-foreground text-sm capitalize 2xl:text-lg'>
             {now ? DAY.format(now) : ''}
           </p>
         </div>
@@ -301,7 +304,7 @@ export function SdDashboardTv({
             href={`/${slug}/servicedesk/dashboards/${dashboardId}`}
             aria-label='Sair do modo TV'
             title='Sair do modo TV'
-            className='flex size-9 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white'
+            className='flex size-9 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground'
           >
             <SteelIcon icon={Cancel01Icon} strokeWidth={2} className='size-4' />
           </Link>
@@ -310,7 +313,7 @@ export function SdDashboardTv({
 
       <div ref={containerRef} className='min-h-0 flex-1 overflow-hidden p-3'>
         {widgets.length === 0 ? (
-          <p className='flex h-full items-center justify-center text-xl text-zinc-400'>
+          <p className='flex h-full items-center justify-center text-muted-foreground text-xl'>
             Este painel ainda não tem widgets.
           </p>
         ) : null}
@@ -331,12 +334,12 @@ export function SdDashboardTv({
               {widgets.map((widget) => (
                 <div
                   key={widget.id}
-                  className='flex h-full w-full flex-col overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900'
+                  className='flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-card'
                 >
-                  <div className='shrink-0 border-zinc-800 border-b px-4 py-2'>
+                  <div className='shrink-0 border-border border-b px-4 py-2'>
                     {/* Duas linhas em vez de cortar: títulos como
                         "SLA cumprido (30 dias)" não cabem numa só. */}
-                    <span className='line-clamp-2 font-medium text-sm text-zinc-400 uppercase tracking-wide 2xl:text-lg'>
+                    <span className='line-clamp-2 font-medium text-muted-foreground text-sm uppercase tracking-wide 2xl:text-lg'>
                       {widgetTitle(widget)}
                     </span>
                   </div>
