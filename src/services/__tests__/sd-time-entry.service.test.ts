@@ -462,6 +462,34 @@ describe('timer — fechar', () => {
     )
   })
 
+  it('guarda a descrição informada ao parar', async () => {
+    expectOk(
+      await SdTimeEntryService.timer(
+        AGENT,
+        WS,
+        't1',
+        SdTimerActionSchema.parse({
+          action: 'stop',
+          description: 'Switch trocado',
+        }),
+      ),
+    )
+    expect(repo.update.mock.calls[0][1].description).toBe('Switch trocado')
+  })
+
+  it('propaga erro de banco ao carregar o contrato do chamado', async () => {
+    contracts.findByIdUnscoped.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdTimeEntryService.timer(
+        AGENT,
+        WS,
+        't1',
+        SdTimerActionSchema.parse({ action: 'stop' }),
+      ),
+      'DATABASE_ERROR',
+    )
+  })
+
   it('recusa quando o período do contrato está fechado', async () => {
     billing.ensureOpenPeriod.mockResolvedValue(
       err({ code: 'SD_CONTRACT_PERIOD_CLOSED', message: 'fechado' }),
@@ -606,6 +634,23 @@ describe('create (manual)', () => {
     )
   })
 
+  it('lançamento sem descrição grava nulo', async () => {
+    const { description: _description, ...noDescription } = dto
+    expectOk(await SdTimeEntryService.create(AGENT, WS, 't1', noDescription))
+    expect(repo.create.mock.calls[0][0].description).toBeNull()
+  })
+
+  it('propaga o período fechado do cálculo', async () => {
+    billing.ensureOpenPeriod.mockResolvedValue(
+      err({ code: 'SD_CONTRACT_PERIOD_CLOSED', message: 'fechado' }),
+    )
+    expectErr(
+      await SdTimeEntryService.create(AGENT, WS, 't1', dto),
+      'SD_CONTRACT_PERIOD_CLOSED',
+    )
+    expect(repo.create).not.toHaveBeenCalled()
+  })
+
   it('recusa chamado fechado e propaga erro da criação', async () => {
     load.mockResolvedValue(err(sdTicketClosed()))
     expectErr(
@@ -658,6 +703,50 @@ describe('update', () => {
     expect(record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'time.updated' }),
     )
+  })
+
+  it('recusa solicitante na edição', async () => {
+    load.mockResolvedValue(err(sdNotAgent()))
+    expectErr(
+      await SdTimeEntryService.update(
+        AGENT,
+        WS,
+        't1',
+        'te1',
+        UpdateSdTimeEntrySchema.parse({ billable: false }),
+      ),
+      'SD_NOT_AGENT',
+    )
+    expect(repo.findById).not.toHaveBeenCalled()
+  })
+
+  it('ajuste só de horários não toca faturável nem descrição', async () => {
+    repo.findById.mockResolvedValue(
+      ok(
+        createFakeSdTimeEntry({
+          id: 'te1',
+          userId: AGENT,
+          periodId: null,
+          startedAt: START,
+          endedAt: END,
+        }),
+      ),
+    )
+    expectOk(
+      await SdTimeEntryService.update(
+        AGENT,
+        WS,
+        't1',
+        'te1',
+        UpdateSdTimeEntrySchema.parse({
+          startedAt: '2026-10-07T13:15:00.000Z',
+        }),
+      ),
+    )
+    const data = repo.update.mock.calls[0][1]
+    expect(data.billable).toBeUndefined()
+    expect(data.description).toBeUndefined()
+    expect(data.minutes).toBe(45)
   })
 
   it('cronômetro em andamento só aceita descrição e faturável', async () => {

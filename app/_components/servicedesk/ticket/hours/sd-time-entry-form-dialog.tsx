@@ -103,6 +103,7 @@ export function SdTimeEntryFormDialog({
             <FieldBlock label='Início'>
               <Input
                 type='datetime-local'
+                aria-label='Início'
                 value={startedAt}
                 onChange={(event) => setStartedAt(event.target.value)}
               />
@@ -110,6 +111,7 @@ export function SdTimeEntryFormDialog({
             <FieldBlock label='Fim'>
               <Input
                 type='datetime-local'
+                aria-label='Fim'
                 value={endedAt}
                 onChange={(event) => setEndedAt(event.target.value)}
                 aria-invalid={!valid}
@@ -140,6 +142,7 @@ export function SdTimeEntryFormDialog({
 
           <FieldBlock label='O que foi feito'>
             <Textarea
+              aria-label='O que foi feito'
               value={description}
               rows={3}
               maxLength={1000}

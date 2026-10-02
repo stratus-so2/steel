@@ -105,6 +105,17 @@ describe('ensureOpenPeriod', () => {
     expect(periods.ensure.mock.calls[0][0].includedMinutes).toBe(1500)
   })
 
+  it('sem período anterior o saldo acumulado é zero', async () => {
+    periods.findPrevious.mockResolvedValue(ok(null))
+    expectOk(
+      await SdContractBillingService.ensureOpenPeriod(
+        createFakeSdContract({ carryOver: true, includedMinutes: 600 }),
+        MID_OCT,
+      ),
+    )
+    expect(periods.ensure.mock.calls[0][0].includedMinutes).toBe(600)
+  })
+
   it('não consulta o anterior quando o contrato não acumula', async () => {
     expectOk(
       await SdContractBillingService.ensureOpenPeriod(

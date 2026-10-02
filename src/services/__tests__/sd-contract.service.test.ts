@@ -123,6 +123,12 @@ describe('list / get', () => {
     const dto = expectOk(await SdContractService.get(AGENT, WS, 'ct1'))
     expect(dto.id).toBe('ct1')
   })
+
+  it('recusa solicitante no get', async () => {
+    actAs('requester')
+    expectErr(await SdContractService.get(AGENT, WS, 'ct1'), 'SD_NOT_AGENT')
+    expect(repo.findById).not.toHaveBeenCalled()
+  })
 })
 
 describe('create', () => {
@@ -344,6 +350,20 @@ describe('update', () => {
         UpdateSdContractSchema.parse({ endsAt: '2026-01-01T00:00:00.000Z' }),
       ),
       'VALIDATION_ERROR',
+    )
+    expect(repo.update).not.toHaveBeenCalled()
+  })
+
+  it('propaga erro de banco da checagem de sobreposição', async () => {
+    repo.findOverlapping.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdContractService.update(
+        ADMIN,
+        WS,
+        'ct1',
+        UpdateSdContractSchema.parse({ status: 'ACTIVE' }),
+      ),
+      'DATABASE_ERROR',
     )
     expect(repo.update).not.toHaveBeenCalled()
   })
