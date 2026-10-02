@@ -53,7 +53,9 @@ export function createFakeUserDTO(overrides?: Partial<UserDTO>): UserDTO {
 }
 
 export async function seedUser(
-  overrides?: Partial<Pick<User, 'name' | 'email'>>,
+  overrides?: Partial<
+    Pick<User, 'name' | 'email' | 'twoFactorEnabled' | 'twoFactorTotpEnabled'>
+  >,
 ) {
   const id = createId()
 
