@@ -1,4 +1,5 @@
 import {
+  CheckmarkCircle02Icon,
   Clock01Icon,
   Folder01Icon,
   Tag01Icon,
@@ -40,6 +41,13 @@ export function SdKbArticleMeta({
           <SteelIcon icon={ViewIcon} size={13} strokeWidth={2} />
           {article.viewCount}{' '}
           {article.viewCount === 1 ? 'visualização' : 'visualizações'}
+        </span>
+      )}
+      {article.reuseCount > 0 && (
+        <span className='inline-flex items-center gap-1'>
+          <SteelIcon icon={CheckmarkCircle02Icon} size={13} strokeWidth={2} />
+          Resolveu {article.reuseCount}{' '}
+          {article.reuseCount === 1 ? 'chamado' : 'chamados'}
         </span>
       )}
       {article.category && (
