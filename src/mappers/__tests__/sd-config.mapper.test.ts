@@ -88,6 +88,7 @@ describe('sd-settings mapper', () => {
     slaAtRiskPercent: 80,
     reopenOnRequesterReply: true,
     autoAssignRoundRobin: false,
+    kbReviewIntervalDays: 180,
     aiEnabled: true,
     aiPreServiceEnabled: false,
     aiAutoTriageEnabled: false,

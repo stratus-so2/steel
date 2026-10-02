@@ -25,6 +25,8 @@ export interface SdSettingsDTO {
   slaAtRiskPercent: number
   reopenOnRequesterReply: boolean
   autoAssignRoundRobin: boolean
+  /** KCS: validade padrão (em dias) da revisão dos artigos da base. */
+  kbReviewIntervalDays: number
   aiEnabled: boolean
   aiPreServiceEnabled: boolean
   aiAutoTriageEnabled: boolean

@@ -3851,6 +3851,9 @@ model SdSettings {
   slaAtRiskPercent            Int            @default(80) @map("sla_at_risk_percent")
   /// Reabertura: nova mensagem do solicitante em chamado RESOLVED reabre.
   reopenOnRequesterReply      Boolean        @default(true) @map("reopen_on_requester_reply")
+  /// KCS: validade padrão (em dias) da revisão de um artigo da base. O
+  /// artigo pode ter a própria (`SdKbArticle.reviewIntervalDays`).
+  kbReviewIntervalDays        Int            @default(180) @map("kb_review_interval_days")
   /// Atribuição automática dentro do departamento (round-robin).
   autoAssignRoundRobin        Boolean        @default(false) @map("auto_assign_round_robin")
   // Agente de IA
