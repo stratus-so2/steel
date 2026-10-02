@@ -19,6 +19,7 @@ import {
 } from '@/src/hooks/use-sd-external-portal'
 import { SD_PORTAL_MAX_ATTACHMENTS } from '@/src/schemas/sd-portal.schema'
 import type { SdPortalMessageDTO } from '@/types/sd-portal'
+import { SD_PORTAL_OK_TONE } from '../portal/sd-portal-tone'
 import { SdRichTextView } from '../ticket/sd-rich-text-editor'
 import {
   SdPhaseBadge,
@@ -53,7 +54,7 @@ function Message({ message }: { message: SdPortalMessageDTO }) {
       className={cn(
         'flex flex-col gap-1.5 rounded-xl border p-3',
         message.mine
-          ? 'ml-auto max-w-[90%] border-blue-500/20 bg-blue-500/10'
+          ? 'ml-auto max-w-[90%] border-primary/20 bg-primary/10'
           : 'mr-auto max-w-[90%] border-border bg-card',
       )}
     >
@@ -74,7 +75,7 @@ function Message({ message }: { message: SdPortalMessageDTO }) {
             <li key={file.id}>
               <a
                 href={`${file.url}?download=1`}
-                className='flex items-center gap-1.5 text-blue-700 text-xs underline dark:text-blue-300'
+                className='flex items-center gap-1.5 text-primary text-xs underline'
               >
                 <SteelIcon
                   icon={Attachment01Icon}
@@ -166,7 +167,7 @@ function ReplyBox({ code }: { code: string }) {
         </ul>
       ) : null}
       {error ? (
-        <p role='alert' className='text-red-700 text-xs dark:text-red-300'>
+        <p role='alert' className='text-destructive text-xs'>
           {error}
         </p>
       ) : null}
@@ -282,10 +283,8 @@ export function SdExtTicket({ code }: { code: string }) {
       ) : null}
 
       {ticket.solution ? (
-        <section className='rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5'>
-          <h2 className='mb-2 font-medium text-emerald-700 text-sm dark:text-emerald-300'>
-            Como foi resolvido
-          </h2>
+        <section className={cn('rounded-2xl border p-5', SD_PORTAL_OK_TONE)}>
+          <h2 className='mb-2 font-medium text-sm'>Como foi resolvido</h2>
           <SdRichTextView html={ticket.solution} className='text-sm' />
         </section>
       ) : null}

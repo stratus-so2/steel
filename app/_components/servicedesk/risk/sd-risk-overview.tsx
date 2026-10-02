@@ -69,7 +69,7 @@ export function SdRiskQueue({
         </div>
       ) : !data || data.length === 0 ? (
         <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center'>
-          <div className='flex size-10 items-center justify-center rounded-2xl border bg-muted/40 text-muted-foreground'>
+          <div className='grid size-10 place-items-center rounded-2xl border bg-muted text-muted-foreground'>
             <SteelIcon icon={InboxIcon} strokeWidth={1.8} className='size-5' />
           </div>
           <p className='font-medium text-sm'>
@@ -81,7 +81,7 @@ export function SdRiskQueue({
           </p>
         </div>
       ) : (
-        <div className='overflow-hidden rounded-xl border bg-card/40'>
+        <div className='overflow-hidden rounded-xl border bg-card'>
           {data.map((ticket) => (
             <SdTicketRow
               key={ticket.id}

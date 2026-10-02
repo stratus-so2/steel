@@ -417,21 +417,14 @@ function DayPanel({
               key={`${window.windowId}-${window.startsAt}`}
               className={cn(
                 'rounded-lg border px-3 py-2',
-                window.kind === 'FREEZE'
-                  ? 'border-rose-300 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/40'
-                  : 'border-sky-300 bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/40',
+                WINDOW_SURFACE[window.kind],
               )}
             >
               <div className='flex items-center gap-1.5'>
                 <SteelIcon
-                  icon={window.kind === 'FREEZE' ? SnowIcon : Calendar03Icon}
+                  icon={WINDOW_ICON[window.kind]}
                   strokeWidth={2}
-                  className={cn(
-                    'size-4 shrink-0',
-                    window.kind === 'FREEZE'
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : 'text-sky-600 dark:text-sky-400',
-                  )}
+                  className={cn('size-4 shrink-0', WINDOW_TEXT[window.kind])}
                 />
                 <span className='truncate font-medium text-sm'>
                   {window.name}
@@ -504,7 +497,12 @@ function DayPanel({
                   ) : null}
                 </div>
                 {change.frozenWindowIds.length > 0 ? (
-                  <p className='flex items-start gap-1 text-rose-700 text-xs dark:text-rose-300'>
+                  <p
+                    className={cn(
+                      'flex items-start gap-1 text-xs',
+                      WINDOW_TEXT.FREEZE,
+                    )}
+                  >
                     <SteelIcon
                       icon={SnowIcon}
                       strokeWidth={2}
@@ -514,7 +512,12 @@ function DayPanel({
                   </p>
                 ) : null}
                 {conflicts.length > 0 ? (
-                  <p className='flex items-start gap-1 text-amber-700 text-xs dark:text-amber-300'>
+                  <p
+                    className={cn(
+                      'flex items-start gap-1 text-xs',
+                      CONFLICT_TEXT,
+                    )}
+                  >
                     <SteelIcon
                       icon={Alert02Icon}
                       strokeWidth={2}

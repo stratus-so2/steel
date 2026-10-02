@@ -37,6 +37,7 @@ import {
   useSdKbArticles,
 } from '@/src/hooks/use-sd-knowledge'
 import type { SdKbArticleSummaryDTO } from '@/types/sd-kb-article'
+import { SD_KB_STATUS_DOT } from './sd-kb-status-badge'
 import {
   buildSdKbTree,
   type SdKbTreeNode,
@@ -242,7 +243,10 @@ function SdKbTreeItem({
           {node.status === 'DRAFT' && (
             <span
               title='Rascunho'
-              className='ml-auto size-1.5 shrink-0 rounded-full bg-amber-500'
+              className={cn(
+                'ml-auto size-1.5 shrink-0 rounded-full',
+                SD_KB_STATUS_DOT[node.status],
+              )}
             />
           )}
         </Link>

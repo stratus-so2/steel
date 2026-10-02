@@ -147,7 +147,7 @@ export function SdExtNewTicket() {
 
   if (options.isError) {
     return (
-      <div className='rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-700 text-sm dark:text-red-300'>
+      <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm'>
         {options.error.message}
       </div>
     )
@@ -155,7 +155,7 @@ export function SdExtNewTicket() {
 
   if (types.length === 0) {
     return (
-      <div className='flex flex-col items-center gap-2 rounded-2xl border border-border border-dashed bg-card/40 p-8 text-center'>
+      <div className='flex flex-col items-center gap-2 rounded-2xl border border-border border-dashed bg-card p-8 text-center'>
         <p className='font-medium text-sm'>
           A abertura de chamados pelo portal está desligada
         </p>
@@ -241,7 +241,7 @@ export function SdExtNewTicket() {
                 className={cn(
                   'rounded-xl border px-3 py-2 font-medium text-sm transition-colors',
                   effectiveType === item
-                    ? 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                    ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-card text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -374,7 +374,7 @@ export function SdExtNewTicket() {
       {error ? (
         <p
           role='alert'
-          className='rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-red-700 text-sm dark:text-red-300'
+          className='rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-destructive text-sm'
         >
           {error}
         </p>

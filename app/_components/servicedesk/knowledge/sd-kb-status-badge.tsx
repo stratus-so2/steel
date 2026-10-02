@@ -19,12 +19,24 @@ import {
   sdKbReviewOverdue,
 } from './sd-kb-utils'
 
+/**
+ * Cor do fluxo editorial, em mapa fechado no padrão do repositório
+ * (`bg-<c>-500/10` + `text-<c>-700 dark:text-<c>-300`): contraste nos dois
+ * temas e classes visíveis ao Tailwind.
+ */
 const STATUS_STYLE: Record<SdKbArticleStatusDTO, string> = {
   PUBLISHED:
-    'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-  IN_REVIEW: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-400',
+    'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  IN_REVIEW: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
   DRAFT:
-    'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+}
+
+/** Ponto de status (árvore da base): a mesma faixa de cor do selo. */
+export const SD_KB_STATUS_DOT: Record<SdKbArticleStatusDTO, string> = {
+  PUBLISHED: 'bg-emerald-500',
+  IN_REVIEW: 'bg-sky-500',
+  DRAFT: 'bg-amber-500',
 }
 
 const STATUS_ICON: Record<SdKbArticleStatusDTO, typeof PencilEdit02Icon> = {

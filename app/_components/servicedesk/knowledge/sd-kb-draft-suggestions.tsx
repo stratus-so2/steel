@@ -48,7 +48,7 @@ export function SdKbDraftSuggestions({
     <section
       aria-label='Artigos que podem resolver'
       className={cn(
-        'space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3',
+        'space-y-2 rounded-lg border border-border bg-muted p-3',
         className,
       )}
     >
@@ -57,7 +57,7 @@ export function SdKbDraftSuggestions({
           icon={SparklesIcon}
           size={14}
           strokeWidth={2}
-          className='text-amber-600 dark:text-amber-400'
+          className='text-primary'
         />
         Talvez a base já resolva
       </h4>

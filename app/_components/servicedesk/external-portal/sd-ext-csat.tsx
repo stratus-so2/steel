@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useRateSdPortalTicket } from '@/src/hooks/use-sd-external-portal'
+import { SD_CSAT_STAR_HOVER, SD_CSAT_STAR_ON } from '../portal/sd-portal-tone'
 
 const SCORES = [1, 2, 3, 4, 5] as const
 
@@ -43,8 +44,8 @@ function Stars({
             onClick={() => onChange?.(score)}
             className={cn(
               'rounded p-1 transition-colors',
-              filled ? 'text-amber-500' : 'text-muted-foreground',
-              !disabled && 'hover:text-amber-500',
+              filled ? SD_CSAT_STAR_ON : 'text-muted-foreground',
+              !disabled && SD_CSAT_STAR_HOVER,
             )}
           >
             <SteelIcon
@@ -81,10 +82,8 @@ export function SdExtCsat({
 
   if (csatScore !== null) {
     return (
-      <section className='flex flex-col gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4'>
-        <h2 className='font-medium text-amber-700 text-sm dark:text-amber-300'>
-          Obrigado pela sua avaliação!
-        </h2>
+      <section className='flex flex-col gap-2 rounded-xl border border-border bg-muted p-4'>
+        <h2 className='font-medium text-sm'>Obrigado pela sua avaliação!</h2>
         <Stars value={csatScore} disabled />
         <p className='text-muted-foreground text-xs'>
           Você avaliou este atendimento como "{SD_EXT_CSAT_LABEL[csatScore]}".
@@ -131,7 +130,7 @@ export function SdExtCsat({
         onChange={(event) => setComment(event.target.value)}
       />
       {error ? (
-        <p role='alert' className='text-red-700 text-xs dark:text-red-300'>
+        <p role='alert' className='text-destructive text-xs'>
           {error}
         </p>
       ) : null}
