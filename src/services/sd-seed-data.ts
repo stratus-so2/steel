@@ -950,6 +950,8 @@ export const SD_SEED_ESCALATION_RULES: SdSeedEscalationRule[] = [
       reassignUserId: null,
       raisePriority: false,
       email: false,
+      notifyOnCall: false,
+      reassignToOnCall: false,
     },
   },
 ]

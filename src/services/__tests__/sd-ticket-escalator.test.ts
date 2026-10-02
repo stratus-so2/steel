@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createFakeSdEscalation,
   createFakeSdTicket,
@@ -15,6 +15,8 @@ import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.reposit
 
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/repositories/sd-ticket-escalation.repository')
+// O plantão roda de verdade (lib pura + resolver); só o banco é dublado.
+vi.mock('@/src/repositories/sd-oncall.repository')
 vi.mock('@/src/services/sd-notification.service', () => ({
   notifySdEvent: vi.fn(async () => ({ ok: true, value: {} })),
 }))
@@ -29,6 +31,11 @@ vi.mock('@/src/services/sd-ticket-engine', async (orig) => ({
 
 import type { SdEscalationRule } from '@prisma/client'
 import { createFakeSdNotifyOutcome } from '@/src/__tests__/factories/sd-notification.factory'
+import {
+  createFakeSdOnCallOverride,
+  createFakeSdOnCallSchedule,
+} from '@/src/__tests__/factories/sd-oncall.factory'
+import { SdOnCallRepository } from '@/src/repositories/sd-oncall.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import { SdTicketEscalationRepository } from '@/src/repositories/sd-ticket-escalation.repository'
 import { notifySdEvent } from '../sd-notification.service'
@@ -41,6 +48,7 @@ import { escalateSdTicket, runSdEscalationRule } from '../sd-ticket-escalator'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 
 const ctxRepo = vi.mocked(SdTicketContextRepository)
+const onCallRepo = vi.mocked(SdOnCallRepository)
 const escRepo = vi.mocked(SdTicketEscalationRepository)
 const update = vi.mocked(SdTicketEngine.update)
 const notify = vi.mocked(notifySdEvent)
@@ -85,7 +93,41 @@ beforeEach(() => {
   )
   notify.mockResolvedValue(ok(createFakeSdNotifyOutcome()))
   record.mockResolvedValue(ok(1))
+  onCallRepo.findActiveForDepartment.mockResolvedValue(ok(null))
+  onCallRepo.listOverridesInRange.mockResolvedValue(ok([]))
 })
+
+/** Escala com primeira chamada (u1/u2) e retaguarda (boss). */
+function onCallSchedule(overrides: Record<string, unknown> = {}) {
+  const base = createFakeSdOnCallSchedule({ id: 'sch-1' })
+  return createFakeSdOnCallSchedule({
+    id: 'sch-1',
+    layers: [
+      base.layers[0],
+      {
+        id: 'layer-2',
+        scheduleId: 'sch-1',
+        name: 'Retaguarda',
+        level: 2,
+        participants: [
+          {
+            id: 'part-3',
+            layerId: 'layer-2',
+            userId: 'boss',
+            position: 0,
+            user: {
+              id: 'boss',
+              name: 'Chefe',
+              email: 'boss@steel.test',
+              image: null,
+            },
+          },
+        ],
+      },
+    ],
+    ...overrides,
+  })
+}
 
 describe('escalateSdTicket — functional', () => {
   it('moves to another department clearing or setting the assignee', async () => {
@@ -551,5 +593,321 @@ describe('runSdEscalationRule', () => {
       'VALIDATION_ERROR',
     )
     expect(update).not.toHaveBeenCalled()
+  })
+})
+
+describe('escalateSdTicket — plantão', () => {
+  /** Rodízio semanal de 05/10/2026 09:00 (São Paulo): u1 na primeira semana. */
+  const FIRST_WEEK = new Date('2026-10-06T00:00:00.000Z')
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function freeze(at: Date) {
+    vi.useFakeTimers()
+    vi.setSystemTime(at)
+  }
+
+  it('hands the ticket to the first call layer', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    const ticket = createFakeSdTicket({ departmentId: 'd1', assigneeId: 'a1' })
+    const out = expectOk(
+      await escalateSdTicket(
+        ticket,
+        { kind: 'HIERARCHICAL', reason: 'madrugada', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(onCallRepo.findActiveForDepartment).toHaveBeenCalledWith(
+      ticket.workspaceId,
+      'd1',
+    )
+    expect(update).toHaveBeenCalledWith(
+      ticket,
+      expect.objectContaining({ assigneeId: 'u1', escalationLevel: 1 }),
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+    expect(out.onCall?.slot?.level).toBe(1)
+  })
+
+  it('climbs to the next layer as the level grows', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1', escalationLevel: 1 }),
+        { kind: 'HIERARCHICAL', reason: 'subiu', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeId: 'boss', escalationLevel: 2 }),
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+  })
+
+  it('follows the rotation handoff to the second participant', async () => {
+    // 12/10 12:00Z = 09:00 em São Paulo, exatamente a virada da semana.
+    freeze(new Date('2026-10-12T12:00:00.000Z'))
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'virada', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeId: 'u2' }),
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+  })
+
+  it('lets an active swap take the ticket instead of the rotation', async () => {
+    freeze(new Date('2026-10-07T12:00:00.000Z'))
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    onCallRepo.listOverridesInRange.mockResolvedValue(
+      ok([
+        createFakeSdOnCallOverride({
+          layerId: 'layer-1',
+          userId: 'cobertura',
+        }),
+      ]),
+    )
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'troca', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeId: 'cobertura' }),
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+  })
+
+  it('notifies the on-call and the backup through the notification engine', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'avisa', notifyOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    const payload = notify.mock.calls[0][0]
+    expect(payload.event).toBe('ticket.escalated')
+    expect(payload.payload.userIds).toEqual(
+      expect.arrayContaining(['u1', 'boss']),
+    )
+    expect(payload.payload.meta).toMatchObject({
+      onCallSchedule: 'Plantão de redes',
+    })
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          onCall: expect.objectContaining({
+            scheduleId: 'sch-1',
+            level: 1,
+            reassigned: false,
+          }),
+        }),
+      }),
+    )
+  })
+
+  it('keeps the lead when the department has no schedule', async () => {
+    freeze(FIRST_WEEK)
+    const out = expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'sem escala', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeId: 'lead1' }),
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+    expect(out.onCall).toBeNull()
+  })
+
+  it('keeps the normal queue inside the business hours of the calendar', async () => {
+    // Segunda, 10:00 em São Paulo.
+    freeze(new Date('2026-10-05T13:00:00.000Z'))
+    onCallRepo.findActiveForDepartment.mockResolvedValue(
+      ok(
+        onCallSchedule({
+          calendarId: 'cal-1',
+          calendar: {
+            id: 'cal-1',
+            name: 'Comercial',
+            timezone: 'America/Sao_Paulo',
+            schedule: { mon: [['08:00', '18:00']] },
+            holidays: [],
+            is24x7: false,
+          },
+        }),
+      ),
+    )
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'horário', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeId: 'lead1' }),
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+  })
+
+  it('sends a functional escalation to the on-call without a fixed target', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    const ticket = createFakeSdTicket({ departmentId: 'd1', assigneeId: 'a1' })
+    expectOk(
+      await escalateSdTicket(
+        ticket,
+        { kind: 'FUNCTIONAL', reason: 'passa', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      ticket,
+      { assigneeId: 'u1' },
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+  })
+
+  it('prefers the on-call over the fixed target of the rule', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd0' }),
+        {
+          kind: 'FUNCTIONAL',
+          toDepartmentId: 'd2',
+          toUserId: 'fixo',
+          reason: 'passa',
+          reassignToOnCall: true,
+        },
+        agent,
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      { departmentId: 'd2', assigneeId: 'u1' },
+      expect.anything(),
+      config,
+      expect.anything(),
+    )
+  })
+
+  it('refuses a functional escalation when nobody is on call', async () => {
+    freeze(FIRST_WEEK)
+    expectErr(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'FUNCTIONAL', reason: 'sem ninguém', reassignToOnCall: true },
+        agent,
+        config,
+      ),
+      'VALIDATION_ERROR',
+    )
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('propagates a database error of the schedule lookup', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'erro', notifyOnCall: true },
+        agent,
+        config,
+      ),
+      'DATABASE_ERROR',
+    )
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('does not touch the schedule when the rule does not ask for it', async () => {
+    expectOk(
+      await escalateSdTicket(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        { kind: 'HIERARCHICAL', reason: 'normal' },
+        agent,
+        config,
+      ),
+    )
+    expect(onCallRepo.findActiveForDepartment).not.toHaveBeenCalled()
+  })
+
+  it('carries the flags of the rule into the escalation', async () => {
+    freeze(FIRST_WEEK)
+    onCallRepo.findActiveForDepartment.mockResolvedValue(ok(onCallSchedule()))
+    const rule = createFakeSdEscalationRule({
+      id: 'r-oncall',
+      name: 'Violou de madrugada',
+      actions: {
+        kind: 'HIERARCHICAL',
+        notifyOnCall: true,
+        reassignToOnCall: true,
+      },
+    })
+    expectOk(
+      await runSdEscalationRule(
+        createFakeSdTicket({ departmentId: 'd1' }),
+        rule,
+        sdSystemActor('sla'),
+        config,
+      ),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeId: 'u1' }),
+      expect.objectContaining({ kind: 'system' }),
+      config,
+      { touchActivity: false, eventMeta: { via: 'escalation' } },
+    )
+    expect(notify.mock.calls[0][0].payload.userIds).toEqual(
+      expect.arrayContaining(['u1', 'boss']),
+    )
   })
 })

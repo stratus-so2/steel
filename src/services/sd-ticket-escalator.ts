@@ -12,6 +12,11 @@ import {
 import { SdEscalationActionsSchema } from '@/src/schemas/sd-rule.schema'
 import { notifySdEvent } from './sd-notification.service'
 import {
+  type SdOnCallTarget,
+  sdOnCallEscalationTarget,
+  sdOnCallNotifyUserIds,
+} from './sd-oncall-resolver'
+import {
   type SdActor,
   type SdEngineChanges,
   type SdEngineConfig,
@@ -32,6 +37,13 @@ import {
  * - FUNCTIONAL: outro departamento e/ou pessoa; o nível não muda.
  * - HIERARCHICAL: nível + 1; vai para um líder do departamento (se o
  *   responsável já é líder, ou não há líder, sobe para o departamento pai).
+ *
+ * Com `reassignToOnCall`/`notifyOnCall`, a escala de plantão do departamento
+ * entra na jogada: o chamado vai para quem está na camada do nível
+ * escalonado (1 no primeiro nível, 2 no seguinte…) e o aviso inclui a
+ * retaguarda. A escala só vale fora do expediente quando tem calendário;
+ * dentro dele, ou sem ninguém de plantão, o destino normal da regra
+ * prevalece — ninguém fica sem responsável.
  */
 
 export interface SdEscalationInput {
@@ -44,6 +56,10 @@ export interface SdEscalationInput {
   notifyDepartmentLeads?: boolean
   raisePriority?: boolean
   email?: boolean
+  /** Avisa quem está de plantão no departamento do chamado. */
+  notifyOnCall?: boolean
+  /** Reatribui para quem está de plantão (camada do nível escalonado). */
+  reassignToOnCall?: boolean
   automatic?: boolean
   ruleId?: string | null
 }
@@ -51,6 +67,8 @@ export interface SdEscalationInput {
 export interface SdEscalationOutcome {
   ticket: SdTicketWithRelations
   escalation: SdTicketEscalationWithActor
+  /** Plantão consultado (quando a regra pediu), para log e rastreabilidade. */
+  onCall?: SdOnCallTarget | null
 }
 
 async function hierarchicalLeads(
@@ -88,6 +106,28 @@ export async function escalateSdTicket(
   const changes: SdEngineChanges = {}
   let notifyLeads: string[] = []
 
+  // Nível consultado no plantão: o escalonamento hierárquico sobe de camada
+  // junto com o nível do chamado; o funcional fica na primeira chamada.
+  const onCallLevel = input.kind === 'HIERARCHICAL' ? fromLevel + 1 : 1
+  let onCall: SdOnCallTarget | null = null
+  if (input.notifyOnCall || input.reassignToOnCall) {
+    const target = await sdOnCallEscalationTarget(
+      ticket.workspaceId,
+      ticket.departmentId,
+      new Date(),
+      onCallLevel,
+    )
+    if (!target.ok) return target
+    onCall = target.value
+  }
+  const onCallUserId = input.reassignToOnCall
+    ? (onCall?.slot?.userId ?? null)
+    : null
+  const onCallNotifyIds =
+    input.notifyOnCall && onCall
+      ? sdOnCallNotifyUserIds(onCall.resolution, onCallLevel)
+      : []
+
   if (input.toDepartmentId) {
     const department = await SdTicketContextRepository.findDepartment(
       ticket.workspaceId,
@@ -98,7 +138,9 @@ export async function escalateSdTicket(
   }
 
   if (input.kind === 'FUNCTIONAL') {
-    if (!input.toDepartmentId && !input.toUserId) {
+    // Quem está de plantão vence o destino fixo da regra.
+    const toUserId = onCallUserId ?? input.toUserId ?? null
+    if (!input.toDepartmentId && !toUserId) {
       return err(
         validationError(
           'Escalonamento funcional exige um departamento ou responsável',
@@ -107,9 +149,9 @@ export async function escalateSdTicket(
     }
     if (input.toDepartmentId && input.toDepartmentId !== ticket.departmentId) {
       changes.departmentId = input.toDepartmentId
-      changes.assigneeId = input.toUserId ?? null
-    } else if (input.toUserId) {
-      changes.assigneeId = input.toUserId
+      changes.assigneeId = toUserId
+    } else if (toUserId) {
+      changes.assigneeId = toUserId
     }
     const leadsOf = input.toDepartmentId ?? ticket.departmentId
     if (input.notifyDepartmentLeads && leadsOf) {
@@ -131,7 +173,8 @@ export async function escalateSdTicket(
     ) {
       changes.departmentId = target.value.departmentId
     }
-    const assignee = input.toUserId ?? target.value.leads[0] ?? null
+    const assignee =
+      onCallUserId ?? input.toUserId ?? target.value.leads[0] ?? null
     if (assignee && assignee !== ticket.assigneeId)
       changes.assigneeId = assignee
     notifyLeads =
@@ -185,6 +228,16 @@ export async function escalateSdTicket(
       reason: input.reason,
       automatic: input.automatic ?? false,
       ...(input.ruleId ? { ruleId: input.ruleId } : {}),
+      ...(onCall
+        ? {
+            onCall: {
+              scheduleId: onCall.scheduleId,
+              schedule: onCall.scheduleName,
+              level: onCall.slot?.level ?? onCallLevel,
+              reassigned: onCallUserId !== null,
+            },
+          }
+        : {}),
     },
   })
 
@@ -198,7 +251,11 @@ export async function escalateSdTicket(
       title: `${code} escalonado${input.kind === 'HIERARCHICAL' ? ` (nível ${after.escalationLevel})` : ''}`,
       body: input.reason,
       // Alvos escolhidos no escalonamento, além do público do catálogo.
-      userIds: [...(input.notifyUserIds ?? []), ...notifyLeads],
+      userIds: [
+        ...(input.notifyUserIds ?? []),
+        ...notifyLeads,
+        ...onCallNotifyIds,
+      ],
       // `notifyAssignee: false` tira o responsável deste disparo.
       excludeUserIds:
         input.notifyAssignee === false ? [after.assigneeId] : undefined,
@@ -207,6 +264,7 @@ export async function escalateSdTicket(
         automatic: input.automatic ?? false,
         // Antes forçava e-mail; hoje o canal é a preferência de cada um.
         ruleEmail: input.email ?? false,
+        ...(onCall ? { onCallSchedule: onCall.scheduleName } : {}),
       },
     },
   })
@@ -218,7 +276,7 @@ export async function escalateSdTicket(
     })
   }
 
-  return ok({ ticket: after, escalation: escalation.value })
+  return ok({ ticket: after, escalation: escalation.value, onCall })
 }
 
 const TRIGGER_LABELS: Record<SdEscalationTrigger, string> = {
@@ -253,6 +311,8 @@ export async function runSdEscalationRule(
       notifyDepartmentLeads: a.notifyDepartmentLeads,
       raisePriority: a.raisePriority,
       email: a.email,
+      notifyOnCall: a.notifyOnCall,
+      reassignToOnCall: a.reassignToOnCall,
       automatic: true,
       ruleId: rule.id,
     },

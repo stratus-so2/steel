@@ -123,6 +123,9 @@ export type AuditEntity =
   | 'sd_monitor_alert'
   // ServiceDesk — canal de e-mail
   | 'sd_mailbox'
+  // ServiceDesk — plantão (on-call)
+  | 'sd_oncall_schedule'
+  | 'sd_oncall_override'
 
 export type AuditAction =
   | 'create'

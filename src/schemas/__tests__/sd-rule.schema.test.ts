@@ -153,6 +153,8 @@ describe('SdEscalationActionsSchema', () => {
       reassignUserId: null,
       raisePriority: false,
       email: false,
+      notifyOnCall: false,
+      reassignToOnCall: false,
     })
   })
 
@@ -172,5 +174,19 @@ describe('SdEscalationActionsSchema', () => {
         reassignDepartmentId: 'd1',
       }).success,
     ).toBe(true)
+  })
+
+  it('accepts the on-call as the target of a functional escalation', () => {
+    const parsed = SdEscalationActionsSchema.parse({
+      kind: 'FUNCTIONAL',
+      reassignToOnCall: true,
+      notifyOnCall: true,
+    })
+    expect(parsed).toMatchObject({
+      reassignToOnCall: true,
+      notifyOnCall: true,
+      reassignDepartmentId: null,
+      reassignUserId: null,
+    })
   })
 })

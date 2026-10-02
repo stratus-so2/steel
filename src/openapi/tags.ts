@@ -258,6 +258,11 @@ export const TAG_GROUPS = [
           'Central de notificações do módulo: preferências do próprio usuário (matriz evento × canal — no app, e-mail e WhatsApp, com os padrões do catálogo e o resumo diário opcional) e seguir/parar de seguir um chamado para receber seus eventos.',
       },
       {
+        name: 'ServiceDesk · Plantão',
+        description:
+          'Escalas de plantão (on-call): camadas (primeira chamada, retaguarda…) com rodízio determinístico por fuso, trocas pontuais, linha do tempo das próximas semanas e quem está de plantão agora. Com calendário de expediente a escala só vale fora do horário comercial; o escalonamento pode avisar e reatribuir para quem está de plantão.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

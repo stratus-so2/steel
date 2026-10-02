@@ -44,6 +44,10 @@ jobs:
         run: pnpm prisma:generate
 
       - name: Type check
+        # O projeto passou de 4 GB de heap no `tsc` (padrão do Node no
+        # runner) e o job morria com "JavaScript heap out of memory".
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm tsc --noEmit
 
       - name: Lint

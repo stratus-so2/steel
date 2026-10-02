@@ -56,6 +56,14 @@ export const WORKSPACE_CHILD_MODELS: Record<string, (ws: string) => Where> = {
   sdTicketFollower: (ws) => ({ ticket: { workspaceId: ws } }),
   sdTicketKbLink: (ws) => ({ ticket: { workspaceId: ws } }),
   sdKbComment: (ws) => ({ article: { workspaceId: ws } }),
+  // Fundação da leva de contratos/CAB/plantão (commit 00384d45): modelos-filhos
+  // sem `workspaceId` que chegam ao workspace pelo pai.
+  sdContractRate: (ws) => ({ contract: { workspaceId: ws } }),
+  sdCabMember: (ws) => ({ board: { workspaceId: ws } }),
+  sdOnCallLayer: (ws) => ({ schedule: { workspaceId: ws } }),
+  sdOnCallParticipant: (ws) => ({
+    layer: { schedule: { workspaceId: ws } },
+  }),
 }
 
 /**

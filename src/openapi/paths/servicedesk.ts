@@ -6,6 +6,7 @@ import { sdExternalPortalRoutes } from './servicedesk/external-portal'
 import { sdMailRoutes } from './servicedesk/mail'
 import { sdMonitoringRoutes } from './servicedesk/monitoring'
 import { sdNotificationRoutes } from './servicedesk/notifications'
+import { sdOnCallRoutes } from './servicedesk/oncall'
 import { sdTicketTabRoutes } from './servicedesk/ticket-tabs'
 import { sdWhatsappAiRoutes } from './servicedesk/whatsapp-ai'
 
@@ -25,6 +26,7 @@ const routes: RouteConfig[] = [
   ...sdExternalPortalRoutes,
   ...sdWhatsappAiRoutes,
   ...sdMailRoutes,
+  ...sdOnCallRoutes,
 ]
 
 export function registerServiceDeskPaths(registry: OpenApiRegistry): void {
