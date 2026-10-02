@@ -26,7 +26,9 @@ import {
   formatSdMinutes,
   SD_RATE_WINDOW_LABEL,
 } from '../../contracts/sd-contract-labels'
+import { cn } from '@/lib/utils'
 import { ConfirmDeleteButton, EmptyState } from '../../settings/sd-settings-kit'
+import { SD_TONE_SOFT } from '../sd-ticket-meta'
 import { SdTimeEntryFormDialog } from '../hours/sd-time-entry-form-dialog'
 import { SdAgentOnlyNotice, SdSummaryCard } from '../shared/sd-tab-bits'
 import { formatBRL, formatDateTime, formatTime } from '../shared/sd-tab-format'
@@ -175,7 +177,7 @@ export function SdTicketHoursTab({
       </div>
 
       {running && !runningHere ? (
-        <p className='rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs'>
+        <p className={cn('rounded-lg border px-3 py-2 text-xs', SD_TONE_SOFT.amber)}>
           Você tem um cronômetro em andamento em outro chamado. Pare-o antes de
           iniciar um aqui.
         </p>

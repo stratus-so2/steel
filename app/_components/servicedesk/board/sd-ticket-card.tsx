@@ -17,6 +17,8 @@ import {
   SdUserAvatar,
 } from '../ticket/sd-ticket-badges'
 import {
+  SD_TONE,
+  SD_TONE_TEXT,
   sdPrimarySla,
   sdTicketAge,
   sdTicketHref,
@@ -50,7 +52,7 @@ export function SdTicketCard({
       data-ticket-id={ticket.id}
       className={cn(
         'group relative flex flex-col gap-2 overflow-hidden rounded-lg border bg-card py-2.5 pr-2.5 pl-3.5 text-sm shadow-xs transition-shadow hover:shadow-md',
-        live.state === 'breached' && 'border-red-500/40',
+        live.state === 'breached' && 'border-destructive/40',
         dragging && 'rotate-1 shadow-lg ring-2 ring-primary/40',
         className,
       )}
@@ -139,12 +141,12 @@ export function SdTicketCard({
           <SteelIcon
             icon={WhatsappIcon}
             strokeWidth={2}
-            className='size-3 text-emerald-600'
+            className={cn('size-3', SD_TONE_TEXT.emerald)}
             aria-label='Conversa no WhatsApp'
           />
         ) : null}
         {ticket.escalationLevel > 0 ? (
-          <span className='rounded bg-orange-500/10 px-1 font-medium text-orange-700 dark:text-orange-300'>
+          <span className={cn('rounded px-1 font-medium', SD_TONE.orange)}>
             N{ticket.escalationLevel}
           </span>
         ) : null}

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { SD_TONE_FILL } from '../sd-ticket-meta'
 import {
   type RequestSdTicketApprovalInput,
   useCancelSdTicketApproval,
@@ -45,7 +46,7 @@ function Step({
       <span
         className={cn(
           'size-2 shrink-0 rounded-full bg-primary',
-          tone === 'ok' && 'bg-emerald-500',
+          tone === 'ok' && SD_TONE_FILL.emerald,
           tone === 'bad' && 'bg-destructive',
           tone === 'muted' && 'bg-muted-foreground/50',
         )}

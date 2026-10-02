@@ -21,7 +21,10 @@ import {
 import { useSdConfigList } from '@/src/hooks/use-sd-config'
 import { useSdTicketRealtime } from '@/src/hooks/use-sd-tickets'
 import type { SdApprovalRoundDTO, SdCabBoardDTO } from '@/types/sd-cab'
-import type { SdTicketChangeScheduleDTO } from '@/types/sd-change'
+import type {
+  SdChangeWindowKindDTO,
+  SdTicketChangeScheduleDTO,
+} from '@/types/sd-change'
 import {
   SD_APPROVAL_ROUND_STATUS_LABEL,
   sdTallySummary,
@@ -35,6 +38,7 @@ import {
 } from '../approvals/sd-approval-labels'
 import { SdAgentOnlyNotice } from '../shared/sd-tab-bits'
 import { formatDateTime } from '../shared/sd-tab-format'
+import { SD_TONE, SD_TONE_FILL, SD_TONE_SOFT } from '../sd-ticket-meta'
 import type { SdTicketTabProps } from './types'
 
 /**
@@ -58,6 +62,12 @@ export function SdTicketChangeTab({
       <RoundsBlock workspaceId={workspaceId} ticketRef={ticket.id} />
     </div>
   )
+}
+
+/** Tom de cada janela que cobre a mudança (mapa fechado). */
+const WINDOW_TONE: Record<SdChangeWindowKindDTO, string> = {
+  FREEZE: SD_TONE_SOFT.rose,
+  MAINTENANCE: SD_TONE_SOFT.sky,
 }
 
 /* ------------------------------- agenda ---------------------------------- */
@@ -126,24 +136,17 @@ function ScheduleBody({ schedule }: { schedule: SdTicketChangeScheduleDTO }) {
               key={`${window.windowId}-${window.startsAt}`}
               className={cn(
                 'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
-                window.kind === 'FREEZE'
-                  ? 'border-rose-300 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/40'
-                  : 'border-sky-300 bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/40',
+                WINDOW_TONE[window.kind],
               )}
             >
               <SteelIcon
                 icon={window.kind === 'FREEZE' ? SnowIcon : Calendar03Icon}
                 strokeWidth={2}
-                className={cn(
-                  'mt-px size-4 shrink-0',
-                  window.kind === 'FREEZE'
-                    ? 'text-rose-600 dark:text-rose-400'
-                    : 'text-sky-600 dark:text-sky-400',
-                )}
+                className='mt-px size-4 shrink-0'
               />
               <div>
                 <p className='font-medium'>{window.name}</p>
-                <p className='text-muted-foreground'>
+                <p className='opacity-80'>
                   {sdWindowKindLabel(window.kind)} ·{' '}
                   {formatDateTime(window.startsAt)} –{' '}
                   {formatDateTime(window.endsAt)}
@@ -155,7 +158,12 @@ function ScheduleBody({ schedule }: { schedule: SdTicketChangeScheduleDTO }) {
       ) : null}
 
       {schedule.warnings.length === 0 ? (
-        <p className='rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-emerald-800 text-xs dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200'>
+        <p
+          className={cn(
+            'rounded-lg border px-3 py-2 text-xs',
+            SD_TONE_SOFT.emerald,
+          )}
+        >
           Nenhum congelamento nem conflito neste período.
         </p>
       ) : (
@@ -163,20 +171,21 @@ function ScheduleBody({ schedule }: { schedule: SdTicketChangeScheduleDTO }) {
           {schedule.warnings.map((warning) => (
             <div
               key={`${warning.kind}-${warning.windowId ?? warning.ticketId}`}
-              className='flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs dark:border-amber-900/60 dark:bg-amber-950/40'
+              className={cn(
+                'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
+                SD_TONE_SOFT.amber,
+              )}
             >
               <SteelIcon
                 icon={warning.kind === 'FREEZE' ? SnowIcon : Alert02Icon}
                 strokeWidth={2}
-                className='mt-px size-4 shrink-0 text-amber-700 dark:text-amber-300'
+                className='mt-px size-4 shrink-0'
               />
               <div>
-                <p className='font-medium text-amber-900 dark:text-amber-100'>
+                <p className='font-medium'>
                   {sdWarningKindLabel(warning.kind)}
                 </p>
-                <p className='text-amber-800 dark:text-amber-200'>
-                  {warning.message}
-                </p>
+                <p className='opacity-80'>{warning.message}</p>
               </div>
             </div>
           ))}
@@ -315,8 +324,8 @@ function RoundsBlock({
 }
 
 const ROUND_STYLE: Record<SdApprovalRoundDTO['status'], string> = {
-  PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  APPROVED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  PENDING: SD_TONE.amber,
+  APPROVED: SD_TONE.emerald,
   REJECTED: 'bg-destructive/10 text-destructive',
   CANCELED: 'bg-muted text-muted-foreground',
   EXPIRED: 'bg-muted text-muted-foreground',
@@ -392,7 +401,7 @@ function RoundCard({
               round.status === 'REJECTED'
                 ? 'bg-destructive'
                 : progress >= 100
-                  ? 'bg-emerald-500'
+                  ? SD_TONE_FILL.emerald
                   : 'bg-primary',
             )}
             style={{ width: `${progress}%` }}

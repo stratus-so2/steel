@@ -12,8 +12,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import type { SdTicketMailMessageDTO } from '@/types/sd-mailbox'
 import type { SdTicketMessageDTO } from '@/types/sd-ticket-message'
+import { SD_TONE, SD_TONE_TEXT } from '../sd-ticket-meta'
 import { formatDateTime, formatTime } from '../shared/sd-tab-format'
 import { SdMessageAttachments } from './sd-message-attachments'
+
+/**
+ * Nota interna: superfície âmbar discreta (o mesmo `/10` dos tons de
+ * status), com o texto no token do tema para o corpo da mensagem continuar
+ * legível no claro e no escuro.
+ */
+const INTERNAL_SURFACE =
+  'border border-amber-500/30 bg-amber-500/10 text-foreground'
 
 const CHANNEL_LABEL: Record<SdTicketMessageDTO['channel'], string | null> = {
   PLATFORM: null,
@@ -37,7 +46,10 @@ function MailMarker({ mail }: { mail: SdTicketMailMessageDTO }) {
       : mail.toAddresses.join(', ')
   return (
     <div
-      className='mb-1 flex flex-col gap-0.5 rounded-md bg-sky-500/10 px-2 py-1 text-[11px] text-sky-700 dark:text-sky-300'
+      className={cn(
+        'mb-1 flex flex-col gap-0.5 rounded-md px-2 py-1 text-[11px]',
+        SD_TONE.sky,
+      )}
       data-testid='sd-message-mail'
     >
       <span>
@@ -86,7 +98,7 @@ export function SdMessageBubble({
             {formatTime(message.createdAt)}
           </span>
           {message.visibility === 'INTERNAL' ? (
-            <span className='ml-2 font-medium text-amber-700 dark:text-amber-400'>
+            <span className={cn('ml-2 font-medium', SD_TONE_TEXT.amber)}>
               · Nota interna
             </span>
           ) : null}
@@ -128,7 +140,12 @@ export function SdMessageBubble({
             {sdMessageAuthorName(message)}
           </span>
           {message.authorKind === 'AI' ? (
-            <span className='inline-flex items-center gap-0.5 rounded-full bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400'>
+            <span
+              className={cn(
+                'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium text-[10px]',
+                SD_TONE.violet,
+              )}
+            >
               <SteelIcon icon={SparklesIcon} size={10} />
               IA
             </span>
@@ -145,14 +162,19 @@ export function SdMessageBubble({
           className={cn(
             'rounded-lg px-3 py-2 text-sm',
             internal
-              ? 'border border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100'
+              ? INTERNAL_SURFACE
               : outgoing
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-foreground',
           )}
         >
           {internal ? (
-            <div className='mb-1 font-semibold text-[11px] text-amber-700 uppercase tracking-wide dark:text-amber-400'>
+            <div
+              className={cn(
+                'mb-1 font-semibold text-[11px] uppercase tracking-wide',
+                SD_TONE_TEXT.amber,
+              )}
+            >
               Nota interna
             </div>
           ) : null}

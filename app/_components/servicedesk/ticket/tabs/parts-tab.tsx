@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { SD_TONE } from '../sd-ticket-meta'
 import {
   type SdTicketPartInput,
   useCreateSdTicketPart,
@@ -30,10 +31,10 @@ import { formatBRL } from '../shared/sd-tab-format'
 import type { SdTicketTabProps } from './types'
 
 const STATUS_STYLE: Record<SdPartStatusDTO, string> = {
-  REQUESTED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  RESERVED: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
-  INSTALLED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  RETURNED: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  REQUESTED: SD_TONE.sky,
+  RESERVED: SD_TONE.violet,
+  INSTALLED: SD_TONE.emerald,
+  RETURNED: SD_TONE.amber,
   CANCELED: 'bg-muted text-muted-foreground',
 }
 

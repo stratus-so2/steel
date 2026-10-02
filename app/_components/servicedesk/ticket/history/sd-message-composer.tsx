@@ -31,6 +31,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { SD_TONE } from '../sd-ticket-meta'
 import { useSdAgents, useSdConfig } from '@/src/hooks/use-sd-config'
 import {
   useDeleteSdTicketAttachment,
@@ -250,7 +251,7 @@ export function SdMessageComposer({
     <div
       className={cn(
         'relative flex flex-col gap-2 border-border border-t p-3',
-        internal && 'bg-amber-50/60 dark:bg-amber-950/20',
+        internal && 'bg-amber-500/5',
         dragging && 'ring-2 ring-primary ring-inset',
       )}
       onDragOver={(e) => {
@@ -279,10 +280,7 @@ export function SdMessageComposer({
             role='radio'
             aria-checked={visibility === 'INTERNAL'}
             variant={visibility === 'INTERNAL' ? 'secondary' : 'ghost'}
-            className={cn(
-              visibility === 'INTERNAL' &&
-                'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100',
-            )}
+            className={cn(visibility === 'INTERNAL' && SD_TONE.amber)}
             onClick={() => setVisibility('INTERNAL')}
           >
             Nota interna

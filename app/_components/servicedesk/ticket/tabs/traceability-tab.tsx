@@ -34,48 +34,28 @@ import {
   sdEventActorName,
   sdGroupEventsByDay,
 } from '../sd-ticket-events'
-import { sdFormatDateTime, sdRelativeTime } from '../sd-ticket-meta'
+import { SD_TONE, sdFormatDateTime, sdRelativeTime } from '../sd-ticket-meta'
 import type { SdTicketTabProps } from './types'
 
 const KIND_STYLE: Record<SdEventKind, { icon: IconSvgElement; tone: string }> =
   {
-    ticket: {
-      icon: PlusSignIcon,
-      tone: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
-    },
-    field: {
-      icon: Edit02Icon,
-      tone: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
-    },
-    phase: {
-      icon: Route01Icon,
-      tone: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
-    },
-    assignment: {
-      icon: UserSwitchIcon,
-      tone: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
-    },
-    escalation: {
-      icon: ArrowUpDoubleIcon,
-      tone: 'bg-orange-500/15 text-orange-700 dark:text-orange-300',
-    },
-    sla: {
-      icon: Timer02Icon,
-      tone: 'bg-red-500/15 text-red-700 dark:text-red-300',
-    },
-    people: {
-      icon: UserAdd01Icon,
-      tone: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
-    },
-    activity: {
-      icon: Activity01Icon,
-      tone: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
-    },
-    system: {
-      icon: AiMagicIcon,
-      tone: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-    },
+    ticket: { icon: PlusSignIcon, tone: SD_TONE.sky },
+    field: { icon: Edit02Icon, tone: SD_TONE.slate },
+    phase: { icon: Route01Icon, tone: SD_TONE.indigo },
+    assignment: { icon: UserSwitchIcon, tone: SD_TONE.violet },
+    escalation: { icon: ArrowUpDoubleIcon, tone: SD_TONE.orange },
+    sla: { icon: Timer02Icon, tone: SD_TONE.red },
+    people: { icon: UserAdd01Icon, tone: SD_TONE.teal },
+    activity: { icon: Activity01Icon, tone: SD_TONE.emerald },
+    system: { icon: AiMagicIcon, tone: SD_TONE.amber },
   }
+
+/** "De → para" de uma alteração: o valor antigo riscado, o novo em verde. */
+const DIFF_TONE = {
+  from: 'bg-red-500/10 text-red-700 line-through decoration-red-500/40 dark:text-red-300',
+  to: 'bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-300',
+  empty: 'bg-muted text-muted-foreground italic',
+} as const
 
 const FILTERS: (SdEventKind | 'all')[] = [
   'all',
@@ -140,12 +120,19 @@ function EventItem({
         {description.from || description.to ? (
           <div className='flex flex-wrap items-center gap-1.5 text-xs'>
             {description.from ? (
-              <span className='max-w-72 truncate rounded-md bg-red-500/10 px-1.5 py-0.5 text-red-700 line-through decoration-red-500/40 dark:text-red-300'>
+              <span
+                className={cn(
+                  'max-w-72 truncate rounded-md px-1.5 py-0.5',
+                  DIFF_TONE.from,
+                )}
+              >
                 {description.from}
               </span>
             ) : description.kind === 'field' ||
               description.kind === 'assignment' ? (
-              <span className='rounded-md bg-muted px-1.5 py-0.5 text-muted-foreground italic'>
+              <span
+                className={cn('rounded-md px-1.5 py-0.5', DIFF_TONE.empty)}
+              >
                 vazio
               </span>
             ) : null}
@@ -157,11 +144,18 @@ function EventItem({
               />
             ) : null}
             {description.to ? (
-              <span className='max-w-72 truncate rounded-md bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-700 dark:text-emerald-300'>
+              <span
+                className={cn(
+                  'max-w-72 truncate rounded-md px-1.5 py-0.5',
+                  DIFF_TONE.to,
+                )}
+              >
                 {description.to}
               </span>
             ) : (
-              <span className='rounded-md bg-muted px-1.5 py-0.5 text-muted-foreground italic'>
+              <span
+                className={cn('rounded-md px-1.5 py-0.5', DIFF_TONE.empty)}
+              >
                 vazio
               </span>
             )}

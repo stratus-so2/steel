@@ -71,6 +71,7 @@ import {
 import {
   SD_PHASE_CATEGORY_COLOR,
   SD_TICKET_TYPE_PLURAL,
+  SD_TONE,
   SD_TYPE_ROUTE,
   sdTicketHref,
 } from './sd-ticket-meta'
@@ -283,7 +284,12 @@ function Header({
         <SdLevelBadge level={ticket.priority} prefix='Prioridade' />
         <SdLevelBadge level={ticket.severity} prefix='Severidade' />
         {ticket.escalationLevel > 0 ? (
-          <span className='rounded-md bg-orange-500/10 px-1.5 py-0.5 font-medium text-orange-700 text-xs dark:text-orange-300'>
+          <span
+            className={cn(
+              'rounded-md px-1.5 py-0.5 font-medium text-xs',
+              SD_TONE.orange,
+            )}
+          >
             Escalonado N{ticket.escalationLevel}
           </span>
         ) : null}

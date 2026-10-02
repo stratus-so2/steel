@@ -191,9 +191,9 @@ export function SdSavedViewsMenu({
           aria-pressed={defaultId === view.id}
           onClick={() => toggleDefault(view)}
           className={cn(
-            'rounded p-1 text-muted-foreground hover:text-amber-500',
+            'rounded p-1 text-muted-foreground hover:text-highlight',
             defaultId === view.id
-              ? 'text-amber-500'
+              ? 'text-highlight'
               : 'opacity-0 group-hover:opacity-100',
           )}
         >
@@ -242,7 +242,7 @@ export function SdSavedViewsMenu({
               </span>
               {dirty ? (
                 <span
-                  className='size-1.5 rounded-full bg-amber-500'
+                  className='size-1.5 rounded-full bg-highlight'
                   title='Alterada'
                 />
               ) : null}
