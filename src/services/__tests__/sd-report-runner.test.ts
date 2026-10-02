@@ -38,8 +38,8 @@ import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.
 import { NotificationService } from '../notification.service'
 import {
   generateSdReport,
-  sdReportEmailIndicators,
   SdReportRunner,
+  sdReportEmailIndicators,
 } from '../sd-report-runner'
 
 const reports = vi.mocked(SdScheduledReportRepository)

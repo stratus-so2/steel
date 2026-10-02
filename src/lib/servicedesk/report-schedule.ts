@@ -222,7 +222,11 @@ export function sdReportNextRunAt(
     const month = parts.month - 1 + shift
     const year = parts.year + Math.floor(month / 12)
     const normalized = ((month % 12) + 12) % 12
-    return localToUtc(Date.UTC(year, normalized, schedule.dayOfMonth), minutes, tz)
+    return localToUtc(
+      Date.UTC(year, normalized, schedule.dayOfMonth),
+      minutes,
+      tz,
+    )
   }
 
   // O dia deste mês, se ainda está à frente; senão o do mês que vem — que é
