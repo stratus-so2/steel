@@ -15,6 +15,13 @@ model User {
   image               String?
   coverImage          String?              @map("cover_image")
   twoFactorEnabled    Boolean              @default(false) @map("two_factor_enabled")
+  /// Aplicativo autenticador (TOTP) confirmado por esta conta. O
+  /// `twoFactorEnabled` acima é o interruptor único do plugin do better-auth
+  /// e vale para os dois métodos; este campo registra que o usuário realmente
+  /// escaneou o QR e digitou um código que o app gerou. Sem ele a interface
+  /// não tem como distinguir "tem 2FA por e-mail" de "tem aplicativo", e
+  /// ofereceria a etapa do autenticador a quem nunca escaneou nada.
+  twoFactorTotpEnabled Boolean             @default(false) @map("two_factor_totp_enabled")
   isPlatformAdmin     Boolean              @default(false) @map("is_platform_admin")
   deletionScheduledAt DateTime?            @map("deletion_scheduled_at")
   acceptedTermsAt     DateTime?            @map("accepted_terms_at")
@@ -279,10 +286,24 @@ model TwoFactor {
   userId      String   @map("user_id")
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   verified    Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  /// Lockout por conta, que o plugin two-factor do better-auth liga **por
+  /// padrão** (`accountLockout.enabled` default `true`) e grava em toda
+  /// verificação de segundo fator, nos dois desfechos. Sem estas colunas o
+  /// adapter do Prisma recusa a escrita com "Unknown argument" — e como o
+  /// reset roda no caminho de SUCESSO, um código correto falhava o login
+  /// igual a um errado. Ou seja: o 2FA por e-mail que já existia não
+  /// funcionava no login.
+  failedVerificationCount Int       @default(0) @map("failed_verification_count")
+  lockedUntil             DateTime? @map("locked_until")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
+  /// O plugin declara `index: true` em `secret`; sem o índice o lookup do
+  /// segundo fator faz seq scan na tabela.
+  @@index([secret])
   @@map("two_factors")
 }
 

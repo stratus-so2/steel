@@ -15,6 +15,7 @@ export function createFakeUser(overrides?: Partial<User>): User {
     image: null,
     coverImage: null,
     twoFactorEnabled: false,
+    twoFactorTotpEnabled: false,
     isPlatformAdmin: false,
     deletionScheduledAt: null,
     acceptedTermsAt: null,
