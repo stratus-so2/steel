@@ -136,6 +136,8 @@ export type AuditEntity =
   | 'sd_contract'
   | 'sd_contract_period'
   | 'sd_time_entry'
+  // ServiceDesk — relatórios de SLA agendados
+  | 'sd_scheduled_report'
 
 export type AuditAction =
   | 'create'

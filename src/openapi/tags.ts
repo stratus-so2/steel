@@ -278,6 +278,11 @@ export const TAG_GROUPS = [
           'Contratos de atendimento (franquia de horas, valor da hora, arredondamento, mínimo por chamado e a tabela de valores por tipo × prioridade × janela), os períodos de faturamento com consumo e excedente, e o apontamento de horas no chamado: cronômetro (um aberto por usuário) e lançamento manual. O período fechado congela os apontamentos.',
       },
       {
+        name: 'ServiceDesk · Relatórios de SLA',
+        description:
+          'Relatórios de SLA agendados: recorte (clientes, departamentos, tipos), período apurado no fuso do relatório, formatos PDF/CSV gravados no bucket privado, agenda (dia 1–28, hora e fuso) e destinatários — e-mails livres mais os responsáveis das contas. O histórico guarda o resumo apurado (volume, cumprimento de prazo, MTTR, tempo de primeira resposta, CSAT, violações e as quebras por departamento, cliente e prioridade) e serve os arquivos por rota autenticada. O worker confere de hora em hora e nunca envia o mesmo período duas vezes.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',
