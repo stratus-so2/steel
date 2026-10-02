@@ -1083,7 +1083,9 @@ export const SdTicketEngine = {
               : ticket.plannedEndAt,
         },
         {
-          confirm: options.confirmChangeSchedule,
+          // Sistema (automação, worker, e-mail) nunca é bloqueado: registra
+          // o aviso na rastreabilidade e segue — quem decide é gente.
+          confirm: options.confirmChangeSchedule ?? actor.kind === 'system',
           isAdmin:
             actor.kind === 'user' ? actor.isAdmin : actor.kind === 'system',
         },

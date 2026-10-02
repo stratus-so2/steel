@@ -334,12 +334,12 @@ describe('SdTicketContextRepository', () => {
   })
 
   describe('approvals and signatures', () => {
-    it('reads the latest non-canceled approval and counts signatures', async () => {
+    it('reads the latest standalone approval and counts signatures', async () => {
       const { workspace, user } = await setup()
       const phase = await seedSdPhase(workspace.id)
       const ticket = await seedSdTicket(workspace.id, phase.id)
       expect(
-        expectOk(await Repo.findLatestApprovalStatus(ticket.id)),
+        expectOk(await Repo.findLatestStandaloneApprovalStatus(ticket.id)),
       ).toBeNull()
       expect(expectOk(await Repo.countSignatures(ticket.id))).toBe(0)
       const base = {
@@ -365,9 +365,30 @@ describe('SdTicketContextRepository', () => {
           createdAt: new Date('2026-09-02'),
         },
       })
-      expect(expectOk(await Repo.findLatestApprovalStatus(ticket.id))).toBe(
-        'APPROVED',
-      )
+      expect(
+        expectOk(await Repo.findLatestStandaloneApprovalStatus(ticket.id)),
+      ).toBe('APPROVED')
+      // Pedido de uma rodada do comitê não conta: quem decide é a rodada.
+      const round = await prisma.sdApprovalRound.create({
+        data: {
+          workspaceId: workspace.id,
+          ticketId: ticket.id,
+          requestedById: user.id,
+          quorum: 1,
+        },
+      })
+      await prisma.sdTicketApproval.create({
+        data: {
+          ...base,
+          tokenHash: 'h3',
+          roundId: round.id,
+          status: 'REJECTED',
+          createdAt: new Date('2026-09-03'),
+        },
+      })
+      expect(
+        expectOk(await Repo.findLatestStandaloneApprovalStatus(ticket.id)),
+      ).toBe('APPROVED')
       await prisma.sdTicketSignature.create({
         data: {
           workspaceId: workspace.id,
@@ -577,7 +598,7 @@ describe('SdTicketContextRepository', () => {
       Repo.isDepartmentMember('d', 'u'),
       Repo.pickRoundRobinAssignee('d', new Date()),
       Repo.countSolutionClassifications('w', 'INCIDENT'),
-      Repo.findLatestApprovalStatus('t'),
+      Repo.findLatestStandaloneApprovalStatus('t'),
       Repo.countSignatures('t'),
       Repo.findMissingRefs('w', { impactId: 'i' }),
       Repo.findNonMembers('w', ['u']),

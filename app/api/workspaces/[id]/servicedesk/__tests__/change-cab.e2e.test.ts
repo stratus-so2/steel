@@ -445,7 +445,7 @@ describe('ServiceDesk approval rounds', () => {
       { phaseId: flow.inProgress.id },
       agent.cookie,
     )
-    expect(blocked.status).toBe(409)
+    expect(blocked.status).toBe(422)
     expect((await blocked.json()).error.code).toBe('SD_APPROVAL_REQUIRED')
 
     const opened = await postJson(

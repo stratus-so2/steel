@@ -1077,6 +1077,15 @@ describe('update · agenda da mudança', () => {
     expectOk(await SdTicketEngine.update(change(), schedule, agent, config()))
   })
 
+  it('never blocks a system actor, recording what it ignored', async () => {
+    windowRepo.listForRange.mockResolvedValue(ok([freeze()]))
+    expectOk(await SdTicketEngine.update(change(), schedule, system, config()))
+    const forced = recordMock.mock.calls
+      .flatMap(([events]) => (Array.isArray(events) ? events : [events]))
+      .find((event) => event.action === 'change.schedule_forced')
+    expect(forced).toBeDefined()
+  })
+
   it('propagates a database error from the calendar', async () => {
     windowRepo.listForRange.mockResolvedValue(err(databaseError()))
     expectErr(

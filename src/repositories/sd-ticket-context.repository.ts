@@ -420,24 +420,10 @@ export const SdTicketContextRepository = {
     }
   },
 
-  async findLatestApprovalStatus(
-    ticketId: string,
-  ): Promise<Result<SdApprovalStatus | null>> {
-    try {
-      const row = await prisma.sdTicketApproval.findFirst({
-        where: { ticketId, status: { not: 'CANCELED' } },
-        orderBy: { createdAt: 'desc' },
-        select: { status: true },
-      })
-      return ok(row?.status ?? null)
-    } catch (error) {
-      return err(dbError('Failed to read ServiceDesk approvals', error))
-    }
-  },
-
   /**
-   * Como `findLatestApprovalStatus`, mas só dos pedidos **avulsos** (sem
-   * rodada). Quem decide pelos pedidos de uma rodada do comitê é a própria
+   * Status do pedido de aprovação **avulso** (sem rodada) mais recente que
+   * não foi cancelado — é o que a fase com `requiresApproval` lê quando não
+   * há rodada do comitê. Quem decide pelos pedidos de uma rodada é a própria
    * rodada (`src/services/sd-approval-gate.ts`).
    */
   async findLatestStandaloneApprovalStatus(
