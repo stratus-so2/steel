@@ -5,6 +5,8 @@ import type {
   SdRateWindowDTO,
 } from '@/types/sd-contract'
 
+import { SD_TONE } from '../sd-tone'
+
 /** Rótulos e formatação (pt-BR) dos contratos e do apontamento de horas. */
 
 export const SD_CONTRACT_STATUS_LABEL: Record<SdContractStatusDTO, string> = {
@@ -16,10 +18,10 @@ export const SD_CONTRACT_STATUS_LABEL: Record<SdContractStatusDTO, string> = {
 
 /** Tons que funcionam igual no claro e no escuro (cor por transparência). */
 export const SD_CONTRACT_STATUS_TONE: Record<SdContractStatusDTO, string> = {
-  DRAFT: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300',
-  ACTIVE: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  SUSPENDED: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  ENDED: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  DRAFT: SD_TONE.slate,
+  ACTIVE: SD_TONE.emerald,
+  SUSPENDED: SD_TONE.amber,
+  ENDED: SD_TONE.rose,
 }
 
 export const SD_BILLING_CYCLE_LABEL: Record<SdContractBillingCycleDTO, string> =

@@ -31,7 +31,11 @@ import {
 } from '@/src/hooks/use-sd-risk'
 import type { SdIncidentClusterDTO } from '@/types/sd-risk'
 import { SdOptionSelect } from '../ticket/sd-option-select'
-import { sdFormatDateTime, sdRelativeTime } from '../ticket/sd-ticket-meta'
+import {
+  SD_TONE_TEXT,
+  sdFormatDateTime,
+  sdRelativeTime,
+} from '../ticket/sd-ticket-meta'
 import { sdDepartmentOptions } from '../ticket/sd-ticket-options'
 import { SD_RISK_TONE } from './sd-risk-badge'
 
@@ -46,7 +50,7 @@ import { SD_RISK_TONE } from './sd-risk-badge'
  * a cor fica nesta constante (padrão do repositório, legível nos dois temas)
  * em vez de solta no JSX.
  */
-const DONE_TONE = 'text-emerald-700 dark:text-emerald-300'
+const DONE_TONE = SD_TONE_TEXT.emerald
 
 function ClusterTickets({
   cluster,

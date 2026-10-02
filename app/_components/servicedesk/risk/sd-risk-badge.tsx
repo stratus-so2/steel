@@ -17,7 +17,11 @@ import {
   SD_RISK_THRESHOLDS,
 } from '@/src/lib/servicedesk/risk'
 import type { SdRiskFactorDTO, SdTicketRiskDTO } from '@/types/sd-risk'
-import { sdRelativeTime } from '../ticket/sd-ticket-meta'
+import {
+  SD_TONE_FILL,
+  SD_TONE_SOFT,
+  sdRelativeTime,
+} from '../ticket/sd-ticket-meta'
 
 /**
  * Selo de risco preditivo. **Nunca mostra a nota sem o motivo** (ADR 0016):
@@ -31,16 +35,15 @@ import { sdRelativeTime } from '../ticket/sd-ticket-meta'
  */
 
 export const SD_RISK_TONE: Record<SdTicketRiskDTO['level'], string> = {
-  LOW: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  MEDIUM:
-    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  HIGH: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  LOW: SD_TONE_SOFT.emerald,
+  MEDIUM: SD_TONE_SOFT.amber,
+  HIGH: SD_TONE_SOFT.rose,
 }
 
 const SD_RISK_BAR: Record<SdTicketRiskDTO['level'], string> = {
-  LOW: 'bg-emerald-500',
-  MEDIUM: 'bg-amber-500',
-  HIGH: 'bg-rose-500',
+  LOW: SD_TONE_FILL.emerald,
+  MEDIUM: SD_TONE_FILL.amber,
+  HIGH: SD_TONE_FILL.rose,
 }
 
 const SD_RISK_ICON = {

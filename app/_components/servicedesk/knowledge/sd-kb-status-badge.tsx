@@ -13,6 +13,7 @@ import type {
   SdKbArticleStatusDTO,
   SdKbVisibilityDTO,
 } from '@/types/sd-kb-article'
+import { SD_TONE_FILL, SD_TONE_SOFT } from '../sd-tone'
 import {
   SD_KB_STATUS_LABEL,
   SD_KB_VISIBILITY_LABEL,
@@ -25,18 +26,16 @@ import {
  * temas e classes visíveis ao Tailwind.
  */
 const STATUS_STYLE: Record<SdKbArticleStatusDTO, string> = {
-  PUBLISHED:
-    'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  IN_REVIEW: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  DRAFT:
-    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  PUBLISHED: SD_TONE_SOFT.emerald,
+  IN_REVIEW: SD_TONE_SOFT.sky,
+  DRAFT: SD_TONE_SOFT.amber,
 }
 
 /** Ponto de status (árvore da base): a mesma faixa de cor do selo. */
 export const SD_KB_STATUS_DOT: Record<SdKbArticleStatusDTO, string> = {
-  PUBLISHED: 'bg-emerald-500',
-  IN_REVIEW: 'bg-sky-500',
-  DRAFT: 'bg-amber-500',
+  PUBLISHED: SD_TONE_FILL.emerald,
+  IN_REVIEW: SD_TONE_FILL.sky,
+  DRAFT: SD_TONE_FILL.amber,
 }
 
 const STATUS_ICON: Record<SdKbArticleStatusDTO, typeof PencilEdit02Icon> = {

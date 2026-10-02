@@ -41,6 +41,8 @@ import { useUpdateSdTicket } from '@/src/hooks/use-sd-tickets'
 import type { SdAiClassificationDTO, SdAiTextDTO } from '@/types/sd-ai'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 
+import { SD_TONE } from '../sd-tone'
+
 /**
  * Copiloto de IA na barra lateral do chamado: resume, sugere a próxima
  * resposta, classifica (com "aplicar" em 1 clique), rascunha a solução,
@@ -121,10 +123,7 @@ function SuggestionRow({
       </span>
       <span className='min-w-0 flex-1 truncate'>{value.name}</span>
       {applied ? (
-        <Badge
-          variant='outline'
-          className='bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-        >
+        <Badge variant='outline' className={SD_TONE.emerald}>
           Aplicado
         </Badge>
       ) : (

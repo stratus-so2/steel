@@ -19,6 +19,7 @@ import type {
   SdChangeWindowKindDTO,
   SdChangeWindowOccurrenceDTO,
 } from '@/types/sd-change'
+import { SD_TONE_TEXT } from '../sd-tone'
 import {
   SD_CHANGE_RISK_SHORT,
   SD_CHANGE_TYPE_SHORT,
@@ -78,8 +79,8 @@ const WINDOW_SURFACE: Record<SdChangeWindowKindDTO, string> = {
 
 /** Ícone e texto da janela (cabeçalho do dia e cartão do painel). */
 const WINDOW_TEXT: Record<SdChangeWindowKindDTO, string> = {
-  FREEZE: 'text-rose-700 dark:text-rose-300',
-  MAINTENANCE: 'text-sky-700 dark:text-sky-300',
+  FREEZE: SD_TONE_TEXT.rose,
+  MAINTENANCE: SD_TONE_TEXT.sky,
 }
 
 const WINDOW_ICON: Record<SdChangeWindowKindDTO, typeof SnowIcon> = {
@@ -90,7 +91,7 @@ const WINDOW_ICON: Record<SdChangeWindowKindDTO, typeof SnowIcon> = {
 /** Mudança em conflito (mesmo item de configuração) ou dentro de freeze. */
 const CONFLICT_SURFACE =
   'bg-amber-500/15 font-medium text-amber-700 dark:text-amber-300'
-const CONFLICT_TEXT = 'text-amber-700 dark:text-amber-300'
+const CONFLICT_TEXT = SD_TONE_TEXT.amber
 
 /** Meia-noite local do dia de `date`. */
 function startOfDay(date: Date): Date {

@@ -35,6 +35,7 @@ import {
 import type { CreateSdMailboxDTO } from '@/src/schemas/sd-mailbox.schema'
 import type { SdTicketTypeDTO } from '@/types/sd-config'
 import type { SdMailboxDTO, SdMailboxStatusDTO } from '@/types/sd-mailbox'
+import { SD_TONE } from '../sd-tone'
 import {
   ConfirmDeleteButton,
   EmptyState,
@@ -73,7 +74,7 @@ const STATUS: Record<SdMailboxStatusDTO, { label: string; className: string }> =
   {
     ACTIVE: {
       label: 'Lendo',
-      className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+      className: SD_TONE.emerald,
     },
     PAUSED: {
       label: 'Pausada',

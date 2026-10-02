@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import type { SdLinkedTicketDTO } from '@/types/sd-directory'
+import { SD_TONE } from '../../sd-tone'
 import {
   formatSdDate,
   SD_ACTIVE_LABEL,
@@ -24,7 +25,6 @@ import {
   SD_TICKET_PREFIX,
   SD_TICKET_TYPE_LABEL,
 } from './sd-directory-labels'
-
 /** Pílula colorida simples (status, criticidade, tipo). */
 export function SdPill({
   className,
@@ -46,8 +46,8 @@ export function SdPill({
 }
 
 const PHASE_TONE: Record<SdLinkedTicketDTO['phaseCategory'], string> = {
-  NEW: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  IN_PROGRESS: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
+  NEW: SD_TONE.sky,
+  IN_PROGRESS: SD_TONE.violet,
   WAITING: SD_STATE_TONE.warn,
   RESOLVED: SD_STATE_TONE.ok,
   CLOSED: SD_STATE_TONE.neutral,

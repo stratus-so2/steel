@@ -1,5 +1,6 @@
 import type { SdApprovalStatusDTO } from '@/types/sd-ticket-approval'
 
+import { SD_TONE } from '../../sd-tone'
 export const SD_APPROVAL_STATUS_LABEL: Record<SdApprovalStatusDTO, string> = {
   PENDING: 'Pendente',
   APPROVED: 'Aprovada',
@@ -9,8 +10,8 @@ export const SD_APPROVAL_STATUS_LABEL: Record<SdApprovalStatusDTO, string> = {
 }
 
 export const SD_APPROVAL_STATUS_STYLE: Record<SdApprovalStatusDTO, string> = {
-  PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  APPROVED: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  PENDING: SD_TONE.amber,
+  APPROVED: SD_TONE.emerald,
   REJECTED: 'bg-destructive/10 text-destructive',
   CANCELED: 'bg-muted text-muted-foreground',
   EXPIRED: 'bg-muted text-muted-foreground',

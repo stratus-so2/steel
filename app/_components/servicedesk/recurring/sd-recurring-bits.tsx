@@ -15,6 +15,8 @@ import type {
   SdRecurringTicketDTO,
 } from '@/types/sd-recurring-ticket'
 
+import { SD_TONE_SOFT } from '../sd-tone'
+
 /**
  * Peças compartilhadas dos chamados recorrentes: a aba "Recorrentes" das
  * configurações e o bloco de rotinas da tela do item de configuração.
@@ -27,10 +29,8 @@ export const SD_RUN_STATUS_LABEL: Record<SdRecurringRunStatusDTO, string> = {
 }
 
 export const SD_RUN_STATUS_TONE: Record<SdRecurringRunStatusDTO, string> = {
-  CREATED:
-    'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  SKIPPED:
-    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  CREATED: SD_TONE_SOFT.emerald,
+  SKIPPED: SD_TONE_SOFT.amber,
   FAILED: 'border-destructive/30 bg-destructive/10 text-destructive',
 }
 

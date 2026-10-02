@@ -24,7 +24,7 @@ import {
   useSdPortalAccesses,
 } from '@/src/hooks/use-sd-portal-access'
 import type { SdPortalAccessDTO } from '@/types/sd-portal'
-import { sdFormatDateTime } from '../ticket/sd-ticket-meta'
+import { SD_TONE, sdFormatDateTime } from '../ticket/sd-ticket-meta'
 
 const STATUS_LABEL: Record<SdPortalAccessDTO['status'], string> = {
   pending: 'Link enviado, ainda não usado',
@@ -35,11 +35,11 @@ const STATUS_LABEL: Record<SdPortalAccessDTO['status'], string> = {
 }
 
 const STATUS_TONE: Record<SdPortalAccessDTO['status'], string> = {
-  pending: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
-  active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  used: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
-  expired: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  revoked: 'bg-red-500/10 text-red-700 dark:text-red-300',
+  pending: SD_TONE.sky,
+  active: SD_TONE.emerald,
+  used: SD_TONE.slate,
+  expired: SD_TONE.amber,
+  revoked: SD_TONE.red,
 }
 
 /**

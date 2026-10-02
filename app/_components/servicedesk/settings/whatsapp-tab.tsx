@@ -36,6 +36,7 @@ import {
 import type { CreateWhatsAppConnectionDTO } from '@/src/schemas/whatsapp-connection.schema'
 import type { SdWhatsappConnectionDTO } from '@/types/sd-whatsapp'
 import type { WhatsAppProviderDTO } from '@/types/whatsapp-connection'
+import { SD_TONE } from '../sd-tone'
 import {
   ConfirmDeleteButton,
   EmptyState,
@@ -65,11 +66,11 @@ const EMPTY_FORM = {
 const STATUS: Record<string, { label: string; className: string }> = {
   CONNECTED: {
     label: 'Conectado',
-    className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    className: SD_TONE.emerald,
   },
   CONNECTING: {
     label: 'Conectando',
-    className: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+    className: SD_TONE.amber,
   },
   DISCONNECTED: {
     label: 'Desconectado',

@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { useSdCustomerContract } from '@/src/hooks/use-sd-contracts'
+import { SD_TONE_FILL } from '../sd-tone'
 import { formatBRL, formatDate } from '../ticket/shared/sd-tab-format'
 import {
   formatSdAllowance,
@@ -10,7 +11,6 @@ import {
   SD_CONTRACT_STATUS_LABEL,
   SD_CONTRACT_STATUS_TONE,
 } from './sd-contract-labels'
-
 /**
  * Bloco do contrato vigente na tela do cliente: vigência, franquia e o
  * consumo do período corrente (com excedente e valor apurado).
@@ -121,7 +121,7 @@ export function SdCustomerContractBlock({
               <div
                 className={cn(
                   'h-full rounded-full transition-all',
-                  percent >= 100 ? 'bg-rose-500' : 'bg-primary',
+                  percent >= 100 ? SD_TONE_FILL.rose : 'bg-primary',
                 )}
                 style={{ width: `${Math.min(percent, 100)}%` }}
               />

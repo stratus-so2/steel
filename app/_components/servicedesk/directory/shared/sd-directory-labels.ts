@@ -5,6 +5,7 @@ import type {
 import type { SdCustomerKindDTO, SdPersonTypeDTO } from '@/types/sd-customer'
 import type { SdLinkedTicketDTO } from '@/types/sd-directory'
 
+import { SD_TONE, SD_TONE_TEXT } from '../../sd-tone'
 export const SD_CUSTOMER_KIND_LABEL: Record<SdCustomerKindDTO, string> = {
   CLIENT: 'Cliente',
   COMPANY: 'Empresa',
@@ -32,11 +33,11 @@ export const SD_CI_STATUS_LABEL: Record<SdConfigItemStatusDTO, string> = {
  */
 export const SD_STATE_TONE = {
   /** Positivo: registro ativo, importação concluída, garantia em dia. */
-  ok: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  ok: SD_TONE.emerald,
   /** Positivo sem superfície (texto e ícone). */
-  okText: 'text-emerald-700 dark:text-emerald-300',
+  okText: SD_TONE_TEXT.emerald,
   /** Atenção: vence em breve. */
-  warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  warn: SD_TONE.amber,
   /** Negativo: vencido, recusado. */
   bad: 'bg-destructive/10 text-destructive',
   /** Neutro: inativo, encerrado, sem informação. */
@@ -44,8 +45,8 @@ export const SD_STATE_TONE = {
 } as const
 
 export const SD_CI_STATUS_TONE: Record<SdConfigItemStatusDTO, string> = {
-  PLANNED: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  IN_STOCK: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+  PLANNED: SD_TONE.sky,
+  IN_STOCK: SD_TONE.slate,
   ACTIVE: SD_STATE_TONE.ok,
   MAINTENANCE: SD_STATE_TONE.warn,
   RETIRED: SD_STATE_TONE.neutral,
@@ -59,9 +60,9 @@ export const SD_RISK_LABEL: Record<SdRiskLevelDTO, string> = {
 }
 
 export const SD_RISK_TONE: Record<SdRiskLevelDTO, string> = {
-  LOW: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
-  MEDIUM: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  HIGH: 'bg-orange-500/10 text-orange-700 dark:text-orange-300',
+  LOW: SD_TONE.slate,
+  MEDIUM: SD_TONE.sky,
+  HIGH: SD_TONE.orange,
   VERY_HIGH: SD_STATE_TONE.bad,
 }
 
