@@ -278,6 +278,11 @@ export const TAG_GROUPS = [
           'Contratos de atendimento (franquia de horas, valor da hora, arredondamento, mínimo por chamado e a tabela de valores por tipo × prioridade × janela), os períodos de faturamento com consumo e excedente, e o apontamento de horas no chamado: cronômetro (um aberto por usuário) e lançamento manual. O período fechado congela os apontamentos.',
       },
       {
+        name: 'ServiceDesk · Integrações',
+        description:
+          'Integrações com Slack e GitHub: conexão por workspace (Slack por OAuth do app, GitHub por token do repositório, tudo cifrado e nunca devolvido), canal por time para os eventos escolhidos do catálogo de notificações, abertura de chamado a partir de uma mensagem do Slack com a thread espelhada no histórico, vínculo de issue/PR com chamados de problema e mudança e o espelhamento do estado (fechada, reaberta, mesclada) por webhook assinado, com reconciliação horária.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

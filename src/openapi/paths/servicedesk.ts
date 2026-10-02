@@ -5,6 +5,7 @@ import { sdContractRoutes } from './servicedesk/contracts'
 import { sdDashboardsPortalRoutes } from './servicedesk/dashboards-portal'
 import { sdDirectoryRoutes } from './servicedesk/directory'
 import { sdExternalPortalRoutes } from './servicedesk/external-portal'
+import { sdIntegrationRoutes } from './servicedesk/integrations'
 import { sdMailRoutes } from './servicedesk/mail'
 import { sdMonitoringRoutes } from './servicedesk/monitoring'
 import { sdNotificationRoutes } from './servicedesk/notifications'
@@ -33,6 +34,7 @@ const routes: RouteConfig[] = [
   ...sdRecurringRoutes,
   ...sdChangeCabRoutes,
   ...sdContractRoutes,
+  ...sdIntegrationRoutes,
 ]
 
 export function registerServiceDeskPaths(registry: OpenApiRegistry): void {
