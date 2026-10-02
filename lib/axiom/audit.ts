@@ -128,6 +128,10 @@ export type AuditEntity =
   | 'sd_oncall_override'
   // ServiceDesk — chamados recorrentes (manutenção preventiva)
   | 'sd_recurring_ticket'
+  // ServiceDesk — calendário de mudanças e comitê (CAB)
+  | 'sd_change_window'
+  | 'sd_cab_board'
+  | 'sd_approval_round'
 
 export type AuditAction =
   | 'create'

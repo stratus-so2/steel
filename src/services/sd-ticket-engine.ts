@@ -61,7 +61,10 @@ import {
 } from '@/src/repositories/sd-ticket-context.repository'
 import { SdConditionsSchema } from '@/src/schemas/sd-rule.schema'
 import type { CreateSdTicketDTO } from '@/src/schemas/sd-ticket.schema'
+import type { SdChangeWarningDTO } from '@/types/sd-change'
 import type { SdAccessContext } from './sd-access'
+import { sdTicketApprovalSatisfied } from './sd-approval-gate'
+import { sdAssertChangeSchedule } from './sd-change-schedule'
 import { notifySdEvent } from './sd-notification.service'
 import {
   recordSdTicketEvent,
@@ -550,6 +553,12 @@ export interface SdEngineUpdateOptions {
   eventMeta?: Record<string, Prisma.InputJsonValue>
   /** Pula a recusa de chamado encerrado (automação/sistema). */
   allowClosed?: boolean
+  /**
+   * Agendamento da mudança confirmado pelo ator: segue mesmo com
+   * congelamento ou conflito de janela (só admin; o que foi ignorado vira
+   * evento de rastreabilidade). Ver `src/services/sd-change-schedule.ts`.
+   */
+  confirmChangeSchedule?: boolean
 }
 
 export interface SdPhaseChangeOptions {
@@ -1043,9 +1052,66 @@ export const SdTicketEngine = {
 
     if (options.touchActivity !== false) data.lastActivityAt = now
 
+    // Agenda da mudança: congelamento e conflito de janela avisam antes de
+    // gravar; um admin confirma e o que foi ignorado vira evento.
+    let forcedSchedule: SdChangeWarningDTO[] = []
+    if (
+      next.plannedStartAt !== undefined ||
+      next.plannedEndAt !== undefined ||
+      next.configItemId !== undefined
+    ) {
+      const guard = await sdAssertChangeSchedule(
+        {
+          workspaceId: ticket.workspaceId,
+          ticketId: ticket.id,
+          type: ticket.type,
+          configItemId:
+            next.configItemId !== undefined
+              ? next.configItemId
+              : ticket.configItemId,
+          departmentId:
+            next.departmentId !== undefined
+              ? next.departmentId
+              : ticket.departmentId,
+          plannedStartAt:
+            next.plannedStartAt !== undefined
+              ? next.plannedStartAt
+              : ticket.plannedStartAt,
+          plannedEndAt:
+            next.plannedEndAt !== undefined
+              ? next.plannedEndAt
+              : ticket.plannedEndAt,
+        },
+        {
+          // Sistema (automação, worker, e-mail) nunca é bloqueado: registra
+          // o aviso na rastreabilidade e segue — quem decide é gente.
+          confirm: options.confirmChangeSchedule ?? actor.kind === 'system',
+          isAdmin:
+            actor.kind === 'user' ? actor.isAdmin : actor.kind === 'system',
+        },
+      )
+      if (!guard.ok) return guard
+      forcedSchedule = guard.value.forced
+    }
+
     const updated = await SdTicketRepository.update(ticket.id, data)
     if (!updated.ok) return updated
     const after = updated.value
+
+    if (forcedSchedule.length > 0) {
+      await recordSdTicketEvent({
+        workspaceId: after.workspaceId,
+        ticketId: after.id,
+        ...eventActor(actor),
+        action: 'change.schedule_forced',
+        field: 'plannedStartAt',
+        toValue: forcedSchedule.map((w) => ({
+          id: w.windowId ?? w.ticketId ?? w.kind,
+          label: w.message,
+        })),
+        meta: { kinds: [...new Set(forcedSchedule.map((w) => w.kind))] },
+      })
+    }
 
     const diffFields = Array.from(
       new Set([...Object.keys(data)].filter((f) => !NON_DIFF.has(f))),
@@ -1157,11 +1223,10 @@ export const SdTicketEngine = {
     }
 
     if (target.requiresApproval) {
-      const approval = await SdTicketContextRepository.findLatestApprovalStatus(
-        ticket.id,
-      )
-      if (!approval.ok) return approval
-      if (approval.value !== 'APPROVED') return err(sdApprovalRequired())
+      // Rodada do comitê aprovada **ou** pedido avulso aprovado.
+      const approved = await sdTicketApprovalSatisfied(ticket.id)
+      if (!approved.ok) return approved
+      if (!approved.value) return err(sdApprovalRequired())
     }
 
     if (target.category === 'RESOLVED' && settings.requireSolutionOnResolve) {

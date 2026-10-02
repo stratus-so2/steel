@@ -420,12 +420,18 @@ export const SdTicketContextRepository = {
     }
   },
 
-  async findLatestApprovalStatus(
+  /**
+   * Status do pedido de aprovação **avulso** (sem rodada) mais recente que
+   * não foi cancelado — é o que a fase com `requiresApproval` lê quando não
+   * há rodada do comitê. Quem decide pelos pedidos de uma rodada é a própria
+   * rodada (`src/services/sd-approval-gate.ts`).
+   */
+  async findLatestStandaloneApprovalStatus(
     ticketId: string,
   ): Promise<Result<SdApprovalStatus | null>> {
     try {
       const row = await prisma.sdTicketApproval.findFirst({
-        where: { ticketId, status: { not: 'CANCELED' } },
+        where: { ticketId, roundId: null, status: { not: 'CANCELED' } },
         orderBy: { createdAt: 'desc' },
         select: { status: true },
       })

@@ -3,6 +3,7 @@
 import {
   AiMagicIcon,
   Alert02Icon,
+  ArrowDataTransferHorizontalIcon,
   BoxIcon,
   Building03Icon,
   CheckListIcon,
@@ -27,6 +28,7 @@ import { SdAiTab } from './ai-tab'
 import { SdAutomationsTab } from './automations-tab'
 import { SdCannedResponsesTab } from './canned-responses-tab'
 import { SdCatalogTab } from './catalog-tab'
+import { SdChangesTab } from './changes-tab'
 import { SdClassificationsTab } from './classifications-tab'
 import { SdCustomFieldsTab } from './custom-fields-tab'
 import { SdDepartmentsTab } from './departments-tab'
@@ -144,6 +146,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     icon: CheckListIcon,
     description: 'Evento → condições → ações, na ordem da lista.',
     component: SdAutomationsTab,
+  },
+  {
+    id: 'changes',
+    label: 'Mudanças',
+    icon: ArrowDataTransferHorizontalIcon,
+    description:
+      'Janelas do calendário de mudanças (manutenção e congelamento, com repetição e alvo por item de configuração ou departamento) e comitês de mudança (CAB) com membros, votos obrigatórios, quórum e seleção por condições.',
+    component: SdChangesTab,
   },
   {
     id: 'custom-fields',

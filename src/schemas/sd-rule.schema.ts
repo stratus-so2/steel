@@ -41,6 +41,9 @@ export const SD_CONDITION_FIELDS = [
   'title',
   'description',
   'escalationLevel',
+  /** Mudanças: alimentam as condições do comitê (CAB). */
+  'changeType',
+  'changeRisk',
 ] as const
 
 export const SD_CONDITION_OPERATORS = [

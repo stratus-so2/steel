@@ -12,6 +12,8 @@ export type SdTicketTabFeature =
   | 'costs'
   | 'parts'
   | 'approvals'
+  | 'approval-rounds'
+  | 'change-schedule'
   | 'signatures'
 
 export function sdTicketTabKey(

@@ -150,6 +150,8 @@ export interface SdFactSource {
   title?: string | null
   description?: string | null
   escalationLevel?: number
+  changeType?: string | null
+  changeRisk?: string | null
   customFields?: unknown
 }
 
@@ -179,6 +181,8 @@ export function buildSdTicketFacts(src: SdFactSource): SdConditionFacts {
     title: src.title ?? null,
     description: src.description ? sdHtmlToText(src.description) : null,
     escalationLevel: src.escalationLevel ?? 0,
+    changeType: src.changeType ?? null,
+    changeRisk: src.changeRisk ?? null,
     customFields: asRecord(src.customFields),
   }
 }

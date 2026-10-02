@@ -516,7 +516,7 @@ export function SdTicketScreen({
     config: config.data,
     agents: agents.data ?? [],
   })
-  const tab = sdResolveTab(params.get('tab'), 'agent')
+  const tab = sdResolveTab(params.get('tab'), 'agent', ticket.data?.type)
 
   function setTab(next: string) {
     const search = new URLSearchParams(params.toString())

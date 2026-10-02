@@ -378,8 +378,10 @@ export const SdTicketService = {
     const loaded = await accessTicket(actorId, workspaceId, ticketRef, 'EDIT')
     if (!loaded.ok) return loaded
     const { ctx, config, ticket } = loaded.value
-    const fields = Object.keys(input).filter(
-      (k) => (input as Record<string, unknown>)[k] !== undefined,
+    // `confirmChangeSchedule` não é campo do chamado: vira opção do motor.
+    const { confirmChangeSchedule, ...changes } = input
+    const fields = Object.keys(changes).filter(
+      (k) => (changes as Record<string, unknown>)[k] !== undefined,
     )
 
     if (!ctx.isAgent) {
@@ -402,9 +404,10 @@ export const SdTicketService = {
 
     const updated = await SdTicketEngine.update(
       ticket,
-      input as SdEngineChanges,
+      changes as SdEngineChanges,
       sdUserActor(ctx),
       config,
+      { confirmChangeSchedule },
     )
     if (!updated.ok) return updated
     auditMutation({
