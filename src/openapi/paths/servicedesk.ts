@@ -1,5 +1,6 @@
 import type { OpenApiRegistry, RouteConfig } from '../registry'
 import { sdConfigRoutes } from './servicedesk/config'
+import { sdContractRoutes } from './servicedesk/contracts'
 import { sdDashboardsPortalRoutes } from './servicedesk/dashboards-portal'
 import { sdDirectoryRoutes } from './servicedesk/directory'
 import { sdExternalPortalRoutes } from './servicedesk/external-portal'
@@ -29,6 +30,7 @@ const routes: RouteConfig[] = [
   ...sdMailRoutes,
   ...sdOnCallRoutes,
   ...sdRecurringRoutes,
+  ...sdContractRoutes,
 ]
 
 export function registerServiceDeskPaths(registry: OpenApiRegistry): void {

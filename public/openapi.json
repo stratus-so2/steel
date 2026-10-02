@@ -225,6 +225,10 @@
       "description": "Rotinas periódicas (manutenção preventiva): agenda no fuso da regra (frequência, intervalo, dias, horário, vigência e antecedência), valores do chamado gerado, pré-visualização das próximas ocorrências, histórico de \"abriu, pulou ou falhou\" e o \"gerar agora\". O worker abre os chamados com ator de sistema, de forma idempotente por ocorrência."
     },
     {
+      "name": "ServiceDesk · Contratos e horas",
+      "description": "Contratos de atendimento (franquia de horas, valor da hora, arredondamento, mínimo por chamado e a tabela de valores por tipo × prioridade × janela), os períodos de faturamento com consumo e excedente, e o apontamento de horas no chamado: cronômetro (um aberto por usuário) e lançamento manual. O período fechado congela os apontamentos."
+    },
+    {
       "name": "ServiceDesk · CMDB",
       "description": "Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis."
     },
@@ -363,6 +367,7 @@
         "ServiceDesk · Notificações",
         "ServiceDesk · Plantão",
         "ServiceDesk · Chamados recorrentes",
+        "ServiceDesk · Contratos e horas",
         "ServiceDesk · CMDB"
       ]
     },
@@ -9009,7 +9014,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_30"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_31"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11212,7 +11217,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_27"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_28"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -34294,7 +34299,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_29"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -37705,7 +37710,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -38426,7 +38431,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_NOT_FOUND"
@@ -38537,7 +38542,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_NOT_FOUND"
@@ -38606,7 +38611,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_NOT_FOUND"
@@ -38681,7 +38686,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -39286,7 +39291,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -39718,7 +39723,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -42236,6 +42241,941 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/contracts": {
+      "get": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Listar contratos de atendimento",
+        "operationId": "getWorkspacesByIdServicedeskContracts",
+        "description": "Contratos do workspace com a tabela de valores, o cliente e o período aberto do ciclo corrente. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["DRAFT", "ACTIVE", "SUSPENDED", "ENDED"]
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contratos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdContract"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Cadastrar contrato de atendimento",
+        "operationId": "postWorkspacesByIdServicedeskContracts",
+        "description": "Cria o contrato com a tabela de valores junto. Um cliente não pode ter dois contratos **ativos** com vigência sobreposta (`SD_CONTRACT_OVERLAP`). Contrato que já nasce ativo ganha o período do ciclo corrente. Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "code": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "default": "DRAFT",
+                    "type": "string",
+                    "enum": ["DRAFT", "ACTIVE", "SUSPENDED", "ENDED"]
+                  },
+                  "startsAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "endsAt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "billingCycle": {
+                    "default": "MONTHLY",
+                    "type": "string",
+                    "enum": ["MONTHLY", "QUARTERLY", "YEARLY"]
+                  },
+                  "includedMinutes": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "carryOver": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "hourlyRate": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "overtimeRate": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "roundingMinutes": {
+                    "default": 1,
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 480
+                  },
+                  "minimumMinutes": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1440
+                  },
+                  "ticketTypes": {
+                    "default": [],
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                    }
+                  },
+                  "slaPolicyId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rates": {
+                    "maxItems": 60,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ticketType": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "priorityId": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "window": {
+                          "default": "BUSINESS_HOURS",
+                          "type": "string",
+                          "enum": ["BUSINESS_HOURS", "AFTER_HOURS", "WEEKEND", "HOLIDAY"]
+                        },
+                        "hourlyRate": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "multiplier": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "required": ["hourlyRate"]
+                    }
+                  }
+                },
+                "required": ["customerId", "name", "startsAt"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Criado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdContract"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_CONTRACT_OVERLAP_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/contracts/summary": {
+      "get": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Contrato vigente de um cliente",
+        "operationId": "getWorkspacesByIdServicedeskContractsSummary",
+        "description": "Contrato ativo e vigente do cliente mais o consumo do período corrente (franquia, excedente, acumulado e valor) — é o bloco \"Contrato\" da tela do cliente. Sem contrato vigente devolve tudo nulo. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "customerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdContractSummary"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_27"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/contracts/{contractId}": {
+      "get": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Detalhar contrato",
+        "operationId": "getWorkspacesByIdServicedeskContractsByContractId",
+        "description": "Contrato com a tabela de valores e o período aberto. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contrato.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contrato.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdContract"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTRACT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Atualizar contrato",
+        "operationId": "patchWorkspacesByIdServicedeskContractsByContractId",
+        "description": "Informar `rates` **substitui a tabela de valores inteira**; omitir mantém a atual. Deixar o contrato ativo revalida a sobreposição de vigência com os outros contratos do cliente. Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contrato.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "code": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["DRAFT", "ACTIVE", "SUSPENDED", "ENDED"]
+                  },
+                  "startsAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "endsAt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "billingCycle": {
+                    "type": "string",
+                    "enum": ["MONTHLY", "QUARTERLY", "YEARLY"]
+                  },
+                  "includedMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "carryOver": {
+                    "type": "boolean"
+                  },
+                  "hourlyRate": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "overtimeRate": {
+                    "anyOf": [
+                      {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "roundingMinutes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 480
+                  },
+                  "minimumMinutes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1440
+                  },
+                  "ticketTypes": {
+                    "maxItems": 4,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                    }
+                  },
+                  "slaPolicyId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "notes": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "rates": {
+                    "maxItems": 60,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ticketType": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "priorityId": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "window": {
+                          "default": "BUSINESS_HOURS",
+                          "type": "string",
+                          "enum": ["BUSINESS_HOURS", "AFTER_HOURS", "WEEKEND", "HOLIDAY"]
+                        },
+                        "hourlyRate": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        },
+                        "multiplier": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ]
+                        }
+                      },
+                      "required": ["hourlyRate"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdContract"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTRACT_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_CONTRACT_OVERLAP"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Excluir contrato",
+        "operationId": "deleteWorkspacesByIdServicedeskContractsByContractId",
+        "description": "Exclusão lógica: o contrato sai das listas e fica `ENDED`. Os apontamentos e períodos já gravados continuam. Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contrato.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removido (`data: null`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTRACT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/contracts/{contractId}/periods": {
+      "get": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Histórico de períodos do contrato",
+        "operationId": "getWorkspacesByIdServicedeskContractsByContractIdPeriods",
+        "description": "Últimos 60 períodos (mais recente primeiro) com franquia, consumo, excedente, saldo acumulado e valor apurado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contrato.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Períodos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdContractPeriod"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTRACT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/contracts/{contractId}/periods/close": {
+      "post": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Fechar o período do contrato",
+        "operationId": "postWorkspacesByIdServicedeskContractsByContractIdPeriodsClose",
+        "description": "Consolida os apontamentos do período (franquia na ordem cronológica, excedente pela hora de excedente) e congela tudo. Sem `periodId`, fecha o período do ciclo corrente. O worker (`servicedesk-billing`, 00:20) faz o mesmo sozinho no virar do ciclo. Auditado. Acesso: sessão + **admin do ServiceDesk** (OWNER/ADMIN do workspace ou perfil administrativo do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "contractId",
+            "in": "path",
+            "required": true,
+            "description": "Id do contrato.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "periodId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Período fechado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdContractPeriod"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_CONTRACT_NOT_FOUND_SD_CONTRACT_PERIOD_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_CONTRACT_PERIOD_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/servicedesk/custom-fields": {
       "get": {
         "tags": ["ServiceDesk · Configurações"],
@@ -42295,7 +43235,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -44102,7 +45042,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_28"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_29"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -45236,7 +46176,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -46797,7 +47737,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -47369,7 +48309,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -47563,7 +48503,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -47958,7 +48898,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
@@ -49289,7 +50229,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "409": {
             "$ref": "#/components/responses/409_SD_MAILBOX_CONFLICT"
@@ -49533,7 +50473,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_MAILBOX_NOT_FOUND"
@@ -49595,7 +50535,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_MAILBOX_NOT_FOUND"
@@ -49658,7 +50598,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_MAILBOX_NOT_FOUND"
@@ -49721,7 +50661,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_MAILBOX_NOT_FOUND"
@@ -49775,7 +50715,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -52394,7 +53334,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -52723,7 +53663,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -53344,7 +54284,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -53687,7 +54627,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -53837,7 +54777,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -54144,7 +55084,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_NOT_FOUND_4"
@@ -54210,7 +55150,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_RECURRING_NOT_FOUND"
@@ -54515,7 +55455,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONFIG_NOT_FOUND_SD_RECURRING_NOT_FOUND"
@@ -54577,7 +55517,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_RECURRING_NOT_FOUND"
@@ -54640,7 +55580,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_PHASE_NOT_FOUND_SD_RECURRING_NOT_FOUND"
@@ -54709,7 +55649,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_RECURRING_NOT_FOUND"
@@ -54921,7 +55861,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -55084,7 +56024,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
@@ -55153,7 +56093,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
@@ -55207,7 +56147,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -55515,7 +56455,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -55858,7 +56798,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -56553,7 +57493,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -58040,7 +58980,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -58742,7 +59682,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -59423,7 +60363,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -60028,7 +60968,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_DEPARTMENT_NOT_FOUND"
@@ -60979,7 +61919,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_6"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -61271,7 +62211,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -61741,7 +62681,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_6"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_PHASE_NOT_FOUND"
@@ -62123,7 +63063,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -62566,6 +63506,464 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/tickets/{ticketId}/time-entries": {
+      "get": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Horas apontadas no chamado",
+        "operationId": "getWorkspacesByIdServicedeskTicketsByTicketIdTimeEntries",
+        "description": "Apontamentos do chamado (mais recentes primeiro), o total por janela, o cronômetro aberto de quem pediu (mesmo que seja de outro chamado) e o contrato carimbado no chamado com o consumo do período. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Apontamentos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTimeEntryList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_7"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Lançar horas manualmente",
+        "operationId": "postWorkspacesByIdServicedeskTicketsByTicketIdTimeEntries",
+        "description": "Início e fim informados pelo agente; os minutos cobrados e o valor **não vêm do cliente**, são calculados aqui. As regras do contrato decidem o apontamento: os minutos são arredondados **para cima** no múltiplo de `roundingMinutes`; o `minimumMinutes` entra no primeiro apontamento do dia naquele chamado; a janela (`BUSINESS_HOURS`, `AFTER_HOURS`, `WEEKEND`, `HOLIDAY`) sai do calendário de expediente da política de SLA do contrato (ou do calendário padrão do workspace); e o valor vem da primeira `SdContractRate` que casa com tipo × prioridade × janela, senão do valor da hora do contrato. Apontar por outro agente (`userId`) é restrito a admins do módulo. Auditado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "endedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "billable": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "userId": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["startedAt", "endedAt"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lançado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTimeEntry"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_3"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_TICKET_CLOSED_SD_CONTRACT_PERIOD_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_TIME_ENTRY_INVALID_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/tickets/{ticketId}/time-entries/timer": {
+      "post": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Cronômetro do chamado",
+        "operationId": "postWorkspacesByIdServicedeskTicketsByTicketIdTimeEntriesTimer",
+        "description": "O cronômetro é **por trecho**: `start`/`resume` abrem um apontamento (fim vazio) e `pause`/`stop` fecham o aberto, consolidando minutos, janela e valor — são quatro nomes para a interface, duas operações no banco. Só pode haver **um cronômetro aberto por usuário** em todo o workspace (`SD_TIME_ENTRY_RUNNING`); fechar exige que o cronômetro aberto seja deste chamado. As regras do contrato decidem o apontamento: os minutos são arredondados **para cima** no múltiplo de `roundingMinutes`; o `minimumMinutes` entra no primeiro apontamento do dia naquele chamado; a janela (`BUSINESS_HOURS`, `AFTER_HOURS`, `WEEKEND`, `HOLIDAY`) sai do calendário de expediente da política de SLA do contrato (ou do calendário padrão do workspace); e o valor vem da primeira `SdContractRate` que casa com tipo × prioridade × janela, senão do valor da hora do contrato. Auditado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["start", "pause", "resume", "stop"]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["action"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Apontamento aberto ou fechado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTimeEntry"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_3"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_TICKET_CLOSED_SD_CONTRACT_PERIOD_CLOSED_SD_TIME_ENTRY_RUNNING"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_TIME_ENTRY_INVALID_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/tickets/{ticketId}/time-entries/{entryId}": {
+      "patch": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Ajustar um apontamento",
+        "operationId": "patchWorkspacesByIdServicedeskTicketsByTicketIdTimeEntriesByEntryId",
+        "description": "Mudar início/fim recalcula minutos, janela e valor. Um cronômetro **em andamento** só aceita descrição e `billable` — pare-o antes de ajustar horários. Quem pode: o autor enquanto o período está aberto, e os admins do módulo. Auditado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "description": "Id do apontamento.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "endedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "billable": {
+                    "type": "boolean"
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTimeEntry"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_TIME_ENTRY_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_CONTRACT_PERIOD_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_TIME_ENTRY_INVALID"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["ServiceDesk · Contratos e horas"],
+        "summary": "Excluir um apontamento",
+        "operationId": "deleteWorkspacesByIdServicedeskTicketsByTicketIdTimeEntriesByEntryId",
+        "description": "Exclusão lógica: sai da lista e do cálculo do período. Mesma regra de quem pode mexer. Auditado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "description": "Id do apontamento.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removido (`data: null`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {}
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_TIME_ENTRY_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_CONTRACT_PERIOD_CLOSED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/servicedesk/urgencies": {
       "get": {
         "tags": ["ServiceDesk · Configurações"],
@@ -62607,7 +64005,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -63088,7 +64486,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -63182,7 +64580,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
@@ -63244,7 +64642,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
@@ -63373,7 +64771,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONNECTION_NOT_FOUND_2"
@@ -63513,7 +64911,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -63842,7 +65240,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -64182,7 +65580,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -73102,51 +74500,6 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Permissão insuficiente",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Consentimento LGPD pendente",
                 "value": {
                   "success": false,
@@ -73198,6 +74551,51 @@
                   "message": "Apenas administradores do ServiceDesk podem alterar a configuração",
                   "error": {
                     "code": "FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_5": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
                   }
                 }
               }
@@ -75738,6 +77136,62 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (membro sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Consentimento LGPD pendente",
                 "value": {
                   "success": false,
@@ -75796,7 +77250,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -75863,7 +77317,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_7": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -75906,62 +77360,6 @@
               },
               "SD_NOT_AGENT": {
                 "summary": "SD_NOT_AGENT — Solicitante (sem departamento) tentando editar",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
-                  "error": {
-                    "code": "SD_NOT_AGENT"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_8": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Permissão insuficiente",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              },
-              "SD_NOT_AGENT": {
-                "summary": "SD_NOT_AGENT — Solicitante (membro sem departamento)",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -77078,6 +78476,84 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (membro sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Sem visibilidade sobre o chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
                 "value": {
                   "success": false,
@@ -77136,7 +78612,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -77203,7 +78679,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_6": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -77268,6 +78744,73 @@
               },
               "SD_TICKET_FORBIDDEN": {
                 "summary": "SD_TICKET_FORBIDDEN — Solicitante sem vínculo com o chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_7": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (membro sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Sem visibilidade sobre o chamado",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -80642,6 +82185,63 @@
           }
         }
       },
+      "404_SD_CONTRACT_NOT_FOUND": {
+        "description": "Não encontrado: `SD_CONTRACT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_CONTRACT_NOT_FOUND": {
+                "summary": "SD_CONTRACT_NOT_FOUND — Contrato inexistente, removido ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Contrato não encontrado",
+                  "error": {
+                    "code": "SD_CONTRACT_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_CONTRACT_NOT_FOUND_SD_CONTRACT_PERIOD_NOT_FOUND": {
+        "description": "Não encontrado: `SD_CONTRACT_NOT_FOUND`, `SD_CONTRACT_PERIOD_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_CONTRACT_NOT_FOUND": {
+                "summary": "SD_CONTRACT_NOT_FOUND — Contrato inexistente, removido ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Contrato não encontrado",
+                  "error": {
+                    "code": "SD_CONTRACT_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_CONTRACT_PERIOD_NOT_FOUND": {
+                "summary": "SD_CONTRACT_PERIOD_NOT_FOUND — Período inexistente ou de outro contrato",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Período do contrato não encontrado",
+                  "error": {
+                    "code": "SD_CONTRACT_PERIOD_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_SD_CUSTOMER_NOT_FOUND": {
         "description": "Não encontrado: `SD_CUSTOMER_NOT_FOUND`",
         "content": {
@@ -81312,6 +82912,29 @@
           }
         }
       },
+      "404_SD_TICKET_NOT_FOUND_3": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND — Chamado inexistente ou removido",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_SD_TICKET_NOT_FOUND_SD_APPROVAL_NOT_FOUND": {
         "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_APPROVAL_NOT_FOUND`",
         "content": {
@@ -81870,6 +83493,40 @@
                   "message": "Peça do chamado não encontrada",
                   "error": {
                     "code": "SD_TICKET_PART_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_TICKET_NOT_FOUND_SD_TIME_ENTRY_NOT_FOUND": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_TIME_ENTRY_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND — Chamado inexistente ou removido",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_TIME_ENTRY_NOT_FOUND": {
+                "summary": "SD_TIME_ENTRY_NOT_FOUND — Apontamento inexistente, removido ou de outro chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Apontamento não encontrado",
+                  "error": {
+                    "code": "SD_TIME_ENTRY_NOT_FOUND"
                   }
                 }
               }
@@ -83678,6 +85335,75 @@
           }
         }
       },
+      "409_SD_CONTRACT_OVERLAP": {
+        "description": "Conflito com o estado atual: `SD_CONTRACT_OVERLAP`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_CONTRACT_OVERLAP": {
+                "summary": "SD_CONTRACT_OVERLAP — O cliente já tem outro contrato ativo cobrindo o período",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "O cliente já tem um contrato vigente neste período",
+                  "error": {
+                    "code": "SD_CONTRACT_OVERLAP"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_CONTRACT_OVERLAP_2": {
+        "description": "Conflito com o estado atual: `SD_CONTRACT_OVERLAP`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_CONTRACT_OVERLAP": {
+                "summary": "SD_CONTRACT_OVERLAP — O cliente já tem um contrato ativo cobrindo o período",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "O cliente já tem um contrato vigente neste período",
+                  "error": {
+                    "code": "SD_CONTRACT_OVERLAP"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_CONTRACT_PERIOD_CLOSED": {
+        "description": "Conflito com o estado atual: `SD_CONTRACT_PERIOD_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_CONTRACT_PERIOD_CLOSED": {
+                "summary": "SD_CONTRACT_PERIOD_CLOSED — O período do contrato já foi fechado e está congelado",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este período já foi fechado",
+                  "error": {
+                    "code": "SD_CONTRACT_PERIOD_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_SD_CSAT_ALREADY_SUBMITTED": {
         "description": "Conflito com o estado atual: `SD_CSAT_ALREADY_SUBMITTED`",
         "content": {
@@ -83843,6 +85569,85 @@
                   "message": "Esta aprovação já foi respondida ou cancelada",
                   "error": {
                     "code": "SD_APPROVAL_NOT_PENDING"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_TICKET_CLOSED_SD_CONTRACT_PERIOD_CLOSED": {
+        "description": "Conflito com o estado atual: `SD_TICKET_CLOSED`, `SD_CONTRACT_PERIOD_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_CLOSED": {
+                "summary": "SD_TICKET_CLOSED — Chamado fechado ou cancelado",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "O chamado está encerrado",
+                  "error": {
+                    "code": "SD_TICKET_CLOSED"
+                  }
+                }
+              },
+              "SD_CONTRACT_PERIOD_CLOSED": {
+                "summary": "SD_CONTRACT_PERIOD_CLOSED — O período do contrato já foi fechado e está congelado",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este período já foi fechado",
+                  "error": {
+                    "code": "SD_CONTRACT_PERIOD_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_TICKET_CLOSED_SD_CONTRACT_PERIOD_CLOSED_SD_TIME_ENTRY_RUNNING": {
+        "description": "Conflito com o estado atual: `SD_TICKET_CLOSED`, `SD_CONTRACT_PERIOD_CLOSED`, `SD_TIME_ENTRY_RUNNING`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_CLOSED": {
+                "summary": "SD_TICKET_CLOSED — Chamado fechado ou cancelado (só ao abrir um trecho)",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "O chamado está encerrado",
+                  "error": {
+                    "code": "SD_TICKET_CLOSED"
+                  }
+                }
+              },
+              "SD_TIME_ENTRY_RUNNING": {
+                "summary": "SD_TIME_ENTRY_RUNNING — O usuário já tem um cronômetro em andamento",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Você já tem um cronômetro em andamento",
+                  "error": {
+                    "code": "SD_TIME_ENTRY_RUNNING"
+                  }
+                }
+              },
+              "SD_CONTRACT_PERIOD_CLOSED": {
+                "summary": "SD_CONTRACT_PERIOD_CLOSED — O período do contrato já foi fechado e está congelado",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este período já foi fechado",
+                  "error": {
+                    "code": "SD_CONTRACT_PERIOD_CLOSED"
                   }
                 }
               }
@@ -85221,6 +87026,36 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — `customerId` ausente",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_28": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
                 "summary": "VALIDATION_ERROR — `range` fora de `7d`/`30d`/`90d`",
                 "value": {
                   "success": false,
@@ -85235,7 +87070,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_28": {
+      "422_VALIDATION_ERROR_29": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -85258,7 +87093,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_29": {
+      "422_VALIDATION_ERROR_30": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -85281,7 +87116,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_30": {
+      "422_VALIDATION_ERROR_31": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -86540,6 +88375,129 @@
                   "message": "Agenda do chamado recorrente inválida",
                   "error": {
                     "code": "SD_RECURRING_SCHEDULE_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_TIME_ENTRY_INVALID": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_TIME_ENTRY_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_TIME_ENTRY_INVALID": {
+                "summary": "SD_TIME_ENTRY_INVALID — Horários incoerentes ou ajuste de horário num cronômetro aberto",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Apontamento inválido (verifique início, fim e duração)",
+                  "error": {
+                    "code": "SD_TIME_ENTRY_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_TIME_ENTRY_INVALID_2": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_TIME_ENTRY_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_TIME_ENTRY_INVALID": {
+                "summary": "SD_TIME_ENTRY_INVALID — Nenhum cronômetro em andamento neste chamado, ou trecho sem duração",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Apontamento inválido (verifique início, fim e duração)",
+                  "error": {
+                    "code": "SD_TIME_ENTRY_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_SD_TIME_ENTRY_INVALID_3": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `SD_TIME_ENTRY_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "SD_TIME_ENTRY_INVALID": {
+                "summary": "SD_TIME_ENTRY_INVALID — Trecho sem duração",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Apontamento inválido (verifique início, fim e duração)",
+                  "error": {
+                    "code": "SD_TIME_ENTRY_INVALID"
                   }
                 }
               }
@@ -105693,6 +107651,459 @@
           "recentTickets"
         ]
       },
+      "SdContract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workspaceId": {
+            "type": "string"
+          },
+          "customer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "tradeName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["id", "name", "tradeName"]
+          },
+          "name": {
+            "type": "string",
+            "example": "Suporte mensal 20 h"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "ACTIVE", "SUSPENDED", "ENDED"]
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": ["MONTHLY", "QUARTERLY", "YEARLY"]
+          },
+          "includedMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "example": 1200
+          },
+          "carryOver": {
+            "type": "boolean"
+          },
+          "hourlyRate": {
+            "type": "string",
+            "example": "150.00"
+          },
+          "overtimeRate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hora além da franquia; `null` = o mesmo da hora normal."
+          },
+          "roundingMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "example": 15,
+            "description": "Arredondamento do apontamento, sempre para cima."
+          },
+          "minimumMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "example": 30,
+            "description": "Mínimo no primeiro apontamento do dia naquele chamado."
+          },
+          "ticketTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+            },
+            "description": "Vazio = cobre todos os tipos."
+          },
+          "slaPolicyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "slaPolicyName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdContractRate"
+            }
+          },
+          "currentPeriod": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdContractPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["id", "name", "email", "image"]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "customer",
+          "name",
+          "code",
+          "status",
+          "startsAt",
+          "endsAt",
+          "billingCycle",
+          "includedMinutes",
+          "carryOver",
+          "hourlyRate",
+          "overtimeRate",
+          "roundingMinutes",
+          "minimumMinutes",
+          "ticketTypes",
+          "slaPolicyId",
+          "slaPolicyName",
+          "notes",
+          "rates",
+          "currentPeriod",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SdContractPeriod": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contractId": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Exclusivo."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["OPEN", "CLOSED"]
+          },
+          "includedMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Franquia do período, já com o saldo acumulado."
+          },
+          "usedMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "billableMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "overageMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "carriedMinutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Franquia que sobrou e vai para o período seguinte."
+          },
+          "amount": {
+            "type": "string",
+            "example": "1250.00",
+            "description": "Valor a faturar: só o excedente da franquia."
+          },
+          "closedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "closedBy": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "image": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["id", "name", "email", "image"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` quando o fechamento foi do worker."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "contractId",
+          "periodStart",
+          "periodEnd",
+          "status",
+          "includedMinutes",
+          "usedMinutes",
+          "billableMinutes",
+          "overageMinutes",
+          "carriedMinutes",
+          "amount",
+          "closedAt",
+          "closedBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SdContractRate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ticketType": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` vale para qualquer tipo de chamado."
+          },
+          "priorityId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` vale para qualquer prioridade."
+          },
+          "priorityName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "window": {
+            "type": "string",
+            "enum": ["BUSINESS_HOURS", "AFTER_HOURS", "WEEKEND", "HOLIDAY"]
+          },
+          "hourlyRate": {
+            "type": "string",
+            "example": "300.00"
+          },
+          "multiplier": {
+            "type": "string",
+            "example": "1.50",
+            "description": "Multiplicador do valor na janela (plantão, feriado)."
+          },
+          "position": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Ordem de avaliação: a primeira regra que casa vence."
+          }
+        },
+        "required": [
+          "id",
+          "ticketType",
+          "priorityId",
+          "priorityName",
+          "window",
+          "hourlyRate",
+          "multiplier",
+          "position"
+        ]
+      },
+      "SdContractSummary": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdContract"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdContractPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "percentUsed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "% da franquia consumida; `null` sem franquia."
+          }
+        },
+        "required": ["contract", "period", "percentUsed"]
+      },
       "SdCustomFieldDefinition": {
         "type": "object",
         "properties": {
@@ -114697,6 +117108,274 @@
           }
         },
         "required": ["configured", "connection", "conversation", "window", "suggestedWaId"]
+      },
+      "SdTimeEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ticketId": {
+            "type": "string"
+          },
+          "contractId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "periodId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": ["TIMER", "MANUAL"]
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "image": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": ["id", "name", "email", "image"]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` = cronômetro em andamento."
+          },
+          "minutes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Minutos já arredondados pelas regras do contrato (0 enquanto o cronômetro roda)."
+          },
+          "billable": {
+            "type": "boolean"
+          },
+          "window": {
+            "type": "string",
+            "enum": ["BUSINESS_HOURS", "AFTER_HOURS", "WEEKEND", "HOLIDAY"]
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "225.00",
+            "description": "`null` quando o chamado não tem contrato."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "editable": {
+            "type": "boolean",
+            "description": "O autor com o período aberto, ou um admin do módulo, pode alterar."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "ticketId",
+          "contractId",
+          "periodId",
+          "source",
+          "user",
+          "startedAt",
+          "endedAt",
+          "minutes",
+          "billable",
+          "window",
+          "amount",
+          "description",
+          "editable",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SdTimeEntryList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdTimeEntry"
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "totalMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "billableMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "nonBillableMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "amount": {
+                "type": "string"
+              },
+              "byWindow": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "window": {
+                      "type": "string",
+                      "enum": ["BUSINESS_HOURS", "AFTER_HOURS", "WEEKEND", "HOLIDAY"]
+                    },
+                    "minutes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": ["window", "minutes"]
+                }
+              }
+            },
+            "required": ["totalMinutes", "billableMinutes", "nonBillableMinutes", "amount", "byWindow"]
+          },
+          "running": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdTimeEntry"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cronômetro aberto de quem pediu — pode ser de outro chamado."
+          },
+          "contract": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "includedMinutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "roundingMinutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "minimumMinutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "period": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/SdContractPeriod"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "code",
+                  "includedMinutes",
+                  "roundingMinutes",
+                  "minimumMinutes",
+                  "period"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["items", "summary", "running", "contract"]
       },
       "SdUserSummary": {
         "type": "object",
