@@ -10,6 +10,7 @@ import {
   DataRetentionJob,
   ServicedeskDigestJob,
   ServicedeskMailJob,
+  ServicedeskRecurringJob,
   ServicedeskSlaJob,
   StatusCollectJob,
   TrialLifecycleJob,
@@ -27,6 +28,7 @@ import {
   getDataRetentionQueue,
   getServicedeskDigestQueue,
   getServicedeskMailQueue,
+  getServicedeskRecurringQueue,
   getServicedeskSlaQueue,
   getStatusCollectQueue,
   getTrialLifecycleQueue,
@@ -45,6 +47,7 @@ import {
   RetentionTimezone,
   ServicedeskDigestCron,
   ServicedeskMailCron,
+  ServicedeskRecurringCron,
   ServicedeskSlaCron,
   StatusCollectCron,
   UsageRollupCron,
@@ -312,6 +315,21 @@ export async function scheduleServicedeskDigestJobs(): Promise<void> {
   logger.info('queue.scheduler.servicedesk_digest_registered', {
     component: 'Worker',
     pattern: ServicedeskDigestCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskRecurringJobs(): Promise<void> {
+  const queue = getServicedeskRecurringQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskRecurringJob.RunTick,
+    { pattern: ServicedeskRecurringCron, tz: RetentionTimezone },
+    { name: ServicedeskRecurringJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_recurring_registered', {
+    component: 'Worker',
+    pattern: ServicedeskRecurringCron,
     timezone: RetentionTimezone,
   })
 }

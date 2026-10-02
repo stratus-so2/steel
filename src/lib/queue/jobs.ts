@@ -23,6 +23,7 @@ export const QueueName = {
   ServicedeskAi: 'servicedesk-ai',
   ServicedeskMail: 'servicedesk-mail',
   ServicedeskDigest: 'servicedesk-digest',
+  ServicedeskRecurring: 'servicedesk-recurring',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -412,4 +413,21 @@ export type ServicedeskDigestJob =
 
 export type ServicedeskDigestJobPayload = {
   [ServicedeskDigestJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Chamados recorrentes do ServiceDesk (manutenção preventiva), a cada 5
+ * min: abre os chamados das regras com `nextRunAt` vencido
+ * (`SdRecurringTicketRunner.runTick`). Idempotente pelo par
+ * `(recurringId, scheduledFor)`.
+ */
+export const ServicedeskRecurringJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type ServicedeskRecurringJob =
+  (typeof ServicedeskRecurringJob)[keyof typeof ServicedeskRecurringJob]
+
+export type ServicedeskRecurringJobPayload = {
+  [ServicedeskRecurringJob.RunTick]: Record<string, never>
 }

@@ -263,6 +263,11 @@ export const TAG_GROUPS = [
           'Escalas de plantão (on-call): camadas (primeira chamada, retaguarda…) com rodízio determinístico por fuso, trocas pontuais, linha do tempo das próximas semanas e quem está de plantão agora. Com calendário de expediente a escala só vale fora do horário comercial; o escalonamento pode avisar e reatribuir para quem está de plantão.',
       },
       {
+        name: 'ServiceDesk · Chamados recorrentes',
+        description:
+          'Rotinas periódicas (manutenção preventiva): agenda no fuso da regra (frequência, intervalo, dias, horário, vigência e antecedência), valores do chamado gerado, pré-visualização das próximas ocorrências, histórico de "abriu, pulou ou falhou" e o "gerar agora". O worker abre os chamados com ator de sistema, de forma idempotente por ocorrência.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

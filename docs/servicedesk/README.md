@@ -95,6 +95,27 @@ Modelos: bloco `ServiceDesk` no fim de `prisma/schema.prisma` (tabelas `sd_*`).
 - **Base de conhecimento**: port da Wiki do Nexo (Plate), árvore de artigos,
   rascunho/publicado, interno/portal, categoria, tags, votos de utilidade,
   vínculo com chamado.
+- **Chamado recorrente** (`SdRecurringTicket`): rotina periódica
+  (manutenção preventiva, limpeza, backup, vistoria, revisão de link) que
+  abre chamado sozinha. Guarda os valores do chamado (`defaults`, mesma
+  forma do modelo) + cliente, item de configuração, departamento e
+  responsável, e a agenda: frequência (DAILY/WEEKLY/MONTHLY/YEARLY),
+  intervalo, dias da semana (`byWeekday`, 0=domingo), dia do mês
+  (`byMonthday`), horário (`atTime`), **fuso da regra**, vigência
+  (`startsAt`/`endsAt`), antecedência (`leadTimeMinutes`) e `skipIfOpen`.
+  Regras da agenda (lib pura `src/lib/servicedesk/recurrence.ts`): `atTime`
+  é hora local do fuso da regra; o intervalo conta a partir de `startsAt`
+  (semana começa no domingo); um dia do mês que não existe **cai no último
+  dia do mês** (31 → 30/04, 28/02); hora local inexistente por mudança de
+  fuso cai no primeiro instante depois do salto e hora ambígua vale a
+  primeira passagem; sem ocorrência na vigência a agenda é recusada
+  (`SD_RECURRING_SCHEDULE_INVALID`). Cada **ocorrência**
+  (`SdRecurringTicketRun`) registra `CREATED` (com o chamado),
+  `SKIPPED` (a anterior ainda aberta, com `skipIfOpen`) ou `FAILED` (código
+  do erro); a unicidade `(recurringId, scheduledFor)` é a trava de
+  idempotência do worker. O tick não faz backfill: abre no máximo uma
+  ocorrência por regra e a agenda pula o atraso acumulado. "Gerar agora"
+  ignora `skipIfOpen`, carimba `lastRunAt` e não consome a agenda.
 - **Dashboards**: motor do CRM com `module = SERVICE_DESK` e fontes
   `sd-tickets` etc.; padrões "Analítico" e "KPIs (TV)" semeados; modo TV em
   tela cheia com auto-refresh.
@@ -245,7 +266,7 @@ de canal vira log e o resto segue; só erro de banco vira `err`.
 | `/customers`, `/companies`, `/contacts`, `/config-items` | cadastros |
 | `/knowledge`, `/knowledge/[articleId]` | base de conhecimento |
 | `/dashboards`, `/dashboards/[id]`, `/dashboards/[id]/tv` | painéis |
-| `/settings` | configurações (abas) |
+| `/settings` | configurações (abas; "Recorrentes" = rotinas preventivas) |
 | `/servicedesk/approval/[token]` (pública, fora do workspace) | aprovar/reprovar |
 
 Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
@@ -266,6 +287,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | dashboards-portal | fontes do dashboard, seeds Analítico/KPIs, modo TV, portal do solicitante |
 | monitoring | `sd-monitor-source`, `sd-monitor-alert`, `src/lib/servicedesk/{monitoring,monitor-fields}.ts`, entrada pública `servicedesk/monitoring/[token]`, aba Monitoramento das configurações, bloco de origem na tela do chamado |
 | oncall | `sd-oncall` (schema/mapper/repository/service), `sd-oncall-resolver.ts`, `src/lib/servicedesk/oncall.ts`, API `servicedesk/oncall/**`, aba "Plantão", selo `SdOnCallBadge`, e as ações `notifyOnCall`/`reassignToOnCall` do escalonamento |
+| recurring | `sd-recurring-ticket` (schema/mapper/repository/service) + `sd-recurring-ticket-runner.ts`, `src/lib/servicedesk/recurrence.ts`, fila `servicedesk-recurring`, aba Configurações > Recorrentes, aba "Rotinas" do item de configuração |
 | mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
 
 ## Operação
@@ -286,7 +308,8 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   escalonamento, automações de SLA e fechamento automático de resolvidos),
   `servicedesk-ai` (triagem automática na abertura, quando ligada) e
   `servicedesk-digest` (de hora em hora; manda o resumo diário a quem optou,
-  na hora local do workspace).
+  na hora local do workspace) e `servicedesk-recurring` (5 min: abre os
+  chamados das rotinas recorrentes vencidas, idempotente por ocorrência).
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as
@@ -344,6 +367,13 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   o escalonamento usar a escala, ligue "Passar para quem está de plantão" e
   "Avisar o plantão" na regra (Configurações > Escalonamento); sem ninguém de
   plantão o chamado continua indo para o líder, como antes.
+- **Chamados recorrentes**: Configurações > Recorrentes cadastra a rotina
+  (agenda + valores do chamado). O worker (`servicedesk-recurring`, a cada 5
+  min) abre o chamado com ator de sistema, grava a ocorrência e recalcula o
+  próximo disparo no fuso da regra; a tela pré-visualiza as próximas cinco
+  ocorrências com a mesma lib que o worker usa. "Gerar agora" serve para
+  testar a configuração sem esperar o horário. A aba "Rotinas" do item de
+  configuração mostra as rotinas que incidem sobre ele.
 - **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
   acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
   conhecimento.
