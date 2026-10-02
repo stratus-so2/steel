@@ -388,8 +388,9 @@ export const SdReportDataRepository = {
           id: row.id,
           name: row.name,
           email: row.email,
-          ownerEmail: row.createdBy?.email ?? null,
-          ownerName: row.createdBy?.name ?? null,
+          // `createdById` é obrigatório: o cadastro sempre tem um mantenedor.
+          ownerEmail: row.createdBy.email,
+          ownerName: row.createdBy.name,
         }))
       },
     )

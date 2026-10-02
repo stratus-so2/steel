@@ -218,15 +218,17 @@ export function sdReportNextRunAt(
   const minutes = parseAtTime(schedule.atTime) as number
   const parts = localParts(from.getTime(), tz)
 
-  for (let shift = 0; shift <= 1; shift++) {
+  const at = (shift: number): number => {
     const month = parts.month - 1 + shift
     const year = parts.year + Math.floor(month / 12)
     const normalized = ((month % 12) + 12) % 12
-    const dayUtc = Date.UTC(year, normalized, schedule.dayOfMonth)
-    const at = localToUtc(dayUtc, minutes, tz)
-    if (at > from.getTime()) return new Date(at)
+    return localToUtc(Date.UTC(year, normalized, schedule.dayOfMonth), minutes, tz)
   }
-  return null
+
+  // O dia deste mês, se ainda está à frente; senão o do mês que vem — que é
+  // sempre depois de `from`, então não há caso sem resposta.
+  const thisMonth = at(0)
+  return new Date(thisMonth > from.getTime() ? thisMonth : at(1))
 }
 
 /** `dd/MM/yyyy` no fuso do relatório (nunca no fuso de quem lê). */

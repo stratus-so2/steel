@@ -16,6 +16,7 @@ import {
   Mail01Icon,
   Message01Icon,
   Notification03Icon,
+  PieChartIcon,
   RadarIcon,
   RepeatIcon,
   Settings02Icon,
@@ -44,6 +45,7 @@ import { SdOnCallTab } from './oncall-tab'
 import { SdPartsTab } from './parts-tab'
 import { SdPrioritiesTab } from './priorities-tab'
 import { SdRecurringTab } from './recurring-tab'
+import { SdReportsTab } from './reports-tab'
 import { SdSlaTab } from './sla-tab'
 import { SdTemplatesTab } from './templates-tab'
 import { SdWhatsappSettingsTab } from './whatsapp-tab'
@@ -202,6 +204,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Contratos de atendimento: franquia de horas, valor da hora, arredondamento, mínimo por chamado, regras de valor (tipo × prioridade × janela) e o histórico de períodos com consumo e excedente.',
     component: SdContractsTab,
+  },
+  {
+    id: 'reports',
+    label: 'Relatórios',
+    icon: PieChartIcon,
+    description:
+      'Relatórios de SLA agendados: recorte (clientes, departamentos, tipos), período apurado, formatos (PDF/CSV), dia, hora e fuso do envio, destinatários — e o histórico de execuções com os arquivos para baixar.',
+    component: SdReportsTab,
   },
   {
     id: 'monitoring',

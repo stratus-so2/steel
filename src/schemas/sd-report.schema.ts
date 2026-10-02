@@ -53,7 +53,7 @@ const ticketTypes = z.array(SdTicketTypeEnum).max(4)
 const formats = z
   .array(SdReportFormatEnum)
   .min(1, 'Escolha ao menos um formato')
-  .max(SD_REPORT_FORMATS.length)
+  .max(10)
   /** `['CSV','PDF','CSV']` → `['PDF','CSV']` (ordem do enum, sem repetir). */
   .transform((list) => SD_REPORT_FORMATS.filter((f) => list.includes(f)))
 
