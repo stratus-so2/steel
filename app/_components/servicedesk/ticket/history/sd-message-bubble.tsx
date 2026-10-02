@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import type { SdTicketMailMessageDTO } from '@/types/sd-mailbox'
 import type { SdTicketMessageDTO } from '@/types/sd-ticket-message'
-import { SD_TONE, SD_TONE_TEXT } from '../sd-ticket-meta'
+import { SD_TONE, SD_TONE_SOFT, SD_TONE_TEXT } from '../sd-ticket-meta'
 import { formatDateTime, formatTime } from '../shared/sd-tab-format'
 import { SdMessageAttachments } from './sd-message-attachments'
 
@@ -21,8 +21,7 @@ import { SdMessageAttachments } from './sd-message-attachments'
  * status), com o texto no token do tema para o corpo da mensagem continuar
  * legível no claro e no escuro.
  */
-const INTERNAL_SURFACE =
-  'border border-amber-500/30 bg-amber-500/10 text-foreground'
+const INTERNAL_SURFACE = cn('border', SD_TONE_SOFT.amber, 'text-foreground')
 
 const CHANNEL_LABEL: Record<SdTicketMessageDTO['channel'], string | null> = {
   PLATFORM: null,

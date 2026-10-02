@@ -27,7 +27,7 @@ import { sdTodayLocal } from '../board/sd-board-state'
 import { SdTicketRow } from '../board/sd-list-view'
 import { SdCreateTicketSheet } from '../ticket/sd-create-ticket-sheet'
 import { useSdNow } from '../ticket/sd-ticket-badges'
-import { sdSlaSortKey } from '../ticket/sd-ticket-meta'
+import { SD_TONE_TEXT, sdSlaSortKey } from '../ticket/sd-ticket-meta'
 
 /** "Bom dia", "Boa tarde", "Boa noite". */
 export function sdGreeting(now: Date = new Date()): string {
@@ -110,9 +110,9 @@ export function sdHomeKpis(
 
 const TONE: Record<SdKpi['tone'], string> = {
   default: 'text-foreground',
-  warning: 'text-amber-600 dark:text-amber-400',
-  danger: 'text-red-600 dark:text-red-400',
-  success: 'text-emerald-600 dark:text-emerald-400',
+  warning: SD_TONE_TEXT.amber,
+  danger: SD_TONE_TEXT.red,
+  success: SD_TONE_TEXT.emerald,
 }
 
 function Panel({

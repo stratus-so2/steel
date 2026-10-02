@@ -57,6 +57,7 @@ import type {
   SdReportRunStatusDTO,
   SdScheduledReportDTO,
 } from '@/types/sd-report'
+import { SD_TONE_SOFT } from '../sd-tone'
 import {
   ConfirmDeleteButton,
   EmptyState,
@@ -116,8 +117,8 @@ const STATUS_LABEL: Record<SdReportRunStatusDTO, string> = {
  * `destructive`, que já é o vermelho do tema.
  */
 const STATUS_TONE: Record<SdReportRunStatusDTO, string> = {
-  GENERATED: 'border-sky-500/40 bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  SENT: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  GENERATED: SD_TONE_SOFT.sky,
+  SENT: SD_TONE_SOFT.emerald,
   FAILED: 'border-destructive/40 bg-destructive/10 text-destructive',
 }
 

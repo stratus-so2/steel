@@ -251,6 +251,8 @@ export function SdMessageComposer({
     <div
       className={cn(
         'relative flex flex-col gap-2 border-border border-t p-3',
+        // Nota interna: 5% de âmbar, mais fraco que `SD_TONE` de propósito —
+        // é fundo de área de digitação, não selo de status.
         internal && 'bg-amber-500/5',
         dragging && 'ring-2 ring-primary ring-inset',
       )}

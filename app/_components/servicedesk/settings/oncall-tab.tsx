@@ -38,6 +38,7 @@ import type {
   SdOnCallScheduleDTO,
   SdOnCallTimelineDTO,
 } from '@/types/sd-oncall'
+import { SD_TONE_FILL } from '../sd-tone'
 import { SdOnCallBadge } from '../ticket/sd-oncall-badge'
 import { SdUserAvatar } from '../ticket/sd-ticket-badges'
 import {
@@ -50,7 +51,6 @@ import {
   ToggleRow,
   useSdSettingsContext,
 } from './sd-settings-kit'
-
 /**
  * Aba "Plantão": escalas, camadas com o rodízio dos participantes (arrastar
  * para ordenar), as trocas pontuais e a linha do tempo das próximas duas
@@ -568,12 +568,12 @@ function SdOnCallOverridesSection({
  * apagaria o rótulo branco. O tom 600 mantém contraste no claro e no escuro.
  */
 const SEGMENT_COLORS = [
-  'bg-sky-600',
-  'bg-violet-600',
-  'bg-emerald-600',
-  'bg-amber-600',
-  'bg-rose-600',
-  'bg-teal-600',
+  SD_TONE_FILL.sky,
+  SD_TONE_FILL.violet,
+  SD_TONE_FILL.emerald,
+  SD_TONE_FILL.amber,
+  SD_TONE_FILL.rose,
+  SD_TONE_FILL.teal,
 ]
 
 /** Cor estável por pessoa, para a barra ficar legível nos dois temas. */

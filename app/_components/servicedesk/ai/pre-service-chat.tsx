@@ -26,6 +26,8 @@ import type {
   SdAiOpenedTicketDTO,
 } from '@/types/sd-ai'
 
+import { SD_TONE, SD_TONE_TEXT } from '../sd-tone'
+
 /**
  * Pré-atendimento por IA no portal do solicitante: conversa, cartões de
  * artigos da base e o botão "abrir chamado" com o rascunho que a IA montou
@@ -146,7 +148,7 @@ export function SdPreServiceChat({
           <SteelIcon
             icon={CheckmarkCircle02Icon}
             strokeWidth={2}
-            className='text-emerald-600 dark:text-emerald-400'
+            className={SD_TONE_TEXT.emerald}
           />
           <h3 className='font-semibold text-sm'>
             Chamado {opened.code} aberto
@@ -197,13 +199,13 @@ export function SdPreServiceChat({
         <SteelIcon
           icon={AiMagicIcon}
           strokeWidth={2}
-          className='size-4 text-violet-600 dark:text-violet-400'
+          className={cn('size-4', SD_TONE_TEXT.violet)}
         />
         <h3 className='font-semibold text-sm'>Assistente do ServiceDesk</h3>
       </header>
 
       {hint ? (
-        <p className='rounded-lg bg-amber-500/10 px-3 py-2 text-amber-700 text-xs dark:text-amber-300'>
+        <p className={cn('rounded-lg px-3 py-2 text-xs', SD_TONE.amber)}>
           {hint}
         </p>
       ) : null}

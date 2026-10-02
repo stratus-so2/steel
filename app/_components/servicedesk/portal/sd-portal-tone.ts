@@ -10,12 +10,13 @@
  * dois estados sem token — confirmação e a estrela da avaliação.
  */
 
+import { SD_TONE_SOFT, SD_TONE_TEXT } from '../sd-tone'
+
 /** Confirmação: "tudo resolvido", "como foi resolvido", "verifique o e-mail". */
-export const SD_PORTAL_OK_TONE =
-  'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+export const SD_PORTAL_OK_TONE = SD_TONE_SOFT.emerald
 
 /** Só o texto da confirmação, quando a superfície já vem do tema. */
-export const SD_PORTAL_OK_TEXT = 'text-emerald-700 dark:text-emerald-300'
+export const SD_PORTAL_OK_TEXT = SD_TONE_TEXT.emerald
 
 /** Estrela marcada da avaliação (CSAT) e o estado de passagem do mouse. */
 export const SD_CSAT_STAR_ON = 'text-amber-500'

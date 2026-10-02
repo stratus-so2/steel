@@ -52,8 +52,8 @@ const KIND_STYLE: Record<SdEventKind, { icon: IconSvgElement; tone: string }> =
 
 /** "De → para" de uma alteração: o valor antigo riscado, o novo em verde. */
 const DIFF_TONE = {
-  from: 'bg-red-500/10 text-red-700 line-through decoration-red-500/40 dark:text-red-300',
-  to: 'bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-300',
+  from: cn(SD_TONE.red, 'line-through decoration-red-500/40'),
+  to: cn(SD_TONE.emerald, 'font-medium'),
   empty: 'bg-muted text-muted-foreground italic',
 } as const
 
