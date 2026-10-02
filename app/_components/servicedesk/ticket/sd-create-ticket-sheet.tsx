@@ -33,6 +33,7 @@ import {
   sdCustomFieldPayload,
   sdCustomFieldRequiredErrors,
 } from '../custom-fields/sd-custom-fields-utils'
+import { SdKbDraftSuggestions } from '../knowledge'
 import { SdOptionSelect } from './sd-option-select'
 import { SdRichTextEditor } from './sd-rich-text-editor'
 import { SdLevelBadge } from './sd-ticket-badges'
@@ -490,6 +491,18 @@ export function SdCreateTicketSheet({
                 }
               />
             </Row>
+            {/* KCS: antes de abrir, mostra o que a base já responde. */}
+            <SdKbDraftSuggestions
+              workspaceId={workspaceId}
+              workspaceSlug={slug}
+              title={draft.title}
+              description={draft.description}
+              categoryIds={[
+                v.categoryId as string | null,
+                v.subcategoryId as string | null,
+                v.serviceId as string | null,
+              ].filter((id): id is string => Boolean(id))}
+            />
           </div>
 
           <Section title='Prioridade'>

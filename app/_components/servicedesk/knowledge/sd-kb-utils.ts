@@ -124,3 +124,27 @@ export function sdKbHelpfulRatio(a: {
   const total = a.helpfulCount + a.notHelpfulCount
   return total === 0 ? null : Math.round((a.helpfulCount / total) * 100)
 }
+
+/**
+ * Revisão vencida (KCS) — espelha `sdKcsReviewOverdue` do servidor, mas sem
+ * puxar nada de `src/lib` para o cliente.
+ */
+export function sdKbReviewOverdue(
+  reviewDueAt: string | null | undefined,
+  now = Date.now(),
+): boolean {
+  if (!reviewDueAt) return false
+  const due = new Date(reviewDueAt).getTime()
+  return Number.isNaN(due) ? false : due <= now
+}
+
+/** Top N por reuso (só os que já resolveram algum chamado). */
+export function sdKbTopReused(
+  articles: SdKbArticleSummaryDTO[],
+  limit = 5,
+): SdKbArticleSummaryDTO[] {
+  return [...articles]
+    .filter((article) => article.reuseCount > 0)
+    .sort((a, b) => b.reuseCount - a.reuseCount)
+    .slice(0, limit)
+}

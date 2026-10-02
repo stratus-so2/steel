@@ -6,7 +6,7 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Muted } from '@/components/typography/text/muted'
 import { cn } from '@/lib/utils'
 import type { SdKbArticleSummaryDTO } from '@/types/sd-kb-article'
-import { SdKbStatusBadge } from './sd-kb-status-badge'
+import { SdKbReviewDueBadge, SdKbStatusBadge } from './sd-kb-status-badge'
 
 /**
  * Lista compacta de artigos (home, relacionados, busca). `onSelect` para o
@@ -50,8 +50,11 @@ export function SdKbArticleList({
                 <span className='truncate font-medium text-sm'>
                   {article.title || 'Sem título'}
                 </span>
-                {showStatus && article.status === 'DRAFT' && (
+                {showStatus && article.status !== 'PUBLISHED' && (
                   <SdKbStatusBadge status={article.status} />
+                )}
+                {showStatus && (
+                  <SdKbReviewDueBadge reviewDueAt={article.reviewDueAt} />
                 )}
               </span>
               {excerptFor?.(article) && (

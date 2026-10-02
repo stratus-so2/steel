@@ -154,8 +154,8 @@ interface KbNotifyInput {
   title: string
   body: string
   articleTitle: string
-  /** Caminho interno (sem domínio). */
-  href: string
+  /** Caminho interno, montado com o slug da workspace. */
+  hrefFor: (slug: string) => string
   action?: string
   meta?: Record<string, unknown>
 }
@@ -208,6 +208,8 @@ async function notifyKbEvent(
   if (!recipients.ok) return recipients
   if (!prefs.ok) return prefs
   if (!workspace.value) return ok({ inApp: 0, email: 0 })
+  const href = input.hrefFor(workspace.value.slug)
+  const workspaceName = workspace.value.name
 
   const perUser = new Map<string, Map<string, boolean>>()
   for (const row of prefs.value) {
@@ -233,7 +235,7 @@ async function notifyKbEvent(
       kind: spec.kind,
       title: input.title,
       body: input.body,
-      href: input.href,
+      href,
     })
     if (created.ok) inApp = created.value
     else {
@@ -252,11 +254,11 @@ async function notifyKbEvent(
         sendSdKbReviewEmail({
           email: target.email,
           username: target.name,
-          workspaceName: workspace.value?.name ?? '',
+          workspaceName,
           headline: input.title,
           articleTitle: input.articleTitle,
           message: input.body,
-          redirectUrl: `${NEXT_PUBLIC_URL}${input.href}`,
+          redirectUrl: `${NEXT_PUBLIC_URL}${href}`,
           action: input.action,
         }),
       ),
@@ -408,23 +410,20 @@ export const SdKbReviewService = {
       current = moved.value
     }
 
-    const workspace = await SdTicketContextRepository.findWorkspace(workspaceId)
-    if (workspace.ok && workspace.value) {
-      await notifyKbEvent({
-        workspaceId,
-        event: 'kb.review_requested',
-        userIds: [dto.reviewerId],
-        actorId,
-        title: 'Revisão de artigo pedida a você',
-        body: dto.comment?.trim()
-          ? dto.comment.trim()
-          : 'Revise o artigo e aprove ou peça mudanças.',
-        articleTitle: current.title || 'Artigo sem título',
-        href: articleHref(workspace.value.slug, articleId),
-        action: 'Revisar artigo',
-        meta: { articleId, reviewId: review.value.id },
-      })
-    }
+    await notifyKbEvent({
+      workspaceId,
+      event: 'kb.review_requested',
+      userIds: [dto.reviewerId],
+      actorId,
+      title: 'Revisão de artigo pedida a você',
+      body: dto.comment?.trim()
+        ? dto.comment.trim()
+        : 'Revise o artigo e aprove ou peça mudanças.',
+      articleTitle: current.title,
+      hrefFor: (slug) => articleHref(slug, articleId),
+      action: 'Revisar artigo',
+      meta: { articleId, reviewId: review.value.id },
+    })
 
     logger.info('servicedesk.kb.review_requested', {
       workspaceId,
@@ -498,26 +497,23 @@ export const SdKbReviewService = {
       current = draft.value
     }
 
-    const workspace = await SdTicketContextRepository.findWorkspace(workspaceId)
-    if (workspace.ok && workspace.value) {
-      await notifyKbEvent({
-        workspaceId,
-        event: 'kb.review_decided',
-        userIds: [article.createdById, article.updatedById],
-        actorId,
-        title: approved
-          ? 'Artigo aprovado e publicado'
-          : 'Revisão pediu mudanças no artigo',
-        body:
-          decided.value.comment ??
-          (approved
-            ? 'O revisor aprovou o artigo; ele já está publicado.'
-            : 'O revisor pediu mudanças no artigo.'),
-        articleTitle: current.title || 'Artigo sem título',
-        href: articleHref(workspace.value.slug, article.id),
-        meta: { articleId: article.id, reviewId },
-      })
-    }
+    await notifyKbEvent({
+      workspaceId,
+      event: 'kb.review_decided',
+      userIds: [article.createdById, article.updatedById],
+      actorId,
+      title: approved
+        ? 'Artigo aprovado e publicado'
+        : 'Revisão pediu mudanças no artigo',
+      body:
+        decided.value.comment ??
+        (approved
+          ? 'O revisor aprovou o artigo; ele já está publicado.'
+          : 'O revisor pediu mudanças no artigo.'),
+      articleTitle: current.title,
+      hrefFor: (slug) => articleHref(slug, article.id),
+      meta: { articleId: article.id, reviewId },
+    })
 
     logger.info('servicedesk.kb.review_decided', {
       workspaceId,
@@ -685,14 +681,12 @@ export const SdKbReviewService = {
       if (sdLocalHour(now, timeZone) !== SD_DIGEST_HOUR) continue
       result.due += 1
 
-      const [overdue, workspace] = await Promise.all([
-        SdKbReviewRepository.listOverdue(workspaceId, now),
-        SdTicketContextRepository.findWorkspace(workspaceId),
-      ])
-      if (!overdue.ok || !workspace.ok || !workspace.value) {
+      const overdue = await SdKbReviewRepository.listOverdue(workspaceId, now)
+      if (!overdue.ok) {
         result.errors += 1
         logger.warn('servicedesk.kb.review_due.workspace_failed', {
           workspaceId,
+          reason: overdue.error.code,
         })
         continue
       }
@@ -713,7 +707,6 @@ export const SdKbReviewService = {
         }
       }
 
-      const href = `/${workspace.value.slug}/servicedesk/knowledge?curation=overdue`
       for (const [userId, info] of byUser) {
         const sent = await notifyKbEvent({
           workspaceId,
@@ -725,7 +718,7 @@ export const SdKbReviewService = {
             info.count === 1
               ? info.title
               : `${info.count} artigos para revisar`,
-          href,
+          hrefFor: (slug) => `/${slug}/servicedesk/knowledge?curation=overdue`,
           action: 'Ver artigos',
           meta: { overdue: info.count },
         })

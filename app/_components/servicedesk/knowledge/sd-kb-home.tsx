@@ -19,6 +19,7 @@ import type {
 } from '@/types/sd-kb-article'
 import { SdKbArticleList } from './sd-kb-article-list'
 import { SdKbCategoryCards } from './sd-kb-category-cards'
+import { SdKbCuration } from './sd-kb-curation'
 import { SdKbSearchBox } from './sd-kb-search-box'
 import { sdKbHelpfulRatio, sdKbRelativeTime, sdKbTop } from './sd-kb-utils'
 
@@ -96,6 +97,10 @@ export function SdKbHome({
             onSelect={setCategoryId}
           />
         </section>
+      )}
+
+      {isAgent && !filtering && (
+        <SdKbCuration workspaceId={workspaceId} workspaceSlug={workspaceSlug} />
       )}
 
       {filtering ? (

@@ -14,10 +14,12 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-kb-article.repository')
 vi.mock('@/src/repositories/sd-kb-ticket-link.repository')
+vi.mock('@/src/repositories/sd-kb-review.repository')
 vi.mock('@/lib/axiom/audit')
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { SdKbArticleRepository } from '@/src/repositories/sd-kb-article.repository'
+import { SdKbReviewRepository } from '@/src/repositories/sd-kb-review.repository'
 import { SdKbTicketLinkRepository } from '@/src/repositories/sd-kb-ticket-link.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import {
@@ -27,6 +29,7 @@ import {
 
 const articles = vi.mocked(SdKbArticleRepository)
 const links = vi.mocked(SdKbTicketLinkRepository)
+const reviews = vi.mocked(SdKbReviewRepository)
 const moduleAccess = vi.mocked(WorkspaceModuleAccessRepository)
 const audit = vi.mocked(auditMutation)
 
@@ -259,6 +262,174 @@ describe('SdKbTicketLinkService', () => {
       expectErr(
         await SdKbTicketLinkService.suggest('u1', WS, {
           ticketId: 't1',
+          limit: 5,
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('markResolved()', () => {
+    beforeEach(() => {
+      actAs('agent')
+      articles.findById.mockResolvedValue(ok(article))
+      links.link.mockResolvedValue(ok(link))
+      reviews.markResolved.mockResolvedValue(
+        ok({
+          link: { ...link, resolvedTicket: true, article },
+          changed: true,
+        }),
+      )
+    })
+
+    it('marks the resolver, linking the article on the spot', async () => {
+      const dto = expectOk(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: true,
+        }),
+      )
+      expect(dto.resolvedTicket).toBe(true)
+      expect(links.link).toHaveBeenCalledWith({
+        ticketId: 't1',
+        articleId: 'a1',
+        linkedById: 'u1',
+      })
+      expect(reviews.markResolved).toHaveBeenCalledWith('t1', 'a1', true)
+      expect(audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entity: 'sd_ticket_kb_link',
+          action: 'resolve',
+        }),
+      )
+    })
+
+    it('unmarking does not create a link', async () => {
+      reviews.markResolved.mockResolvedValue(
+        ok({ link: { ...link, resolvedTicket: false }, changed: true }),
+      )
+      const dto = expectOk(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: false,
+        }),
+      )
+      expect(dto.resolvedTicket).toBe(false)
+      expect(links.link).not.toHaveBeenCalled()
+      expect(audit).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'unresolve' }),
+      )
+    })
+
+    it('refuses requesters and propagates failures', async () => {
+      actAs('requester')
+      expectErr(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: true,
+        }),
+        'SD_NOT_AGENT',
+      )
+      actAs('agent')
+      links.findTicket.mockResolvedValue(err(sdTicketNotFound()))
+      expectErr(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: true,
+        }),
+        'SD_TICKET_NOT_FOUND',
+      )
+      links.findTicket.mockResolvedValue(ok(ticket))
+      articles.findById.mockResolvedValue(err(sdKbArticleNotFound()))
+      expectErr(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: true,
+        }),
+        'SD_KB_ARTICLE_NOT_FOUND',
+      )
+      articles.findById.mockResolvedValue(ok(article))
+      links.link.mockResolvedValue(err(databaseError()))
+      expectErr(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: true,
+        }),
+        'DATABASE_ERROR',
+      )
+      links.link.mockResolvedValue(ok(link))
+      reviews.markResolved.mockResolvedValue(err(databaseError()))
+      expectErr(
+        await SdKbTicketLinkService.markResolved('u1', WS, 'a1', {
+          ticketId: 't1',
+          resolved: true,
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('suggestForDraft()', () => {
+    it('suggests from the typed title and description (agent sees internal)', async () => {
+      actAs('agent')
+      articles.suggest.mockResolvedValue(
+        ok([{ ...article, plainText: 'reinicie a vpn', rank: 0.4 }]),
+      )
+      const rows = expectOk(
+        await SdKbTicketLinkService.suggestForDraft('u1', WS, {
+          title: 'VPN não conecta',
+          description: 'erro 809 no notebook',
+          categoryIds: ['c1'],
+          limit: 4,
+        }),
+      )
+      expect(rows[0]).toMatchObject({ id: 'a1', rank: 0.4 })
+      expect(articles.suggest).toHaveBeenCalledWith(WS, {
+        terms: ['vpn', 'não', 'conecta', 'erro', '809', 'notebook'],
+        categoryIds: ['c1'],
+        limit: 4,
+        portalOnly: false,
+      })
+    })
+
+    it('requester only gets portal articles', async () => {
+      actAs('requester')
+      articles.suggest.mockResolvedValue(ok([]))
+      expectOk(
+        await SdKbTicketLinkService.suggestForDraft('u1', WS, {
+          title: 'senha',
+          description: '',
+          categoryIds: [],
+          limit: 5,
+        }),
+      )
+      expect(articles.suggest).toHaveBeenCalledWith(
+        WS,
+        expect.objectContaining({ portalOnly: true }),
+      )
+    })
+
+    it('refuses non-members', async () => {
+      actAs('non-member')
+      expectErr(
+        await SdKbTicketLinkService.suggestForDraft('u1', WS, {
+          title: 'vpn',
+          description: '',
+          categoryIds: [],
+          limit: 5,
+        }),
+        'FORBIDDEN',
+      )
+    })
+
+    it('propagates repository failures', async () => {
+      actAs('agent')
+      articles.suggest.mockResolvedValue(err(databaseError()))
+      expectErr(
+        await SdKbTicketLinkService.suggestForDraft('u1', WS, {
+          title: 'vpn',
+          description: '',
+          categoryIds: [],
           limit: 5,
         }),
         'DATABASE_ERROR',

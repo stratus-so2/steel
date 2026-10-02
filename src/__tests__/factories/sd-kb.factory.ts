@@ -1,5 +1,10 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { Prisma, SdKbArticle, SdKbComment } from '@prisma/client'
+import type {
+  Prisma,
+  SdKbArticle,
+  SdKbComment,
+  SdKbReview,
+} from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 import type { SdKbArticleWithRefs } from '@/src/repositories/sd-kb-article.repository'
 import type { SdKbCommentWithAuthor } from '@/src/repositories/sd-kb-comment.repository'
@@ -84,6 +89,13 @@ export async function seedSdKbArticle(
       | 'helpfulCount'
       | 'notHelpfulCount'
       | 'viewCount'
+      | 'reuseCount'
+      | 'sourceTicketId'
+      | 'reviewIntervalDays'
+      | 'reviewDueAt'
+      | 'lastReviewedAt'
+      | 'publishedAt'
+      | 'updatedById'
     >
   > & { content?: Prisma.InputJsonValue },
 ) {
@@ -165,5 +177,18 @@ export async function seedSdTicket(
       phaseId: phase.id,
       ...overrides,
     },
+  })
+}
+
+/** Revisão de artigo (KCS). */
+export async function seedSdKbReview(
+  workspaceId: string,
+  articleId: string,
+  overrides?: Partial<
+    Pick<SdKbReview, 'reviewerId' | 'status' | 'comment' | 'decidedAt'>
+  >,
+) {
+  return prisma.sdKbReview.create({
+    data: { workspaceId, articleId, ...overrides },
   })
 }
