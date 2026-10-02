@@ -1,6 +1,7 @@
 import type {
   Prisma,
   SdPhaseCategory,
+  SdRiskLevelPrediction,
   SdTicketChannel,
   SdTicketType,
 } from '@prisma/client'
@@ -74,6 +75,7 @@ export const SD_TICKET_INCLUDE = {
       },
     },
   },
+  riskPrediction: true,
   _count: { select: { children: { where: { deletedAt: null } } } },
 } as const satisfies Prisma.SdTicketInclude
 
@@ -81,7 +83,14 @@ export type SdTicketWithRelations = Prisma.SdTicketGetPayload<{
   include: typeof SD_TICKET_INCLUDE
 }>
 
-const CLOSED_CATEGORIES: SdPhaseCategory[] = ['RESOLVED', 'CLOSED', 'CANCELED']
+/** Fases que tiram o chamado da fila (fim do ciclo de atendimento). */
+export const SD_CLOSED_PHASE_CATEGORIES: SdPhaseCategory[] = [
+  'RESOLVED',
+  'CLOSED',
+  'CANCELED',
+]
+
+const CLOSED_CATEGORIES = SD_CLOSED_PHASE_CATEGORIES
 
 /** Filtros já resolvidos pelo service (sem `me`, códigos já parseados). */
 export interface SdTicketFilters {
@@ -109,6 +118,8 @@ export interface SdTicketFilters {
   channel?: SdTicketChannel
   tags?: string[]
   sla?: 'at_risk' | 'breached'
+  /** Faixa da previsão de risco (`SdTicketRiskPrediction.level`). */
+  riskLevel?: SdRiskLevelPrediction
   createdFrom?: Date
   createdTo?: Date
   dueFrom?: Date
@@ -232,6 +243,7 @@ export function buildSdTicketWhere(
   if (f.classificationId) where.classificationId = f.classificationId
   if (f.channel) where.channel = f.channel
   if (f.tags?.length) where.tags = { hasSome: f.tags }
+  if (f.riskLevel) and.push({ riskPrediction: { level: f.riskLevel } })
   if (f.sla === 'breached') and.push(breachedWhere(now))
   if (f.sla === 'at_risk') {
     and.push({ slaAtRiskNotifiedAt: { not: null } })

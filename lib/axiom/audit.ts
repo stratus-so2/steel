@@ -132,6 +132,8 @@ export type AuditEntity =
   | 'sd_change_window'
   | 'sd_cab_board'
   | 'sd_approval_round'
+  // ServiceDesk — risco preditivo e incidentes repetidos
+  | 'sd_incident_cluster'
   // ServiceDesk — contratos e apontamento de horas
   | 'sd_contract'
   | 'sd_contract_period'

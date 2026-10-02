@@ -4,6 +4,7 @@ import {
   formatSdTicketCode,
   type SdTicketPrefixes,
 } from '@/src/lib/servicedesk/ticket-code'
+import { toSdTicketRiskDTO } from '@/src/mappers/sd-risk.mapper'
 import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.repository'
 import type {
   SdCustomerRefDTO,
@@ -140,6 +141,7 @@ export function toSdTicketDTO(
     rootCause: t.rootCause,
     workaround: t.workaround,
     knownError: t.knownError,
+    risk: requester ? null : toSdTicketRiskDTO(t.riskPrediction),
     aiSummary: requester ? null : t.aiSummary,
     aiTriage: requester ? null : (t.aiTriage ?? null),
     csatScore: t.csatScore,

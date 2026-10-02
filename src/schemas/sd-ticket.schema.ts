@@ -226,6 +226,8 @@ export const ListSdTicketsSchema = z.object({
   channel: z.preprocess(blank, z.enum(SD_TICKET_CHANNELS).optional()),
   tags: z.preprocess(csv, z.array(tag).max(30).optional()),
   sla: z.preprocess(blank, z.enum(['at_risk', 'breached']).optional()),
+  /** Faixa da previsão de risco (`servicedesk-risk`, ADR 0016). */
+  riskLevel: z.preprocess(blank, z.enum(['LOW', 'MEDIUM', 'HIGH']).optional()),
   createdFrom: optionalDate,
   createdTo: optionalDate,
   dueFrom: optionalDate,

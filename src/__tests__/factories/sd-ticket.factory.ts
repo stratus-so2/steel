@@ -126,6 +126,7 @@ export function createFakeSdTicket(
     participants: [],
     parent: null,
     slaPolicy: null,
+    riskPrediction: null,
     _count: { children: 0 },
     ...overrides,
   }

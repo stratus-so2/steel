@@ -163,6 +163,7 @@ function resolveFilters(
     channel: q.channel,
     tags: q.tags,
     sla: q.sla,
+    riskLevel: q.riskLevel,
     createdFrom: q.createdFrom,
     createdTo: q.createdTo,
     dueFrom: q.dueFrom,

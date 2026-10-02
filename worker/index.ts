@@ -22,6 +22,7 @@ import { processServicedeskBilling } from '../src/lib/queue/processors/servicede
 import { processServicedeskDigest } from '../src/lib/queue/processors/servicedesk-digest'
 import { processServicedeskMail } from '../src/lib/queue/processors/servicedesk-mail'
 import { processServicedeskRecurring } from '../src/lib/queue/processors/servicedesk-recurring'
+import { processServicedeskRisk } from '../src/lib/queue/processors/servicedesk-risk'
 import { processServicedeskSla } from '../src/lib/queue/processors/servicedesk-sla'
 import { processStatusCollect } from '../src/lib/queue/processors/status-collect'
 import { processUsageRollup } from '../src/lib/queue/processors/usage-rollup'
@@ -44,6 +45,7 @@ import {
   scheduleServicedeskDigestJobs,
   scheduleServicedeskMailJobs,
   scheduleServicedeskRecurringJobs,
+  scheduleServicedeskRiskJobs,
   scheduleServicedeskSlaJobs,
   scheduleStatusCollectJobs,
   scheduleTrialLifecycleJobs,
@@ -175,6 +177,7 @@ async function main(): Promise<void> {
     registerWorker(QueueName.ServicedeskDigest, processServicedeskDigest),
     registerWorker(QueueName.ServicedeskRecurring, processServicedeskRecurring),
     registerWorker(QueueName.ServicedeskBilling, processServicedeskBilling),
+    registerWorker(QueueName.ServicedeskRisk, processServicedeskRisk),
   )
 
   await scheduleDataRetentionJobs()
@@ -194,6 +197,7 @@ async function main(): Promise<void> {
   await scheduleServicedeskDigestJobs()
   await scheduleServicedeskRecurringJobs()
   await scheduleServicedeskBillingJobs()
+  await scheduleServicedeskRiskJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',
