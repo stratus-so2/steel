@@ -2,6 +2,7 @@
 
 import type { IconSvgElement } from '@hugeicons/react'
 import {
+  ArrowDataTransferHorizontalIcon,
   ArrowUpDoubleIcon,
   BookOpen01Icon,
   CheckListIcon,
@@ -17,7 +18,9 @@ import {
 import type { ComponentType } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { cn } from '@/lib/utils'
+import type { SdTicketTypeDTO } from '@/types/sd-ticket'
 import { SdTicketApprovalsTab } from './tabs/approvals-tab'
+import { SdTicketChangeTab } from './tabs/change-tab'
 import { SdTicketChildrenTab } from './tabs/children-tab'
 import { SdTicketCostsTab } from './tabs/costs-tab'
 import { SdTicketEscalationTab } from './tabs/escalation-tab'
@@ -37,6 +40,8 @@ export interface SdTicketTabDef {
   component: ComponentType<SdTicketTabProps>
   /** Só na tela do agente (o portal usa `mode: 'requester'`). */
   agentOnly?: boolean
+  /** Só nestes tipos de chamado (ausente = todos). */
+  types?: readonly SdTicketTypeDTO[]
 }
 
 /**
@@ -77,6 +82,14 @@ export const SD_TICKET_TABS: SdTicketTabDef[] = [
     label: 'Aprovação',
     icon: CheckListIcon,
     component: SdTicketApprovalsTab,
+  },
+  {
+    id: 'change',
+    label: 'Mudança',
+    icon: ArrowDataTransferHorizontalIcon,
+    component: SdTicketChangeTab,
+    agentOnly: true,
+    types: ['CHANGE'],
   },
   {
     id: 'parts',
@@ -123,18 +136,22 @@ export const SD_TICKET_TABS: SdTicketTabDef[] = [
 /** Abas visíveis para o modo (agente vê todas). */
 export function sdTicketTabsFor(
   mode: SdTicketTabProps['mode'],
+  type?: SdTicketTypeDTO,
 ): SdTicketTabDef[] {
-  return mode === 'agent'
-    ? SD_TICKET_TABS
-    : SD_TICKET_TABS.filter((t) => !t.agentOnly)
+  return SD_TICKET_TABS.filter(
+    (t) =>
+      (mode === 'agent' || !t.agentOnly) &&
+      (!t.types || !type || t.types.includes(type)),
+  )
 }
 
 /** Aba ativa a partir do `?tab=` (inválida → a primeira). */
 export function sdResolveTab(
   tab: string | null | undefined,
   mode: SdTicketTabProps['mode'],
+  type?: SdTicketTypeDTO,
 ): string {
-  const tabs = sdTicketTabsFor(mode)
+  const tabs = sdTicketTabsFor(mode, type)
   return tabs.find((t) => t.id === tab)?.id ?? tabs[0]?.id ?? 'history'
 }
 
@@ -154,7 +171,7 @@ export function SdTicketTabs({
   /** Contadores por id de aba (ex.: `children: 3`). */
   counts?: Record<string, number | undefined>
 }) {
-  const tabs = sdTicketTabsFor(props.mode)
+  const tabs = sdTicketTabsFor(props.mode, props.ticket.type)
   const current = tabs.find((t) => t.id === active) ?? tabs[0]
   const Active = current?.component
   return (
