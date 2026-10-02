@@ -296,7 +296,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | contratos e horas | `sd-contract` (schema/mapper/repository/service), `sd-contract-period.repository.ts`, `sd-contract-billing.service.ts` (períodos e consolidação), `sd-contract-stamp.ts` (gancho do motor), `sd-time-entry` (schema/mapper/repository/service), `src/lib/servicedesk/billing.ts`, fila `servicedesk-billing`, aba Configurações > Contratos, aba "Horas" do chamado, bloco Contrato na tela do cliente |
 | inbox | `notification` (schema/mapper/repository/service da caixa), `app/_components/notifications/*` (lista, painel de leitura, ícone por tipo), `src/lib/notification-kind.ts` (tabela pura de tipo → rótulo/ícone/cor), rota `/inbox` |
 | relatórios agendados | `sd-scheduled-report` + `sd-report-run` (schema/mapper/repository/service), `src/lib/servicedesk/report-sla.ts` (apuração pura), `src/lib/servicedesk/report-pdf.ts` e `report-csv.ts`, fila `servicedesk-reports`, aba Configurações > Relatórios, histórico de execuções |
-| kcs | `sd-kb-review` (schema/mapper/repository/service), ciclo de vida do artigo (`IN_REVIEW`, `reviewDueAt`, `lastReviewedAt`, `reuseCount`), "criar artigo a partir deste chamado" com rascunho pela IA, sugestão na abertura, marcador `resolvedTicket` no vínculo chamado↔artigo |
+| kcs | `sd-kb-review` (schema/mapper/repository/service), `sd-kb-draft.service.ts` (artigo a partir do chamado, com rascunho da IA), `src/lib/servicedesk/kcs.ts` (esqueleto KCS, prompt e aritmética da validade), `markResolved`/`suggestForDraft` em `sd-kb-ticket-link.service.ts`, rotas `servicedesk/knowledge/{reviews,review-settings,stats,draft,suggest/draft}` e `knowledge/[articleId]/{reviews,review-interval,resolved}`, painel `SdKbReviewPanel`, `SdKbCuration`, `SdKbDraftSuggestions`, checagem diária no tique do `servicedesk-digest` |
 | risco preditivo | `src/lib/servicedesk/risk.ts` (tabela de fatores e faixas — ADR 0016), `sd-risk.service.ts` + `sd-ticket-risk-prediction.repository.ts`, `sd-incident-cluster` (agrupamento e sugestão de problema), fila `servicedesk-risk`, selo de risco no quadro e na tela do chamado |
 | integrações | `sd-integration` + `sd-integration-link` (schema/mapper/repository/service), `src/lib/servicedesk/{slack,github}.ts`, OAuth do Slack por workspace, webhooks `servicedesk/integrations/{slack,github}`, fila `servicedesk-integrations`, aba Configurações > Integrações, bloco de vínculos na tela do chamado |
 
@@ -318,10 +318,27 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   escalonamento, automações de SLA e fechamento automático de resolvidos),
   `servicedesk-ai` (triagem automática na abertura, quando ligada) e
   `servicedesk-digest` (de hora em hora; manda o resumo diário a quem optou,
-  na hora local do workspace), `servicedesk-recurring` (5 min: abre os
+  na hora local do workspace, e no mesmo tique avisa os artigos da base com
+  revisão vencida), `servicedesk-recurring` (5 min: abre os
   chamados das rotinas recorrentes vencidas, idempotente por ocorrência) e
   `servicedesk-billing` (00:20: abre o período do ciclo de cada contrato
   ativo e fecha o anterior, consolidando as horas).
+- **KCS (base de conhecimento)**: na aba Conhecimento do chamado, "Criar
+  artigo deste chamado" abre um rascunho já vinculado (`sourceTicketId`) no
+  formato KCS (Problema / Ambiente / Causa / Solução / Validação) — com IA
+  ligada o texto vem do provedor do workspace (cota de ADR 0007, dados
+  pessoais mascarados por ADR 0006); sem IA, vem o esqueleto das seções. O
+  autor edita e manda para revisão escolhendo um agente: `DRAFT → IN_REVIEW →
+  PUBLISHED`. Aprovar publica, carimba `lastReviewedAt` e agenda
+  `reviewDueAt = agora + validade` (validade por artigo, com o padrão do
+  workspace em Configurações > Geral); pedir mudanças devolve o rascunho com
+  o comentário. Artigo já publicado é revalidado **sem sair do ar**. Uma vez
+  por dia, na hora local do resumo, o tique do `servicedesk-digest` avisa cada
+  mantenedor dos artigos vencidos (`kb.review_due`); a tela marca "revisão
+  vencida". O marcador "Resolveu" no vínculo chamado ↔ artigo é o que conta em
+  `reuseCount` (idempotente no liga/desliga) e alimenta a curadoria da base
+  (mais reusados, vencidos, sem reuso) na home de Conhecimento.
+
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as
