@@ -30,7 +30,11 @@ import { sdApplicableCustomFields } from '../custom-fields/sd-custom-fields-util
 import { SdOptionSelect } from './sd-option-select'
 import { SdTypeBadge, SdUserAvatar } from './sd-ticket-badges'
 import { SdTicketFieldControl, sdIsDraftField } from './sd-ticket-field-control'
-import { SD_CHANNEL_LABEL, sdFormatDateTime } from './sd-ticket-meta'
+import {
+  SD_CHANNEL_LABEL,
+  SD_TONE_TEXT,
+  sdFormatDateTime,
+} from './sd-ticket-meta'
 import { sdTicketFieldLabel, sdTicketFieldValue } from './sd-ticket-options'
 
 /** Campo → corpo do PATCH (cascata do catálogo, campos customizados, vazios). */
@@ -462,7 +466,7 @@ export function SdTicketSidebar({
           <SteelIcon
             icon={AiMagicIcon}
             strokeWidth={2}
-            className='size-4 text-violet-500'
+            className={cn('size-4', SD_TONE_TEXT.violet)}
           />
         }
       >

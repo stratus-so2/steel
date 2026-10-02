@@ -26,6 +26,7 @@ import {
   SD_APPROVAL_STATUS_STYLE,
 } from '../approvals/sd-approval-labels'
 import { SdApprovalRequestDialog } from '../approvals/sd-approval-request-dialog'
+import { SD_TONE_FILL } from '../sd-ticket-meta'
 import { SdAgentOnlyNotice } from '../shared/sd-tab-bits'
 import { formatDateTime } from '../shared/sd-tab-format'
 import type { SdTicketTabProps } from './types'
@@ -45,7 +46,7 @@ function Step({
       <span
         className={cn(
           'size-2 shrink-0 rounded-full bg-primary',
-          tone === 'ok' && 'bg-emerald-500',
+          tone === 'ok' && SD_TONE_FILL.emerald,
           tone === 'bad' && 'bg-destructive',
           tone === 'muted' && 'bg-muted-foreground/50',
         )}

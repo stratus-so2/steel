@@ -23,7 +23,7 @@ import {
   SdUserAvatar,
   useSdNow,
 } from '../sd-ticket-badges'
-import { sdPrimarySla, sdTicketHref } from '../sd-ticket-meta'
+import { SD_TONE_FILL, sdPrimarySla, sdTicketHref } from '../sd-ticket-meta'
 import { SdTicketPicker } from '../sd-ticket-picker'
 import type { SdTicketTabProps } from './types'
 
@@ -124,7 +124,10 @@ export function SdTicketChildrenTab({
       {items.length > 0 ? (
         <div className='h-1.5 overflow-hidden rounded-full bg-muted'>
           <div
-            className='h-full rounded-full bg-emerald-500 transition-all'
+            className={cn(
+              'h-full rounded-full transition-all',
+              SD_TONE_FILL.emerald,
+            )}
             style={{ width: `${Math.round((done / items.length) * 100)}%` }}
           />
         </div>

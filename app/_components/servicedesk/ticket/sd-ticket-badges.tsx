@@ -25,6 +25,7 @@ import type {
 } from '@/types/sd-ticket'
 import {
   SD_PHASE_CATEGORY_COLOR,
+  SD_SLA_STATE_BAR,
   SD_SLA_STATE_LABEL,
   SD_SLA_STATE_TONE,
   SD_TICKET_TYPE_LABEL,
@@ -194,16 +195,7 @@ export function SdSlaWidget({
 }) {
   const live = sdLiveSla(timer, now)
   const percent = Math.min(100, Math.max(0, live.percentUsed ?? 0))
-  const bar =
-    live.state === 'breached'
-      ? 'bg-red-500'
-      : live.state === 'at_risk'
-        ? 'bg-amber-500'
-        : live.state === 'met'
-          ? 'bg-muted-foreground/50'
-          : live.state === 'paused'
-            ? 'bg-slate-400'
-            : 'bg-emerald-500'
+  const bar = SD_SLA_STATE_BAR[live.state]
   return (
     <div className='flex min-w-44 flex-col gap-1 rounded-lg border bg-card/60 px-2.5 py-1.5'>
       <div className='flex items-center justify-between gap-2'>

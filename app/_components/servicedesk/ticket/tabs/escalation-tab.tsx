@@ -22,7 +22,7 @@ import {
 import type { SdAgentDTO, SdDepartmentTreeDTO } from '@/types/sd-config'
 import { SdOptionSelect } from '../sd-option-select'
 import { SdUserAvatar } from '../sd-ticket-badges'
-import { sdFormatDateTime } from '../sd-ticket-meta'
+import { SD_TONE, SD_TONE_TEXT, sdFormatDateTime } from '../sd-ticket-meta'
 import { sdDepartmentOptions } from '../sd-ticket-options'
 import type { SdTicketTabProps } from './types'
 
@@ -134,7 +134,12 @@ export function SdTicketEscalationTab({
       <section className='flex flex-col gap-3'>
         <div className='flex items-center gap-2'>
           <h3 className='font-semibold text-sm'>Histórico</h3>
-          <span className='rounded-md bg-orange-500/10 px-1.5 font-medium text-orange-700 text-xs dark:text-orange-300'>
+          <span
+            className={cn(
+              'rounded-md px-1.5 font-medium text-xs',
+              SD_TONE.orange,
+            )}
+          >
             Nível atual: N{ticket.escalationLevel}
           </span>
         </div>
@@ -158,9 +163,7 @@ export function SdTicketEscalationTab({
                     <span
                       className={cn(
                         'rounded-md px-1.5 py-0.5 font-medium text-xs',
-                        e.kind === 'HIERARCHICAL'
-                          ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300'
-                          : 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+                        KIND_TONE[e.kind],
                       )}
                     >
                       {e.kind === 'HIERARCHICAL' ? 'Hierárquico' : 'Funcional'}
@@ -175,7 +178,12 @@ export function SdTicketEscalationTab({
                       N{e.toLevel}
                     </span>
                     {e.automatic ? (
-                      <span className='rounded-md bg-amber-500/10 px-1.5 py-0.5 text-amber-700 text-xs dark:text-amber-300'>
+                      <span
+                        className={cn(
+                          'rounded-md px-1.5 py-0.5 text-xs',
+                          SD_TONE.amber,
+                        )}
+                      >
                         Automático
                       </span>
                     ) : null}
@@ -233,7 +241,7 @@ export function SdTicketEscalationTab({
             <SteelIcon
               icon={ArrowUpDoubleIcon}
               strokeWidth={2}
-              className='size-4 text-orange-600'
+              className={cn('size-4', SD_TONE_TEXT.orange)}
             />
             Escalonar chamado
           </h3>

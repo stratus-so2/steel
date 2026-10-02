@@ -16,6 +16,7 @@ import type {
   SdTicketSignatureDTO,
   SdTicketSignatureVerificationDTO,
 } from '@/types/sd-ticket-signature'
+import { SD_TONE_TEXT } from '../sd-ticket-meta'
 import { formatDateTime } from '../shared/sd-tab-format'
 
 function HashLine({ label, hash }: { label: string; hash: string }) {
@@ -48,9 +49,7 @@ function Verdict({ result }: { result: SdTicketSignatureVerificationDTO }) {
       <span
         className={cn(
           'flex items-center gap-1.5 font-medium',
-          result.imageIntact
-            ? 'text-emerald-700 dark:text-emerald-400'
-            : 'text-destructive',
+          result.imageIntact ? SD_TONE_TEXT.emerald : 'text-destructive',
         )}
       >
         <SteelIcon
@@ -66,9 +65,7 @@ function Verdict({ result }: { result: SdTicketSignatureVerificationDTO }) {
       <span
         className={cn(
           'flex items-center gap-1.5',
-          result.ticketUnchanged
-            ? 'text-emerald-700 dark:text-emerald-400'
-            : 'text-amber-700 dark:text-amber-400',
+          result.ticketUnchanged ? SD_TONE_TEXT.emerald : SD_TONE_TEXT.amber,
         )}
       >
         <SteelIcon

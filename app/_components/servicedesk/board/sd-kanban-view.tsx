@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { useSdNow } from '../ticket/sd-ticket-badges'
+import { SD_TONE, SD_TONE_TEXT } from '../ticket/sd-ticket-meta'
 import { SdTicketCard } from './sd-ticket-card'
 
 export interface SdKanbanColumn {
@@ -105,7 +106,7 @@ function Column({
           <span
             className={cn(
               'rounded-md bg-background px-1.5 font-medium text-muted-foreground text-xs tabular-nums',
-              exceeded && 'bg-red-500/10 text-red-700 dark:text-red-300',
+              exceeded && SD_TONE.red,
             )}
             title={
               column.wipLimit > 0
@@ -145,7 +146,12 @@ function Column({
           </div>
         ) : null}
         {exceeded ? (
-          <p className='flex items-center gap-1 text-[11px] text-red-700 dark:text-red-300'>
+          <p
+            className={cn(
+              'flex items-center gap-1 text-[11px]',
+              SD_TONE_TEXT.red,
+            )}
+          >
             <SteelIcon icon={Alert02Icon} strokeWidth={2} className='size-3' />
             Limite WIP excedido ({column.count}/{column.wipLimit})
           </p>

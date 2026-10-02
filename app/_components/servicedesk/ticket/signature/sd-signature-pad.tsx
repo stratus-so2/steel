@@ -145,11 +145,11 @@ export function SdSignaturePad({
           onPointerLeave={onPointerUp}
         />
         {count === 0 ? (
-          <span className='pointer-events-none absolute inset-x-0 bottom-8 text-center text-gray-400 text-sm'>
+          <span className='pointer-events-none absolute inset-x-0 bottom-8 text-center text-muted-foreground text-sm'>
             Assine aqui
           </span>
         ) : null}
-        <div className='pointer-events-none absolute inset-x-6 bottom-6 border-gray-300 border-b' />
+        <div className='pointer-events-none absolute inset-x-6 bottom-6 border-border border-b' />
       </div>
       <div className='flex gap-1.5'>
         <Button

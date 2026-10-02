@@ -38,6 +38,7 @@ import type {
   SdWhatsappTemplateDTO,
 } from '@/types/sd-whatsapp'
 import { ConfirmDeleteButton, EmptyState } from '../../settings/sd-settings-kit'
+import { SD_TONE, SD_TONE_SOFT, SD_TONE_TEXT } from '../sd-ticket-meta'
 import { SdAgentOnlyNotice } from '../shared/sd-tab-bits'
 import { formatDateTime } from '../shared/sd-tab-format'
 import type { SdTicketTabProps } from './types'
@@ -50,6 +51,14 @@ const STATUS_LABEL: Record<string, string> = {
   CONNECTING: 'Conectando',
   DISCONNECTED: 'Desconectado',
   ERROR: 'Com erro',
+}
+
+/** Tom do selo de status da conexão (mapa fechado). */
+const STATUS_TONE: Record<string, string> = {
+  CONNECTED: SD_TONE.emerald,
+  CONNECTING: SD_TONE.amber,
+  DISCONNECTED: SD_TONE.amber,
+  ERROR: SD_TONE.red,
 }
 
 const CONVERSATION_STATUS_LABEL: Record<string, string> = {
@@ -66,18 +75,10 @@ export function formatSdWaId(waId: string): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const connected = status === 'CONNECTED'
   return (
     <Badge
       variant='outline'
-      className={cn(
-        'gap-1',
-        connected
-          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-          : status === 'ERROR'
-            ? 'bg-red-500/10 text-red-700 dark:text-red-300'
-            : 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
-      )}
+      className={cn('gap-1', STATUS_TONE[status] ?? SD_TONE.amber)}
     >
       {STATUS_LABEL[status] ?? status}
     </Badge>
@@ -96,7 +97,12 @@ function WindowNotice({ window }: { window: SdTicketWhatsappDTO['window'] }) {
     )
   }
   return (
-    <div className='flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-700 text-xs dark:text-amber-300'>
+    <div
+      className={cn(
+        'flex items-start gap-2 rounded-lg border px-3 py-2 text-xs',
+        SD_TONE_SOFT.amber,
+      )}
+    >
       <SteelIcon
         icon={Timer02Icon}
         size={14}
@@ -154,7 +160,7 @@ function ConversationPicker({
                       formatSdWaId(conversation.contact.waId)}
                   </span>
                   {conversation.openTicket ? (
-                    <span className='text-amber-700 text-xs dark:text-amber-300'>
+                    <span className={cn('text-xs', SD_TONE_TEXT.amber)}>
                       Já vinculada ao chamado {conversation.openTicket.code}
                     </span>
                   ) : null}
@@ -534,7 +540,7 @@ export function SdTicketWhatsappTab({
         <SteelIcon
           icon={WhatsappIcon}
           strokeWidth={2}
-          className='text-emerald-600 dark:text-emerald-400'
+          className={SD_TONE_TEXT.emerald}
         />
         <div className='flex min-w-0 flex-col'>
           <span className='truncate font-medium text-sm'>
@@ -548,10 +554,7 @@ export function SdTicketWhatsappTab({
         </div>
         <div className='ml-auto flex items-center gap-2'>
           {conversation.aiActive ? (
-            <Badge
-              variant='outline'
-              className='bg-violet-500/10 text-violet-700 dark:text-violet-300'
-            >
+            <Badge variant='outline' className={SD_TONE.violet}>
               IA atendendo
             </Badge>
           ) : null}
@@ -575,7 +578,7 @@ export function SdTicketWhatsappTab({
       </header>
 
       {data.connection && data.connection.status !== 'CONNECTED' ? (
-        <p className='rounded-lg bg-red-500/10 px-3 py-2 text-red-700 text-xs dark:text-red-300'>
+        <p className={cn('rounded-lg px-3 py-2 text-xs', SD_TONE.red)}>
           A conexão {data.connection.label} está{' '}
           {(
             STATUS_LABEL[data.connection.status] ?? data.connection.status

@@ -39,6 +39,7 @@ import {
 } from '@/src/hooks/use-sd-knowledge'
 import type { SdKbArticleSummaryDTO } from '@/types/sd-kb-article'
 import { useDebouncedValue } from '../../table/use-sd-table-state'
+import { SD_TONE_TEXT } from '../sd-ticket-meta'
 import type { SdTicketTabProps } from './types'
 
 function ArticleRow({
@@ -125,7 +126,7 @@ function ArticleRow({
             <SteelIcon
               icon={CheckmarkCircle02Icon}
               strokeWidth={2}
-              className={cn(resolved && 'text-emerald-600')}
+              className={cn(resolved && SD_TONE_TEXT.emerald)}
             />
             Resolveu
           </Button>
@@ -290,7 +291,7 @@ export function SdTicketKnowledgeTab({
           <SteelIcon
             icon={SparklesIcon}
             strokeWidth={2}
-            className='size-4 text-amber-500'
+            className={cn('size-4', SD_TONE_TEXT.violet)}
           />
           Sugestões para este chamado
         </h3>

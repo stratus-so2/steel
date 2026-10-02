@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils'
 import { useSdOnCallNow } from '@/src/hooks/use-sd-oncall'
 import { SdUserAvatar } from './sd-ticket-badges'
+import { SD_TONE } from './sd-ticket-meta'
 
 /**
  * Indicador discreto de quem está de plantão agora no departamento — vai no
@@ -34,7 +35,8 @@ export function SdOnCallBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-700 text-xs dark:text-emerald-300',
+        'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-medium text-xs',
+        SD_TONE.emerald,
         className,
       )}
       title={[
