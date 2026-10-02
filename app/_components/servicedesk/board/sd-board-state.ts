@@ -113,6 +113,18 @@ export const SD_SORT_FIELDS: SdSortField[] = [
   'resolutionDueAt',
   'firstResponseDueAt',
 ]
+
+/** Rótulo de cada campo de ordenação — popover "Ordenar" e chip ativo. */
+export const SD_SORT_FIELD_LABEL: Record<SdSortField, string> = {
+  createdAt: 'Aberto em',
+  updatedAt: 'Atualizado em',
+  lastActivityAt: 'Última atividade',
+  number: 'Código',
+  title: 'Título',
+  priority: 'Prioridade',
+  resolutionDueAt: 'Prazo de resolução',
+  firstResponseDueAt: 'Prazo da 1ª resposta',
+}
 const TYPES: SdTicketTypeDTO[] = [
   'INCIDENT',
   'SERVICE_REQUEST',

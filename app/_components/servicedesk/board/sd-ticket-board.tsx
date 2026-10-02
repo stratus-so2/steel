@@ -46,7 +46,6 @@ import {
   type SdCreateTicketPreset,
   SdCreateTicketSheet,
 } from '../ticket/sd-create-ticket-sheet'
-import { SdOptionSelect } from '../ticket/sd-option-select'
 import { useSdPhaseMover } from '../ticket/sd-phase-mover'
 import { useSdNow } from '../ticket/sd-ticket-badges'
 import {
@@ -63,7 +62,6 @@ import {
   type SdBoardFilters,
   type SdBoardMode,
   type SdBoardState,
-  type SdListGroup,
   sdBoardApiFilters,
   sdParseBoardState,
   sdSerializeBoardState,
@@ -71,7 +69,6 @@ import {
 } from './sd-board-state'
 import { SdFilterBar } from './sd-filter-bar'
 import { SdKanbanView } from './sd-kanban-view'
-import { SD_LIST_GROUP_LABEL } from './sd-list-groups'
 import { SdListView } from './sd-list-view'
 import {
   SdSavedViewsMenu,
@@ -404,48 +401,12 @@ export function SdTicketBoard({
         agents={agents}
         fixedType={effectiveType}
         searchRef={searchRef}
+        sort={state.sort}
+        order={state.order}
+        onSortChange={(sort, order) => update({ sort, order, page: 1 })}
+        group={state.mode === 'list' ? state.group : undefined}
+        onGroupChange={(group) => update({ group })}
       >
-        <fieldset
-          aria-label='Modo de exibição'
-          className='flex items-center rounded-lg border p-0.5'
-        >
-          {MODES.map((mode) => (
-            <button
-              key={mode.id}
-              type='button'
-              aria-pressed={state.mode === mode.id}
-              aria-label={mode.label}
-              title={mode.label}
-              onClick={() => update({ mode: mode.id, page: 1 })}
-              className={cn(
-                'flex h-7 items-center gap-1.5 rounded-md px-2 text-xs',
-                state.mode === mode.id
-                  ? 'bg-muted font-medium text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <SteelIcon icon={mode.icon} strokeWidth={2} className='size-4' />
-              <span className='hidden lg:inline'>{mode.label}</span>
-            </button>
-          ))}
-        </fieldset>
-
-        {state.mode === 'list' ? (
-          <div className='w-40'>
-            <SdOptionSelect
-              aria-label='Agrupar por'
-              allowClear={false}
-              value={state.group}
-              onChange={(group) =>
-                update({ group: (group ?? 'phase') as SdListGroup })
-              }
-              options={Object.entries(SD_LIST_GROUP_LABEL).map(
-                ([value, label]) => ({ value, label: `Agrupar: ${label}` }),
-              )}
-            />
-          </div>
-        ) : null}
-
         {state.mode === 'table' ? (
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -477,6 +438,26 @@ export function SdTicketBoard({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
+
+        <fieldset
+          aria-label='Modo de exibição'
+          className='flex items-center gap-0.5 rounded-md border p-0.5'
+        >
+          {MODES.map((mode) => (
+            <Button
+              key={mode.id}
+              type='button'
+              variant={state.mode === mode.id ? 'secondary' : 'ghost'}
+              size='icon-sm'
+              aria-pressed={state.mode === mode.id}
+              aria-label={mode.label}
+              title={mode.label}
+              onClick={() => update({ mode: mode.id, page: 1 })}
+            >
+              <SteelIcon icon={mode.icon} strokeWidth={2} />
+            </Button>
+          ))}
+        </fieldset>
 
         <SdSavedViewsMenu
           workspaceId={workspaceId}
