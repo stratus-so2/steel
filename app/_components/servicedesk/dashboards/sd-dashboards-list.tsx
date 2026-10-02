@@ -85,7 +85,7 @@ function DashboardCard({
   return (
     <div className='group relative flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40'>
       <div className='flex items-start gap-3'>
-        <span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-300'>
+        <span className='grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary'>
           <SteelIcon
             icon={PresentationBarChart01Icon}
             strokeWidth={1.8}
@@ -265,7 +265,7 @@ export function SdDashboardsList({
       </div>
 
       {query.error ? (
-        <p className='rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-destructive text-sm'>
+        <p className='rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm'>
           {query.error.message}
         </p>
       ) : null}
@@ -277,7 +277,7 @@ export function SdDashboardsList({
           <Skeleton className='h-28 rounded-xl' />
         </div>
       ) : dashboards.length === 0 ? (
-        <div className='flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-border border-dashed bg-card/40 p-10 text-center'>
+        <div className='flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-border border-dashed bg-card p-10 text-center'>
           <span className='flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground'>
             <SteelIcon
               icon={DashboardSquare01Icon}

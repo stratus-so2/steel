@@ -30,10 +30,8 @@ function Article({
 
   if (query.isError) {
     return (
-      <div className='flex flex-col items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-4'>
-        <p className='text-red-700 text-sm dark:text-red-300'>
-          {query.error.message}
-        </p>
+      <div className='flex flex-col items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4'>
+        <p className='text-destructive text-sm'>{query.error.message}</p>
         <Button variant='outline' size='sm' onClick={onBack}>
           Voltar
         </Button>
@@ -106,7 +104,7 @@ export function SdExtKnowledge() {
             className={cn(
               'rounded-lg border px-2.5 py-1 text-xs transition-colors',
               categoryId === undefined
-                ? 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border bg-card text-muted-foreground hover:text-foreground',
             )}
           >
@@ -121,7 +119,7 @@ export function SdExtKnowledge() {
               className={cn(
                 'rounded-lg border px-2.5 py-1 text-xs transition-colors',
                 categoryId === category.id
-                  ? 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                  ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border bg-card text-muted-foreground hover:text-foreground',
               )}
             >
@@ -132,7 +130,7 @@ export function SdExtKnowledge() {
       ) : null}
 
       {query.isError ? (
-        <p className='rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-700 text-sm dark:text-red-300'>
+        <p className='rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-destructive text-sm'>
           {query.error.message}
         </p>
       ) : query.isLoading ? (
@@ -141,7 +139,7 @@ export function SdExtKnowledge() {
           <Skeleton className='h-16 rounded-xl' />
         </div>
       ) : articles.length === 0 ? (
-        <div className='flex flex-col items-center gap-2 rounded-xl border border-border border-dashed bg-card/40 p-8 text-center'>
+        <div className='flex flex-col items-center gap-2 rounded-xl border border-border border-dashed bg-card p-8 text-center'>
           <SteelIcon
             icon={BookOpen01Icon}
             strokeWidth={1.8}
@@ -165,7 +163,7 @@ export function SdExtKnowledge() {
               <button
                 type='button'
                 onClick={() => setArticleId(article.id)}
-                className='flex w-full flex-col items-start gap-1 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-blue-500/40'
+                className='flex w-full flex-col items-start gap-1 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/40'
               >
                 <span className='font-medium text-sm'>{article.title}</span>
                 {article.tags.length > 0 ? (

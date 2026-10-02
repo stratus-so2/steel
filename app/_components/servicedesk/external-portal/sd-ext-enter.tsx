@@ -38,8 +38,8 @@ export function SdExtEnter({ token }: { token: string }) {
 
   if (error) {
     return (
-      <div className='flex min-h-screen flex-col items-center justify-center gap-4 bg-muted/30 p-6 text-center'>
-        <div className='flex size-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-300'>
+      <div className='flex min-h-screen flex-col items-center justify-center gap-4 bg-muted p-6 text-center'>
+        <div className='grid size-12 place-items-center rounded-2xl border bg-card text-muted-foreground'>
           <SteelIcon icon={Alert02Icon} strokeWidth={1.8} className='size-6' />
         </div>
         <div className='space-y-1'>
@@ -56,7 +56,7 @@ export function SdExtEnter({ token }: { token: string }) {
   }
 
   return (
-    <div className='flex min-h-screen flex-col items-center justify-center gap-3 bg-muted/30 p-6'>
+    <div className='flex min-h-screen flex-col items-center justify-center gap-3 bg-muted p-6'>
       <p className='text-muted-foreground text-sm'>Abrindo seu portal…</p>
       <Skeleton className='h-10 w-64 rounded-xl' />
     </div>

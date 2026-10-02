@@ -24,16 +24,17 @@ import { sdRelativeTime } from '../ticket/sd-ticket-meta'
  * os fatores que pegaram vão no tooltip (e no `aria-label`), e o widget da
  * tela do chamado os lista abertos.
  *
- * As cores seguem a tabela compartilhada (`src/lib/servicedesk/risk.ts`) e
- * foram escritas por extenso porque o Tailwind não monta classe dinâmica —
- * todas legíveis no claro, no escuro e no fundo escuro do modo TV.
+ * A cor da faixa vive num mapa fechado, no padrão do repositório
+ * (`bg-<c>-500/10` + `text-<c>-700 dark:text-<c>-300`): escrita por extenso
+ * porque o Tailwind não monta classe dinâmica, e legível no claro, no escuro
+ * e no fundo escuro do modo TV. Fora da faixa, só token do tema.
  */
 
 export const SD_RISK_TONE: Record<SdTicketRiskDTO['level'], string> = {
-  LOW: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:text-emerald-300',
+  LOW: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
   MEDIUM:
-    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:border-amber-400/30 dark:text-amber-300',
-  HIGH: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:border-rose-400/40 dark:text-rose-300',
+    'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  HIGH: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300',
 }
 
 const SD_RISK_BAR: Record<SdTicketRiskDTO['level'], string> = {
@@ -165,7 +166,7 @@ export function SdRiskWidget({
       data-risk-level={risk.level}
       aria-label='Risco preditivo'
       className={cn(
-        'flex min-w-60 flex-1 flex-col gap-1.5 rounded-lg border bg-card/60 px-2.5 py-1.5',
+        'flex min-w-60 flex-1 flex-col gap-1.5 rounded-lg border bg-card px-2.5 py-1.5',
         className,
       )}
     >

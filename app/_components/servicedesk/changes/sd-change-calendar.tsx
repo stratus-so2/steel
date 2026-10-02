@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { useSdChangeCalendar } from '@/src/hooks/use-sd-changes'
 import type {
   SdChangeCalendarEntryDTO,
+  SdChangeWindowKindDTO,
   SdChangeWindowOccurrenceDTO,
 } from '@/types/sd-change'
 import {
@@ -60,6 +61,36 @@ const SHORT = new Intl.DateTimeFormat('pt-BR', {
 const WEEK_HEADS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 type Mode = 'month' | 'week'
+
+/*
+ * Cor de estado do calendário, em mapa fechado — nunca espalhada no JSX.
+ * Segue o padrão do repositório (`bg-<c>-500/10` + `text-<c>-700
+ * dark:text-<c>-300`), que tem contraste no claro e no escuro com uma única
+ * declaração e fica visível ao Tailwind. Tudo que não é estado (superfície,
+ * borda, texto) usa token do tema.
+ */
+
+/** Faixa de fundo do dia por tipo de janela. */
+const WINDOW_SURFACE: Record<SdChangeWindowKindDTO, string> = {
+  FREEZE: 'border-rose-500/30 bg-rose-500/10',
+  MAINTENANCE: 'border-sky-500/30 bg-sky-500/10',
+}
+
+/** Ícone e texto da janela (cabeçalho do dia e cartão do painel). */
+const WINDOW_TEXT: Record<SdChangeWindowKindDTO, string> = {
+  FREEZE: 'text-rose-700 dark:text-rose-300',
+  MAINTENANCE: 'text-sky-700 dark:text-sky-300',
+}
+
+const WINDOW_ICON: Record<SdChangeWindowKindDTO, typeof SnowIcon> = {
+  FREEZE: SnowIcon,
+  MAINTENANCE: Calendar03Icon,
+}
+
+/** Mudança em conflito (mesmo item de configuração) ou dentro de freeze. */
+const CONFLICT_SURFACE =
+  'bg-amber-500/15 font-medium text-amber-700 dark:text-amber-300'
+const CONFLICT_TEXT = 'text-amber-700 dark:text-amber-300'
 
 /** Meia-noite local do dia de `date`. */
 function startOfDay(date: Date): Date {
@@ -277,6 +308,12 @@ function DayCell({
   const maintenance = dayWindows.some((w) => w.kind === 'MAINTENANCE')
   const outside = mode === 'month' && day.getMonth() !== anchor.getMonth()
   const today = isSameDay(day, new Date())
+  // Congelamento tem precedência sobre manutenção na faixa do dia.
+  const kind: SdChangeWindowKindDTO | null = frozen
+    ? 'FREEZE'
+    : maintenance
+      ? 'MAINTENANCE'
+      : null
 
   return (
     <button
@@ -288,12 +325,7 @@ function DayCell({
       }`}
       className={cn(
         'relative flex min-h-24 flex-col gap-1 overflow-hidden rounded-lg border p-1.5 text-left transition-colors',
-        // Faixas de fundo: congelamento tem precedência sobre manutenção.
-        frozen
-          ? 'border-rose-300 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/40'
-          : maintenance
-            ? 'border-sky-300 bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/40'
-            : 'border-border bg-card',
+        kind ? WINDOW_SURFACE[kind] : 'border-border bg-card',
         outside && 'opacity-50',
         selected && 'ring-2 ring-primary ring-offset-1 ring-offset-background',
       )}
@@ -309,17 +341,11 @@ function DayCell({
         >
           {day.getDate()}
         </span>
-        {frozen ? (
+        {kind ? (
           <SteelIcon
-            icon={SnowIcon}
+            icon={WINDOW_ICON[kind]}
             strokeWidth={2}
-            className='size-3.5 text-rose-600 dark:text-rose-400'
-          />
-        ) : maintenance ? (
-          <SteelIcon
-            icon={Calendar03Icon}
-            strokeWidth={2}
-            className='size-3.5 text-sky-600 dark:text-sky-400'
+            className={cn('size-3.5', WINDOW_TEXT[kind])}
           />
         ) : null}
       </div>
@@ -333,9 +359,7 @@ function DayCell({
               key={change.ticketId}
               className={cn(
                 'truncate rounded px-1 py-0.5 text-[11px] leading-tight',
-                conflicted
-                  ? 'bg-amber-200 font-medium text-amber-950 dark:bg-amber-500/30 dark:text-amber-100'
-                  : 'bg-muted text-foreground',
+                conflicted ? CONFLICT_SURFACE : 'bg-muted text-foreground',
               )}
             >
               {conflicted ? '⚠ ' : ''}
@@ -393,21 +417,14 @@ function DayPanel({
               key={`${window.windowId}-${window.startsAt}`}
               className={cn(
                 'rounded-lg border px-3 py-2',
-                window.kind === 'FREEZE'
-                  ? 'border-rose-300 bg-rose-50 dark:border-rose-900/60 dark:bg-rose-950/40'
-                  : 'border-sky-300 bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/40',
+                WINDOW_SURFACE[window.kind],
               )}
             >
               <div className='flex items-center gap-1.5'>
                 <SteelIcon
-                  icon={window.kind === 'FREEZE' ? SnowIcon : Calendar03Icon}
+                  icon={WINDOW_ICON[window.kind]}
                   strokeWidth={2}
-                  className={cn(
-                    'size-4 shrink-0',
-                    window.kind === 'FREEZE'
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : 'text-sky-600 dark:text-sky-400',
-                  )}
+                  className={cn('size-4 shrink-0', WINDOW_TEXT[window.kind])}
                 />
                 <span className='truncate font-medium text-sm'>
                   {window.name}
@@ -480,7 +497,12 @@ function DayPanel({
                   ) : null}
                 </div>
                 {change.frozenWindowIds.length > 0 ? (
-                  <p className='flex items-start gap-1 text-rose-700 text-xs dark:text-rose-300'>
+                  <p
+                    className={cn(
+                      'flex items-start gap-1 text-xs',
+                      WINDOW_TEXT.FREEZE,
+                    )}
+                  >
                     <SteelIcon
                       icon={SnowIcon}
                       strokeWidth={2}
@@ -490,7 +512,12 @@ function DayPanel({
                   </p>
                 ) : null}
                 {conflicts.length > 0 ? (
-                  <p className='flex items-start gap-1 text-amber-700 text-xs dark:text-amber-300'>
+                  <p
+                    className={cn(
+                      'flex items-start gap-1 text-xs',
+                      CONFLICT_TEXT,
+                    )}
+                  >
                     <SteelIcon
                       icon={Alert02Icon}
                       strokeWidth={2}

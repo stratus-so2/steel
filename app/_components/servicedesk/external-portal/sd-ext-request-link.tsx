@@ -10,7 +10,9 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import { useRequestSdPortalLink } from '@/src/hooks/use-sd-external-portal'
+import { SD_PORTAL_OK_TONE } from '../portal/sd-portal-tone'
 
 /**
  * `/suporte`: o contato informa o e-mail e recebe o link de acesso. A
@@ -41,9 +43,9 @@ export function SdExtRequestLink() {
   }
 
   return (
-    <div className='flex min-h-screen items-center justify-center bg-muted/30 p-6'>
+    <div className='flex min-h-screen items-center justify-center bg-muted p-6'>
       <div className='w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8'>
-        <div className='flex size-11 items-center justify-center rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-300'>
+        <div className='grid size-11 place-items-center rounded-xl bg-primary/10 text-primary'>
           <SteelIcon
             icon={CustomerService01Icon}
             strokeWidth={1.8}
@@ -59,9 +61,12 @@ export function SdExtRequestLink() {
         {sent ? (
           <div
             role='status'
-            className='mt-6 flex flex-col gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm'
+            className={cn(
+              'mt-6 flex flex-col gap-2 rounded-xl border p-4 text-sm',
+              SD_PORTAL_OK_TONE,
+            )}
           >
-            <p className='flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-300'>
+            <p className='flex items-center gap-2 font-medium'>
               <SteelIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
               Verifique seu e-mail
             </p>
@@ -96,7 +101,7 @@ export function SdExtRequestLink() {
             {error ? (
               <p
                 role='alert'
-                className='rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-red-700 text-xs dark:text-red-300'
+                className='rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-destructive text-xs'
               >
                 {error}
               </p>

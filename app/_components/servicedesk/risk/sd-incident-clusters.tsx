@@ -32,12 +32,20 @@ import type { SdIncidentClusterDTO } from '@/types/sd-risk'
 import { SdOptionSelect } from '../ticket/sd-option-select'
 import { sdFormatDateTime, sdRelativeTime } from '../ticket/sd-ticket-meta'
 import { sdDepartmentOptions } from '../ticket/sd-ticket-options'
+import { SD_RISK_TONE } from './sd-risk-badge'
 
 /**
  * Sugestões de problema: incidentes parecidos agrupados pelo worker
  * (`scan-clusters`). Abrir o problema é **ação do agente** — a análise
  * nunca abre nada sozinha (ADR 0016).
  */
+
+/**
+ * Confirmação de "problema já aberto". O tema não tem token de sucesso, então
+ * a cor fica nesta constante (padrão do repositório, legível nos dois temas)
+ * em vez de solta no JSX.
+ */
+const DONE_TONE = 'text-emerald-700 dark:text-emerald-300'
 
 function ClusterTickets({
   cluster,
@@ -47,7 +55,7 @@ function ClusterTickets({
   slug: string
 }) {
   return (
-    <ul className='flex flex-col divide-y rounded-lg border bg-background/60'>
+    <ul className='flex flex-col divide-y rounded-lg border bg-background'>
       {cluster.tickets.map((ticket) => (
         <li
           key={ticket.id}
@@ -193,7 +201,14 @@ function ClusterCard({
   return (
     <article className='flex flex-col gap-2.5 rounded-xl border bg-card p-3'>
       <div className='flex min-w-0 flex-wrap items-center gap-2'>
-        <span className='inline-flex h-5 items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 font-medium text-[11px] text-amber-700 tabular-nums dark:border-amber-400/30 dark:text-amber-300'>
+        {/* Grupo repetido é sinal de atenção: reusa a faixa média do selo
+            de risco em vez de espalhar uma cor nova. */}
+        <span
+          className={cn(
+            'inline-flex h-5 items-center gap-1 rounded-md border px-1.5 font-medium text-[11px] tabular-nums',
+            SD_RISK_TONE.MEDIUM,
+          )}
+        >
           <SteelIcon icon={Bug01Icon} strokeWidth={2} className='size-3' />
           {cluster.ticketCount} incidentes
         </span>
@@ -208,7 +223,7 @@ function ClusterCard({
       <ClusterTickets cluster={cluster} slug={slug} />
 
       {cluster.problemTicket ? (
-        <p className='flex items-center gap-1.5 text-emerald-700 text-xs dark:text-emerald-300'>
+        <p className={cn('flex items-center gap-1.5 text-xs', DONE_TONE)}>
           <SteelIcon
             icon={CheckmarkCircle02Icon}
             strokeWidth={2}
@@ -287,7 +302,7 @@ export function SdIncidentClusters({
   if (!data || data.length === 0) {
     return (
       <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center'>
-        <div className='flex size-10 items-center justify-center rounded-2xl border bg-muted/40 text-muted-foreground'>
+        <div className='grid size-10 place-items-center rounded-2xl border bg-muted text-muted-foreground'>
           <SteelIcon icon={InboxIcon} strokeWidth={1.8} className='size-5' />
         </div>
         <p className='font-medium text-sm'>Nenhum incidente repetido</p>

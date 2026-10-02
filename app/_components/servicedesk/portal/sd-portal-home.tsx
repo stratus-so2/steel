@@ -12,12 +12,14 @@ import { useMemo } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { useSdTicketRealtime, useSdTickets } from '@/src/hooks/use-sd-tickets'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { SdPreServiceChat } from '../ai/pre-service-chat'
 import { SdKbPortalBrowser } from '../knowledge'
 import { SD_CLOSED_CATEGORIES } from '../ticket/sd-ticket-meta'
 import { SdPortalTicketRow, sdPortalTicketHref } from './sd-portal-ticket-row'
+import { SD_PORTAL_OK_TONE } from './sd-portal-tone'
 
 const CLOSED = new Set<string>(SD_CLOSED_CATEGORIES)
 
@@ -141,7 +143,7 @@ export function SdPortalHome({
             <Skeleton className='h-24 rounded-xl' />
           </div>
         ) : tickets.length === 0 ? (
-          <div className='flex flex-col items-center gap-2 rounded-xl border border-border border-dashed bg-card/40 p-8 text-center'>
+          <div className='flex flex-col items-center gap-2 rounded-xl border border-border border-dashed bg-card p-8 text-center'>
             <p className='font-medium text-sm'>
               Você ainda não abriu nenhum chamado
             </p>
@@ -163,14 +165,19 @@ export function SdPortalHome({
                 ))}
               </ul>
             ) : (
-              <p className='flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-emerald-700 text-sm dark:text-emerald-300'>
+              <p
+                className={cn(
+                  'flex items-center gap-2 rounded-lg border p-3 text-sm',
+                  SD_PORTAL_OK_TONE,
+                )}
+              >
                 <SteelIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
                 Nenhum chamado em aberto. Tudo resolvido!
               </p>
             )}
 
             {done.length > 0 ? (
-              <details className='rounded-xl border border-border bg-card/40 p-3'>
+              <details className='rounded-xl border border-border bg-card p-3'>
                 <summary className='cursor-pointer font-medium text-muted-foreground text-xs'>
                   Chamados encerrados ({done.length})
                 </summary>

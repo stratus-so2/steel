@@ -380,7 +380,7 @@ export function SdPortalNewTicket({
         </Field>
 
         {suggestions.length > 0 ? (
-          <aside className='flex flex-col gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 p-4 text-sky-700 dark:text-sky-300'>
+          <aside className='flex flex-col gap-2 rounded-xl border border-border bg-muted p-4'>
             <p className='flex items-center gap-2 font-medium text-sm'>
               <SteelIcon icon={BookOpen01Icon} strokeWidth={2} />
               Talvez isto já resolva

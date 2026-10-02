@@ -61,12 +61,12 @@ export function SdKbCuration({
       </div>
 
       {(mine.data?.length ?? 0) > 0 ? (
-        <div className='space-y-2 rounded-xl border border-sky-500/30 bg-sky-500/5 p-4'>
+        <div className='space-y-2 rounded-xl border border-border bg-muted p-4'>
           <h3 className='flex items-center gap-2 font-medium text-sm'>
             <SteelIcon
               icon={UserCheck01Icon}
               strokeWidth={2}
-              className='text-sky-600 dark:text-sky-400'
+              className='text-primary'
             />
             Esperando sua revisão
           </h3>

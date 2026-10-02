@@ -40,7 +40,7 @@ export function SdExtTicketRow({
   ticket: SdPortalTicketSummaryDTO
 }) {
   return (
-    <li className='relative flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-blue-500/40'>
+    <li className='relative flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:border-primary/40'>
       <div className='min-w-0 flex-1'>
         <div className='flex flex-wrap items-center gap-2'>
           <span className='font-mono text-muted-foreground text-xs'>
@@ -111,7 +111,7 @@ export function SdExtTickets() {
               className={cn(
                 'rounded-lg px-3 py-1.5 font-medium text-sm transition-colors',
                 tab === item.id
-                  ? 'bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                  ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -137,10 +137,8 @@ export function SdExtTickets() {
       />
 
       {query.isError ? (
-        <div className='flex flex-col items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-4'>
-          <p className='text-red-700 text-sm dark:text-red-300'>
-            {query.error.message}
-          </p>
+        <div className='flex flex-col items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 p-4'>
+          <p className='text-destructive text-sm'>{query.error.message}</p>
           <Button variant='outline' size='sm' onClick={() => query.refetch()}>
             Tentar de novo
           </Button>
@@ -151,7 +149,7 @@ export function SdExtTickets() {
           <Skeleton className='h-24 rounded-xl' />
         </div>
       ) : items.length === 0 ? (
-        <div className='flex flex-col items-center gap-2 rounded-xl border border-border border-dashed bg-card/40 p-8 text-center'>
+        <div className='flex flex-col items-center gap-2 rounded-xl border border-border border-dashed bg-card p-8 text-center'>
           <SteelIcon
             icon={CheckmarkCircle02Icon}
             strokeWidth={1.8}
