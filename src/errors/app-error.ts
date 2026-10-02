@@ -1047,6 +1047,10 @@ export const sdIntegrationExists = (
   message = 'Esta integração já está conectada neste workspace',
 ): AppError => appError('SD_INTEGRATION_EXISTS', message)
 
+export const sdIntegrationNotConfigured = (
+  message = 'Integração não configurada no servidor',
+): AppError => appError('SD_INTEGRATION_NOT_CONFIGURED', message)
+
 export const sdIntegrationLinkNotFound = (): AppError =>
   appError('SD_INTEGRATION_LINK_NOT_FOUND', 'Vínculo não encontrado')
 

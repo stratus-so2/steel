@@ -63,6 +63,9 @@ const serverEnv = {
   BACKUP_OFFSITE_RETENTION_DAYS: process.env.BACKUP_OFFSITE_RETENTION_DAYS,
   GITHUB_RELEASES_TOKEN: process.env.GITHUB_RELEASES_TOKEN,
   GITHUB_RELEASES_REPO: process.env.GITHUB_RELEASES_REPO,
+  SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
+  SLACK_CLIENT_SECRET: process.env.SLACK_CLIENT_SECRET,
+  SLACK_SIGNING_SECRET: process.env.SLACK_SIGNING_SECRET,
   AXIOM_QUERY_TOKEN: process.env.AXIOM_QUERY_TOKEN,
   AXIOM_QUERY_URL: process.env.AXIOM_QUERY_URL,
   ANALYTICS_FIXTURES: process.env.ANALYTICS_FIXTURES,
@@ -246,6 +249,16 @@ const serverEnvSchema = z.object({
   // requisição. Sem o arquivo, o enriquecimento é pulado em silêncio. O IP
   // nunca é gravado: só país/cidade.
   GEOIP_DB_PATH: blankOptional,
+  // Integração do ServiceDesk com o Slack (app do Slack, credenciais do
+  // nível da instalação — o token de cada workspace vem do OAuth e fica
+  // cifrado no banco com CONNECTION_SECRETS). Tudo opcional: sem as três
+  // vars a aba Integrações explica que o Slack não está configurado e nada
+  // é enviado nem recebido — ver src/lib/servicedesk/integrations.ts.
+  SLACK_CLIENT_ID: blankOptional,
+  SLACK_CLIENT_SECRET: blankOptional,
+  // "Signing Secret" do app do Slack: assina todo request que o Slack manda
+  // (eventos, atalhos, slash commands). Sem ele o webhook recusa tudo.
+  SLACK_SIGNING_SECRET: blankOptional,
 })
 
 const validatedServerEnv =
@@ -319,4 +332,7 @@ export const {
   AXIOM_QUERY_URL,
   ANALYTICS_FIXTURES,
   GEOIP_DB_PATH,
+  SLACK_CLIENT_ID,
+  SLACK_CLIENT_SECRET,
+  SLACK_SIGNING_SECRET,
 } = validatedServerEnv

@@ -23,6 +23,12 @@ const PUBLIC_ROUTES = [
   '/servicedesk/approval', '/api/servicedesk/approvals',
   // Abertura de chamado por monitoramento: webhook sem sessão (token na URL)
   '/api/servicedesk/monitoring',
+  // Integrações do ServiceDesk: webhooks sem sessão, verificados por
+  // assinatura (Slack: X-Slack-Signature; GitHub: X-Hub-Signature-256). O
+  // callback OAuth (`/oauth/slack`) fica de fora de propósito: ele exige a
+  // sessão do admin que autorizou.
+  '/api/servicedesk/integrations/slack',
+  '/api/servicedesk/integrations/github',
   // Portal do contato externo do ServiceDesk: link mágico + sessão própria
   // no cookie `sd.portal_session` (sem Better Auth; escopo no service)
   '/suporte', '/api/servicedesk/portal'
