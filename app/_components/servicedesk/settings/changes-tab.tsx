@@ -389,7 +389,7 @@ function WindowDialogForm({
                 <FieldBlock label='A cada' hint='1 = todo período.'>
                   <NumberInput
                     value={interval}
-                    onChange={(value) => setInterval(value ?? 1)}
+                    onCommit={(value) => setInterval(value ?? 1)}
                     min={1}
                     max={52}
                   />
@@ -430,10 +430,9 @@ function WindowDialogForm({
               >
                 <NumberInput
                   value={count}
-                  onChange={setCount}
+                  onCommit={setCount}
                   min={1}
                   max={365}
-                  allowEmpty
                 />
               </FieldBlock>
             </div>
@@ -765,7 +764,7 @@ function BoardDialogForm({
             >
               <NumberInput
                 value={quorum}
-                onChange={(value) => setQuorum(value ?? 0)}
+                onCommit={(value) => setQuorum(value ?? 0)}
                 min={0}
                 max={30}
               />
