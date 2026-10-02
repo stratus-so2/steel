@@ -171,7 +171,7 @@ export function SdRecurringTab() {
                           strokeWidth={2}
                           className='size-3.5 text-muted-foreground'
                         />
-                        {formatSdOccurrence(rule.nextRunAt)}
+                        {formatSdOccurrence(rule.nextRunAt, rule.timezone)}
                       </span>
                     ) : (
                       <span className='text-muted-foreground'>
@@ -742,7 +742,10 @@ export function SdRecurringHistoryDialog({
         ) : !isLoading && runs.length === 0 ? (
           <EmptyState>
             Esta rotina ainda não rodou. A próxima execução está marcada para{' '}
-            {rule.nextRunAt ? formatSdOccurrence(rule.nextRunAt) : '—'}.
+            {rule.nextRunAt
+              ? formatSdOccurrence(rule.nextRunAt, rule.timezone)
+              : '—'}
+            .
           </EmptyState>
         ) : (
           <ul className='flex flex-col divide-y divide-border'>

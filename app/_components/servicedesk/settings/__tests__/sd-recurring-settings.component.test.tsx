@@ -110,6 +110,7 @@ describe('<SdRecurringTab />', () => {
     renderTab(false)
     expect(await screen.findByText('Vistoria mensal do nobreak')).toBeTruthy()
     expect(screen.getByText('A cada mês, no dia 10, às 08:00')).toBeTruthy()
+    // Sempre no fuso da regra (08:00 em São Paulo), não no de quem lê.
     expect(screen.getByText('10/10/2026, 08:00')).toBeTruthy()
     expect(screen.queryByRole('button', { name: /Nova rotina/ })).toBeNull()
     expect(screen.queryByRole('button', { name: /Editar Vistoria/ })).toBeNull()

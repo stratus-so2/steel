@@ -129,7 +129,8 @@ describe('/api/workspaces/[id]/servicedesk/recurring-tickets', () => {
       { ...ROUTINE, atTime: '25:00' },
       owner.cookie,
     )
-    expect(invalid.status).toBe(400)
+    expect(invalid.status).toBe(422)
+    expect((await invalid.json()).error.code).toBe('VALIDATION_ERROR')
 
     const foreign = await postJson(
       rules(workspace.id),
