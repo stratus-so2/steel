@@ -262,7 +262,8 @@ de canal vira log e o resto segue; só erro de banco vira `err`.
 | `/` | início (minha fila, KPIs rápidos, SLA em risco) |
 | `/portal`, `/portal/new`, `/portal/tickets/[number]` | portal do solicitante (+ pré-atendimento IA) |
 | `/tickets`, `/incidents`, `/requests`, `/changes`, `/problems` | quadro kanban / lista / tabela com filtros e visões salvas |
-| `/tickets/[number]` | tela do chamado (abas: Histórico, WhatsApp, Tarefas, Custos, Aprovação, Peças, Itens filhos, Escalonamento, Rastreabilidade, Assinatura, Conhecimento) |
+| `/changes/calendar` | calendário de mudanças (mês/semana): janelas de manutenção e congelamento como faixas de fundo, mudanças pela janela planejada, conflitos destacados e painel do dia |
+| `/tickets/[number]` | tela do chamado (abas: Histórico, WhatsApp, Tarefas, Custos, Aprovação, Mudança — só em `CHANGE` —, Peças, Itens filhos, Escalonamento, Rastreabilidade, Assinatura, Conhecimento) |
 | `/customers`, `/companies`, `/contacts`, `/config-items` | cadastros |
 | `/knowledge`, `/knowledge/[articleId]` | base de conhecimento |
 | `/dashboards`, `/dashboards/[id]`, `/dashboards/[id]/tv` | painéis |
@@ -288,6 +289,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | monitoring | `sd-monitor-source`, `sd-monitor-alert`, `src/lib/servicedesk/{monitoring,monitor-fields}.ts`, entrada pública `servicedesk/monitoring/[token]`, aba Monitoramento das configurações, bloco de origem na tela do chamado |
 | oncall | `sd-oncall` (schema/mapper/repository/service), `sd-oncall-resolver.ts`, `src/lib/servicedesk/oncall.ts`, API `servicedesk/oncall/**`, aba "Plantão", selo `SdOnCallBadge`, e as ações `notifyOnCall`/`reassignToOnCall` do escalonamento |
 | recurring | `sd-recurring-ticket` (schema/mapper/repository/service) + `sd-recurring-ticket-runner.ts`, `src/lib/servicedesk/recurrence.ts`, fila `servicedesk-recurring`, aba Configurações > Recorrentes, aba "Rotinas" do item de configuração |
+| change-cab | `sd-change-window`, `sd-change-schedule.ts` (gancho de congelamento/conflito no `SdTicketEngine.update`), `sd-cab-board`, `sd-approval-round`, `sd-approval-gate.ts` (fase com `requiresApproval` aceita rodada aprovada), `sd-ticket-change-schedule.service.ts`, `src/lib/servicedesk/change-calendar.ts` (expansão pura da recorrência), tela `/changes/calendar`, aba "Mudanças" das configurações e aba "Mudança" do chamado |
 | mail | `sd-mailbox`, `sd-mail-inbound`, `sd-mail-outbound`, `sd-mail-credentials`, `src/lib/servicedesk/{mail-text,mail-queue}.ts`, `src/lib/mail/sd-mailbox-transport.ts`, fila `servicedesk-mail`, aba Configurações > E-mail, marcador de e-mail no histórico |
 
 ## Operação
