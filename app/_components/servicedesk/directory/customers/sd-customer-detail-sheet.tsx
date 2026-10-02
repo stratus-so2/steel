@@ -7,6 +7,7 @@ import {
   StarIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
+import { SdCustomerContractBlock } from '@/app/_components/servicedesk/contracts/sd-customer-contract-block'
 import { SdCustomFieldsView } from '@/app/_components/servicedesk/custom-fields/sd-custom-fields-form'
 import { SdContactFormSheet } from '@/app/_components/servicedesk/directory/contacts/sd-contact-form-sheet'
 import {
@@ -158,6 +159,7 @@ export function SdCustomerDetailSheet({
               <TabsTrigger value='items'>
                 Itens de configuração ({customer.configItemsCount})
               </TabsTrigger>
+              <TabsTrigger value='contract'>Contrato</TabsTrigger>
               <TabsTrigger value='tickets'>Chamados</TabsTrigger>
             </TabsList>
 
@@ -292,6 +294,13 @@ export function SdCustomerDetailSheet({
                     ))}
                   </ul>
                 )}
+              </TabsContent>
+
+              <TabsContent value='contract'>
+                <SdCustomerContractBlock
+                  workspaceId={workspaceId}
+                  customerId={customer.id}
+                />
               </TabsContent>
 
               <TabsContent value='tickets'>

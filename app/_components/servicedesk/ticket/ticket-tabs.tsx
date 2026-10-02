@@ -5,6 +5,7 @@ import {
   ArrowUpDoubleIcon,
   BookOpen01Icon,
   CheckListIcon,
+  Clock01Icon,
   HierarchyIcon,
   HistoryIcon,
   Money03Icon,
@@ -22,6 +23,7 @@ import { SdTicketChildrenTab } from './tabs/children-tab'
 import { SdTicketCostsTab } from './tabs/costs-tab'
 import { SdTicketEscalationTab } from './tabs/escalation-tab'
 import { SdTicketHistoryTab } from './tabs/history-tab'
+import { SdTicketHoursTab } from './tabs/hours-tab'
 import { SdTicketKnowledgeTab } from './tabs/knowledge-tab'
 import { SdTicketPartsTab } from './tabs/parts-tab'
 import { SdTicketSignatureTab } from './tabs/signature-tab'
@@ -63,6 +65,13 @@ export const SD_TICKET_TABS: SdTicketTabDef[] = [
     label: 'Tarefas',
     icon: Task01Icon,
     component: SdTicketTasksTab,
+    agentOnly: true,
+  },
+  {
+    id: 'hours',
+    label: 'Horas',
+    icon: Clock01Icon,
+    component: SdTicketHoursTab,
     agentOnly: true,
   },
   {

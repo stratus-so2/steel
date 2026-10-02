@@ -13,6 +13,7 @@ export type SdTicketTabFeature =
   | 'parts'
   | 'approvals'
   | 'signatures'
+  | 'time-entries'
 
 export function sdTicketTabKey(
   workspaceId: string,
