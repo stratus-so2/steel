@@ -2,3 +2,8 @@
 10063	IGNORE	(Feature Policy Header Not Set - handled via Permissions-Policy)
 10015	IGNORE	(Re-examine Cache-control Directives - per-route cache policy will be set granularly)
 10049	IGNORE	(Storable/Non-Storable/Non-Cacheable Content - per-route cache policy will be set granularly)
+10111	IGNORE	(Authentication Request Identified - informational: ZAP just flags that it found the sign-in form it submitted itself)
+10024	IGNORE	(Sensitive Information in URL - the email/password in the URL are ZAP's own synthetic payloads, injected by the spider as query strings on GET; the app only ever posts credentials in the body)
+10094	IGNORE	(Base64 Disclosure - matches the CSP nonce and the Next.js build/chunk hashes, which are random identifiers and not encoded secrets)
+10109	IGNORE	(Modern Web Application - informational: states the target is a SPA/SSR app so the spider may miss links)
+90005	IGNORE	(Sec-Fetch-* Header is Missing - checks ZAP's own outgoing requests, not the server response; nothing the application can set)

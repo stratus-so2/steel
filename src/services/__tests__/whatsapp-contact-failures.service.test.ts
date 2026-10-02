@@ -135,14 +135,17 @@ describe('WhatsAppContactService.syncAvatar() failures', () => {
   it.each([
     [new Error('Z-API 401'), 'Z-API 401'],
     ['boom', 'Falha ao buscar foto'],
-  ])('should map a provider exception (%s) to WHATSAPP_PROVIDER_ERROR', async (thrown, message) => {
-    arrangeSync()
-    mockedGetProfilePicture.mockRejectedValue(thrown)
+  ])(
+    'should map a provider exception (%s) to WHATSAPP_PROVIDER_ERROR',
+    async (thrown, message) => {
+      arrangeSync()
+      mockedGetProfilePicture.mockRejectedValue(thrown)
 
-    const error = expectErr(await sync(), 'WHATSAPP_PROVIDER_ERROR')
-    expect(error.message).toBe(message)
-    expect(mockedContactRepo.update).not.toHaveBeenCalled()
-  })
+      const error = expectErr(await sync(), 'WHATSAPP_PROVIDER_ERROR')
+      expect(error.message).toBe(message)
+      expect(mockedContactRepo.update).not.toHaveBeenCalled()
+    },
+  )
 
   it('should propagate the avatar update failure', async () => {
     arrangeSync()

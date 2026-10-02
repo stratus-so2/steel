@@ -95,10 +95,13 @@ describe('SdKbArticleService', () => {
         'members',
         () => SdKbArticleService.listMentionableMembers('u1', WS, ''),
       ],
-    ] as const)('refuses requesters on %s with SD_NOT_AGENT', async (_n, call) => {
-      actAs('requester')
-      expectErr(await call(), 'SD_NOT_AGENT')
-    })
+    ] as const)(
+      'refuses requesters on %s with SD_NOT_AGENT',
+      async (_n, call) => {
+        actAs('requester')
+        expectErr(await call(), 'SD_NOT_AGENT')
+      },
+    )
 
     it('only lets admins (DELETE) remove articles', async () => {
       actAs('agent')

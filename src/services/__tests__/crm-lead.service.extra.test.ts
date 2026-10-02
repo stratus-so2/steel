@@ -189,25 +189,27 @@ describe('CrmLeadService — authorization gates', () => {
     ['listReopenings', () => CrmLeadService.listReopenings('u1', 'ws1', 'l1')],
   ]
 
-  it.each(
-    calls,
-  )('%s: should return FORBIDDEN for a non-member', async (_, call) => {
-    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
-    expectErr(await call(), 'FORBIDDEN')
-    expect(mockedLeadRepo.findById).not.toHaveBeenCalled()
-    expect(mockedLeadRepo.create).not.toHaveBeenCalled()
-  })
+  it.each(calls)(
+    '%s: should return FORBIDDEN for a non-member',
+    async (_, call) => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+      expectErr(await call(), 'FORBIDDEN')
+      expect(mockedLeadRepo.findById).not.toHaveBeenCalled()
+      expect(mockedLeadRepo.create).not.toHaveBeenCalled()
+    },
+  )
 
-  it.each(
-    calls,
-  )('%s: should return MODULE_DISABLED when the CRM is off', async (_, call) => {
-    mockRole('OWNER')
-    vi.mocked(WorkspaceModuleAccessRepository.isEnabled).mockResolvedValueOnce(
-      ok(false),
-    )
-    expectErr(await call(), 'MODULE_DISABLED')
-    expect(mockedLeadRepo.findById).not.toHaveBeenCalled()
-  })
+  it.each(calls)(
+    '%s: should return MODULE_DISABLED when the CRM is off',
+    async (_, call) => {
+      mockRole('OWNER')
+      vi.mocked(
+        WorkspaceModuleAccessRepository.isEnabled,
+      ).mockResolvedValueOnce(ok(false))
+      expectErr(await call(), 'MODULE_DISABLED')
+      expect(mockedLeadRepo.findById).not.toHaveBeenCalled()
+    },
+  )
 
   const writes = calls.filter(
     ([name]) =>
@@ -223,26 +225,28 @@ describe('CrmLeadService — authorization gates', () => {
       ].includes(name),
   )
 
-  it.each(
-    writes,
-  )('%s: should return FORBIDDEN for a VIEWER', async (_, call) => {
-    mockRole('VIEWER')
-    expectErr(await call(), 'FORBIDDEN')
-    expect(mockedLeadRepo.update).not.toHaveBeenCalled()
-  })
+  it.each(writes)(
+    '%s: should return FORBIDDEN for a VIEWER',
+    async (_, call) => {
+      mockRole('VIEWER')
+      expectErr(await call(), 'FORBIDDEN')
+      expect(mockedLeadRepo.update).not.toHaveBeenCalled()
+    },
+  )
 
   // Leituras passam por findById; o NOT_FOUND do repositório propaga.
   const byId = calls.filter(
     ([name]) => !['list', 'create', 'reorder'].includes(name),
   )
 
-  it.each(
-    byId,
-  )('%s: should propagate a missing lead as RESOURCE_NOT_FOUND', async (_, call) => {
-    mockRole('OWNER')
-    mockedLeadRepo.findById.mockResolvedValue(err(notFound('CrmLead')))
-    expectErr(await call(), 'RESOURCE_NOT_FOUND')
-  })
+  it.each(byId)(
+    '%s: should propagate a missing lead as RESOURCE_NOT_FOUND',
+    async (_, call) => {
+      mockRole('OWNER')
+      mockedLeadRepo.findById.mockResolvedValue(err(notFound('CrmLead')))
+      expectErr(await call(), 'RESOURCE_NOT_FOUND')
+    },
+  )
 })
 
 describe('CrmLeadService — reads', () => {
@@ -1551,23 +1555,26 @@ describe('CrmLeadService.reopen() — gates and failures', () => {
     ['contact attempts', 'attempts'],
     ['qualification', 'qualification'],
     ['proposal', 'proposal'],
-  ] as const)('should propagate a %s lookup failure while computing the gate', async (_, which) => {
-    mockLost()
-    mockGateRecords({})
-    if (which === 'attempts') {
-      mockedLeadRepo.listContactAttempts.mockResolvedValue(dbErr())
-    } else if (which === 'qualification') {
-      mockedLeadRepo.findQualification.mockResolvedValue(dbErr())
-    } else {
-      mockedProposalRepo.findLatestByLeadId.mockResolvedValue(dbErr())
-    }
+  ] as const)(
+    'should propagate a %s lookup failure while computing the gate',
+    async (_, which) => {
+      mockLost()
+      mockGateRecords({})
+      if (which === 'attempts') {
+        mockedLeadRepo.listContactAttempts.mockResolvedValue(dbErr())
+      } else if (which === 'qualification') {
+        mockedLeadRepo.findQualification.mockResolvedValue(dbErr())
+      } else {
+        mockedProposalRepo.findLatestByLeadId.mockResolvedValue(dbErr())
+      }
 
-    expectErr(
-      await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'r' }),
-      'DATABASE_ERROR',
-    )
-    expect(mockedLeadRepo.reopen).not.toHaveBeenCalled()
-  })
+      expectErr(
+        await CrmLeadService.reopen('u1', 'ws1', 'l1', { reason: 'r' }),
+        'DATABASE_ERROR',
+      )
+      expect(mockedLeadRepo.reopen).not.toHaveBeenCalled()
+    },
+  )
 
   it('should audit a failed reopen and not fire workflows', async () => {
     mockLost()

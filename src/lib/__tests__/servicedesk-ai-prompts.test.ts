@@ -183,18 +183,17 @@ describe('system prompts', () => {
     expect(prompt).toContain('BASE')
   })
 
-  it.each([
-    'reply',
-    'solution',
-    'chat',
-  ] as const)('tem instrução própria para a tarefa %s', (task) => {
-    const prompt = buildSdCopilotSystem(task, persona, {
-      ticket: 't',
-      kb: 'k',
-    })
-    expect(prompt).toContain('Tarefa: ')
-    expect(prompt).not.toContain('Tarefa: resuma o chamado')
-  })
+  it.each(['reply', 'solution', 'chat'] as const)(
+    'tem instrução própria para a tarefa %s',
+    (task) => {
+      const prompt = buildSdCopilotSystem(task, persona, {
+        ticket: 't',
+        kb: 'k',
+      })
+      expect(prompt).toContain('Tarefa: ')
+      expect(prompt).not.toContain('Tarefa: resuma o chamado')
+    },
+  )
 
   it('inclui persona e instruções do workspace quando preenchidas', () => {
     const prompt = buildSdCopilotSystem(

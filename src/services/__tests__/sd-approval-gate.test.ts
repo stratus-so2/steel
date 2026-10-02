@@ -34,14 +34,13 @@ describe('sdTicketApprovalSatisfied', () => {
     expect(expectOk(await sdTicketApprovalSatisfied('t1'))).toBe(false)
   })
 
-  it.each([
-    'PENDING',
-    'REJECTED',
-    'EXPIRED',
-  ] as const)('refuses a %s standalone request', async (status) => {
-    ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValue(ok(status))
-    expect(expectOk(await sdTicketApprovalSatisfied('t1'))).toBe(false)
-  })
+  it.each(['PENDING', 'REJECTED', 'EXPIRED'] as const)(
+    'refuses a %s standalone request',
+    async (status) => {
+      ctxRepo.findLatestStandaloneApprovalStatus.mockResolvedValue(ok(status))
+      expect(expectOk(await sdTicketApprovalSatisfied('t1'))).toBe(false)
+    },
+  )
 
   it('propagates db errors from both reads', async () => {
     rounds.hasApprovedRound.mockResolvedValue(err(databaseError()))

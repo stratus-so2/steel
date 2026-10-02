@@ -428,17 +428,17 @@ describe('CrmScheduledPostService.create()', () => {
 describe('CrmScheduledPostService.update()', () => {
   const changes = { content: 'Novo texto', title: 'T' }
 
-  it.each([
-    'PUBLISHED',
-    'PUBLISHING',
-  ] as CrmScheduledPostStatus[])('should refuse to edit a %s post', async (status) => {
-    mockedPostRepo.findById.mockResolvedValue(ok(withRelations({ status })))
-    expectErr(
-      await CrmScheduledPostService.update('u1', 'ws1', 'p1', changes),
-      'CRM_SCHEDULED_POST_ALREADY_PUBLISHED',
-    )
-    expect(mockedPostRepo.update).not.toHaveBeenCalled()
-  })
+  it.each(['PUBLISHED', 'PUBLISHING'] as CrmScheduledPostStatus[])(
+    'should refuse to edit a %s post',
+    async (status) => {
+      mockedPostRepo.findById.mockResolvedValue(ok(withRelations({ status })))
+      expectErr(
+        await CrmScheduledPostService.update('u1', 'ws1', 'p1', changes),
+        'CRM_SCHEDULED_POST_ALREADY_PUBLISHED',
+      )
+      expect(mockedPostRepo.update).not.toHaveBeenCalled()
+    },
+  )
 
   it('should update a scheduled post and audit the changed fields', async () => {
     mockedPostRepo.findById.mockResolvedValue(
@@ -561,14 +561,17 @@ describe('CrmScheduledPostService.cancel()', () => {
     'PUBLISHED',
     'PUBLISHING',
     'CANCELED',
-  ] as CrmScheduledPostStatus[])('should refuse to cancel a %s post', async (status) => {
-    mockedPostRepo.findById.mockResolvedValue(ok(withRelations({ status })))
-    expectErr(
-      await CrmScheduledPostService.cancel('u1', 'ws1', 'p1'),
-      'CRM_SCHEDULED_POST_INVALID',
-    )
-    expect(mockedPostRepo.cancel).not.toHaveBeenCalled()
-  })
+  ] as CrmScheduledPostStatus[])(
+    'should refuse to cancel a %s post',
+    async (status) => {
+      mockedPostRepo.findById.mockResolvedValue(ok(withRelations({ status })))
+      expectErr(
+        await CrmScheduledPostService.cancel('u1', 'ws1', 'p1'),
+        'CRM_SCHEDULED_POST_INVALID',
+      )
+      expect(mockedPostRepo.cancel).not.toHaveBeenCalled()
+    },
+  )
 
   it('should propagate a lookup error', async () => {
     mockedPostRepo.findById.mockResolvedValue(err(notFound('Post')))
@@ -604,17 +607,17 @@ describe('CrmScheduledPostService.cancel()', () => {
 describe('CrmScheduledPostService.reschedule()', () => {
   const when = new Date('2026-11-01T09:00:00Z')
 
-  it.each([
-    'PUBLISHED',
-    'PUBLISHING',
-  ] as CrmScheduledPostStatus[])('should refuse to reschedule a %s post', async (status) => {
-    mockedPostRepo.findById.mockResolvedValue(ok(withRelations({ status })))
-    expectErr(
-      await CrmScheduledPostService.reschedule('u1', 'ws1', 'p1', when),
-      'CRM_SCHEDULED_POST_INVALID',
-    )
-    expect(mockedPostRepo.reschedule).not.toHaveBeenCalled()
-  })
+  it.each(['PUBLISHED', 'PUBLISHING'] as CrmScheduledPostStatus[])(
+    'should refuse to reschedule a %s post',
+    async (status) => {
+      mockedPostRepo.findById.mockResolvedValue(ok(withRelations({ status })))
+      expectErr(
+        await CrmScheduledPostService.reschedule('u1', 'ws1', 'p1', when),
+        'CRM_SCHEDULED_POST_INVALID',
+      )
+      expect(mockedPostRepo.reschedule).not.toHaveBeenCalled()
+    },
+  )
 
   it('should move a failed post to the new date', async () => {
     mockedPostRepo.findById

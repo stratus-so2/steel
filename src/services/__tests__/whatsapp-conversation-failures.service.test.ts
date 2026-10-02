@@ -118,59 +118,60 @@ const refetchingMutations: [string, Call][] = [
   ],
 ]
 
-describe.each(
-  refetchingMutations,
-)('WhatsAppConversationService.%s() failures', (_name, call) => {
-  it('should return FORBIDDEN for a non-member', async () => {
-    asNonMember()
+describe.each(refetchingMutations)(
+  'WhatsAppConversationService.%s() failures',
+  (_name, call) => {
+    it('should return FORBIDDEN for a non-member', async () => {
+      asNonMember()
 
-    expectErr(await call(), 'FORBIDDEN')
-    expect(mockedConversationRepo.findById).not.toHaveBeenCalled()
-  })
+      expectErr(await call(), 'FORBIDDEN')
+      expect(mockedConversationRepo.findById).not.toHaveBeenCalled()
+    })
 
-  it('should propagate a lookup failure', async () => {
-    asAdmin()
-    mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a lookup failure', async () => {
+      asAdmin()
+      mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-    expect(mockedConversationRepo.update).not.toHaveBeenCalled()
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+      expect(mockedConversationRepo.update).not.toHaveBeenCalled()
+    })
 
-  it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
-    asAdmin()
-    mockedConversationRepo.findById.mockResolvedValue(ok(null))
+    it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
+      asAdmin()
+      mockedConversationRepo.findById.mockResolvedValue(ok(null))
 
-    expectErr(await call(), 'WHATSAPP_CONVERSATION_NOT_FOUND')
-  })
+      expectErr(await call(), 'WHATSAPP_CONVERSATION_NOT_FOUND')
+    })
 
-  it('should propagate an update failure', async () => {
-    asAdmin()
-    mockedConversationRepo.findById.mockResolvedValue(ok(conversation()))
-    mockedConversationRepo.update.mockResolvedValue(err(DB_ERROR))
+    it('should propagate an update failure', async () => {
+      asAdmin()
+      mockedConversationRepo.findById.mockResolvedValue(ok(conversation()))
+      mockedConversationRepo.update.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+    })
 
-  it('should propagate a failure when reloading the updated conversation', async () => {
-    asAdmin()
-    mockedConversationRepo.findById
-      .mockResolvedValueOnce(ok(conversation()))
-      .mockResolvedValueOnce(err(DB_ERROR))
-    mockedConversationRepo.update.mockResolvedValue(ok(conversation()))
+    it('should propagate a failure when reloading the updated conversation', async () => {
+      asAdmin()
+      mockedConversationRepo.findById
+        .mockResolvedValueOnce(ok(conversation()))
+        .mockResolvedValueOnce(err(DB_ERROR))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation()))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+    })
 
-  it('should return WHATSAPP_CONVERSATION_NOT_FOUND when it vanished after the update', async () => {
-    asAdmin()
-    mockedConversationRepo.findById
-      .mockResolvedValueOnce(ok(conversation()))
-      .mockResolvedValueOnce(ok(null))
-    mockedConversationRepo.update.mockResolvedValue(ok(conversation()))
+    it('should return WHATSAPP_CONVERSATION_NOT_FOUND when it vanished after the update', async () => {
+      asAdmin()
+      mockedConversationRepo.findById
+        .mockResolvedValueOnce(ok(conversation()))
+        .mockResolvedValueOnce(ok(null))
+      mockedConversationRepo.update.mockResolvedValue(ok(conversation()))
 
-    expectErr(await call(), 'WHATSAPP_CONVERSATION_NOT_FOUND')
-  })
-})
+      expectErr(await call(), 'WHATSAPP_CONVERSATION_NOT_FOUND')
+    })
+  },
+)
 
 describe('WhatsAppConversationService read failures', () => {
   it('list() should return FORBIDDEN for a non-member', async () => {
@@ -411,14 +412,14 @@ describe('WhatsAppConversationService.close()/reopen() failures', () => {
       () => WhatsAppConversationService.close('u1', 'ws1', 'conv1', {}),
     ],
     ['reopen', () => WhatsAppConversationService.reopen('u1', 'ws1', 'conv1')],
-  ] as [
-    string,
-    Call,
-  ][])('%s() should return FORBIDDEN for a non-member', async (_n, call) => {
-    asNonMember()
+  ] as [string, Call][])(
+    '%s() should return FORBIDDEN for a non-member',
+    async (_n, call) => {
+      asNonMember()
 
-    expectErr(await call(), 'FORBIDDEN')
-  })
+      expectErr(await call(), 'FORBIDDEN')
+    },
+  )
 
   it.each([
     [
@@ -426,15 +427,15 @@ describe('WhatsAppConversationService.close()/reopen() failures', () => {
       () => WhatsAppConversationService.close('u1', 'ws1', 'conv1', {}),
     ],
     ['reopen', () => WhatsAppConversationService.reopen('u1', 'ws1', 'conv1')],
-  ] as [
-    string,
-    Call,
-  ][])('%s() should propagate a lookup failure', async (_n, call) => {
-    asAdmin()
-    mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
+  ] as [string, Call][])(
+    '%s() should propagate a lookup failure',
+    async (_n, call) => {
+      asAdmin()
+      mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+    },
+  )
 
   it('reopen() should return WHATSAPP_CONVERSATION_NOT_FOUND for a deleted conversation', async () => {
     asAdmin()

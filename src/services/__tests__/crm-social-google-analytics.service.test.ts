@@ -150,10 +150,13 @@ describe('getOverview()', () => {
   it.each([
     ['fails', () => textResponse('', { status: 403 })],
     ['has no display name', () => jsonResponse({})],
-  ])('should keep a null account name when the account lookup %s', async (_, account) => {
-    fetchMock = route({ account })
-    expect(expectOk(await getOverview('u1', 'ws1')).accountName).toBeNull()
-  })
+  ])(
+    'should keep a null account name when the account lookup %s',
+    async (_, account) => {
+      fetchMock = route({ account })
+      expect(expectOk(await getOverview('u1', 'ws1')).accountName).toBeNull()
+    },
+  )
 
   it('should zero the totals when the report has none', async () => {
     fetchMock = route({ report: () => jsonResponse({}) })
@@ -188,15 +191,21 @@ describe('getOverview()', () => {
   it.each([
     ['unknown', 'unknown'],
     ['empty', ''],
-  ])('should return CRM_SOCIAL_CONNECTION_NOT_FOUND for an %s property', async (_, externalAccountId) => {
-    withToken({ scope: 'analytics.readonly', externalAccountId })
-    expectErr(await getOverview('u1', 'ws1'), 'CRM_SOCIAL_CONNECTION_NOT_FOUND')
-    expectErr(
-      await getInsights('u1', 'ws1', '28d'),
-      'CRM_SOCIAL_CONNECTION_NOT_FOUND',
-    )
-    expect(fetchMock.spy).not.toHaveBeenCalled()
-  })
+  ])(
+    'should return CRM_SOCIAL_CONNECTION_NOT_FOUND for an %s property',
+    async (_, externalAccountId) => {
+      withToken({ scope: 'analytics.readonly', externalAccountId })
+      expectErr(
+        await getOverview('u1', 'ws1'),
+        'CRM_SOCIAL_CONNECTION_NOT_FOUND',
+      )
+      expectErr(
+        await getInsights('u1', 'ws1', '28d'),
+        'CRM_SOCIAL_CONNECTION_NOT_FOUND',
+      )
+      expect(fetchMock.spy).not.toHaveBeenCalled()
+    },
+  )
 })
 
 describe('getInsights()', () => {

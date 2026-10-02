@@ -125,7 +125,7 @@ describe('<CrmCustomFieldsPanel />', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Criar campo' }))
     await waitFor(() => expect(notify.error).toHaveBeenCalled())
-    expect((notify.error.mock.lastCall?.[0] as Error).message).toBe(
+    expect((notify.error.mock.lastCall?.[0] as Error)?.message).toBe(
       'Chave já utilizada',
     )
   })

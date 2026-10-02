@@ -196,26 +196,29 @@ describe('publishScheduledPost()', () => {
   it.each([
     ['an Error', new Error('NoSuchKey'), 'NoSuchKey'],
     ['a non-Error value', 'timeout', 'timeout'],
-  ])('should fail the whole post when media loading throws %s', async (_, thrown, message) => {
-    mockedGetObject.mockRejectedValue(thrown)
+  ])(
+    'should fail the whole post when media loading throws %s',
+    async (_, thrown, message) => {
+      mockedGetObject.mockRejectedValue(thrown)
 
-    await publishScheduledPost(
-      post({
-        targets: [createFakeCrmScheduledPostTarget()],
-        media: [media('VIDEO', 'v', 'video/mp4')],
-      }),
-    )
+      await publishScheduledPost(
+        post({
+          targets: [createFakeCrmScheduledPostTarget()],
+          media: [media('VIDEO', 'v', 'video/mp4')],
+        }),
+      )
 
-    expect(logger.error).toHaveBeenCalledWith(
-      'crm_social_scheduler.media_load_failed',
-      expect.objectContaining({ postId: 'p1', message }),
-    )
-    expect(mockedPostRepo.setStatus).toHaveBeenCalledWith('p1', 'FAILED', {
-      lastError: 'Falha ao carregar a mídia do armazenamento',
-    })
-    expect(mockedPublish).not.toHaveBeenCalled()
-    expect(mockedTargetRepo.setStatus).not.toHaveBeenCalled()
-  })
+      expect(logger.error).toHaveBeenCalledWith(
+        'crm_social_scheduler.media_load_failed',
+        expect.objectContaining({ postId: 'p1', message }),
+      )
+      expect(mockedPostRepo.setStatus).toHaveBeenCalledWith('p1', 'FAILED', {
+        lastError: 'Falha ao carregar a mídia do armazenamento',
+      })
+      expect(mockedPublish).not.toHaveBeenCalled()
+      expect(mockedTargetRepo.setStatus).not.toHaveBeenCalled()
+    },
+  )
 
   it('should skip PUBLISHED/CANCELED targets and mark a partial failure', async () => {
     mockedPublish

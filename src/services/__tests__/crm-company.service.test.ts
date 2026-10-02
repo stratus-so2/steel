@@ -81,23 +81,26 @@ describe('CrmCompanyService', () => {
       ['VIEWER', 'remove'],
       ['VIEWER', 'reorder'],
       ['MEMBER', 'remove'],
-    ] as const)('should forbid a %s from calling %s()', async (role, action) => {
-      asRole(role)
+    ] as const)(
+      'should forbid a %s from calling %s()',
+      async (role, action) => {
+        asRole(role)
 
-      const result =
-        action === 'create'
-          ? await CrmCompanyService.create('u1', 'ws1', createDto)
-          : action === 'update'
-            ? await CrmCompanyService.update('u1', 'ws1', 'c1', { name: 'X' })
-            : action === 'remove'
-              ? await CrmCompanyService.remove('u1', 'ws1', 'c1')
-              : await CrmCompanyService.reorder('u1', 'ws1', ['c1'])
+        const result =
+          action === 'create'
+            ? await CrmCompanyService.create('u1', 'ws1', createDto)
+            : action === 'update'
+              ? await CrmCompanyService.update('u1', 'ws1', 'c1', { name: 'X' })
+              : action === 'remove'
+                ? await CrmCompanyService.remove('u1', 'ws1', 'c1')
+                : await CrmCompanyService.reorder('u1', 'ws1', ['c1'])
 
-      expectErr(result, 'FORBIDDEN')
-      expect(mockedCompanyRepo.findById).not.toHaveBeenCalled()
-      expect(mockedCompanyRepo.create).not.toHaveBeenCalled()
-      expect(mockedCompanyRepo.reorder).not.toHaveBeenCalled()
-    })
+        expectErr(result, 'FORBIDDEN')
+        expect(mockedCompanyRepo.findById).not.toHaveBeenCalled()
+        expect(mockedCompanyRepo.create).not.toHaveBeenCalled()
+        expect(mockedCompanyRepo.reorder).not.toHaveBeenCalled()
+      },
+    )
 
     it('should let a VIEWER read companies', async () => {
       asRole('VIEWER')

@@ -349,17 +349,20 @@ describe('SdCustomerService', () => {
     it.each([
       ['52998224725', 'LEGAL', 'CPF informado para pessoa jurídica'],
       ['11222333000181', 'INDIVIDUAL', 'CNPJ informado para pessoa física'],
-    ] as const)('rejects %s for person type %s', async (document, personType, message) => {
-      const error = expectErr(
-        await SdCustomerService.create(
-          'u1',
-          'ws1',
-          create({ document, personType }),
-        ),
-        'SD_DOCUMENT_INVALID',
-      )
-      expect(error.message).toBe(message)
-    })
+    ] as const)(
+      'rejects %s for person type %s',
+      async (document, personType, message) => {
+        const error = expectErr(
+          await SdCustomerService.create(
+            'u1',
+            'ws1',
+            create({ document, personType }),
+          ),
+          'SD_DOCUMENT_INVALID',
+        )
+        expect(error.message).toBe(message)
+      },
+    )
 
     it('accepts the alphanumeric CNPJ', async () => {
       repo.create.mockResolvedValue(ok(createFakeSdCustomer()))

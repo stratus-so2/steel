@@ -96,18 +96,12 @@ describe('parseSdHandoffMinutes', () => {
     expect(parseSdHandoffMinutes(value)).toBe(expected)
   })
 
-  it.each([
-    '',
-    '9:00',
-    '24:00',
-    '25:00',
-    '09:60',
-    'abc',
-    null,
-    undefined,
-  ])('falls back to midnight for %s', (value) => {
-    expect(parseSdHandoffMinutes(value)).toBe(0)
-  })
+  it.each(['', '9:00', '24:00', '25:00', '09:60', 'abc', null, undefined])(
+    'falls back to midnight for %s',
+    (value) => {
+      expect(parseSdHandoffMinutes(value)).toBe(0)
+    },
+  )
 })
 
 describe('sdOnCallPeriodDays', () => {

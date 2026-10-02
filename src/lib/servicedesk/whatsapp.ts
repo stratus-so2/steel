@@ -3,6 +3,7 @@ import type {
   WhatsAppMessageType,
   WhatsAppProvider,
 } from '@prisma/client'
+import { escapeSdHtmlText } from '@/src/lib/servicedesk/html'
 
 /**
  * Regras puras do WhatsApp no ServiceDesk (sem I/O): janela de 24 h da Meta,
@@ -135,21 +136,22 @@ export function sdWhatsappTicketTitle(text: string | null | undefined): string {
     : firstLine
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-}
-
-/** Texto simples → HTML de parágrafos (descrição do chamado). */
+/**
+ * Texto simples → HTML de parágrafos (descrição do chamado).
+ *
+ * O texto vem da mensagem do WhatsApp (dado de terceiro): é escapado por
+ * `escapeSdHtmlText` e a troca `\n` -> `<br>` vem **depois** do escape, então
+ * só alcança quebras de linha reais. O resultado ainda passa por
+ * `sanitizeSdHtml` no `SdTicketEngine.create`.
+ */
 export function sdPlainTextToHtml(text: string): string {
   return text
     .split(/\n{2,}/)
     .map((block) => block.trim())
     .filter(Boolean)
-    .map((block) => `<p>${escapeHtml(block).replaceAll('\n', '<br>')}</p>`)
+    .map(
+      (block) => `<p>${escapeSdHtmlText(block).replaceAll('\n', '<br>')}</p>`,
+    )
     .join('')
 }
 

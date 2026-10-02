@@ -623,30 +623,33 @@ describe('CrmCompetitorService', () => {
       ['VIEWER', 'reorder'],
       ['VIEWER', 'syncWorkspace'],
       ['MEMBER', 'remove'],
-    ] as const)('should forbid a %s from calling %s()', async (role, action) => {
-      asRole(role)
+    ] as const)(
+      'should forbid a %s from calling %s()',
+      async (role, action) => {
+        asRole(role)
 
-      const result =
-        action === 'create'
-          ? await CrmCompetitorService.create('u1', 'ws1', {
-              platform: 'INSTAGRAM',
-              handle: '@rival',
-            })
-          : action === 'update'
-            ? await CrmCompetitorService.update('u1', 'ws1', 'c1', {
-                notes: 'x',
+        const result =
+          action === 'create'
+            ? await CrmCompetitorService.create('u1', 'ws1', {
+                platform: 'INSTAGRAM',
+                handle: '@rival',
               })
-            : action === 'remove'
-              ? await CrmCompetitorService.remove('u1', 'ws1', 'c1')
-              : action === 'reorder'
-                ? await CrmCompetitorService.reorder('u1', 'ws1', ['c1'])
-                : await CrmCompetitorService.syncWorkspace('u1', 'ws1')
+            : action === 'update'
+              ? await CrmCompetitorService.update('u1', 'ws1', 'c1', {
+                  notes: 'x',
+                })
+              : action === 'remove'
+                ? await CrmCompetitorService.remove('u1', 'ws1', 'c1')
+                : action === 'reorder'
+                  ? await CrmCompetitorService.reorder('u1', 'ws1', ['c1'])
+                  : await CrmCompetitorService.syncWorkspace('u1', 'ws1')
 
-      expectErr(result, 'FORBIDDEN')
-      expect(mockedCompetitorRepo.findById).not.toHaveBeenCalled()
-      expect(mockedCompetitorRepo.create).not.toHaveBeenCalled()
-      expect(mockedCompetitorRepo.listSyncable).not.toHaveBeenCalled()
-    })
+        expectErr(result, 'FORBIDDEN')
+        expect(mockedCompetitorRepo.findById).not.toHaveBeenCalled()
+        expect(mockedCompetitorRepo.create).not.toHaveBeenCalled()
+        expect(mockedCompetitorRepo.listSyncable).not.toHaveBeenCalled()
+      },
+    )
 
     it('should return MODULE_DISABLED when the CRM is off', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(

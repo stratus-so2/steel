@@ -174,6 +174,7 @@ export function SaasSubscriptionFooter({
         <div className='flex shrink-0 items-center gap-4'>
           <a
             href={readOnly ? '#' : undefined}
+            aria-label='Learn more about the plans'
             className='inline-flex items-center justify-center rounded-lg bg-[#473bf0]/8 px-6 py-4 font-bold text-[#473bf0] text-[17px] tracking-[-0.6px] hover:opacity-90'
           >
             Learn more

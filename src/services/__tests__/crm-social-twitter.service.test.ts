@@ -234,7 +234,7 @@ describe('publishTweetPost()', () => {
     expectOk(await publishTweetPost('u1', 'ws1', { text: 'x' }, image('')))
 
     const [upload, tweet] = fetchMock.calls()
-    expect(((upload.init?.body as FormData).get('media') as File).type).toBe(
+    expect(((upload.init?.body as FormData)?.get('media') as File)?.type).toBe(
       'image/jpeg',
     )
     expect(JSON.parse(String(tweet.init?.body)).media.media_ids).toEqual([

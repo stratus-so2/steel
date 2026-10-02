@@ -71,19 +71,20 @@ const GATED: Array<{
 ]
 
 describe('consent gate - authenticated but unconsented user', () => {
-  it.each(GATED)('blocks $name with the consent gate(403)', async ({
-    call,
-  }) => {
-    const user = await createAuthenticatedUser({ skipConsent: true })
-    const res = await call(user.cookie)
+  it.each(GATED)(
+    'blocks $name with the consent gate(403)',
+    async ({ call }) => {
+      const user = await createAuthenticatedUser({ skipConsent: true })
+      const res = await call(user.cookie)
 
-    expect(res.status).toBe(403)
-    const body = (await res.json()) as {
-      error?: { code?: string }
-      message?: string
-    }
-    expect(body.message).toContain('Consentimento')
-  })
+      expect(res.status).toBe(403)
+      const body = (await res.json()) as {
+        error?: { code?: string }
+        message?: string
+      }
+      expect(body.message).toContain('Consentimento')
+    },
+  )
 
   it('dows not block a consented user (POST /api/workspace -> 201', async () => {
     const user = await createAuthenticatedUser()

@@ -120,7 +120,7 @@ export async function runWorkspaceDeletion(
     const existing = backupId
       ? await prisma.backup.findUnique({ where: { id: backupId } })
       : null
-    if (!existing || existing.status !== 'COMPLETED') {
+    if (existing?.status !== 'COMPLETED') {
       const backup = await backupWorkspace({
         workspaceId,
         triggeredById: operation.requestedById,

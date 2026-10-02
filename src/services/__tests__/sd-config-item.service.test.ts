@@ -396,14 +396,17 @@ describe('SdConfigItemService', () => {
         { ownerId: 'ux' },
         'DATABASE_ERROR',
       ],
-    ] as const)('rejects an invalid %s reference', async (_label, arrange, input, code) => {
-      arrange()
-      expectErr(
-        await SdConfigItemService.create('u1', 'ws1', create(input)),
-        code,
-      )
-      expect(repo.create).not.toHaveBeenCalled()
-    })
+    ] as const)(
+      'rejects an invalid %s reference',
+      async (_label, arrange, input, code) => {
+        arrange()
+        expectErr(
+          await SdConfigItemService.create('u1', 'ws1', create(input)),
+          code,
+        )
+        expect(repo.create).not.toHaveBeenCalled()
+      },
+    )
 
     it('audits failed inserts', async () => {
       repo.create.mockResolvedValue(err(databaseError()))

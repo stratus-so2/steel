@@ -89,7 +89,41 @@ O que procurar:
 No Axiom, filtre por `component = "Worker"` ou pelo nome do evento (ex.:
 `queue.status_collect.failed`, `queue.database_backup.full_failed`).
 
-## 5. Backups (checagem diária recomendada)
+## 5. Cabeçalhos de segurança e o `Server` do nginx
+
+O job `Security Headers Validation` (workflow **Security DAST**, segundas às
+06:00 UTC, também por `workflow_dispatch`) prova três classes de resposta —
+página pública, asset de `_next/static` e redirect do middleware — e falha se
+alguma perder `X-Frame-Options`, `Strict-Transport-Security`,
+`X-Content-Type-Options`, `Content-Security-Policy`, `Referrer-Policy` ou
+`Permissions-Policy`. Todos saem da aplicação (`proxy.ts` e `next.config.ts`),
+então falha aqui é regressão de código, não de servidor.
+
+O que **não** é da aplicação é o `Server`, que o nginx acrescenta na frente:
+
+```bash
+curl -sI https://<domínio>/ | grep -i '^server:'
+# Server: nginx/1.18.0   <- expõe a versão (ZAP 10036)
+```
+
+O ZAP reporta isso como *Server Leaks Version Information* a cada varredura.
+Para resolver, no servidor (fora deste repositório), dentro do bloco `http`
+de `/etc/nginx/nginx.conf`:
+
+```nginx
+http {
+    server_tokens off;   # Server: nginx, sem a versão
+    # ...
+}
+```
+
+Depois `sudo nginx -t && sudo systemctl reload nginx` e confira com o `curl`
+acima: o esperado passa a ser `Server: nginx`. Apagar o cabeçalho por completo
+exige o módulo `headers-more` (`more_clear_headers Server;`), que não vem no
+nginx dos repositórios da distribuição — `server_tokens off` já resolve o
+achado. Aproveite para atualizar o nginx: a 1.18.0 é de 2020.
+
+## 6. Backups (checagem diária recomendada)
 
 O backup FULL roda às 03:15 (horário de Brasília). No Axiom, procure:
 

@@ -178,6 +178,7 @@ export function AgencyServices({
 
               <a
                 href='#footer'
+                aria-label='Learn more about this service'
                 data-cta
                 className='mt-2 inline-flex items-center gap-2 font-bold text-[17px] text-white tracking-[-0.6px] hover:opacity-90'
               >

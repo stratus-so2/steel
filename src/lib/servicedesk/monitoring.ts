@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { escapeSdHtmlText as esc } from '@/src/lib/servicedesk/html'
 import type { SdMonitorSeverityMapEntryDTO } from '@/src/schemas/sd-monitor-source.schema'
 
 export {
@@ -270,7 +271,20 @@ export function sdMonitorSeverityMap(
   return entries
 }
 
-/** Descrição HTML do chamado aberto pelo alerta. */
+/**
+ * Descrição HTML do chamado aberto pelo alerta.
+ *
+ * O payload do webhook é dado de terceiro, então todo valor interpolado passa
+ * por `esc()` antes de entrar no HTML — e só em conteúdo de elemento, nunca em
+ * atributo. A troca `\n` -> `<br />` acontece **depois** do escape, então só
+ * alcança quebras de linha reais. Além disso o resultado ainda atravessa
+ * `sanitizeSdHtml` (allowlist de tags/atributos) em `SdTicketEngine.create`
+ * antes de ser gravado, que é o mesmo caminho do HTML que vem do editor.
+ *
+ * O Semgrep marca as duas interpolações abaixo com `raw-html-format` por
+ * reconhecer HTML montado à mão; é falso positivo por essas duas camadas, e
+ * os `nosemgrep` registram isso em vez de só silenciar o alerta.
+ */
 export function sdMonitorTicketBody(
   event: SdMonitorEvent,
   sourceName: string,
@@ -288,15 +302,9 @@ export function sdMonitorTicketBody(
     )
     .join('')
   const message = event.body
-    ? `<p>${esc(event.body).replace(/\n/g, '<br />')}</p>`
+    ? // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format
+      `<p>${esc(event.body).replace(/\n/g, '<br />')}</p>`
     : ''
+  // nosemgrep: javascript.express.security.injection.raw-html-format.raw-html-format
   return `<p>Chamado aberto automaticamente pelo monitoramento.</p><ul>${list}</ul>${message}`
-}
-
-function esc(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
 }

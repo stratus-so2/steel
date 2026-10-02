@@ -46,18 +46,19 @@ describe('CRM sidebar pages', () => {
     expect(html).not.toContain('Application error')
   })
 
-  it.each(
-    SEGMENTS,
-  )('should render /crm/%s without a server error', async (segment) => {
-    const { user, workspace } = await authenticatedOwner()
+  it.each(SEGMENTS)(
+    'should render /crm/%s without a server error',
+    async (segment) => {
+      const { user, workspace } = await authenticatedOwner()
 
-    const res = await fetch(`${BASE_URL}/${workspace.slug}/crm/${segment}`, {
-      headers: { ...defaultHeaders, Cookie: user.cookie },
-      redirect: 'manual',
-    })
+      const res = await fetch(`${BASE_URL}/${workspace.slug}/crm/${segment}`, {
+        headers: { ...defaultHeaders, Cookie: user.cookie },
+        redirect: 'manual',
+      })
 
-    expect(res.status).toBe(200)
-    const html = await res.text()
-    expect(html).not.toContain('Application error')
-  })
+      expect(res.status).toBe(200)
+      const html = await res.text()
+      expect(html).not.toContain('Application error')
+    },
+  )
 })

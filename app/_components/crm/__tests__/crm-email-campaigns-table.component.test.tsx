@@ -265,7 +265,7 @@ describe('<CrmEmailCampaignsTable /> composer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enviar agora' }))
     await waitFor(() => expect(notify.error).toHaveBeenCalled())
-    expect((notify.error.mock.lastCall?.[0] as Error).message).toBe(
+    expect((notify.error.mock.lastCall?.[0] as Error)?.message).toBe(
       'Remetente não verificado',
     )
     expect(screen.getByPlaceholderText('Novidades de junho')).toBeTruthy()

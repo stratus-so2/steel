@@ -174,6 +174,7 @@ export function B2bServices({
 
             <a
               href='#footer'
+              aria-label='Learn more about this service'
               data-cta
               className='inline-flex items-center gap-2 font-bold text-[#473bf0] text-[17px] tracking-[-0.6px] hover:opacity-90'
             >

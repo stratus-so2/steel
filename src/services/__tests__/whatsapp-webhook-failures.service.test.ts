@@ -129,104 +129,107 @@ const directMessageFlows: [string, Ingest][] = [
   ],
 ]
 
-describe.each(
-  directMessageFlows,
-)('WhatsAppWebhookService.%s() failures', (_name, ingest) => {
-  it('should propagate a dedupe lookup failure', async () => {
-    arrangeHappy()
-    mockedMessageRepo.findByProviderMessageId.mockResolvedValue(err(DB_ERROR))
+describe.each(directMessageFlows)(
+  'WhatsAppWebhookService.%s() failures',
+  (_name, ingest) => {
+    it('should propagate a dedupe lookup failure', async () => {
+      arrangeHappy()
+      mockedMessageRepo.findByProviderMessageId.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-    expect(mockedContactRepo.upsertByWaId).not.toHaveBeenCalled()
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+      expect(mockedContactRepo.upsertByWaId).not.toHaveBeenCalled()
+    })
 
-  it('should propagate a contact upsert failure', async () => {
-    arrangeHappy()
-    mockedContactRepo.upsertByWaId.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a contact upsert failure', async () => {
+      arrangeHappy()
+      mockedContactRepo.upsertByWaId.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+    })
 
-  it('should propagate an active conversation lookup failure', async () => {
-    arrangeHappy()
-    mockedConversationRepo.findActiveByContact.mockResolvedValue(err(DB_ERROR))
+    it('should propagate an active conversation lookup failure', async () => {
+      arrangeHappy()
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(
+        err(DB_ERROR),
+      )
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+    })
 
-  it('should propagate a failure updating the active conversation', async () => {
-    arrangeHappy()
-    mockedConversationRepo.findActiveByContact.mockResolvedValue(
-      ok(createFakeWhatsAppConversation({ id: 'conv1' })),
-    )
-    mockedConversationRepo.update.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a failure updating the active conversation', async () => {
+      arrangeHappy()
+      mockedConversationRepo.findActiveByContact.mockResolvedValue(
+        ok(createFakeWhatsAppConversation({ id: 'conv1' })),
+      )
+      mockedConversationRepo.update.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-    expect(mockedMessageRepo.create).not.toHaveBeenCalled()
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+      expect(mockedMessageRepo.create).not.toHaveBeenCalled()
+    })
 
-  it('should propagate a closed conversation lookup failure', async () => {
-    arrangeHappy()
-    mockedConversationRepo.findLatestClosedByContact.mockResolvedValue(
-      err(DB_ERROR),
-    )
+    it('should propagate a closed conversation lookup failure', async () => {
+      arrangeHappy()
+      mockedConversationRepo.findLatestClosedByContact.mockResolvedValue(
+        err(DB_ERROR),
+      )
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+    })
 
-  it('should propagate a failure reopening the closed conversation', async () => {
-    arrangeHappy()
-    mockedConversationRepo.findLatestClosedByContact.mockResolvedValue(
-      ok(closedConversation()),
-    )
-    mockedConversationRepo.update.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a failure reopening the closed conversation', async () => {
+      arrangeHappy()
+      mockedConversationRepo.findLatestClosedByContact.mockResolvedValue(
+        ok(closedConversation()),
+      )
+      mockedConversationRepo.update.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+    })
 
-  it('should propagate a failure creating the conversation', async () => {
-    arrangeHappy()
-    mockedConversationRepo.create.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a failure creating the conversation', async () => {
+      arrangeHappy()
+      mockedConversationRepo.create.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+    })
 
-  it('should propagate a failure persisting the message', async () => {
-    arrangeHappy()
-    mockedMessageRepo.create.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a failure persisting the message', async () => {
+      arrangeHappy()
+      mockedMessageRepo.create.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
-    expect(publishWhatsAppEvent).not.toHaveBeenCalled()
-  })
+      expectErr(await ingest(baseInbound()), 'DATABASE_ERROR')
+      expect(publishWhatsAppEvent).not.toHaveBeenCalled()
+    })
 
-  it('should drop the quote when the quoted message is unknown', async () => {
-    arrangeHappy()
-    mockedMessageRepo.findByProviderMessageId
-      .mockResolvedValueOnce(ok(null))
-      .mockResolvedValueOnce(err(DB_ERROR))
+    it('should drop the quote when the quoted message is unknown', async () => {
+      arrangeHappy()
+      mockedMessageRepo.findByProviderMessageId
+        .mockResolvedValueOnce(ok(null))
+        .mockResolvedValueOnce(err(DB_ERROR))
 
-    expectOk(
-      await ingest(baseInbound({ quotedProviderMessageId: 'wamid-quoted' })),
-    )
+      expectOk(
+        await ingest(baseInbound({ quotedProviderMessageId: 'wamid-quoted' })),
+      )
 
-    expect(mockedMessageRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({ replyToMessageId: undefined }),
-    )
-  })
+      expect(mockedMessageRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ replyToMessageId: undefined }),
+      )
+    })
 
-  it('should skip the conversation snapshot when the refresh fails', async () => {
-    arrangeHappy()
-    mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
+    it('should skip the conversation snapshot when the refresh fails', async () => {
+      arrangeHappy()
+      mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
 
-    expectOk(await ingest(baseInbound()))
+      expectOk(await ingest(baseInbound()))
 
-    expect(publishWhatsAppEvent).toHaveBeenCalledTimes(1)
-    expect(publishWhatsAppEvent).toHaveBeenCalledWith(
-      'ws1',
-      expect.objectContaining({ type: 'message.created' }),
-    )
-  })
-})
+      expect(publishWhatsAppEvent).toHaveBeenCalledTimes(1)
+      expect(publishWhatsAppEvent).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ type: 'message.created' }),
+      )
+    })
+  },
+)
 
 describe('WhatsAppWebhookService.ingestInboundMessage() specifics', () => {
   it('should propagate an AI config lookup failure', async () => {

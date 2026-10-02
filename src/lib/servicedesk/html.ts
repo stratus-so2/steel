@@ -83,12 +83,25 @@ const SAFE_URL = /^(https?:|mailto:|tel:|\/(?!\/)|#|\.{0,2}\/)/i
 const SAFE_IMAGE_DATA =
   /^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i
 
-function escapeAttr(value: string): string {
+/**
+ * Escapa texto para entrar em HTML montado à mão (conteúdo de elemento ou
+ * valor de atributo entre aspas).
+ *
+ * Fonte única: antes havia três cópias quase iguais disto — `escapeAttr` aqui,
+ * `esc` em `monitoring.ts` e `escapeHtml` em `whatsapp.ts` —, e nenhuma
+ * escapava `'`. O `&` vem primeiro, senão as entidades geradas pelas trocas
+ * seguintes seriam escapadas de novo.
+ *
+ * Isto escapa, não sanitiza: HTML que venha de fora continua tendo que passar
+ * por `sanitizeSdHtml`.
+ */
+export function escapeSdHtmlText(value: string): string {
   return value
     .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function decodeEntities(value: string): string {
@@ -131,7 +144,7 @@ function sanitizeAttributes(tag: string, raw: string): string {
       if (value !== '_blank') continue
       hasTargetBlank = true
     }
-    out.push(`${name}="${escapeAttr(decodeEntities(value))}"`)
+    out.push(`${name}="${escapeSdHtmlText(decodeEntities(value))}"`)
   }
   if (tag === 'a' && hasTargetBlank) out.push('rel="noopener noreferrer"')
   return out.length > 0 ? ` ${out.join(' ')}` : ''

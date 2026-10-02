@@ -322,22 +322,25 @@ describe('AdminBackupService failure paths', () => {
   it.each([
     [new Error('redis down'), 'redis down'],
     ['boom', 'boom'],
-  ])('trigger() maps a queue failure (%s) to INTERNAL_SERVER_ERROR', async (thrown, logged) => {
-    vi.mocked(triggerFullBackup).mockRejectedValueOnce(thrown)
+  ])(
+    'trigger() maps a queue failure (%s) to INTERNAL_SERVER_ERROR',
+    async (thrown, logged) => {
+      vi.mocked(triggerFullBackup).mockRejectedValueOnce(thrown)
 
-    const error = expectErr(
-      await Service.trigger(admin.id, { scope: 'FULL' }),
-      'INTERNAL_SERVER_ERROR',
-    )
-    expect(error.message).toBe(
-      'Fila de backups indisponível. Tente novamente em instantes.',
-    )
-    expect(logger.error).toHaveBeenCalledWith(
-      'admin.backup.trigger_failed',
-      expect.objectContaining({ scope: 'FULL', message: logged }),
-    )
-    expect(recordAdminAction).not.toHaveBeenCalled()
-  })
+      const error = expectErr(
+        await Service.trigger(admin.id, { scope: 'FULL' }),
+        'INTERNAL_SERVER_ERROR',
+      )
+      expect(error.message).toBe(
+        'Fila de backups indisponível. Tente novamente em instantes.',
+      )
+      expect(logger.error).toHaveBeenCalledWith(
+        'admin.backup.trigger_failed',
+        expect.objectContaining({ scope: 'FULL', message: logged }),
+      )
+      expect(recordAdminAction).not.toHaveBeenCalled()
+    },
+  )
 
   it('createDownloadLink() propagates lookup failures and unknown backups', async () => {
     backupRepo.findById.mockResolvedValue(err(DB_ERROR))
@@ -502,12 +505,15 @@ describe('AdminBackupService failure paths', () => {
     it.each([
       [new Error('redis down'), 'redis down'],
       ['boom', 'boom'],
-    ])('marks the operation failed when enqueueing throws %s', async (thrown, message) => {
-      vi.mocked(enqueueAdminOperation).mockRejectedValueOnce(thrown)
+    ])(
+      'marks the operation failed when enqueueing throws %s',
+      async (thrown, message) => {
+        vi.mocked(enqueueAdminOperation).mockRejectedValueOnce(thrown)
 
-      expectErr(await restore(), 'INTERNAL_SERVER_ERROR')
-      expect(operationRepo.markFailed).toHaveBeenCalledWith('op9', message)
-      expect(recordAdminAction).not.toHaveBeenCalled()
-    })
+        expectErr(await restore(), 'INTERNAL_SERVER_ERROR')
+        expect(operationRepo.markFailed).toHaveBeenCalledWith('op9', message)
+        expect(recordAdminAction).not.toHaveBeenCalled()
+      },
+    )
   })
 })

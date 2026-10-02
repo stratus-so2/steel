@@ -197,21 +197,27 @@ describe('publishToSocialPlatform()', () => {
         'STORIES',
         'VIDEO',
       ],
-    ] as const)('should pick the right media for %s', async (_, options, media, postType, kind) => {
-      vi.mocked(Instagram.publishPost).mockResolvedValue(
-        ok({ postId: 'ig-1', permalink: null }),
-      )
+    ] as const)(
+      'should pick the right media for %s',
+      async (_, options, media, postType, kind) => {
+        vi.mocked(Instagram.publishPost).mockResolvedValue(
+          ok({ postId: 'ig-1', permalink: null }),
+        )
 
-      expect(
-        await publishToSocialPlatform('INSTAGRAM', ctx({ options, ...media })),
-      ).toEqual({ ok: true, externalPostId: 'ig-1' })
-      expect(Instagram.publishPost).toHaveBeenCalledWith(
-        'u1',
-        'ws1',
-        { caption: 'Olá mundo', postType },
-        { ...(kind === 'IMAGE' ? IMAGE : VIDEO), kind },
-      )
-    })
+        expect(
+          await publishToSocialPlatform(
+            'INSTAGRAM',
+            ctx({ options, ...media }),
+          ),
+        ).toEqual({ ok: true, externalPostId: 'ig-1' })
+        expect(Instagram.publishPost).toHaveBeenCalledWith(
+          'u1',
+          'ws1',
+          { caption: 'Olá mundo', postType },
+          { ...(kind === 'IMAGE' ? IMAGE : VIDEO), kind },
+        )
+      },
+    )
 
     it.each([
       ['FEED', {}, { video: VIDEO }, 'imagem'],
@@ -227,18 +233,21 @@ describe('publishToSocialPlatform()', () => {
         {},
         'imagem ou vídeo',
       ],
-    ] as const)('should refuse a %s without the required media', async (_, options, media, label) => {
-      const result = await publishToSocialPlatform(
-        'INSTAGRAM',
-        ctx({ options, ...media }),
-      )
+    ] as const)(
+      'should refuse a %s without the required media',
+      async (_, options, media, label) => {
+        const result = await publishToSocialPlatform(
+          'INSTAGRAM',
+          ctx({ options, ...media }),
+        )
 
-      expect(result).toEqual({
-        ok: false,
-        error: `INSTAGRAM exige mídia (${label}) para publicar.`,
-      })
-      expect(Instagram.publishPost).not.toHaveBeenCalled()
-    })
+        expect(result).toEqual({
+          ok: false,
+          error: `INSTAGRAM exige mídia (${label}) para publicar.`,
+        })
+        expect(Instagram.publishPost).not.toHaveBeenCalled()
+      },
+    )
 
     it('should surface the service error message', async () => {
       vi.mocked(Instagram.publishPost).mockResolvedValue(
@@ -406,13 +415,13 @@ describe('publishToSocialPlatform()', () => {
     })
   })
 
-  it.each([
-    'GOOGLE_ADS',
-    'GOOGLE_ANALYTICS',
-  ] as const)('should refuse read-only platform %s', async (platform) => {
-    expect(await publishToSocialPlatform(platform, ctx())).toEqual({
-      ok: false,
-      error: `Publicação agendada não suportada para ${platform}.`,
-    })
-  })
+  it.each(['GOOGLE_ADS', 'GOOGLE_ANALYTICS'] as const)(
+    'should refuse read-only platform %s',
+    async (platform) => {
+      expect(await publishToSocialPlatform(platform, ctx())).toEqual({
+        ok: false,
+        error: `Publicação agendada não suportada para ${platform}.`,
+      })
+    },
+  )
 })

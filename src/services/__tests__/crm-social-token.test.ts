@@ -113,13 +113,18 @@ describe('getFreshAccessToken()', () => {
         status: 'EXPIRED',
       }),
     ],
-  ])('should return CRM_SOCIAL_CONNECTION_NOT_FOUND when %s', async (_, connection) => {
-    mockedConnectionRepo.findPrimaryByPlatform.mockResolvedValue(ok(connection))
-    expectErr(
-      await getFreshAccessToken('ws1', 'INSTAGRAM'),
-      'CRM_SOCIAL_CONNECTION_NOT_FOUND',
-    )
-  })
+  ])(
+    'should return CRM_SOCIAL_CONNECTION_NOT_FOUND when %s',
+    async (_, connection) => {
+      mockedConnectionRepo.findPrimaryByPlatform.mockResolvedValue(
+        ok(connection),
+      )
+      expectErr(
+        await getFreshAccessToken('ws1', 'INSTAGRAM'),
+        'CRM_SOCIAL_CONNECTION_NOT_FOUND',
+      )
+    },
+  )
 
   it('should use the current token while it is outside the 5 min margin', async () => {
     mockedConnectionRepo.findPrimaryByPlatform.mockResolvedValue(

@@ -16,41 +16,38 @@ const SEGMENTS = [
 // marcador RSC que o React usa para trocar a árvore no cliente, e a ausência
 // do conteúdo normal da página (mesmo padrão do teste de páginas do CRM).
 describe('module access guard', () => {
-  it.each(
-    SEGMENTS,
-  )('should not render /$path content when the module is disabled for the workspace', async ({
-    path,
-    module,
-  }) => {
-    const { user, workspace } = await authenticatedOwner()
-    await prisma.workspaceModuleAccess.update({
-      where: { workspaceId_module: { workspaceId: workspace.id, module } },
-      data: { enabled: false },
-    })
+  it.each(SEGMENTS)(
+    'should not render /$path content when the module is disabled for the workspace',
+    async ({ path, module }) => {
+      const { user, workspace } = await authenticatedOwner()
+      await prisma.workspaceModuleAccess.update({
+        where: { workspaceId_module: { workspaceId: workspace.id, module } },
+        data: { enabled: false },
+      })
 
-    const res = await fetch(`${BASE_URL}/${workspace.slug}/${path}`, {
-      headers: { ...defaultHeaders, Cookie: user.cookie },
-    })
+      const res = await fetch(`${BASE_URL}/${workspace.slug}/${path}`, {
+        headers: { ...defaultHeaders, Cookie: user.cookie },
+      })
 
-    expect(res.status).toBe(200)
-    const html = await res.text()
-    expect(html).toContain('NEXT_HTTP_ERROR_FALLBACK;404')
-  })
+      expect(res.status).toBe(200)
+      const html = await res.text()
+      expect(html).toContain('NEXT_HTTP_ERROR_FALLBACK;404')
+    },
+  )
 
-  it.each(
-    SEGMENTS,
-  )('should allow /$path when the module is enabled (default for new workspaces)', async ({
-    path,
-  }) => {
-    const { user, workspace } = await authenticatedOwner()
+  it.each(SEGMENTS)(
+    'should allow /$path when the module is enabled (default for new workspaces)',
+    async ({ path }) => {
+      const { user, workspace } = await authenticatedOwner()
 
-    const res = await fetch(`${BASE_URL}/${workspace.slug}/${path}`, {
-      headers: { ...defaultHeaders, Cookie: user.cookie },
-    })
+      const res = await fetch(`${BASE_URL}/${workspace.slug}/${path}`, {
+        headers: { ...defaultHeaders, Cookie: user.cookie },
+      })
 
-    expect(res.status).toBe(200)
-    const html = await res.text()
-    expect(html).not.toContain('NEXT_HTTP_ERROR_FALLBACK;404')
-    expect(html).not.toContain('Application error')
-  })
+      expect(res.status).toBe(200)
+      const html = await res.text()
+      expect(html).not.toContain('NEXT_HTTP_ERROR_FALLBACK;404')
+      expect(html).not.toContain('Application error')
+    },
+  )
 })

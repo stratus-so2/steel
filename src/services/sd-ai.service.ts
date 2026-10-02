@@ -525,8 +525,7 @@ async function ownPreService(
   if (!found.ok) return found
   const row = found.value
   if (
-    !row ||
-    row.mode !== 'PRE_SERVICE' ||
+    row?.mode !== 'PRE_SERVICE' ||
     row.userId !== actorId ||
     row.whatsappConversationId
   ) {

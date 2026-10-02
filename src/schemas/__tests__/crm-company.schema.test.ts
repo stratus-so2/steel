@@ -90,28 +90,23 @@ describe('ReorderCrmCompaniesSchema', () => {
 })
 
 describe('UpdateCrmCompanySchema — clearing optional fields', () => {
-  it.each([
-    'cnpj',
-    'domain',
-    'linkedin',
-    'employees',
-    'arr',
-    'address',
-  ])('should accept null to clear %s', (field) => {
-    const result = UpdateCrmCompanySchema.safeParse({ [field]: null })
-    expect(result.success).toBe(true)
-    expect((result.data as Record<string, unknown>)[field]).toBeNull()
-  })
+  it.each(['cnpj', 'domain', 'linkedin', 'employees', 'arr', 'address'])(
+    'should accept null to clear %s',
+    (field) => {
+      const result = UpdateCrmCompanySchema.safeParse({ [field]: null })
+      expect(result.success).toBe(true)
+      expect((result.data as Record<string, unknown>)[field]).toBeNull()
+    },
+  )
 
-  it.each([
-    'cnpj',
-    'domain',
-    'linkedin',
-  ])('should normalize an emptied %s to null', (field) => {
-    const result = UpdateCrmCompanySchema.safeParse({ [field]: '  ' })
-    expect(result.success).toBe(true)
-    expect((result.data as Record<string, unknown>)[field]).toBeNull()
-  })
+  it.each(['cnpj', 'domain', 'linkedin'])(
+    'should normalize an emptied %s to null',
+    (field) => {
+      const result = UpdateCrmCompanySchema.safeParse({ [field]: '  ' })
+      expect(result.success).toBe(true)
+      expect((result.data as Record<string, unknown>)[field]).toBeNull()
+    },
+  )
 
   it('should leave omitted optional fields undefined', () => {
     const result = UpdateCrmCompanySchema.safeParse({})

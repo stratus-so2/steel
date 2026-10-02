@@ -42,7 +42,7 @@ async function runTick(now = new Date()): Promise<TickResult> {
     if (!wf.activeVersion) continue
     const definition = parseCrmWorkflowDefinition(wf.activeVersion.definition)
     const trigger = definition.trigger.data
-    if (!trigger || trigger.type !== 'on-a-schedule') continue
+    if (trigger?.type !== 'on-a-schedule') continue
     considered++
 
     try {

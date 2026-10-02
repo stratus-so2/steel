@@ -485,19 +485,22 @@ describe('WhatsAppAiReplyService.generateReply() — audio transcription', () =>
   it.each([
     [new Error('whisper down'), 'whisper down'],
     ['raw failure', 'raw failure'],
-  ])('should log and fall back when transcription throws %s', async (thrown, logged) => {
-    const chat = arrangeAudio()
-    stubFetch(true)
-    transcriptionsCreate.mockRejectedValue(thrown)
+  ])(
+    'should log and fall back when transcription throws %s',
+    async (thrown, logged) => {
+      const chat = arrangeAudio()
+      stubFetch(true)
+      transcriptionsCreate.mockRejectedValue(thrown)
 
-    expectOk(await generate('aud'))
+      expectOk(await generate('aud'))
 
-    expect(logger.error).toHaveBeenCalledWith(
-      'queue.whatsapp_ai_reply.transcription_failed',
-      expect.objectContaining({ message: logged }),
-    )
-    expect(sentMessages(chat)).toEqual([{ role: 'user', content: '[áudio]' }])
-  })
+      expect(logger.error).toHaveBeenCalledWith(
+        'queue.whatsapp_ai_reply.transcription_failed',
+        expect.objectContaining({ message: logged }),
+      )
+      expect(sentMessages(chat)).toEqual([{ role: 'user', content: '[áudio]' }])
+    },
+  )
 
   it('should use the placeholder without an OpenAI key', async () => {
     const chat = arrangeAudio()

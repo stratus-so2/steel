@@ -5,83 +5,84 @@ import { SD_SCALE_KINDS } from '@/src/schemas/sd-priority.schema'
 import { SdPriorityRepository } from '../sd-priority.repository'
 
 describe('SdPriorityRepository — scales', () => {
-  it.each(
-    SD_SCALE_KINDS,
-  )('CRUD for %s with unique level per workspace', async (kind) => {
-    const [workspace, other] = await Promise.all([
-      seedWorkspace(),
-      seedWorkspace(),
-    ])
-    const high = expectOk(
-      await SdPriorityRepository.create(kind, workspace.id, {
-        name: 'Alto',
-        level: 3,
-        description: 'desc',
-        color: '#ff0000',
-      }),
-    )
-    const low = expectOk(
-      await SdPriorityRepository.create(kind, workspace.id, {
-        name: 'Baixo',
-        level: 1,
-      }),
-    )
-    // Colunas que a tabela não tem são ignoradas.
-    expect(high.description ?? null).toBe(kind === 'priority' ? null : 'desc')
-    expect(high.color ?? null).toBe(
-      kind === 'priority' || kind === 'severity' ? '#ff0000' : null,
-    )
+  it.each(SD_SCALE_KINDS)(
+    'CRUD for %s with unique level per workspace',
+    async (kind) => {
+      const [workspace, other] = await Promise.all([
+        seedWorkspace(),
+        seedWorkspace(),
+      ])
+      const high = expectOk(
+        await SdPriorityRepository.create(kind, workspace.id, {
+          name: 'Alto',
+          level: 3,
+          description: 'desc',
+          color: '#ff0000',
+        }),
+      )
+      const low = expectOk(
+        await SdPriorityRepository.create(kind, workspace.id, {
+          name: 'Baixo',
+          level: 1,
+        }),
+      )
+      // Colunas que a tabela não tem são ignoradas.
+      expect(high.description ?? null).toBe(kind === 'priority' ? null : 'desc')
+      expect(high.color ?? null).toBe(
+        kind === 'priority' || kind === 'severity' ? '#ff0000' : null,
+      )
 
-    expect(
-      expectOk(await SdPriorityRepository.list(kind, workspace.id)).map(
-        (r) => r.level,
-      ),
-    ).toEqual([1, 3])
-    expect(expectOk(await SdPriorityRepository.count(kind, workspace.id))).toBe(
-      2,
-    )
+      expect(
+        expectOk(await SdPriorityRepository.list(kind, workspace.id)).map(
+          (r) => r.level,
+        ),
+      ).toEqual([1, 3])
+      expect(
+        expectOk(await SdPriorityRepository.count(kind, workspace.id)),
+      ).toBe(2)
 
-    const conflict = expectErr(
-      await SdPriorityRepository.create(kind, workspace.id, {
-        name: 'Outro',
-        level: 3,
-      }),
-      'SD_CONFIG_CONFLICT',
-    )
-    expect(conflict.message).toBe('Já existe um item com este nível')
+      const conflict = expectErr(
+        await SdPriorityRepository.create(kind, workspace.id, {
+          name: 'Outro',
+          level: 3,
+        }),
+        'SD_CONFIG_CONFLICT',
+      )
+      expect(conflict.message).toBe('Já existe um item com este nível')
 
-    // Outra workspace pode repetir o nível.
-    expectOk(
-      await SdPriorityRepository.create(kind, other.id, {
-        name: 'X',
-        level: 3,
-      }),
-    )
+      // Outra workspace pode repetir o nível.
+      expectOk(
+        await SdPriorityRepository.create(kind, other.id, {
+          name: 'X',
+          level: 3,
+        }),
+      )
 
-    expectErr(
-      await SdPriorityRepository.findById(kind, low.id, other.id),
-      'SD_CONFIG_NOT_FOUND',
-    )
-    const renamed = expectOk(
-      await SdPriorityRepository.update(kind, low.id, workspace.id, {
-        name: 'Muito baixo',
-        level: 2,
-      }),
-    )
-    expect(renamed).toMatchObject({ name: 'Muito baixo', level: 2 })
-    expectErr(
-      await SdPriorityRepository.update(kind, low.id, workspace.id, {
-        level: 3,
-      }),
-      'SD_CONFIG_CONFLICT',
-    )
+      expectErr(
+        await SdPriorityRepository.findById(kind, low.id, other.id),
+        'SD_CONFIG_NOT_FOUND',
+      )
+      const renamed = expectOk(
+        await SdPriorityRepository.update(kind, low.id, workspace.id, {
+          name: 'Muito baixo',
+          level: 2,
+        }),
+      )
+      expect(renamed).toMatchObject({ name: 'Muito baixo', level: 2 })
+      expectErr(
+        await SdPriorityRepository.update(kind, low.id, workspace.id, {
+          level: 3,
+        }),
+        'SD_CONFIG_CONFLICT',
+      )
 
-    expectOk(await SdPriorityRepository.delete(kind, low.id, workspace.id))
-    expectErr(
-      await SdPriorityRepository.findById(kind, low.id, workspace.id),
-      'SD_CONFIG_NOT_FOUND',
-    )
-  })
+      expectOk(await SdPriorityRepository.delete(kind, low.id, workspace.id))
+      expectErr(
+        await SdPriorityRepository.findById(kind, low.id, workspace.id),
+        'SD_CONFIG_NOT_FOUND',
+      )
+    },
+  )
 
   it('keeps a single default priority on create and update', async () => {
     const workspace = await seedWorkspace()

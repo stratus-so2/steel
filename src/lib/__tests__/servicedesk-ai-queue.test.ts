@@ -46,14 +46,17 @@ describe('enqueueSdAiTriage', () => {
   it.each([
     [new Error('redis fora'), 'redis fora'],
     ['boom', 'boom'],
-  ])('só loga quando a fila falha (a IA é acessória)', async (cause, message) => {
-    addMock.mockRejectedValue(cause)
-    await expect(enqueueSdAiTriage(on, 't1')).resolves.toBeUndefined()
-    expect(loggerMock.error).toHaveBeenCalledWith(
-      'servicedesk.ai.enqueue_failed',
-      expect.objectContaining({ ticketId: 't1', message }),
-    )
-  })
+  ])(
+    'só loga quando a fila falha (a IA é acessória)',
+    async (cause, message) => {
+      addMock.mockRejectedValue(cause)
+      await expect(enqueueSdAiTriage(on, 't1')).resolves.toBeUndefined()
+      expect(loggerMock.error).toHaveBeenCalledWith(
+        'servicedesk.ai.enqueue_failed',
+        expect.objectContaining({ ticketId: 't1', message }),
+      )
+    },
+  )
 })
 
 describe('enqueueSdAiWhatsappReply', () => {
