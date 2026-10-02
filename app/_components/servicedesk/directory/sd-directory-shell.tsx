@@ -38,7 +38,7 @@ export function SdDirectoryShell({
           children
         ) : (
           <div className='flex h-full flex-col items-center justify-center gap-3 p-8 text-center'>
-            <div className='flex size-12 items-center justify-center rounded-2xl border bg-muted/40 text-muted-foreground'>
+            <div className='flex size-12 items-center justify-center rounded-2xl border border-border/70 bg-muted/40 text-muted-foreground'>
               <SteelIcon icon={LockIcon} strokeWidth={1.8} className='size-5' />
             </div>
             <p className='font-medium text-sm'>Acesso restrito a agentes</p>

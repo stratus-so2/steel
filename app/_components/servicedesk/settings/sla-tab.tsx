@@ -259,7 +259,7 @@ function PoliciesSection() {
                     </table>
                   </div>
                 ) : (
-                  <span className='text-xs text-amber-600'>
+                  <span className='text-muted-foreground text-xs'>
                     Sem metas definidas.
                   </span>
                 )}

@@ -73,11 +73,11 @@ const STATUS: Record<string, { label: string; className: string }> = {
   },
   DISCONNECTED: {
     label: 'Desconectado',
-    className: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+    className: 'bg-muted text-muted-foreground',
   },
   ERROR: {
     label: 'Com erro',
-    className: 'bg-red-500/10 text-red-700 dark:text-red-300',
+    className: 'bg-destructive/10 text-destructive',
   },
 }
 
@@ -367,7 +367,7 @@ function ConnectionCard({
   const updateSettings = useUpdateSdSettings(workspaceId)
   const status = STATUS[connection.status] ?? {
     label: connection.status,
-    className: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+    className: 'bg-muted text-muted-foreground',
   }
 
   return (
@@ -382,7 +382,7 @@ function ConnectionCard({
         <SteelIcon
           icon={WhatsappIcon}
           strokeWidth={2}
-          className='text-emerald-600 dark:text-emerald-400'
+          className='text-muted-foreground'
         />
         <span className='font-medium text-sm'>{connection.label}</span>
         <Badge variant='outline'>
@@ -409,7 +409,7 @@ function ConnectionCard({
       </p>
 
       {connection.statusError ? (
-        <p className='rounded-lg bg-red-500/10 px-3 py-2 text-red-700 text-xs dark:text-red-300'>
+        <p className='rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-destructive text-xs'>
           {connection.statusError}
         </p>
       ) : null}

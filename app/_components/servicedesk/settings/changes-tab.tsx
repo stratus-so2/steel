@@ -159,8 +159,8 @@ function ChangeWindowsSection() {
                   className={cn(
                     'mt-0.5 size-5 shrink-0',
                     window.kind === 'FREEZE'
-                      ? 'text-rose-600 dark:text-rose-400'
-                      : 'text-sky-600 dark:text-sky-400',
+                      ? 'text-destructive'
+                      : 'text-muted-foreground',
                   )}
                 />
                 <div className='min-w-0'>

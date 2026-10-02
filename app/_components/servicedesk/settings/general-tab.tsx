@@ -295,7 +295,7 @@ export function SdGeneralTab() {
       </SettingsSection>
 
       {canEdit ? (
-        <div className='sticky bottom-0 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-background/95 px-4 py-3 backdrop-blur'>
+        <div className='sticky bottom-0 -mx-1 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-xs'>
           <RestoreDefaultsButton />
           <div className='flex items-center gap-2'>
             {dirty ? (

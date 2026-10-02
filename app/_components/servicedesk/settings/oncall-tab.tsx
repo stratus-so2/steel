@@ -561,8 +561,12 @@ function SdOnCallOverridesSection({
   )
 }
 
-// Tons 600: contraste suficiente com o texto branco tanto no claro quanto
-// no escuro (o `/70` de antes apagava o rótulo no tema claro).
+/**
+ * Cores do rodízio da linha do tempo: mapa fechado (o Tailwind precisa ver a
+ * classe escrita). Não são tons semânticos — é só identidade por pessoa —, por
+ * isso não usam token: `chart-1..5` varia de luminosidade entre os temas e
+ * apagaria o rótulo branco. O tom 600 mantém contraste no claro e no escuro.
+ */
 const SEGMENT_COLORS = [
   'bg-sky-600',
   'bg-violet-600',
