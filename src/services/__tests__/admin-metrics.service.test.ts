@@ -133,12 +133,15 @@ describe('AdminMetricsService.getOverview() source failures', () => {
       'first usage day',
       () => mockedUsageRepo.firstDay.mockResolvedValue(err(databaseError())),
     ],
-  ])('should propagate a failure loading the %s', async (_label, arrangeFailure) => {
-    arrangeFailure()
+  ])(
+    'should propagate a failure loading the %s',
+    async (_label, arrangeFailure) => {
+      arrangeFailure()
 
-    expectErr(
-      await AdminMetricsService.getOverview(platformAdmin.id, NOW),
-      'DATABASE_ERROR',
-    )
-  })
+      expectErr(
+        await AdminMetricsService.getOverview(platformAdmin.id, NOW),
+        'DATABASE_ERROR',
+      )
+    },
+  )
 })

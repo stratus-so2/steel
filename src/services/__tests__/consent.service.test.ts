@@ -67,21 +67,24 @@ describe('ConsentService.recordCookieConsent()', () => {
   it.each([
     [true, 'grant'],
     [false, 'revoke'],
-  ] as const)('audits a failure and propagates the repository error (accepted=%s)', async (accepted, action) => {
-    repo.recordCookieConsent.mockResolvedValue(err(databaseError('down')))
+  ] as const)(
+    'audits a failure and propagates the repository error (accepted=%s)',
+    async (accepted, action) => {
+      repo.recordCookieConsent.mockResolvedValue(err(databaseError('down')))
 
-    const error = expectErr(
-      await ConsentService.recordCookieConsent('u1', accepted, context),
-    )
+      const error = expectErr(
+        await ConsentService.recordCookieConsent('u1', accepted, context),
+      )
 
-    expect(error.code).toBe('DATABASE_ERROR')
-    expect(audit).toHaveBeenCalledTimes(1)
-    expect(audit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action,
-        outcome: 'failure',
-        reason: 'DATABASE_ERROR',
-      }),
-    )
-  })
+      expect(error.code).toBe('DATABASE_ERROR')
+      expect(audit).toHaveBeenCalledTimes(1)
+      expect(audit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action,
+          outcome: 'failure',
+          reason: 'DATABASE_ERROR',
+        }),
+      )
+    },
+  )
 })

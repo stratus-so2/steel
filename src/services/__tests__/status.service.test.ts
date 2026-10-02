@@ -766,20 +766,23 @@ describe('StatusService edge cases', () => {
   it.each([
     ['read', 'get', 'status.cache_read_failed'],
     ['write', 'set', 'status.cache_write_failed'],
-  ] as const)('should log a non-Error cache %s failure', async (_label, method, event) => {
-    mockedCache.get.mockResolvedValue(null)
-    mockedCache.set.mockResolvedValue(undefined)
-    mockedCache[method].mockRejectedValue('redis closed')
-    mockedStatusRepo.findDailiesForKeys.mockResolvedValue(ok([]))
-    mockedStatusRepo.findLatestPerComponent.mockResolvedValue(ok([]))
+  ] as const)(
+    'should log a non-Error cache %s failure',
+    async (_label, method, event) => {
+      mockedCache.get.mockResolvedValue(null)
+      mockedCache.set.mockResolvedValue(undefined)
+      mockedCache[method].mockRejectedValue('redis closed')
+      mockedStatusRepo.findDailiesForKeys.mockResolvedValue(ok([]))
+      mockedStatusRepo.findLatestPerComponent.mockResolvedValue(ok([]))
 
-    expectOk(await StatusService.getCurrentSnapshot())
+      expectOk(await StatusService.getCurrentSnapshot())
 
-    expect(logger.error).toHaveBeenCalledWith(
-      event,
-      expect.objectContaining({ message: 'redis closed' }),
-    )
-  })
+      expect(logger.error).toHaveBeenCalledWith(
+        event,
+        expect.objectContaining({ message: 'redis closed' }),
+      )
+    },
+  )
 
   it('should fall back to the raw key for incidents of retired components', async () => {
     mockedIncidentRepo.findInWindow.mockResolvedValue(

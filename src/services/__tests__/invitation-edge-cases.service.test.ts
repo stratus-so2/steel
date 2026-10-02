@@ -227,35 +227,35 @@ describe('InvitationService.list()', () => {
 })
 
 describe('InvitationService.revoke() / resend() — failure paths', () => {
-  it.each([
-    'revoke',
-    'resend',
-  ] as const)('%s: forbids plain members', async (method) => {
-    mockedMembership.findByUserAndWorkspace.mockResolvedValue(ok(plain))
+  it.each(['revoke', 'resend'] as const)(
+    '%s: forbids plain members',
+    async (method) => {
+      mockedMembership.findByUserAndWorkspace.mockResolvedValue(ok(plain))
 
-    expectErr(
-      await InvitationService[method]('actor', 'ws1', 'i1'),
-      'FORBIDDEN',
-    )
-    expect(mockedInvite.findById).not.toHaveBeenCalled()
-  })
+      expectErr(
+        await InvitationService[method]('actor', 'ws1', 'i1'),
+        'FORBIDDEN',
+      )
+      expect(mockedInvite.findById).not.toHaveBeenCalled()
+    },
+  )
 
-  it.each([
-    'revoke',
-    'resend',
-  ] as const)('%s: propagates lookup errors and hides missing invites', async (method) => {
-    mockedInvite.findById.mockResolvedValueOnce(dbError)
-    expectErr(
-      await InvitationService[method]('actor', 'ws1', 'i1'),
-      'DATABASE_ERROR',
-    )
+  it.each(['revoke', 'resend'] as const)(
+    '%s: propagates lookup errors and hides missing invites',
+    async (method) => {
+      mockedInvite.findById.mockResolvedValueOnce(dbError)
+      expectErr(
+        await InvitationService[method]('actor', 'ws1', 'i1'),
+        'DATABASE_ERROR',
+      )
 
-    mockedInvite.findById.mockResolvedValueOnce(ok(null))
-    expectErr(
-      await InvitationService[method]('actor', 'ws1', 'i1'),
-      'INVITATION_NOT_FOUND',
-    )
-  })
+      mockedInvite.findById.mockResolvedValueOnce(ok(null))
+      expectErr(
+        await InvitationService[method]('actor', 'ws1', 'i1'),
+        'INVITATION_NOT_FOUND',
+      )
+    },
+  )
 
   it('revoke: rejects invites that are no longer pending', async () => {
     mockedInvite.findById.mockResolvedValue(

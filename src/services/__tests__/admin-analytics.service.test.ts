@@ -267,20 +267,18 @@ describe('AdminAnalyticsService.get() — Axiom', () => {
 })
 
 describe('AdminAnalyticsService.get() — fixtures', () => {
-  it.each([
-    'overview',
-    'routes',
-    'errors',
-    'access',
-  ] as const)('serves the %s view without Axiom or cache', async (view) => {
-    const result = expectOk(await get(q({ view, range: '24h' }), FIXTURES))
-    expect(result.view).toBe(view)
-    expect(result.meta.source).toBe('fixtures')
-    expect(JSON.stringify(result)).not.toContain('"ok":false')
-    expect(runApl).not.toHaveBeenCalled()
-    expect(AnalyticsCache.get).not.toHaveBeenCalled()
-    expect(AnalyticsCache.set).not.toHaveBeenCalled()
-  })
+  it.each(['overview', 'routes', 'errors', 'access'] as const)(
+    'serves the %s view without Axiom or cache',
+    async (view) => {
+      const result = expectOk(await get(q({ view, range: '24h' }), FIXTURES))
+      expect(result.view).toBe(view)
+      expect(result.meta.source).toBe('fixtures')
+      expect(JSON.stringify(result)).not.toContain('"ok":false')
+      expect(runApl).not.toHaveBeenCalled()
+      expect(AnalyticsCache.get).not.toHaveBeenCalled()
+      expect(AnalyticsCache.set).not.toHaveBeenCalled()
+    },
+  )
 
   it('serves the route drill-down', async () => {
     const result = expectOk(

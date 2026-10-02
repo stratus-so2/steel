@@ -265,29 +265,32 @@ describe('openSdRecurringOccurrence', () => {
     ['closed', { category: 'CLOSED' as const, deletedAt: null }],
     ['canceled', { category: 'CANCELED' as const, deletedAt: null }],
     ['deleted', { category: 'NEW' as const, deletedAt: new Date() }],
-  ])('opens a new ticket when the previous one is %s', async (_label, state) => {
-    runs.findLatestWithTicket.mockResolvedValue(
-      ok({
-        ...createFakeSdRecurringRun({ ticketId: 'prev' }),
-        ticket: {
-          id: 'prev',
-          number: 5,
-          type: 'SERVICE_REQUEST',
-          deletedAt: state.deletedAt,
-          phase: { category: state.category },
-        },
-      }),
-    )
-    const run = expectOk(
-      await openSdRecurringOccurrence({
-        rule: createFakeSdRecurringTicket(),
-        scheduledFor: DUE,
-        config: CONFIG,
-      }),
-    )
-    expect(engine.create).toHaveBeenCalled()
-    expect(run).toMatchObject({ status: 'CREATED' })
-  })
+  ])(
+    'opens a new ticket when the previous one is %s',
+    async (_label, state) => {
+      runs.findLatestWithTicket.mockResolvedValue(
+        ok({
+          ...createFakeSdRecurringRun({ ticketId: 'prev' }),
+          ticket: {
+            id: 'prev',
+            number: 5,
+            type: 'SERVICE_REQUEST',
+            deletedAt: state.deletedAt,
+            phase: { category: state.category },
+          },
+        }),
+      )
+      const run = expectOk(
+        await openSdRecurringOccurrence({
+          rule: createFakeSdRecurringTicket(),
+          scheduledFor: DUE,
+          config: CONFIG,
+        }),
+      )
+      expect(engine.create).toHaveBeenCalled()
+      expect(run).toMatchObject({ status: 'CREATED' })
+    },
+  )
 
   it('ignores an unreadable history instead of skipping', async () => {
     runs.findLatestWithTicket.mockResolvedValue(err(databaseError('nope')))

@@ -363,40 +363,43 @@ describe('runSdAutomations — actions', () => {
       ['APPROVAL_RESPONDED', 'approval.responded'],
       ['SLA_AT_RISK', 'sla.at_risk'],
       ['SLA_BREACHED', 'sla.breached'],
-    ] as const)('maps %s to %s and gathers recipients', async (event, notifyEvent) => {
-      rules(
-        rule(
-          [
-            {
-              type: 'notify',
-              params: {
-                userIds: ['x'],
-                assignee: true,
-                requester: true,
-                departmentLeads: true,
-                email: true,
-                title: 'Olha',
-                message: '',
+    ] as const)(
+      'maps %s to %s and gathers recipients',
+      async (event, notifyEvent) => {
+        rules(
+          rule(
+            [
+              {
+                type: 'notify',
+                params: {
+                  userIds: ['x'],
+                  assignee: true,
+                  requester: true,
+                  departmentLeads: true,
+                  email: true,
+                  title: 'Olha',
+                  message: '',
+                },
               },
-            },
-          ],
-          { event },
-        ),
-      )
-      expectOk(await run(event))
-      expect(notify).toHaveBeenCalledWith({
-        workspaceId: 'ws1',
-        event: notifyEvent,
-        audience: 'payload',
-        ticket: expect.objectContaining({ code: 'INC-000001' }),
-        payload: {
-          title: 'Olha',
-          body: current.title,
-          userIds: ['x', 'a1', 'r1', 'lead'],
-          meta: { via: 'automation', ruleEmail: true },
-        },
-      })
-    })
+            ],
+            { event },
+          ),
+        )
+        expectOk(await run(event))
+        expect(notify).toHaveBeenCalledWith({
+          workspaceId: 'ws1',
+          event: notifyEvent,
+          audience: 'payload',
+          ticket: expect.objectContaining({ code: 'INC-000001' }),
+          payload: {
+            title: 'Olha',
+            body: current.title,
+            userIds: ['x', 'a1', 'r1', 'lead'],
+            meta: { via: 'automation', ruleEmail: true },
+          },
+        })
+      },
+    )
 
     it('uses defaults, skips leads without department and propagates lead errors', async () => {
       current = createFakeSdTicket({ id: 't1', departmentId: null })

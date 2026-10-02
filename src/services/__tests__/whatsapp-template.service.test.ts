@@ -244,7 +244,7 @@ describe('WhatsAppTemplateService', () => {
       const call = mockedCreateMetaTemplate.mock.calls.at(-1)?.[0]
       const bodyComponent = (
         call?.components as Array<{ type: string; example?: unknown }>
-      ).find((c) => c.type === 'BODY')
+      )?.find((c) => c.type === 'BODY')
       expect(bodyComponent?.example).toBeUndefined()
     })
 

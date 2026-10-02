@@ -151,16 +151,19 @@ describe('WhatsAppGroupService — Z-API connection resolution', () => {
   it.each([
     ['instance id', { zapiInstanceId: null }],
     ['token', { encryptedZapiToken: null }],
-  ])('should reject a Z-API connection without %s', async (_label, overrides) => {
-    asAdmin()
-    arrangeConnection(overrides)
+  ])(
+    'should reject a Z-API connection without %s',
+    async (_label, overrides) => {
+      asAdmin()
+      arrangeConnection(overrides)
 
-    expectErr(
-      await WhatsAppGroupService.create('u1', 'ws1', createDto),
-      'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED',
-    )
-    expect(createZapiGroup).not.toHaveBeenCalled()
-  })
+      expectErr(
+        await WhatsAppGroupService.create('u1', 'ws1', createDto),
+        'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED',
+      )
+      expect(createZapiGroup).not.toHaveBeenCalled()
+    },
+  )
 
   it('should decrypt the client token when the connection has one', async () => {
     arrangeGroup()
@@ -417,39 +420,40 @@ const providerOps: [string, Call, () => unknown][] = [
   ],
 ]
 
-describe.each(
-  providerOps,
-)('WhatsAppGroupService.%s() failures', (_name, call, providerFn) => {
-  it('should return FORBIDDEN for a non-member', async () => {
-    asNonMember()
+describe.each(providerOps)(
+  'WhatsAppGroupService.%s() failures',
+  (_name, call, providerFn) => {
+    it('should return FORBIDDEN for a non-member', async () => {
+      asNonMember()
 
-    expectErr(await call(), 'FORBIDDEN')
-    expect(mockedGroupRepo.findById).not.toHaveBeenCalled()
-  })
+      expectErr(await call(), 'FORBIDDEN')
+      expect(mockedGroupRepo.findById).not.toHaveBeenCalled()
+    })
 
-  it('should propagate a group lookup failure', async () => {
-    arrangeGroup()
-    mockedGroupRepo.findById.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a group lookup failure', async () => {
+      arrangeGroup()
+      mockedGroupRepo.findById.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+    })
 
-  it('should propagate a connection failure behind the group', async () => {
-    arrangeGroup()
-    mockedConnectionRepo.findById.mockResolvedValue(ok(null))
+    it('should propagate a connection failure behind the group', async () => {
+      arrangeGroup()
+      mockedConnectionRepo.findById.mockResolvedValue(ok(null))
 
-    expectErr(await call(), 'WHATSAPP_CONNECTION_NOT_FOUND')
-  })
+      expectErr(await call(), 'WHATSAPP_CONNECTION_NOT_FOUND')
+    })
 
-  it('should map a provider exception to WHATSAPP_GROUP_PROVIDER_UNSUPPORTED', async () => {
-    arrangeGroup()
-    vi.mocked(providerFn() as () => Promise<unknown>).mockRejectedValueOnce(
-      new Error('not supported'),
-    )
+    it('should map a provider exception to WHATSAPP_GROUP_PROVIDER_UNSUPPORTED', async () => {
+      arrangeGroup()
+      vi.mocked(providerFn() as () => Promise<unknown>).mockRejectedValueOnce(
+        new Error('not supported'),
+      )
 
-    expectErr(await call(), 'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED')
-  })
-})
+      expectErr(await call(), 'WHATSAPP_GROUP_PROVIDER_UNSUPPORTED')
+    })
+  },
+)
 
 describe('WhatsAppGroupService.updateInfo() branches', () => {
   it('should only push the photo when just the image changes', async () => {

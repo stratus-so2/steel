@@ -27,14 +27,12 @@ describe('crm-email-unsubscribe token', () => {
     expect(verifyCrmUnsubscribeToken(forged).ok).toBe(false)
   })
 
-  it.each([
-    '',
-    'abc',
-    'a.b.c',
-    'payload.',
-  ])('should reject malformed token %j', (token) => {
-    expect(verifyCrmUnsubscribeToken(token).ok).toBe(false)
-  })
+  it.each(['', 'abc', 'a.b.c', 'payload.'])(
+    'should reject malformed token %j',
+    (token) => {
+      expect(verifyCrmUnsubscribeToken(token).ok).toBe(false)
+    },
+  )
 })
 
 describe('crm-email-unsubscribe headers and footer', () => {

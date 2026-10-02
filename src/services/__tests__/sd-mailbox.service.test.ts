@@ -447,24 +447,27 @@ describe('test()', () => {
   it.each([
     [true, 465],
     [false, 587],
-  ])('falls back to the implicit SMTP port and user (secure=%s)', async (smtpSecure, port) => {
-    mailboxes.findById.mockResolvedValue(
-      ok(
-        createFakeSdMailbox({
-          smtpHost: 'smtp.empresa.com.br',
-          smtpPort: null,
-          smtpUser: null,
-          smtpSecure,
-          encryptedSmtpPassword: 'enc:smtp-segredo',
-          imapUser: 'caixa@empresa.com.br',
-        }),
-      ),
-    )
-    expectOk(await SdMailboxService.test(ADMIN, WS, 'mb1'))
-    expect(smtp).toHaveBeenCalledWith(
-      expect.objectContaining({ port, user: 'caixa@empresa.com.br' }),
-    )
-  })
+  ])(
+    'falls back to the implicit SMTP port and user (secure=%s)',
+    async (smtpSecure, port) => {
+      mailboxes.findById.mockResolvedValue(
+        ok(
+          createFakeSdMailbox({
+            smtpHost: 'smtp.empresa.com.br',
+            smtpPort: null,
+            smtpUser: null,
+            smtpSecure,
+            encryptedSmtpPassword: 'enc:smtp-segredo',
+            imapUser: 'caixa@empresa.com.br',
+          }),
+        ),
+      )
+      expectOk(await SdMailboxService.test(ADMIN, WS, 'mb1'))
+      expect(smtp).toHaveBeenCalledWith(
+        expect.objectContaining({ port, user: 'caixa@empresa.com.br' }),
+      )
+    },
+  )
 
   it('keeps a paused mailbox paused', async () => {
     mailboxes.findById.mockResolvedValue(

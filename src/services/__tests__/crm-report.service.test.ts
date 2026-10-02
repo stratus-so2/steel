@@ -485,20 +485,21 @@ describe('CrmReportService — authz, persistence and data sources', () => {
       ['opportunity', () => vi.mocked(CrmOpportunityService.list), {}],
     ]
 
-    it.each(
-      sourceCases,
-    )('should fetch the %s source through its entity service', async (source, getList, filters) => {
-      asRole('VIEWER')
-      mockedReportRepo.findById.mockResolvedValue(
-        ok(report({ source, columns: ['name'], query: null })),
-      )
-      const list = getList()
-      list.mockResolvedValue(ok([{ id: 'x1', name: 'Linha' }]))
+    it.each(sourceCases)(
+      'should fetch the %s source through its entity service',
+      async (source, getList, filters) => {
+        asRole('VIEWER')
+        mockedReportRepo.findById.mockResolvedValue(
+          ok(report({ source, columns: ['name'], query: null })),
+        )
+        const list = getList()
+        list.mockResolvedValue(ok([{ id: 'x1', name: 'Linha' }]))
 
-      const data = expectOk(await CrmReportService.runData('u1', 'ws1', 'r1'))
-      expect(data.rows).toEqual([{ [`${source}.name`]: 'Linha' }])
-      expect(list).toHaveBeenCalledWith('u1', 'ws1', filters)
-    })
+        const data = expectOk(await CrmReportService.runData('u1', 'ws1', 'r1'))
+        expect(data.rows).toEqual([{ [`${source}.name`]: 'Linha' }])
+        expect(list).toHaveBeenCalledWith('u1', 'ws1', filters)
+      },
+    )
 
     const whatsappCases: [string, () => ListMock][] = [
       [
@@ -508,20 +509,21 @@ describe('CrmReportService — authz, persistence and data sources', () => {
       ['whatsapp_broadcast', () => vi.mocked(WhatsAppBroadcastService.list)],
     ]
 
-    it.each(
-      whatsappCases,
-    )('should fetch the %s source through the WhatsApp service', async (source, getList) => {
-      asRole('VIEWER')
-      mockedReportRepo.findById.mockResolvedValue(
-        ok(report({ source, columns: ['name'], query: null })),
-      )
-      const list = getList()
-      list.mockResolvedValue(ok([{ id: 'x1', name: 'Conversa' }]))
+    it.each(whatsappCases)(
+      'should fetch the %s source through the WhatsApp service',
+      async (source, getList) => {
+        asRole('VIEWER')
+        mockedReportRepo.findById.mockResolvedValue(
+          ok(report({ source, columns: ['name'], query: null })),
+        )
+        const list = getList()
+        list.mockResolvedValue(ok([{ id: 'x1', name: 'Conversa' }]))
 
-      const data = expectOk(await CrmReportService.runData('u1', 'ws1', 'r1'))
-      expect(data.rows).toEqual([{ [`${source}.name`]: 'Conversa' }])
-      expect(list).toHaveBeenCalledWith('u1', 'ws1')
-    })
+        const data = expectOk(await CrmReportService.runData('u1', 'ws1', 'r1'))
+        expect(data.rows).toEqual([{ [`${source}.name`]: 'Conversa' }])
+        expect(list).toHaveBeenCalledWith('u1', 'ws1')
+      },
+    )
 
     it('should contribute no rows for a stored dataset whose source no longer exists', async () => {
       asRole('VIEWER')

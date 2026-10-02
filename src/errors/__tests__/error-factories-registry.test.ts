@@ -42,39 +42,42 @@ describe('AppError factories — registry contract', () => {
     aiQuotaExceeded: [1, 2],
   }
 
-  it.each(
-    entries,
-  )('%s() maps to a code registered with an HTTP status', (name, fn) => {
-    const error = fn(...(numericArgs[name] ?? ['Mensagem de teste']))
+  it.each(entries)(
+    '%s() maps to a code registered with an HTTP status',
+    (name, fn) => {
+      const error = fn(...(numericArgs[name] ?? ['Mensagem de teste']))
 
-    expect(ERROR_CODES).toHaveProperty(error.code)
-    expect(ERROR_CODES[error.code].code).toBe(error.code)
-    expect(ERROR_CODES[error.code].status).toBeGreaterThanOrEqual(400)
-    expect(typeof error.message).toBe('string')
-    expect(error.message.length).toBeGreaterThan(0)
-  })
+      expect(ERROR_CODES).toHaveProperty(error.code)
+      expect(ERROR_CODES[error.code].code).toBe(error.code)
+      expect(ERROR_CODES[error.code].status).toBeGreaterThanOrEqual(400)
+      expect(typeof error.message).toBe('string')
+      expect(error.message.length).toBeGreaterThan(0)
+    },
+  )
 
-  it.each(
-    fixedMessage,
-  )('%s() carries a non-empty pt-BR default message', (_name, fn) => {
-    const error = fn()
+  it.each(fixedMessage)(
+    '%s() carries a non-empty pt-BR default message',
+    (_name, fn) => {
+      const error = fn()
 
-    expect(ERROR_CODES).toHaveProperty(error.code)
-    expect(error.message.trim().length).toBeGreaterThan(0)
-    expect(error).not.toHaveProperty('details')
-  })
+      expect(ERROR_CODES).toHaveProperty(error.code)
+      expect(error.message.trim().length).toBeGreaterThan(0)
+      expect(error).not.toHaveProperty('details')
+    },
+  )
 
-  it.each(
-    withDefaultMessage,
-  )('%s() uses its default message and accepts an override', (_name, fn) => {
-    const byDefault = fn()
-    const overridden = fn('Mensagem customizada')
+  it.each(withDefaultMessage)(
+    '%s() uses its default message and accepts an override',
+    (_name, fn) => {
+      const byDefault = fn()
+      const overridden = fn('Mensagem customizada')
 
-    expect(byDefault.message.trim().length).toBeGreaterThan(0)
-    expect(byDefault.message).not.toBe('Mensagem customizada')
-    expect(overridden.message).toBe('Mensagem customizada')
-    expect(overridden.code).toBe(byDefault.code)
-  })
+      expect(byDefault.message.trim().length).toBeGreaterThan(0)
+      expect(byDefault.message).not.toBe('Mensagem customizada')
+      expect(overridden.message).toBe('Mensagem customizada')
+      expect(overridden.code).toBe(byDefault.code)
+    },
+  )
 })
 
 describe('AppError factories — parametrized messages', () => {

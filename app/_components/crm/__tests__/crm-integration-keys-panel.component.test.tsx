@@ -123,7 +123,7 @@ describe('<CrmIntegrationKeysPanel />', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Criar chave' }))
     await waitFor(() => expect(notify.error).toHaveBeenCalled())
-    expect((notify.error.mock.lastCall?.[0] as Error).message).toBe(
+    expect((notify.error.mock.lastCall?.[0] as Error)?.message).toBe(
       'Plano não permite chaves',
     )
     expect(screen.getByPlaceholderText('Nome (ex.: Zapier)')).toBeTruthy()

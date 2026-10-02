@@ -31,12 +31,15 @@ describe('enqueueSdMailboxSync', () => {
   it.each([
     [new Error('redis fora'), 'redis fora'],
     ['boom', 'boom'],
-  ])('só loga quando a fila falha (o tick lê de todo jeito)', async (cause, message) => {
-    addMock.mockRejectedValue(cause)
-    await expect(enqueueSdMailboxSync('mb1')).resolves.toBeUndefined()
-    expect(loggerMock.error).toHaveBeenCalledWith(
-      'servicedesk.mail.enqueue_failed',
-      expect.objectContaining({ mailboxId: 'mb1', message }),
-    )
-  })
+  ])(
+    'só loga quando a fila falha (o tick lê de todo jeito)',
+    async (cause, message) => {
+      addMock.mockRejectedValue(cause)
+      await expect(enqueueSdMailboxSync('mb1')).resolves.toBeUndefined()
+      expect(loggerMock.error).toHaveBeenCalledWith(
+        'servicedesk.mail.enqueue_failed',
+        expect.objectContaining({ mailboxId: 'mb1', message }),
+      )
+    },
+  )
 })

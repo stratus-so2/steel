@@ -217,16 +217,21 @@ describe('AiUsageService edge cases', () => {
   it.each([
     ['no tokens at all', { inputTokens: 0, outputTokens: 0 }, false],
     ['only output tokens', { inputTokens: 0, outputTokens: 50 }, true],
-  ])('record() with %s should write to the ledger: %s', async (_label, usage, written) => {
-    setup({ settings })
-    const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))
+  ])(
+    'record() with %s should write to the ledger: %s',
+    async (_label, usage, written) => {
+      setup({ settings })
+      const call = expectOk(
+        await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'),
+      )
 
-    await AiUsageService.record(call, {
-      workspaceId: 'ws1',
-      userId: null,
-      usage,
-    })
+      await AiUsageService.record(call, {
+        workspaceId: 'ws1',
+        userId: null,
+        usage,
+      })
 
-    expect(mockedUsageRepo.record).toHaveBeenCalledTimes(written ? 1 : 0)
-  })
+      expect(mockedUsageRepo.record).toHaveBeenCalledTimes(written ? 1 : 0)
+    },
+  )
 })

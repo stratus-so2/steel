@@ -637,35 +637,41 @@ describe('publishPost()', () => {
   it.each([
     ['image', image(), 'image_url'],
     ['video', video(), 'video_url'],
-  ])('should publish a STORIES with an %s (no caption)', async (_, media, field) => {
-    fetchMock = graphFlow()
+  ])(
+    'should publish a STORIES with an %s (no caption)',
+    async (_, media, field) => {
+      fetchMock = graphFlow()
 
-    expectOk(
-      await publishPost(
-        'u1',
-        'ws1',
-        { caption: 'ignorada', postType: 'STORIES' },
-        media,
-      ),
-    )
+      expectOk(
+        await publishPost(
+          'u1',
+          'ws1',
+          { caption: 'ignorada', postType: 'STORIES' },
+          media,
+        ),
+      )
 
-    const body = formBody(fetchMock.calls()[0])
-    expect(body.media_type).toBe('STORIES')
-    expect(body[field]).toBe('https://app.test/api/social/blob/blob-1')
-    expect(body).not.toHaveProperty('caption')
-  })
+      const body = formBody(fetchMock.calls()[0])
+      expect(body.media_type).toBe('STORIES')
+      expect(body[field]).toBe('https://app.test/api/social/blob/blob-1')
+      expect(body).not.toHaveProperty('caption')
+    },
+  )
 
   it.each([
     ['REELS without a video', 'REELS' as const, image()],
     ['FEED without an image', 'FEED' as const, video()],
-  ])('should reject %s and still release the blob', async (_, postType, media) => {
-    expectErr(
-      await publishPost('u1', 'ws1', { caption: 'x', postType }, media),
-      'CRM_SOCIAL_OAUTH_FAILED',
-    )
-    expect(fetchMock.spy).not.toHaveBeenCalled()
-    expect(mockedRemoveBlob).toHaveBeenCalledWith('blob-1')
-  })
+  ])(
+    'should reject %s and still release the blob',
+    async (_, postType, media) => {
+      expectErr(
+        await publishPost('u1', 'ws1', { caption: 'x', postType }, media),
+        'CRM_SOCIAL_OAUTH_FAILED',
+      )
+      expect(fetchMock.spy).not.toHaveBeenCalled()
+      expect(mockedRemoveBlob).toHaveBeenCalledWith('blob-1')
+    },
+  )
 
   it('should surface the Graph message when the container is rejected', async () => {
     fetchMock = graphFlow({
@@ -832,19 +838,22 @@ describe('publishPost()', () => {
   it.each([
     ['fails', () => textResponse('x', { status: 500 })],
     ['has no permalink', () => jsonResponse({})],
-  ])('should still succeed with a null permalink when the lookup %s', async (_, permalink) => {
-    fetchMock = graphFlow({ permalink })
+  ])(
+    'should still succeed with a null permalink when the lookup %s',
+    async (_, permalink) => {
+      fetchMock = graphFlow({ permalink })
 
-    const result = expectOk(
-      await publishPost(
-        'u1',
-        'ws1',
-        { caption: 'x', postType: 'FEED' },
-        image(),
-      ),
-    )
-    expect(result).toEqual({ postId: 'post-1', permalink: null })
-  })
+      const result = expectOk(
+        await publishPost(
+          'u1',
+          'ws1',
+          { caption: 'x', postType: 'FEED' },
+          image(),
+        ),
+      )
+      expect(result).toEqual({ postId: 'post-1', permalink: null })
+    },
+  )
 })
 
 describe('deleteMedia()', () => {

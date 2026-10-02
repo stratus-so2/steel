@@ -42,14 +42,14 @@ describe('<OnboardingBackButton />', () => {
     expect(actions.goBackOnboarding).toHaveBeenCalledTimes(1)
   })
 
-  it.each([
-    '/onboarding/consent-setup',
-    '/onboarding/profile-setup',
-  ])('renders nothing on the first steps (%s)', (path) => {
-    nav.pathname = path
-    const { container } = render(<OnboardingBackButton />)
-    expect(container.innerHTML).toBe('')
-  })
+  it.each(['/onboarding/consent-setup', '/onboarding/profile-setup'])(
+    'renders nothing on the first steps (%s)',
+    (path) => {
+      nav.pathname = path
+      const { container } = render(<OnboardingBackButton />)
+      expect(container.innerHTML).toBe('')
+    },
+  )
 })
 
 describe('<OnboardingProgressBar />', () => {

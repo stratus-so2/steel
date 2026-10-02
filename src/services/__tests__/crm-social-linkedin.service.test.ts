@@ -221,15 +221,18 @@ describe('publishPost()', () => {
       { upload: () => textResponse('', { status: 500 }) },
       2,
     ],
-  ])('should not publish when the image upload is %s', async (_, overrides, calls) => {
-    fetchMock = route(overrides)
+  ])(
+    'should not publish when the image upload is %s',
+    async (_, overrides, calls) => {
+      fetchMock = route(overrides)
 
-    expectErr(
-      await publishPost('u1', 'ws1', { text: 'x' }, image()),
-      'CRM_SOCIAL_OAUTH_FAILED',
-    )
-    expect(fetchMock.calls()).toHaveLength(calls)
-  })
+      expectErr(
+        await publishPost('u1', 'ws1', { text: 'x' }, image()),
+        'CRM_SOCIAL_OAUTH_FAILED',
+      )
+      expect(fetchMock.calls()).toHaveLength(calls)
+    },
+  )
 
   it('should map a network error during initializeUpload', async () => {
     fetchMock = mockFetch(() => {

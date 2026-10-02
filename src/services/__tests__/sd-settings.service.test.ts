@@ -66,21 +66,20 @@ beforeEach(() => {
 })
 
 describe('SdSettingsService.get', () => {
-  it.each([
-    'requester',
-    'agent',
-    'viewer',
-  ] as const)('lets a %s read (row created lazily)', async (actor) => {
-    actAs(actor)
-    const dto = expectOk(await SdSettingsService.get('u1', 'ws1'))
-    expect(dto.ticketPrefixes).toEqual({
-      INCIDENT: 'INC',
-      SERVICE_REQUEST: 'REQ',
-      CHANGE: 'CHG',
-      PROBLEM: 'PRB',
-    })
-    expect(repo.getOrCreate).toHaveBeenCalledWith('ws1')
-  })
+  it.each(['requester', 'agent', 'viewer'] as const)(
+    'lets a %s read (row created lazily)',
+    async (actor) => {
+      actAs(actor)
+      const dto = expectOk(await SdSettingsService.get('u1', 'ws1'))
+      expect(dto.ticketPrefixes).toEqual({
+        INCIDENT: 'INC',
+        SERVICE_REQUEST: 'REQ',
+        CHANGE: 'CHG',
+        PROBLEM: 'PRB',
+      })
+      expect(repo.getOrCreate).toHaveBeenCalledWith('ws1')
+    },
+  )
 
   it('refuses strangers and disabled modules', async () => {
     actAs('stranger')

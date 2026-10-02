@@ -93,6 +93,7 @@ export function SaasSubscriptionHero({
           ) : null}
           <a
             href={readOnly ? '#' : undefined}
+            aria-label='Learn more about the product'
             className='inline-flex items-center px-4 py-4 font-bold text-[#161c2d] text-[17px] tracking-[-0.6px] hover:opacity-70'
           >
             Learn more

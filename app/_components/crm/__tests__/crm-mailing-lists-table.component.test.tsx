@@ -201,7 +201,7 @@ describe('<CrmMailingListsTable /> detail', () => {
     await openDetail()
     fireEvent.click(screen.getByRole('button', { name: /remover lista/i }))
     await waitFor(() => expect(notify.error).toHaveBeenCalled())
-    expect((notify.error.mock.lastCall?.[0] as Error).message).toBe(
+    expect((notify.error.mock.lastCall?.[0] as Error)?.message).toBe(
       'Sem permissão',
     )
   })

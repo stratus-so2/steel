@@ -54,21 +54,18 @@ describe('CreateSdOnCallScheduleSchema', () => {
     expect(result.error?.issues[0].message).toBe('Fuso horário inválido')
   })
 
-  it.each([
-    '9:00',
-    '24:00',
-    '09:60',
-    '0900',
-    '',
-  ])('rejects the handoff time %s', (handoffTime) => {
-    expect(
-      CreateSdOnCallScheduleSchema.safeParse({
-        name: 'x',
-        rotationStart: start,
-        handoffTime,
-      }).success,
-    ).toBe(false)
-  })
+  it.each(['9:00', '24:00', '09:60', '0900', ''])(
+    'rejects the handoff time %s',
+    (handoffTime) => {
+      expect(
+        CreateSdOnCallScheduleSchema.safeParse({
+          name: 'x',
+          rotationStart: start,
+          handoffTime,
+        }).success,
+      ).toBe(false)
+    },
+  )
 
   it('requires a name and a rotation start', () => {
     expect(CreateSdOnCallScheduleSchema.safeParse({}).success).toBe(false)

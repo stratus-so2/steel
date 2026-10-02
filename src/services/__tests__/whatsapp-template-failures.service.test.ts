@@ -119,13 +119,16 @@ describe('WhatsAppTemplateService.sync() failures', () => {
   it.each([
     [new Error('token expired'), 'token expired'],
     ['boom', 'Falha ao sincronizar templates'],
-  ])('should map a Meta failure (%s) to BAD_REQUEST', async (thrown, message) => {
-    arrangeMeta()
-    mockedFetch.mockRejectedValue(thrown)
+  ])(
+    'should map a Meta failure (%s) to BAD_REQUEST',
+    async (thrown, message) => {
+      arrangeMeta()
+      mockedFetch.mockRejectedValue(thrown)
 
-    const error = expectErr(await sync(), 'BAD_REQUEST')
-    expect(error.message).toBe(message)
-  })
+      const error = expectErr(await sync(), 'BAD_REQUEST')
+      expect(error.message).toBe(message)
+    },
+  )
 
   it('should default unknown statuses to PENDING and skip rows that fail to save', async () => {
     arrangeMeta()

@@ -97,7 +97,7 @@ async function runCopyToOffsite(
 
   const { backupId } = job.data
   const backup = await prisma.backup.findUnique({ where: { id: backupId } })
-  if (!backup || backup.status !== 'COMPLETED' || !backup.storageKey) {
+  if (backup?.status !== 'COMPLETED' || !backup.storageKey) {
     logger.warn('queue.database_backup.offsite_skipped', {
       component: 'Worker',
       jobId: job.id,

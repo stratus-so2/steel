@@ -147,78 +147,80 @@ const sends: [string, Call, () => { mockResolvedValue: (v: never) => void }][] =
     ],
   ]
 
-describe.each(
-  sends,
-)('WhatsAppMessageService.%s() failures', (_name, call, sender) => {
-  it('should return FORBIDDEN for a non-member', async () => {
-    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+describe.each(sends)(
+  'WhatsAppMessageService.%s() failures',
+  (_name, call, sender) => {
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
 
-    expectErr(await call(), 'FORBIDDEN')
-  })
+      expectErr(await call(), 'FORBIDDEN')
+    })
 
-  it('should propagate a conversation lookup failure', async () => {
-    arrangeSendable()
-    mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a conversation lookup failure', async () => {
+      arrangeSendable()
+      mockedConversationRepo.findById.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+    })
 
-  it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
-    arrangeSendable()
-    mockedConversationRepo.findById.mockResolvedValue(ok(null))
+    it('should return WHATSAPP_CONVERSATION_NOT_FOUND when missing', async () => {
+      arrangeSendable()
+      mockedConversationRepo.findById.mockResolvedValue(ok(null))
 
-    expectErr(await call(), 'WHATSAPP_CONVERSATION_NOT_FOUND')
-  })
+      expectErr(await call(), 'WHATSAPP_CONVERSATION_NOT_FOUND')
+    })
 
-  it('should propagate a connection lookup failure', async () => {
-    arrangeSendable()
-    mockedConnectionRepo.findById.mockResolvedValue(err(DB_ERROR))
+    it('should propagate a connection lookup failure', async () => {
+      arrangeSendable()
+      mockedConnectionRepo.findById.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+    })
 
-  it('should return WHATSAPP_CONNECTION_NOT_FOUND when the connection is gone', async () => {
-    arrangeSendable()
-    mockedConnectionRepo.findById.mockResolvedValue(ok(null))
+    it('should return WHATSAPP_CONNECTION_NOT_FOUND when the connection is gone', async () => {
+      arrangeSendable()
+      mockedConnectionRepo.findById.mockResolvedValue(ok(null))
 
-    expectErr(await call(), 'WHATSAPP_CONNECTION_NOT_FOUND')
-  })
+      expectErr(await call(), 'WHATSAPP_CONNECTION_NOT_FOUND')
+    })
 
-  it('should propagate a provider send failure without persisting', async () => {
-    arrangeSendable()
-    sender().mockResolvedValue(err(PROVIDER_ERROR) as never)
+    it('should propagate a provider send failure without persisting', async () => {
+      arrangeSendable()
+      sender().mockResolvedValue(err(PROVIDER_ERROR) as never)
 
-    expectErr(await call(), 'WHATSAPP_PROVIDER_ERROR')
-    expect(mockedMessageRepo.create).not.toHaveBeenCalled()
-  })
-})
+      expectErr(await call(), 'WHATSAPP_PROVIDER_ERROR')
+      expect(mockedMessageRepo.create).not.toHaveBeenCalled()
+    })
+  },
+)
 
-describe.each(
-  sends.filter(([name]) => name !== 'react'),
-)('WhatsAppMessageService.%s() persistence', (_name, call) => {
-  it('should propagate a failure persisting the outbound message', async () => {
-    arrangeSendable()
-    mockedMessageRepo.create.mockResolvedValue(err(DB_ERROR))
+describe.each(sends.filter(([name]) => name !== 'react'))(
+  'WhatsAppMessageService.%s() persistence',
+  (_name, call) => {
+    it('should propagate a failure persisting the outbound message', async () => {
+      arrangeSendable()
+      mockedMessageRepo.create.mockResolvedValue(err(DB_ERROR))
 
-    expectErr(await call(), 'DATABASE_ERROR')
-    expect(mockedConversationRepo.update).not.toHaveBeenCalled()
-  })
+      expectErr(await call(), 'DATABASE_ERROR')
+      expect(mockedConversationRepo.update).not.toHaveBeenCalled()
+    })
 
-  it('should skip the conversation event when the refresh finds nothing', async () => {
-    arrangeSendable()
-    mockedConversationRepo.findById
-      .mockResolvedValueOnce(ok(conversation()))
-      .mockResolvedValueOnce(ok(null))
+    it('should skip the conversation event when the refresh finds nothing', async () => {
+      arrangeSendable()
+      mockedConversationRepo.findById
+        .mockResolvedValueOnce(ok(conversation()))
+        .mockResolvedValueOnce(ok(null))
 
-    expectOk(await call())
+      expectOk(await call())
 
-    expect(publishWhatsAppEvent).toHaveBeenCalledTimes(1)
-    expect(publishWhatsAppEvent).toHaveBeenCalledWith(
-      'ws1',
-      expect.objectContaining({ type: 'message.created' }),
-    )
-  })
-})
+      expect(publishWhatsAppEvent).toHaveBeenCalledTimes(1)
+      expect(publishWhatsAppEvent).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ type: 'message.created' }),
+      )
+    })
+  },
+)
 
 describe('WhatsAppMessageService specifics', () => {
   it('sendTemplate() should send the template and store its name as text', async () => {

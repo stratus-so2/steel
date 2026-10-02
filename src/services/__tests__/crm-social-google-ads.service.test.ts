@@ -236,15 +236,21 @@ describe('getOverview()', () => {
     ['unknown', 'unknown'],
     ['empty', ''],
     ['a manager without sub-accounts', '999|'],
-  ])('should return CRM_SOCIAL_CONNECTION_NOT_FOUND for %s account id', async (_, externalAccountId) => {
-    withToken({ scope: 'adwords', externalAccountId })
-    expectErr(await getOverview('u1', 'ws1'), 'CRM_SOCIAL_CONNECTION_NOT_FOUND')
-    expectErr(
-      await getInsights('u1', 'ws1', '7d'),
-      'CRM_SOCIAL_CONNECTION_NOT_FOUND',
-    )
-    expect(fetchMock.spy).not.toHaveBeenCalled()
-  })
+  ])(
+    'should return CRM_SOCIAL_CONNECTION_NOT_FOUND for %s account id',
+    async (_, externalAccountId) => {
+      withToken({ scope: 'adwords', externalAccountId })
+      expectErr(
+        await getOverview('u1', 'ws1'),
+        'CRM_SOCIAL_CONNECTION_NOT_FOUND',
+      )
+      expectErr(
+        await getInsights('u1', 'ws1', '7d'),
+        'CRM_SOCIAL_CONNECTION_NOT_FOUND',
+      )
+      expect(fetchMock.spy).not.toHaveBeenCalled()
+    },
+  )
 })
 
 describe('getInsights()', () => {

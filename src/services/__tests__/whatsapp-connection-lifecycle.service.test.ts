@@ -288,19 +288,22 @@ describe('WhatsAppConnectionService.getQrCode()', () => {
   it.each([
     ['instance id', { zapiInstanceId: null }],
     ['token', { encryptedZapiToken: null }],
-  ])('should reject a Z-API connection without %s', async (_label, overrides) => {
-    asRole('ADMIN')
-    mockedConnectionRepo.findById.mockResolvedValue(
-      ok(zapiConnection(overrides)),
-    )
+  ])(
+    'should reject a Z-API connection without %s',
+    async (_label, overrides) => {
+      asRole('ADMIN')
+      mockedConnectionRepo.findById.mockResolvedValue(
+        ok(zapiConnection(overrides)),
+      )
 
-    const error = expectErr(
-      await WhatsAppConnectionService.getQrCode('u1', 'ws1', 'conn1'),
-      'BAD_REQUEST',
-    )
-    expect(error.message).toBe('Conexão Z-API sem credenciais configuradas')
-    expect(mockedCreateZapiClient).not.toHaveBeenCalled()
-  })
+      const error = expectErr(
+        await WhatsAppConnectionService.getQrCode('u1', 'ws1', 'conn1'),
+        'BAD_REQUEST',
+      )
+      expect(error.message).toBe('Conexão Z-API sem credenciais configuradas')
+      expect(mockedCreateZapiClient).not.toHaveBeenCalled()
+    },
+  )
 
   it('should mark the connection CONNECTED once the instance reports it', async () => {
     asRole('ADMIN')

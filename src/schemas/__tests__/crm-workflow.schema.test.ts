@@ -130,16 +130,15 @@ describe('CrmWorkflowDefinitionSchema — lead triggers', () => {
     expect(result.success).toBe(true)
   })
 
-  it.each([
-    'stage-changed',
-    'won',
-    'lost',
-  ])('should accept a lead update trigger scoped to the %s event', (leadEvent) => {
-    const result = CrmWorkflowDefinitionSchema.safeParse(
-      withTrigger({ type: 'record-is-updated', entity: 'lead', leadEvent }),
-    )
-    expect(result.success).toBe(true)
-  })
+  it.each(['stage-changed', 'won', 'lost'])(
+    'should accept a lead update trigger scoped to the %s event',
+    (leadEvent) => {
+      const result = CrmWorkflowDefinitionSchema.safeParse(
+        withTrigger({ type: 'record-is-updated', entity: 'lead', leadEvent }),
+      )
+      expect(result.success).toBe(true)
+    },
+  )
 
   it('should reject a leadEvent on a non-lead trigger', () => {
     const result = CrmWorkflowDefinitionSchema.safeParse(

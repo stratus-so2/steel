@@ -265,14 +265,17 @@ describe('WhatsAppSentimentService.analyzeMessage() — failure paths', () => {
   it.each([
     [aiProviderUnavailable(), 'ai_provider_unavailable'],
     [databaseError('down'), 'ai_prepare_failed'],
-  ])('should skip with the matching reason when preparation fails (%#)', async (error, reason) => {
-    arrangeMessage()
-    mockedAiUsage.prepare.mockResolvedValue(err(error))
+  ])(
+    'should skip with the matching reason when preparation fails (%#)',
+    async (error, reason) => {
+      arrangeMessage()
+      mockedAiUsage.prepare.mockResolvedValue(err(error))
 
-    expect(
-      expectOk(await WhatsAppSentimentService.analyzeMessage('m1')),
-    ).toEqual({ status: 'skipped', reason })
-  })
+      expect(
+        expectOk(await WhatsAppSentimentService.analyzeMessage('m1')),
+      ).toEqual({ status: 'skipped', reason })
+    },
+  )
 
   it('should stringify a non-Error provider failure', async () => {
     arrangeMessage()

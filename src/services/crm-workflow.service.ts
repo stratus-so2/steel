@@ -508,7 +508,7 @@ export const CrmWorkflowService = {
 
     const definition = parseCrmWorkflowDefinition(versionFound.value.definition)
     const pausedNode = definition.nodes.find((n) => n.id === waitingStep.nodeId)
-    if (!pausedNode || pausedNode.data.type !== 'form') {
+    if (pausedNode?.data.type !== 'form') {
       return err(crmWorkflowExecutionFailed('Node pausado inválido'))
     }
     const outputAlias = pausedNode.data.outputAlias ?? pausedNode.id

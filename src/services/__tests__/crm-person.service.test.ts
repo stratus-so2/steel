@@ -81,23 +81,26 @@ describe('CrmPersonService', () => {
       ['VIEWER', 'remove'],
       ['VIEWER', 'reorder'],
       ['MEMBER', 'remove'],
-    ] as const)('should forbid a %s from calling %s()', async (role, action) => {
-      asRole(role)
+    ] as const)(
+      'should forbid a %s from calling %s()',
+      async (role, action) => {
+        asRole(role)
 
-      const result =
-        action === 'create'
-          ? await CrmPersonService.create('u1', 'ws1', createDto)
-          : action === 'update'
-            ? await CrmPersonService.update('u1', 'ws1', 'p1', { name: 'X' })
-            : action === 'remove'
-              ? await CrmPersonService.remove('u1', 'ws1', 'p1')
-              : await CrmPersonService.reorder('u1', 'ws1', ['p1'])
+        const result =
+          action === 'create'
+            ? await CrmPersonService.create('u1', 'ws1', createDto)
+            : action === 'update'
+              ? await CrmPersonService.update('u1', 'ws1', 'p1', { name: 'X' })
+              : action === 'remove'
+                ? await CrmPersonService.remove('u1', 'ws1', 'p1')
+                : await CrmPersonService.reorder('u1', 'ws1', ['p1'])
 
-      expectErr(result, 'FORBIDDEN')
-      expect(mockedPersonRepo.findById).not.toHaveBeenCalled()
-      expect(mockedPersonRepo.create).not.toHaveBeenCalled()
-      expect(mockedPersonRepo.reorder).not.toHaveBeenCalled()
-    })
+        expectErr(result, 'FORBIDDEN')
+        expect(mockedPersonRepo.findById).not.toHaveBeenCalled()
+        expect(mockedPersonRepo.create).not.toHaveBeenCalled()
+        expect(mockedPersonRepo.reorder).not.toHaveBeenCalled()
+      },
+    )
 
     it('should let a VIEWER read people', async () => {
       asRole('VIEWER')

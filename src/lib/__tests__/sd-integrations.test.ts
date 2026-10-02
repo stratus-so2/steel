@@ -295,16 +295,12 @@ describe('parseSdGithubRepo', () => {
     })
   })
 
-  it.each([
-    [''],
-    ['   '],
-    ['steel'],
-    ['a/b/c'],
-    ['own er/repo'],
-    ['owner/'],
-  ])('recusa %s', (input) => {
-    expect(parseSdGithubRepo(input)).toBeNull()
-  })
+  it.each([[''], ['   '], ['steel'], ['a/b/c'], ['own er/repo'], ['owner/']])(
+    'recusa %s',
+    (input) => {
+      expect(parseSdGithubRepo(input)).toBeNull()
+    },
+  )
 })
 
 describe('parseSdGithubItemRef', () => {
@@ -348,15 +344,12 @@ describe('parseSdGithubItemRef', () => {
     })
   })
 
-  it.each([
-    [''],
-    ['#0'],
-    ['abc'],
-    ['owner/repo'],
-    ['owner/repo#'],
-  ])('recusa %s', (input) => {
-    expect(parseSdGithubItemRef(input)).toBeNull()
-  })
+  it.each([[''], ['#0'], ['abc'], ['owner/repo'], ['owner/repo#']])(
+    'recusa %s',
+    (input) => {
+      expect(parseSdGithubItemRef(input)).toBeNull()
+    },
+  )
 })
 
 describe('chaves externas', () => {

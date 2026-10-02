@@ -93,18 +93,17 @@ describe('SdKbTicketLinkService', () => {
       })
     })
 
-    it.each([
-      'req',
-      'creator',
-      'part',
-    ])('lets the requester-side user %s see portal links', async (userId) => {
-      actAs('requester')
-      links.listByTicket.mockResolvedValue(ok([]))
-      expectOk(await SdKbTicketLinkService.listForTicket(userId, WS, 't1'))
-      expect(links.listByTicket).toHaveBeenCalledWith('t1', {
-        portalOnly: true,
-      })
-    })
+    it.each(['req', 'creator', 'part'])(
+      'lets the requester-side user %s see portal links',
+      async (userId) => {
+        actAs('requester')
+        links.listByTicket.mockResolvedValue(ok([]))
+        expectOk(await SdKbTicketLinkService.listForTicket(userId, WS, 't1'))
+        expect(links.listByTicket).toHaveBeenCalledWith('t1', {
+          portalOnly: true,
+        })
+      },
+    )
 
     it("refuses other requesters' tickets and propagates failures", async () => {
       actAs('requester')

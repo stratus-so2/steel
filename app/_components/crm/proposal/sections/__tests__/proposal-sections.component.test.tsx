@@ -330,24 +330,25 @@ describe('section registry', () => {
     }
   })
 
-  it.each(
-    SECTION_ORDER,
-  )('%s default content is valid and renders in editor and display', (type) => {
-    const def = SECTION_REGISTRY[type]
-    const content = def.createDefaultContent({
-      proposalName: 'Proposta Acme',
-      responsibleName: 'Ana',
-    }) as CrmProposalSectionContent
-    expect(content.type).toBe(type)
-    expect(CrmProposalSectionContentSchema.safeParse(content).success).toBe(
-      true,
-    )
+  it.each(SECTION_ORDER)(
+    '%s default content is valid and renders in editor and display',
+    (type) => {
+      const def = SECTION_REGISTRY[type]
+      const content = def.createDefaultContent({
+        proposalName: 'Proposta Acme',
+        responsibleName: 'Ana',
+      }) as CrmProposalSectionContent
+      expect(content.type).toBe(type)
+      expect(CrmProposalSectionContentSchema.safeParse(content).success).toBe(
+        true,
+      )
 
-    const { unmount } = render(
-      <def.Editor content={content} onChange={() => {}} workspaceId='ws_1' />,
-    )
-    unmount()
-    const { container } = render(<def.Display content={content} />)
-    expect(within(container).getByRole('heading')).toBeTruthy()
-  })
+      const { unmount } = render(
+        <def.Editor content={content} onChange={() => {}} workspaceId='ws_1' />,
+      )
+      unmount()
+      const { container } = render(<def.Display content={content} />)
+      expect(within(container).getByRole('heading')).toBeTruthy()
+    },
+  )
 })

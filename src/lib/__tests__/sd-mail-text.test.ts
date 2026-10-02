@@ -119,17 +119,14 @@ describe('stripSdMailSignature', () => {
     expect(stripSdMailSignature('texto\n--\nAna')).toBe('texto')
   })
 
-  it.each([
-    'Atenciosamente,',
-    'Att.',
-    'Abraços',
-    'Best regards',
-    'Saudações',
-  ])('cuts the trailing "%s" greeting', (greeting) => {
-    expect(stripSdMailSignature(`o problema segue\n${greeting}\nAna`)).toBe(
-      'o problema segue',
-    )
-  })
+  it.each(['Atenciosamente,', 'Att.', 'Abraços', 'Best regards', 'Saudações'])(
+    'cuts the trailing "%s" greeting',
+    (greeting) => {
+      expect(stripSdMailSignature(`o problema segue\n${greeting}\nAna`)).toBe(
+        'o problema segue',
+      )
+    },
+  )
 
   it('keeps the greeting when it is the whole message', () => {
     expect(stripSdMailSignature('Atenciosamente,')).toBe('Atenciosamente,')
@@ -280,14 +277,12 @@ describe('isSdMailAutomatic', () => {
     expect(isSdMailAutomatic({ headers: { [name]: 'yes' } })).toBe(true)
   })
 
-  it.each([
-    'bulk',
-    'list',
-    'junk',
-    'auto_reply',
-  ])('detects Precedence: %s', (precedence) => {
-    expect(isSdMailAutomatic({ headers: { precedence } })).toBe(true)
-  })
+  it.each(['bulk', 'list', 'junk', 'auto_reply'])(
+    'detects Precedence: %s',
+    (precedence) => {
+      expect(isSdMailAutomatic({ headers: { precedence } })).toBe(true)
+    },
+  )
 
   it('ignores Precedence: normal', () => {
     expect(isSdMailAutomatic({ headers: { precedence: 'normal' } })).toBe(false)

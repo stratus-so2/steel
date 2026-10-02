@@ -72,27 +72,23 @@ describe('ReorderCrmPeopleSchema', () => {
 })
 
 describe('UpdateCrmPersonSchema — clearing optional fields', () => {
-  it.each([
-    'city',
-    'jobTitle',
-    'linkedin',
-    'avatar',
-  ])('should accept null to clear %s', (field) => {
-    const result = UpdateCrmPersonSchema.safeParse({ [field]: null })
-    expect(result.success).toBe(true)
-    expect((result.data as Record<string, unknown>)[field]).toBeNull()
-  })
+  it.each(['city', 'jobTitle', 'linkedin', 'avatar'])(
+    'should accept null to clear %s',
+    (field) => {
+      const result = UpdateCrmPersonSchema.safeParse({ [field]: null })
+      expect(result.success).toBe(true)
+      expect((result.data as Record<string, unknown>)[field]).toBeNull()
+    },
+  )
 
-  it.each([
-    'city',
-    'jobTitle',
-    'linkedin',
-    'avatar',
-  ])('should normalize an emptied %s to null', (field) => {
-    const result = UpdateCrmPersonSchema.safeParse({ [field]: '  ' })
-    expect(result.success).toBe(true)
-    expect((result.data as Record<string, unknown>)[field]).toBeNull()
-  })
+  it.each(['city', 'jobTitle', 'linkedin', 'avatar'])(
+    'should normalize an emptied %s to null',
+    (field) => {
+      const result = UpdateCrmPersonSchema.safeParse({ [field]: '  ' })
+      expect(result.success).toBe(true)
+      expect((result.data as Record<string, unknown>)[field]).toBeNull()
+    },
+  )
 
   it('should leave omitted optional fields undefined', () => {
     const result = UpdateCrmPersonSchema.safeParse({})

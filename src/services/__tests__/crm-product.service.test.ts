@@ -42,23 +42,28 @@ describe('CrmProductService', () => {
       ['VIEWER', 'remove'],
       ['VIEWER', 'reorder'],
       ['MEMBER', 'remove'],
-    ] as const)('should forbid a %s from calling %s()', async (role, action) => {
-      asRole(role)
+    ] as const)(
+      'should forbid a %s from calling %s()',
+      async (role, action) => {
+        asRole(role)
 
-      const result =
-        action === 'create'
-          ? await CrmProductService.create('u1', 'ws1', createDto)
-          : action === 'update'
-            ? await CrmProductService.update('u1', 'ws1', 'pr1', { name: 'X' })
-            : action === 'remove'
-              ? await CrmProductService.remove('u1', 'ws1', 'pr1')
-              : await CrmProductService.reorder('u1', 'ws1', ['pr1'])
+        const result =
+          action === 'create'
+            ? await CrmProductService.create('u1', 'ws1', createDto)
+            : action === 'update'
+              ? await CrmProductService.update('u1', 'ws1', 'pr1', {
+                  name: 'X',
+                })
+              : action === 'remove'
+                ? await CrmProductService.remove('u1', 'ws1', 'pr1')
+                : await CrmProductService.reorder('u1', 'ws1', ['pr1'])
 
-      expectErr(result, 'FORBIDDEN')
-      expect(mockedProductRepo.findById).not.toHaveBeenCalled()
-      expect(mockedProductRepo.create).not.toHaveBeenCalled()
-      expect(mockedProductRepo.reorder).not.toHaveBeenCalled()
-    })
+        expectErr(result, 'FORBIDDEN')
+        expect(mockedProductRepo.findById).not.toHaveBeenCalled()
+        expect(mockedProductRepo.create).not.toHaveBeenCalled()
+        expect(mockedProductRepo.reorder).not.toHaveBeenCalled()
+      },
+    )
 
     it('should return MODULE_DISABLED when the CRM is off', async () => {
       asRole('OWNER')

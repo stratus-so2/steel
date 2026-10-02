@@ -25,7 +25,7 @@ export const CouponService = {
       coupon.maxRedeems !== -1 &&
       coupon.redeemsCount >= coupon.maxRedeems
 
-    if (!coupon || coupon.status !== 'ACTIVE' || exhausted) {
+    if (coupon?.status !== 'ACTIVE' || exhausted) {
       return err(couponInvalid())
     }
 

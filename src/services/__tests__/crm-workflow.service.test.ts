@@ -936,18 +936,21 @@ describe('CrmWorkflowService — runs', () => {
     it.each([
       [new Error('runner exploded'), 'runner exploded'],
       ['plain string', 'plain string'],
-    ])('should wrap a runner throw (%s) as EXECUTION_FAILED', async (thrown, message) => {
-      arrange({ test: false })
-      mockedRunCrmWorkflow.mockRejectedValue(thrown)
-      const error = expectErr(
-        await CrmWorkflowService.triggerManual('u1', WS, WF, {
-          payload: {},
-          test: false,
-        }),
-        'CRM_WORKFLOW_EXECUTION_FAILED',
-      )
-      expect(JSON.stringify(error)).toContain(message)
-    })
+    ])(
+      'should wrap a runner throw (%s) as EXECUTION_FAILED',
+      async (thrown, message) => {
+        arrange({ test: false })
+        mockedRunCrmWorkflow.mockRejectedValue(thrown)
+        const error = expectErr(
+          await CrmWorkflowService.triggerManual('u1', WS, WF, {
+            payload: {},
+            test: false,
+          }),
+          'CRM_WORKFLOW_EXECUTION_FAILED',
+        )
+        expect(JSON.stringify(error)).toContain(message)
+      },
+    )
 
     it.each([
       ['reload error', err(dbErr), 'DATABASE_ERROR'],
@@ -1117,14 +1120,19 @@ describe('CrmWorkflowService — runs', () => {
     it.each([
       ['a node that is not a form', 'n1'],
       ['a node missing from the definition', 'gone'],
-    ])('should reject when the paused step points to %s', async (_label, nodeId) => {
-      arrange(nodeId)
-      expectErr(
-        await CrmWorkflowService.resumeRun('u1', WS, WF, 'r1', { payload: {} }),
-        'CRM_WORKFLOW_EXECUTION_FAILED',
-      )
-      expect(mockedResumeCrmWorkflow).not.toHaveBeenCalled()
-    })
+    ])(
+      'should reject when the paused step points to %s',
+      async (_label, nodeId) => {
+        arrange(nodeId)
+        expectErr(
+          await CrmWorkflowService.resumeRun('u1', WS, WF, 'r1', {
+            payload: {},
+          }),
+          'CRM_WORKFLOW_EXECUTION_FAILED',
+        )
+        expect(mockedResumeCrmWorkflow).not.toHaveBeenCalled()
+      },
+    )
 
     it.each([
       [new Error('resume exploded'), 'resume exploded'],

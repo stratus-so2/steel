@@ -219,7 +219,7 @@ describe('<SdTicketWhatsappTab />', () => {
         String(url).includes('/media'),
       )
       expect(call).toBeTruthy()
-      expect((call?.[1]?.body as FormData).get('file')).toBe(file)
+      expect((call?.[1]?.body as FormData)?.get('file')).toBe(file)
     })
   })
 

@@ -119,15 +119,14 @@ describe('UpdateCrmOpportunityLineItemSchema', () => {
 })
 
 describe('UpdateCrmOpportunitySchema — clearing optional fields', () => {
-  it.each([
-    'source',
-    'amount',
-    'closeDate',
-  ])('should accept null to clear %s', (field) => {
-    const result = UpdateCrmOpportunitySchema.safeParse({ [field]: null })
-    expect(result.success).toBe(true)
-    expect((result.data as Record<string, unknown>)[field]).toBeNull()
-  })
+  it.each(['source', 'amount', 'closeDate'])(
+    'should accept null to clear %s',
+    (field) => {
+      const result = UpdateCrmOpportunitySchema.safeParse({ [field]: null })
+      expect(result.success).toBe(true)
+      expect((result.data as Record<string, unknown>)[field]).toBeNull()
+    },
+  )
 
   it.each(['source'])('should normalize an emptied %s to null', (field) => {
     const result = UpdateCrmOpportunitySchema.safeParse({ [field]: '  ' })
