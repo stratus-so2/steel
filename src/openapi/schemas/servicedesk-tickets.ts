@@ -84,6 +84,41 @@ const CustomerRef = z
   })
   .nullable()
 
+export const SdRiskFactorDTO = dto(
+  'SdRiskFactor',
+  z.object({
+    key: z.string().meta({
+      example: 'sla_consumed',
+      description:
+        'Chave do fator no catálogo (`src/lib/servicedesk/risk.ts`).',
+    }),
+    label: z.string().meta({ example: 'Prazo já consumido' }),
+    weight: z
+      .number()
+      .int()
+      .meta({ description: 'Pontos somados (1 … peso do fator).' }),
+    detail: z.string().meta({
+      example: '82% do prazo de resolução consumido (em horário útil)',
+      description: 'A frase em pt-BR que a interface mostra como motivo.',
+    }),
+  }),
+)
+
+export const SdTicketRiskDTO = dto(
+  'SdTicketRisk',
+  z.object({
+    level: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+    score: z.number().int().meta({ example: 74 }),
+    factors: z.array(SdRiskFactorDTO).meta({
+      description: 'Os fatores que pegaram — a nota nunca vem sem o porquê.',
+    }),
+    breachEtaAt: nullableDateTime().meta({
+      description: 'Quando o prazo estoura se o ritmo atual seguir.',
+    }),
+    computedAt: dateTime(),
+  }),
+)
+
 export const SdTicketDTO = dto(
   'SdTicket',
   z.object({
@@ -175,6 +210,10 @@ export const SdTicketDTO = dto(
     rootCause: z.string().nullable(),
     workaround: z.string().nullable(),
     knownError: z.boolean(),
+    risk: SdTicketRiskDTO.nullable().meta({
+      description:
+        'Previsão de risco de violação de SLA (worker `servicedesk-risk`, heurística explicável — ADR 0016). `null` sem previsão e para solicitantes.',
+    }),
     aiSummary: z.string().nullable(),
     aiTriage: z.unknown(),
     csatScore: z.number().int().nullable(),

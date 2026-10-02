@@ -233,6 +233,10 @@
       "description": "Contratos de atendimento (franquia de horas, valor da hora, arredondamento, mínimo por chamado e a tabela de valores por tipo × prioridade × janela), os períodos de faturamento com consumo e excedente, e o apontamento de horas no chamado: cronômetro (um aberto por usuário) e lançamento manual. O período fechado congela os apontamentos."
     },
     {
+      "name": "ServiceDesk · Risco preditivo",
+      "description": "Risco de violação de SLA por heurística explicável (ADR 0016 — nada passa por LLM): a fila por risco, a previsão de um chamado com os fatores que pegaram e a frase do motivo de cada um, e os agrupamentos de incidentes repetidos como sugestão de problema (abrir o problema e descartar são ações do agente)."
+    },
+    {
       "name": "ServiceDesk · CMDB",
       "description": "Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis."
     },
@@ -373,6 +377,7 @@
         "ServiceDesk · Chamados recorrentes",
         "ServiceDesk · Mudanças e CAB",
         "ServiceDesk · Contratos e horas",
+        "ServiceDesk · Risco preditivo",
         "ServiceDesk · CMDB"
       ]
     },
@@ -49243,7 +49248,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_14"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -52642,7 +52647,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_12"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_13"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_SD_NOTIFICATION_EVENT_UNKNOWN"
@@ -55238,7 +55243,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_13"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_14"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_CONTACT_NOT_FOUND"
@@ -55381,7 +55386,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_11"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_12"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_37"
@@ -56807,6 +56812,431 @@
           },
           "404": {
             "$ref": "#/components/responses/404_SD_RECURRING_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/risk/clusters": {
+      "get": {
+        "tags": ["ServiceDesk · Risco preditivo"],
+        "summary": "Sugestões de problema (incidentes repetidos)",
+        "operationId": "getWorkspacesByIdServicedeskRiskClusters",
+        "description": "Grupos de incidentes parecidos da janela de 7 dias, agrupados por assinatura (categoria, subcategoria, serviço e os termos normalizados do título) a partir de 3 ocorrências. `status=open` traz as sugestões vivas; `handled`, as que já viraram problema ou foram descartadas. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "type": "string",
+              "enum": ["open", "handled", "all"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agrupamentos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdIncidentCluster"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/risk/clusters/{clusterId}/dismiss": {
+      "post": {
+        "tags": ["ServiceDesk · Risco preditivo"],
+        "summary": "Descartar a sugestão",
+        "operationId": "postWorkspacesByIdServicedeskRiskClustersByClusterIdDismiss",
+        "description": "O grupo sai da lista de sugestões e só volta a sugerir se os incidentes se repetirem **de novo** depois do descarte (3 novos). Auditado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "description": "Id do agrupamento.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agrupamento descartado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdIncidentCluster"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INCIDENT_CLUSTER_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_INCIDENT_CLUSTER_CLOSED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/risk/clusters/{clusterId}/problem": {
+      "post": {
+        "tags": ["ServiceDesk · Risco preditivo"],
+        "summary": "Abrir um problema a partir do agrupamento",
+        "operationId": "postWorkspacesByIdServicedeskRiskClustersByClusterIdProblem",
+        "description": "Abre o chamado de **problema** pelo motor (roteamento, SLA e fase inicial normais), com a lista dos incidentes na descrição, e vincula os incidentes sem pai como filhos (`linkIncidents`). O corpo é opcional: sem nada informado, usa o título do grupo. Um grupo já tratado (problema aberto ou descartado) responde `SD_INCIDENT_CLUSTER_CLOSED`. Auditado. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "clusterId",
+            "in": "path",
+            "required": true,
+            "description": "Id do agrupamento.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "departmentId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "assigneeId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "priorityId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "linkIncidents": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agrupamento com o problema vinculado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdIncidentCluster"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INCIDENT_CLUSTER_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_INCIDENT_CLUSTER_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/risk/tickets": {
+      "get": {
+        "tags": ["ServiceDesk · Risco preditivo"],
+        "summary": "Fila por risco de violar o SLA",
+        "operationId": "getWorkspacesByIdServicedeskRiskTickets",
+        "description": "Chamados abertos da faixa pedida (padrão `HIGH`), nota maior primeiro, com a previsão dentro do próprio chamado (`risk`). Cada fator que pegou traz a frase em pt-BR do motivo (`detail`) e os pontos que somou — a interface nunca mostra a nota sem o porquê. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": "HIGH",
+              "type": "string",
+              "enum": ["LOW", "MEDIUM", "HIGH"]
+            }
+          },
+          {
+            "name": "minScore",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "departmentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "assigneeId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chamados em risco.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdTicket"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/risk/tickets/{ticketId}": {
+      "get": {
+        "tags": ["ServiceDesk · Risco preditivo"],
+        "summary": "Previsão de risco de um chamado",
+        "operationId": "getWorkspacesByIdServicedeskRiskTicketsByTicketId",
+        "description": "Nota, faixa, fatores e a previsão de quando o prazo estoura se o ritmo atual seguir (`breachEtaAt`, já em horário útil do calendário da política). Cada fator que pegou traz a frase em pt-BR do motivo (`detail`) e os pontos que somou — a interface nunca mostra a nota sem o porquê. Chamado sem previsão calculada responde `SD_RISK_PREDICTION_NOT_FOUND`. Acesso: sessão + **agente** do ServiceDesk (membro de um departamento ou admin do módulo) com o módulo habilitado.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "ticketId",
+            "in": "path",
+            "required": true,
+            "description": "Id do chamado, número (`123`) ou código (`INC-000123`).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Previsão.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdTicketRisk"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_9"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_RISK_PREDICTION_NOT_FOUND"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -79024,6 +79454,73 @@
                 }
               },
               "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (membro sem departamento)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_12": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
                 "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede `sd-contacts`",
                 "value": {
                   "success": false,
@@ -79071,7 +79568,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_12": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_13": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -79138,7 +79635,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_13": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_14": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -79194,7 +79691,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_14": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_15": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_NOT_AGENT`",
         "content": {
           "application/json": {
@@ -84315,6 +84812,29 @@
           }
         }
       },
+      "404_SD_INCIDENT_CLUSTER_NOT_FOUND": {
+        "description": "Não encontrado: `SD_INCIDENT_CLUSTER_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INCIDENT_CLUSTER_NOT_FOUND": {
+                "summary": "SD_INCIDENT_CLUSTER_NOT_FOUND — Agrupamento inexistente ou de outro workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Agrupamento não encontrado",
+                  "error": {
+                    "code": "SD_INCIDENT_CLUSTER_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_SD_KB_ARTICLE_NOT_FOUND": {
         "description": "Não encontrado: `SD_KB_ARTICLE_NOT_FOUND`",
         "content": {
@@ -85339,6 +85859,40 @@
                   "message": "Fase não encontrada",
                   "error": {
                     "code": "SD_PHASE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_TICKET_NOT_FOUND_SD_RISK_PREDICTION_NOT_FOUND": {
+        "description": "Não encontrado: `SD_TICKET_NOT_FOUND`, `SD_RISK_PREDICTION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_TICKET_NOT_FOUND": {
+                "summary": "SD_TICKET_NOT_FOUND — Chamado inexistente ou removido",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Chamado não encontrado",
+                  "error": {
+                    "code": "SD_TICKET_NOT_FOUND"
+                  }
+                }
+              },
+              "SD_RISK_PREDICTION_NOT_FOUND": {
+                "summary": "SD_RISK_PREDICTION_NOT_FOUND — O worker ainda não calculou a previsão deste chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Ainda não há previsão de risco para este chamado",
+                  "error": {
+                    "code": "SD_RISK_PREDICTION_NOT_FOUND"
                   }
                 }
               }
@@ -87414,6 +87968,52 @@
                   "message": "Já existe um cadastro com este CPF/CNPJ",
                   "error": {
                     "code": "SD_CUSTOMER_DOCUMENT_CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_INCIDENT_CLUSTER_CLOSED": {
+        "description": "Conflito com o estado atual: `SD_INCIDENT_CLUSTER_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INCIDENT_CLUSTER_CLOSED": {
+                "summary": "SD_INCIDENT_CLUSTER_CLOSED — O agrupamento já virou um problema ou foi descartado",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este agrupamento já foi tratado",
+                  "error": {
+                    "code": "SD_INCIDENT_CLUSTER_CLOSED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_SD_INCIDENT_CLUSTER_CLOSED_2": {
+        "description": "Conflito com o estado atual: `SD_INCIDENT_CLUSTER_CLOSED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INCIDENT_CLUSTER_CLOSED": {
+                "summary": "SD_INCIDENT_CLUSTER_CLOSED — O agrupamento já virou um problema ou já tinha sido descartado",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este agrupamento já foi tratado",
+                  "error": {
+                    "code": "SD_INCIDENT_CLUSTER_CLOSED"
                   }
                 }
               }
@@ -112563,6 +113163,195 @@
         },
         "required": ["created", "rejected"]
       },
+      "SdIncidentCluster": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string",
+            "example": "cat1:sub2:srv3:email-fora-servidor",
+            "description": "Chave do agrupamento: categoria, subcategoria, serviço e os termos normalizados do título."
+          },
+          "title": {
+            "type": "string",
+            "example": "Servidor de e-mail fora do ar"
+          },
+          "ticketCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "example": 4
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tickets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "number": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "example": 123
+                },
+                "code": {
+                  "type": "string",
+                  "example": "INC-000123"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "phase": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "color": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": ["NEW", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED", "CANCELED"]
+                    }
+                  },
+                  "required": ["name", "color", "category"]
+                },
+                "priority": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "color": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": ["id", "name", "color"]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": ["id", "number", "code", "title", "phase", "priority", "createdAt"]
+            },
+            "description": "Os incidentes do grupo (mais recentes antes)."
+          },
+          "problemTicket": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "number": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "code": {
+                    "type": "string",
+                    "example": "PRB-000007"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+                  }
+                },
+                "required": ["id", "number", "code", "title", "type"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Problema aberto a partir do grupo, se houve."
+          },
+          "dismissedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dismissedBy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdUserSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "signature",
+          "title",
+          "ticketCount",
+          "firstSeenAt",
+          "lastSeenAt",
+          "tickets",
+          "problemTicket",
+          "dismissedAt",
+          "dismissedBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "SdKbArticle": {
         "type": "object",
         "properties": {
@@ -116892,6 +117681,32 @@
           "createdAt"
         ]
       },
+      "SdRiskFactor": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "sla_consumed",
+            "description": "Chave do fator no catálogo (`src/lib/servicedesk/risk.ts`)."
+          },
+          "label": {
+            "type": "string",
+            "example": "Prazo já consumido"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Pontos somados (1 … peso do fator)."
+          },
+          "detail": {
+            "type": "string",
+            "example": "82% do prazo de resolução consumido (em horário útil)",
+            "description": "A frase em pt-BR que a interface mostra como motivo."
+          }
+        },
+        "required": ["key", "label", "weight", "detail"]
+      },
       "SdSavedView": {
         "type": "object",
         "properties": {
@@ -118461,6 +119276,17 @@
           "knownError": {
             "type": "boolean"
           },
+          "risk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdTicketRisk"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Previsão de risco de violação de SLA (worker `servicedesk-risk`, heurística explicável — ADR 0016). `null` sem previsão e para solicitantes."
+          },
           "aiSummary": {
             "anyOf": [
               {
@@ -118567,6 +119393,7 @@
           "rootCause",
           "workaround",
           "knownError",
+          "risk",
           "aiSummary",
           "aiTriage",
           "csatScore",
@@ -119881,6 +120708,45 @@
           }
         },
         "required": ["INCIDENT", "SERVICE_REQUEST", "CHANGE", "PROBLEM"]
+      },
+      "SdTicketRisk": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH"]
+          },
+          "score": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "example": 74
+          },
+          "factors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SdRiskFactor"
+            },
+            "description": "Os fatores que pegaram — a nota nunca vem sem o porquê."
+          },
+          "breachEtaAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Quando o prazo estoura se o ritmo atual seguir."
+          },
+          "computedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["level", "score", "factors", "breachEtaAt", "computedAt"]
       },
       "SdTicketSignature": {
         "type": "object",

@@ -10,6 +10,7 @@ import { sdMonitoringRoutes } from './servicedesk/monitoring'
 import { sdNotificationRoutes } from './servicedesk/notifications'
 import { sdOnCallRoutes } from './servicedesk/oncall'
 import { sdRecurringRoutes } from './servicedesk/recurring'
+import { sdRiskRoutes } from './servicedesk/risk'
 import { sdTicketTabRoutes } from './servicedesk/ticket-tabs'
 import { sdWhatsappAiRoutes } from './servicedesk/whatsapp-ai'
 
@@ -33,6 +34,7 @@ const routes: RouteConfig[] = [
   ...sdRecurringRoutes,
   ...sdChangeCabRoutes,
   ...sdContractRoutes,
+  ...sdRiskRoutes,
 ]
 
 export function registerServiceDeskPaths(registry: OpenApiRegistry): void {
