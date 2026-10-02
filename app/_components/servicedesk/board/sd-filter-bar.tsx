@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { SD_RISK_LEVEL_LABEL } from '@/src/lib/servicedesk/risk'
 import type { SdAgentDTO, SdConfigBootstrapDTO } from '@/types/sd-config'
 import type { SdTicketTypeDTO } from '@/types/sd-ticket'
 import { SdKbTagsInput } from '../knowledge/sd-kb-tags-input'
@@ -180,6 +181,9 @@ export function sdFilterChips(
   if (f.tags) push('tags', 'Tags', f.tags.map((t) => `#${t}`).join(' '))
   if (f.sla) {
     push('sla', 'SLA', f.sla === 'at_risk' ? 'Em risco' : 'Violado')
+  }
+  if (f.riskLevel) {
+    push('riskLevel', 'Risco', SD_RISK_LEVEL_LABEL[f.riskLevel])
   }
   if (f.createdFrom) push('createdFrom', 'Aberto desde', sdDay(f.createdFrom))
   if (f.createdTo) push('createdTo', 'Aberto até', sdDay(f.createdTo))

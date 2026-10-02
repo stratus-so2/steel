@@ -54,6 +54,7 @@ import {
 } from '@/src/hooks/use-sd-tickets'
 import type { SdConfigBootstrapDTO } from '@/types/sd-config'
 import type { SdTicketDTO } from '@/types/sd-ticket'
+import { SdRiskBadge, SdRiskWidget } from '../risk/sd-risk-badge'
 import { SdCreateTicketSheet } from './sd-create-ticket-sheet'
 import { SdFollowButton } from './sd-follow-button'
 import { SdOnCallBadge } from './sd-oncall-badge'
@@ -286,6 +287,7 @@ function Header({
             Escalonado N{ticket.escalationLevel}
           </span>
         ) : null}
+        <SdRiskBadge risk={ticket.risk} />
         <SdOnCallBadge
           workspaceId={workspaceId}
           departmentId={ticket.department?.id}
@@ -411,6 +413,7 @@ function Header({
           now={now}
           doneAt={ticket.resolvedAt}
         />
+        <SdRiskWidget risk={ticket.risk} now={now} />
       </div>
 
       <SdCreateTicketSheet

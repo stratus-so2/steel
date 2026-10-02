@@ -54,6 +54,8 @@ export interface SdTicketFilters {
   channel?: SdTicketChannelDTO
   tags?: string[]
   sla?: 'at_risk' | 'breached'
+  /** Faixa da previsão de risco (`SdTicketRiskPrediction.level`). */
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH'
   createdFrom?: string
   createdTo?: string
   dueFrom?: string

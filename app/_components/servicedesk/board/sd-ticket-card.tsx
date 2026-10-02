@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { SteelIcon } from '@/components/icon/icon'
 import { cn } from '@/lib/utils'
 import type { SdTicketDTO } from '@/types/sd-ticket'
+import { SdRiskBadge } from '../risk/sd-risk-badge'
 import {
   SdLevelBadge,
   SdSlaChip,
@@ -89,6 +90,7 @@ export function SdTicketCard({
           compact
           label={kind === 'firstResponse' ? '1ª resposta' : 'Resolução'}
         />
+        <SdRiskBadge risk={ticket.risk} />
       </div>
 
       {customer || ticket.tags.length > 0 ? (

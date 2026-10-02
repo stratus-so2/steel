@@ -11,6 +11,7 @@ import { useBulkUpdateSdTickets } from '@/src/hooks/use-sd-tickets'
 import type { SdAgentDTO, SdConfigBootstrapDTO } from '@/types/sd-config'
 import type { SdTicketDTO, SdTicketTypeDTO } from '@/types/sd-ticket'
 import { sdFormatCustomFieldValue } from '../custom-fields/sd-custom-fields-utils'
+import { SdRiskBadge } from '../risk/sd-risk-badge'
 import { type SdColumn, SdDataTable } from '../table/sd-data-table'
 import { SdOptionSelect } from '../ticket/sd-option-select'
 import {
@@ -105,6 +106,16 @@ export function sdTicketColumns({
       header: 'SLA',
       sortKey: 'resolutionDueAt',
       cell: (t) => <SdSlaChip live={sdPrimarySla(t.sla, now).live} compact />,
+    },
+    {
+      id: 'risk',
+      header: 'Risco',
+      cell: (t) =>
+        t.risk ? (
+          <SdRiskBadge risk={t.risk} showLow />
+        ) : (
+          <span className='text-muted-foreground text-xs'>—</span>
+        ),
     },
     {
       id: 'assignee',

@@ -1,5 +1,6 @@
 import {
   Alert02Icon,
+  AlertDiamondIcon,
   ArrowDataTransferHorizontalIcon,
   BookOpen01Icon,
   Bug01Icon,
@@ -89,6 +90,9 @@ export default async function ServiceDeskLayout({
           </NavItem>
           <NavItem href={`${base}/problems`} icon={Bug01Icon}>
             Problemas
+          </NavItem>
+          <NavItem href={`${base}/risk`} icon={AlertDiamondIcon}>
+            Análise de risco
           </NavItem>
         </NavGroup>
         <NavGroup>
