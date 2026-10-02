@@ -230,6 +230,49 @@ describe('SdReportRunRepository', () => {
     expect(otherPeriod).toBeNull()
   })
 
+  it('returns the existing run when the same period is created twice', async () => {
+    const { workspace, user } = await setup()
+    const report = await seedSdScheduledReport(workspace.id, user.id)
+    const payload = {
+      workspaceId: workspace.id,
+      reportId: report.id,
+      status: 'GENERATED' as const,
+      periodStart: SD_REPORT_PERIOD_START,
+      periodEnd: SD_REPORT_PERIOD_END,
+      recipients: ['gestor@example.com'],
+    }
+
+    const first = expectOk(await SdReportRunRepository.create(payload))
+    // A trava é do banco (índice único): a segunda tentativa do mesmo período
+    // devolve a execução que já existe em vez de duplicar o envio.
+    const second = expectOk(await SdReportRunRepository.create(payload))
+
+    expect(second.id).toBe(first.id)
+
+    const all = expectOk(
+      await SdReportRunRepository.list(workspace.id, { limit: 10 }),
+    )
+    expect(all).toHaveLength(1)
+  })
+
+  it('keeps on-demand runs out of the idempotency lock', async () => {
+    const { workspace } = await setup()
+    const payload = {
+      workspaceId: workspace.id,
+      reportId: null,
+      status: 'GENERATED' as const,
+      periodStart: SD_REPORT_PERIOD_START,
+      periodEnd: SD_REPORT_PERIOD_END,
+    }
+
+    // `reportId` nulo não conflita em índice único no Postgres: relatório
+    // pontual pode ser gerado quantas vezes o agente quiser.
+    const first = expectOk(await SdReportRunRepository.create(payload))
+    const second = expectOk(await SdReportRunRepository.create(payload))
+
+    expect(second.id).not.toBe(first.id)
+  })
+
   it('updates the keys and the delivery, and scopes the read', async () => {
     const { workspace, other } = await setup()
     const run = await seedSdReportRun(workspace.id)

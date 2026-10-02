@@ -5844,8 +5844,11 @@ model SdReportRun {
   report      SdScheduledReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
   requestedBy User?              @relation("SdReportRunRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
 
+  /// Trava de idempotência do agendamento: um relatório por período. Execução
+  /// sob demanda tem `reportId` nulo e, como NULL não conflita em índice
+  /// único no Postgres, pode repetir à vontade.
+  @@unique([reportId, periodStart])
   @@index([workspaceId, createdAt])
-  @@index([reportId, periodStart])
   @@map("sd_report_runs")
 }
 

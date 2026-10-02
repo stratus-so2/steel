@@ -6,7 +6,7 @@ import type {
   SdTicketType,
 } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
-import type { Result } from '@/src/lib/result'
+import { ok, type Result } from '@/src/lib/result'
 import { sdDb, sdDbFind } from './sd-config-db'
 
 /**
@@ -257,9 +257,23 @@ export const SdReportRunRepository = {
     error?: string | null
     requestedById?: string | null
   }): Promise<Result<SdReportRunWithRelations>> {
-    return sdDb('Failed to create a ServiceDesk report run', () =>
-      prisma.sdReportRun.create({ data, include: runRelations }),
+    // A trava `(reportId, periodStart)` é no banco: se duas execuções do mesmo
+    // período correrem juntas (o tique e um "gerar agora", por exemplo), uma
+    // cria e a outra recebe de volta a que já existe, em vez de um erro.
+    const created = await sdDb(
+      'Failed to create a ServiceDesk report run',
+      () => prisma.sdReportRun.create({ data, include: runRelations }),
     )
+    if (created.ok) return created
+    // `sdDb` já traduz o P2002 do Prisma em `SD_CONFIG_CONFLICT`.
+    if (created.error.code !== 'SD_CONFIG_CONFLICT' || !data.reportId) {
+      return created
+    }
+
+    const existing = await this.findByPeriod(data.reportId, data.periodStart)
+    if (!existing.ok) return existing
+    if (!existing.value) return created
+    return ok(existing.value)
   },
 
   async update(
