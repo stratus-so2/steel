@@ -30,6 +30,7 @@ import type { UpdateSdNotificationPreferencesDTO } from '@/src/schemas/sd-notifi
 import type { SdNotificationPreferencesDTO } from '@/types/sd-notification'
 import { NotificationService } from './notification.service'
 import { SdAccess } from './sd-access'
+import { SdIntegrationDispatcher } from './sd-integration-dispatcher'
 
 /**
  * Motor de notificações do ServiceDesk. Um único ponto de entrada
@@ -288,6 +289,23 @@ export async function notifySdEvent(
       ),
     )
   }
+
+  // Saída para o Slack (canal por time, fatia integrações): independe de ter
+  // destinatário aqui — o canal recebe o evento mesmo quando ninguém da
+  // plataforma precisa ser avisado. Só enfileira; quem fala com o Slack é o
+  // worker.
+  void SdIntegrationDispatcher.dispatch({
+    workspaceId: input.workspaceId,
+    event: input.event,
+    ticket: {
+      id: input.ticket.id,
+      number: input.ticket.number,
+      code: input.ticket.code,
+      title: input.ticket.title,
+      departmentId: input.ticket.departmentId,
+    },
+    payload: { title: input.payload.title, body: input.payload.body },
+  })
 
   const excluded = new Set(
     clean([...(input.payload.excludeUserIds ?? []), input.actorId]),

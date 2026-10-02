@@ -288,6 +288,11 @@ export const TAG_GROUPS = [
           'Risco de violação de SLA por heurística explicável (ADR 0016 — nada passa por LLM): a fila por risco, a previsão de um chamado com os fatores que pegaram e a frase do motivo de cada um, e os agrupamentos de incidentes repetidos como sugestão de problema (abrir o problema e descartar são ações do agente).',
       },
       {
+        name: 'ServiceDesk · Integrações',
+        description:
+          'Integrações com Slack e GitHub: conexão por workspace (Slack por OAuth do app, GitHub por token do repositório, tudo cifrado e nunca devolvido), canal por time para os eventos escolhidos do catálogo de notificações, abertura de chamado a partir de uma mensagem do Slack com a thread espelhada no histórico, vínculo de issue/PR com chamados de problema e mudança e o espelhamento do estado (fechada, reaberta, mesclada) por webhook assinado, com reconciliação horária.',
+      },
+      {
         name: 'ServiceDesk · CMDB',
         description:
           'Itens de configuração (CMDB) com hierarquia, atributos por tipo, garantia e chamados vinculados; tipos de item customizáveis.',

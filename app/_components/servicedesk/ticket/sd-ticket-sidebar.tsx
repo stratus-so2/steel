@@ -8,6 +8,7 @@ import {
 import { type ReactNode, useState } from 'react'
 import { SdAiCopilotPanel } from '@/app/_components/servicedesk/ai/copilot-panel'
 import { SdPortalAccessButton } from '@/app/_components/servicedesk/external-portal'
+import { SdTicketIntegrationLinks } from '@/app/_components/servicedesk/integrations/sd-ticket-integration-links'
 import { SdTicketMonitorBlock } from '@/app/_components/servicedesk/monitoring/sd-ticket-monitor-block'
 import { SteelIcon } from '@/components/icon/icon'
 import {
@@ -447,6 +448,12 @@ export function SdTicketSidebar({
           <ReadRow label='Aberto por'>{ticket.createdBy.name}</ReadRow>
         ) : null}
       </Section>
+
+      <SdTicketIntegrationLinks
+        workspaceId={workspaceId}
+        ticket={ticket}
+        mode='agent'
+      />
 
       <Section
         title='Copiloto de IA'

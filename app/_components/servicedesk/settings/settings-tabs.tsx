@@ -13,6 +13,7 @@ import {
   Flowchart01Icon,
   FormIcon,
   Layers01Icon,
+  Link04Icon,
   Mail01Icon,
   Message01Icon,
   Notification03Icon,
@@ -38,6 +39,7 @@ import { SdDepartmentsTab } from './departments-tab'
 import { SdEscalationTab } from './escalation-tab'
 import { SdFlowsTab } from './flows-tab'
 import { SdGeneralTab } from './general-tab'
+import { SdIntegrationsTab } from './integrations-tab'
 import { SdMailSettingsTab } from './mail-tab'
 import { SdMonitoringTab } from './monitoring-tab'
 import { SdNotificationsTab } from './notifications-tab'
@@ -236,6 +238,14 @@ export const SD_SETTINGS_TABS: SdSettingsTabDefinition[] = [
     description:
       'Conexões de WhatsApp do ServiceDesk (Z-API ou Meta), conexão ativa, teste das credenciais e a URL do webhook.',
     component: SdWhatsappSettingsTab,
+  },
+  {
+    id: 'integrations',
+    label: 'Integrações',
+    icon: Link04Icon,
+    description:
+      'Slack e GitHub: canal por time para os eventos escolhidos, abertura de chamado a partir de uma mensagem do Slack com a thread espelhada no histórico, e vínculo de issues/PRs com chamados de problema e mudança (estado espelhado por webhook).',
+    component: SdIntegrationsTab,
   },
   {
     id: 'notifications',

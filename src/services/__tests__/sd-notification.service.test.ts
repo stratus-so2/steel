@@ -21,6 +21,7 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-notification.repository')
+vi.mock('@/src/repositories/sd-integration.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/src/services/notification.service')

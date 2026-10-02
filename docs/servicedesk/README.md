@@ -345,7 +345,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | relatórios agendados | `sd-report` (schema/mapper/repository/service — `SdScheduledReport` + `SdReportRun`) + `sd-report-runner.ts` (geração sem autorização, compartilhada com a fila), `src/lib/servicedesk/{report-sla,report-schedule,report-csv,report-files}.ts` e `report-pdf.tsx`, `src/lib/mail/servicedesk/send-sd-sla-report.ts` + `components/emails/servicedesk/sd-sla-report.tsx`, fila `servicedesk-reports`, API `servicedesk/reports/**`, aba Configurações > Relatórios e o histórico de execuções |
 | kcs | `sd-kb-review` (schema/mapper/repository/service), `sd-kb-draft.service.ts` (artigo a partir do chamado, com rascunho da IA), `src/lib/servicedesk/kcs.ts` (esqueleto KCS, prompt e aritmética da validade), `markResolved`/`suggestForDraft` em `sd-kb-ticket-link.service.ts`, rotas `servicedesk/knowledge/{reviews,review-settings,stats,draft,suggest/draft}` e `knowledge/[articleId]/{reviews,review-interval,resolved}`, painel `SdKbReviewPanel`, `SdKbCuration`, `SdKbDraftSuggestions`, checagem diária no tique do `servicedesk-digest` |
 | risco preditivo | `src/lib/servicedesk/risk.ts` (tabela de fatores e faixas — ADR 0016), `risk-compute.ts` e `incident-cluster.ts` (libs puras), `sd-risk.{schema,mapper,repository,service}`, fila `servicedesk-risk`, API `servicedesk/risk/**`, selo `SdRiskBadge`/`SdRiskWidget` no quadro, na lista, na tabela e na tela do chamado, filtro rápido "Risco alto", tela `/risk` |
-| integrações | `sd-integration` + `sd-integration-link` (schema/mapper/repository/service), `src/lib/servicedesk/{slack,github}.ts`, OAuth do Slack por workspace, webhooks `servicedesk/integrations/{slack,github}`, fila `servicedesk-integrations`, aba Configurações > Integrações, bloco de vínculos na tela do chamado |
+| integrações | `sd-integration` (schema/mapper/repository), `sd-integration.service.ts` (configuração), `sd-integration-link.service.ts` (vínculos do chamado), `sd-integration-dispatcher.ts` (saída para o Slack), `sd-slack-inbound.service.ts`, `sd-github-webhook.service.ts` (+ `SdGithubSyncService`), `sd-integration-credentials.ts`, `src/lib/servicedesk/{integrations,integrations-queue,slack-client,slack-oauth-state,github-client}.ts`, `src/cache/sd-integration-event.cache.ts`, fila `servicedesk-integrations`, aba Configurações > Integrações, bloco Integrações na tela do chamado |
 
 ## Operação
 
@@ -370,7 +370,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   (de hora em hora, :10: enfileira e gera os relatórios de SLA agendados,
   idempotente por `(reportId, periodStart)`) e `servicedesk-risk` (10 min:
   recalcula o risco preditivo dos chamados abertos; de hora em hora, :25,
-  agrupa os incidentes repetidos da janela).
+  agrupa os incidentes repetidos da janela). A fila `servicedesk-integrations` leva os eventos ao canal do Slack (`deliver-event`) e reconcilia o estado das issues/PRs vinculadas (`sync-github-state`, de hora em hora às :40).
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as
@@ -491,6 +491,64 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   a cada pedido. Hoje o cadastro de cliente não tem coluna de responsável,
   então "responsáveis das contas" = o e-mail do cliente + o de quem mantém
   o cadastro.
+- **Integrações (Slack e GitHub)**: Configurações > Integrações.
+
+  **Slack** — o app do Slack é da instalação (`SLACK_CLIENT_ID`,
+  `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`); sem as três a aba explica
+  que a integração está inerte e nada é enviado nem recebido. Com elas, cada
+  workspace conecta o seu Slack por **OAuth** ("Conectar o Slack" →
+  autorização → volta para a aba): o token do bot é cifrado com
+  `CONNECTION_SECRETS` e **nunca** volta por API, log ou tela. No painel do
+  app, a mesma URL (`/api/servicedesk/integrations/slack`) vai em *Event
+  Subscriptions* e em *Interactivity & Shortcuts*; o callback OAuth é
+  `/api/servicedesk/integrations/oauth/slack`. Escopos de bot:
+  `chat:write`, `chat:write.public`, `channels:read`, `groups:read`,
+  `channels:history`, `groups:history`, `commands`, `users:read`,
+  `users:read.email` — e o bot precisa ser convidado nos canais.
+
+  O que o Slack faz: **canal por time** (um canal por departamento, mais o
+  padrão) recebe os eventos que o workspace escolheu no catálogo de
+  notificações (`ticket.created_in_department`, `sla.breached`,
+  `ticket.escalated`…). A entrega **sempre** passa pelo job `deliver-event`:
+  o `notifySdEvent` só enfileira, então uma indisponibilidade do Slack não
+  atrasa a abertura do chamado nem o relógio do SLA. O **atalho de
+  mensagem** e o **slash command** abrem chamado a partir da mensagem
+  (texto, autor e permalink no corpo), respondem na thread com o código e o
+  link e gravam o vínculo `SLACK_THREAD`; a partir daí, **resposta na thread
+  vira mensagem pública** no histórico — o autor é casado com a conta do
+  Steel pelo e-mail do Slack e, sem conta, fica registrado como autor
+  externo (ator de sistema, nome no corpo), como no e-mail e no WhatsApp.
+
+  **GitHub** — cada workspace cadastra o repositório (`owner/repo` ou a
+  URL), um **token do próprio workspace** (PAT fine-grained com *Issues:
+  read & write*) e o segredo do webhook, os dois cifrados. O acesso é
+  validado na API antes de guardar, e o `externalId` fica com o nome
+  canônico que o GitHub devolve — é com ele que o `repository.full_name` do
+  webhook casa. Na tela de um chamado de **problema ou mudança**, o agente
+  vincula uma issue/PR que já existe (`#42`, `owner/repo#42` ou a URL; o
+  tipo e o estado vêm da API) ou **abre uma issue a partir do chamado**
+  (título, contexto e link). O webhook
+  (`/api/servicedesk/integrations/github`) espelha `closed`, `reopened` e
+  `merged` em `externalState`, registra o evento na rastreabilidade e publica
+  uma mensagem no chamado. Fechar ou mesclar **sugere** avançar a fase
+  (`suggestPhaseOnClose`, ligado por padrão) — quem move a fase é o agente,
+  porque em ITIL o encerramento exige solução, classificação e às vezes
+  aprovação. O job `sync-github-state` (de hora em hora, :40) reconcilia o
+  estado dos vínculos de chamados abertos, para o caso de um webhook
+  perdido.
+
+  **Segurança das duas entradas**: são rotas públicas (em `PUBLIC_ROUTES`),
+  e o que as protege é a assinatura, conferida sobre o corpo **bruto** antes
+  de qualquer interpretação — Slack: `X-Slack-Signature` +
+  `X-Slack-Request-Timestamp` (HMAC em tempo constante, timestamp fora de 5
+  minutos recusado); GitHub: `X-Hub-Signature-256` (o `full_name` serve
+  apenas para achar a integração e o segredo; nada é gravado antes do HMAC
+  fechar). As duas são idempotentes por `event_id`/`trigger_id` e
+  `X-GitHub-Delivery`, com trava de 2 h no Redis — Slack e GitHub
+  reentregam. Desconectar apaga o token, tira a integração da aba e o
+  webhook deixa de ser aceito na hora; os vínculos já registrados ficam no
+  histórico dos chamados.
+
 - **Portal**: `/[slug]/servicedesk/portal`. Solicitante é todo membro com
   acesso ao módulo e sem departamento; o menu dele só mostra portal e base de
   conhecimento.

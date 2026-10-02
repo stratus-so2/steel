@@ -582,6 +582,12 @@ export const ERROR_CODES = {
   },
   SD_INTEGRATION_NOT_FOUND: { code: 'SD_INTEGRATION_NOT_FOUND', status: 404 },
   SD_INTEGRATION_EXISTS: { code: 'SD_INTEGRATION_EXISTS', status: 409 },
+  // App do Slack sem credenciais no servidor (SLACK_CLIENT_ID/SECRET/
+  // SIGNING_SECRET): 503 porque é configuração da instalação, não do pedido.
+  SD_INTEGRATION_NOT_CONFIGURED: {
+    code: 'SD_INTEGRATION_NOT_CONFIGURED',
+    status: 503,
+  },
   SD_INTEGRATION_LINK_NOT_FOUND: {
     code: 'SD_INTEGRATION_LINK_NOT_FOUND',
     status: 404,

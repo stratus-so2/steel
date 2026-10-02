@@ -135,6 +135,9 @@ export type AuditEntity =
   | 'sd_approval_round'
   // ServiceDesk — risco preditivo e incidentes repetidos
   | 'sd_incident_cluster'
+  // ServiceDesk — integrações (Slack e GitHub)
+  | 'sd_integration'
+  | 'sd_integration_link'
   // ServiceDesk — contratos e apontamento de horas
   | 'sd_contract'
   | 'sd_contract_period'
@@ -211,6 +214,8 @@ type AuditAuthEvent =
   | 'auth.sign_in.success'
   | 'auth.sign_in.failure'
   | 'auth.sign_out'
+  // Concessão OAuth do app do Slack para um workspace (ServiceDesk).
+  | 'auth.oauth_grant.servicedesk_slack'
 
 interface AuditMutationInput {
   entity: AuditEntity
