@@ -1,25 +1,32 @@
 'use client'
 
 import { GoogleAnalytics } from '@next/third-parties/google'
-import { Analytics } from '@vercel/analytics/next'
-import { SpeedInsights } from '@vercel/speed-insights/next'
 import { WebVitals } from '@/lib/axiom/client'
 import { NEXT_PUBLIC_GA_ID } from '@/lib/env/env'
+import { PostHogTracker } from './posthog-tracker'
 import { useCookieConsent } from './provider'
 
-// Renders the analytics integrations (Axiom WebVitals, Vercel Analytics,
-// Vercel SpeedInsights, Google Analytics) only when the user has
-// explicitly accepted. Rejected or undecided keeps the DOM clean — none
-// of these integrations loads its script.
+// Monta as integrações de analytics (web vitals do Axiom, PostHog, Google
+// Analytics) somente quando o usuário aceitou explicitamente. Recusado ou
+// indeciso mantém o DOM limpo — nenhuma delas carrega script, e o chunk do
+// SDK do PostHog não é nem buscado.
+//
+// `@vercel/analytics` e `@vercel/speed-insights` saíram daqui: os beacons dos
+// dois postam em `/_vercel/insights/*` e `/_vercel/speed-insights/*`, caminhos
+// que só existem num deploy na Vercel — aqui respondiam 307 para `/sign-in`,
+// ou seja, nunca coletaram nada. Web vitals continuam no Axiom.
+//
+// Rastreamento de erro não está aqui de propósito: o Sentry não carrega
+// identidade de analytics e é gated por `NEXT_PUBLIC_SENTRY_DSN`, não por
+// consentimento (ver `instrumentation-client.ts`).
 
 export function ConsentedTrackers() {
-  const { consent } = useCookieConsent()
+  const { consent, userId } = useCookieConsent()
   if (consent !== 'accepted') return null
   return (
     <>
       <WebVitals />
-      <Analytics />
-      <SpeedInsights />
+      <PostHogTracker userId={userId} />
       {NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={NEXT_PUBLIC_GA_ID} />}
     </>
   )

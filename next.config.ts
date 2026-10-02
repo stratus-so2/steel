@@ -1,4 +1,10 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
+import {
+  POSTHOG_DEFAULT_HOST,
+  POSTHOG_PROXY_PATH,
+  posthogAssetHost,
+} from "./lib/posthog/constants";
 
 // Headers estáticos aplicados a toda resposta (inclusive rotas fora do matcher
 // do proxy). CSP com nonce continua no proxy.ts; HSTS também é enviado lá, mas
@@ -30,9 +36,67 @@ const staticAssetHeaders = [
   { key: 'Content-Security-Policy', value: staticAssetCsp },
 ]
 
+// --- Proxy reverso do PostHog ------------------------------------------------
+// O navegador só conversa com `/ingest/*` na nossa própria origem, e o Next
+// reescreve para o PostHog. Isso compra duas coisas: o `connect-src` da CSP
+// continua em `'self'` (nenhum host de terceiro na política — o que importa
+// porque a CSP do Steel não tem `'strict-dynamic'`, ADR 0011, e cada origem
+// nova teria de ser nomeada à mão), e as requisições sobrevivem às
+// blocklists que reconhecem `*.i.posthog.com` pelo nome. O custo é que o
+// tráfego de analytics transita pelo nosso servidor — aceitável para o
+// volume que esta configuração permite (page view e evento nomeado, sem
+// autocapture e sem recording).
+//
+// Existe só quando há chave configurada, então um deploy sem PostHog não tem
+// rota `/ingest`, nem rewrite externo, nem mudança de trailing slash.
+const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const posthogHost =
+  process.env.NEXT_PUBLIC_POSTHOG_HOST || POSTHOG_DEFAULT_HOST;
+
+const posthogProxy = posthogKey
+  ? {
+      // Todo endpoint do posthog-js termina em barra (`/e/`, `/i/`, `/s/`).
+      // A normalização de trailing slash do Next responderia cada um com 308
+      // antes de o rewrite ser consultado, transformando cada evento em duas
+      // viagens.
+      skipTrailingSlashRedirect: true,
+      rewrites: async () => [
+        {
+          source: `${POSTHOG_PROXY_PATH}/static/:path*`,
+          destination: `${posthogAssetHost(posthogHost)}/static/:path*`,
+        },
+        {
+          source: `${POSTHOG_PROXY_PATH}/:path*`,
+          destination: `${posthogHost}/:path*`,
+        },
+      ],
+    }
+  : {};
+
+// --- Sentry ------------------------------------------------------------------
+// Source maps sobem só quando o build recebe credenciais, o que é o build de
+// imagem do CD e nada mais: CI, `pnpm build` numa máquina local e qualquer
+// build de fork rodam sem nenhuma dessas e não podem falhar por isso.
+const sentryOrg = process.env.SENTRY_ORG;
+const sentryProject = process.env.SENTRY_PROJECT;
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN;
+const canUploadSourcemaps = Boolean(
+  sentryOrg && sentryProject && sentryAuthToken,
+);
+
 const nextConfig: NextConfig = {
+  ...posthogProxy,
   poweredByHeader: false,
   output: 'standalone',
+  // O Turbopack não emite source map de navegador sem pedido, e o plugin do
+  // Sentry não pede por nós: sem isto ele criaria o release e não teria nada
+  // para subir, deixando todo stack trace de cliente minificado. Amarrado às
+  // credenciais de upload de propósito — os mapas não podem ser emitidos onde
+  // nada vai apagá-los depois. No build do CD,
+  // `sourcemaps.deleteSourcemapsAfterUpload` remove os arquivos e tira os
+  // comentários `sourceMappingURL` depois que o Sentry os tem, então os traces
+  // ficam legíveis no Sentry e ilegíveis no navegador.
+  productionBrowserSourceMaps: canUploadSourcemaps,
   serverExternalPackages: ['@prisma/client'],
   images: {
     remotePatterns: [
@@ -94,4 +158,36 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: sentryOrg,
+  project: sentryProject,
+  authToken: sentryAuthToken,
+  silent: !process.env.CI,
+  telemetry: false,
+  // `disableLogger` / `automaticVercelMonitors` ficam de fora de propósito:
+  // os dois são opções só de webpack e este projeto builda com Turbopack, e
+  // não deployamos na Vercel.
+  widenClientFileUpload: false,
+  release: {
+    // O SHA do git que o build do CD já conhece (build arg do Dockerfile),
+    // para uma issue apontar o commit que a embarcou.
+    name: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
+    create: canUploadSourcemaps,
+    finalize: canUploadSourcemaps,
+  },
+  sourcemaps: {
+    disable: !canUploadSourcemaps,
+    deleteSourcemapsAfterUpload: true,
+  },
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+    excludeReplayShadowDom: true,
+    excludeReplayIframe: true,
+    excludeReplayWorker: true,
+  },
+  // Problema de credencial, oscilação de rede ou rate limit do lado do Sentry
+  // nunca podem virar deploy quebrado. O build continua e avisa.
+  errorHandler: (error) => {
+    console.warn(`[sentry] source map upload skipped: ${error.message}`);
+  },
+});

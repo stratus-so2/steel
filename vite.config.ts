@@ -132,6 +132,12 @@ export default defineConfig({
         'src/lib/result.ts',
         'utils/**',
         'lib/abacatepay.ts',
+        // Lógica pura e testável das duas integrações de observabilidade. O
+        // `lib/posthog/client.ts` fica de fora: é módulo de navegador
+        // ('use client'), coberto pelo projeto `component`, que não entra na
+        // run de cobertura (unit + integration).
+        'lib/sentry/**',
+        'lib/posthog/constants.ts',
         'src/lib/ai/**',
         'src/lib/analytics/**',
         'src/lib/servicedesk/**',
