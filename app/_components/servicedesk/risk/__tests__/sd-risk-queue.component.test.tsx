@@ -2,9 +2,9 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockFetch, renderWithQuery } from '@/src/__tests__/component-utils'
 import type { SdTicketDTO } from '@/types/sd-ticket'
+import { sdCompareSortable, sdLocalTable } from '../../table/sd-local-table'
 import { ticketDTO } from '../../ticket/__tests__/sd-ticket-tab-fixtures'
 import { SdRiskQueue } from '../sd-risk-overview'
-import { sdCompareSortable, sdLocalTable } from '../sd-risk-table'
 
 /**
  * The risk queue had no test at all — the module's most unprotected bespoke

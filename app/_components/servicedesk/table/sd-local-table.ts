@@ -1,12 +1,15 @@
 /**
- * Client-side search, sorting and pagination for the risk screens.
+ * Client-side search, sorting and pagination for `SdDataTable`.
  *
- * `SdDataTable` is controlled and expects its caller to paginate; the two risk
- * routes (`/risk/tickets` and `/risk/clusters`) only accept `level`/`status`
- * and `limit` — they have no `page`, `sort` or `q`. Rather than change the API
- * contract for one screen, the list (at most 50 and 30 items) is sliced here.
- * If the prediction ever yields hundreds of tickets, this becomes real
- * pagination in the service.
+ * `SdDataTable` is controlled and expects its caller to paginate, which the
+ * server-paginated screens (customers, companies, configuration items,
+ * tickets) do through the API. Some endpoints have no `page`/`sort`/`q` at
+ * all — the risk routes take only `level`/`status` and `limit`, and the portal
+ * asks for the requester's own tickets in one go. Rather than change those
+ * contracts for one screen, the already-loaded list is sliced here.
+ *
+ * It is only honest for short lists. If one of those endpoints ever returns
+ * hundreds of rows, that screen needs real pagination in its service instead.
  */
 
 export type SdSortable = string | number | null | undefined

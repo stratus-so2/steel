@@ -13,6 +13,7 @@ import {
   SdFilterField,
   SdFilterSelect,
 } from '../table/sd-data-table'
+import { sdLocalTable } from '../table/sd-local-table'
 import { useSdTableState } from '../table/use-sd-table-state'
 import {
   SdLevelBadge,
@@ -28,7 +29,6 @@ import {
   sdTicketHref,
 } from '../ticket/sd-ticket-meta'
 import { SdRiskBadge } from './sd-risk-badge'
-import { sdLocalTable } from './sd-risk-table'
 
 /**
  * Risk-ranked ticket queue on the module's **standard table** (`SdDataTable`,

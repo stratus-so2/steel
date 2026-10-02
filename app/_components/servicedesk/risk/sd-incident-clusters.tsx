@@ -34,6 +34,7 @@ import {
   SdFilterField,
   SdFilterSelect,
 } from '../table/sd-data-table'
+import { sdLocalTable } from '../table/sd-local-table'
 import { useSdTableState } from '../table/use-sd-table-state'
 import { SdOptionSelect } from '../ticket/sd-option-select'
 import {
@@ -43,7 +44,6 @@ import {
 } from '../ticket/sd-ticket-meta'
 import { sdDepartmentOptions } from '../ticket/sd-ticket-options'
 import { SD_RISK_TONE } from './sd-risk-badge'
-import { sdLocalTable } from './sd-risk-table'
 
 /**
  * Problem suggestions: similar incidents grouped by the worker
