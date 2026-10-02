@@ -525,15 +525,15 @@ describe('sdContractCovers', () => {
   const at = new Date('2026-10-07T12:00:00Z')
 
   it('cobre quando está ativo, vigente e sem restrição de tipo', () => {
-    expect(sdContractCovers(base, 'INCIDENT', at)).toBe(true)
+    expect(sdContractCovers(base, at, 'INCIDENT')).toBe(true)
   })
 
   it('recusa contrato que não está ativo', () => {
-    expect(sdContractCovers({ ...base, status: 'DRAFT' }, 'INCIDENT', at)).toBe(
+    expect(sdContractCovers({ ...base, status: 'DRAFT' }, at, 'INCIDENT')).toBe(
       false,
     )
     expect(
-      sdContractCovers({ ...base, status: 'SUSPENDED' }, 'INCIDENT', at),
+      sdContractCovers({ ...base, status: 'SUSPENDED' }, at, 'INCIDENT'),
     ).toBe(false)
   })
 
@@ -541,22 +541,28 @@ describe('sdContractCovers', () => {
     expect(
       sdContractCovers(
         { ...base, startsAt: new Date('2026-11-01T00:00:00Z') },
-        'INCIDENT',
         at,
+        'INCIDENT',
       ),
     ).toBe(false)
     expect(
       sdContractCovers(
         { ...base, endsAt: new Date('2026-10-01T00:00:00Z') },
-        'INCIDENT',
         at,
+        'INCIDENT',
       ),
     ).toBe(false)
   })
 
+  it('sem tipo informado, confere só a vigência', () => {
+    const scoped = { ...base, ticketTypes: ['CHANGE' as const] }
+    expect(sdContractCovers(scoped, at)).toBe(true)
+    expect(sdContractCovers({ ...scoped, status: 'ENDED' }, at)).toBe(false)
+  })
+
   it('respeita os tipos cobertos', () => {
     const scoped = { ...base, ticketTypes: ['CHANGE' as const] }
-    expect(sdContractCovers(scoped, 'CHANGE', at)).toBe(true)
-    expect(sdContractCovers(scoped, 'INCIDENT', at)).toBe(false)
+    expect(sdContractCovers(scoped, at, 'CHANGE')).toBe(true)
+    expect(sdContractCovers(scoped, at, 'INCIDENT')).toBe(false)
   })
 })

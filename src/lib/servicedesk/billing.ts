@@ -399,7 +399,10 @@ export function sdLocalDayRange(
   return { start, end: sdLocalDayStart(nextNoon, cal.timezone) }
 }
 
-/** `true` se o contrato está vigente em `at` e cobre o tipo do chamado. */
+/**
+ * `true` se o contrato está **ativo** e vigente em `at`. Com `type`, também
+ * confere se o contrato cobre aquele tipo de chamado (lista vazia = todos).
+ */
 export function sdContractCovers(
   contract: {
     status: string
@@ -407,12 +410,13 @@ export function sdContractCovers(
     endsAt: Date | null
     ticketTypes: SdTicketType[]
   },
-  type: SdTicketType,
   at: Date,
+  type?: SdTicketType,
 ): boolean {
   if (contract.status !== 'ACTIVE') return false
   if (contract.startsAt.getTime() > at.getTime()) return false
   if (contract.endsAt && contract.endsAt.getTime() <= at.getTime()) return false
+  if (!type) return true
   return (
     contract.ticketTypes.length === 0 || contract.ticketTypes.includes(type)
   )

@@ -6,7 +6,7 @@ import {
   validationError,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
-import { sdPeriodRange } from '@/src/lib/servicedesk/billing'
+import { sdContractCovers, sdPeriodRange } from '@/src/lib/servicedesk/billing'
 import {
   toSdContractDTO,
   toSdContractPeriodDTO,
@@ -421,14 +421,10 @@ export const SdContractService = {
   },
 }
 
-/** Contrato ativo mais recente já vigente em `at`. */
+/** Contrato ativo mais recente já vigente em `at` (a lista já vem ordenada). */
 function pickCurrent(
   contracts: SdContractWithRelations[],
   at: Date,
 ): SdContractWithRelations | null {
-  const vigentes = contracts.filter(
-    (contract) =>
-      contract.startsAt <= at && (!contract.endsAt || contract.endsAt > at),
-  )
-  return vigentes[0] ?? null
+  return contracts.find((contract) => sdContractCovers(contract, at)) ?? null
 }

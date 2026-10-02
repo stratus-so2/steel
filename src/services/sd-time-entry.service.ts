@@ -561,11 +561,14 @@ export const SdTimeEntryService = {
     ticketRef: string,
     entryId: string,
   ): Promise<Result<void>> {
+    // `EDIT` (e não `DELETE`): apagar o próprio apontamento é corrigir o
+    // próprio trabalho — mesma régua do histórico do chamado. Quem pode é
+    // decidido por `assertCanMutate` (autor com o período aberto, ou admin).
     const scope = await loadSdTicketTab(
       actorId,
       workspaceId,
       ticketRef,
-      'DELETE',
+      'EDIT',
       { agentOnly: true },
     )
     if (!scope.ok) return scope
