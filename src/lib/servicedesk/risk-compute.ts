@@ -14,9 +14,10 @@
 
 import type { SdPhaseCategory, SdRiskLevelPrediction } from '@prisma/client'
 import {
+  SD_RISK_FACTOR_SPECS,
   type SdRiskFactorKey,
   type SdRiskFactorResult,
-  sdRiskFactorSpec,
+  type SdRiskFactorSpec,
   sdRiskLevel,
   sdRiskScore,
 } from './risk'
@@ -141,14 +142,17 @@ export function sdRiskDuration(minutes: number): string {
   return `${Math.round(total / 1440)} d`
 }
 
+const SPECS = Object.fromEntries(
+  SD_RISK_FACTOR_SPECS.map((spec) => [spec.key, spec]),
+) as Record<SdRiskFactorKey, SdRiskFactorSpec>
+
 /** Fator com peso proporcional (0 … peso da tabela) e a frase do porquê. */
 function factor(
   key: SdRiskFactorKey,
   ratio: number,
   detail: string,
 ): SdRiskFactorResult | null {
-  const spec = sdRiskFactorSpec(key)
-  if (!spec) return null
+  const spec = SPECS[key]
   const share = clamp01(ratio)
   if (share === 0) return null
   return {
@@ -159,9 +163,8 @@ function factor(
   }
 }
 
-/** Rampa linear: 0 em `from`, 1 em `full`. */
+/** Rampa linear: 0 em `from`, 1 em `full` (os cortes nunca são iguais). */
 function ramp(value: number, from: number, full: number): number {
-  if (full <= from) return value >= full ? 1 : 0
   return clamp01((value - from) / (full - from))
 }
 
