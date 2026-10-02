@@ -40,6 +40,8 @@ export interface SdBoardFilters {
   classificationId?: string
   channel?: SdTicketFilters['channel']
   sla?: 'at_risk' | 'breached'
+  /** Faixa da previsão de risco (`servicedesk-risk`). */
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH'
   createdFrom?: string
   createdTo?: string
   dueFrom?: string
@@ -86,6 +88,7 @@ export const SD_SCALAR_FILTER_KEYS = [
   'classificationId',
   'channel',
   'sla',
+  'riskLevel',
   'createdFrom',
   'createdTo',
   'dueFrom',
@@ -298,6 +301,7 @@ export type SdQuickFilterId =
   | 'unassigned'
   | 'at_risk'
   | 'breached'
+  | 'risk_high'
   | 'today'
   | 'participating'
 
@@ -306,6 +310,7 @@ export const SD_QUICK_FILTERS: { id: SdQuickFilterId; label: string }[] = [
   { id: 'unassigned', label: 'Não atribuídos' },
   { id: 'at_risk', label: 'SLA em risco' },
   { id: 'breached', label: 'SLA violado' },
+  { id: 'risk_high', label: 'Risco alto' },
   { id: 'today', label: 'Abertos hoje' },
   { id: 'participating', label: 'Participo' },
 ]
@@ -329,6 +334,8 @@ export function sdQuickFilterActive(
       return filters.sla === 'at_risk'
     case 'breached':
       return filters.sla === 'breached'
+    case 'risk_high':
+      return filters.riskLevel === 'HIGH'
     case 'today':
       return filters.createdFrom === sdTodayLocal(now) && !filters.createdTo
     case 'participating':
@@ -356,6 +363,9 @@ export function sdToggleQuickFilter(
       break
     case 'breached':
       next.sla = active ? undefined : 'breached'
+      break
+    case 'risk_high':
+      next.riskLevel = active ? undefined : 'HIGH'
       break
     case 'today':
       next.createdFrom = active ? undefined : sdTodayLocal(now)

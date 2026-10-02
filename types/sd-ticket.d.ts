@@ -1,3 +1,5 @@
+import type { SdTicketRiskDTO } from './sd-risk'
+
 export type SdTicketTypeDTO =
   | 'INCIDENT'
   | 'SERVICE_REQUEST'
@@ -165,6 +167,12 @@ export interface SdTicketDTO {
   rootCause: string | null
   workaround: string | null
   knownError: boolean
+  /**
+   * Previsão de risco de violação de SLA (worker `servicedesk-risk`,
+   * heurística explicável — ADR 0016). `null` sem previsão calculada e para
+   * solicitantes.
+   */
+  risk: SdTicketRiskDTO | null
   /** Só agentes (`null` para solicitantes). */
   aiSummary: string | null
   aiTriage: unknown

@@ -82,6 +82,7 @@ export function ticketDTO(overrides: Partial<SdTicketDTO> = {}): SdTicketDTO {
     rootCause: null,
     workaround: null,
     knownError: false,
+    risk: null,
     aiSummary: null,
     aiTriage: null,
     csatScore: null,

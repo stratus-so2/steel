@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { SdTicketDTO } from '@/types/sd-ticket'
+import { SdRiskBadge } from '../risk/sd-risk-badge'
 import {
   SdLevelBadge,
   SdPhaseBadge,
@@ -70,6 +71,7 @@ export function SdTicketRow({
         compact
         label={kind === 'firstResponse' ? '1ª resposta' : 'Resolução'}
       />
+      <SdRiskBadge risk={ticket.risk} className='hidden sm:inline-flex' />
       <span className='hidden w-16 text-right text-muted-foreground text-xs tabular-nums xl:inline'>
         {sdRelativeTime(ticket.lastActivityAt, now)}
       </span>
