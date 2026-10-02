@@ -286,7 +286,37 @@ describe('WorkspaceModuleAccessService', () => {
         true,
       )
 
-      expectOk(result)
+      // The grant stands, but the seed failure comes back in the DTO: it used
+      // to live only in the log and the caller got a clean success.
+      expect(expectOk(result).seedWarnings).toEqual([
+        expect.stringContaining('painéis e relatórios padrão do WhatsApp'),
+      ])
+    })
+
+    it('should report no seed warning when every seed succeeds', async () => {
+      mockedUserRepo.findById.mockResolvedValue(ok(platformAdmin))
+      mockedRepo.upsert.mockResolvedValue(
+        ok(
+          createFakeWorkspaceModuleAccess({
+            workspaceId: 'ws1',
+            module: 'COMMUNICATION',
+            enabled: true,
+            grantedById: platformAdmin.id,
+          }),
+        ),
+      )
+      mockedSeedService.seedDefaults.mockResolvedValue(ok(undefined))
+
+      expect(
+        expectOk(
+          await WorkspaceModuleAccessService.setEnabled(
+            platformAdmin.id,
+            'ws1',
+            'COMMUNICATION',
+            true,
+          ),
+        ).seedWarnings,
+      ).toEqual([])
     })
   })
 
@@ -428,14 +458,18 @@ describe('WorkspaceModuleAccessService failure paths', () => {
     )
     mockedSdDashboardSeed.seedDefaults.mockResolvedValue(ok({ created: [] }))
 
-    expectOk(
-      await WorkspaceModuleAccessService.setEnabled(
-        platformAdmin.id,
-        'ws1',
-        'SERVICE_DESK',
-        true,
-      ),
-    )
+    // ServiceDesk is granted but has no phase at all: the board builds one
+    // column per phase, so the warning is the only hint config is missing.
+    expect(
+      expectOk(
+        await WorkspaceModuleAccessService.setEnabled(
+          platformAdmin.id,
+          'ws1',
+          'SERVICE_DESK',
+          true,
+        ),
+      ).seedWarnings,
+    ).toEqual([expect.stringContaining('padrões ITIL do ServiceDesk')])
     expect(logger.error).toHaveBeenCalledWith(
       'workspace_module_access.seed_servicedesk_failed',
       expect.objectContaining({ workspaceId: 'ws1' }),

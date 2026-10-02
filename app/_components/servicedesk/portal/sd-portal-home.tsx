@@ -3,23 +3,27 @@
 import {
   Add01Icon,
   BookOpen01Icon,
-  CheckmarkCircle02Icon,
   Ticket01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
 import { useSdTicketRealtime, useSdTickets } from '@/src/hooks/use-sd-tickets'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { SdPreServiceChat } from '../ai/pre-service-chat'
 import { SdKbPortalBrowser } from '../knowledge'
 import { SD_CLOSED_CATEGORIES } from '../ticket/sd-ticket-meta'
-import { SdPortalTicketRow, sdPortalTicketHref } from './sd-portal-ticket-row'
-import { SD_PORTAL_OK_TONE } from './sd-portal-tone'
+import { sdPortalTicketHref } from './sd-portal-ticket-row'
+import {
+  SdPortalKanban,
+  SdPortalList,
+  SdPortalTable,
+  type SdPortalView,
+  SdPortalViewSwitch,
+} from './sd-portal-views'
 
 const CLOSED = new Set<string>(SD_CLOSED_CATEGORIES)
 
@@ -31,11 +35,14 @@ function Section({
   title,
   description,
   icon,
+  actions,
   children,
 }: {
   title: string
   description?: string
   icon: typeof Ticket01Icon
+  /** Controls on the right of the section title (the view switch). */
+  actions?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
@@ -47,6 +54,7 @@ function Section({
           className='size-4 text-muted-foreground'
         />
         <h2 className='font-semibold text-sm'>{title}</h2>
+        {actions ? <div className='ml-auto'>{actions}</div> : null}
       </div>
       {description ? (
         <p className='-mt-2 text-muted-foreground text-xs'>{description}</p>
@@ -73,11 +81,14 @@ export function SdPortalHome({
   aiPreServiceEnabled: boolean
 }) {
   const router = useRouter()
+  const [view, setView] = useState<SdPortalView>('list')
   useSdTicketRealtime(workspaceId)
+  // 100 instead of 20: the kanban and the table show every ticket at once, so
+  // a requester with more than twenty pedidos would silently lose the rest.
   const query = useSdTickets(workspaceId, {
     requesterId: 'me',
     includeClosed: true,
-    pageSize: 20,
+    pageSize: 100,
     sort: 'lastActivityAt',
     order: 'desc',
   })
@@ -132,6 +143,7 @@ export function SdPortalHome({
         title='Meus chamados'
         description='Acompanhe o andamento de cada pedido; a barra mostra o quanto já avançou.'
         icon={Ticket01Icon}
+        actions={<SdPortalViewSwitch value={view} onChange={setView} />}
       >
         {query.error ? (
           <p className='rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-destructive text-sm'>
@@ -152,47 +164,12 @@ export function SdPortalHome({
               número do pedido e acompanha cada passo por aqui.
             </p>
           </div>
+        ) : view === 'kanban' ? (
+          <SdPortalKanban slug={slug} tickets={tickets} />
+        ) : view === 'table' ? (
+          <SdPortalTable slug={slug} tickets={tickets} />
         ) : (
-          <div className='flex flex-col gap-4'>
-            {open.length > 0 ? (
-              <ul className='flex flex-col gap-2'>
-                {open.map((ticket) => (
-                  <SdPortalTicketRow
-                    key={ticket.id}
-                    slug={slug}
-                    ticket={ticket}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <p
-                className={cn(
-                  'flex items-center gap-2 rounded-lg border p-3 text-sm',
-                  SD_PORTAL_OK_TONE,
-                )}
-              >
-                <SteelIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
-                Nenhum chamado em aberto. Tudo resolvido!
-              </p>
-            )}
-
-            {done.length > 0 ? (
-              <details className='rounded-xl border border-border bg-card p-3'>
-                <summary className='cursor-pointer font-medium text-muted-foreground text-xs'>
-                  Chamados encerrados ({done.length})
-                </summary>
-                <ul className='mt-3 flex flex-col gap-2'>
-                  {done.map((ticket) => (
-                    <SdPortalTicketRow
-                      key={ticket.id}
-                      slug={slug}
-                      ticket={ticket}
-                    />
-                  ))}
-                </ul>
-              </details>
-            ) : null}
-          </div>
+          <SdPortalList slug={slug} open={open} done={done} />
         )}
       </Section>
 

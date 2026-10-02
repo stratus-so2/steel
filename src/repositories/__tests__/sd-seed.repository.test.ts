@@ -282,3 +282,104 @@ describe('SdSeedRepository.apply', () => {
     expect(result.ok).toBe(false)
   })
 })
+
+describe('SdSeedRepository.applyPhases', () => {
+  const INCIDENT = SD_SEED_PLAN.phases.INCIDENT
+
+  it('seeds every default phase of an empty type, one initial, in order', async () => {
+    const workspace = await seedWorkspace()
+
+    const summary = expectOk(
+      await SdSeedRepository.applyPhases(workspace.id, 'INCIDENT', INCIDENT),
+    )
+    expect(summary).toEqual({ created: INCIDENT.length, kept: 0 })
+
+    const phases = await prisma.sdPhase.findMany({
+      where: { workspaceId: workspace.id, ticketType: 'INCIDENT' },
+      orderBy: { position: 'asc' },
+    })
+    expect(phases.map((p) => p.name)).toEqual(INCIDENT.map((p) => p.name))
+    expect(phases.map((p) => p.position)).toEqual(
+      INCIDENT.map((_, index) => index),
+    )
+    expect(phases.filter((p) => p.isInitial)).toHaveLength(1)
+    // The other types are left alone.
+    expect(
+      await prisma.sdPhase.count({
+        where: { workspaceId: workspace.id, ticketType: 'CHANGE' },
+      }),
+    ).toBe(0)
+  })
+
+  it('creates only what is missing, keeps the admin phases and their initial', async () => {
+    const workspace = await seedWorkspace()
+    await prisma.sdPhase.create({
+      data: {
+        workspaceId: workspace.id,
+        ticketType: 'INCIDENT',
+        name: 'Aberto',
+        category: 'NEW',
+        position: 5,
+        isInitial: true,
+      },
+    })
+    // A phase sharing a default's name: it must not be duplicated.
+    await prisma.sdPhase.create({
+      data: {
+        workspaceId: workspace.id,
+        ticketType: 'INCIDENT',
+        name: INCIDENT[0].name,
+        category: 'NEW',
+        position: 6,
+      },
+    })
+
+    const summary = expectOk(
+      await SdSeedRepository.applyPhases(workspace.id, 'INCIDENT', INCIDENT),
+    )
+    expect(summary).toEqual({ created: INCIDENT.length - 1, kept: 2 })
+
+    const phases = await prisma.sdPhase.findMany({
+      where: { workspaceId: workspace.id, ticketType: 'INCIDENT' },
+      orderBy: { position: 'asc' },
+    })
+    expect(phases).toHaveLength(INCIDENT.length + 1)
+    expect(phases.filter((p) => p.name === INCIDENT[0].name)).toHaveLength(1)
+    // The initial phase stays the admin's, and positions follow after it.
+    expect(phases.filter((p) => p.isInitial).map((p) => p.name)).toEqual([
+      'Aberto',
+    ])
+    expect(phases.slice(0, 2).map((p) => p.name)).toEqual([
+      'Aberto',
+      INCIDENT[0].name,
+    ])
+    expect(phases[2].position).toBe(7)
+  })
+
+  it('is idempotent: a second run creates nothing', async () => {
+    const workspace = await seedWorkspace()
+    const PROBLEM = SD_SEED_PLAN.phases.PROBLEM
+    expectOk(
+      await SdSeedRepository.applyPhases(workspace.id, 'PROBLEM', PROBLEM),
+    )
+
+    const second = expectOk(
+      await SdSeedRepository.applyPhases(workspace.id, 'PROBLEM', PROBLEM),
+    )
+    expect(second).toEqual({ created: 0, kept: PROBLEM.length })
+    expect(
+      await prisma.sdPhase.count({
+        where: { workspaceId: workspace.id, ticketType: 'PROBLEM' },
+      }),
+    ).toBe(PROBLEM.length)
+  })
+
+  it('returns DATABASE_ERROR when the workspace does not exist', async () => {
+    const result = await SdSeedRepository.applyPhases(
+      'missing',
+      'INCIDENT',
+      INCIDENT,
+    )
+    expect(result.ok).toBe(false)
+  })
+})

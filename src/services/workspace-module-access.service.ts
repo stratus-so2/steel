@@ -91,20 +91,28 @@ export const WorkspaceModuleAccessService = {
       meta: { module },
     })
 
-    // Dashboards/relatórios padrão do zap e pipeline padrão do CRM — não
-    // bloqueiam a concessão do módulo se o seed falhar, só registram pra
-    // investigação.
+    // Default zap dashboards/reports and the default CRM pipeline — a failing
+    // seed does not block granting the module. That decision stands; what
+    // changed is that the failure now comes back in `seedWarnings` instead of
+    // living only in the log, so whoever enabled it knows the module was
+    // granted half-configured.
+    const seedWarnings: string[] = []
+    const warn = (event: string, error: unknown, message: string) => {
+      logger.error(event, { workspaceId, actorId, error })
+      seedWarnings.push(message)
+    }
+
     if (module === 'COMMUNICATION' && enabled) {
       const seed = await WhatsAppDashboardSeedService.seedDefaults(
         workspaceId,
         actorId,
       )
       if (!seed.ok) {
-        logger.error('workspace_module_access.seed_defaults_failed', {
-          workspaceId,
-          actorId,
-          error: seed.error,
-        })
+        warn(
+          'workspace_module_access.seed_defaults_failed',
+          seed.error,
+          'Os painéis e relatórios padrão do WhatsApp não foram criados. Crie-os na tela de dashboards ou tente liberar o módulo de novo.',
+        )
       }
     }
 
@@ -114,22 +122,22 @@ export const WorkspaceModuleAccessService = {
         actorId,
       )
       if (!seed.ok) {
-        logger.error('workspace_module_access.seed_default_pipeline_failed', {
-          workspaceId,
-          actorId,
-          error: seed.error,
-        })
+        warn(
+          'workspace_module_access.seed_default_pipeline_failed',
+          seed.error,
+          'O pipeline padrão do CRM não foi criado. Crie um pipeline nas configurações do CRM antes de usar os leads.',
+        )
       }
     }
 
     if (module === 'SERVICE_DESK' && enabled) {
       const seed = await SdSeedService.seedDefaults(workspaceId, actorId)
       if (!seed.ok) {
-        logger.error('workspace_module_access.seed_servicedesk_failed', {
-          workspaceId,
-          actorId,
-          error: seed.error,
-        })
+        warn(
+          'workspace_module_access.seed_servicedesk_failed',
+          seed.error,
+          'Os padrões ITIL do ServiceDesk não foram criados: sem fases, o kanban de chamados fica sem coluna. Use "Restaurar padrões ITIL" em Configurações > Geral do módulo.',
+        )
       }
       // Dashboards padrão (Analítico e KPIs/TV) — também não bloqueiam.
       const dashboards = await SdDashboardSeedService.seedDefaults(
@@ -137,15 +145,15 @@ export const WorkspaceModuleAccessService = {
         actorId,
       )
       if (!dashboards.ok) {
-        logger.error('workspace_module_access.seed_sd_dashboards_failed', {
-          workspaceId,
-          actorId,
-          error: dashboards.error,
-        })
+        warn(
+          'workspace_module_access.seed_sd_dashboards_failed',
+          dashboards.error,
+          'Os dashboards padrão do ServiceDesk não foram criados. Crie-os na tela de dashboards do módulo.',
+        )
       }
     }
 
-    return ok(toWorkspaceModuleAccessDTO(result.value))
+    return ok(toWorkspaceModuleAccessDTO(result.value, seedWarnings))
   },
 
   /**

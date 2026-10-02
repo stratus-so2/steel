@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { SdSeedSummary } from '@/src/repositories/sd-seed.repository'
+import type {
+  SdSeedPhasesSummary,
+  SdSeedSummary,
+} from '@/src/repositories/sd-seed.repository'
 import type { UpdateSdSettingsDTO } from '@/src/schemas/sd-settings.schema'
 import type {
   SdAgentDTO,
@@ -172,6 +175,24 @@ export function useRestoreSdDefaults(workspaceId: string) {
         `${base(workspaceId)}/settings/restore-defaults`,
         json('POST', {}),
         'Erro ao restaurar os padrões',
+      ),
+    onSuccess: invalidate,
+  })
+}
+
+/**
+ * Creates the default ITIL phases of one ticket type, only the missing ones.
+ * The way out of a flow with no phases (an empty board) without restoring
+ * every default.
+ */
+export function useSeedSdPhases(workspaceId: string) {
+  const invalidate = useInvalidateSdConfig(workspaceId)
+  return useMutation({
+    mutationFn: (ticketType: SdTicketTypeDTO) =>
+      apiFetch<SdSeedPhasesSummary>(
+        `${base(workspaceId)}/settings/seed-phases`,
+        json('POST', { ticketType }),
+        'Erro ao criar as fases padrão',
       ),
     onSuccess: invalidate,
   })

@@ -1,18 +1,17 @@
-import { BookOpen01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { HeaderBreadcrumbCrumb } from '@/app/_components/header/breadcrumb-page/header-breadcrumb-crumb'
-import { HeaderBreadcrumbList } from '@/app/_components/header/breadcrumb-page/header-breadcrumb-page'
-import HeaderInternalNavigation from '@/app/_components/header/header-internal-navigation'
-import { SdKbCreateButton } from '@/app/_components/servicedesk/knowledge/sd-kb-create-button'
+import { SdKbContextNav } from '@/app/_components/servicedesk/knowledge/sd-kb-context-nav'
 import { getSdKbViewer } from '@/app/_components/servicedesk/knowledge/sd-kb-server-context'
-import { SdKbTree } from '@/app/_components/servicedesk/knowledge/sd-kb-tree'
-import { SteelIcon } from '@/components/icon/icon'
 
 /**
- * Casca da base de conhecimento (como o layout da Wiki do Nexo), mas dentro
- * do contexto do ServiceDesk: a árvore de artigos fica numa coluna
- * secundária da página, ao lado do conteúdo.
+ * Knowledge base shell: the access gate, the context rail holding the article
+ * tree, and a full-height column for the page.
+ *
+ * The tree used to be a 256px `aside` inside the page, beside the module rail;
+ * it now sits in the rail itself, the shape Nexo's Wiki uses, and
+ * `SdModuleRail` steps aside for this route so there is exactly one rail. The
+ * header belongs to each page — the article one needs the document name in its
+ * breadcrumb, which a layout cannot know.
  */
 export default async function SdKnowledgeLayout({
   children,
@@ -26,38 +25,15 @@ export default async function SdKnowledgeLayout({
   if (!viewer) notFound()
 
   return (
-    <div className='flex h-full w-full min-h-0 flex-col'>
-      <HeaderInternalNavigation>
-        <HeaderBreadcrumbList>
-          <HeaderBreadcrumbCrumb title='Base de conhecimento'>
-            <SteelIcon
-              icon={BookOpen01Icon}
-              strokeWidth={2}
-              className='text-primary'
-            />
-          </HeaderBreadcrumbCrumb>
-        </HeaderBreadcrumbList>
-        {viewer.canCreate && (
-          <SdKbCreateButton
-            workspaceId={viewer.workspaceId}
-            workspaceSlug={slug}
-          />
-        )}
-      </HeaderInternalNavigation>
-      <div className='flex min-h-0 flex-1'>
-        <aside className='hidden w-64 shrink-0 overflow-y-auto border-r p-2 md:block'>
-          <SdKbTree
-            workspaceId={viewer.workspaceId}
-            workspaceSlug={slug}
-            canEdit={viewer.canEdit}
-            canCreate={viewer.canCreate}
-            canDelete={viewer.canDelete}
-          />
-        </aside>
-        <main className='min-h-0 min-w-0 flex-1 overflow-y-auto'>
-          {children}
-        </main>
-      </div>
-    </div>
+    <>
+      <SdKbContextNav
+        workspaceId={viewer.workspaceId}
+        slug={slug}
+        canEdit={viewer.canEdit}
+        canCreate={viewer.canCreate}
+        canDelete={viewer.canDelete}
+      />
+      <div className='flex h-full min-h-0 w-full flex-col'>{children}</div>
+    </>
   )
 }

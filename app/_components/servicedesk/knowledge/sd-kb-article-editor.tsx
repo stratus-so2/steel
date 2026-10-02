@@ -59,6 +59,7 @@ import {
   useUpdateSdKbArticle,
 } from '@/src/hooks/use-sd-knowledge'
 import type { SdKbArticleDTO } from '@/types/sd-kb-article'
+import { SdKbArticleHeader } from './sd-kb-article-header'
 import { SdKbArticleList } from './sd-kb-article-list'
 import { SdKbArticleMeta } from './sd-kb-article-meta'
 import { SdKbArticleView } from './sd-kb-article-view'
@@ -224,96 +225,105 @@ export function SdKbArticleEditor({
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
-      <div className='flex h-11 shrink-0 items-center justify-between gap-2 border-b px-4'>
-        <div className='flex min-w-0 items-center gap-2'>
-          <SdKbStatusBadge status={article.status} />
-          <SdKbReviewDueBadge reviewDueAt={article.reviewDueAt} />
-          <SaveIndicator state={saveState} />
-        </div>
-        <div className='flex items-center gap-1'>
-          <Button
-            variant={preview ? 'secondary' : 'ghost'}
-            size='sm'
-            aria-pressed={preview}
-            onClick={() => {
-              flush()
-              setPreview((v) => !v)
-            }}
-          >
-            <SteelIcon
-              icon={preview ? PencilEdit02Icon : ViewIcon}
-              strokeWidth={2}
-            />
-            {preview ? 'Editar' : 'Visualizar'}
-          </Button>
-          <Button variant='ghost' size='sm' onClick={copyLink}>
-            <SteelIcon icon={Copy01Icon} strokeWidth={2} />
-            Copiar link
-          </Button>
-          <Button
-            size='sm'
-            variant={article.status === 'PUBLISHED' ? 'outline' : 'default'}
-            disabled={setStatus.isPending}
-            onClick={togglePublish}
-          >
-            <SteelIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
-            {article.status === 'PUBLISHED' ? 'Despublicar' : 'Publicar'}
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant='ghost' size='icon-sm' aria-label='Mais ações'>
-                  <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align='end'>
-              <DropdownMenuItem
-                onClick={() =>
-                  archive.mutate(article.id, {
-                    onSuccess: () => {
-                      notify.success('Artigo arquivado')
-                      router.push(`/${workspaceSlug}/servicedesk/knowledge`)
-                    },
-                    onError: notify.error,
-                  })
-                }
-              >
-                <SteelIcon icon={Archive01Icon} strokeWidth={2} />
-                Arquivar
-              </DropdownMenuItem>
-              {canDelete && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant='destructive'
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          'Excluir definitivamente este artigo e os subartigos?',
-                        )
-                      ) {
-                        remove.mutate(article.id, {
-                          onSuccess: () => {
-                            notify.success('Artigo excluído')
-                            router.push(
-                              `/${workspaceSlug}/servicedesk/knowledge`,
-                            )
-                          },
-                          onError: notify.error,
-                        })
-                      }
-                    }}
+      {/* Standard header: `<` + Base de conhecimento > [name]. The badges and
+          the actions go on the right of this same row — they used to be a
+          second 44px bar right below the layout breadcrumb. */}
+      <SdKbArticleHeader
+        workspaceSlug={workspaceSlug}
+        title={title}
+        actions={
+          <>
+            <SdKbStatusBadge status={article.status} />
+            <SdKbReviewDueBadge reviewDueAt={article.reviewDueAt} />
+            <SaveIndicator state={saveState} />
+            <Button
+              variant={preview ? 'secondary' : 'ghost'}
+              size='sm'
+              aria-pressed={preview}
+              onClick={() => {
+                flush()
+                setPreview((v) => !v)
+              }}
+            >
+              <SteelIcon
+                icon={preview ? PencilEdit02Icon : ViewIcon}
+                strokeWidth={2}
+              />
+              {preview ? 'Editar' : 'Visualizar'}
+            </Button>
+            <Button variant='ghost' size='sm' onClick={copyLink}>
+              <SteelIcon icon={Copy01Icon} strokeWidth={2} />
+              Copiar link
+            </Button>
+            <Button
+              size='sm'
+              variant={article.status === 'PUBLISHED' ? 'outline' : 'default'}
+              disabled={setStatus.isPending}
+              onClick={togglePublish}
+            >
+              <SteelIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
+              {article.status === 'PUBLISHED' ? 'Despublicar' : 'Publicar'}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label='Mais ações'
                   >
-                    <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-                    Excluir
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+                    <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align='end'>
+                <DropdownMenuItem
+                  onClick={() =>
+                    archive.mutate(article.id, {
+                      onSuccess: () => {
+                        notify.success('Artigo arquivado')
+                        router.push(`/${workspaceSlug}/servicedesk/knowledge`)
+                      },
+                      onError: notify.error,
+                    })
+                  }
+                >
+                  <SteelIcon icon={Archive01Icon} strokeWidth={2} />
+                  Arquivar
+                </DropdownMenuItem>
+                {canDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant='destructive'
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            'Excluir definitivamente este artigo e os subartigos?',
+                          )
+                        ) {
+                          remove.mutate(article.id, {
+                            onSuccess: () => {
+                              notify.success('Artigo excluído')
+                              router.push(
+                                `/${workspaceSlug}/servicedesk/knowledge`,
+                              )
+                            },
+                            onError: notify.error,
+                          })
+                        }
+                      }}
+                    >
+                      <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+                      Excluir
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        }
+      />
 
       {preview ? (
         <div className='min-h-0 flex-1 overflow-y-auto'>

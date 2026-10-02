@@ -4,7 +4,6 @@ import {
   Bug01Icon,
   Cancel01Icon,
   CheckmarkCircle02Icon,
-  InboxIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -20,7 +19,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useSdAgents, useSdConfig } from '@/src/hooks/use-sd-config'
@@ -30,6 +28,14 @@ import {
   useSdIncidentClusters,
 } from '@/src/hooks/use-sd-risk'
 import type { SdIncidentClusterDTO } from '@/types/sd-risk'
+import {
+  type SdColumn,
+  SdDataTable,
+  SdFilterField,
+  SdFilterSelect,
+} from '../table/sd-data-table'
+import { sdLocalTable } from '../table/sd-local-table'
+import { useSdTableState } from '../table/use-sd-table-state'
 import { SdOptionSelect } from '../ticket/sd-option-select'
 import {
   SD_TONE_TEXT,
@@ -40,17 +46,29 @@ import { sdDepartmentOptions } from '../ticket/sd-ticket-options'
 import { SD_RISK_TONE } from './sd-risk-badge'
 
 /**
- * Sugestões de problema: incidentes parecidos agrupados pelo worker
- * (`scan-clusters`). Abrir o problema é **ação do agente** — a análise
- * nunca abre nada sozinha (ADR 0016).
+ * Problem suggestions: similar incidents grouped by the worker
+ * (`scan-clusters`). Opening the problem is an **agent action** — the analysis
+ * never opens anything on its own (ADR 0016).
+ *
+ * This went from a stack of cards, each with a nested incident list, to the
+ * **standard table** (`SdDataTable`). A group's incidents do not fit in a cell
+ * and `SdDataTable` has no row expansion, so they moved into a dialog opened
+ * by clicking the row — the same gesture the directory screens use to open a
+ * record.
  */
 
 /**
- * Confirmação de "problema já aberto". O tema não tem token de sucesso, então
- * a cor fica nesta constante (padrão do repositório, legível nos dois temas)
- * em vez de solta no JSX.
+ * The "problem already opened" confirmation. The theme has no success token,
+ * so the colour lives in this constant (the repository's convention, legible
+ * in both themes) instead of loose in the JSX.
  */
 const DONE_TONE = SD_TONE_TEXT.emerald
+
+const STATUSES = [
+  { value: 'open' as const, label: 'Em aberto' },
+  { value: 'handled' as const, label: 'Tratadas' },
+  { value: 'all' as const, label: 'Todas' },
+]
 
 function ClusterTickets({
   cluster,
@@ -82,6 +100,35 @@ function ClusterTickets({
         </li>
       ))}
     </ul>
+  )
+}
+
+/** Group record: the incidents that landed in it and what was decided. */
+function ClusterDetailDialog({
+  cluster,
+  slug,
+  open,
+  onOpenChange,
+}: {
+  cluster: SdIncidentClusterDTO
+  slug: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='sm:max-w-2xl'>
+        <DialogHeader>
+          <DialogTitle className='truncate'>{cluster.title}</DialogTitle>
+          <DialogDescription>
+            {cluster.ticketCount} incidentes com a mesma assinatura, o primeiro
+            em {sdFormatDateTime(cluster.firstSeenAt)} e o último{' '}
+            {sdRelativeTime(cluster.lastSeenAt)}.
+          </DialogDescription>
+        </DialogHeader>
+        <ClusterTickets cluster={cluster} slug={slug} />
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -190,24 +237,60 @@ function OpenProblemDialog({
   )
 }
 
-function ClusterCard({
+/** The dismiss and open-problem buttons — only on an untreated group. */
+function ClusterActions({
+  workspaceId,
+  cluster,
+  onOpenProblem,
+}: {
+  workspaceId: string
+  cluster: SdIncidentClusterDTO
+  onOpenProblem: () => void
+}) {
+  const dismiss = useDismissSdIncidentCluster(workspaceId)
+  return (
+    <span className='flex items-center justify-end gap-1'>
+      <Button
+        variant='ghost'
+        size='xs'
+        disabled={dismiss.isPending}
+        onClick={() =>
+          dismiss.mutate(cluster.id, {
+            onSuccess: () => notify.success('Sugestão descartada.'),
+            onError: notify.error,
+          })
+        }
+      >
+        <SteelIcon icon={Cancel01Icon} strokeWidth={2} />
+        Descartar
+      </Button>
+      <Button size='xs' onClick={onOpenProblem}>
+        <SteelIcon icon={Bug01Icon} strokeWidth={2} />
+        Abrir problema
+      </Button>
+    </span>
+  )
+}
+
+function clusterColumns({
   workspaceId,
   slug,
-  cluster,
+  onOpenProblem,
 }: {
   workspaceId: string
   slug: string
-  cluster: SdIncidentClusterDTO
-}) {
-  const dismiss = useDismissSdIncidentCluster(workspaceId)
-  const [opening, setOpening] = useState(false)
-  const handled = Boolean(cluster.problemTicket || cluster.dismissedAt)
-
-  return (
-    <article className='flex flex-col gap-2.5 rounded-xl border bg-card p-3'>
-      <div className='flex min-w-0 flex-wrap items-center gap-2'>
-        {/* Grupo repetido é sinal de atenção: reusa a faixa média do selo
-            de risco em vez de espalhar uma cor nova. */}
+  onOpenProblem: (cluster: SdIncidentClusterDTO) => void
+}): SdColumn<SdIncidentClusterDTO>[] {
+  return [
+    {
+      id: 'ticketCount',
+      header: 'Incidentes',
+      sortKey: 'ticketCount',
+      hideable: false,
+      className: 'w-32',
+      cell: (cluster) => (
+        // A repeated group is a warning sign: it reuses the risk badge's
+        // medium band instead of spreading a new colour around.
         <span
           className={cn(
             'inline-flex h-5 items-center gap-1 rounded-md border px-1.5 font-medium text-[11px] tabular-nums',
@@ -217,70 +300,99 @@ function ClusterCard({
           <SteelIcon icon={Bug01Icon} strokeWidth={2} className='size-3' />
           {cluster.ticketCount} incidentes
         </span>
-        <h3 className='min-w-0 flex-1 truncate font-medium text-sm'>
-          {cluster.title}
-        </h3>
+      ),
+    },
+    {
+      id: 'title',
+      header: 'Assinatura',
+      sortKey: 'title',
+      hideable: false,
+      className: 'min-w-64 max-w-md',
+      cell: (cluster) => (
+        <span className='line-clamp-1 font-medium'>{cluster.title}</span>
+      ),
+    },
+    {
+      id: 'lastSeenAt',
+      header: 'Última ocorrência',
+      sortKey: 'lastSeenAt',
+      cell: (cluster) => (
         <span className='text-muted-foreground text-xs'>
-          último {sdRelativeTime(cluster.lastSeenAt)}
+          {sdRelativeTime(cluster.lastSeenAt)}
         </span>
-      </div>
-
-      <ClusterTickets cluster={cluster} slug={slug} />
-
-      {cluster.problemTicket ? (
-        <p className={cn('flex items-center gap-1.5 text-xs', DONE_TONE)}>
-          <SteelIcon
-            icon={CheckmarkCircle02Icon}
-            strokeWidth={2}
-            className='size-3.5'
+      ),
+    },
+    {
+      id: 'firstSeenAt',
+      header: 'Primeira ocorrência',
+      sortKey: 'firstSeenAt',
+      defaultHidden: true,
+      cell: (cluster) => (
+        <span className='text-xs tabular-nums'>
+          {sdFormatDateTime(cluster.firstSeenAt)}
+        </span>
+      ),
+    },
+    {
+      id: 'outcome',
+      header: 'Situação',
+      className: 'min-w-56',
+      cell: (cluster) =>
+        cluster.problemTicket ? (
+          <span className={cn('flex items-center gap-1.5 text-xs', DONE_TONE)}>
+            <SteelIcon
+              icon={CheckmarkCircle02Icon}
+              strokeWidth={2}
+              className='size-3.5'
+            />
+            Problema{' '}
+            <Link
+              href={`/${slug}/servicedesk/tickets/${cluster.problemTicket.number}`}
+              className='font-medium font-mono hover:underline'
+            >
+              {cluster.problemTicket.code}
+            </Link>{' '}
+            aberto a partir deste grupo.
+          </span>
+        ) : cluster.dismissedAt ? (
+          <span className='text-muted-foreground text-xs'>
+            Descartado por {cluster.dismissedBy?.name ?? 'alguém da equipe'} em{' '}
+            {sdFormatDateTime(cluster.dismissedAt)}.
+          </span>
+        ) : (
+          <span className='text-muted-foreground text-xs'>
+            Aguardando decisão do agente.
+          </span>
+        ),
+    },
+    {
+      id: 'actions',
+      header: 'Ações',
+      hideable: false,
+      className: 'w-56 text-right',
+      cell: (cluster) =>
+        cluster.problemTicket || cluster.dismissedAt ? null : (
+          <ClusterActions
+            workspaceId={workspaceId}
+            cluster={cluster}
+            onOpenProblem={() => onOpenProblem(cluster)}
           />
-          Problema{' '}
-          <Link
-            href={`/${slug}/servicedesk/tickets/${cluster.problemTicket.number}`}
-            className='font-medium font-mono hover:underline'
-          >
-            {cluster.problemTicket.code}
-          </Link>{' '}
-          aberto a partir deste grupo.
-        </p>
-      ) : cluster.dismissedAt ? (
-        <p className='text-muted-foreground text-xs'>
-          Descartado por {cluster.dismissedBy?.name ?? 'alguém da equipe'} em{' '}
-          {sdFormatDateTime(cluster.dismissedAt)}.
-        </p>
-      ) : (
-        <div className='flex items-center justify-end gap-2'>
-          <Button
-            variant='ghost'
-            size='sm'
-            disabled={dismiss.isPending}
-            onClick={() =>
-              dismiss.mutate(cluster.id, {
-                onSuccess: () => notify.success('Sugestão descartada.'),
-                onError: notify.error,
-              })
-            }
-          >
-            <SteelIcon icon={Cancel01Icon} strokeWidth={2} />
-            Descartar
-          </Button>
-          <Button size='sm' onClick={() => setOpening(true)}>
-            <SteelIcon icon={Bug01Icon} strokeWidth={2} />
-            Abrir problema
-          </Button>
-        </div>
-      )}
+        ),
+    },
+  ]
+}
 
-      {handled ? null : (
-        <OpenProblemDialog
-          workspaceId={workspaceId}
-          cluster={cluster}
-          open={opening}
-          onOpenChange={setOpening}
-        />
-      )}
-    </article>
-  )
+function clusterSortValue(cluster: SdIncidentClusterDTO, sort: string) {
+  switch (sort) {
+    case 'ticketCount':
+      return cluster.ticketCount
+    case 'title':
+      return cluster.title
+    case 'firstSeenAt':
+      return cluster.firstSeenAt
+    default:
+      return cluster.lastSeenAt
+  }
 }
 
 export function SdIncidentClusters({
@@ -292,43 +404,91 @@ export function SdIncidentClusters({
   slug: string
   status?: 'open' | 'handled' | 'all'
 }) {
-  const { data, isLoading } = useSdIncidentClusters(workspaceId, { status })
+  const table = useSdTableState({
+    sort: 'lastSeenAt',
+    order: 'desc',
+    filters: { status: status as 'open' | 'handled' | 'all' | '' },
+  })
+  const effectiveStatus = (table.filters.status || status) as
+    | 'open'
+    | 'handled'
+    | 'all'
+  const { data, isLoading, error } = useSdIncidentClusters(workspaceId, {
+    status: effectiveStatus,
+  })
+  const [opening, setOpening] = useState<SdIncidentClusterDTO | null>(null)
+  const [detail, setDetail] = useState<SdIncidentClusterDTO | null>(null)
 
-  if (isLoading) {
-    return (
-      <div className='flex flex-col gap-2'>
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Skeleton key={`sk-cluster-${i}`} className='h-28 w-full' />
-        ))}
-      </div>
-    )
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className='flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed py-10 text-center'>
-        <div className='grid size-10 place-items-center rounded-2xl border bg-muted text-muted-foreground'>
-          <SteelIcon icon={InboxIcon} strokeWidth={1.8} className='size-5' />
-        </div>
-        <p className='font-medium text-sm'>Nenhum incidente repetido</p>
-        <p className='max-w-sm text-muted-foreground text-xs'>
-          A análise agrupa incidentes parecidos dos últimos 7 dias a partir de
-          três ocorrências com a mesma assinatura.
-        </p>
-      </div>
-    )
-  }
+  const slice = sdLocalTable(data ?? [], {
+    q: table.q,
+    searchText: (cluster) =>
+      `${cluster.title} ${cluster.tickets.map((t) => t.code).join(' ')}`,
+    sort: table.sort,
+    order: table.order,
+    sortValue: clusterSortValue,
+    page: table.page,
+    pageSize: table.pageSize,
+  })
 
   return (
-    <div className='flex flex-col gap-2.5'>
-      {data.map((cluster) => (
-        <ClusterCard
-          key={cluster.id}
-          workspaceId={workspaceId}
+    <>
+      <SdDataTable
+        storageKey='incident-clusters'
+        columns={clusterColumns({
+          workspaceId,
+          slug,
+          onOpenProblem: setOpening,
+        })}
+        rows={slice.rows}
+        total={slice.total}
+        page={slice.page}
+        pageSize={table.pageSize}
+        onPageChange={table.setPage}
+        onPageSizeChange={table.setPageSize}
+        sort={table.sort}
+        order={table.order}
+        onSortChange={table.setSort}
+        search={table.search}
+        onSearchChange={table.setSearch}
+        searchPlaceholder='Assinatura ou código do incidente…'
+        isLoading={isLoading}
+        error={error ? error.message : null}
+        onRowClick={setDetail}
+        activeFilterCount={table.activeFilterCount}
+        onClearFilters={table.clearFilters}
+        filters={
+          <SdFilterField label='Situação'>
+            <SdFilterSelect
+              value={table.filters.status}
+              onChange={(value) => table.setFilter('status', value)}
+              options={STATUSES}
+              allLabel={
+                STATUSES.find((option) => option.value === status)?.label ??
+                'Em aberto'
+              }
+            />
+          </SdFilterField>
+        }
+        emptyTitle='Nenhum incidente repetido'
+        emptyDescription='A análise agrupa incidentes parecidos dos últimos 7 dias a partir de três ocorrências com a mesma assinatura.'
+      />
+
+      {detail ? (
+        <ClusterDetailDialog
+          cluster={detail}
           slug={slug}
-          cluster={cluster}
+          open
+          onOpenChange={(open) => !open && setDetail(null)}
         />
-      ))}
-    </div>
+      ) : null}
+      {opening ? (
+        <OpenProblemDialog
+          workspaceId={workspaceId}
+          cluster={opening}
+          open
+          onOpenChange={(open) => !open && setOpening(null)}
+        />
+      ) : null}
+    </>
   )
 }

@@ -54,6 +54,7 @@ import {
   ReorderSdPhasesSchema,
   SaveSdPhaseTransitionsSchema,
   SdPhaseTransitionsQuerySchema,
+  SeedSdPhasesSchema,
   UpdateSdPhaseSchema,
 } from '@/src/schemas/sd-phase.schema'
 import {
@@ -89,6 +90,7 @@ import {
   SdPhaseTransitionDTO,
   SdPriorityMatrixCellDTO,
   SdScaleItemDTO,
+  SdSeedPhasesSummaryDTO,
   SdSeedSummaryDTO,
   SdSettingsDTO,
   SdSlaPolicyDTO,
@@ -371,6 +373,22 @@ export const sdConfigRoutes: RouteConfig[] = [
     consent: true,
     responses: {
       200: { description: 'Itens criados.', schema: SdSeedSummaryDTO },
+    },
+    errors: ADMIN_ERRORS,
+  },
+  {
+    method: 'post',
+    path: `${BASE}/settings/seed-phases`,
+    tags: [TAG],
+    summary: 'Criar as fases padrão de um tipo',
+    description: describe(
+      'Cria as fases padrão ITIL do tipo informado, casadas por nome, mantendo as que já existem e continuando a ordem depois delas — a saída para um fluxo sem fase nenhuma (quadro vazio), sem restaurar todos os padrões. Idempotente.',
+      ADMIN,
+    ),
+    consent: true,
+    body: SeedSdPhasesSchema,
+    responses: {
+      200: { description: 'Fases criadas.', schema: SdSeedPhasesSummaryDTO },
     },
     errors: ADMIN_ERRORS,
   },

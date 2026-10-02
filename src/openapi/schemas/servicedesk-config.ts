@@ -433,6 +433,19 @@ export const SdConfigBootstrapDTO = dto(
   }),
 )
 
+export const SdSeedPhasesSummaryDTO = dto(
+  'SdSeedPhasesSummary',
+  z
+    .object({
+      created: z.number().int(),
+      kept: z.number().int(),
+    })
+    .meta({
+      description:
+        'Quantas fases padrão foram criadas agora e quantas do admin foram preservadas.',
+    }),
+)
+
 export const SdSeedSummaryDTO = dto(
   'SdSeedSummary',
   z

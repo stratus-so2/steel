@@ -29,23 +29,31 @@ export default async function SdRiskPage({
       icon={AlertDiamondIcon}
       isAgent={ctx.isAgent}
     >
-      <div className='flex h-full min-h-0 flex-col gap-5 overflow-auto p-4'>
-        <p className='text-muted-foreground text-xs'>
+      {/* Two standard tables stacked: each section keeps its own half and
+          scrolls inside it. A single surrounding `overflow-auto` container
+          would break the sticky header of both. */}
+      <div className='flex h-full min-h-0 flex-col'>
+        <p className='shrink-0 px-4 pt-3 text-muted-foreground text-xs'>
           A nota de risco é uma heurística explicável calculada pelo worker a
           cada 10 minutos — cada fator mostra o motivo, e nada passa por IA
           generativa.
         </p>
-        <Suspense>
-          <SdRiskQueue workspaceId={ctx.workspaceId} slug={slug} />
-        </Suspense>
-        <div className='flex min-w-0 flex-col gap-2'>
-          <h2 className='font-semibold text-sm'>
+        <section className='flex min-h-0 flex-1 flex-col'>
+          <h2 className='shrink-0 px-4 pt-3 font-semibold text-sm'>
+            Chamados por risco
+          </h2>
+          <Suspense>
+            <SdRiskQueue workspaceId={ctx.workspaceId} slug={slug} />
+          </Suspense>
+        </section>
+        <section className='flex min-h-0 flex-1 flex-col border-t'>
+          <h2 className='shrink-0 px-4 pt-3 font-semibold text-sm'>
             Incidentes repetidos — sugestões de problema
           </h2>
           <Suspense>
             <SdIncidentClusters workspaceId={ctx.workspaceId} slug={slug} />
           </Suspense>
-        </div>
+        </section>
       </div>
     </SdPageShell>
   )

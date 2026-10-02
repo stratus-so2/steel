@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { mockFetch, renderWithQuery } from '@/src/__tests__/component-utils'
 import type { SdIncidentClusterDTO, SdTicketRiskDTO } from '@/types/sd-risk'
@@ -190,10 +190,43 @@ describe('SdIncidentClusters', () => {
     renderWithQuery(<SdIncidentClusters workspaceId={WS} slug={SLUG} />)
 
     expect(await screen.findByText('3 incidentes')).toBeTruthy()
-    expect(screen.getAllByText('Servidor de e-mail fora do ar')).toHaveLength(2)
-    expect(screen.getByText('INC-000001')).toBeTruthy()
+    // On the standard table the signature shows once, in its cell: the nested
+    // incident list left the card and became the group record.
+    expect(screen.getAllByText('Servidor de e-mail fora do ar')).toHaveLength(1)
+    expect(screen.queryByText('INC-000001')).toBeNull()
     expect(screen.getByRole('button', { name: /Abrir problema/ })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Descartar/ })).toBeTruthy()
+  })
+
+  it('opens the group record with its incidents on a row click', async () => {
+    mockFetch([{ match: '/servicedesk/risk/clusters', data: [cluster()] }])
+    renderWithQuery(<SdIncidentClusters workspaceId={WS} slug={SLUG} />)
+
+    fireEvent.click(await screen.findByText('Servidor de e-mail fora do ar'))
+
+    const code = await screen.findByText('INC-000001')
+    expect(code.getAttribute('href')).toBe(`/${SLUG}/servicedesk/tickets/1`)
+    expect(screen.getByText(/mesma assinatura/)).toBeTruthy()
+  })
+
+  it('searches by signature and by incident code', async () => {
+    mockFetch([
+      {
+        match: '/servicedesk/risk/clusters',
+        data: [cluster(), cluster({ id: 'c2', title: 'VPN caindo' })],
+      },
+    ])
+    renderWithQuery(<SdIncidentClusters workspaceId={WS} slug={SLUG} />)
+
+    await screen.findByText('VPN caindo')
+    fireEvent.change(screen.getByLabelText('Buscar'), {
+      target: { value: 'vpn' },
+    })
+
+    await waitFor(() =>
+      expect(screen.queryByText('Servidor de e-mail fora do ar')).toBeNull(),
+    )
+    expect(screen.getByText('VPN caindo')).toBeTruthy()
   })
 
   it('mostra o problema já aberto em vez das ações', async () => {

@@ -201,6 +201,7 @@ export function SdKanbanView({
   slug,
   loading,
   showType = false,
+  empty,
   onMove,
   onCreate,
   onShowMore,
@@ -209,6 +210,8 @@ export function SdKanbanView({
   slug: string
   loading?: boolean
   showType?: boolean
+  /** The "no columns at all" screen — without it the board went blank. */
+  empty?: React.ReactNode
   onMove: (ticket: SdTicketDTO, columnId: string) => void
   onCreate?: (columnId: string) => void
   onShowMore?: () => void
@@ -256,6 +259,8 @@ export function SdKanbanView({
       </div>
     )
   }
+
+  if (columns.length === 0 && empty) return <>{empty}</>
 
   return (
     <DndContext

@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { AdminWorkspaceSummaryDTO } from '@/types/admin-workspace'
-import type { WorkspaceModuleAccessSummaryDTO } from '@/types/workspace-module-access'
+import type {
+  WorkspaceModuleAccessDTO,
+  WorkspaceModuleAccessSummaryDTO,
+} from '@/types/workspace-module-access'
 
 type ApiResponse<T> = { success: boolean; data?: T; message?: string }
 
@@ -73,15 +76,19 @@ export function useAdminModuleAccess(workspaceId: string) {
         body: JSON.stringify({ module, enabled }),
       },
     )
-    const json = await res.json()
+    const json: ApiResponse<WorkspaceModuleAccessDTO> = await res.json()
     if (!res.ok || !json.success) {
       return {
         ok: false as const,
-        message: json?.message as string | undefined,
+        message: (json as { message?: string })?.message,
       }
     }
     await refetch()
-    return { ok: true as const }
+    // Failed seeds: the grant went through, but half-configured.
+    return {
+      ok: true as const,
+      seedWarnings: json.data?.seedWarnings ?? [],
+    }
   }
 
   return { access, isLoading, setEnabled }
