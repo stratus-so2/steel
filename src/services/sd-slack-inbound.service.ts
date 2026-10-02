@@ -178,7 +178,7 @@ function parseSlackRequest(input: SdSlackInboundInput): SlackRequest | null {
     return {
       kind: 'message_action',
       teamId,
-      eventId: shortcut.trigger_id ?? `${channelId}:${messageTs}`,
+      eventId: shortcut.trigger_id || `${channelId}:${messageTs}`,
       channelId,
       channelName: shortcut.channel?.name ?? null,
       messageTs,
@@ -189,8 +189,8 @@ function parseSlackRequest(input: SdSlackInboundInput): SlackRequest | null {
 
   const teamId = form.get('team_id')
   const channelId = form.get('channel_id')
-  const triggerId = form.get('trigger_id')
   if (!teamId || !channelId) return null
+  const text = form.get('text') ?? ''
   return {
     kind: 'command',
     command: {
@@ -198,8 +198,9 @@ function parseSlackRequest(input: SdSlackInboundInput): SlackRequest | null {
       channelId,
       channelName: form.get('channel_name'),
       userId: form.get('user_id'),
-      text: form.get('text') ?? '',
-      triggerId: triggerId ?? `${channelId}:${form.get('text') ?? ''}`,
+      text,
+      // Sem `trigger_id`, a chave de idempotência é o canal + o texto.
+      triggerId: form.get('trigger_id') || `${channelId}:${text}`,
     },
   }
 }
