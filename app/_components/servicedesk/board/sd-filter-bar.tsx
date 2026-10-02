@@ -76,6 +76,19 @@ interface ChipLookup {
   pickedLabels?: Record<string, string>
 }
 
+/**
+ * Short band names for the risk field and its chip. `SD_RISK_LEVEL_LABEL`
+ * already says "Risco alto", which next to a "Risco" label reads twice.
+ */
+const RISK_BANDS: {
+  value: NonNullable<SdBoardFilters['riskLevel']>
+  label: string
+}[] = [
+  { value: 'HIGH', label: 'Alto' },
+  { value: 'MEDIUM', label: 'Médio' },
+  { value: 'LOW', label: 'Baixo' },
+]
+
 function names(
   ids: string[] | undefined,
   options: { value: string; label: string }[],
@@ -193,7 +206,12 @@ export function sdFilterChips(
     push('sla', 'SLA', f.sla === 'at_risk' ? 'Em risco' : 'Violado')
   }
   if (f.riskLevel) {
-    push('riskLevel', 'Risco', SD_RISK_LEVEL_LABEL[f.riskLevel])
+    push(
+      'riskLevel',
+      'Risco',
+      RISK_BANDS.find((b) => b.value === f.riskLevel)?.label ??
+        SD_RISK_LEVEL_LABEL[f.riskLevel],
+    )
   }
   if (f.createdFrom) push('createdFrom', 'Aberto desde', sdDay(f.createdFrom))
   if (f.createdTo) push('createdTo', 'Aberto até', sdDay(f.createdTo))
@@ -600,9 +618,7 @@ function AdvancedFilters({
             onChange={(v) =>
               set('riskLevel', (v ?? undefined) as SdBoardFilters['riskLevel'])
             }
-            options={Object.entries(SD_RISK_LEVEL_LABEL).map(
-              ([value, label]) => ({ value, label }),
-            )}
+            options={RISK_BANDS}
             noneLabel='Todos'
             placeholder='Todos'
           />
