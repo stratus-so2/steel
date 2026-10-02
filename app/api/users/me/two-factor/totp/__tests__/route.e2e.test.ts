@@ -66,11 +66,30 @@ function secretFromUri(totpURI: string): string {
 
 const PASSWORD = 'Test@12345678'
 
+/**
+ * O limiter de auth do Steel conta 10 tentativas por IP a cada 15 min, e os
+ * casos abaixo batem várias vezes em `/api/auth/**`. Um IP novo por chamada
+ * põe cada uma no próprio balde — o mesmo truque que `createAuthenticatedUser`
+ * usa no sign-up.
+ */
+function clientIp(): string {
+  const octet = () => Math.floor(Math.random() * 200) + 10
+  return `${octet()}.${octet()}.${octet()}.${octet()}`
+}
+
+function authHeaders(cookie?: string) {
+  return {
+    ...defaultHeaders,
+    'x-forwarded-for': clientIp(),
+    ...(cookie ? { Cookie: cookie } : {}),
+  }
+}
+
 /** Liga a 2FA pelo endpoint do better-auth e devolve o segredo do app. */
 async function enableTwoFactor(cookie: string) {
   const res = await fetch(`${BASE_URL}/api/auth/two-factor/enable`, {
     method: 'POST',
-    headers: { ...defaultHeaders, Cookie: cookie },
+    headers: authHeaders(cookie),
     body: JSON.stringify({ password: PASSWORD }),
   })
   expect(res.status).toBe(200)
@@ -116,7 +135,7 @@ describe('POST /api/users/me/two-factor/totp', () => {
   it('returns 401 without authentication', async () => {
     const res = await fetch(`${BASE_URL}/api/users/me/two-factor/totp`, {
       method: 'POST',
-      headers: defaultHeaders,
+      headers: authHeaders(),
       body: JSON.stringify({ code: '123456' }),
     })
     expect(res.status).toBe(401)
@@ -203,7 +222,7 @@ describe('DELETE /api/users/me/two-factor/totp', () => {
   async function deleteTotp(body: unknown, cookie?: string) {
     return fetch(`${BASE_URL}/api/users/me/two-factor/totp`, {
       method: 'DELETE',
-      headers: cookie ? { ...defaultHeaders, Cookie: cookie } : defaultHeaders,
+      headers: authHeaders(cookie),
       body: JSON.stringify(body),
     })
   }
@@ -282,7 +301,7 @@ describe('the second factor at sign-in', () => {
     // Login novo, sem a sessão anterior: agora o segundo fator é um desafio.
     const signIn = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
-      headers: defaultHeaders,
+      headers: authHeaders(),
       body: JSON.stringify({ email, password: PASSWORD }),
     })
     expect(signIn.status).toBe(200)
@@ -295,7 +314,7 @@ describe('the second factor at sign-in', () => {
 
     const verify = await fetch(`${BASE_URL}/api/auth/two-factor/verify-totp`, {
       method: 'POST',
-      headers: { ...defaultHeaders, Cookie: challengeCookie },
+      headers: authHeaders(challengeCookie),
       body: JSON.stringify({ code: totpCode(secret) }),
     })
 
@@ -317,7 +336,7 @@ describe('the second factor at sign-in', () => {
 
     const signIn = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
-      headers: defaultHeaders,
+      headers: authHeaders(),
       body: JSON.stringify({ email, password: PASSWORD }),
     })
     const challengeCookie = (signIn.headers.getSetCookie?.() ?? [])
@@ -326,7 +345,7 @@ describe('the second factor at sign-in', () => {
 
     const verify = await fetch(`${BASE_URL}/api/auth/two-factor/verify-totp`, {
       method: 'POST',
-      headers: { ...defaultHeaders, Cookie: challengeCookie },
+      headers: authHeaders(challengeCookie),
       body: JSON.stringify({ code: totpCode(secret, 50) }),
     })
 

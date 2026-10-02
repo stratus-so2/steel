@@ -76,15 +76,22 @@ function sentryConnectSrc(): string {
  * nas partes dinâmicas.
  *
  * `connect-src` lista **nominalmente** cada serviço que o navegador pode
- * alcançar: Axiom (log e web vitals), jsdelivr (o Scalar em `/docs`),
- * Google Analytics quando `NEXT_PUBLIC_GA_ID` existe, e o Sentry quando há
- * DSN. `va.vercel-scripts.com` saiu junto com o `@vercel/analytics`: os
- * beacons dele postavam em `/_vercel/insights/*` da nossa própria origem, um
- * caminho que só existe na Vercel e aqui respondia 307 para `/sign-in`, então
- * a entrada não protegia nada que fosse coletado.
+ * alcançar: Axiom (log e web vitals), jsdelivr (o Scalar em `/docs`) e o
+ * Sentry quando há DSN. `va.vercel-scripts.com` saiu junto com o
+ * `@vercel/analytics`: os beacons dele postavam em `/_vercel/insights/*` da
+ * nossa própria origem, um caminho que só existe na Vercel e aqui respondia
+ * 307 para `/sign-in`, então a entrada não protegia nada que fosse coletado.
  *
  * O PostHog não adiciona origem nenhuma: ele fala com `/ingest` de mesma
  * origem (ver `next.config.ts`), coberto por `'self'`.
+ *
+ * O **Google Analytics não está liberado em nenhuma diretiva**, e isso é
+ * conhecido: o `@next/third-parties/google` injeta a tag de
+ * `googletagmanager.com` do lado do cliente, depois da hidratação, portanto
+ * sem nonce — e `script-src 'self' 'nonce-…'` a recusa. Na prática o GA não
+ * coleta nada aqui. Fica como está por decisão do dono do produto; a
+ * pendência está registrada nas consequências do ADR 0017 (nomear a origem
+ * ou tirar o GA).
  */
 function buildCspHeader(nonce: string): string {
   return `
