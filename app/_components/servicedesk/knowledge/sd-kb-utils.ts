@@ -7,6 +7,7 @@ import type {
 
 export const SD_KB_STATUS_LABEL: Record<SdKbArticleStatusDTO, string> = {
   DRAFT: 'Rascunho',
+  IN_REVIEW: 'Em revisão',
   PUBLISHED: 'Publicado',
 }
 

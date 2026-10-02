@@ -212,6 +212,62 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
     agentOnly: true,
   },
   {
+    key: 'sla.breach_predicted',
+    kind: 'SD_SLA_BREACH_PREDICTED',
+    label: 'Risco de violar o SLA',
+    description:
+      'A análise preditiva calculou risco alto de o prazo estourar se nada mudar.',
+    audience: ['assignee', 'departmentLeads'],
+    channels: ALL,
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
+  {
+    key: 'problem.cluster_detected',
+    kind: 'SD_PROBLEM_SUGGESTED',
+    label: 'Incidentes repetidos',
+    description:
+      'Vários incidentes parecidos foram agrupados — talvez caiba abrir um problema.',
+    audience: ['departmentLeads'],
+    channels: APP_MAIL,
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
+  {
+    key: 'kb.review_requested',
+    kind: 'SD_KB_REVIEW',
+    label: 'Revisão de artigo pedida',
+    description: 'Alguém pediu sua revisão num artigo da base de conhecimento.',
+    // Sem público: o artigo não é um chamado, então quem notifica é o próprio
+    // serviço de KCS, com o revisor escolhido (igual ao resumo diário).
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: APP_MAIL,
+    agentOnly: true,
+  },
+  {
+    key: 'kb.review_due',
+    kind: 'SD_KB_REVIEW',
+    label: 'Artigo com revisão vencida',
+    description:
+      'A validade de um artigo que você mantém venceu e ele precisa ser revisto.',
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
+  {
+    key: 'report.ready',
+    kind: 'SD_REPORT_READY',
+    label: 'Relatório pronto',
+    description:
+      'Um relatório que você pediu terminou de ser gerado e está disponível.',
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: APP_MAIL,
+    agentOnly: true,
+  },
+  {
     key: SD_DIGEST_EVENT,
     kind: 'SD_DIGEST',
     label: 'Resumo diário',
@@ -255,11 +311,24 @@ export const SD_NOTIFICATION_GROUPS: SdNotificationGroup[] = [
   },
   {
     label: 'SLA e escalonamento',
-    events: ['sla.at_risk', 'sla.breached', 'ticket.escalated'],
+    events: [
+      'sla.at_risk',
+      'sla.breached',
+      'sla.breach_predicted',
+      'ticket.escalated',
+    ],
+  },
+  {
+    label: 'Base de conhecimento',
+    events: ['kb.review_requested', 'kb.review_due'],
   },
   {
     label: 'Aprovações e tarefas',
     events: ['approval.requested', 'approval.responded', 'task.assigned'],
+  },
+  {
+    label: 'Problemas e relatórios',
+    events: ['problem.cluster_detected', 'report.ready'],
   },
   { label: 'Resumos', events: [SD_DIGEST_EVENT] },
 ]

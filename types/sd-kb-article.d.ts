@@ -1,6 +1,6 @@
 import type { Value } from 'platejs'
 
-export type SdKbArticleStatusDTO = 'DRAFT' | 'PUBLISHED'
+export type SdKbArticleStatusDTO = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED'
 export type SdKbVisibilityDTO = 'INTERNAL' | 'PORTAL'
 export type SdKbVoteDTO = 'up' | 'down' | null
 
@@ -32,6 +32,14 @@ export interface SdKbArticleSummaryDTO {
   viewCount: number
   helpfulCount: number
   notHelpfulCount: number
+  /** KCS: quantas vezes o artigo resolveu um chamado. */
+  reuseCount: number
+  /** Chamado que originou o artigo, quando foi criado a partir de um. */
+  sourceTicketId: string | null
+  /** Validade da revisão (em dias) e quando ela cai. */
+  reviewIntervalDays: number | null
+  reviewDueAt: string | null
+  lastReviewedAt: string | null
   publishedAt: string | null
   archivedAt: string | null
   createdAt: string
@@ -75,6 +83,8 @@ export interface SdTicketKbLinkDTO {
   ticketId: string
   article: SdKbArticleSummaryDTO
   linkedById: string | null
+  /** O artigo resolveu este chamado — é o que conta no reuso (KCS). */
+  resolvedTicket: boolean
   createdAt: string
 }
 

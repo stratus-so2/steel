@@ -37,6 +37,11 @@ export function toSdKbArticleSummaryDTO(
     viewCount: article.viewCount,
     helpfulCount: article.helpfulCount,
     notHelpfulCount: article.notHelpfulCount,
+    reuseCount: article.reuseCount,
+    sourceTicketId: article.sourceTicketId,
+    reviewIntervalDays: article.reviewIntervalDays,
+    reviewDueAt: article.reviewDueAt?.toISOString() ?? null,
+    lastReviewedAt: article.lastReviewedAt?.toISOString() ?? null,
     publishedAt: article.publishedAt?.toISOString() ?? null,
     archivedAt: article.archivedAt?.toISOString() ?? null,
     createdAt: article.createdAt.toISOString(),
@@ -90,6 +95,7 @@ export function toSdTicketKbLinkDTO(
     ticketId: link.ticketId,
     article: toSdKbArticleSummaryDTO(link.article),
     linkedById: link.linkedById,
+    resolvedTicket: link.resolvedTicket,
     createdAt: link.createdAt.toISOString(),
   }
 }

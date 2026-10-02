@@ -57,6 +57,9 @@ export const PERMISSION_RESOURCES = [
   'sd-contracts',
   'sd-change-calendar',
   'sd-oncall',
+  // ServiceDesk — relatórios agendados e integrações (Slack/GitHub)
+  'sd-reports',
+  'sd-integrations',
 ] as const
 export type PermissionResource = (typeof PERMISSION_RESOURCES)[number]
 
@@ -114,6 +117,10 @@ const MEMBER_READONLY = new Set<PermissionResource>([
   'sd-settings',
   'sd-channels',
   'sd-contracts',
+  // Agente lê o histórico de relatórios; agendar e definir destinatários é
+  // coisa de admin. Integrações (`sd-integrations`) nem aparecem: conectar
+  // Slack/GitHub exige token do workspace.
+  'sd-reports',
 ])
 
 function fullMatrix(): PermissionMap {

@@ -48,6 +48,7 @@ const link = {
   ticketId: 't1',
   articleId: 'a1',
   linkedById: 'u1',
+  resolvedTicket: false,
   createdAt: new Date(),
   article,
 }

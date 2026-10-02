@@ -36,6 +36,10 @@ export const NOTIFICATION_ICONS = [
   'approval',
   'task',
   'digest',
+  'forecast',
+  'problem',
+  'article',
+  'report',
   'star',
   'chat',
   'deal',
@@ -170,6 +174,30 @@ const NOTIFICATION_KINDS: Record<string, KindEntry> = {
     label: 'Resumo diário',
     icon: 'digest',
     color: 'slate',
+  },
+  SD_SLA_BREACH_PREDICTED: {
+    module: 'SERVICE_DESK',
+    label: 'Risco de violar o SLA',
+    icon: 'forecast',
+    color: 'amber',
+  },
+  SD_PROBLEM_SUGGESTED: {
+    module: 'SERVICE_DESK',
+    label: 'Incidentes repetidos',
+    icon: 'problem',
+    color: 'orange',
+  },
+  SD_KB_REVIEW: {
+    module: 'SERVICE_DESK',
+    label: 'Revisão de artigo',
+    icon: 'article',
+    color: 'indigo',
+  },
+  SD_REPORT_READY: {
+    module: 'SERVICE_DESK',
+    label: 'Relatório pronto',
+    icon: 'report',
+    color: 'sky',
   },
 }
 

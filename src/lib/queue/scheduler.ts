@@ -10,8 +10,11 @@ import {
   DataRetentionJob,
   ServicedeskBillingJob,
   ServicedeskDigestJob,
+  ServicedeskIntegrationsJob,
   ServicedeskMailJob,
   ServicedeskRecurringJob,
+  ServicedeskReportsJob,
+  ServicedeskRiskJob,
   ServicedeskSlaJob,
   StatusCollectJob,
   TrialLifecycleJob,
@@ -29,8 +32,11 @@ import {
   getDataRetentionQueue,
   getServicedeskBillingQueue,
   getServicedeskDigestQueue,
+  getServicedeskIntegrationsQueue,
   getServicedeskMailQueue,
   getServicedeskRecurringQueue,
+  getServicedeskReportsQueue,
+  getServicedeskRiskQueue,
   getServicedeskSlaQueue,
   getStatusCollectQueue,
   getTrialLifecycleQueue,
@@ -48,9 +54,13 @@ import {
   RetentionCron,
   RetentionTimezone,
   ServicedeskBillingCron,
+  ServicedeskClusterCron,
   ServicedeskDigestCron,
+  ServicedeskIntegrationsCron,
   ServicedeskMailCron,
   ServicedeskRecurringCron,
+  ServicedeskReportsCron,
+  ServicedeskRiskCron,
   ServicedeskSlaCron,
   StatusCollectCron,
   UsageRollupCron,
@@ -348,6 +358,57 @@ export async function scheduleServicedeskBillingJobs(): Promise<void> {
   logger.info('queue.scheduler.servicedesk_billing_registered', {
     component: 'Worker',
     pattern: ServicedeskBillingCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskReportsJobs(): Promise<void> {
+  const queue = getServicedeskReportsQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskReportsJob.RunTick,
+    { pattern: ServicedeskReportsCron, tz: RetentionTimezone },
+    { name: ServicedeskReportsJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_reports_registered', {
+    component: 'Worker',
+    pattern: ServicedeskReportsCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskRiskJobs(): Promise<void> {
+  const queue = getServicedeskRiskQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskRiskJob.RecomputeRisk,
+    { pattern: ServicedeskRiskCron, tz: RetentionTimezone },
+    { name: ServicedeskRiskJob.RecomputeRisk, data: {} },
+  )
+  await queue.upsertJobScheduler(
+    ServicedeskRiskJob.ScanClusters,
+    { pattern: ServicedeskClusterCron, tz: RetentionTimezone },
+    { name: ServicedeskRiskJob.ScanClusters, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_risk_registered', {
+    component: 'Worker',
+    pattern: ServicedeskRiskCron,
+    clusterPattern: ServicedeskClusterCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskIntegrationsJobs(): Promise<void> {
+  const queue = getServicedeskIntegrationsQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskIntegrationsJob.SyncGithubState,
+    { pattern: ServicedeskIntegrationsCron, tz: RetentionTimezone },
+    { name: ServicedeskIntegrationsJob.SyncGithubState, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_integrations_registered', {
+    component: 'Worker',
+    pattern: ServicedeskIntegrationsCron,
     timezone: RetentionTimezone,
   })
 }

@@ -995,3 +995,69 @@ export const sdRecurringNotFound = (): AppError =>
 export const sdRecurringScheduleInvalid = (
   message = 'Agenda do chamado recorrente inválida',
 ): AppError => appError('SD_RECURRING_SCHEDULE_INVALID', message)
+
+// ServiceDesk — relatórios agendados, KCS, risco preditivo e integrações
+
+export const sdReportNotFound = (): AppError =>
+  appError('SD_REPORT_NOT_FOUND', 'Relatório não encontrado')
+
+export const sdReportScheduleInvalid = (
+  message = 'Agendamento inválido (verifique dia, hora e fuso)',
+): AppError => appError('SD_REPORT_SCHEDULE_INVALID', message)
+
+export const sdReportRecipientsRequired = (
+  message = 'Informe pelo menos um destinatário para o envio',
+): AppError => appError('SD_REPORT_RECIPIENTS_REQUIRED', message)
+
+export const sdReportRunNotFound = (): AppError =>
+  appError('SD_REPORT_RUN_NOT_FOUND', 'Execução do relatório não encontrada')
+
+export const sdReportGenerationFailed = (
+  message = 'Não foi possível gerar o relatório',
+): AppError => appError('SD_REPORT_GENERATION_FAILED', message)
+
+export const sdKbReviewNotFound = (): AppError =>
+  appError('SD_KB_REVIEW_NOT_FOUND', 'Revisão não encontrada')
+
+export const sdKbReviewClosed = (
+  message = 'Esta revisão já foi decidida',
+): AppError => appError('SD_KB_REVIEW_CLOSED', message)
+
+export const sdKbReviewForbidden = (
+  message = 'Você não pode revisar este artigo',
+): AppError => appError('SD_KB_REVIEW_FORBIDDEN', message)
+
+export const sdRiskPredictionNotFound = (): AppError =>
+  appError(
+    'SD_RISK_PREDICTION_NOT_FOUND',
+    'Ainda não há previsão de risco para este chamado',
+  )
+
+export const sdIncidentClusterNotFound = (): AppError =>
+  appError('SD_INCIDENT_CLUSTER_NOT_FOUND', 'Agrupamento não encontrado')
+
+export const sdIncidentClusterClosed = (
+  message = 'Este agrupamento já foi tratado',
+): AppError => appError('SD_INCIDENT_CLUSTER_CLOSED', message)
+
+export const sdIntegrationNotFound = (): AppError =>
+  appError('SD_INTEGRATION_NOT_FOUND', 'Integração não encontrada')
+
+export const sdIntegrationExists = (
+  message = 'Esta integração já está conectada neste workspace',
+): AppError => appError('SD_INTEGRATION_EXISTS', message)
+
+export const sdIntegrationLinkNotFound = (): AppError =>
+  appError('SD_INTEGRATION_LINK_NOT_FOUND', 'Vínculo não encontrado')
+
+export const sdIntegrationLinkExists = (
+  message = 'Este item já está vinculado ao chamado',
+): AppError => appError('SD_INTEGRATION_LINK_EXISTS', message)
+
+export const sdIntegrationSignatureInvalid = (
+  message = 'Assinatura do webhook inválida',
+): AppError => appError('SD_INTEGRATION_SIGNATURE_INVALID', message)
+
+export const sdIntegrationRequestFailed = (
+  message = 'O serviço externo não respondeu como esperado',
+): AppError => appError('SD_INTEGRATION_REQUEST_FAILED', message)

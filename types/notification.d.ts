@@ -15,6 +15,10 @@ export type NotificationKindDTO =
   | 'SD_TASK_ASSIGNED'
   | 'SD_TICKET_CSAT'
   | 'SD_DIGEST'
+  | 'SD_SLA_BREACH_PREDICTED'
+  | 'SD_PROBLEM_SUGGESTED'
+  | 'SD_KB_REVIEW'
+  | 'SD_REPORT_READY'
 
 export type NotificationModuleDTO =
   | 'SERVICE_DESK'

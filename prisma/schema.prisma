@@ -168,6 +168,12 @@ model User {
   sdOnCallOverridesTaken    SdOnCallOverride[]         @relation("SdOnCallOverrideUser")
   sdOnCallOverridesCreated  SdOnCallOverride[]         @relation("SdOnCallOverrideCreatedBy")
   sdRecurringTicketsCreated SdRecurringTicket[]        @relation("SdRecurringTicketCreatedBy")
+  sdScheduledReportsCreated SdScheduledReport[]        @relation("SdScheduledReportCreatedBy")
+  sdReportRunsRequested     SdReportRun[]              @relation("SdReportRunRequestedBy")
+  sdKbReviewsGiven          SdKbReview[]               @relation("SdKbReviewReviewer")
+  sdIncidentClustersClosed  SdIncidentCluster[]        @relation("SdIncidentClusterDismissedBy")
+  sdIntegrationsCreated     SdIntegration[]            @relation("SdIntegrationCreatedBy")
+  sdIntegrationLinksCreated SdIntegrationLink[]        @relation("SdIntegrationLinkCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -459,6 +465,13 @@ model Workspace {
   sdOnCallOverrides         SdOnCallOverride[]
   sdRecurringTickets        SdRecurringTicket[]
   sdRecurringTicketRuns     SdRecurringTicketRun[]
+  sdScheduledReports        SdScheduledReport[]
+  sdReportRuns              SdReportRun[]
+  sdKbReviews               SdKbReview[]
+  sdTicketRiskPredictions   SdTicketRiskPrediction[]
+  sdIncidentClusters        SdIncidentCluster[]
+  sdIntegrations            SdIntegration[]
+  sdIntegrationLinks        SdIntegrationLink[]
 
   @@index([status])
   @@map("workspaces")
@@ -3566,6 +3579,14 @@ enum NotificationKind {
   SD_TASK_ASSIGNED
   SD_TICKET_CSAT
   SD_DIGEST
+  /// Risco preditivo: o chamado deve violar o SLA se nada mudar.
+  SD_SLA_BREACH_PREDICTED
+  /// Incidentes repetidos agrupados — candidato a abrir um problema.
+  SD_PROBLEM_SUGGESTED
+  /// KCS: revisão de artigo pedida ou vencida.
+  SD_KB_REVIEW
+  /// Relatório agendado pronto para baixar.
+  SD_REPORT_READY
 }
 
 /// Notificação no app (caixa de entrada do usuário no workspace).
@@ -3788,6 +3809,8 @@ enum SdAutomationEvent {
 
 enum SdKbArticleStatus {
   DRAFT
+  /// Em revisão (KCS): escrito, aguardando um revisor aprovar.
+  IN_REVIEW
   PUBLISHED
 }
 
@@ -4561,31 +4584,31 @@ model SdTicket {
   updatedAt                DateTime        @updatedAt @map("updated_at")
   deletedAt                DateTime?       @map("deleted_at")
 
-  workspace              Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  phase                  SdPhase                @relation(fields: [phaseId], references: [id])
-  impact                 SdImpact?              @relation(fields: [impactId], references: [id], onDelete: SetNull)
-  urgency                SdUrgency?             @relation(fields: [urgencyId], references: [id], onDelete: SetNull)
-  priority               SdPriority?            @relation(fields: [priorityId], references: [id], onDelete: SetNull)
-  severity               SdSeverity?            @relation(fields: [severityId], references: [id], onDelete: SetNull)
-  category               SdCategory?            @relation("SdTicketCategory", fields: [categoryId], references: [id], onDelete: SetNull)
-  subcategory            SdCategory?            @relation("SdTicketSubcategory", fields: [subcategoryId], references: [id], onDelete: SetNull)
-  service                SdCategory?            @relation("SdTicketService", fields: [serviceId], references: [id], onDelete: SetNull)
-  classification         SdClassification?      @relation("SdTicketClassification", fields: [classificationId], references: [id], onDelete: SetNull)
-  solutionClassification SdClassification?      @relation("SdTicketSolutionClassification", fields: [solutionClassificationId], references: [id], onDelete: SetNull)
-  customer               SdCustomer?            @relation("SdTicketCustomer", fields: [customerId], references: [id], onDelete: SetNull)
-  company                SdCustomer?            @relation("SdTicketCompany", fields: [companyId], references: [id], onDelete: SetNull)
-  contact                SdContact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  configItem             SdConfigItem?          @relation(fields: [configItemId], references: [id], onDelete: SetNull)
-  department             SdDepartment?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  assignee               User?                  @relation("SdTicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  requester              User?                  @relation("SdTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
-  createdBy              User?                  @relation("SdTicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  template               SdTicketTemplate?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  parent                 SdTicket?              @relation("SdTicketTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children               SdTicket[]             @relation("SdTicketTree")
-  whatsappConversation   WhatsAppConversation?  @relation(fields: [whatsappConversationId], references: [id], onDelete: SetNull)
-  slaPolicy              SdSlaPolicy?           @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
-  contract               SdContract?            @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  workspace              Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  phase                  SdPhase                 @relation(fields: [phaseId], references: [id])
+  impact                 SdImpact?               @relation(fields: [impactId], references: [id], onDelete: SetNull)
+  urgency                SdUrgency?              @relation(fields: [urgencyId], references: [id], onDelete: SetNull)
+  priority               SdPriority?             @relation(fields: [priorityId], references: [id], onDelete: SetNull)
+  severity               SdSeverity?             @relation(fields: [severityId], references: [id], onDelete: SetNull)
+  category               SdCategory?             @relation("SdTicketCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory            SdCategory?             @relation("SdTicketSubcategory", fields: [subcategoryId], references: [id], onDelete: SetNull)
+  service                SdCategory?             @relation("SdTicketService", fields: [serviceId], references: [id], onDelete: SetNull)
+  classification         SdClassification?       @relation("SdTicketClassification", fields: [classificationId], references: [id], onDelete: SetNull)
+  solutionClassification SdClassification?       @relation("SdTicketSolutionClassification", fields: [solutionClassificationId], references: [id], onDelete: SetNull)
+  customer               SdCustomer?             @relation("SdTicketCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  company                SdCustomer?             @relation("SdTicketCompany", fields: [companyId], references: [id], onDelete: SetNull)
+  contact                SdContact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  configItem             SdConfigItem?           @relation(fields: [configItemId], references: [id], onDelete: SetNull)
+  department             SdDepartment?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignee               User?                   @relation("SdTicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  requester              User?                   @relation("SdTicketRequester", fields: [requesterId], references: [id], onDelete: SetNull)
+  createdBy              User?                   @relation("SdTicketCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  template               SdTicketTemplate?       @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  parent                 SdTicket?               @relation("SdTicketTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children               SdTicket[]              @relation("SdTicketTree")
+  whatsappConversation   WhatsAppConversation?   @relation(fields: [whatsappConversationId], references: [id], onDelete: SetNull)
+  slaPolicy              SdSlaPolicy?            @relation(fields: [slaPolicyId], references: [id], onDelete: SetNull)
+  contract               SdContract?             @relation(fields: [contractId], references: [id], onDelete: SetNull)
   participants           SdTicketParticipant[]
   messages               SdTicketMessage[]
   attachments            SdTicketAttachment[]
@@ -4603,6 +4626,9 @@ model SdTicket {
   timeEntries            SdTimeEntry[]
   approvalRounds         SdApprovalRound[]
   recurringRuns          SdRecurringTicketRun[]
+  riskPrediction         SdTicketRiskPrediction?
+  integrationLinks       SdIntegrationLink[]
+  kbArticlesOriginated   SdKbArticle[]           @relation("SdKbArticleSourceTicket")
 
   @@unique([workspaceId, number])
   @@index([workspaceId, type, phaseId])
@@ -4898,41 +4924,53 @@ model SdSavedView {
 /// Base de conhecimento (port da Wiki do Nexo + publicação no portal,
 /// vínculo com categoria e avaliação de utilidade).
 model SdKbArticle {
-  id              String            @id @default(cuid())
-  workspaceId     String            @map("workspace_id")
-  parentId        String?           @map("parent_id")
-  title           String
-  icon            String?
-  coverImage      String?           @map("cover_image")
-  content         Json
+  id                 String            @id @default(cuid())
+  workspaceId        String            @map("workspace_id")
+  parentId           String?           @map("parent_id")
+  title              String
+  icon               String?
+  coverImage         String?           @map("cover_image")
+  content            Json
   /// Texto plano extraído do conteúdo (busca e contexto da IA).
-  plainText       String            @default("") @map("plain_text")
-  status          SdKbArticleStatus @default(DRAFT)
-  visibility      SdKbVisibility    @default(INTERNAL)
-  categoryId      String?           @map("category_id")
-  tags            String[]          @default([])
-  position        Int               @default(0)
-  viewCount       Int               @default(0) @map("view_count")
-  helpfulCount    Int               @default(0) @map("helpful_count")
-  notHelpfulCount Int               @default(0) @map("not_helpful_count")
-  publishedAt     DateTime?         @map("published_at")
-  createdById     String?           @map("created_by_id")
-  updatedById     String?           @map("updated_by_id")
-  archivedAt      DateTime?         @map("archived_at")
-  createdAt       DateTime          @default(now()) @map("created_at")
-  updatedAt       DateTime          @updatedAt @map("updated_at")
+  plainText          String            @default("") @map("plain_text")
+  status             SdKbArticleStatus @default(DRAFT)
+  visibility         SdKbVisibility    @default(INTERNAL)
+  categoryId         String?           @map("category_id")
+  tags               String[]          @default([])
+  position           Int               @default(0)
+  viewCount          Int               @default(0) @map("view_count")
+  helpfulCount       Int               @default(0) @map("helpful_count")
+  notHelpfulCount    Int               @default(0) @map("not_helpful_count")
+  /// KCS: quantas vezes o artigo foi usado para resolver um chamado.
+  reuseCount         Int               @default(0) @map("reuse_count")
+  /// Chamado que originou o artigo ("criar documento a partir deste chamado").
+  sourceTicketId     String?           @map("source_ticket_id")
+  /// Validade: de quanto em quanto tempo o artigo deve ser revisado e quando
+  /// cai a próxima revisão (`null` = sem validade definida).
+  reviewIntervalDays Int?              @map("review_interval_days")
+  reviewDueAt        DateTime?         @map("review_due_at")
+  lastReviewedAt     DateTime?         @map("last_reviewed_at")
+  publishedAt        DateTime?         @map("published_at")
+  createdById        String?           @map("created_by_id")
+  updatedById        String?           @map("updated_by_id")
+  archivedAt         DateTime?         @map("archived_at")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
 
-  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  parent      SdKbArticle?     @relation("SdKbArticleTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children    SdKbArticle[]    @relation("SdKbArticleTree")
-  category    SdCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  createdBy   User?            @relation("SdKbArticleAuthor", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy   User?            @relation("SdKbArticleEditor", fields: [updatedById], references: [id], onDelete: SetNull)
-  comments    SdKbComment[]
-  ticketLinks SdTicketKbLink[]
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent       SdKbArticle?     @relation("SdKbArticleTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     SdKbArticle[]    @relation("SdKbArticleTree")
+  category     SdCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy    User?            @relation("SdKbArticleAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy    User?            @relation("SdKbArticleEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  sourceTicket SdTicket?        @relation("SdKbArticleSourceTicket", fields: [sourceTicketId], references: [id], onDelete: SetNull)
+  comments     SdKbComment[]
+  ticketLinks  SdTicketKbLink[]
+  reviews      SdKbReview[]
 
   @@index([workspaceId, parentId])
   @@index([workspaceId, status, visibility])
+  @@index([workspaceId, reviewDueAt])
   @@map("sd_kb_articles")
 }
 
@@ -4961,10 +4999,12 @@ model SdKbComment {
 
 /// Artigo usado/sugerido num chamado (KCS: medir reuso do conhecimento).
 model SdTicketKbLink {
-  ticketId   String   @map("ticket_id")
-  articleId  String   @map("article_id")
-  linkedById String?  @map("linked_by_id")
-  createdAt  DateTime @default(now()) @map("created_at")
+  ticketId       String   @map("ticket_id")
+  articleId      String   @map("article_id")
+  linkedById     String?  @map("linked_by_id")
+  /// O artigo resolveu este chamado — é o que conta no reuso (KCS).
+  resolvedTicket Boolean  @default(false) @map("resolved_ticket")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   ticket  SdTicket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   article SdKbArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
@@ -5707,4 +5747,259 @@ model SdRecurringTicketRun {
   @@unique([recurringId, scheduledFor])
   @@index([workspaceId, createdAt])
   @@map("sd_recurring_ticket_runs")
+}
+
+// ============================================================================
+// ServiceDesk — Leva 3 de features: relatório de SLA agendado, KCS (ciclo de
+// vida do artigo), IA preditiva de risco e integrações (Slack e GitHub).
+// Ver docs/servicedesk/README.md.
+// ============================================================================
+
+enum SdReportKind {
+  SLA
+}
+
+enum SdReportFormat {
+  PDF
+  CSV
+}
+
+enum SdReportPeriod {
+  LAST_MONTH
+  LAST_WEEK
+  CURRENT_MONTH
+  LAST_30_DAYS
+  LAST_90_DAYS
+}
+
+/// Relatório agendado (hoje só SLA): o que medir, de quem, em que período e
+/// para quem mandar. Destinatários são e-mails livres — internos ou do
+/// cliente — porque nem todo mundo que recebe tem conta no Steel.
+model SdScheduledReport {
+  id                   String           @id @default(cuid())
+  workspaceId          String           @map("workspace_id")
+  name                 String
+  kind                 SdReportKind     @default(SLA)
+  /// Recorte: clientes, departamentos e tipos (vazio = todos).
+  customerIds          String[]         @default([]) @map("customer_ids")
+  departmentIds        String[]         @default([]) @map("department_ids")
+  ticketTypes          SdTicketType[]   @default([]) @map("ticket_types")
+  period               SdReportPeriod   @default(LAST_MONTH)
+  formats              SdReportFormat[] @default([PDF, CSV])
+  /// Dia do mês (1–28) e hora local do envio, no fuso do relatório.
+  dayOfMonth           Int              @default(1) @map("day_of_month")
+  atTime               String           @default("07:00") @map("at_time")
+  timezone             String           @default("America/Sao_Paulo")
+  recipients           String[]         @default([])
+  /// Manda uma cópia para o responsável de cada cliente do recorte.
+  includeAccountOwners Boolean          @default(false) @map("include_account_owners")
+  active               Boolean          @default(true)
+  lastRunAt            DateTime?        @map("last_run_at")
+  nextRunAt            DateTime?        @map("next_run_at")
+  createdById          String           @map("created_by_id")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  deletedAt            DateTime?        @map("deleted_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User          @relation("SdScheduledReportCreatedBy", fields: [createdById], references: [id])
+  runs      SdReportRun[]
+
+  @@index([workspaceId, active, nextRunAt])
+  @@map("sd_scheduled_reports")
+}
+
+enum SdReportRunStatus {
+  GENERATED
+  SENT
+  FAILED
+}
+
+/// Execução de um relatório: o recorte apurado, onde o arquivo foi parar e
+/// para quem foi enviado. Também é a trava de idempotência do agendamento.
+model SdReportRun {
+  id            String            @id @default(cuid())
+  workspaceId   String            @map("workspace_id")
+  reportId      String?           @map("report_id")
+  kind          SdReportKind      @default(SLA)
+  status        SdReportRunStatus @default(GENERATED)
+  periodStart   DateTime          @map("period_start")
+  periodEnd     DateTime          @map("period_end")
+  /// Resumo apurado (total, dentro do prazo, violados, MTTR, CSAT…), já
+  /// pronto para a tela de histórico não ter de recalcular.
+  summary       Json?
+  /// Chaves no MinIO (bucket `servicedesk`), por formato.
+  pdfKey        String?           @map("pdf_key")
+  csvKey        String?           @map("csv_key")
+  recipients    String[]          @default([])
+  sentAt        DateTime?         @map("sent_at")
+  error         String?
+  requestedById String?           @map("requested_by_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  report      SdScheduledReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  requestedBy User?              @relation("SdReportRunRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([reportId, periodStart])
+  @@map("sd_report_runs")
+}
+
+enum SdKbReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+/// Revisão de artigo (KCS): quem revisou, o que decidiu e quando o artigo
+/// precisa ser olhado de novo.
+model SdKbReview {
+  id          String           @id @default(cuid())
+  workspaceId String           @map("workspace_id")
+  articleId   String           @map("article_id")
+  reviewerId  String?          @map("reviewer_id")
+  status      SdKbReviewStatus @default(PENDING)
+  comment     String?
+  decidedAt   DateTime?        @map("decided_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  article   SdKbArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  reviewer  User?       @relation("SdKbReviewReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([articleId, createdAt])
+  @@index([workspaceId, status])
+  @@map("sd_kb_reviews")
+}
+
+enum SdRiskLevelPrediction {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Previsão de risco de violação de SLA de um chamado. Heurística
+/// explicável: `factors` guarda o porquê (prazo consumido, fila, prioridade,
+/// reaberturas…), para a tela mostrar a razão e não só a nota.
+model SdTicketRiskPrediction {
+  id          String                @id @default(cuid())
+  workspaceId String                @map("workspace_id")
+  ticketId    String                @unique @map("ticket_id")
+  level       SdRiskLevelPrediction @default(LOW)
+  /// 0–100: quanto maior, mais perto de violar.
+  score       Int                   @default(0)
+  /// [{"key":"sla_consumed","label":"…","weight":30,"detail":"…"}]
+  factors     Json                  @default("[]")
+  /// Previsão de quando o prazo estoura, se nada mudar.
+  breachEtaAt DateTime?             @map("breach_eta_at")
+  computedAt  DateTime              @default(now()) @map("computed_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, level, score])
+  @@map("sd_ticket_risk_predictions")
+}
+
+/// Grupo de incidentes parecidos detectado pela análise (candidato a virar
+/// um problema). `signature` é a chave de agrupamento (categoria + termos).
+model SdIncidentCluster {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  signature       String
+  title           String
+  ticketIds       String[]  @default([]) @map("ticket_ids")
+  ticketCount     Int       @default(0) @map("ticket_count")
+  firstSeenAt     DateTime  @map("first_seen_at")
+  lastSeenAt      DateTime  @map("last_seen_at")
+  /// Problema aberto a partir do grupo, quando o agente aceita a sugestão.
+  problemTicketId String?   @map("problem_ticket_id")
+  dismissedAt     DateTime? @map("dismissed_at")
+  dismissedById   String?   @map("dismissed_by_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  dismissedBy User?     @relation("SdIncidentClusterDismissedBy", fields: [dismissedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, signature])
+  @@index([workspaceId, lastSeenAt])
+  @@map("sd_incident_clusters")
+}
+
+enum SdIntegrationKind {
+  SLACK
+  GITHUB
+}
+
+enum SdIntegrationStatus {
+  ACTIVE
+  ERROR
+  DISCONNECTED
+}
+
+/// Integração do módulo com Slack ou GitHub. Segredos cifrados com
+/// `CONNECTION_SECRETS`, como as demais conexões do produto.
+model SdIntegration {
+  id                     String              @id @default(cuid())
+  workspaceId            String              @map("workspace_id")
+  kind                   SdIntegrationKind
+  status                 SdIntegrationStatus @default(ACTIVE)
+  statusError            String?             @map("status_error")
+  /// Identificação externa: workspace do Slack ou dono/repositório no GitHub.
+  externalId             String              @map("external_id")
+  externalName           String?             @map("external_name")
+  encryptedToken         String              @map("encrypted_token")
+  /// Segredo de assinatura do webhook recebido (Slack/GitHub).
+  encryptedSigningSecret String?             @map("encrypted_signing_secret")
+  /// Preferências da integração (canais por departamento, eventos, filtros).
+  config                 Json                @default("{}")
+  createdById            String              @map("created_by_id")
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  deletedAt              DateTime?           @map("deleted_at")
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                @relation("SdIntegrationCreatedBy", fields: [createdById], references: [id])
+  links     SdIntegrationLink[]
+
+  @@unique([workspaceId, kind, externalId])
+  @@index([workspaceId, kind])
+  @@map("sd_integrations")
+}
+
+enum SdIntegrationLinkKind {
+  SLACK_THREAD
+  GITHUB_ISSUE
+  GITHUB_PULL_REQUEST
+}
+
+/// Vínculo entre um chamado e algo externo: a thread do Slack que o
+/// acompanha, ou a issue/PR do GitHub que o resolve.
+model SdIntegrationLink {
+  id            String                @id @default(cuid())
+  workspaceId   String                @map("workspace_id")
+  integrationId String                @map("integration_id")
+  ticketId      String                @map("ticket_id")
+  kind          SdIntegrationLinkKind
+  /// Canal + timestamp da thread (Slack) ou número da issue/PR (GitHub).
+  externalKey   String                @map("external_key")
+  externalUrl   String?               @map("external_url")
+  /// Último estado conhecido do lado de lá (open, merged, closed…).
+  externalState String?               @map("external_state")
+  meta          Json?
+  createdById   String?               @map("created_by_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  integration SdIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  ticket      SdTicket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdBy   User?         @relation("SdIntegrationLinkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([integrationId, kind, externalKey])
+  @@index([ticketId])
+  @@map("sd_integration_links")
 }

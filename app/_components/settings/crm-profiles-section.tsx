@@ -66,6 +66,12 @@ const RESOURCE_LABEL: Record<string, string> = {
   'sd-dashboards': 'ServiceDesk · Painéis',
   'sd-portal': 'ServiceDesk · Portal do solicitante',
   'sd-settings': 'ServiceDesk · Configurações',
+  'sd-channels': 'ServiceDesk · Canais de entrada',
+  'sd-contracts': 'ServiceDesk · Contratos e horas',
+  'sd-change-calendar': 'ServiceDesk · Calendário de mudanças',
+  'sd-oncall': 'ServiceDesk · Plantão',
+  'sd-reports': 'ServiceDesk · Relatórios agendados',
+  'sd-integrations': 'ServiceDesk · Integrações (Slack e GitHub)',
 }
 
 const ACTION_LABEL: Record<PermissionAction, string> = {

@@ -25,6 +25,9 @@ export const QueueName = {
   ServicedeskDigest: 'servicedesk-digest',
   ServicedeskRecurring: 'servicedesk-recurring',
   ServicedeskBilling: 'servicedesk-billing',
+  ServicedeskReports: 'servicedesk-reports',
+  ServicedeskRisk: 'servicedesk-risk',
+  ServicedeskIntegrations: 'servicedesk-integrations',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -449,4 +452,81 @@ export type ServicedeskBillingJob =
 
 export type ServicedeskBillingJobPayload = {
   [ServicedeskBillingJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Relatórios agendados do ServiceDesk (`SdReportService`). O tick horário
+ * procura os agendamentos com `nextRunAt` vencido e enfileira um
+ * `generate-report` por agendamento; `generate-report` apura o período, grava
+ * PDF/CSV no MinIO e manda o e-mail para os destinatários. Idempotente por
+ * `(reportId, periodStart)` — a execução é registrada em `SdReportRun`.
+ * `reportId` ausente = relatório sob demanda (`requestedById` preenchido).
+ */
+export const ServicedeskReportsJob = {
+  RunTick: 'run-tick',
+  GenerateReport: 'generate-report',
+} as const
+
+export type ServicedeskReportsJob =
+  (typeof ServicedeskReportsJob)[keyof typeof ServicedeskReportsJob]
+
+export type ServicedeskReportsJobPayload = {
+  [ServicedeskReportsJob.RunTick]: Record<string, never>
+  [ServicedeskReportsJob.GenerateReport]: {
+    workspaceId: string
+    reportId?: string
+    /** Sob demanda: quem pediu (recebe o link quando fica pronto). */
+    requestedById?: string
+    periodStart?: string
+    periodEnd?: string
+    /** Sobrepõe os destinatários do agendamento (envio pontual). */
+    recipients?: string[]
+  }
+}
+
+/**
+ * Análise preditiva do ServiceDesk (`SdRiskService`, heurística explicável —
+ * sem modelo treinado). `recompute-risk` recalcula o risco de violação de
+ * SLA dos chamados abertos de um workspace (a cada 10 min); `scan-clusters`
+ * agrupa incidentes parecidos e sugere abrir um problema (de hora em hora).
+ * Sem `workspaceId` o tick varre todos os workspaces com o módulo ligado.
+ */
+export const ServicedeskRiskJob = {
+  RecomputeRisk: 'recompute-risk',
+  ScanClusters: 'scan-clusters',
+} as const
+
+export type ServicedeskRiskJob =
+  (typeof ServicedeskRiskJob)[keyof typeof ServicedeskRiskJob]
+
+export type ServicedeskRiskJobPayload = {
+  [ServicedeskRiskJob.RecomputeRisk]: { workspaceId?: string }
+  [ServicedeskRiskJob.ScanClusters]: { workspaceId?: string }
+}
+
+/**
+ * Saída para Slack e GitHub (`SdIntegrationDispatcher`). Fica em fila
+ * própria porque depende de serviço externo: uma indisponibilidade do Slack
+ * não pode atrasar o SLA nem o e-mail. `sync-github-state` reconcilia o
+ * estado das issues/PRs vinculadas (de hora em hora), para o caso de um
+ * webhook ter sido perdido.
+ */
+export const ServicedeskIntegrationsJob = {
+  DeliverEvent: 'deliver-event',
+  SyncGithubState: 'sync-github-state',
+} as const
+
+export type ServicedeskIntegrationsJob =
+  (typeof ServicedeskIntegrationsJob)[keyof typeof ServicedeskIntegrationsJob]
+
+export type ServicedeskIntegrationsJobPayload = {
+  [ServicedeskIntegrationsJob.DeliverEvent]: {
+    workspaceId: string
+    integrationId: string
+    /** Chave do catálogo de notificações (`SD_NOTIFICATION_EVENTS`). */
+    event: string
+    ticketId?: string
+    payload?: Record<string, unknown>
+  }
+  [ServicedeskIntegrationsJob.SyncGithubState]: { workspaceId?: string }
 }

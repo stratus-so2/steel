@@ -30,10 +30,16 @@ import {
   type ServicedeskBillingJobPayload,
   type ServicedeskDigestJob,
   type ServicedeskDigestJobPayload,
+  type ServicedeskIntegrationsJob,
+  type ServicedeskIntegrationsJobPayload,
   type ServicedeskMailJob,
   type ServicedeskMailJobPayload,
   type ServicedeskRecurringJob,
   type ServicedeskRecurringJobPayload,
+  type ServicedeskReportsJob,
+  type ServicedeskReportsJobPayload,
+  type ServicedeskRiskJob,
+  type ServicedeskRiskJobPayload,
   type ServicedeskSlaJob,
   type ServicedeskSlaJobPayload,
   type StatusCollectJob,
@@ -89,6 +95,9 @@ let servicedeskMailQueue: Queue | null = null
 let servicedeskDigestQueue: Queue | null = null
 let servicedeskRecurringQueue: Queue | null = null
 let servicedeskBillingQueue: Queue | null = null
+let servicedeskReportsQueue: Queue | null = null
+let servicedeskRiskQueue: Queue | null = null
+let servicedeskIntegrationsQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -605,6 +614,73 @@ export function getServicedeskBillingQueue(): Queue<
   >
 }
 
+/**
+ * Relatórios agendados: três tentativas. Gerar PDF e subir no MinIO pode
+ * falhar por rede, e a trava `(reportId, periodStart)` evita mandar o mesmo
+ * relatório duas vezes se a tentativa anterior já tinha enviado.
+ */
+export function getServicedeskReportsQueue(): Queue<
+  ServicedeskReportsJobPayload[ServicedeskReportsJob],
+  unknown,
+  ServicedeskReportsJob
+> {
+  if (!servicedeskReportsQueue) {
+    servicedeskReportsQueue = new Queue(QueueName.ServicedeskReports, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return servicedeskReportsQueue as Queue<
+    ServicedeskReportsJobPayload[ServicedeskReportsJob],
+    unknown,
+    ServicedeskReportsJob
+  >
+}
+
+/**
+ * Análise preditiva: uma tentativa só. É recálculo periódico — se falhar, o
+ * próximo tick (10 min) refaz tudo do zero.
+ */
+export function getServicedeskRiskQueue(): Queue<
+  ServicedeskRiskJobPayload[ServicedeskRiskJob],
+  unknown,
+  ServicedeskRiskJob
+> {
+  if (!servicedeskRiskQueue) {
+    servicedeskRiskQueue = new Queue(QueueName.ServicedeskRisk, {
+      connection: getQueueConnection(),
+      defaultJobOptions: { ...defaultJobOptions, attempts: 1 },
+    })
+  }
+  return servicedeskRiskQueue as Queue<
+    ServicedeskRiskJobPayload[ServicedeskRiskJob],
+    unknown,
+    ServicedeskRiskJob
+  >
+}
+
+/**
+ * Saída para Slack/GitHub: mantém as três tentativas com backoff do padrão,
+ * que é justamente o caso de uso (instabilidade momentânea do provedor).
+ */
+export function getServicedeskIntegrationsQueue(): Queue<
+  ServicedeskIntegrationsJobPayload[ServicedeskIntegrationsJob],
+  unknown,
+  ServicedeskIntegrationsJob
+> {
+  if (!servicedeskIntegrationsQueue) {
+    servicedeskIntegrationsQueue = new Queue(
+      QueueName.ServicedeskIntegrations,
+      { connection: getQueueConnection(), defaultJobOptions },
+    )
+  }
+  return servicedeskIntegrationsQueue as Queue<
+    ServicedeskIntegrationsJobPayload[ServicedeskIntegrationsJob],
+    unknown,
+    ServicedeskIntegrationsJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -633,6 +709,9 @@ export async function closeQueues(): Promise<void> {
     servicedeskDigestQueue?.close(),
     servicedeskRecurringQueue?.close(),
     servicedeskBillingQueue?.close(),
+    servicedeskReportsQueue?.close(),
+    servicedeskRiskQueue?.close(),
+    servicedeskIntegrationsQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -659,4 +738,7 @@ export async function closeQueues(): Promise<void> {
   servicedeskDigestQueue = null
   servicedeskRecurringQueue = null
   servicedeskBillingQueue = null
+  servicedeskReportsQueue = null
+  servicedeskRiskQueue = null
+  servicedeskIntegrationsQueue = null
 }

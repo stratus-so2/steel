@@ -550,6 +550,57 @@ export const ERROR_CODES = {
     status: 422,
   },
 
+  // ServiceDesk — relatórios agendados, KCS, risco preditivo e integrações
+  SD_REPORT_NOT_FOUND: { code: 'SD_REPORT_NOT_FOUND', status: 404 },
+  SD_REPORT_SCHEDULE_INVALID: {
+    code: 'SD_REPORT_SCHEDULE_INVALID',
+    status: 422,
+  },
+  SD_REPORT_RECIPIENTS_REQUIRED: {
+    code: 'SD_REPORT_RECIPIENTS_REQUIRED',
+    status: 422,
+  },
+  SD_REPORT_RUN_NOT_FOUND: { code: 'SD_REPORT_RUN_NOT_FOUND', status: 404 },
+  SD_REPORT_GENERATION_FAILED: {
+    code: 'SD_REPORT_GENERATION_FAILED',
+    status: 500,
+  },
+  SD_KB_REVIEW_NOT_FOUND: { code: 'SD_KB_REVIEW_NOT_FOUND', status: 404 },
+  SD_KB_REVIEW_CLOSED: { code: 'SD_KB_REVIEW_CLOSED', status: 409 },
+  SD_KB_REVIEW_FORBIDDEN: { code: 'SD_KB_REVIEW_FORBIDDEN', status: 403 },
+  SD_RISK_PREDICTION_NOT_FOUND: {
+    code: 'SD_RISK_PREDICTION_NOT_FOUND',
+    status: 404,
+  },
+  SD_INCIDENT_CLUSTER_NOT_FOUND: {
+    code: 'SD_INCIDENT_CLUSTER_NOT_FOUND',
+    status: 404,
+  },
+  SD_INCIDENT_CLUSTER_CLOSED: {
+    code: 'SD_INCIDENT_CLUSTER_CLOSED',
+    status: 409,
+  },
+  SD_INTEGRATION_NOT_FOUND: { code: 'SD_INTEGRATION_NOT_FOUND', status: 404 },
+  SD_INTEGRATION_EXISTS: { code: 'SD_INTEGRATION_EXISTS', status: 409 },
+  SD_INTEGRATION_LINK_NOT_FOUND: {
+    code: 'SD_INTEGRATION_LINK_NOT_FOUND',
+    status: 404,
+  },
+  SD_INTEGRATION_LINK_EXISTS: {
+    code: 'SD_INTEGRATION_LINK_EXISTS',
+    status: 409,
+  },
+  SD_INTEGRATION_SIGNATURE_INVALID: {
+    code: 'SD_INTEGRATION_SIGNATURE_INVALID',
+    status: 401,
+  },
+  // O Slack/GitHub recusou ou não respondeu: 502 porque a falha é do lado de
+  // lá e a operação pode ser repetida.
+  SD_INTEGRATION_REQUEST_FAILED: {
+    code: 'SD_INTEGRATION_REQUEST_FAILED',
+    status: 502,
+  },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

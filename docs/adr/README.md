@@ -34,3 +34,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0013 | [RBAC por perfil (recurso × ação) com negação por padrão](./0013-rbac-profiles-deny-by-default.md) | Aceita | anterior a 2026-09 |
 | 0014 | [Storage S3 na imagem Silo (fork do MinIO)](./0014-minio-replaced-by-silo-fork.md) | Aceita | 2026-10-01 |
 | 0015 | [Suíte dividida em projetos e piso de cobertura de 95%](./0015-test-projects-and-coverage-floor.md) | Aceita | 2026-09-19 |
+| 0016 | [Risco preditivo por heurística explicável, não por modelo treinado](./0016-predictive-risk-explainable-heuristic.md) | Aceita | 2026-10-02 |

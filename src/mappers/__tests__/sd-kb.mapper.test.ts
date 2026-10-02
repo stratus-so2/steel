@@ -89,12 +89,14 @@ describe('sd-kb-article mapper', () => {
         ticketId: 't1',
         articleId: article.id,
         linkedById: 'u1',
+        resolvedTicket: false,
         createdAt,
         article,
       }),
     ).toMatchObject({
       ticketId: 't1',
       linkedById: 'u1',
+      resolvedTicket: false,
       createdAt: createdAt.toISOString(),
       article: { id: article.id },
     })

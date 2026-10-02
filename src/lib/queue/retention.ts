@@ -55,6 +55,32 @@ export const ServicedeskRecurringCron = '*/5 * * * *' as const
  */
 export const ServicedeskBillingCron = '20 0 * * *' as const
 
+/**
+ * Relatórios agendados do ServiceDesk: de hora em hora, aos 10 minutos. O
+ * agendamento guarda dia, hora e fuso próprios, então o tick só precisa
+ * acordar com frequência suficiente para acertar a hora local de cada um.
+ */
+export const ServicedeskReportsCron = '10 * * * *' as const
+
+/**
+ * Risco de violação de SLA: a cada 10 minutos. Mais frequente que isso só
+ * recalcularia a mesma coisa — o selo no quadro muda de faixa em escala de
+ * minutos, não de segundos.
+ */
+export const ServicedeskRiskCron = '*/10 * * * *' as const
+
+/**
+ * Agrupamento de incidentes repetidos (candidatos a problema): de hora em
+ * hora, aos 25 minutos, longe do tick de relatórios.
+ */
+export const ServicedeskClusterCron = '25 * * * *' as const
+
+/**
+ * Reconciliação do estado das issues/PRs vinculadas no GitHub: de hora em
+ * hora, aos 40 minutos. É rede de segurança para webhook perdido.
+ */
+export const ServicedeskIntegrationsCron = '40 * * * *' as const
+
 /** Frequência do tick que dispara destinatários de broadcast agendados. */
 export const WhatsappBroadcastScheduleCron = '*/5 * * * *' as const
 

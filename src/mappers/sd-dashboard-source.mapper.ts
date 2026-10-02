@@ -77,6 +77,7 @@ const ACTOR_KIND_LABELS: Record<SdMessageAuthorKind, string> = {
 
 const KB_STATUS_LABELS: Record<SdKbArticleStatus, string> = {
   DRAFT: 'Rascunho',
+  IN_REVIEW: 'Em revisão',
   PUBLISHED: 'Publicado',
 }
 
