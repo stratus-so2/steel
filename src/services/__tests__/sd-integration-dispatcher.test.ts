@@ -178,6 +178,20 @@ describe('SdIntegrationDispatcher.dispatch', () => {
       'servicedesk.integration.dispatch_failed',
       expect.objectContaining({ message: 'redis caiu' }),
     )
+
+    repo.findByKind.mockRejectedValue('texto cru')
+    await expect(
+      SdIntegrationDispatcher.dispatch({
+        workspaceId: WS,
+        event: 'sla.breached',
+        ticket,
+        payload,
+      }),
+    ).resolves.toBeUndefined()
+    expect(logger.warn).toHaveBeenLastCalledWith(
+      'servicedesk.integration.dispatch_failed',
+      expect.objectContaining({ message: 'texto cru' }),
+    )
   })
 })
 

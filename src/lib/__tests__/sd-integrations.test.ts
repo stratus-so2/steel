@@ -295,19 +295,28 @@ describe('parseSdGithubRepo', () => {
     })
   })
 
-  it.each([[''], ['   '], ['steel'], ['a/b/c'], ['own er/repo'], ['owner/']])(
-    'recusa %s',
-    (input) => {
-      expect(parseSdGithubRepo(input)).toBeNull()
-    },
-  )
+  it.each([
+    [''],
+    ['   '],
+    ['steel'],
+    ['a/b/c'],
+    ['own er/repo'],
+    ['owner/'],
+  ])('recusa %s', (input) => {
+    expect(parseSdGithubRepo(input)).toBeNull()
+  })
 })
 
 describe('parseSdGithubItemRef', () => {
   it('reconhece URL de issue e de pull request', () => {
     expect(
       parseSdGithubItemRef('https://github.com/owner/repo/issues/42'),
-    ).toEqual({ owner: 'owner', repo: 'repo', number: 42, kind: 'GITHUB_ISSUE' })
+    ).toEqual({
+      owner: 'owner',
+      repo: 'repo',
+      number: 42,
+      kind: 'GITHUB_ISSUE',
+    })
     expect(
       parseSdGithubItemRef('https://github.com/owner/repo/pull/7#issuecomment'),
     ).toEqual({
@@ -339,12 +348,15 @@ describe('parseSdGithubItemRef', () => {
     })
   })
 
-  it.each([[''], ['#0'], ['abc'], ['owner/repo'], ['owner/repo#']])(
-    'recusa %s',
-    (input) => {
-      expect(parseSdGithubItemRef(input)).toBeNull()
-    },
-  )
+  it.each([
+    [''],
+    ['#0'],
+    ['abc'],
+    ['owner/repo'],
+    ['owner/repo#'],
+  ])('recusa %s', (input) => {
+    expect(parseSdGithubItemRef(input)).toBeNull()
+  })
 })
 
 describe('chaves externas', () => {
@@ -468,9 +480,7 @@ describe('textos enviados', () => {
   })
 
   it('tira o título da primeira linha e corta o que é longo', () => {
-    expect(sdSlackTicketTitle('Primeira linha\nsegunda')).toBe(
-      'Primeira linha',
-    )
+    expect(sdSlackTicketTitle('Primeira linha\nsegunda')).toBe('Primeira linha')
     expect(sdSlackTicketTitle('   ')).toBe('Chamado aberto pelo Slack')
     const long = sdSlackTicketTitle('a'.repeat(200))
     expect(long).toHaveLength(120)

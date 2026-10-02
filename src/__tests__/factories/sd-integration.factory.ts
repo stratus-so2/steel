@@ -1,9 +1,5 @@
 import { createId } from '@paralleldrive/cuid2'
-import type {
-  Prisma,
-  SdIntegration,
-  SdIntegrationLink,
-} from '@prisma/client'
+import type { Prisma, SdIntegration, SdIntegrationLink } from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 
 /**

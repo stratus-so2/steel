@@ -70,9 +70,9 @@ describe('UpdateSdSlackConfigSchema', () => {
     expect(
       UpdateSdSlackConfigSchema.parse({ mirrorThreadReplies: false }),
     ).toEqual({ mirrorThreadReplies: false })
-    expect(
-      UpdateSdSlackConfigSchema.parse({ departmentId: null }),
-    ).toEqual({ departmentId: null })
+    expect(UpdateSdSlackConfigSchema.parse({ departmentId: null })).toEqual({
+      departmentId: null,
+    })
   })
 
   it('recusa corpo vazio, tipo inválido e evento sem nome', () => {
@@ -174,8 +174,7 @@ describe('vínculos', () => {
       ticketId: 't1',
     })
     expect(
-      CreateSdGithubIssueSchema.parse({ ticketId: 't1', title: 'Outro' })
-        .title,
+      CreateSdGithubIssueSchema.parse({ ticketId: 't1', title: 'Outro' }).title,
     ).toBe('Outro')
     expect(
       CreateSdGithubIssueSchema.safeParse({ ticketId: 't1', title: '' })

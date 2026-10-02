@@ -70,12 +70,19 @@ describe('enqueueSdGithubStateSync', () => {
     )
   })
 
-  it('falha ao enfileirar não lança', async () => {
+  it('falha ao enfileirar não lança, com Error ou não', async () => {
     addMock.mockRejectedValue('texto cru')
     await expect(enqueueSdGithubStateSync('ws1')).resolves.toBeUndefined()
     expect(loggerMock.error).toHaveBeenCalledWith(
       'servicedesk.integration.enqueue_failed',
       expect.objectContaining({ message: 'texto cru' }),
+    )
+
+    addMock.mockRejectedValue(new Error('redis fora'))
+    await expect(enqueueSdGithubStateSync()).resolves.toBeUndefined()
+    expect(loggerMock.error).toHaveBeenLastCalledWith(
+      'servicedesk.integration.enqueue_failed',
+      expect.objectContaining({ message: 'redis fora' }),
     )
   })
 })

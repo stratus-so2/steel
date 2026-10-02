@@ -516,6 +516,7 @@ function GithubSection() {
             >
               <div className='flex items-center gap-2'>
                 <Input
+                  aria-label='Trocar o token'
                   type='password'
                   autoComplete='off'
                   placeholder='github_pat_…'
@@ -550,6 +551,7 @@ function GithubSection() {
             >
               <div className='flex items-center gap-2'>
                 <Input
+                  aria-label='Trocar o segredo do webhook'
                   type='password'
                   autoComplete='off'
                   value={secret}
@@ -584,6 +586,7 @@ function GithubSection() {
           <div className='grid gap-3 sm:grid-cols-3'>
             <FieldBlock label='Repositório' hint='`owner/repo` ou a URL'>
               <Input
+                aria-label='Repositório'
                 placeholder='stratus-so2/steel'
                 value={repo}
                 onChange={(event) => setRepo(event.target.value)}
@@ -595,6 +598,7 @@ function GithubSection() {
               hint='PAT fine-grained com Issues: read & write'
             >
               <Input
+                aria-label='Token'
                 type='password'
                 autoComplete='off'
                 placeholder='github_pat_…'
@@ -605,6 +609,7 @@ function GithubSection() {
             </FieldBlock>
             <FieldBlock label='Segredo do webhook' hint='openssl rand -hex 24'>
               <Input
+                aria-label='Segredo do webhook'
                 type='password'
                 autoComplete='off'
                 value={secret}

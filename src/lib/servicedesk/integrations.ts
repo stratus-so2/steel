@@ -414,7 +414,10 @@ export function sdSlackTicketBody(input: {
 
 /** Título do chamado a partir da primeira linha da mensagem do Slack. */
 export function sdSlackTicketTitle(text: string): string {
-  const firstLine = text.trim().replace(/\n[\s\S]*$/, '').trim()
+  const firstLine = text
+    .trim()
+    .replace(/\n[\s\S]*$/, '')
+    .trim()
   if (firstLine === '') return 'Chamado aberto pelo Slack'
   return firstLine.length > 120 ? `${firstLine.slice(0, 117)}...` : firstLine
 }

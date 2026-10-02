@@ -112,9 +112,7 @@ beforeEach(() => {
 
 describe('SdIntegrationLinkService.list', () => {
   it('lista os vínculos do chamado para agentes', async () => {
-    const links = expectOk(
-      await SdIntegrationLinkService.list('u1', WS, 't1'),
-    )
+    const links = expectOk(await SdIntegrationLinkService.list('u1', WS, 't1'))
     expect(links[0].externalKey).toBe('stratus-so2/steel#42')
     expect(load).toHaveBeenCalledWith('u1', WS, 't1', 'VIEW', {
       agentOnly: true,

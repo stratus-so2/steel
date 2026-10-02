@@ -32,6 +32,7 @@ vi.mock('../authz', () => ({ assertModuleEnabled: vi.fn() }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
 
 import { SdIntegrationEventCache } from '@/src/cache/sd-integration-event.cache'
+import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { GithubClient } from '@/src/lib/servicedesk/github-client'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import { assertModuleEnabled } from '../authz'
@@ -46,6 +47,7 @@ const cache = vi.mocked(SdIntegrationEventCache)
 const github = vi.mocked(GithubClient)
 const moduleEnabled = vi.mocked(assertModuleEnabled)
 const record = vi.mocked(recordSdTicketEvent)
+const decrypt = vi.mocked(decryptConnectionSecret)
 
 function sign(body: string, secret = SECRET): string {
   return `sha256=${createHmac('sha256', secret)
@@ -164,6 +166,16 @@ describe('SdGithubWebhookService.handle — assinatura', () => {
     )
   })
 
+  it('recusa quando o segredo guardado não decifra (chave trocada)', async () => {
+    decrypt.mockRejectedValueOnce(new Error('bad key'))
+    const error = expectErr(
+      await SdGithubWebhookService.handle(call(issueClosed)),
+      'SD_INTEGRATION_NOT_CONFIGURED',
+    )
+    expect(error.message).toContain('segredo do webhook')
+    expect(repo.updateLink).not.toHaveBeenCalled()
+  })
+
   it('recusa integração sem segredo de webhook configurado', async () => {
     repo.findByExternalId.mockResolvedValue(
       ok(createFakeSdGithubIntegration({ encryptedSigningSecret: null })),
@@ -231,6 +243,21 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
     )
     const [{ body }] = repo.createTicketMessage.mock.calls[0]
     expect(body).toContain('Sugestão')
+  })
+
+  it('tolera payload sem estado, título e URL do item', async () => {
+    const res = expectOk(
+      await SdGithubWebhookService.handle(
+        call({
+          action: 'closed',
+          repository: { full_name: 'stratus-so2/steel' },
+          issue: { number: 42 },
+        }),
+      ),
+    )
+    // Sem `state`, o item é tratado como aberto — e o vínculo já estava
+    // aberto, então nada muda.
+    expect(res).toEqual({ outcome: 'ignored', state: 'open' })
   })
 
   it('reconhece o pull request mesclado', async () => {
@@ -304,8 +331,7 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
   it('responde `unlinked` para item que nenhum chamado usa', async () => {
     repo.findGithubLinkByKey.mockResolvedValue(ok(null))
     expect(
-      expectOk(await SdGithubWebhookService.handle(call(issueClosed)))
-        .outcome,
+      expectOk(await SdGithubWebhookService.handle(call(issueClosed))).outcome,
     ).toBe('unlinked')
   })
 
@@ -319,9 +345,7 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
 
   it('usa repositório + número + ação como chave sem o header de entrega', async () => {
     const good = call(issueClosed)
-    expectOk(
-      await SdGithubWebhookService.handle({ ...good, deliveryId: null }),
-    )
+    expectOk(await SdGithubWebhookService.handle({ ...good, deliveryId: null }))
     expect(cache.claim).toHaveBeenCalledWith(
       'github',
       'stratus-so2/steel:42:closed',
@@ -381,7 +405,9 @@ describe('SdGithubSyncService.runTick', () => {
       expect.objectContaining({ externalState: 'closed' }),
     )
     expect(record).toHaveBeenCalledWith(
-      expect.objectContaining({ meta: expect.objectContaining({ via: 'sync' }) }),
+      expect.objectContaining({
+        meta: expect.objectContaining({ via: 'sync' }),
+      }),
     )
   })
 

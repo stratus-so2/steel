@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { seedMembership } from '@/src/__tests__/factories/membership.factory'
 import {
   seedSdIntegration,
   seedSdIntegrationLink,
 } from '@/src/__tests__/factories/sd-integration.factory'
-import { seedMembership } from '@/src/__tests__/factories/membership.factory'
 import { seedSdTicket } from '@/src/__tests__/factories/sd-ticket.factory'
 import { seedSdPhase } from '@/src/__tests__/factories/sd-ticket-context.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
@@ -51,16 +51,16 @@ describe('SdIntegrationRepository — integrações', () => {
         ?.id,
     ).toBe(slack.id)
     expect(
-      expectOk(await SdIntegrationRepository.findByKind(workspace.id, 'GITHUB')),
+      expectOk(
+        await SdIntegrationRepository.findByKind(workspace.id, 'GITHUB'),
+      ),
     ).toBeNull()
   })
 
   it('requireByKind devolve SD_INTEGRATION_NOT_FOUND sem integração', async () => {
     const { workspace, user } = await setup()
     await seedSdIntegration(workspace.id, user.id)
-    expectOk(
-      await SdIntegrationRepository.requireByKind(workspace.id, 'SLACK'),
-    )
+    expectOk(await SdIntegrationRepository.requireByKind(workspace.id, 'SLACK'))
     expectErr(
       await SdIntegrationRepository.requireByKind(workspace.id, 'GITHUB'),
       'SD_INTEGRATION_NOT_FOUND',
@@ -76,9 +76,8 @@ describe('SdIntegrationRepository — integrações', () => {
       expectOk(await SdIntegrationRepository.findById(integration.id))?.id,
     ).toBe(integration.id)
     expect(
-      expectOk(
-        await SdIntegrationRepository.findByExternalId('SLACK', 'T-ABC'),
-      )?.workspaceId,
+      expectOk(await SdIntegrationRepository.findByExternalId('SLACK', 'T-ABC'))
+        ?.workspaceId,
     ).toBe(workspace.id)
     expect(
       expectOk(
@@ -145,10 +144,7 @@ describe('SdIntegrationRepository — integrações', () => {
       }),
     )
     expectOk(
-      await SdIntegrationRepository.markError(
-        integration.id,
-        'x'.repeat(600),
-      ),
+      await SdIntegrationRepository.markError(integration.id, 'x'.repeat(600)),
     )
     const row = await prisma.sdIntegration.findUnique({
       where: { id: integration.id },
@@ -201,7 +197,8 @@ describe('SdIntegrationRepository — vínculos', () => {
       ticket.id,
     )
     expect(
-      expectOk(await SdIntegrationRepository.findLink(link.id, workspace.id)).id,
+      expectOk(await SdIntegrationRepository.findLink(link.id, workspace.id))
+        .id,
     ).toBe(link.id)
     expectErr(
       await SdIntegrationRepository.findLink(link.id, other.id),

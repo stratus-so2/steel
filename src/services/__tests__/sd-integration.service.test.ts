@@ -148,7 +148,9 @@ describe('SdIntegrationService.overview', () => {
 
 describe('SdIntegrationService.beginSlackConnect', () => {
   it('monta a URL de autorização com o state do workspace', async () => {
-    const begun = expectOk(await SdIntegrationService.beginSlackConnect('u1', WS))
+    const begun = expectOk(
+      await SdIntegrationService.beginSlackConnect('u1', WS),
+    )
     expect(begun.authorizeUrl).toContain('https://slack.test/oauth?state=')
   })
 
@@ -396,7 +398,9 @@ describe('SdIntegrationService.updateSlackConfig', () => {
   })
 
   it('recusa departamento de outra workspace', async () => {
-    config.findExistingRefs.mockResolvedValue(ok({ departmentIds: [] } as never))
+    config.findExistingRefs.mockResolvedValue(
+      ok({ departmentIds: [] } as never),
+    )
     expectErr(
       await SdIntegrationService.updateSlackConfig('u1', WS, {
         departmentId: 'dep-de-outra',
@@ -481,7 +485,9 @@ describe('SdIntegrationService.connectGithub', () => {
   })
 
   it('cai no repositório informado se o GitHub devolver um nome estranho', async () => {
-    github.checkRepo.mockResolvedValue(ok({ fullName: 'invalido', private: false }))
+    github.checkRepo.mockResolvedValue(
+      ok({ fullName: 'invalido', private: false }),
+    )
     expectOk(
       await SdIntegrationService.connectGithub('u1', WS, {
         repo: 'owner/repo',

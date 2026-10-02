@@ -56,7 +56,9 @@ describe('getSlackAppConfig', () => {
 
   it('a URL de autorização leva os escopos e o state', () => {
     const url = new URL(slackAuthorizeUrl(APP, 'state-123'))
-    expect(url.origin + url.pathname).toBe('https://slack.com/oauth/v2/authorize')
+    expect(url.origin + url.pathname).toBe(
+      'https://slack.com/oauth/v2/authorize',
+    )
     expect(url.searchParams.get('client_id')).toBe('client-id')
     expect(url.searchParams.get('state')).toBe('state-123')
     expect(url.searchParams.get('scope')).toBe(SLACK_BOT_SCOPES.join(','))
@@ -83,6 +85,18 @@ describe('SlackClient.exchangeCode', () => {
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('https://slack.com/api/oauth.v2.access')
     expect(String(init.body)).toContain('code=code')
+  })
+
+  it('aceita time sem nome e sem bot_user_id', async () => {
+    fetchMock.mockResolvedValue(
+      reply({ ok: true, access_token: 'xoxb-1', team: { id: 'T1' } }),
+    )
+    expect(expectOk(await SlackClient.exchangeCode(APP, 'code'))).toEqual({
+      accessToken: 'xoxb-1',
+      teamId: 'T1',
+      teamName: null,
+      botUserId: null,
+    })
   })
 
   it('recusa resposta sem token ou sem time', async () => {
@@ -171,7 +185,9 @@ describe('SlackClient.postMessage', () => {
   })
 
   it('propaga a recusa do Slack', async () => {
-    fetchMock.mockResolvedValue(reply({ ok: false, error: 'channel_not_found' }))
+    fetchMock.mockResolvedValue(
+      reply({ ok: false, error: 'channel_not_found' }),
+    )
     expectErr(
       await SlackClient.postMessage('xoxb', { channel: 'C1', text: 'oi' }),
       'SD_INTEGRATION_REQUEST_FAILED',

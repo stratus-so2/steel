@@ -151,7 +151,9 @@ describe('assinatura', () => {
   it('recusa quando o app do Slack não está configurado', async () => {
     vi.mocked(getSlackAppConfig).mockReturnValue(null)
     expectErr(
-      await SdSlackInboundService.handle(jsonCall({ type: 'url_verification' })),
+      await SdSlackInboundService.handle(
+        jsonCall({ type: 'url_verification' }),
+      ),
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
   })
@@ -201,7 +203,9 @@ describe('assinatura', () => {
 
   it('recusa url_verification sem challenge e payload de atalho ilegível', async () => {
     expectErr(
-      await SdSlackInboundService.handle(jsonCall({ type: 'url_verification' })),
+      await SdSlackInboundService.handle(
+        jsonCall({ type: 'url_verification' }),
+      ),
       'VALIDATION_ERROR',
     )
     expectErr(
@@ -213,7 +217,9 @@ describe('assinatura', () => {
   it('ignora envelope JSON de outro tipo', async () => {
     expect(
       expectOk(
-        await SdSlackInboundService.handle(jsonCall({ type: 'app_rate_limited' })),
+        await SdSlackInboundService.handle(
+          jsonCall({ type: 'app_rate_limited' }),
+        ),
       ).outcome,
     ).toBe('ignored')
   })
@@ -285,6 +291,33 @@ describe('resposta na thread → histórico do chamado', () => {
     expect(repo.createTicketMessage).toHaveBeenCalledWith(
       expect.objectContaining({ authorKind: 'AGENT', authorUserId: 'u9' }),
     )
+  })
+
+  it('segue sem o autor quando o Slack recusa users.info', async () => {
+    slack.getUser.mockResolvedValue(err(databaseError()))
+    expect(expectOk(await SdSlackInboundService.handle(reply())).outcome).toBe(
+      'message_mirrored',
+    )
+    const [{ body }] = repo.createTicketMessage.mock.calls[0]
+    expect(body).toContain('usuário do Slack')
+    expect(repo.findWorkspaceUserByEmail).not.toHaveBeenCalled()
+  })
+
+  it('e-mail sem conta correspondente segue como autor externo', async () => {
+    slack.getUser.mockResolvedValue(
+      ok({ id: 'U1', name: 'Ana', email: 'ana@fora.test', isBot: false }),
+    )
+    repo.findWorkspaceUserByEmail.mockResolvedValue(ok(null))
+    expectOk(await SdSlackInboundService.handle(reply()))
+    expect(repo.createTicketMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ authorKind: 'SYSTEM', authorUserId: null }),
+    )
+  })
+
+  it('resposta sem texto vira mensagem com o aviso de conteúdo vazio', async () => {
+    expectOk(await SdSlackInboundService.handle(reply({ text: undefined })))
+    const [{ body }] = repo.createTicketMessage.mock.calls[0]
+    expect(body).toContain('(mensagem sem texto)')
   })
 
   it('tolera falha ao casar o e-mail', async () => {
@@ -431,7 +464,13 @@ describe('integração do time do Slack', () => {
       type: 'event_callback',
       team_id: 'T0001',
       event_id: 'Ev1',
-      event: { type: 'message', channel: 'C1', ts: '2', thread_ts: '1', user: 'U1' },
+      event: {
+        type: 'message',
+        channel: 'C1',
+        ts: '2',
+        thread_ts: '1',
+        user: 'U1',
+      },
     })
 
   it('recusa workspace do Slack não conectado ou desconectado', async () => {
@@ -529,6 +568,15 @@ describe('abrir chamado pelo atalho de mensagem', () => {
     )
     expectOk(await SdSlackInboundService.handle(shortcut()))
     expect(engine.create.mock.calls[0][1]).not.toHaveProperty('departmentId')
+  })
+
+  it('recusa atalho de um workspace do Slack não conectado', async () => {
+    repo.findByExternalId.mockResolvedValue(ok(null))
+    expectErr(
+      await SdSlackInboundService.handle(shortcut()),
+      'SD_INTEGRATION_NOT_CONFIGURED',
+    )
+    expect(cache.claim).not.toHaveBeenCalled()
   })
 
   it('ignora quando a abertura por mensagem está desligada', async () => {
@@ -666,6 +714,15 @@ describe('abrir chamado pelo slash command', () => {
     )
   })
 
+  it('recusa comando de um workspace do Slack não conectado', async () => {
+    repo.findByExternalId.mockResolvedValue(ok(null))
+    expectErr(
+      await SdSlackInboundService.handle(command()),
+      'SD_INTEGRATION_NOT_CONFIGURED',
+    )
+    expect(cache.claim).not.toHaveBeenCalled()
+  })
+
   it('não grava thread quando a resposta no canal falha', async () => {
     slack.postMessage.mockResolvedValue(err(databaseError()))
     expectOk(await SdSlackInboundService.handle(command()))
@@ -680,9 +737,9 @@ describe('abrir chamado pelo slash command', () => {
 
   it('é idempotente e libera a trava na falha', async () => {
     cache.claim.mockResolvedValue(false)
-    expect(expectOk(await SdSlackInboundService.handle(command())).outcome).toBe(
-      'duplicate',
-    )
+    expect(
+      expectOk(await SdSlackInboundService.handle(command())).outcome,
+    ).toBe('duplicate')
     cache.claim.mockResolvedValue(true)
     engine.create.mockResolvedValue(err(sdTicketNotFound()))
     expectErr(
@@ -693,9 +750,7 @@ describe('abrir chamado pelo slash command', () => {
   })
 
   it('usa canal e texto como chave quando falta trigger_id', async () => {
-    expectOk(
-      await SdSlackInboundService.handle(command({ trigger_id: '' })),
-    )
+    expectOk(await SdSlackInboundService.handle(command({ trigger_id: '' })))
     expect(cache.claim).toHaveBeenCalledWith('slack', 'C1:Impressora travada')
   })
 
