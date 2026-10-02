@@ -178,7 +178,7 @@ Daily FULL `pg_dump` (03:15), app-encrypted with `CONNECTION_SECRETS`, stored in
 | App | `nextjs-app` | 3000 | `docker-compose.yml` on the server (`/var/www/steel`), behind nginx |
 | Worker | `steel-worker` | — | same image, `node dist/worker.cjs` |
 
-All on the Docker network `steel_default`. Production secrets are SOPS-encrypted in `secrets/production.enc.env` and decrypted by the CD into `/var/www/steel/.env`.
+All on the Docker network `steel_default`. Secrets are SOPS-encrypted (age recipient in `.sops.yaml`, private key only in the `SOPS_AGE_KEY` GitHub secret) and decrypted into `/var/www/steel/.env` at deploy time: `secrets/homologacao.enc.env` by `cd.yml` (homologação) and `secrets/production.enc.env` by `promote-production.yml`. **The production file does not exist yet**, so a promotion to production fails its own pre-check — create it before the first promotion.
 
 ## Creating a new feature
 

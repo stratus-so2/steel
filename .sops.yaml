@@ -1,6 +1,8 @@
 creation_rules:
   - path_regex: secrets/.*\.env$
     age: >-
-      age1a0vfsdw4crksldhymh8e4qklmfrsqj5hque4zzyna4zj02k5syvq37tah0
-    # Steel's own age key pair (independent from nexo's). Private key lives
-    # only as the SOPS_AGE_KEY GitHub Actions secret — never committed.
+      age1lv0wq4td3kclpmt9djut50r6sw84wtyu4angtqwruj3xyu26yeeq7kd2ed
+    # Par age próprio do Steel (independente do nexo). A chave privada vive
+    # apenas no segredo SOPS_AGE_KEY do GitHub Actions — nunca é commitada.
+    # Rotacionada em 02/10/2026 junto da entrada das chaves de Sentry,
+    # PostHog e Backblaze; a anterior não estava em nenhuma máquina local.
