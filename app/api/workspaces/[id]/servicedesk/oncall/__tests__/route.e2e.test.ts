@@ -286,14 +286,14 @@ describe('/api/workspaces/[id]/servicedesk/oncall', () => {
       { name: 'x', rotationStart: ROTATION_START, handoffTime: '25:00' },
       owner.cookie,
     )
-    expect(badTime.status).toBe(400)
+    expect(badTime.status).toBe(422)
 
     const badTimezone = await postJson(
       url(workspace.id),
       { name: 'x', rotationStart: ROTATION_START, timezone: 'Marte/Olympus' },
       owner.cookie,
     )
-    expect(badTimezone.status).toBe(400)
+    expect(badTimezone.status).toBe(422)
 
     const foreignDepartment = await seedSdDepartment(other.workspace.id)
     const crossWorkspace = await postJson(
@@ -325,7 +325,7 @@ describe('/api/workspaces/[id]/servicedesk/oncall', () => {
       },
       owner.cookie,
     )
-    expect(invertedWindow.status).toBe(400)
+    expect(invertedWindow.status).toBe(422)
 
     // Escala de outra workspace não é alcançável.
     const foreign = await getJson(
