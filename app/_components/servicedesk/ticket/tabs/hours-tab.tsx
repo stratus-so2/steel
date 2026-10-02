@@ -12,6 +12,7 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { useSdTicketRealtime } from '@/src/hooks/use-sd-tickets'
 import {
   useCreateSdTimeEntry,
@@ -26,10 +27,9 @@ import {
   formatSdMinutes,
   SD_RATE_WINDOW_LABEL,
 } from '../../contracts/sd-contract-labels'
-import { cn } from '@/lib/utils'
 import { ConfirmDeleteButton, EmptyState } from '../../settings/sd-settings-kit'
-import { SD_TONE_SOFT } from '../sd-ticket-meta'
 import { SdTimeEntryFormDialog } from '../hours/sd-time-entry-form-dialog'
+import { SD_TONE_SOFT } from '../sd-ticket-meta'
 import { SdAgentOnlyNotice, SdSummaryCard } from '../shared/sd-tab-bits'
 import { formatBRL, formatDateTime, formatTime } from '../shared/sd-tab-format'
 import type { SdTicketTabProps } from './types'
@@ -177,7 +177,12 @@ export function SdTicketHoursTab({
       </div>
 
       {running && !runningHere ? (
-        <p className={cn('rounded-lg border px-3 py-2 text-xs', SD_TONE_SOFT.amber)}>
+        <p
+          className={cn(
+            'rounded-lg border px-3 py-2 text-xs',
+            SD_TONE_SOFT.amber,
+          )}
+        >
           Você tem um cronômetro em andamento em outro chamado. Pare-o antes de
           iniciar um aqui.
         </p>

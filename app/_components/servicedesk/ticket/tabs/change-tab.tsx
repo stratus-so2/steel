@@ -36,9 +36,9 @@ import {
   SD_APPROVAL_STATUS_LABEL,
   SD_APPROVAL_STATUS_STYLE,
 } from '../approvals/sd-approval-labels'
+import { SD_TONE, SD_TONE_FILL, SD_TONE_SOFT } from '../sd-ticket-meta'
 import { SdAgentOnlyNotice } from '../shared/sd-tab-bits'
 import { formatDateTime } from '../shared/sd-tab-format'
-import { SD_TONE, SD_TONE_FILL, SD_TONE_SOFT } from '../sd-ticket-meta'
 import type { SdTicketTabProps } from './types'
 
 /**

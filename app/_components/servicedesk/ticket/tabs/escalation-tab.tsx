@@ -135,7 +135,10 @@ export function SdTicketEscalationTab({
         <div className='flex items-center gap-2'>
           <h3 className='font-semibold text-sm'>Histórico</h3>
           <span
-            className={cn('rounded-md px-1.5 font-medium text-xs', SD_TONE.orange)}
+            className={cn(
+              'rounded-md px-1.5 font-medium text-xs',
+              SD_TONE.orange,
+            )}
           >
             Nível atual: N{ticket.escalationLevel}
           </span>

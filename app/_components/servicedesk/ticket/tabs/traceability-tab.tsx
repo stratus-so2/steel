@@ -130,9 +130,7 @@ function EventItem({
               </span>
             ) : description.kind === 'field' ||
               description.kind === 'assignment' ? (
-              <span
-                className={cn('rounded-md px-1.5 py-0.5', DIFF_TONE.empty)}
-              >
+              <span className={cn('rounded-md px-1.5 py-0.5', DIFF_TONE.empty)}>
                 vazio
               </span>
             ) : null}
@@ -153,9 +151,7 @@ function EventItem({
                 {description.to}
               </span>
             ) : (
-              <span
-                className={cn('rounded-md px-1.5 py-0.5', DIFF_TONE.empty)}
-              >
+              <span className={cn('rounded-md px-1.5 py-0.5', DIFF_TONE.empty)}>
                 vazio
               </span>
             )}

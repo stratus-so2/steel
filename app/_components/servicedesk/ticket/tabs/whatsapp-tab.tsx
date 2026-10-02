@@ -38,9 +38,9 @@ import type {
   SdWhatsappTemplateDTO,
 } from '@/types/sd-whatsapp'
 import { ConfirmDeleteButton, EmptyState } from '../../settings/sd-settings-kit'
+import { SD_TONE, SD_TONE_SOFT, SD_TONE_TEXT } from '../sd-ticket-meta'
 import { SdAgentOnlyNotice } from '../shared/sd-tab-bits'
 import { formatDateTime } from '../shared/sd-tab-format'
-import { SD_TONE, SD_TONE_SOFT, SD_TONE_TEXT } from '../sd-ticket-meta'
 import type { SdTicketTabProps } from './types'
 
 /** Até onde o arquivo enviado pela aba pode ir (igual ao limite da API). */
@@ -554,10 +554,7 @@ export function SdTicketWhatsappTab({
         </div>
         <div className='ml-auto flex items-center gap-2'>
           {conversation.aiActive ? (
-            <Badge
-              variant='outline'
-              className={SD_TONE.violet}
-            >
+            <Badge variant='outline' className={SD_TONE.violet}>
               IA atendendo
             </Badge>
           ) : null}

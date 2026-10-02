@@ -18,9 +18,9 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { SD_TONE, SD_TONE_TEXT } from '../ticket/sd-ticket-meta'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { useSdNow } from '../ticket/sd-ticket-badges'
+import { SD_TONE, SD_TONE_TEXT } from '../ticket/sd-ticket-meta'
 import { SdTicketCard } from './sd-ticket-card'
 
 export interface SdKanbanColumn {

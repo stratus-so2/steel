@@ -11,12 +11,12 @@ import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { SD_TONE_TEXT } from '../sd-ticket-meta'
 import { useVerifySdTicketSignature } from '@/src/hooks/use-sd-ticket-signatures'
 import type {
   SdTicketSignatureDTO,
   SdTicketSignatureVerificationDTO,
 } from '@/types/sd-ticket-signature'
+import { SD_TONE_TEXT } from '../sd-ticket-meta'
 import { formatDateTime } from '../shared/sd-tab-format'
 
 function HashLine({ label, hash }: { label: string; hash: string }) {

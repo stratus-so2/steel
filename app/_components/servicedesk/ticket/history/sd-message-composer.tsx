@@ -31,7 +31,6 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { SD_TONE } from '../sd-ticket-meta'
 import { useSdAgents, useSdConfig } from '@/src/hooks/use-sd-config'
 import {
   useDeleteSdTicketAttachment,
@@ -43,6 +42,7 @@ import type {
   SdMessageVisibilityDTO,
   SdTicketAttachmentDTO,
 } from '@/types/sd-ticket-message'
+import { SD_TONE } from '../sd-ticket-meta'
 import { formatBytes } from '../shared/sd-tab-format'
 
 /** Limite por arquivo (o servidor confere de novo). */

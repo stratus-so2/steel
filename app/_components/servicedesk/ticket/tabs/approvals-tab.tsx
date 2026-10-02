@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { SD_TONE_FILL } from '../sd-ticket-meta'
 import {
   type RequestSdTicketApprovalInput,
   useCancelSdTicketApproval,
@@ -27,6 +26,7 @@ import {
   SD_APPROVAL_STATUS_STYLE,
 } from '../approvals/sd-approval-labels'
 import { SdApprovalRequestDialog } from '../approvals/sd-approval-request-dialog'
+import { SD_TONE_FILL } from '../sd-ticket-meta'
 import { SdAgentOnlyNotice } from '../shared/sd-tab-bits'
 import { formatDateTime } from '../shared/sd-tab-format'
 import type { SdTicketTabProps } from './types'

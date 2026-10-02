@@ -124,7 +124,10 @@ export function SdTicketChildrenTab({
       {items.length > 0 ? (
         <div className='h-1.5 overflow-hidden rounded-full bg-muted'>
           <div
-            className={cn('h-full rounded-full transition-all', SD_TONE_FILL.emerald)}
+            className={cn(
+              'h-full rounded-full transition-all',
+              SD_TONE_FILL.emerald,
+            )}
             style={{ width: `${Math.round((done / items.length) * 100)}%` }}
           />
         </div>

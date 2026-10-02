@@ -10,7 +10,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { SD_TONE } from '../sd-ticket-meta'
 import {
   type SdTicketPartInput,
   useCreateSdTicketPart,
@@ -25,6 +24,7 @@ import {
   SD_PART_STATUS_LABEL,
   SdPartFormDialog,
 } from '../parts/sd-part-form-dialog'
+import { SD_TONE } from '../sd-ticket-meta'
 import { SdNativeSelect } from '../shared/sd-native-select'
 import { SdAgentOnlyNotice, SdSummaryCard } from '../shared/sd-tab-bits'
 import { formatBRL } from '../shared/sd-tab-format'

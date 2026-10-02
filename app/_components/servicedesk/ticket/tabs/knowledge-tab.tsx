@@ -28,7 +28,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { SD_TONE_TEXT } from '../sd-ticket-meta'
 import {
   useDraftSdKbArticleFromTicket,
   useLinkSdKbArticle,
@@ -40,6 +39,7 @@ import {
 } from '@/src/hooks/use-sd-knowledge'
 import type { SdKbArticleSummaryDTO } from '@/types/sd-kb-article'
 import { useDebouncedValue } from '../../table/use-sd-table-state'
+import { SD_TONE_TEXT } from '../sd-ticket-meta'
 import type { SdTicketTabProps } from './types'
 
 function ArticleRow({
