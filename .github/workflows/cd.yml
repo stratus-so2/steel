@@ -45,12 +45,23 @@ env:
 jobs:
   version:
     name: Resolve Release Version
-    # Só pushes para main deste repositório: um PR de fork com branch chamada
-    # "main" também dispara workflow_run com head_branch == main.
+    # Porta única do CD: todos os outros jobs dependem deste (`needs: version`),
+    # então se ele não roda, nada roda. O `ci.yml` dispara em `push: [main]` e
+    # em `pull_request`, e um `workflow_run` não distingue os dois por si — o
+    # filtro `branches: [main]` do gatilho olha o `head_branch`, que num PR é a
+    # branch do PR, e um PR de fork com a branch chamada "main" passaria por
+    # ele. Sem as três condições abaixo, um fork conseguiria rodar o CD (com
+    # os segredos de deploy e o runner self-hosted) sobre código não revisado —
+    # o padrão "pwn request". Elas são explícitas de propósito: cada uma sozinha
+    # já barraria o caso, e nenhuma depende do filtro do gatilho.
+    #   event == 'push'                 -> descarta todo run de pull_request
+    #   head_repository == repository   -> descarta run originado de fork
+    #   head_branch == 'main'           -> descarta push para outra branch
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -92,7 +103,8 @@ jobs:
       packages: write
     steps:
       # Build do commit que o CI testou (head_sha), não do HEAD atual de main.
-      # Seguro: o job `version` restringe a pushes para main deste repositório.
+      # Seguro: nenhum job roda sem o `version`, cujo `if` exige workflow_run de
+      # evento push, deste repositório e da branch main (ver comentário lá).
       # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout
       - name: Checkout tested commit
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
