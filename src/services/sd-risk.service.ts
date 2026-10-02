@@ -5,7 +5,6 @@ import {
   sdIncidentClusterClosed,
   sdIncidentClusterNotFound,
   sdRiskPredictionNotFound,
-  sdTicketForbidden,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
@@ -57,7 +56,6 @@ import {
   sdTicketCode,
   sdUserActor,
 } from './sd-ticket-engine'
-import { canViewSdTicket } from './sd-ticket-visibility'
 
 /**
  * Risco preditivo e incidentes repetidos (ADR 0016).
@@ -593,9 +591,8 @@ export const SdRiskService = {
       loaded.value.config.prefixes,
     )
     if (!ticket.ok) return ticket
-    if (!canViewSdTicket(loaded.value.ctx, ticket.value)) {
-      return err(sdTicketForbidden())
-    }
+    // Agente vê todos os chamados do workspace (README, "Papéis"), e
+    // `access` já recusou solicitante — não há recorte extra aqui.
     const row = await SdRiskRepository.findByTicket(
       workspaceId,
       ticket.value.id,

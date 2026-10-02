@@ -76,6 +76,14 @@ describe('toSdRiskFactorsDTO', () => {
     expect(factors.map((f) => f.weight)).toEqual([8, 0])
   })
 
+  it('lê peso que não é número como zero', () => {
+    const factors = toSdRiskFactorsDTO([
+      { key: 'stale', label: 'Parado', weight: '12', detail: 'há 2 d' },
+    ])
+
+    expect(factors[0]).toMatchObject({ weight: 0, detail: 'há 2 d' })
+  })
+
   it('usa o rótulo do catálogo quando o salvo não é texto', () => {
     const factors = toSdRiskFactorsDTO([
       { key: 'priority', label: 42, weight: 12, detail: 'P1' },

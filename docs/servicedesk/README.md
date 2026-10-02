@@ -255,6 +255,52 @@ de canal vira log e o resto segue; só erro de banco vira `err`.
   preferência de cada destinatário (o valor da regra vai para o log como
   `ruleEmail`).
 
+## Risco preditivo (contrato para as outras fatias)
+
+Heurística explicável, **sem LLM** ([ADR 0016](../adr/0016-predictive-risk-explainable-heuristic.md)):
+a nota sai de uma tabela de pesos versionada e **nunca aparece sem o motivo**.
+
+- **Tabela** `src/lib/servicedesk/risk.ts`: os nove fatores (soma 100), as
+  faixas (`MEDIUM` ≥ 40, `HIGH` ≥ 70), rótulos e cores.
+- **Lib pura** `src/lib/servicedesk/risk-compute.ts`:
+  `computeSdRiskPrediction(ticket, stats, now, { atRiskPercent, calendar })`
+  devolve `{ level, score, factors, breachEtaAt }`. Cada fator que pega soma
+  **entre 1 e o seu peso** (contribuição graduada onde o sinal é contínuo) e
+  leva a frase em pt-BR que a tela mostra. `sdRiskBreachEta` consome os
+  minutos úteis restantes no calendário de expediente — 30 minutos úteis às
+  17h50 de uma sexta caem na segunda. Os cortes estão em `SD_RISK_TUNING`
+  (ajustar peso ou corte não exige migração).
+- **Régua do workspace** (`SdRiskWorkspaceStats`): fila por departamento,
+  carga por responsável, topo das escalas de prioridade/severidade e o
+  histórico de violação por cliente/serviço. É o que torna "fila cheia"
+  comparável entre um time de 3 e um de 30.
+- **Agrupamento** `src/lib/servicedesk/incident-cluster.ts`:
+  `sdIncidentSignature` = `categoria:subcategoria:serviço:termos`, com os
+  termos do título normalizados (sem acento, sem palavra de ligação, sem
+  número) e **ordenados** — "Servidor de e-mail fora do ar" e "E-mail fora do
+  ar no servidor" caem no mesmo grupo. `sdGroupIncidents` só devolve grupo com
+  **3+ incidentes** (`SD_CLUSTER_MIN_TICKETS`) na janela de **7 dias**.
+- **Service** `SdRiskService`: `recomputeTick({ workspaceId? })` (fila
+  `servicedesk-risk`, a cada 10 min) grava uma linha por chamado aberto
+  (`SdTicketRiskPrediction`, upsert) e apaga a dos encerrados; avisa
+  `sla.breach_predicted` **só quando o chamado entra** na faixa alta (nunca a
+  cada tick). `scanClusters` (de hora em hora) grava as sugestões e avisa
+  `problem.cluster_detected` aos líderes na primeira detecção. Leitura:
+  `listTickets`, `getTicketRisk`, `listClusters`; ações do agente:
+  `openProblem` (abre o PROBLEM pelo motor, vincula os incidentes sem pai
+  como filhos e carimba `problemTicketId`) e `dismissCluster`. Uma sugestão
+  descartada só volta se repetir 3 vezes **depois** do descarte.
+- **API** `app/api/workspaces/[id]/servicedesk/risk/**`: `GET /tickets`
+  (fila por risco), `GET /tickets/[ticketId]`, `GET /clusters`,
+  `POST /clusters/[clusterId]/problem`, `POST /clusters/[clusterId]/dismiss`.
+  Tudo com a permissão do chamado (`sd-tickets`) e só para agentes.
+- **Para quem desenha chamado**: a previsão viaja **dentro do chamado**
+  (`SdTicketDTO.risk`, `null` para solicitante) e a lista aceita
+  `?riskLevel=HIGH`. Selo pronto:
+  `app/_components/servicedesk/risk/sd-risk-badge.tsx`
+  (`SdRiskBadge`, `SdRiskWidget`, `SdRiskFactorList`). Hooks:
+  `src/hooks/use-sd-risk.ts`.
+
 ## Rotas de UI
 
 | Rota (`/[slug]/servicedesk/…`) | Tela |
@@ -268,6 +314,7 @@ de canal vira log e o resto segue; só erro de banco vira `err`.
 | `/tickets/[number]` | tela do chamado (abas: Histórico, WhatsApp, Tarefas, Horas, Custos, Aprovação, Peças, Itens filhos, Escalonamento, Rastreabilidade, Assinatura, Conhecimento) |
 | `/customers`, `/companies`, `/contacts`, `/config-items` | cadastros (o cliente tem a aba Contrato, com o consumo do período) |
 | `/knowledge`, `/knowledge/[articleId]` | base de conhecimento |
+| `/risk` | análise de risco: fila por risco (faixa alta/média/baixa) e sugestões de problema a partir de incidentes repetidos |
 | `/dashboards`, `/dashboards/[id]`, `/dashboards/[id]/tv` | painéis |
 | `/settings` | configurações (abas; "Recorrentes" = rotinas preventivas) |
 | `/servicedesk/approval/[token]` (pública, fora do workspace) | aprovar/reprovar |
@@ -297,7 +344,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
 | inbox | `notification` (schema/mapper/repository/service da caixa), `app/_components/notifications/*` (lista, painel de leitura, ícone por tipo), `src/lib/notification-kind.ts` (tabela pura de tipo → rótulo/ícone/cor), rota `/inbox` |
 | relatórios agendados | `sd-scheduled-report` + `sd-report-run` (schema/mapper/repository/service), `src/lib/servicedesk/report-sla.ts` (apuração pura), `src/lib/servicedesk/report-pdf.ts` e `report-csv.ts`, fila `servicedesk-reports`, aba Configurações > Relatórios, histórico de execuções |
 | kcs | `sd-kb-review` (schema/mapper/repository/service), ciclo de vida do artigo (`IN_REVIEW`, `reviewDueAt`, `lastReviewedAt`, `reuseCount`), "criar artigo a partir deste chamado" com rascunho pela IA, sugestão na abertura, marcador `resolvedTicket` no vínculo chamado↔artigo |
-| risco preditivo | `src/lib/servicedesk/risk.ts` (tabela de fatores e faixas — ADR 0016), `sd-risk.service.ts` + `sd-ticket-risk-prediction.repository.ts`, `sd-incident-cluster` (agrupamento e sugestão de problema), fila `servicedesk-risk`, selo de risco no quadro e na tela do chamado |
+| risco preditivo | `src/lib/servicedesk/risk.ts` (tabela de fatores e faixas — ADR 0016), `risk-compute.ts` e `incident-cluster.ts` (libs puras), `sd-risk.{schema,mapper,repository,service}`, fila `servicedesk-risk`, API `servicedesk/risk/**`, selo `SdRiskBadge`/`SdRiskWidget` no quadro, na lista, na tabela e na tela do chamado, filtro rápido "Risco alto", tela `/risk` |
 | integrações | `sd-integration` + `sd-integration-link` (schema/mapper/repository/service), `src/lib/servicedesk/{slack,github}.ts`, OAuth do Slack por workspace, webhooks `servicedesk/integrations/{slack,github}`, fila `servicedesk-integrations`, aba Configurações > Integrações, bloco de vínculos na tela do chamado |
 
 ## Operação
@@ -321,7 +368,9 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   na hora local do workspace), `servicedesk-recurring` (5 min: abre os
   chamados das rotinas recorrentes vencidas, idempotente por ocorrência) e
   `servicedesk-billing` (00:20: abre o período do ciclo de cada contrato
-  ativo e fecha o anterior, consolidando as horas).
+  ativo e fecha o anterior, consolidando as horas) e `servicedesk-risk`
+  (10 min: recalcula o risco preditivo dos chamados abertos; de hora em hora
+  agrupa os incidentes repetidos da janela).
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as

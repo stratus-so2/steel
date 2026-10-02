@@ -197,10 +197,9 @@ export const SdRiskRepository = {
         where: { workspaceId, ...OPEN_WHERE, departmentId: { not: null } },
         _count: { _all: true },
       })
+      // `departmentId` nunca é nulo aqui (a consulta filtra `not: null`).
       const out: Record<string, number> = {}
-      for (const row of rows) {
-        if (row.departmentId) out[row.departmentId] = row._count._all
-      }
+      for (const row of rows) out[String(row.departmentId)] = row._count._all
       return ok(out)
     } catch (error) {
       return err(
@@ -219,10 +218,9 @@ export const SdRiskRepository = {
         where: { workspaceId, ...OPEN_WHERE, assigneeId: { not: null } },
         _count: { _all: true },
       })
+      // `assigneeId` nunca é nulo aqui (a consulta filtra `not: null`).
       const out: Record<string, number> = {}
-      for (const row of rows) {
-        if (row.assigneeId) out[row.assigneeId] = row._count._all
-      }
+      for (const row of rows) out[String(row.assigneeId)] = row._count._all
       return ok(out)
     } catch (error) {
       return err(dbError('Failed to count ServiceDesk assignee load', error))

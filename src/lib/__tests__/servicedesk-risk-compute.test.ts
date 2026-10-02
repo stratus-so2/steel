@@ -332,6 +332,15 @@ describe('fator queue_pressure', () => {
     expect(factorOf(result, 'queue_pressure')).toBeUndefined()
   })
 
+  it('should not apply to a department the stats never saw', () => {
+    const result = predict(
+      { departmentId: 'novo' },
+      createFakeSdRiskStats({ openByDepartment: { d1: 12, d2: 8 } }),
+    )
+
+    expect(factorOf(result, 'queue_pressure')).toBeUndefined()
+  })
+
   it('should not apply without a department', () => {
     const result = predict(
       { departmentId: null },

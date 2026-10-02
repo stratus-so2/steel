@@ -216,7 +216,8 @@ function slaFactor(
   if (timer.state === 'breached') {
     return factor('sla_consumed', 1, `Prazo de ${label} já violado`)
   }
-  const percent = timer.percentUsed ?? 0
+  // Estado sem prazo já saiu acima: aqui `percentUsed` é sempre número.
+  const percent = Number(timer.percentUsed)
   return factor(
     'sla_consumed',
     ramp(percent, SD_RISK_TUNING.slaFromPercent, SD_RISK_TUNING.slaFullPercent),
