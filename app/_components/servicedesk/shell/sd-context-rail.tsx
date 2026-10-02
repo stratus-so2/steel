@@ -3,35 +3,35 @@
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
+/** Routes that bring their own context rail, via their own layout. */
+const OWN_RAIL = ['/settings', '/knowledge']
+
 /**
- * Picks which context rail a ServiceDesk route shows.
+ * Hides the module rail on the routes that bring their own.
  *
  * Two screens used to draw their own navigation *inside* the content, next to
  * the module rail: settings, with 24 buttons in a 240px rail, and the
- * knowledge base, with the article tree in a 256px `aside`. Two bars where
- * the rest of the app has one. Here the route decides what the single rail
- * shows — settings, knowledge base or the module menu — and the content keeps
- * the full width.
+ * knowledge base, with the article tree in a 256px `aside`. Two bars where the
+ * rest of the app has one. Now each of those routes renders its rail from its
+ * own layout and this one steps aside, so there is always exactly one.
  *
- * The layout is a server component and cannot read `pathname`, so the choice
- * happens on the client and each alternative arrives as a prop already
- * rendered on the server.
+ * Why a client component: the layout is a server component and cannot read
+ * `pathname`. It stays deliberately tiny and imports nothing heavy — the
+ * alternative, passing every rail into the module layout as a prop, would pull
+ * the settings registry (which statically imports all 24 tab screens) and the
+ * article tree into the bundle of every ServiceDesk page.
  */
-export function SdContextRail({
+export function SdModuleRail({
   base,
-  settingsNav,
-  knowledgeNav,
   children,
 }: {
   /** `/<slug>/servicedesk`. */
   base: string
-  settingsNav: ReactNode
-  knowledgeNav: ReactNode
-  /** The module menu — the default. */
   children: ReactNode
 }) {
   const pathname = usePathname()
-  if (pathname.startsWith(`${base}/settings`)) return settingsNav
-  if (pathname.startsWith(`${base}/knowledge`)) return knowledgeNav
-  return children
+  const hidden = OWN_RAIL.some((segment) =>
+    pathname.startsWith(`${base}${segment}`),
+  )
+  return hidden ? null : children
 }
