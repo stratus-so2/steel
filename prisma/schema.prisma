@@ -3579,6 +3579,10 @@ model Notification {
   /// Caminho interno para onde o clique leva (ex.: a conversa).
   href        String?
   readAt      DateTime?        @map("read_at")
+  /// Arquivada pelo usuário: sai de "Tudo" e vive na pasta "Arquivadas".
+  archivedAt  DateTime?        @map("archived_at")
+  /// Exclusão lógica: nunca mais aparece na caixa de entrada.
+  deletedAt   DateTime?        @map("deleted_at")
   createdAt   DateTime         @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -3586,6 +3590,7 @@ model Notification {
 
   @@index([userId, workspaceId, createdAt])
   @@index([userId, workspaceId, readAt])
+  @@index([userId, workspaceId, archivedAt, deletedAt])
   @@map("notifications")
 }
 

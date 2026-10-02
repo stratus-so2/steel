@@ -24,6 +24,9 @@ vi.mock('@/src/lib/mail/workspace/send-whatsapp-sentiment-alert', () => ({
 vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
 }))
+vi.mock('@/src/lib/notifications/realtime', () => ({
+  publishNotificationEvent: vi.fn(async () => undefined),
+}))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },

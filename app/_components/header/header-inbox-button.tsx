@@ -4,7 +4,10 @@ import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
-import { useNotifications } from '@/src/hooks/use-notifications'
+import {
+  useNotificationStream,
+  useNotifications,
+} from '@/src/hooks/use-notifications'
 
 /** Atalho da caixa de entrada com a contagem de notificações não lidas. */
 export function HeaderInboxButton({
@@ -14,6 +17,9 @@ export function HeaderInboxButton({
   slug: string
   workspaceId: string
 }) {
+  // SSE genérico de notificação: o contador sobe sem recarregar a página,
+  // esteja o usuário na caixa de entrada ou em qualquer outra tela.
+  useNotificationStream(workspaceId)
   const notifications = useNotifications(workspaceId)
   const unread = notifications.data?.unreadCount ?? 0
 

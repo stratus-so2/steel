@@ -120,6 +120,43 @@ OWNER/ADMIN; `WhatsAppSettings`):
   com o tipo certo na Meta e na Z-API (`src/lib/whatsapp/broadcast-media.ts`).
   Áudio não tem legenda: a mensagem segue como texto logo depois.
 
+## Caixa de entrada (notificações in-app)
+
+`/[slug]/inbox` é a caixa de entrada do usuário no workspace, no formato de
+um **cliente de e-mail**: lista à esquerda, painel de leitura à direita
+(coluna única no celular), pastas **Tudo / Não lidas / Arquivadas**, filtro
+por módulo e por tipo de evento, busca em título e corpo, paginação por
+cursor, seleção múltipla com ações em lote, desfazer e atalhos de teclado
+(`j`/`k`, `Enter`, `u`, `e`, `#`, `x`, `/`, `?`).
+
+- **Modelo**: `Notification` (workspace, usuário, `kind`, título, corpo,
+  `href`, `readAt`, `archivedAt`, `deletedAt`). Arquivar e excluir são
+  carimbos — a exclusão é lógica, o que permite restaurar ("desfazer").
+- **Quem produz**: qualquer módulo, sempre por
+  `NotificationService.notifyUsers` (ServiceDesk via
+  `notifySdEvent`/`sd-notification`, o alerta de sentimento do WhatsApp e,
+  quando houver, o CRM).
+- **Módulo, rótulo, ícone e cor** de cada `kind` vêm de uma tabela pura,
+  `src/lib/notification-kind.ts` — o mapper já entrega `module`,
+  `moduleLabel`, `kindLabel`, `icon` e `color` no DTO, e a interface nunca
+  faz `switch` em `kind`. Tipo novo entra nessa tabela; tipo desconhecido
+  tem o módulo inferido pelo prefixo (`SD_`, `WHATSAPP_`, `CRM_`).
+- **Rotas**: `GET /api/workspaces/[id]/notifications` (filtros + cursor),
+  `POST .../notifications/read` (marcar todas) e
+  `POST .../notifications/actions`
+  (`read|unread|archive|unarchive|delete|restore`, até 100 ids). Autorização
+  no service (`assertMember`): cada pessoa só enxerga e só mexe nas próprias
+  notificações.
+- **Tempo real**: canal **genérico** de notificação em Redis pub/sub
+  (`notifications:workspace:<id>`, `src/lib/notifications/realtime.ts`),
+  publicado por `notifyUsers` e consumido pelo SSE
+  `GET .../notifications/events`, que filtra por destinatário (a lista de
+  `userIds` nunca sai do servidor). A lista e o contador do cabeçalho se
+  atualizam sem recarregar; o `refetchInterval` de 1 min é a rede de
+  segurança. É separado do SSE de chamados do ServiceDesk
+  (`servicedesk:workspace:<id>`), que avisa mudança de chamado, não
+  notificação.
+
 ## Worker (BullMQ)
 
 Processo Node separado (`worker/index.ts`, build `pnpm worker:build` →

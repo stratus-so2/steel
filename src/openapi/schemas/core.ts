@@ -308,10 +308,55 @@ export const NotificationListDTO = dto(
           .nullable()
           .meta({ description: 'Link interno do app.' }),
         read: z.boolean(),
+        readAt: dateTime()
+          .nullable()
+          .meta({ description: 'Quando foi lida, ou `null`.' }),
+        archived: z.boolean(),
+        archivedAt: dateTime()
+          .nullable()
+          .meta({ description: 'Quando foi arquivada, ou `null`.' }),
+        module: z.enum(['SERVICE_DESK', 'COMMUNICATION', 'CRM', 'OTHER']).meta({
+          description: 'Módulo de origem, derivado do `kind`.',
+        }),
+        moduleLabel: z.string().meta({
+          description: 'Nome do módulo em pt-BR.',
+          example: 'ServiceDesk',
+        }),
+        kindLabel: z.string().meta({
+          description: 'O que aconteceu, em pt-BR.',
+          example: 'SLA violado',
+        }),
+        icon: z.string().meta({
+          description: 'Chave de ícone resolvida pela interface.',
+          example: 'alarm',
+        }),
+        color: z
+          .string()
+          .meta({ description: 'Cor base do marcador.', example: 'rose' }),
         createdAt: dateTime(),
       }),
     ),
     unreadCount: z.number().int(),
+    nextCursor: z
+      .string()
+      .nullable()
+      .meta({ description: 'Cursor da próxima página, ou `null` no fim.' }),
+    counts: z
+      .object({
+        all: z.number().int(),
+        unread: z.number().int(),
+        archived: z.number().int(),
+      })
+      .meta({ description: 'Contagem por pasta (marcadores das abas).' }),
+  }),
+)
+
+export const NotificationRealtimeEventDTO = dto(
+  'NotificationRealtimeEvent',
+  z.object({
+    type: z.literal('notification.created'),
+    kind: z.string().meta({ example: 'SD_SLA_BREACHED' }),
+    at: dateTime(),
   }),
 )
 
