@@ -1,18 +1,19 @@
-import { ArrowDataTransferHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded'
+import { Calendar03Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
-import { SdTicketBoard } from '@/app/_components/servicedesk/board/sd-ticket-board'
+import { SdChangeCalendar } from '@/app/_components/servicedesk/changes/sd-change-calendar'
 import { SdChangeViewSwitch } from '@/app/_components/servicedesk/changes/sd-change-view-switch'
 import { loadSdDirectoryContext } from '@/app/_components/servicedesk/directory/sd-directory-context'
 import { SdPageShell } from '@/app/_components/servicedesk/shell/sd-page-shell'
 
 export const metadata: Metadata = {
-  title: 'Mudanças | ServiceDesk | Steel',
-  description: 'Mudanças do ServiceDesk',
+  title: 'Calendário de mudanças | ServiceDesk | Steel',
+  description:
+    'Calendário de mudanças do ServiceDesk: janelas de manutenção, congelamentos e as mudanças agendadas.',
 }
 
-export default async function SdChangesPage({
+export default async function SdChangeCalendarPage({
   params,
 }: {
   params: Promise<{ 'workspace-slug': string }>
@@ -25,20 +26,15 @@ export default async function SdChangesPage({
     <SdPageShell
       slug={slug}
       title='Mudanças'
-      icon={ArrowDataTransferHorizontalIcon}
+      icon={Calendar03Icon}
       isAgent={ctx.isAgent}
     >
       <div className='flex h-full min-h-0 flex-col'>
         <div className='flex items-center justify-between gap-3 px-4 pt-3'>
-          <SdChangeViewSwitch slug={slug} active='board' />
+          <SdChangeViewSwitch slug={slug} active='calendar' />
         </div>
         <Suspense>
-          <SdTicketBoard
-            workspaceId={ctx.workspaceId}
-            slug={slug}
-            fixedType='CHANGE'
-            isAdmin={ctx.isAdmin}
-          />
+          <SdChangeCalendar workspaceId={ctx.workspaceId} slug={slug} />
         </Suspense>
       </div>
     </SdPageShell>
