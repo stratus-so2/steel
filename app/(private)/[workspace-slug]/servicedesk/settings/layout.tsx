@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { type ReactNode, Suspense } from 'react'
 import { SdSettingsNav } from '@/app/_components/servicedesk/settings/sd-settings-nav'
 
 /**
@@ -8,6 +8,10 @@ import { SdSettingsNav } from '@/app/_components/servicedesk/settings/sd-setting
  * The rail lives in this layout rather than being handed to the module layout
  * as a prop so that `SD_SETTINGS_TABS`, which statically imports all 24 tab
  * screens, stays out of the bundle of every other ServiceDesk page.
+ *
+ * The `Suspense` is required, not decorative: the rail marks the active
+ * section from `?tab=`, and a client component reading `useSearchParams()`
+ * without a boundary fails the build during static rendering.
  */
 export default async function SdSettingsLayout({
   children,
@@ -19,7 +23,9 @@ export default async function SdSettingsLayout({
   const { 'workspace-slug': slug } = await params
   return (
     <>
-      <SdSettingsNav base={`/${slug}/servicedesk`} />
+      <Suspense>
+        <SdSettingsNav base={`/${slug}/servicedesk`} />
+      </Suspense>
       {children}
     </>
   )
