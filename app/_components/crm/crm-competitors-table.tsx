@@ -106,8 +106,8 @@ export function CrmCompetitorsTable({
     <div className='flex min-h-0 flex-1 flex-col gap-3'>
       <div className='flex items-center justify-between'>
         <p className='text-muted-foreground text-xs'>
-          Clique em um concorrente na lista para ver o comparativo de
-          crescimento com a sua conta.
+          Clique em um concorrente para ver o comparativo com a sua conta e
+          abrir a análise completa.
         </p>
         <div className='flex items-center gap-2'>
           <Button
@@ -137,6 +137,7 @@ export function CrmCompetitorsTable({
           <CrmCompetitorMetricsPanel
             workspaceId={workspaceId}
             competitorId={record.id}
+            slug={slug}
           />
         )}
       />

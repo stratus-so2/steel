@@ -1,11 +1,14 @@
 'use client'
 
 import {
+  Analytics01Icon,
   ArrowDown01Icon,
   ArrowUp01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import {
   Select,
@@ -145,9 +148,11 @@ function StatBlock({
 export function CrmCompetitorMetricsPanel({
   workspaceId,
   competitorId,
+  slug,
 }: {
   workspaceId: string
   competitorId: string
+  slug: string
 }) {
   const [range, setRange] =
     useState<(typeof RANGE_OPTIONS)[number]['value']>('30d')
@@ -193,7 +198,11 @@ export function CrmCompetitorMetricsPanel({
           onValueChange={(value) => setRange(value as typeof range)}
         >
           <SelectTrigger size='sm' className='w-28'>
-            <SelectValue />
+            <SelectValue>
+              {(value: string) =>
+                RANGE_OPTIONS.find((option) => option.value === value)?.label
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false}>
             <SelectGroup>
@@ -236,6 +245,19 @@ export function CrmCompetitorMetricsPanel({
           )}
         </>
       )}
+
+      <Button
+        variant='outline'
+        size='sm'
+        className='w-full'
+        nativeButton={false}
+        render={
+          <Link href={`/${slug}/crm/social/competitors/${competitorId}`}>
+            <SteelIcon icon={Analytics01Icon} size={14} />
+            Ver análise completa
+          </Link>
+        }
+      />
     </div>
   )
 }
