@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { Value } from 'platejs'
+import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchBody,
@@ -14,14 +15,18 @@ const EDITED: Value = [{ type: 'h1', children: [{ text: 'Novo título H1' }] }]
 // O editor Plate é uma superfície própria: trocado por um stub que dispara
 // `onChange` na mão, como o teste do WikiPageEditor no Nexo.
 vi.mock('@/components/editor/kb-editor', () => ({
+  KB_EDITOR_COLUMN: '',
   KbRichEditor: ({
     articleId,
     onChange,
+    header,
   }: {
     articleId: string
     onChange: (content: Value) => void
+    header?: ReactNode
   }) => (
     <div>
+      {header}
       <p>Editor {articleId}</p>
       <button type='button' onClick={() => onChange(EDITED)}>
         Editar conteúdo

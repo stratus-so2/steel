@@ -2,7 +2,10 @@
 
 import { KEYS, type Value } from 'platejs'
 import { Plate, usePlateEditor } from 'platejs/react'
+import type { ReactNode } from 'react'
 import { Editor, EditorContainer } from '@/components/editor/ui/editor'
+import { FixedToolbar } from '@/components/editor/ui/fixed-toolbar'
+import { FixedToolbarButtons } from '@/components/editor/ui/fixed-toolbar-buttons'
 import { cn } from '@/lib/utils'
 import { KbEditorProvider } from '@/src/hooks/use-sd-kb-editor-context'
 import { KB_EDITOR_PLUGINS } from './kb-plugins'
@@ -15,7 +18,15 @@ import { KB_EDITOR_PLUGINS } from './kb-plugins'
  * fonte, altura de linha, menu de bloco, arrastar e soltar e as barras fixa e
  * flutuante). Diferenças: sem Yjs/Hocuspocus (o autosave é o JSON do
  * conteúdo, como o `content` da Wiki) e sem o bloco Excalidraw.
+ *
+ * Layout: the fixed toolbar is rendered here (not through `FixedToolbarKit`)
+ * as a full-width bar that never scrolls; below it a single scroll area holds
+ * the `header` slot (cover, title) and the text, both in the same centered
+ * column.
  */
+
+/** Text column: up to 900px, with a 64px gutter for the drag handles. */
+export const KB_EDITOR_COLUMN = 'mx-auto w-full max-w-[calc(900px+8rem)] px-16'
 
 interface KbRichEditorProps {
   workspaceId: string
@@ -24,6 +35,8 @@ interface KbRichEditorProps {
   userName: string
   content: Value
   onChange: (content: Value) => void
+  /** Rendered above the text, inside the scroll area (cover, title…). */
+  header?: ReactNode
   className?: string
 }
 
@@ -34,6 +47,7 @@ export function KbRichEditor({
   userName,
   content,
   onChange,
+  header,
   className,
 }: KbRichEditorProps) {
   const editor = usePlateEditor({
@@ -62,20 +76,22 @@ export function KbRichEditor({
           onChange(value)
         }}
       >
-        <div className={cn('flex h-full flex-col no-scrollbar', className)}>
-          {/* `overflow-visible`: the article page is the scroll area, so the
-              fixed toolbar sticks to its top (as in the Nexo wiki) instead of
-              scrolling away with an unbounded inner container. */}
-          <EditorContainer
-            data-testid='sd-kb-editor'
-            className='min-h-0 flex-1 overflow-visible no-scrollbar'
-          >
-            <Editor
-              variant='fullWidth'
-              className='px-0 pt-2 pb-40 sm:px-0'
-              placeholder='Digite / para inserir blocos…'
-            />
-          </EditorContainer>
+        <div className={cn('flex h-full min-h-0 flex-col', className)}>
+          <FixedToolbar className='static shrink-0 overflow-visible rounded-none px-3'>
+            <FixedToolbarButtons />
+          </FixedToolbar>
+          <div className='min-h-0 flex-1 overflow-y-auto'>
+            {header}
+            <EditorContainer
+              data-testid='sd-kb-editor'
+              className='h-auto overflow-visible'
+            >
+              <Editor
+                className='pt-2 pb-40 sm:px-[max(64px,calc(50%-450px))]'
+                placeholder='Digite / para inserir blocos…'
+              />
+            </EditorContainer>
+          </div>
         </div>
       </Plate>
     </KbEditorProvider>

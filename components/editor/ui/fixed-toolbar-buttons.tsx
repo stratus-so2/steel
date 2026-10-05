@@ -23,7 +23,7 @@ import { ImportToolbarButton } from '@/components/editor/ui/import-toolbar-butto
 
 export function FixedToolbarButtons() {
   return (
-    <div className='flex w-full items-center gap-1 overflow-x-auto'>
+    <div className='flex w-full flex-wrap items-center gap-y-1'>
       <ToolbarGroup>
         <UndoToolbarButton />
         <RedoToolbarButton />

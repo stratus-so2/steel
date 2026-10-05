@@ -12,7 +12,6 @@ import { DiscussionKit } from './plugins/discussion-kit'
 import { DndKit } from './plugins/dnd-kit'
 import { DocxKit } from './plugins/docx-kit'
 import { EmojiKit } from './plugins/emoji-kit'
-import { FixedToolbarKit } from './plugins/fixed-toolbar-kit'
 import { FloatingToolbarKit } from './plugins/floating-toolbar-kit'
 import { FontKit } from './plugins/font-kit'
 import { FootnoteKit } from './plugins/footnote-kit'
@@ -50,7 +49,10 @@ const CONTENT_KITS = [
   ...LineHeightKit,
 ]
 
-/** Editor completo (mesma composição da Wiki do Nexo, sem Yjs/Excalidraw). */
+/**
+ * Editor completo (mesma composição da Wiki do Nexo, sem Yjs/Excalidraw). The
+ * fixed toolbar is rendered by `KbRichEditor` itself, outside the scroll area.
+ */
 export const KB_EDITOR_PLUGINS = [
   ...CONTENT_KITS,
   ...SlashKit,
@@ -60,7 +62,6 @@ export const KB_EDITOR_PLUGINS = [
   ...DiscussionKit,
   ...BlockMenuKit,
   ...DndKit,
-  ...FixedToolbarKit,
   ...FloatingToolbarKit,
 ]
 

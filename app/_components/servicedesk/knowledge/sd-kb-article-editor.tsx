@@ -20,7 +20,7 @@ import {
 import { useRouter } from 'next/navigation'
 import type { Value } from 'platejs'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { KbRichEditor } from '@/components/editor/kb-editor'
+import { KB_EDITOR_COLUMN, KbRichEditor } from '@/components/editor/kb-editor'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -534,117 +534,123 @@ export function SdKbArticleEditor({
           />
         </div>
       ) : (
-        <div className='min-h-0 flex-1 overflow-y-auto'>
-          <div className='group/cover relative'>
-            {article.coverImage ? (
-              <img
-                src={article.coverImage}
-                alt=''
-                className='h-44 w-full object-cover'
-              />
-            ) : null}
-            <input
-              ref={coverInput}
-              type='file'
-              accept='image/png,image/jpeg,image/webp,image/gif'
-              className='hidden'
-              aria-label='Arquivo da capa'
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void uploadCover(file)
-                e.target.value = ''
-              }}
-            />
-          </div>
-          <div className='mx-auto max-w-6xl px-6 pt-6 pb-10'>
-            <div className='min-w-0'>
-              <div className='mb-2 flex flex-wrap items-center gap-1 text-muted-foreground'>
-                <Popover>
-                  <PopoverTrigger
-                    render={
-                      <Button variant='ghost' size='xs'>
-                        {article.icon ? (
-                          <span className='text-base'>{article.icon}</span>
-                        ) : (
-                          <SteelIcon icon={SmileIcon} strokeWidth={2} />
-                        )}
-                        {article.icon ? 'Trocar ícone' : 'Adicionar ícone'}
+        // The editor owns the layout: a full-width toolbar that never scrolls
+        // and, below it, one scroll area with the title and the text in the
+        // same centered column.
+        <div
+          data-kb-editor={article.id}
+          className='flex min-h-0 flex-1 flex-col'
+        >
+          <KbRichEditor
+            key={article.id}
+            workspaceId={workspaceId}
+            articleId={article.id}
+            userId={userId}
+            userName={userName}
+            content={initial.content}
+            onChange={scheduleContent}
+            className='flex-1'
+            header={
+              <>
+                <div className='group/cover relative'>
+                  {article.coverImage ? (
+                    <img
+                      src={article.coverImage}
+                      alt=''
+                      className='h-44 w-full object-cover'
+                    />
+                  ) : null}
+                  <input
+                    ref={coverInput}
+                    type='file'
+                    accept='image/png,image/jpeg,image/webp,image/gif'
+                    className='hidden'
+                    aria-label='Arquivo da capa'
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) void uploadCover(file)
+                      e.target.value = ''
+                    }}
+                  />
+                </div>
+                <div className={cn(KB_EDITOR_COLUMN, 'pt-6')}>
+                  <div className='mb-2 flex flex-wrap items-center gap-1 text-muted-foreground'>
+                    <Popover>
+                      <PopoverTrigger
+                        render={
+                          <Button variant='ghost' size='xs'>
+                            {article.icon ? (
+                              <span className='text-base'>{article.icon}</span>
+                            ) : (
+                              <SteelIcon icon={SmileIcon} strokeWidth={2} />
+                            )}
+                            {article.icon ? 'Trocar ícone' : 'Adicionar ícone'}
+                          </Button>
+                        }
+                      />
+                      <PopoverContent className='h-80 w-72 p-0'>
+                        <EmojiPicker
+                          className='h-full'
+                          onEmojiSelect={({ emoji }) => save({ icon: emoji })}
+                        >
+                          <EmojiPickerSearch />
+                          <EmojiPickerContent />
+                          <EmojiPickerFooter />
+                        </EmojiPicker>
+                      </PopoverContent>
+                    </Popover>
+                    {article.icon && (
+                      <Button
+                        variant='ghost'
+                        size='xs'
+                        onClick={() => save({ icon: null })}
+                      >
+                        Remover ícone
                       </Button>
-                    }
-                  />
-                  <PopoverContent className='h-80 w-72 p-0'>
-                    <EmojiPicker
-                      className='h-full'
-                      onEmojiSelect={({ emoji }) => save({ icon: emoji })}
+                    )}
+                    <Button
+                      variant='ghost'
+                      size='xs'
+                      disabled={uploadingCover}
+                      onClick={() => coverInput.current?.click()}
                     >
-                      <EmojiPickerSearch />
-                      <EmojiPickerContent />
-                      <EmojiPickerFooter />
-                    </EmojiPicker>
-                  </PopoverContent>
-                </Popover>
-                {article.icon && (
-                  <Button
-                    variant='ghost'
-                    size='xs'
-                    onClick={() => save({ icon: null })}
-                  >
-                    Remover ícone
-                  </Button>
-                )}
-                <Button
-                  variant='ghost'
-                  size='xs'
-                  disabled={uploadingCover}
-                  onClick={() => coverInput.current?.click()}
-                >
-                  <SteelIcon
-                    icon={uploadingCover ? Loading03Icon : Image01Icon}
-                    strokeWidth={2}
-                    className={cn(uploadingCover && 'animate-spin')}
+                      <SteelIcon
+                        icon={uploadingCover ? Loading03Icon : Image01Icon}
+                        strokeWidth={2}
+                        className={cn(uploadingCover && 'animate-spin')}
+                      />
+                      {article.coverImage ? 'Trocar capa' : 'Adicionar capa'}
+                    </Button>
+                    {article.coverImage && (
+                      <Button
+                        variant='ghost'
+                        size='xs'
+                        onClick={() => save({ coverImage: null })}
+                      >
+                        Remover capa
+                      </Button>
+                    )}
+                  </div>
+
+                  {article.icon && (
+                    <div className='mb-1 text-5xl'>{article.icon}</div>
+                  )}
+                  <input
+                    aria-label='Título do artigo'
+                    value={title}
+                    onChange={(e) => scheduleTitle(e.target.value)}
+                    onBlur={() => {
+                      if (titleTimer.current) clearTimeout(titleTimer.current)
+                      if (title !== article.title) save({ title })
+                    }}
+                    placeholder='Sem título'
+                    maxLength={255}
+                    className='w-full bg-transparent font-semibold text-3xl tracking-tight outline-none placeholder:text-muted-foreground/60'
                   />
-                  {article.coverImage ? 'Trocar capa' : 'Adicionar capa'}
-                </Button>
-                {article.coverImage && (
-                  <Button
-                    variant='ghost'
-                    size='xs'
-                    onClick={() => save({ coverImage: null })}
-                  >
-                    Remover capa
-                  </Button>
-                )}
-              </div>
-
-              {article.icon && (
-                <div className='mb-1 text-5xl'>{article.icon}</div>
-              )}
-              <input
-                aria-label='Título do artigo'
-                value={title}
-                onChange={(e) => scheduleTitle(e.target.value)}
-                onBlur={() => {
-                  if (titleTimer.current) clearTimeout(titleTimer.current)
-                  if (title !== article.title) save({ title })
-                }}
-                placeholder='Sem título'
-                maxLength={255}
-                className='w-full bg-transparent font-semibold text-3xl tracking-tight outline-none placeholder:text-muted-foreground/60'
-              />
-
-              <div data-kb-editor={article.id} className='mt-4'>
-                <KbRichEditor
-                  key={article.id}
-                  workspaceId={workspaceId}
-                  articleId={article.id}
-                  userId={userId}
-                  userName={userName}
-                  content={initial.content}
-                  onChange={scheduleContent}
-                />
-              </div>
-            </div>
-          </div>
+                </div>
+              </>
+            }
+          />
         </div>
       )}
     </div>
