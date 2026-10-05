@@ -63,9 +63,12 @@ export function KbRichEditor({
         }}
       >
         <div className={cn('flex h-full flex-col no-scrollbar', className)}>
+          {/* `overflow-visible`: the article page is the scroll area, so the
+              fixed toolbar sticks to its top (as in the Nexo wiki) instead of
+              scrolling away with an unbounded inner container. */}
           <EditorContainer
             data-testid='sd-kb-editor'
-            className='min-h-0 flex-1 no-scrollbar'
+            className='min-h-0 flex-1 overflow-visible no-scrollbar'
           >
             <Editor
               variant='fullWidth'

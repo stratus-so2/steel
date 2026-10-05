@@ -2,25 +2,35 @@
 
 import {
   Archive01Icon,
-  CheckmarkCircle02Icon,
   CloudUploadIcon,
   Copy01Icon,
   Delete02Icon,
   Globe02Icon,
+  GlobeOffIcon,
   Image01Icon,
+  InternetIcon,
   Loading03Icon,
   MoreHorizontalIcon,
   PencilEdit02Icon,
+  SidebarRightIcon,
   SmileIcon,
   SquareLock02Icon,
   ViewIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
 import type { Value } from 'platejs'
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { KbRichEditor } from '@/components/editor/kb-editor'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +55,12 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { uploadSdKbMediaXhr } from '@/src/hooks/use-sd-kb-media'
@@ -59,15 +75,16 @@ import {
   useUpdateSdKbArticle,
 } from '@/src/hooks/use-sd-knowledge'
 import type { SdKbArticleDTO } from '@/types/sd-kb-article'
+import { SD_TONE_TEXT } from '../sd-tone'
 import { SdKbArticleHeader } from './sd-kb-article-header'
 import { SdKbArticleList } from './sd-kb-article-list'
 import { SdKbArticleMeta } from './sd-kb-article-meta'
 import { SdKbArticleView } from './sd-kb-article-view'
 import { SdKbReviewPanel } from './sd-kb-review-panel'
-import { SdKbReviewDueBadge, SdKbStatusBadge } from './sd-kb-status-badge'
+import { SdKbReviewDueBadge } from './sd-kb-status-badge'
 import { SdKbTagsInput } from './sd-kb-tags-input'
 import { SdKbToc } from './sd-kb-toc'
-import { sdKbHelpfulRatio } from './sd-kb-utils'
+import { SD_KB_STATUS_LABEL, sdKbHelpfulRatio } from './sd-kb-utils'
 
 /**
  * Como na Wiki: o conteúdo vai para o servidor num autosave com debounce
@@ -217,6 +234,7 @@ export function SdKbArticleEditor({
     }
   }
 
+  const published = article.status === 'PUBLISHED'
   const editorSelector = `[data-kb-editor="${article.id}"]`
   const ratio = sdKbHelpfulRatio(article)
   const categoryName =
@@ -225,15 +243,15 @@ export function SdKbArticleEditor({
 
   return (
     <div className='flex h-full min-h-0 flex-col'>
-      {/* Standard header: `<` + Base de conhecimento > [name]. The badges and
-          the actions go on the right of this same row — they used to be a
-          second 44px bar right below the layout breadcrumb. */}
+      {/* Standard header: `<` + Base de conhecimento > [name]. The actions go
+          on the right of this same row. Publication state is a single icon
+          toggle, and the KCS review plus the other side panels live in a
+          drawer, so the text gets the whole width. */}
       <SdKbArticleHeader
         workspaceSlug={workspaceSlug}
         title={title}
         actions={
           <>
-            <SdKbStatusBadge status={article.status} />
             <SdKbReviewDueBadge reviewDueAt={article.reviewDueAt} />
             <SaveIndicator state={saveState} />
             <Button
@@ -251,19 +269,193 @@ export function SdKbArticleEditor({
               />
               {preview ? 'Editar' : 'Visualizar'}
             </Button>
-            <Button variant='ghost' size='sm' onClick={copyLink}>
-              <SteelIcon icon={Copy01Icon} strokeWidth={2} />
-              Copiar link
-            </Button>
-            <Button
-              size='sm'
-              variant={article.status === 'PUBLISHED' ? 'outline' : 'default'}
-              disabled={setStatus.isPending}
-              onClick={togglePublish}
-            >
-              <SteelIcon icon={CheckmarkCircle02Icon} strokeWidth={2} />
-              {article.status === 'PUBLISHED' ? 'Despublicar' : 'Publicar'}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant='ghost'
+                    size='icon-sm'
+                    aria-label={published ? 'Despublicar' : 'Publicar'}
+                    data-status={article.status}
+                    disabled={setStatus.isPending}
+                    onClick={togglePublish}
+                  >
+                    <SteelIcon
+                      icon={published ? InternetIcon : GlobeOffIcon}
+                      strokeWidth={2}
+                      className={cn(published && SD_TONE_TEXT.emerald)}
+                    />
+                  </Button>
+                }
+              />
+              <TooltipContent>
+                {SD_KB_STATUS_LABEL[article.status]} ·{' '}
+                {published ? 'clique para despublicar' : 'clique para publicar'}
+              </TooltipContent>
+            </Tooltip>
+            <Drawer swipeDirection='right'>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <DrawerTrigger
+                      render={
+                        <Button
+                          variant='ghost'
+                          size='icon-sm'
+                          aria-label='Revisão e detalhes'
+                        />
+                      }
+                    />
+                  }
+                >
+                  <SteelIcon icon={SidebarRightIcon} strokeWidth={2} />
+                </TooltipTrigger>
+                <TooltipContent>Revisão e detalhes</TooltipContent>
+              </Tooltip>
+              <DrawerContent className='data-[swipe-axis=x]:sm:[--drawer-content-width:26rem]'>
+                <DrawerHeader className='pb-3'>
+                  <DrawerTitle>Revisão e detalhes</DrawerTitle>
+                  <DrawerDescription>
+                    Ciclo KCS, propriedades e artigos relacionados.
+                  </DrawerDescription>
+                </DrawerHeader>
+                <Tabs
+                  defaultValue='review'
+                  className='flex min-h-0 flex-1 flex-col gap-0'
+                >
+                  <TabsList className='mx-4 w-auto'>
+                    <TabsTrigger value='review'>Revisão</TabsTrigger>
+                    <TabsTrigger value='properties'>Propriedades</TabsTrigger>
+                  </TabsList>
+                  <div className='mt-3 min-h-0 flex-1 overflow-y-auto border-t p-4'>
+                    <TabsContent value='review' className='space-y-6'>
+                      <SdKbReviewPanel
+                        workspaceId={workspaceId}
+                        article={article}
+                      />
+                      <section className='space-y-1 rounded-lg border p-3 text-sm'>
+                        <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+                          Utilidade
+                        </p>
+                        <p>
+                          👍 {article.helpfulCount} · 👎{' '}
+                          {article.notHelpfulCount}
+                        </p>
+                        <p className='text-muted-foreground text-xs'>
+                          {ratio === null
+                            ? 'Ainda sem votos.'
+                            : `${ratio}% acharam útil`}
+                        </p>
+                        <p className='text-muted-foreground text-xs'>
+                          Resolveu {article.reuseCount}{' '}
+                          {article.reuseCount === 1 ? 'chamado' : 'chamados'}
+                        </p>
+                      </section>
+                      <SdKbToc
+                        content={content}
+                        containerSelector={editorSelector}
+                      />
+                      {(related.data?.length ?? 0) > 0 && (
+                        <section className='space-y-1'>
+                          <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+                            Relacionados
+                          </p>
+                          <SdKbArticleList
+                            articles={related.data ?? []}
+                            hrefFor={(a) =>
+                              `/${workspaceSlug}/servicedesk/knowledge/${a.id}`
+                            }
+                          />
+                        </section>
+                      )}
+                    </TabsContent>
+                    <TabsContent value='properties' className='space-y-6'>
+                      <PropertyField label='Visibilidade'>
+                        <fieldset
+                          aria-label='Visibilidade'
+                          className='m-0 grid min-w-0 grid-cols-2 gap-2 border-0 p-0'
+                        >
+                          {(['INTERNAL', 'PORTAL'] as const).map((v) => {
+                            const active = article.visibility === v
+                            return (
+                              <button
+                                key={v}
+                                type='button'
+                                aria-pressed={active}
+                                onClick={() =>
+                                  !active && save({ visibility: v })
+                                }
+                                className={cn(
+                                  'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors',
+                                  active
+                                    ? 'border-primary bg-primary/5 text-foreground'
+                                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                                )}
+                              >
+                                <SteelIcon
+                                  icon={
+                                    v === 'PORTAL'
+                                      ? Globe02Icon
+                                      : SquareLock02Icon
+                                  }
+                                  size={16}
+                                  strokeWidth={2}
+                                  className={cn(active && 'text-primary')}
+                                />
+                                {v === 'PORTAL' ? 'Portal' : 'Interno'}
+                              </button>
+                            )
+                          })}
+                        </fieldset>
+                        <p className='text-muted-foreground text-xs'>
+                          {article.visibility === 'PORTAL'
+                            ? published
+                              ? 'Visível para solicitantes no portal.'
+                              : 'Vai aparecer no portal quando publicado.'
+                            : 'Só agentes veem este artigo.'}
+                        </p>
+                      </PropertyField>
+                      <PropertyField label='Categoria'>
+                        <Select
+                          value={article.categoryId ?? '__none__'}
+                          onValueChange={(v) =>
+                            save({
+                              categoryId: v === '__none__' ? null : String(v),
+                            })
+                          }
+                        >
+                          <SelectTrigger
+                            aria-label='Categoria'
+                            className='w-full'
+                          >
+                            <span>{categoryName ?? 'Sem categoria'}</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value='__none__'>
+                              Sem categoria
+                            </SelectItem>
+                            {categories.data?.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </PropertyField>
+                      <PropertyField label='Tags'>
+                        <SdKbTagsInput
+                          value={article.tags}
+                          onChange={(tags) => save({ tags })}
+                        />
+                      </PropertyField>
+                      <PropertyField label='Informações'>
+                        <SdKbArticleMeta article={article} />
+                      </PropertyField>
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </DrawerContent>
+            </Drawer>
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -277,6 +469,10 @@ export function SdKbArticleEditor({
                 }
               />
               <DropdownMenuContent align='end'>
+                <DropdownMenuItem onClick={copyLink}>
+                  <SteelIcon icon={Copy01Icon} strokeWidth={2} />
+                  Copiar link
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
                     archive.mutate(article.id, {
@@ -360,7 +556,7 @@ export function SdKbArticleEditor({
               }}
             />
           </div>
-          <div className='mx-auto grid max-w-6xl gap-8 px-6 pt-6 lg:grid-cols-[minmax(0,1fr)_240px]'>
+          <div className='mx-auto max-w-6xl px-6 pt-6 pb-10'>
             <div className='min-w-0'>
               <div className='mb-2 flex flex-wrap items-center gap-1 text-muted-foreground'>
                 <Popover>
@@ -436,74 +632,7 @@ export function SdKbArticleEditor({
                 className='w-full bg-transparent font-semibold text-3xl tracking-tight outline-none placeholder:text-muted-foreground/60'
               />
 
-              <div className='mt-3 space-y-2 rounded-lg border bg-muted/20 p-3'>
-                <div className='flex flex-wrap items-center gap-2'>
-                  <fieldset
-                    aria-label='Visibilidade'
-                    className='m-0 inline-flex min-w-0 rounded-md border bg-background p-0.5'
-                  >
-                    {(['INTERNAL', 'PORTAL'] as const).map((v) => (
-                      <button
-                        key={v}
-                        type='button'
-                        aria-pressed={article.visibility === v}
-                        onClick={() =>
-                          article.visibility !== v && save({ visibility: v })
-                        }
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs',
-                          article.visibility === v
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:text-foreground',
-                        )}
-                      >
-                        <SteelIcon
-                          icon={v === 'PORTAL' ? Globe02Icon : SquareLock02Icon}
-                          size={12}
-                          strokeWidth={2}
-                        />
-                        {v === 'PORTAL' ? 'Portal' : 'Interno'}
-                      </button>
-                    ))}
-                  </fieldset>
-                  <Select
-                    value={article.categoryId ?? '__none__'}
-                    onValueChange={(v) =>
-                      save({ categoryId: v === '__none__' ? null : String(v) })
-                    }
-                  >
-                    <SelectTrigger
-                      size='sm'
-                      aria-label='Categoria'
-                      className='h-7 text-xs'
-                    >
-                      <span>{categoryName ?? 'Sem categoria'}</span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='__none__'>Sem categoria</SelectItem>
-                      {categories.data?.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className='text-muted-foreground text-xs'>
-                    {article.visibility === 'PORTAL'
-                      ? article.status === 'PUBLISHED'
-                        ? 'Visível para solicitantes no portal.'
-                        : 'Vai aparecer no portal quando publicado.'
-                      : 'Só agentes veem este artigo.'}
-                  </p>
-                </div>
-                <SdKbTagsInput
-                  value={article.tags}
-                  onChange={(tags) => save({ tags })}
-                />
-                <SdKbArticleMeta article={article} />
-              </div>
-
-              <div data-kb-editor={article.id} className='mt-2'>
+              <div data-kb-editor={article.id} className='mt-4'>
                 <KbRichEditor
                   key={article.id}
                   workspaceId={workspaceId}
@@ -515,47 +644,27 @@ export function SdKbArticleEditor({
                 />
               </div>
             </div>
-
-            <aside className='hidden space-y-6 pb-10 lg:block'>
-              <div className='sticky top-4 space-y-6'>
-                <SdKbToc content={content} containerSelector={editorSelector} />
-                <SdKbReviewPanel workspaceId={workspaceId} article={article} />
-                <section className='space-y-1 rounded-lg border p-3 text-sm'>
-                  <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
-                    Utilidade
-                  </p>
-                  <p>
-                    👍 {article.helpfulCount} · 👎 {article.notHelpfulCount}
-                  </p>
-                  <p className='text-muted-foreground text-xs'>
-                    {ratio === null
-                      ? 'Ainda sem votos.'
-                      : `${ratio}% acharam útil`}
-                  </p>
-                  <p className='text-muted-foreground text-xs'>
-                    Resolveu {article.reuseCount}{' '}
-                    {article.reuseCount === 1 ? 'chamado' : 'chamados'}
-                  </p>
-                </section>
-                {(related.data?.length ?? 0) > 0 && (
-                  <section className='space-y-1'>
-                    <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
-                      Relacionados
-                    </p>
-                    <SdKbArticleList
-                      articles={related.data ?? []}
-                      hrefFor={(a) =>
-                        `/${workspaceSlug}/servicedesk/knowledge/${a.id}`
-                      }
-                    />
-                  </section>
-                )}
-              </div>
-            </aside>
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+function PropertyField({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <section className='space-y-2'>
+      <p className='font-medium text-muted-foreground text-xs uppercase tracking-wide'>
+        {label}
+      </p>
+      {children}
+    </section>
   )
 }
 

@@ -121,8 +121,11 @@ describe('<SdKbArticleEditor />', () => {
     await waitFor(() =>
       expect(screen.getByRole('status').textContent).toContain('Salvo'),
     )
-    // O sumário acompanha o conteúdo editado.
-    expect(screen.getByRole('button', { name: 'Novo título H1' })).toBeTruthy()
+    // The table of contents (inside the drawer) follows the edited content.
+    fireEvent.click(screen.getByRole('button', { name: 'Revisão e detalhes' }))
+    expect(
+      await screen.findByRole('button', { name: 'Novo título H1' }),
+    ).toBeTruthy()
   })
 
   it('flushes a pending edit with keepalive when leaving the page', async () => {
@@ -157,7 +160,9 @@ describe('<SdKbArticleEditor />', () => {
         status: 'PUBLISHED',
       }),
     )
-    fireEvent.click(screen.getByRole('button', { name: /Portal/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Revisão e detalhes' }))
+    fireEvent.click(await screen.findByRole('tab', { name: 'Propriedades' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Portal/ }))
     await waitFor(() =>
       expect(fetchBody(spy, /\/knowledge\/a1$/, 'PATCH')).toEqual({
         visibility: 'PORTAL',
@@ -169,7 +174,9 @@ describe('<SdKbArticleEditor />', () => {
     const spy = setup([
       { method: 'PATCH', match: '/knowledge/a1/archive', data: DRAFT },
     ])
-    const tags = screen.getByLabelText('Adicionar tag')
+    fireEvent.click(screen.getByRole('button', { name: 'Revisão e detalhes' }))
+    fireEvent.click(await screen.findByRole('tab', { name: 'Propriedades' }))
+    const tags = await screen.findByLabelText('Adicionar tag')
     fireEvent.change(tags, { target: { value: 'VPN' } })
     fireEvent.keyDown(tags, { key: 'Enter' })
     await waitFor(() =>
@@ -178,7 +185,10 @@ describe('<SdKbArticleEditor />', () => {
       }),
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mais ações' }))
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: 'Escape',
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Mais ações' }))
     fireEvent.click(await screen.findByRole('menuitem', { name: /Arquivar/ }))
     await waitFor(() =>
       expect(push).toHaveBeenCalledWith('/acme/servicedesk/knowledge'),
@@ -187,8 +197,12 @@ describe('<SdKbArticleEditor />', () => {
 
   it('toggles the reader preview and shows related articles', async () => {
     setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Revisão e detalhes' }))
     expect(await screen.findByText('Relacionado')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: /Visualizar/ }))
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: 'Escape',
+    })
+    fireEvent.click(await screen.findByRole('button', { name: /Visualizar/ }))
     expect(await screen.findByText('Leitura')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: /Editar/ }))
     expect(screen.getByText('Editor a1')).toBeTruthy()
