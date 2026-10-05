@@ -577,6 +577,18 @@ export const crmCompetitorProfileNotFound = (): AppError =>
     'Perfil não encontrado, privado ou pessoal (no Instagram, só contas Business/Creator públicas podem ser buscadas automaticamente) — cadastre os dados manualmente',
   )
 
+export const crmCompetitorNoPosts = (): AppError =>
+  appError(
+    'CRM_COMPETITOR_NO_POSTS',
+    'Ainda não há posts coletados deste concorrente no período — sincronize e tente de novo',
+  )
+
+export const crmCompetitorIdeasFailed = (): AppError =>
+  appError(
+    'CRM_COMPETITOR_IDEAS_FAILED',
+    'A IA não conseguiu gerar ideias agora — tente de novo em instantes',
+  )
+
 export const crmScheduledPostNotFound = (): AppError =>
   appError('CRM_SCHEDULED_POST_NOT_FOUND', 'Post agendado não encontrado')
 

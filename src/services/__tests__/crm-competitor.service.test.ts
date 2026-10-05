@@ -9,6 +9,7 @@ import { err, ok } from '@/src/lib/result'
 vi.mock('@/lib/axiom/audit')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-competitor.repository')
+vi.mock('@/src/repositories/crm-competitor-analysis.repository')
 vi.mock('@/src/repositories/crm-social.repository')
 vi.mock('@/src/lib/social/discovery')
 vi.mock('@/src/lib/social/discovery/instagram')
@@ -17,9 +18,15 @@ vi.mock('../crm-social-token')
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
-import { fetchOwnMetrics, fetchPublicProfile } from '@/src/lib/social/discovery'
+import {
+  fetchCompetitorPosts,
+  fetchOwnMetrics,
+  fetchOwnPosts,
+  fetchPublicProfile,
+} from '@/src/lib/social/discovery'
 import { fetchCompetitorTodayEngagement } from '@/src/lib/social/discovery/instagram'
 import { CrmCompetitorRepository } from '@/src/repositories/crm-competitor.repository'
+import { CrmCompetitorAnalysisRepository } from '@/src/repositories/crm-competitor-analysis.repository'
 import { CrmSocialConnectionRepository } from '@/src/repositories/crm-social.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
@@ -37,6 +44,20 @@ const mockedFetchCompetitorTodayEngagement = vi.mocked(
   fetchCompetitorTodayEngagement,
 )
 const mockedFetchEnrichedMediaSince = vi.mocked(fetchEnrichedMediaSince)
+const mockedFetchCompetitorPosts = vi.mocked(fetchCompetitorPosts)
+const mockedFetchOwnPosts = vi.mocked(fetchOwnPosts)
+const mockedAnalysisRepo = vi.mocked(CrmCompetitorAnalysisRepository)
+
+const discoveredPost = {
+  externalId: 'm1',
+  format: 'IMAGE' as const,
+  caption: null,
+  permalink: null,
+  likeCount: 1,
+  commentsCount: 0,
+  viewCount: null,
+  publishedAt: new Date('2026-10-01T10:00:00Z'),
+}
 
 // `getMetrics()` sempre tenta buscar "hoje" quando a plataforma é Instagram
 // e há conexão — sem isso, testes que não mockam `getFreshAccessToken`
@@ -49,6 +70,11 @@ beforeEach(() => {
   mockedFetchEnrichedMediaSince.mockResolvedValue(
     err({ code: 'CRM_SOCIAL_OAUTH_FAILED', message: 'failed' }),
   )
+  // Post collection runs inside every successful sync group.
+  mockedFetchOwnPosts.mockResolvedValue(ok([discoveredPost]))
+  mockedFetchCompetitorPosts.mockResolvedValue(ok([discoveredPost]))
+  mockedAnalysisRepo.upsertConnectionPosts.mockResolvedValue(ok(1))
+  mockedAnalysisRepo.upsertCompetitorPosts.mockResolvedValue(ok(1))
 })
 
 describe('CrmCompetitorService', () => {
@@ -489,6 +515,93 @@ describe('CrmCompetitorService', () => {
       expect(mockedCompetitorRepo.recordSyncResult).toHaveBeenCalledWith(
         'c1',
         expect.objectContaining({ syncStatus: 'SYNCED', followersCount: 900 }),
+      )
+      expect(mockedAnalysisRepo.upsertConnectionPosts).toHaveBeenCalledWith(
+        'conn-1',
+        [discoveredPost],
+      )
+      expect(mockedFetchCompetitorPosts).toHaveBeenCalledWith(
+        'INSTAGRAM',
+        'token-1',
+        'ig-own-1',
+        '@rival2',
+      )
+      expect(mockedAnalysisRepo.upsertCompetitorPosts).toHaveBeenCalledWith(
+        'c1',
+        [discoveredPost],
+      )
+    })
+
+    it('should log post collection failures without failing the sync', async () => {
+      mockedCompetitorRepo.listSyncable.mockResolvedValue(
+        ok([
+          createFakeCrmCompetitor({
+            id: 'c1',
+            workspaceId: 'ws1',
+            platform: 'INSTAGRAM',
+          }),
+        ]),
+      )
+      mockedGetFreshAccessToken.mockResolvedValue(
+        ok({
+          accessToken: 'token-1',
+          connection: createFakeCrmSocialConnection({ id: 'conn-1' }),
+        }),
+      )
+      mockedFetchOwnMetrics.mockResolvedValue(
+        ok({ followersCount: 2000, postsCount: 30 }),
+      )
+      mockedSocialRepo.createMetricSnapshot.mockResolvedValue(
+        ok({
+          id: 'os1',
+          connectionId: 'conn-1',
+          followersCount: 2000,
+          postsCount: 30,
+          capturedAt: new Date(),
+        }),
+      )
+      mockedFetchPublicProfile.mockResolvedValue(
+        ok({
+          externalName: 'Rival',
+          avatarUrl: null,
+          bio: null,
+          followersCount: 900,
+          postsCount: 9,
+          profileUrl: null,
+        }),
+      )
+      mockedCompetitorRepo.recordSyncResult.mockResolvedValue(
+        ok(createFakeCrmCompetitor()),
+      )
+      mockedCompetitorRepo.createSnapshot.mockResolvedValue(
+        ok({
+          id: 's1',
+          competitorId: 'c1',
+          followersCount: 900,
+          postsCount: 9,
+          capturedAt: new Date(),
+        }),
+      )
+      mockedFetchOwnPosts.mockResolvedValue(
+        err({ code: 'CRM_SOCIAL_OAUTH_FAILED', message: 'failed' }),
+      )
+      mockedAnalysisRepo.upsertCompetitorPosts.mockResolvedValue(
+        err(databaseError('boom')),
+      )
+      mockedAnalysisRepo.upsertConnectionPosts.mockClear()
+      const errorSpy = vi.spyOn(logger, 'error')
+
+      const result = await CrmCompetitorService.syncAll()
+
+      expect(result).toEqual({ processed: 1, synced: 1, failed: 0 })
+      expect(mockedAnalysisRepo.upsertConnectionPosts).not.toHaveBeenCalled()
+      expect(errorSpy).toHaveBeenCalledWith(
+        'crm_competitor_sync.own_posts_failed',
+        expect.objectContaining({ reason: 'CRM_SOCIAL_OAUTH_FAILED' }),
+      )
+      expect(errorSpy).toHaveBeenCalledWith(
+        'crm_competitor_sync.competitor_posts_failed',
+        expect.objectContaining({ competitorId: 'c1' }),
       )
     })
 

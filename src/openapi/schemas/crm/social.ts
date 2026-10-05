@@ -2,6 +2,8 @@ import { z } from 'zod'
 import {
   CRM_COMPETITOR_METRICS_RANGES,
   CRM_COMPETITOR_SYNCABLE_PLATFORMS,
+  CRM_SOCIAL_POST_FORMATS,
+  CrmCompetitorIdeaSchema,
 } from '@/src/schemas/crm-competitor.schema'
 import { CRM_SOCIAL_PLATFORMS } from '@/src/schemas/crm-social.schema'
 import {
@@ -263,6 +265,113 @@ export const CrmCompetitorMetricsDTO = dto(
           'Conta conectada da mesma plataforma no workspace, para comparação (`null` sem conexão).',
       }),
   }),
+)
+
+const PostFormat = z.enum(CRM_SOCIAL_POST_FORMATS).meta({
+  description:
+    'Formato normalizado. `SHORT` é heurístico (vídeo do YouTube de até 60 s).',
+})
+
+const PostBucket = z.object({
+  postsCount: z.number().int(),
+  avgInteractions: z
+    .number()
+    .nullable()
+    .meta({ description: 'Média de curtidas + comentários do grupo.' }),
+})
+
+const CrmSocialPostSchema = z.object({
+  externalId: z.string(),
+  format: PostFormat,
+  caption: z.string().nullable(),
+  permalink: z.string().nullable(),
+  likeCount: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ description: '`null` = curtidas ocultas pelo dono do perfil.' }),
+  commentsCount: z.number().int().nullable(),
+  viewCount: z.number().int().nullable(),
+  interactions: z.number().int().nullable(),
+  publishedAt: dateTime(),
+})
+
+const CrmPostStatsSchema = dto(
+  'CrmPostStats',
+  z
+    .object({
+      postsCount: z.number().int(),
+      postsPerWeek: z.number(),
+      avgInteractions: z.number().nullable(),
+      engagementRate: z.number().nullable().meta({
+        description: 'Interações médias por post ÷ seguidores × 100.',
+      }),
+      avgViews: z.number().nullable(),
+      hiddenLikesCount: z.number().int(),
+      avgCaptionLength: z.number().nullable(),
+      formats: z.array(
+        PostBucket.extend({ format: PostFormat, share: z.number() }),
+      ),
+      weekdays: z
+        .array(PostBucket.extend({ weekday: z.number().int() }))
+        .meta({ description: 'Domingo (0) a sábado (6), fuso de São Paulo.' }),
+      dayparts: z.array(
+        PostBucket.extend({
+          daypart: z.enum(['DAWN', 'MORNING', 'AFTERNOON', 'EVENING']),
+        }),
+      ),
+      hashtags: z.array(PostBucket.extend({ tag: z.string() })),
+      topPosts: z.array(CrmSocialPostSchema),
+    })
+    .meta({
+      description:
+        'Métricas de uma conta na janela, calculadas sem IA a partir dos posts coletados.',
+    }),
+)
+
+export const CrmCompetitorAnalysisDTO = dto(
+  'CrmCompetitorAnalysis',
+  z.object({
+    range: z.enum(CRM_COMPETITOR_METRICS_RANGES),
+    competitor: CrmCompetitorDTO,
+    competitorStats: CrmPostStatsSchema,
+    ownAccount: z
+      .object({
+        connectionId: z.string(),
+        accountName: z.string().nullable(),
+        followersCount: z.number().int().nullable(),
+        stats: CrmPostStatsSchema,
+      })
+      .nullable()
+      .meta({
+        description:
+          'Conta conectada da mesma plataforma (`null` sem conexão).',
+      }),
+    insights: z.array(
+      z.object({
+        key: z.string(),
+        tone: z.enum(['positive', 'negative', 'neutral']),
+        text: z.string(),
+      }),
+    ),
+  }),
+)
+
+export const CrmCompetitorIdeaSetDTO = dto(
+  'CrmCompetitorIdeaSet',
+  z
+    .object({
+      id: z.string(),
+      competitorId: z.string(),
+      range: z.enum(CRM_COMPETITOR_METRICS_RANGES),
+      ideas: z.array(CrmCompetitorIdeaSchema),
+      modelKey: z.string(),
+      createdById: z.string().nullable(),
+      createdAt: dateTime(),
+    })
+    .meta({
+      description: 'Ideias de publicação geradas pela IA do workspace.',
+    }),
 )
 
 export const CrmCompetitorSyncResultDTO = dto(

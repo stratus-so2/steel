@@ -176,7 +176,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `whatsapp-conversation-lifecycle` | fecha conversas inativas (janela por workspace, padrão 24h) | a cada 15 min |
 | `crm-scheduled-send` | campanhas de e-mail agendadas | a cada 5 min |
 | `crm-workflow-schedule` | workflows `on-a-schedule` | a cada 1 min |
-| `crm-competitor-sync` | métricas de concorrentes | cron 04:00 |
+| `crm-competitor-sync` | métricas e posts públicos de concorrentes (e da conta própria) para a análise comparativa | cron 04:00 |
 | `crm-proposal-expiry` | expira propostas com validade vencida e avisa o responsável | cron 00:05 |
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |

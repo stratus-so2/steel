@@ -13,3 +13,15 @@ export type OwnMetrics = {
   followersCount: number
   postsCount: number | null
 }
+
+/** Public post collected from a competitor or the own account, normalized. */
+export type DiscoveredPost = {
+  externalId: string
+  format: 'IMAGE' | 'CAROUSEL' | 'VIDEO' | 'REELS' | 'SHORT'
+  caption: string | null
+  permalink: string | null
+  likeCount: number | null
+  commentsCount: number | null
+  viewCount: number | null
+  publishedAt: Date
+}

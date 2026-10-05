@@ -74,3 +74,99 @@ export interface CrmCompetitorMetricsDTO {
       })
     | null
 }
+
+/** Normalized post format (Instagram and YouTube share one vocabulary). */
+export type CrmSocialPostFormatDTO =
+  | 'IMAGE'
+  | 'CAROUSEL'
+  | 'VIDEO'
+  | 'REELS'
+  | 'SHORT'
+
+export interface CrmSocialPostDTO {
+  externalId: string
+  format: CrmSocialPostFormatDTO
+  caption: string | null
+  permalink: string | null
+  /** `null` = likes hidden by the profile owner. */
+  likeCount: number | null
+  commentsCount: number | null
+  viewCount: number | null
+  /** Likes + comments; `null` when the platform reported neither. */
+  interactions: number | null
+  publishedAt: string
+}
+
+export type CrmPostDaypartDTO = 'DAWN' | 'MORNING' | 'AFTERNOON' | 'EVENING'
+
+export interface CrmPostBucketStatsDTO {
+  postsCount: number
+  /** Average likes + comments of the posts in the group. */
+  avgInteractions: number | null
+}
+
+/**
+ * Metrics of one account (competitor or own) over the window, computed
+ * without AI from the collected posts (`src/lib/social/post-analytics.ts`).
+ */
+export interface CrmPostStatsDTO {
+  postsCount: number
+  postsPerWeek: number
+  avgInteractions: number | null
+  /** Average interactions per post ÷ followers × 100. */
+  engagementRate: number | null
+  avgViews: number | null
+  hiddenLikesCount: number
+  avgCaptionLength: number | null
+  formats: (CrmPostBucketStatsDTO & {
+    format: CrmSocialPostFormatDTO
+    /** Share of the window's posts, 0–100. */
+    share: number
+  })[]
+  /** Seven slots, Sunday (0) to Saturday (6), in the São Paulo timezone. */
+  weekdays: (CrmPostBucketStatsDTO & { weekday: number })[]
+  dayparts: (CrmPostBucketStatsDTO & { daypart: CrmPostDaypartDTO })[]
+  hashtags: (CrmPostBucketStatsDTO & { tag: string })[]
+  topPosts: CrmSocialPostDTO[]
+}
+
+export type CrmCompetitorInsightToneDTO = 'positive' | 'negative' | 'neutral'
+
+/** Comparative reading ready for the screen (fixed rules, no AI). */
+export interface CrmCompetitorInsightDTO {
+  key: string
+  tone: CrmCompetitorInsightToneDTO
+  text: string
+}
+
+export interface CrmCompetitorAnalysisDTO {
+  range: '7d' | '30d' | '90d'
+  competitor: CrmCompetitorDTO
+  competitorStats: CrmPostStatsDTO
+  ownAccount: {
+    connectionId: string
+    accountName: string | null
+    followersCount: number | null
+    stats: CrmPostStatsDTO
+  } | null
+  insights: CrmCompetitorInsightDTO[]
+}
+
+export interface CrmCompetitorIdeaDTO {
+  title: string
+  format: CrmSocialPostFormatDTO
+  hook: string
+  caption: string
+  rationale: string
+  hashtags: string[]
+}
+
+export interface CrmCompetitorIdeaSetDTO {
+  id: string
+  competitorId: string
+  range: '7d' | '30d' | '90d'
+  ideas: CrmCompetitorIdeaDTO[]
+  modelKey: string
+  createdById: string | null
+  createdAt: string
+}

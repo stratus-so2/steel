@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createFakeCrmCompetitor } from '@/src/__tests__/factories/crm-competitor.factory'
 import {
   toCrmCompetitorDTO,
+  toCrmCompetitorIdeaSetDTO,
   toCrmCompetitorMetricSnapshotDTO,
 } from '../crm-competitor.mapper'
 
@@ -56,5 +57,53 @@ describe('toCrmCompetitorMetricSnapshotDTO()', () => {
       postsCount: 42,
       capturedAt: capturedAt.toISOString(),
     })
+  })
+})
+
+describe('toCrmCompetitorIdeaSetDTO()', () => {
+  const idea = {
+    title: 'Bastidores',
+    format: 'REELS',
+    hook: 'Gancho',
+    caption: 'Legenda',
+    rationale: 'Motivo',
+    hashtags: ['fibra'],
+  }
+  const createdAt = new Date('2026-10-05T12:00:00Z')
+
+  it('should map a stored idea set', () => {
+    expect(
+      toCrmCompetitorIdeaSetDTO({
+        id: 'set1',
+        competitorId: 'c1',
+        range: '7d',
+        ideas: [idea],
+        modelKey: 'openai:gpt',
+        createdById: null,
+        createdAt,
+      }),
+    ).toEqual({
+      id: 'set1',
+      competitorId: 'c1',
+      range: '7d',
+      ideas: [idea],
+      modelKey: 'openai:gpt',
+      createdById: null,
+      createdAt: createdAt.toISOString(),
+    })
+  })
+
+  it('should fall back to an empty list and 30d for rows off the contract', () => {
+    const dto = toCrmCompetitorIdeaSetDTO({
+      id: 'set1',
+      competitorId: 'c1',
+      range: 'bogus',
+      ideas: { not: 'a list' },
+      modelKey: 'openai:gpt',
+      createdById: 'u1',
+      createdAt,
+    })
+    expect(dto.ideas).toEqual([])
+    expect(dto.range).toBe('30d')
   })
 })

@@ -20,6 +20,8 @@ export {
   crmCalendarEventNotFound,
   crmCompanyConflict,
   crmCompanyNotFound,
+  crmCompetitorIdeasFailed,
+  crmCompetitorNoPosts,
   crmCompetitorProfileNotFound,
   crmCustomFieldConflict,
   crmCustomFieldInvalid,

@@ -1,7 +1,7 @@
 import { crmCompetitorProfileNotFound } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { getJson } from '../providers/http'
-import type { DiscoveredProfile, OwnMetrics } from './types'
+import type { DiscoveredPost, DiscoveredProfile, OwnMetrics } from './types'
 
 function toInt(value: unknown): number {
   const n =
@@ -104,4 +104,115 @@ export async function fetchYoutubePublicProfile(
         : null,
     profileUrl: `https://www.youtube.com/${forHandle}`,
   })
+}
+
+const YT = 'https://www.googleapis.com/youtube/v3'
+
+/** Videos kept per collection run (one page of `playlistItems.list`). */
+const POSTS_PAGE_SIZE = 50
+
+/** The API does not flag Shorts; up to this duration a video counts as one. */
+const SHORT_MAX_SECONDS = 60
+
+/** ISO 8601 duration (`PT1H2M3S`) in seconds; `null` when unparseable. */
+export function parseIsoDurationSeconds(
+  duration: string | undefined,
+): number | null {
+  if (!duration) return null
+  const match = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(
+    duration,
+  )
+  if (!match) return null
+  const [, d, h, m, sec] = match.map((v) => Number(v ?? 0))
+  return d * 86_400 + h * 3600 + m * 60 + sec
+}
+
+type YoutubeVideo = {
+  id?: string
+  snippet?: { title?: string; description?: string; publishedAt?: string }
+  statistics?: { viewCount?: string; likeCount?: string; commentCount?: string }
+  contentDetails?: { duration?: string }
+}
+
+export function toYoutubePosts(videos: YoutubeVideo[]): DiscoveredPost[] {
+  const posts: DiscoveredPost[] = []
+  for (const video of videos) {
+    if (!video.id || !video.snippet?.publishedAt) continue
+    const publishedAt = new Date(video.snippet.publishedAt)
+    if (Number.isNaN(publishedAt.getTime())) continue
+    const seconds = parseIsoDurationSeconds(video.contentDetails?.duration)
+    const caption = [video.snippet.title, video.snippet.description]
+      .filter(Boolean)
+      .join('\n\n')
+    const stats = video.statistics
+    posts.push({
+      externalId: video.id,
+      format:
+        seconds !== null && seconds <= SHORT_MAX_SECONDS ? 'SHORT' : 'VIDEO',
+      caption: caption ? truncateBio(caption) : null,
+      permalink: `https://www.youtube.com/watch?v=${video.id}`,
+      likeCount: stats?.likeCount != null ? toInt(stats.likeCount) : null,
+      commentsCount:
+        stats?.commentCount != null ? toInt(stats.commentCount) : null,
+      viewCount: stats?.viewCount != null ? toInt(stats.viewCount) : null,
+      publishedAt,
+    })
+  }
+  return posts
+}
+
+/**
+ * Latest uploads of a channel — the competitor's (`forHandle`) or the
+ * connected one (`mine`). Goes through the uploads playlist instead of
+ * `search.list`: three calls of 1 quota unit each, against 100 for a search.
+ */
+export async function fetchYoutubeChannelPosts(
+  accessToken: string,
+  channel: { handle: string } | { mine: true },
+): Promise<Result<DiscoveredPost[]>> {
+  const channelParams = new URLSearchParams({ part: 'contentDetails' })
+  if ('mine' in channel) {
+    channelParams.set('mine', 'true')
+  } else {
+    const trimmed = channel.handle.trim()
+    channelParams.set(
+      'forHandle',
+      trimmed.startsWith('@') ? trimmed : `@${trimmed}`,
+    )
+  }
+  const channelResult = await getJson<{
+    items?: { contentDetails?: { relatedPlaylists?: { uploads?: string } } }[]
+  }>(`${YT}/channels?${channelParams.toString()}`, accessToken)
+  if (!channelResult.ok) return channelResult
+
+  const uploads =
+    channelResult.value.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+  if (!uploads) return err(crmCompetitorProfileNotFound())
+
+  const playlistParams = new URLSearchParams({
+    part: 'contentDetails',
+    playlistId: uploads,
+    maxResults: String(POSTS_PAGE_SIZE),
+  })
+  const playlist = await getJson<{
+    items?: { contentDetails?: { videoId?: string } }[]
+  }>(`${YT}/playlistItems?${playlistParams.toString()}`, accessToken)
+  if (!playlist.ok) return playlist
+
+  const ids = (playlist.value.items ?? [])
+    .map((item) => item.contentDetails?.videoId)
+    .filter((id): id is string => Boolean(id))
+  if (ids.length === 0) return ok([])
+
+  const videoParams = new URLSearchParams({
+    part: 'snippet,statistics,contentDetails',
+    id: ids.join(','),
+    maxResults: String(POSTS_PAGE_SIZE),
+  })
+  const videos = await getJson<{ items?: YoutubeVideo[] }>(
+    `${YT}/videos?${videoParams.toString()}`,
+    accessToken,
+  )
+  if (!videos.ok) return videos
+  return ok(toYoutubePosts(videos.value.items ?? []))
 }

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CRM_COMPETITOR_IDEAS_JSON_SCHEMA,
+  CRM_SOCIAL_POST_FORMATS,
   CreateCrmCompetitorSchema,
+  CrmCompetitorIdeasOutputSchema,
+  GenerateCrmCompetitorIdeasSchema,
   PreviewCrmCompetitorSchema,
   UpdateCrmCompetitorSchema,
 } from '../crm-competitor.schema'
@@ -77,5 +81,54 @@ describe('PreviewCrmCompetitorSchema', () => {
         handle: '@concorrente',
       }).success,
     ).toBe(false)
+  })
+})
+
+describe('GenerateCrmCompetitorIdeasSchema', () => {
+  it('should default the range to 30d', () => {
+    expect(GenerateCrmCompetitorIdeasSchema.parse({})).toEqual({ range: '30d' })
+  })
+
+  it('should reject an unknown range', () => {
+    expect(
+      GenerateCrmCompetitorIdeasSchema.safeParse({ range: '1y' }).success,
+    ).toBe(false)
+  })
+})
+
+describe('CrmCompetitorIdeasOutputSchema', () => {
+  const idea = {
+    title: 'Bastidores',
+    format: 'REELS',
+    hook: 'Gancho',
+    caption: 'Legenda',
+    rationale: 'Motivo',
+    hashtags: ['fibra'],
+  }
+
+  it('should accept a valid model output', () => {
+    expect(
+      CrmCompetitorIdeasOutputSchema.safeParse({ ideas: [idea] }).success,
+    ).toBe(true)
+  })
+
+  it('should reject an empty list and unknown formats', () => {
+    expect(
+      CrmCompetitorIdeasOutputSchema.safeParse({ ideas: [] }).success,
+    ).toBe(false)
+    expect(
+      CrmCompetitorIdeasOutputSchema.safeParse({
+        ideas: [{ ...idea, format: 'STORY' }],
+      }).success,
+    ).toBe(false)
+  })
+
+  it('should keep the JSON Schema formats in sync with the Zod enum', () => {
+    const items = (
+      CRM_COMPETITOR_IDEAS_JSON_SCHEMA.properties as {
+        ideas: { items: { properties: { format: { enum: string[] } } } }
+      }
+    ).ideas.items.properties.format.enum
+    expect(items).toEqual([...CRM_SOCIAL_POST_FORMATS])
   })
 })

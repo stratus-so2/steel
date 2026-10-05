@@ -1,11 +1,17 @@
 import type { Result } from '@/src/lib/result'
 import type { CRM_COMPETITOR_SYNCABLE_PLATFORMS } from '@/src/schemas/crm-competitor.schema'
 import {
+  fetchInstagramCompetitorPosts,
   fetchInstagramOwnMetrics,
+  fetchInstagramOwnPosts,
   fetchInstagramPublicProfile,
 } from './instagram'
-import type { DiscoveredProfile, OwnMetrics } from './types'
-import { fetchYoutubeOwnMetrics, fetchYoutubePublicProfile } from './youtube'
+import type { DiscoveredPost, DiscoveredProfile, OwnMetrics } from './types'
+import {
+  fetchYoutubeChannelPosts,
+  fetchYoutubeOwnMetrics,
+  fetchYoutubePublicProfile,
+} from './youtube'
 
 export type SyncablePlatform =
   (typeof CRM_COMPETITOR_SYNCABLE_PLATFORMS)[number]
@@ -57,4 +63,48 @@ export function fetchOwnMetrics(
   return OWN_METRICS[platform](accessToken, ownExternalAccountId)
 }
 
-export type { DiscoveredProfile, OwnMetrics } from './types'
+/** Platform → latest public posts of a competitor. */
+const COMPETITOR_POSTS: Record<
+  SyncablePlatform,
+  (
+    accessToken: string,
+    ownExternalAccountId: string,
+    handle: string,
+  ) => Promise<Result<DiscoveredPost[]>>
+> = {
+  INSTAGRAM: fetchInstagramCompetitorPosts,
+  YOUTUBE: (accessToken, _ownExternalAccountId, handle) =>
+    fetchYoutubeChannelPosts(accessToken, { handle }),
+}
+
+/** Platform → latest posts of the connected account. */
+const OWN_POSTS: Record<
+  SyncablePlatform,
+  (
+    accessToken: string,
+    ownExternalAccountId: string,
+  ) => Promise<Result<DiscoveredPost[]>>
+> = {
+  INSTAGRAM: fetchInstagramOwnPosts,
+  YOUTUBE: (accessToken) =>
+    fetchYoutubeChannelPosts(accessToken, { mine: true }),
+}
+
+export function fetchCompetitorPosts(
+  platform: SyncablePlatform,
+  accessToken: string,
+  ownExternalAccountId: string,
+  handle: string,
+): Promise<Result<DiscoveredPost[]>> {
+  return COMPETITOR_POSTS[platform](accessToken, ownExternalAccountId, handle)
+}
+
+export function fetchOwnPosts(
+  platform: SyncablePlatform,
+  accessToken: string,
+  ownExternalAccountId: string,
+): Promise<Result<DiscoveredPost[]>> {
+  return OWN_POSTS[platform](accessToken, ownExternalAccountId)
+}
+
+export type { DiscoveredPost, DiscoveredProfile, OwnMetrics } from './types'

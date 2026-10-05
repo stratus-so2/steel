@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   CRM_COMPETITOR_METRICS_RANGES,
   CreateCrmCompetitorSchema,
+  GenerateCrmCompetitorIdeasSchema,
   PreviewCrmCompetitorSchema,
   ReorderCrmCompetitorsSchema,
   UpdateCrmCompetitorSchema,
@@ -16,7 +17,9 @@ import {
 import type { JsonSchema } from '../../json-schema'
 import type { ErrorEntry, ParamSpec, RouteConfig } from '../../registry'
 import {
+  CrmCompetitorAnalysisDTO,
   CrmCompetitorDTO,
+  CrmCompetitorIdeaSetDTO,
   CrmCompetitorMetricsDTO,
   CrmCompetitorPreviewDTO,
   CrmCompetitorSyncResultDTO,
@@ -986,6 +989,102 @@ export const crmSocialRoutes: RouteConfig[] = [
     errors: [
       ...CRM_ERRORS,
       COMPETITOR_NOT_FOUND,
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Janela de tempo inválida',
+        when: '`range` fora de `7d`/`30d`/`90d`',
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/crm/competitors/{competitorId}/analysis',
+    tags: [TAG],
+    summary: 'Análise do concorrente',
+    description: describe(
+      'Comparação, sem IA, dos posts coletados do concorrente com os da conta conectada da mesma plataforma: frequência, interações, engajamento, formatos, dias, horários (fuso de São Paulo), hashtags, posts de destaque e leituras comparativas. Os posts são coletados pelo sync diário.',
+      crmAccess('social', 'VIEW'),
+    ),
+    params: { competitorId: COMPETITOR_PARAM },
+    query: {
+      type: 'object',
+      properties: {
+        range: {
+          type: 'string',
+          enum: [...CRM_COMPETITOR_METRICS_RANGES],
+          default: '30d',
+          description: 'Janela de tempo.',
+        },
+      },
+    },
+    responses: {
+      200: { description: 'Análise.', schema: CrmCompetitorAnalysisDTO },
+    },
+    errors: [
+      ...CRM_ERRORS,
+      COMPETITOR_NOT_FOUND,
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Janela de tempo inválida',
+        when: '`range` fora de `7d`/`30d`/`90d`',
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/crm/competitors/{competitorId}/ideas',
+    tags: [TAG],
+    summary: 'Últimas ideias de publicação',
+    description: describe(
+      'Último conjunto de ideias gerado para o concorrente (`null` se nunca foi gerado). Não consome cota de IA.',
+      crmAccess('social', 'VIEW'),
+    ),
+    params: { competitorId: COMPETITOR_PARAM },
+    responses: {
+      200: {
+        description: 'Ideias ou `null`.',
+        schema: CrmCompetitorIdeaSetDTO,
+      },
+    },
+    errors: [...CRM_ERRORS, COMPETITOR_NOT_FOUND],
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/crm/competitors/{competitorId}/ideas',
+    tags: [TAG],
+    summary: 'Gerar ideias de publicação',
+    description: describe(
+      'Gera ideias com a IA do workspace (OpenAI ou Anthropic, mesmo modelo do assistente do CRM) a partir da análise da janela `range`. Consome a cota mensal de IA. Legendas vão ao provedor sem e-mail, telefone, documento ou @menções.',
+      crmAccess('social', 'CREATE'),
+    ),
+    params: { competitorId: COMPETITOR_PARAM },
+    body: GenerateCrmCompetitorIdeasSchema,
+    responses: {
+      201: { description: 'Ideias geradas.', schema: CrmCompetitorIdeaSetDTO },
+    },
+    errors: [
+      ...CRM_ERRORS,
+      COMPETITOR_NOT_FOUND,
+      {
+        code: 'FEATURE_NOT_ENABLED',
+        when: 'Feature `crm.aiAssistant` desligada para o workspace',
+      },
+      {
+        code: 'CRM_COMPETITOR_NO_POSTS',
+        when: 'Nenhum post do concorrente coletado na janela',
+      },
+      {
+        code: 'AI_QUOTA_EXCEEDED',
+        when: 'Cota mensal de IA do workspace esgotada',
+      },
+      {
+        code: 'AI_PROVIDER_UNAVAILABLE',
+        when: 'Nenhum modelo habilitado com provedor configurado',
+      },
+      {
+        code: 'CRM_COMPETITOR_IDEAS_FAILED',
+        when: 'Falha do provedor ou resposta fora do formato',
+      },
       {
         code: 'VALIDATION_ERROR',
         message: 'Janela de tempo inválida',

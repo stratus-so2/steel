@@ -4,7 +4,7 @@ import {
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { getJson } from '../providers/http'
-import type { DiscoveredProfile, OwnMetrics } from './types'
+import type { DiscoveredPost, DiscoveredProfile, OwnMetrics } from './types'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
@@ -180,4 +180,98 @@ export async function fetchCompetitorTodayEngagement(
     totalLikes: today.reduce((sum, m) => sum + toInt(m.like_count), 0),
     totalComments: today.reduce((sum, m) => sum + toInt(m.comments_count), 0),
   })
+}
+
+/** Posts kept per collection run — Graph returns newest first. */
+const POSTS_PAGE_SIZE = 50
+
+const POST_FIELDS =
+  'id,caption,media_type,media_product_type,timestamp,like_count,comments_count,permalink'
+
+type GraphMediaItem = {
+  id?: string
+  caption?: string
+  media_type?: string
+  media_product_type?: string
+  timestamp?: string
+  like_count?: number
+  comments_count?: number
+  permalink?: string
+}
+
+export function toInstagramFormat(
+  item: Pick<GraphMediaItem, 'media_type' | 'media_product_type'>,
+): DiscoveredPost['format'] {
+  if (item.media_product_type === 'REELS') return 'REELS'
+  if (item.media_type === 'CAROUSEL_ALBUM') return 'CAROUSEL'
+  if (item.media_type === 'VIDEO') return 'VIDEO'
+  return 'IMAGE'
+}
+
+/**
+ * Feed posts only: stories have no public API for third parties, so they
+ * are dropped on both sides to keep the comparison on the same basis.
+ * Graph omits `like_count` when the owner hides likes — kept as `null`.
+ */
+export function toInstagramPosts(items: GraphMediaItem[]): DiscoveredPost[] {
+  const posts: DiscoveredPost[] = []
+  for (const item of items) {
+    if (!item.id || !item.timestamp) continue
+    if (item.media_product_type === 'STORY') continue
+    const publishedAt = new Date(item.timestamp)
+    if (Number.isNaN(publishedAt.getTime())) continue
+    posts.push({
+      externalId: item.id,
+      format: toInstagramFormat(item),
+      caption: item.caption ?? null,
+      permalink: item.permalink ?? null,
+      likeCount: item.like_count != null ? toInt(item.like_count) : null,
+      commentsCount:
+        item.comments_count != null ? toInt(item.comments_count) : null,
+      viewCount: null,
+      publishedAt,
+    })
+  }
+  return posts
+}
+
+/**
+ * Latest public posts of ANOTHER Business/Creator account through the nested
+ * `media` field of Business Discovery (same limits as
+ * `fetchInstagramPublicProfile`).
+ */
+export async function fetchInstagramCompetitorPosts(
+  pageToken: string,
+  ownIgAccountId: string,
+  handle: string,
+): Promise<Result<DiscoveredPost[]>> {
+  const username = handle.trim().replace(/^@/, '')
+  const params = new URLSearchParams({
+    fields: `business_discovery.username(${username}){media.limit(${POSTS_PAGE_SIZE}){${POST_FIELDS}}}`,
+  })
+  const result = await getJson<{
+    business_discovery?: { media?: { data?: GraphMediaItem[] } }
+  }>(`${GRAPH}/${ownIgAccountId}?${params.toString()}`, pageToken)
+  if (!result.ok) return result
+
+  const media = result.value.business_discovery?.media?.data
+  if (!media) return err(crmCompetitorProfileNotFound())
+  return ok(toInstagramPosts(media))
+}
+
+/** Latest posts of the workspace's own connected IG account. */
+export async function fetchInstagramOwnPosts(
+  pageToken: string,
+  igAccountId: string,
+): Promise<Result<DiscoveredPost[]>> {
+  const params = new URLSearchParams({
+    fields: POST_FIELDS,
+    limit: String(POSTS_PAGE_SIZE),
+  })
+  const result = await getJson<{ data?: GraphMediaItem[] }>(
+    `${GRAPH}/${igAccountId}/media?${params.toString()}`,
+    pageToken,
+  )
+  if (!result.ok) return result
+  return ok(toInstagramPosts(result.value.data ?? []))
 }

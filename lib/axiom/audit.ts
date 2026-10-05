@@ -69,6 +69,7 @@ export type AuditEntity =
   | 'crm_ai_attachment'
   | 'crm_hook_vault_item'
   | 'crm_tracked_competitor'
+  | 'crm_competitor_idea_set'
   | 'backup'
   | 'workspace_ai_settings'
   | 'user_ai_preference'

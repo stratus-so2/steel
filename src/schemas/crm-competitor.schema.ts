@@ -66,3 +66,80 @@ export type CrmCompetitorMetricsRange =
 export const CrmCompetitorMetricsQuerySchema = z.object({
   range: z.enum(CRM_COMPETITOR_METRICS_RANGES).default('30d'),
 })
+
+export const CRM_SOCIAL_POST_FORMATS = [
+  'IMAGE',
+  'CAROUSEL',
+  'VIDEO',
+  'REELS',
+  'SHORT',
+] as const
+
+export const CRM_SOCIAL_POST_FORMAT_LABELS: Record<
+  (typeof CRM_SOCIAL_POST_FORMATS)[number],
+  string
+> = {
+  IMAGE: 'Imagem',
+  CAROUSEL: 'Carrossel',
+  VIDEO: 'Vídeo',
+  REELS: 'Reels',
+  SHORT: 'Shorts',
+}
+
+/** Ideas request: the analysis window that grounds the prompt. */
+export const GenerateCrmCompetitorIdeasSchema = z.object({
+  range: z.enum(CRM_COMPETITOR_METRICS_RANGES).default('30d'),
+})
+
+export type GenerateCrmCompetitorIdeasDTO = z.infer<
+  typeof GenerateCrmCompetitorIdeasSchema
+>
+
+/** Number of ideas asked from the model per generation. */
+export const CRM_COMPETITOR_IDEAS_COUNT = 5
+
+/** Expected model output, validated before it is stored. */
+export const CrmCompetitorIdeaSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  format: z.enum(CRM_SOCIAL_POST_FORMATS),
+  hook: z.string().trim().min(1).max(500),
+  caption: z.string().trim().min(1).max(2200),
+  rationale: z.string().trim().min(1).max(1000),
+  hashtags: z.array(z.string().trim().min(1).max(100)).max(15),
+})
+
+export const CrmCompetitorIdeasOutputSchema = z.object({
+  ideas: z.array(CrmCompetitorIdeaSchema).min(1).max(10),
+})
+
+/** Same contract as JSON Schema, for both providers' structured output. */
+export const CRM_COMPETITOR_IDEAS_JSON_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['ideas'],
+  properties: {
+    ideas: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: [
+          'title',
+          'format',
+          'hook',
+          'caption',
+          'rationale',
+          'hashtags',
+        ],
+        properties: {
+          title: { type: 'string' },
+          format: { type: 'string', enum: [...CRM_SOCIAL_POST_FORMATS] },
+          hook: { type: 'string' },
+          caption: { type: 'string' },
+          rationale: { type: 'string' },
+          hashtags: { type: 'array', items: { type: 'string' } },
+        },
+      },
+    },
+  },
+}

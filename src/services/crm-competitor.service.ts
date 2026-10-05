@@ -3,10 +3,16 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { ok, type Result } from '@/src/lib/result'
 import type { SyncablePlatform } from '@/src/lib/social/discovery'
-import { fetchOwnMetrics, fetchPublicProfile } from '@/src/lib/social/discovery'
+import {
+  fetchCompetitorPosts,
+  fetchOwnMetrics,
+  fetchOwnPosts,
+  fetchPublicProfile,
+} from '@/src/lib/social/discovery'
 import { fetchCompetitorTodayEngagement } from '@/src/lib/social/discovery/instagram'
 import { toCrmCompetitorDTO } from '@/src/mappers/crm-competitor.mapper'
 import { CrmCompetitorRepository } from '@/src/repositories/crm-competitor.repository'
+import { CrmCompetitorAnalysisRepository } from '@/src/repositories/crm-competitor-analysis.repository'
 import { CrmSocialConnectionRepository } from '@/src/repositories/crm-social.repository'
 import type {
   CreateCrmCompetitorDTO,
@@ -151,6 +157,28 @@ async function syncCompetitorGroups(
       })
     }
 
+    // Posts feed the competitor analysis; a failure here is logged and does
+    // not fail the sync — profile metrics are still worth recording.
+    const ownPosts = await fetchOwnPosts(
+      syncablePlatform,
+      fresh.value.accessToken,
+      fresh.value.connection.externalAccountId,
+    )
+    const ownStored = ownPosts.ok
+      ? await CrmCompetitorAnalysisRepository.upsertConnectionPosts(
+          fresh.value.connection.id,
+          ownPosts.value,
+        )
+      : ownPosts
+    if (!ownStored.ok) {
+      logger.error('crm_competitor_sync.own_posts_failed', {
+        component: 'CrmCompetitorService',
+        workspaceId,
+        platform: syncablePlatform,
+        reason: ownStored.error.code,
+      })
+    }
+
     for (const competitor of group) {
       const profile = await fetchPublicProfile(
         syncablePlatform,
@@ -179,6 +207,28 @@ async function syncCompetitorGroups(
         followersCount: profile.value.followersCount,
         postsCount: profile.value.postsCount,
       })
+
+      const posts = await fetchCompetitorPosts(
+        syncablePlatform,
+        fresh.value.accessToken,
+        fresh.value.connection.externalAccountId,
+        competitor.handle,
+      )
+      const stored = posts.ok
+        ? await CrmCompetitorAnalysisRepository.upsertCompetitorPosts(
+            competitor.id,
+            posts.value,
+          )
+        : posts
+      if (!stored.ok) {
+        logger.error('crm_competitor_sync.competitor_posts_failed', {
+          component: 'CrmCompetitorService',
+          workspaceId,
+          competitorId: competitor.id,
+          platform: syncablePlatform,
+          reason: stored.error.code,
+        })
+      }
       synced += 1
     }
   }
