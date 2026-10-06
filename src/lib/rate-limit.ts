@@ -44,6 +44,12 @@ const SD_PORTAL_LINK_DURATION_SECONDS = 60 * 60
 const SD_PORTAL_WRITE_POINTS = 20
 const SD_PORTAL_WRITE_DURATION_SECONDS = 10 * 60
 
+// Steel AI: each message can run up to 8 model rounds, so it gets its own,
+// much tighter budget than the generic API limiter (the monthly USD quota
+// still applies on top).
+const AI_MESSAGE_POINTS = 20
+const AI_MESSAGE_DURATION_SECONDS = 60
+
 const authInsurance = new RateLimiterMemory({
   points: AUTH_POINTS,
   duration: AUTH_DURATION_SECONDS,
@@ -150,6 +156,15 @@ export const sdPortalWriteLimiter = new RateLimiterRedis({
   duration: SD_PORTAL_WRITE_DURATION_SECONDS,
 })
 
+export const aiMessageLimiter = new RateLimiterRedis({
+  storeClient: redis,
+  storeType: 'redis',
+  useRedisPackage: true,
+  keyPrefix: 'rl:ai:message',
+  points: AI_MESSAGE_POINTS,
+  duration: AI_MESSAGE_DURATION_SECONDS,
+})
+
 export type Limiter = RateLimiterRedis
 
 const limiterNames = new WeakMap<Limiter, string>([
@@ -163,6 +178,7 @@ const limiterNames = new WeakMap<Limiter, string>([
   [whatsappWebhookLimiter, 'whatsapp_webhook'],
   [sdPortalLinkLimiter, 'sd_portal_link'],
   [sdPortalWriteLimiter, 'sd_portal_write'],
+  [aiMessageLimiter, 'ai_message'],
 ])
 
 let connectionEnsured: Promise<unknown> | null = null

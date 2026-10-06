@@ -37,3 +37,28 @@ export const ConfirmAiPendingActionSchema = z.object({
 export type ConfirmAiPendingActionDTO = z.infer<
   typeof ConfirmAiPendingActionSchema
 >
+
+/** `GET .../ai/conversations?q=` — title search. */
+export const ListAiConversationsQuerySchema = z.object({
+  q: z.string().trim().min(1).max(200).optional(),
+})
+export type ListAiConversationsQueryDTO = z.infer<
+  typeof ListAiConversationsQuerySchema
+>
+
+export const AiPendingActionStatusSchema = z.enum([
+  'PENDING',
+  'EXECUTED',
+  'FAILED',
+  'CANCELED',
+  'EXPIRED',
+])
+
+/** `GET .../ai/actions?status=&conversationId=` — the caller's own actions. */
+export const ListAiPendingActionsQuerySchema = z.object({
+  status: AiPendingActionStatusSchema.optional(),
+  conversationId: z.string().min(1).max(64).optional(),
+})
+export type ListAiPendingActionsQueryDTO = z.infer<
+  typeof ListAiPendingActionsQuerySchema
+>
