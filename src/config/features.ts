@@ -37,9 +37,9 @@ const ALL_PLANS_ON: Record<PlanTier, boolean> = {
 export const FEATURE_CATALOG = {
   'crm.aiAssistant': {
     module: 'CRM',
-    label: 'Assistente de IA do CRM',
+    label: 'IA do CRM',
     description:
-      'Widget de chat com IA que consulta e opera o CRM (conversas, anexos e ferramentas).',
+      'Análise de concorrentes com IA no CRM. O antigo widget de chat saiu; o assistente agora é o Steel AI.',
     // Ligado em todos os planos para não mudar o comportamento de quem já
     // usa; restringir por plano é decisão de produto (ver docs/feature-flags.md).
     planDefaults: ALL_PLANS_ON,

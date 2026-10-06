@@ -126,7 +126,7 @@ export const TAG_GROUPS = [
       },
       {
         name: 'CRM · IA',
-        description: 'Assistente de IA do CRM e Hook Vault.',
+        description: 'Hook Vault e análise de concorrentes com IA.',
       },
       {
         name: 'CRM · Integrações',

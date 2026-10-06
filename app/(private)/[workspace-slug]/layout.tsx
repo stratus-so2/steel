@@ -1,17 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { CrmAiAssistantWidget } from '@/app/_components/crm/crm-ai-assistant-widget'
 import { UserHeader } from '@/app/_components/header/header-layout-user'
 import { HeaderPromotionBanner } from '@/app/_components/header/header-promotion-banner'
 import { GlobalSidebarNavigation } from '@/app/_components/navigation/sidebar-global'
 import { WorkspaceBlockedScreen } from '@/app/_components/workspace/workspace-blocked-screen'
 import { WorkspacePermissionsProvider } from '@/app/_components/workspace/workspace-permissions'
-import { ANTHROPIC_API_KEY, OPENAI_API_KEY } from '@/lib/env/server'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { assertMember } from '@/src/services/authz'
-import { FeatureFlagService } from '@/src/services/feature-flag.service'
 import { MembershipService } from '@/src/services/membership.service'
 import { SubscriptionService } from '@/src/services/subscription.service'
 import { UserService } from '@/src/services/user.service'
@@ -116,14 +113,6 @@ export default async function WorkspaceLayout({
     showTrialBanner = !(activeSub.ok && activeSub.value !== null)
   }
 
-  // Widget de IA só com a chave configurada e a feature liberada para o
-  // workspace (crm.aiAssistant); o service bloqueia de qualquer forma.
-  const aiAssistant =
-    OPENAI_API_KEY || ANTHROPIC_API_KEY
-      ? await FeatureFlagService.hasFeature(workspace.id, 'crm.aiAssistant')
-      : null
-  const showAiAssistant = aiAssistant?.ok === true && aiAssistant.value
-
   return (
     <div className='flex flex-col h-screen overflow-hidden gap-y-0.5'>
       {showTrialBanner && workspace.trialEndsAt && (
@@ -142,12 +131,6 @@ export default async function WorkspaceLayout({
           </WorkspacePermissionsProvider>
         </div>
       </div>
-      {showAiAssistant && userResult.ok ? (
-        <CrmAiAssistantWidget
-          workspaceId={membership.value.workspaceId}
-          userName={userResult.value.name}
-        />
-      ) : null}
     </div>
   )
 }
