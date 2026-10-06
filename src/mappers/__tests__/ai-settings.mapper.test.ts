@@ -15,7 +15,6 @@ describe('toEffectiveAiSettings()', () => {
       whatsappReplyModel: 'openai:gpt-4o-mini',
       whatsappSentimentModel: 'openai:gpt-4o-mini',
       monthlyQuotaUsd: 50,
-      usdPer1kTokens: 4,
       agentModeEnabled: true,
     })
   })
@@ -40,7 +39,8 @@ describe('toEffectiveAiSettings()', () => {
     expect(effective.enabledModels).toEqual(['openai:gpt-4o-mini'])
     expect(effective.crmAssistantModel).toBe('openai:gpt-4o-mini')
     expect(effective.monthlyQuotaUsd).toBe(120.5)
-    expect(effective.usdPer1kTokens).toBe(4)
+    // The legacy fixed rule column is not read anymore (ADR 0019).
+    expect(effective).not.toHaveProperty('usdPer1kTokens')
   })
 })
 
@@ -76,6 +76,18 @@ describe('toWorkspaceAiSettingsDTO()', () => {
     expect(opus?.enabled).toBe(false)
     expect(dto.userPreference).toBe('anthropic:claude-sonnet-5')
     expect(dto.canManage).toBe(false)
+    // At cost by default: provider prices per 1M tokens.
+    expect(sonnet).toMatchObject({ inputUsdPer1M: 2, outputUsdPer1M: 10 })
+  })
+
+  it('should charge model prices with the platform margin', () => {
+    const dto = toWorkspaceAiSettingsDTO({
+      ...base,
+      usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
+      costMargin: 1.5,
+    })
+    const mini = dto.models.find((m) => m.key === 'openai:gpt-4o-mini')
+    expect(mini).toMatchObject({ inputUsdPer1M: 0.225, outputUsdPer1M: 0.9 })
   })
 
   it('should summarize consumption against the quota', () => {

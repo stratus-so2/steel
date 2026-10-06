@@ -3605,8 +3605,10 @@ model ChangelogRecipient {
 /// `"<provider>:<model>"` do catálogo em `src/lib/ai/models.ts`), modelo
 /// padrão por funcionalidade e cota mensal de consumo. Sem linha = padrões
 /// da plataforma (tudo habilitado, `openai:gpt-4o-mini`, US$ 50/mês).
-/// `usdPer1kTokens` é a regra de custo (1000 tokens = US$ 4,00) — definida
-/// pela plataforma, não editável pelo admin do workspace.
+/// `usdPer1kTokens` está DEPRECIADO (ADR 0019): era a regra fixa de custo
+/// (1000 tokens = US$ 4,00) e não é mais lido. O custo agora vem do preço
+/// do modelo (`AI_MODEL_CATALOG`) × a margem da plataforma
+/// (`PlatformAiSettings.costMargin`). A coluna fica pelo histórico.
 model WorkspaceAiSettings {
   id                     String   @id @default(cuid())
   workspaceId            String   @unique @map("workspace_id")
@@ -3615,6 +3617,7 @@ model WorkspaceAiSettings {
   whatsappReplyModel     String   @map("whatsapp_reply_model")
   whatsappSentimentModel String   @map("whatsapp_sentiment_model")
   monthlyQuotaUsd        Decimal  @default(50) @map("monthly_quota_usd") @db.Decimal(12, 2)
+  /// Deprecated (ADR 0019) — not read anymore; kept for history.
   usdPer1kTokens         Decimal  @default(4) @map("usd_per_1k_tokens") @db.Decimal(12, 4)
   /// Kill switch for the Steel AI "agente" mode (write tools). Off = the
   /// assistant only explores, whatever the user picks.
@@ -3656,8 +3659,10 @@ enum AiUsageFeature {
 }
 
 /// Livro-razão de consumo de IA de todas as funcionalidades — base da cota
-/// mensal. `costUsd` é congelado no momento da chamada (tokens × regra de
-/// custo vigente). `userId` nulo para jobs em background.
+/// mensal. `costUsd` é congelado no momento da chamada (tokens × preço do
+/// modelo × margem da plataforma vigentes — ADR 0019; linhas anteriores
+/// seguem a regra antiga de US$ 4/1000 tokens). `userId` nulo para jobs em
+/// background.
 model AiUsage {
   id           String         @id @default(cuid())
   workspaceId  String         @map("workspace_id")
@@ -3819,7 +3824,10 @@ model AiActionLog {
   targetType      String?        @map("target_type")
   targetId        String?        @map("target_id")
   args            Json
+  /// `success` | `failure`.
   outcome         String
+  /// pt-BR summary of what the tool did (null on failure).
+  summary         String?
   error           String?
   createdAt       DateTime       @default(now()) @map("created_at")
 
@@ -3828,6 +3836,20 @@ model AiActionLog {
   @@index([workspaceId, createdAt])
   @@index([targetType, targetId])
   @@map("ai_action_logs")
+}
+
+/// Platform-wide AI settings, edited by the global admin. Single row
+/// (`id = "default"`); no row = defaults. `costMargin` multiplies the
+/// provider price of every AI call before it is frozen in `AiUsage.costUsd`
+/// (ADR 0019).
+model PlatformAiSettings {
+  id          String   @id @default("default")
+  costMargin  Decimal  @default(1) @map("cost_margin") @db.Decimal(8, 4)
+  updatedById String?  @map("updated_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_ai_settings")
 }
 
 // ─── Notificações no app ─────────────────────────────────────────────────────

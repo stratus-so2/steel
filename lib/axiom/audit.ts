@@ -149,6 +149,8 @@ export type AuditEntity =
   | 'sd_scheduled_report'
   // Notifications — per-user mute preferences (non-ServiceDesk kinds)
   | 'notification_preference'
+  // Global admin — platform AI cost margin (ADR 0019)
+  | 'platform_ai_settings'
 
 export type AuditAction =
   | 'create'

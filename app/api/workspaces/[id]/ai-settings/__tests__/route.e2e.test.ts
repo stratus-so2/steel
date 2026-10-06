@@ -22,7 +22,12 @@ describe('Workspace AI settings', () => {
       expect.objectContaining({
         crmAssistantModel: 'openai:gpt-4o-mini',
         monthlyQuotaUsd: 50,
-        usdPer1kTokens: 4,
+        models: expect.arrayContaining([
+          expect.objectContaining({
+            key: 'openai:gpt-4o-mini',
+            inputUsdPer1M: expect.any(Number),
+          }),
+        ]),
         canManage: false,
         userPreference: null,
       }),

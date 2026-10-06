@@ -9,6 +9,9 @@ import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/ai-settings.repository')
+vi.mock('@/src/services/platform-ai-settings.service', () => ({
+  PlatformAiSettingsService: { getCostMargin: vi.fn(async () => 1) },
+}))
 vi.mock('@/src/lib/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/src/lib/ai')>()
   return {

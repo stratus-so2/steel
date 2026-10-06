@@ -33,6 +33,8 @@ function settings(
         label: 'GPT-4o mini',
         available: true,
         enabled: true,
+        inputUsdPer1M: 0.15,
+        outputUsdPer1M: 0.6,
       },
       {
         key: 'anthropic:claude-sonnet-5',
@@ -41,6 +43,8 @@ function settings(
         label: 'Claude Sonnet 5',
         available: false,
         enabled: false,
+        inputUsdPer1M: 2,
+        outputUsdPer1M: 10,
       },
     ],
     enabledModels: ['openai:gpt-4o-mini'],
@@ -48,7 +52,6 @@ function settings(
     whatsappReplyModel: 'openai:gpt-4o-mini',
     whatsappSentimentModel: 'openai:gpt-4o-mini',
     monthlyQuotaUsd: 50,
-    usdPer1kTokens: 4,
     agentModeEnabled: true,
     usage: {
       periodStart: '2026-09-01T00:00:00.000Z',

@@ -30,6 +30,7 @@ import type {
 } from '@/src/schemas/ai-settings.schema'
 import type { WorkspaceAiSettingsDTO } from '@/types/ai-settings'
 import { assertMember, assertPrivileged } from './authz'
+import { PlatformAiSettingsService } from './platform-ai-settings.service'
 
 export const AI_FEATURE_SETTING_FIELDS = {
   CRM_ASSISTANT: 'crmAssistantModel',
@@ -64,9 +65,10 @@ async function buildDTO(
   canManage: boolean,
 ): Promise<Result<WorkspaceAiSettingsDTO>> {
   const periodStart = currentPeriodStart()
-  const [usage, preference] = await Promise.all([
+  const [usage, preference, costMargin] = await Promise.all([
     AiUsageRepository.sumSince(workspaceId, periodStart),
     UserAiPreferenceRepository.find(workspaceId, actorId),
+    PlatformAiSettingsService.getCostMargin(),
   ])
   if (!usage.ok) return usage
   if (!preference.ok) return preference
@@ -80,6 +82,7 @@ async function buildDTO(
       userPreference: preference.value?.modelKey ?? null,
       canManage,
       isProviderAvailable: isAiProviderConfigured,
+      costMargin,
     }),
   )
 }

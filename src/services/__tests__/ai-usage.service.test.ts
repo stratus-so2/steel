@@ -8,6 +8,9 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/services/platform-notifications')
+vi.mock('@/src/services/platform-ai-settings.service', () => ({
+  PlatformAiSettingsService: { getCostMargin: vi.fn() },
+}))
 vi.mock('@/src/repositories/ai-settings.repository')
 vi.mock('@/src/lib/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/src/lib/ai')>()
@@ -30,6 +33,7 @@ import {
   WorkspaceAiSettingsRepository,
 } from '@/src/repositories/ai-settings.repository'
 import { AiUsageService } from '../ai-usage.service'
+import { PlatformAiSettingsService } from '../platform-ai-settings.service'
 import { notifyAiQuota } from '../platform-notifications'
 
 const mockedSettingsRepo = vi.mocked(WorkspaceAiSettingsRepository)
@@ -44,6 +48,7 @@ function setup(options: {
   usedUsd?: number
   anthropicAvailable?: boolean
   openaiAvailable?: boolean
+  margin?: number
 }) {
   const available = (provider: string) =>
     provider === 'openai'
@@ -69,6 +74,9 @@ function setup(options: {
     ok({ inputTokens: 0, outputTokens: 0, costUsd: options.usedUsd ?? 0 }),
   )
   mockedUsageRepo.record.mockResolvedValue(ok(undefined))
+  vi.mocked(PlatformAiSettingsService.getCostMargin).mockResolvedValue(
+    options.margin ?? 1,
+  )
 }
 
 const settings = createFakeWorkspaceAiSettings({
@@ -88,7 +96,8 @@ describe('AiUsageService.prepare()', () => {
     setup({})
     const call = expectOk(await AiUsageService.prepare('ws1', 'CRM_ASSISTANT'))
     expect(call.model.key).toBe('openai:gpt-4o-mini')
-    expect(call.usdPer1kTokens).toBe(4)
+    expect(call.costMargin).toBe(1)
+    expect(call).not.toHaveProperty('usdPer1kTokens')
   })
 
   it('should prefer the user choice on the CRM assistant', async () => {
@@ -187,7 +196,7 @@ describe('AiUsageService.prepare()', () => {
 })
 
 describe('AiUsageService.record()', () => {
-  it('should charge 1000 tokens as US$ 4.00 on the ledger', async () => {
+  it('should freeze the real model price on the ledger', async () => {
     setup({ settings })
     const call = expectOk(
       await AiUsageService.prepare('ws1', 'CRM_ASSISTANT', 'u1'),
@@ -196,19 +205,67 @@ describe('AiUsageService.record()', () => {
     await AiUsageService.record(call, {
       workspaceId: 'ws1',
       userId: 'u1',
-      usage: { inputTokens: 800, outputTokens: 200 },
+      usage: { inputTokens: 800_000, outputTokens: 200_000 },
     })
 
+    // gpt-4o-mini: 0.8M × US$ 0.15 + 0.2M × US$ 0.60
     expect(mockedUsageRepo.record).toHaveBeenCalledWith({
       workspaceId: 'ws1',
       userId: 'u1',
       feature: 'CRM_ASSISTANT',
       provider: 'openai',
       model: 'gpt-4o-mini',
-      inputTokens: 800,
-      outputTokens: 200,
-      costUsd: 4,
+      inputTokens: 800_000,
+      outputTokens: 200_000,
+      costUsd: 0.24,
     })
+  })
+
+  it('should apply the platform margin read at prepare time', async () => {
+    setup({ settings, margin: 2 })
+    const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))
+    expect(call.costMargin).toBe(2)
+
+    await AiUsageService.record(call, {
+      workspaceId: 'ws1',
+      userId: null,
+      usage: {
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cachedInputTokens: 1_000_000,
+      },
+    })
+    // Haiku 4.5, all input from cache: 1M × US$ 0.10 × 2
+    expect(mockedUsageRepo.record).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'claude-haiku-4-5', costUsd: 0.2 }),
+    )
+  })
+
+  it('should price a hand-built call at cost, and an unknown model at the fallback', async () => {
+    setup({ settings })
+    const provider = { id: 'openai', chat: vi.fn() } as unknown as AiProvider
+    await AiUsageService.record(
+      {
+        feature: 'CRM_ASSISTANT',
+        provider,
+        model: {
+          key: 'openai:retired',
+          provider: 'openai',
+          model: 'retired',
+          label: 'Retired',
+        },
+        usdPer1kTokens: 4,
+      },
+      {
+        workspaceId: 'ws1',
+        userId: null,
+        usage: { inputTokens: 1_000_000, outputTokens: 0 },
+      },
+    )
+    // Most expensive catalog input price (Claude Opus 5), margin 1.
+    expect(mockedUsageRepo.record).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'retired', costUsd: 5 }),
+    )
   })
 
   it('should not throw when the ledger write fails', async () => {

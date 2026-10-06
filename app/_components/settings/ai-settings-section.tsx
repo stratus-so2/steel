@@ -34,6 +34,12 @@ const usd = new Intl.NumberFormat('pt-BR', {
   currency: 'USD',
 })
 const integer = new Intl.NumberFormat('pt-BR')
+/** Prices per 1M tokens go down to fractions of a cent. */
+const usdPrice = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 4,
+})
 
 type FeatureField =
   | 'crmAssistantModel'
@@ -134,9 +140,9 @@ function UsageCard({ settings }: { settings: WorkspaceAiSettingsDTO }) {
       <CardHeader>
         <CardTitle>Consumo do mês</CardTitle>
         <CardDescription>
-          Ciclo de {period}. Regra de custo: 1.000 tokens ={' '}
-          {usd.format(settings.usdPer1kTokens)} (entrada + saída, qualquer
-          modelo).
+          Ciclo de {period}. Cada uso custa o preço real do modelo que respondeu
+          (tokens de entrada e de saída) — veja os valores por modelo em
+          &quot;Provedores e modelos habilitados&quot;.
         </CardDescription>
       </CardHeader>
       <CardContent className='space-y-3'>
@@ -289,7 +295,8 @@ function AdminForm({
           <CardDescription>
             Defina quais modelos os membros podem usar. As chaves de API são da
             plataforma; um provedor sem chave configurada aparece como
-            indisponível.
+            indisponível. Ao lado de cada modelo, o preço de entrada / saída
+            cobrado da cota.
           </CardDescription>
         </CardHeader>
         <CardContent className='grid gap-5 md:grid-cols-2'>
@@ -328,6 +335,10 @@ function AdminForm({
                         {model.label}
                         <span className='text-muted-foreground text-xs'>
                           {model.model}
+                        </span>
+                        <span className='text-muted-foreground text-xs tabular-nums'>
+                          {usdPrice.format(model.inputUsdPer1M)} /{' '}
+                          {usdPrice.format(model.outputUsdPer1M)} por 1M tokens
                         </span>
                       </Label>
                     </div>

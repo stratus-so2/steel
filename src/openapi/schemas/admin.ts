@@ -371,3 +371,25 @@ export const AdminAnalyticsDTO = dto(
       'Uma aba do painel Analytics (`view`). Cada painel é `{ ok: true, data }` ou `{ ok: false, error }`; sem `AXIOM_QUERY_TOKEN` vem `unconfigured: true` (exceto `jobs`, que lê o Redis).',
   }),
 )
+
+export const PlatformAiSettingsDTO = dto(
+  'PlatformAiSettings',
+  z.object({
+    costMargin: z.number().meta({
+      description: 'Multiplicador sobre o preço do provedor (1 = custo).',
+    }),
+    updatedAt: nullableDateTime(),
+    models: z.array(
+      z.object({
+        key: z.string(),
+        provider: z.enum(['openai', 'anthropic']),
+        label: z.string(),
+        inputUsdPer1M: z.number(),
+        outputUsdPer1M: z.number(),
+        cachedInputUsdPer1M: z.number().nullable(),
+        chargedInputUsdPer1M: z.number(),
+        chargedOutputUsdPer1M: z.number(),
+      }),
+    ),
+  }),
+)

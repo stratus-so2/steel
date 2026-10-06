@@ -12,6 +12,9 @@ export interface AiModelOptionDTO {
   label: string
   available: boolean
   enabled: boolean
+  /** What the workspace pays, US$ per 1M tokens (provider price × margin). */
+  inputUsdPer1M: number
+  outputUsdPer1M: number
 }
 
 export interface AiUsageSummaryDTO {
@@ -33,7 +36,6 @@ export interface WorkspaceAiSettingsDTO {
   whatsappReplyModel: string
   whatsappSentimentModel: string
   monthlyQuotaUsd: number
-  usdPer1kTokens: number
   /** Steel AI agent mode (write tools, always confirmed). Admin switch. */
   agentModeEnabled: boolean
   usage: AiUsageSummaryDTO

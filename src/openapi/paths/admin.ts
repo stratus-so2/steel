@@ -11,6 +11,7 @@ import {
 import { AnalyticsQuerySchema } from '@/src/schemas/admin-analytics.schema'
 import { CreateChangelogSchema } from '@/src/schemas/changelog.schema'
 import { SetFeatureOverrideSchema } from '@/src/schemas/feature-flag.schema'
+import { UpdatePlatformAiSettingsSchema } from '@/src/schemas/platform-ai-settings.schema'
 import {
   CreateProfileSchema,
   UpdateProfileSchema,
@@ -33,6 +34,7 @@ import {
   ChangelogDetailDTO,
   ChangelogReleaseDraftDTO,
   ChangelogSummaryDTO,
+  PlatformAiSettingsDTO,
 } from '../schemas/admin'
 import {
   MediaUrlDTO,
@@ -599,6 +601,36 @@ const routes: RouteConfig[] = [
             image: z.string().nullable(),
           }),
         ),
+      },
+    },
+  }),
+  admin({
+    method: 'get',
+    path: '/admin/ai',
+    tags: ['Admin · Steel IA'],
+    summary: 'Ajustes de IA da plataforma',
+    description:
+      'Margem da plataforma e o preço de cada modelo do catálogo (do provedor e cobrado, por 1M tokens).',
+    responses: {
+      200: { description: 'Ajustes.', schema: PlatformAiSettingsDTO },
+    },
+  }),
+  admin({
+    method: 'patch',
+    path: '/admin/ai',
+    tags: ['Admin · Steel IA'],
+    summary: 'Alterar a margem de IA',
+    description:
+      'Custo de cada chamada = preço do provedor × margem, congelado no consumo. Vale para as chamadas seguintes (até 1 min para todos os processos).',
+    consent: true,
+    body: {
+      schema: UpdatePlatformAiSettingsSchema,
+      example: { costMargin: 1.3, reason: 'Cobrir impostos e infraestrutura' },
+    },
+    responses: {
+      200: {
+        description: 'Ajustes atualizados.',
+        schema: PlatformAiSettingsDTO,
       },
     },
   }),

@@ -1,4 +1,5 @@
 import type { AiUsageFeature } from '@prisma/client'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { aiProviderUnavailable, aiQuotaExceeded } from '@/src/errors'
 import {
@@ -8,10 +9,11 @@ import {
   findAiModel,
   getAiProvider,
 } from '@/src/lib/ai'
+import { aiModelPricing } from '@/src/lib/ai/models'
 import {
   currentPeriodStart,
   isQuotaExceeded,
-  tokensToUsd,
+  priceAiUsage,
 } from '@/src/lib/ai/quota'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
@@ -24,6 +26,7 @@ import {
   WorkspaceAiSettingsRepository,
 } from '@/src/repositories/ai-settings.repository'
 import { AI_FEATURE_SETTING_FIELDS, isModelUsable } from './ai-settings.service'
+import { PlatformAiSettingsService } from './platform-ai-settings.service'
 import { notifyAiQuota } from './platform-notifications'
 
 /**
@@ -89,7 +92,16 @@ export interface PreparedAiCall {
   feature: AiUsageFeature
   provider: AiProvider
   model: AiModelDefinition
-  usdPer1kTokens: number
+  /**
+   * Platform margin over the provider price, read when the call was
+   * prepared (absent = 1.0, at cost). See ADR 0019.
+   */
+  costMargin?: number
+  /**
+   * @deprecated The fixed US$ 4 / 1k tokens rule is gone (ADR 0019); cost
+   * comes from the model price × `costMargin`. Ignored if set.
+   */
+  usdPer1kTokens?: number
   /**
    * Monthly quota of the workspace when the call was prepared — `record`
    * uses it to warn the admins at 80% and at 100% (absent = no warning).
@@ -171,13 +183,17 @@ export const AiUsageService = {
     )
     if (!usage.ok) return usage
     if (isQuotaExceeded(usage.value.costUsd, settings.monthlyQuotaUsd)) {
-      logger.warn('ai.quota_exceeded', {
-        component: 'AiUsageService',
-        workspaceId,
-        feature,
-        usedUsd: usage.value.costUsd,
-        quotaUsd: settings.monthlyQuotaUsd,
-      })
+      logger.warn(
+        'ai.quota_exceeded',
+        logFields(
+          { component: 'AiUsageService', workspaceId },
+          {
+            feature,
+            usedUsd: usage.value.costUsd,
+            quotaUsd: settings.monthlyQuotaUsd,
+          },
+        ),
+      )
       return err(
         aiQuotaExceeded(
           Math.round(usage.value.costUsd * 100) / 100,
@@ -186,11 +202,13 @@ export const AiUsageService = {
       )
     }
 
+    const costMargin = await PlatformAiSettingsService.getCostMargin()
+
     return ok({
       feature,
       provider,
       model,
-      usdPer1kTokens: settings.usdPer1kTokens,
+      costMargin,
       monthlyQuotaUsd: settings.monthlyQuotaUsd,
     })
   },
@@ -211,10 +229,11 @@ export const AiUsageService = {
     if (input.usage.inputTokens === 0 && input.usage.outputTokens === 0) {
       return
     }
-    const costUsd = tokensToUsd(
-      input.usage.inputTokens,
-      input.usage.outputTokens,
-      call.usdPer1kTokens,
+    // Real cost frozen at call time: provider price of the model × margin.
+    const costUsd = priceAiUsage(
+      aiModelPricing(call.model),
+      input.usage,
+      call.costMargin ?? 1,
     )
     const result = await AiUsageRepository.record({
       workspaceId: input.workspaceId,
@@ -228,25 +247,35 @@ export const AiUsageService = {
     })
 
     if (!result.ok) {
-      logger.error('ai.usage_record_failed', {
-        component: 'AiUsageService',
-        workspaceId: input.workspaceId,
-        feature: call.feature,
-        message: result.error.message,
-      })
+      logger.error(
+        'ai.usage_record_failed',
+        logFields(
+          {
+            component: 'AiUsageService',
+            workspaceId: input.workspaceId,
+            message: result.error.message,
+          },
+          { feature: call.feature },
+        ),
+      )
       return
     }
 
-    logger.info('ai.usage_recorded', {
-      component: 'AiUsageService',
-      workspaceId: input.workspaceId,
-      feature: call.feature,
-      provider: call.model.provider,
-      model: call.model.model,
-      inputTokens: input.usage.inputTokens,
-      outputTokens: input.usage.outputTokens,
-      costUsd,
-    })
+    logger.info(
+      'ai.usage_recorded',
+      logFields(
+        { component: 'AiUsageService', workspaceId: input.workspaceId },
+        {
+          feature: call.feature,
+          model: call.model.key,
+          inputTokens: input.usage.inputTokens,
+          cachedInputTokens: input.usage.cachedInputTokens ?? 0,
+          outputTokens: input.usage.outputTokens,
+          costMargin: call.costMargin ?? 1,
+          costUsd,
+        },
+      ),
+    )
 
     await warnQuotaThreshold(input.workspaceId, call.monthlyQuotaUsd)
   },

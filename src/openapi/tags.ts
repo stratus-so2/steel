@@ -375,6 +375,11 @@ export const TAG_GROUPS = [
         description:
           'E-mails de novidades (changelog) para usuários: rascunho, destinatários e disparo.',
       },
+      {
+        name: 'Admin · Steel IA',
+        description:
+          'Margem da plataforma sobre o preço real dos modelos de IA (ADR 0019).',
+      },
     ],
   },
   {
