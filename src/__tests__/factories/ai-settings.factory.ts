@@ -20,6 +20,7 @@ export function createFakeWorkspaceAiSettings(
     whatsappSentimentModel: 'openai:gpt-4o-mini',
     monthlyQuotaUsd: new Prisma.Decimal(50),
     usdPer1kTokens: new Prisma.Decimal(4),
+    agentModeEnabled: true,
     createdAt: now,
     updatedAt: now,
     ...overrides,

@@ -659,6 +659,40 @@ export const aiProviderUnavailable = (
   message = 'Nenhum provedor de IA habilitado está disponível neste ambiente',
 ): AppError => appError('AI_PROVIDER_UNAVAILABLE', message)
 
+export const aiConversationNotFound = (): AppError =>
+  appError('AI_CONVERSATION_NOT_FOUND', 'Conversa não encontrada')
+
+export const aiAgentModeDisabled = (): AppError =>
+  appError(
+    'AI_AGENT_MODE_DISABLED',
+    'O modo agente do Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.',
+  )
+
+export const aiToolNotAllowed = (
+  message = 'Você não tem permissão para esta ação do Steel AI',
+): AppError => appError('AI_TOOL_NOT_ALLOWED', message)
+
+export const aiPendingActionNotFound = (): AppError =>
+  appError('AI_PENDING_ACTION_NOT_FOUND', 'Ação não encontrada')
+
+export const aiPendingActionNotPending = (): AppError =>
+  appError(
+    'AI_PENDING_ACTION_NOT_PENDING',
+    'Esta ação já foi decidida e não pode ser alterada',
+  )
+
+export const aiPendingActionExpired = (): AppError =>
+  appError(
+    'AI_PENDING_ACTION_EXPIRED',
+    'Esta ação expirou. Peça ao Steel AI para propor de novo.',
+  )
+
+export const aiDoubleConfirmationRequired = (): AppError =>
+  appError(
+    'AI_DOUBLE_CONFIRMATION_REQUIRED',
+    'Exclusões exigem confirmação dupla',
+  )
+
 /** Workspace suspenso ou em exclusão pelo admin global. */
 export const workspaceSuspended = (
   message = 'Este workspace está suspenso. Fale com o suporte da Stratus Telecom.',

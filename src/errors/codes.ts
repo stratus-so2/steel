@@ -400,6 +400,24 @@ export const ERROR_CODES = {
   AI_MODEL_NOT_ENABLED: { code: 'AI_MODEL_NOT_ENABLED', status: 422 },
   AI_PROVIDER_UNAVAILABLE: { code: 'AI_PROVIDER_UNAVAILABLE', status: 503 },
   FEATURE_NOT_ENABLED: { code: 'FEATURE_NOT_ENABLED', status: 403 },
+  // Steel AI (cross-system assistant): agent-mode writes only run through a
+  // pending action confirmed by a human (see AiPendingAction).
+  AI_CONVERSATION_NOT_FOUND: { code: 'AI_CONVERSATION_NOT_FOUND', status: 404 },
+  AI_AGENT_MODE_DISABLED: { code: 'AI_AGENT_MODE_DISABLED', status: 403 },
+  AI_TOOL_NOT_ALLOWED: { code: 'AI_TOOL_NOT_ALLOWED', status: 403 },
+  AI_PENDING_ACTION_NOT_FOUND: {
+    code: 'AI_PENDING_ACTION_NOT_FOUND',
+    status: 404,
+  },
+  AI_PENDING_ACTION_NOT_PENDING: {
+    code: 'AI_PENDING_ACTION_NOT_PENDING',
+    status: 409,
+  },
+  AI_PENDING_ACTION_EXPIRED: { code: 'AI_PENDING_ACTION_EXPIRED', status: 410 },
+  AI_DOUBLE_CONFIRMATION_REQUIRED: {
+    code: 'AI_DOUBLE_CONFIRMATION_REQUIRED',
+    status: 422,
+  },
 
   // ServiceDesk (ITIL)
   SD_TICKET_NOT_FOUND: { code: 'SD_TICKET_NOT_FOUND', status: 404 },

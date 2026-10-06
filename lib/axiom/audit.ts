@@ -54,6 +54,8 @@ export type AuditEntity =
   | 'crm_proposal_template'
   | 'crm_form'
   | 'crm_ai_conversation'
+  | 'ai_conversation'
+  | 'ai_pending_action'
   | 'crm_integration_api_key'
   | 'crm_email_template'
   | 'crm_email_campaign'
@@ -195,6 +197,7 @@ export type AuditAction =
   | 'link'
   | 'unlink'
   | 'request'
+  | 'confirm'
 
 type AuditOutcome = 'success' | 'failure'
 

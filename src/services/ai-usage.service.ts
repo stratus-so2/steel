@@ -43,6 +43,9 @@ const MODEL_FIELD_BY_FEATURE: Record<
   SERVICEDESK_COPILOT: 'crmAssistantModel',
   SERVICEDESK_PRE_SERVICE: 'whatsappReplyModel',
   SERVICEDESK_TRIAGE: 'whatsappSentimentModel',
+  // Steel AI reuses the assistant model setting (the CRM widget is gone).
+  STEEL_ASSISTANT: 'crmAssistantModel',
+  STEEL_AGENT: 'crmAssistantModel',
 }
 
 export interface PreparedAiCall {
