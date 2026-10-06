@@ -140,6 +140,16 @@ export const ERROR_CODES = {
     code: 'WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE',
     status: 422,
   },
+  // Steel AI refuses to message a contact who opted out (LGPD).
+  WHATSAPP_CONTACT_OPTED_OUT: {
+    code: 'WHATSAPP_CONTACT_OPTED_OUT',
+    status: 422,
+  },
+  // Meta Cloud API: free text only within 24 h of the contact's last message.
+  WHATSAPP_SESSION_WINDOW_CLOSED: {
+    code: 'WHATSAPP_SESSION_WINDOW_CLOSED',
+    status: 422,
+  },
 
   // CRM domain
   CRM_COMPANY_NOT_FOUND: { code: 'CRM_COMPANY_NOT_FOUND', status: 404 },
