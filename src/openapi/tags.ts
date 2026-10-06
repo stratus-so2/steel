@@ -390,6 +390,11 @@ export const TAG_GROUPS = [
         description:
           'Assistente de IA transversal (ServiceDesk, CRM, Comunicação e plataforma): conversas privadas, resposta em stream (SSE) e ações propostas no modo agente, que só executam com a confirmação do usuário.',
       },
+      {
+        name: 'Steel Agents',
+        description:
+          'Agentes autônomos: rodam por agenda, evento ou botão, com as permissões do responsável. Cada ferramenta é automática ou requer aprovação (exclusão sempre requer), e as aprovações acontecem pela caixa de entrada.',
+      },
     ],
   },
   {

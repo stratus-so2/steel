@@ -82,6 +82,7 @@ import {
   sdTemplateTasks,
   validateSdTicketCustomFields,
 } from './sd-ticket-rules'
+import { dispatchSteelAgentEvent } from './steel-agent-dispatcher'
 
 /**
  * Núcleo do motor de chamados do ServiceDesk, **sem autorização**: quem
@@ -858,6 +859,13 @@ export const SdTicketEngine = {
       body: ticket.title,
     })
     await publish(ticket, 'ticket.created', actor)
+    void dispatchSteelAgentEvent(workspaceId, 'sd.ticket.created', {
+      ticketId: ticket.id,
+      code: sdTicketCode(ticket, config.prefixes),
+      title: ticket.title,
+      type: ticket.type,
+      channel: ticket.channel,
+    })
     // Triagem por IA (fatia whatsapp-ai): só enfileira se estiver ligada.
     await enqueueSdAiTriage(settings, ticket.id)
     logger.info('servicedesk.ticket.created', {

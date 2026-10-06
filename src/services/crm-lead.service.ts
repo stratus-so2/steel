@@ -60,6 +60,7 @@ import { notifyCrmDealClosed, notifyCrmLeadAssigned } from './crm-notifications'
 import { resolveProposalValidUntil } from './crm-proposal.service'
 import { CrmSettingsService } from './crm-settings.service'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
+import { dispatchSteelAgentEvent } from './steel-agent-dispatcher'
 
 /**
  * Quem está criando o lead. Canais públicos (API de integração, formulário)
@@ -343,6 +344,10 @@ export const CrmLeadService = {
       entity: 'lead',
       event: 'created',
       record: lead,
+    })
+    void dispatchSteelAgentEvent(workspaceId, 'crm.lead.created', {
+      leadId: lead.id,
+      name: lead.name,
     })
     if (ownerId) {
       void notifyCrmLeadAssigned({
