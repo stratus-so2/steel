@@ -695,6 +695,14 @@ export function DataTable<TData extends WithId>({
   /** Registro aberto no painel lateral de detalhes; `null` = fechado. */
   const [openRecordId, setOpenRecordId] = React.useState<string | null>(null)
 
+  // Deep link (`?record=<id>`, e.g. from Steel AI): opens that record's panel
+  // once the rows are loaded. Read from `window` to stay out of Suspense.
+  React.useEffect(() => {
+    if (onOpenRecord) return
+    const id = new URLSearchParams(window.location.search).get('record')
+    if (id) setOpenRecordId(id)
+  }, [onOpenRecord])
+
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
