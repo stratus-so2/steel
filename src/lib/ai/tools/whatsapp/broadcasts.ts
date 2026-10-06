@@ -63,10 +63,10 @@ function compactBroadcast(list: WhatsAppBroadcastListDTO) {
   }
 }
 
-function broadcastTarget(list: { id?: string; name: string }, base: string) {
+function broadcastTarget(list: { id: string; name: string }, base: string) {
   return {
     type: 'whatsapp_broadcast',
-    ...(list.id ? { id: list.id } : {}),
+    id: list.id,
     label: list.name,
     href: `${base}${ZAP_PAGES.broadcasts}`,
   }
@@ -254,7 +254,11 @@ export const zapBroadcastCreateDraftTool: SteelAiTool<CreateArgs> = {
         { label: 'Mensagem', after: args.messageBody },
         { label: 'Status', after: 'Rascunho' },
       ],
-      target: broadcastTarget(args, base.value),
+      target: {
+        type: 'whatsapp_broadcast',
+        label: args.name,
+        href: `${base.value}${ZAP_PAGES.broadcasts}`,
+      },
     })
   },
   async execute(ctx, args) {

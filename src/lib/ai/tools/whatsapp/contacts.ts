@@ -56,9 +56,10 @@ function contactTarget(contact: WhatsAppContactDTO, base: string) {
 }
 
 /**
- * The contact service has no single-record read; this does the same
- * authorization (module enabled + `contacts:VIEW`) and reads by id within
- * the workspace.
+ * The contact service has no single-record read: this does the same
+ * authorization (module enabled + `contacts:VIEW`), reads the row by id
+ * within the workspace and takes the service's listing (searched by the
+ * number) for the conversation count.
  */
 async function loadContact(
   ctx: AiToolContext,
@@ -74,9 +75,17 @@ async function loadContact(
   const found = await WhatsAppContactRepository.findById(id, ctx.workspaceId)
   if (!found.ok) return found
   if (!found.value) return err(whatsappContactNotFound())
+  const listed = await WhatsAppContactService.list(
+    ctx.actorId,
+    ctx.workspaceId,
+    { search: found.value.waId },
+  )
+  if (!listed.ok) return listed
   const base = await zapBasePath(ctx.workspaceId)
   if (!base.ok) return base
-  return ok({ contact: toWhatsAppContactDTO(found.value), base: base.value })
+  const contact =
+    listed.value.find((c) => c.id === id) ?? toWhatsAppContactDTO(found.value)
+  return ok({ contact, base: base.value })
 }
 
 /* --------------------------------- search --------------------------------- */

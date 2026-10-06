@@ -33,12 +33,12 @@ function compactQuickReply(reply: WhatsAppQuickReplyDTO) {
 }
 
 function quickReplyTarget(
-  reply: Pick<WhatsAppQuickReplyDTO, 'title'> & { id?: string },
+  reply: Pick<WhatsAppQuickReplyDTO, 'id' | 'title'>,
   base: string,
 ) {
   return {
     type: 'whatsapp_quick_reply',
-    ...(reply.id ? { id: reply.id } : {}),
+    id: reply.id,
     label: reply.title,
     href: `${base}${ZAP_PAGES.quickReplies}`,
   }
@@ -153,7 +153,11 @@ export const zapQuickReplyCreateTool: SteelAiTool<CreateArgs> = {
         { label: 'Título', after: args.title },
         { label: 'Texto', after: args.body },
       ],
-      target: quickReplyTarget(args, base.value),
+      target: {
+        type: 'whatsapp_quick_reply',
+        label: args.title,
+        href: `${base.value}${ZAP_PAGES.quickReplies}`,
+      },
     })
   },
   async execute(ctx, args) {
