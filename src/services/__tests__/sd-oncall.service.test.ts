@@ -15,6 +15,12 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-config.repository')
 vi.mock('@/src/repositories/sd-oncall.repository')
+vi.mock('../sd-notification.service', () => ({
+  notifySdUsers: vi.fn(async () => ({
+    ok: true,
+    value: { recipients: 0, inApp: 0 },
+  })),
+}))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { SdConfigRepository } from '@/src/repositories/sd-config.repository'
