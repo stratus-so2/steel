@@ -14,6 +14,7 @@ import type {
   UpdateAiConversationDTO,
 } from '@/src/schemas/steel-ai.schema'
 import type {
+  AiCapabilitiesDTO,
   AiConversationDTO,
   AiMessageDTO,
   AiModuleDTO,
@@ -22,12 +23,8 @@ import type {
 } from '@/types/steel-ai'
 import { ApiError, apiFetch, apiSend } from './_fetch'
 
-export interface SteelAiCapabilitiesDTO {
-  agentModeEnabled: boolean
-  modules: AiModuleDTO[]
-  modelKey: string | null
-  quota: { usedUsd: number; quotaUsd: number }
-}
+/** @deprecated use AiCapabilitiesDTO from types/steel-ai */
+export type SteelAiCapabilitiesDTO = AiCapabilitiesDTO
 
 const base = (workspaceId: string) => `/api/workspaces/${workspaceId}/ai`
 
