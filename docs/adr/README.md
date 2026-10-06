@@ -25,7 +25,7 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0004 | [Coleta do status page via jobs repetíveis do worker](./0004-status-collection-worker-jobs.md) | Aceita | 2026-09-18 |
 | 0005 | [Runner self-hosted no servidor de produção (por ora)](./0005-self-hosted-runner-on-prod-server.md) | Aceita | 2026-09-13 |
 | 0006 | [Assistente de IA central via Claude Code em container; sem dados pessoais de clientes nos prompts](./0006-central-ai-assistant-claude-code.md) | Aceita | 2026-09-13 |
-| 0007 | [IA multi-provedor (OpenAI + Anthropic) habilitada por workspace](./0007-multi-provider-ai-per-workspace.md) | Aceita (implementada) | 2026-09-18 |
+| 0007 | [IA multi-provedor (OpenAI + Anthropic) habilitada por workspace](./0007-multi-provider-ai-per-workspace.md) | Aceita (implementada); regra de custo substituída em parte por 0019 | 2026-09-18 |
 | 0008 | [ServiceDesk ITIL 4 com motor configurável por workspace](./0008-servicedesk-itil-configurable-engine.md) | Aceita | 2026-09-21 |
 | 0009 | [Construir a imagem num runner hospedado; deploy segue no servidor](./0009-build-image-on-hosted-runner.md) | Aceita | 2026-10-01 |
 | 0010 | [PRs de vida curta quando as fatias são construídas em paralelo](./0010-short-lived-prs-for-parallel-slices.md) | Aceita | 2026-10-01 |
@@ -37,3 +37,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0016 | [Risco preditivo por heurística explicável, não por modelo treinado](./0016-predictive-risk-explainable-heuristic.md) | Aceita | 2026-10-02 |
 | 0017 | [Sentry e PostHog, opcionais e inertes, sem origem nova na CSP](./0017-sentry-and-posthog-optional-and-inert.md) | Aceita | 2026-10-02 |
 | 0018 | [Steel AI: modo agente com confirmação no servidor](./0018-steel-ai-agent-mode-server-confirmation.md) | Aceita | 2026-10-06 |
+| 0019 | [Custo real de IA por modelo com margem da plataforma](./0019-real-ai-cost-per-model-with-platform-margin.md) | Aceita | 2026-10-06 |
