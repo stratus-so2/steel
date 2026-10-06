@@ -56,6 +56,7 @@ const FILTER_MODULES: NotificationModule[] = [
   'SERVICE_DESK',
   'COMMUNICATION',
   'CRM',
+  'OTHER',
 ]
 
 const ALL = '__all__'

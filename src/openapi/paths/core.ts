@@ -13,6 +13,7 @@ import {
   MarkNotificationsReadSchema,
   NotificationBulkActionSchema,
 } from '@/src/schemas/notification.schema'
+import { UpdateNotificationPreferencesSchema } from '@/src/schemas/notification-preference.schema'
 import { UpdateNotificationSettingSchema } from '@/src/schemas/notification-settings.schema'
 import {
   CreateProfileSchema,
@@ -62,6 +63,7 @@ import {
   InvitationDTO,
   MediaUrlDTO,
   NotificationListDTO,
+  NotificationPreferenceListDTO,
   NotificationRealtimeEventDTO,
   NotificationSettingDTO,
   ProfileDTO,
@@ -845,6 +847,37 @@ const workspaces: RouteConfig[] = [
       200: {
         description: 'Quantidade marcada.',
         schema: z.object({ updated: z.number().int() }),
+      },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/notifications/preferences',
+    tags: ['Configurações do workspace'],
+    summary: 'Preferências de notificação',
+    description:
+      'Preferências do próprio usuário no workspace para os tipos fora do ServiceDesk (CRM, Comunicação e Plataforma), um item por tipo do catálogo. Tipo sem preferência salva vem ligado. O ServiceDesk tem preferências próprias, por evento e canal.',
+    responses: {
+      200: {
+        description: 'Um item por tipo configurável.',
+        schema: NotificationPreferenceListDTO,
+      },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'put',
+    path: '/workspaces/{id}/notifications/preferences',
+    tags: ['Configurações do workspace'],
+    summary: 'Silenciar ou reativar tipos de notificação',
+    description:
+      'Liga ou desliga a entrega na caixa de entrada por tipo (até 100 itens; o último vence quando o tipo se repete). Tipos do ServiceDesk são recusados. Devolve a lista completa atualizada.',
+    body: UpdateNotificationPreferencesSchema,
+    responses: {
+      200: {
+        description: 'Preferências atualizadas.',
+        schema: NotificationPreferenceListDTO,
       },
     },
     errors: WORKSPACE_MEMBER_ERRORS,

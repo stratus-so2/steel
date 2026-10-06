@@ -44,6 +44,18 @@ export const NOTIFICATION_ICONS = [
   'chat',
   'deal',
   'bell',
+  'assign',
+  'proposal',
+  'form',
+  'mail',
+  'workflow',
+  'hourglass',
+  'social',
+  'competitor',
+  'member',
+  'download',
+  'billing',
+  'sparkles',
 ] as const
 
 export type NotificationIcon = (typeof NOTIFICATION_ICONS)[number]
@@ -199,6 +211,132 @@ const NOTIFICATION_KINDS: Record<string, KindEntry> = {
     icon: 'report',
     color: 'sky',
   },
+  CRM_LEAD_ASSIGNED: {
+    module: 'CRM',
+    label: 'Lead atribuído',
+    icon: 'assign',
+    color: 'violet',
+  },
+  CRM_OPPORTUNITY_ASSIGNED: {
+    module: 'CRM',
+    label: 'Oportunidade atribuída',
+    icon: 'assign',
+    color: 'violet',
+  },
+  CRM_DEAL_CLOSED: {
+    module: 'CRM',
+    label: 'Negócio fechado',
+    icon: 'deal',
+    color: 'emerald',
+  },
+  CRM_TASK_ASSIGNED: {
+    module: 'CRM',
+    label: 'Tarefa atribuída',
+    icon: 'task',
+    color: 'teal',
+  },
+  CRM_TASK_DUE: {
+    module: 'CRM',
+    label: 'Tarefa vencendo',
+    icon: 'alarm',
+    color: 'amber',
+  },
+  CRM_PROPOSAL_VIEWED: {
+    module: 'CRM',
+    label: 'Proposta visualizada',
+    icon: 'proposal',
+    color: 'sky',
+  },
+  CRM_PROPOSAL_ACCEPTED: {
+    module: 'CRM',
+    label: 'Proposta aceita',
+    icon: 'proposal',
+    color: 'emerald',
+  },
+  CRM_PROPOSAL_EXPIRED: {
+    module: 'CRM',
+    label: 'Proposta expirada',
+    icon: 'proposal',
+    color: 'amber',
+  },
+  CRM_FORM_SUBMITTED: {
+    module: 'CRM',
+    label: 'Formulário respondido',
+    icon: 'form',
+    color: 'indigo',
+  },
+  CRM_CAMPAIGN_FINISHED: {
+    module: 'CRM',
+    label: 'Campanha concluída',
+    icon: 'mail',
+    color: 'sky',
+  },
+  CRM_WORKFLOW_FAILED: {
+    module: 'CRM',
+    label: 'Falha no workflow',
+    icon: 'workflow',
+    color: 'rose',
+  },
+  CRM_WORKFLOW_WAITING: {
+    module: 'CRM',
+    label: 'Workflow aguardando ação',
+    icon: 'hourglass',
+    color: 'amber',
+  },
+  CRM_SOCIAL_POST_FAILED: {
+    module: 'CRM',
+    label: 'Falha na publicação',
+    icon: 'social',
+    color: 'rose',
+  },
+  CRM_COMPETITOR_SYNC_FAILED: {
+    module: 'CRM',
+    label: 'Falha ao sincronizar concorrentes',
+    icon: 'competitor',
+    color: 'orange',
+  },
+  MEMBER_JOINED: {
+    module: 'OTHER',
+    label: 'Novo membro',
+    icon: 'member',
+    color: 'emerald',
+  },
+  DATA_EXPORT_READY: {
+    module: 'OTHER',
+    label: 'Exportação pronta',
+    icon: 'download',
+    color: 'sky',
+  },
+  TRIAL_ENDED: {
+    module: 'OTHER',
+    label: 'Período de teste encerrado',
+    icon: 'billing',
+    color: 'amber',
+  },
+  BILLING_PAYMENT_FAILED: {
+    module: 'OTHER',
+    label: 'Falha no pagamento',
+    icon: 'billing',
+    color: 'rose',
+  },
+  BILLING_SUBSCRIPTION_CANCELED: {
+    module: 'OTHER',
+    label: 'Assinatura cancelada',
+    icon: 'billing',
+    color: 'orange',
+  },
+  AI_QUOTA_WARNING: {
+    module: 'OTHER',
+    label: 'Cota de IA em 80%',
+    icon: 'sparkles',
+    color: 'amber',
+  },
+  AI_QUOTA_EXCEEDED: {
+    module: 'OTHER',
+    label: 'Cota de IA esgotada',
+    icon: 'sparkles',
+    color: 'rose',
+  },
 }
 
 const MODULE_BY_PREFIX: [string, NotificationModule][] = [
@@ -283,4 +421,20 @@ export function notificationTicketRef(
   const match = /^\/([^/?#]+)\/servicedesk\/tickets\/([^/?#]+)/.exec(href)
   if (!match) return null
   return { slug: match[1], ticketRef: match[2] }
+}
+
+/**
+ * Kinds a user can mute on the notification preferences screen: everything
+ * outside the ServiceDesk, which has its own preference model
+ * (`SdNotificationPreference`, per event and channel).
+ */
+export function isConfigurableNotificationKind(kind: string): boolean {
+  return notificationModuleOf(kind) !== 'SERVICE_DESK'
+}
+
+/** Catalog of the configurable kinds (preferences screen), groupable by module. */
+export function configurableNotificationKinds(): NotificationKindInfo[] {
+  return notificationKindCatalog().filter((info) =>
+    isConfigurableNotificationKind(info.kind),
+  )
 }

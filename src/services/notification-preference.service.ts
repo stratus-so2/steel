@@ -1,0 +1,91 @@
+import type { NotificationKind } from '@prisma/client'
+import { auditMutation } from '@/lib/axiom/audit'
+import { configurableNotificationKinds } from '@/src/lib/notification-kind'
+import { ok, type Result } from '@/src/lib/result'
+import { NotificationPreferenceRepository } from '@/src/repositories/notification-preference.repository'
+import type { UpdateNotificationPreferencesDTO } from '@/src/schemas/notification-preference.schema'
+import type {
+  NotificationKindDTO,
+  NotificationPreferenceDTO,
+} from '@/types/notification'
+import { assertMember } from './authz'
+
+/**
+ * Per-user in-app preferences for the non-ServiceDesk kinds (CRM,
+ * Comunicação, Plataforma). Every configurable kind is listed — a kind
+ * without a saved row is enabled.
+ */
+export const NotificationPreferenceService = {
+  async list(
+    actorId: string,
+    workspaceId: string,
+  ): Promise<Result<NotificationPreferenceDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const rows = await NotificationPreferenceRepository.listByUser(
+      workspaceId,
+      actorId,
+    )
+    if (!rows.ok) return rows
+
+    const saved = new Map(rows.value.map((row) => [row.kind, row.inApp]))
+    return ok(
+      configurableNotificationKinds().map((info) => ({
+        kind: info.kind as NotificationKindDTO,
+        module: info.module,
+        moduleLabel: info.moduleLabel,
+        label: info.label,
+        icon: info.icon,
+        color: info.color,
+        inApp: saved.get(info.kind as NotificationKind) ?? true,
+      })),
+    )
+  },
+
+  async update(
+    actorId: string,
+    workspaceId: string,
+    dto: UpdateNotificationPreferencesDTO,
+  ): Promise<Result<NotificationPreferenceDTO[]>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    // Last write wins when the same kind is sent twice.
+    const byKind = new Map(dto.preferences.map((p) => [p.kind, p.inApp]))
+    const items = Array.from(byKind, ([kind, inApp]) => ({
+      kind: kind as NotificationKind,
+      inApp,
+    }))
+
+    const saved = await NotificationPreferenceRepository.upsertMany(
+      workspaceId,
+      actorId,
+      items,
+    )
+    if (!saved.ok) {
+      auditMutation({
+        entity: 'notification_preference',
+        action: 'update',
+        actorId,
+        outcome: 'failure',
+        reason: saved.error.code,
+        meta: { workspaceId },
+      })
+      return saved
+    }
+
+    auditMutation({
+      entity: 'notification_preference',
+      action: 'update',
+      actorId,
+      meta: {
+        workspaceId,
+        muted: items.filter((i) => !i.inApp).map((i) => i.kind),
+        unmuted: items.filter((i) => i.inApp).map((i) => i.kind),
+      },
+    })
+
+    return NotificationPreferenceService.list(actorId, workspaceId)
+  },
+}

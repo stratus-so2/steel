@@ -6,6 +6,7 @@ import {
   CreditCardIcon,
   DashboardSquareAddIcon,
   Download01Icon,
+  Notification01Icon,
   PackageIcon,
   Shapes01Icon,
   SparklesIcon,
@@ -44,6 +45,9 @@ export default async function SettingsLayout({
           </NavItem>
           <NavItem href={`${base}/billing`} icon={CreditCardIcon}>
             Assinatura e Planos
+          </NavItem>
+          <NavItem href={`${base}/notifications`} icon={Notification01Icon}>
+            Notificações
           </NavItem>
           <NavItem href={`${base}/imports`} icon={Download01Icon}>
             Importações

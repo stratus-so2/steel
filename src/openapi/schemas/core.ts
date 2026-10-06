@@ -320,6 +320,27 @@ export const NotificationListDTO = dto(
           'SD_TASK_ASSIGNED',
           'SD_TICKET_CSAT',
           'SD_DIGEST',
+          'CRM_LEAD_ASSIGNED',
+          'CRM_OPPORTUNITY_ASSIGNED',
+          'CRM_DEAL_CLOSED',
+          'CRM_TASK_ASSIGNED',
+          'CRM_TASK_DUE',
+          'CRM_PROPOSAL_VIEWED',
+          'CRM_PROPOSAL_ACCEPTED',
+          'CRM_PROPOSAL_EXPIRED',
+          'CRM_FORM_SUBMITTED',
+          'CRM_CAMPAIGN_FINISHED',
+          'CRM_WORKFLOW_FAILED',
+          'CRM_WORKFLOW_WAITING',
+          'CRM_SOCIAL_POST_FAILED',
+          'CRM_COMPETITOR_SYNC_FAILED',
+          'MEMBER_JOINED',
+          'DATA_EXPORT_READY',
+          'TRIAL_ENDED',
+          'BILLING_PAYMENT_FAILED',
+          'BILLING_SUBSCRIPTION_CANCELED',
+          'AI_QUOTA_WARNING',
+          'AI_QUOTA_EXCEEDED',
         ]),
         title: z.string(),
         body: z.string(),
@@ -530,4 +551,21 @@ export const ShortLinkDTO = dto(
     createdAt: dateTime(),
     updatedAt: dateTime(),
   }),
+)
+
+export const NotificationPreferenceListDTO = dto(
+  'NotificationPreferenceList',
+  z.array(
+    z.object({
+      kind: z.string().meta({ example: 'CRM_LEAD_ASSIGNED' }),
+      module: z.enum(['COMMUNICATION', 'CRM', 'OTHER']),
+      moduleLabel: z.string().meta({ example: 'CRM' }),
+      label: z.string().meta({ example: 'Lead atribuído' }),
+      icon: z.string().meta({ example: 'assign' }),
+      color: z.string().meta({ example: 'violet' }),
+      inApp: z
+        .boolean()
+        .meta({ description: 'Entrega na caixa de entrada (padrão: ligada).' }),
+    }),
+  ),
 )

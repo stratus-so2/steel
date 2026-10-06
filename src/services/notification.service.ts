@@ -1,10 +1,14 @@
 import type { NotificationKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { notificationKindsOfModule } from '@/src/lib/notification-kind'
+import {
+  isConfigurableNotificationKind,
+  notificationKindsOfModule,
+} from '@/src/lib/notification-kind'
 import { publishNotificationEvent } from '@/src/lib/notifications/realtime'
 import { ok, type Result } from '@/src/lib/result'
 import { toNotificationDTO } from '@/src/mappers/notification.mapper'
 import { NotificationRepository } from '@/src/repositories/notification.repository'
+import { NotificationPreferenceRepository } from '@/src/repositories/notification-preference.repository'
 import type {
   MarkNotificationsReadDTO,
   NotificationBulkActionDTO,
@@ -17,6 +21,25 @@ import type {
 import { assertMember } from './authz'
 
 const LIST_LIMIT = 50
+
+/** Drops the recipients who muted a configurable (non-ServiceDesk) kind. */
+async function withoutMuted(
+  workspaceId: string,
+  kind: NotificationKind,
+  userIds: string[],
+): Promise<Result<string[]>> {
+  if (userIds.length === 0 || !isConfigurableNotificationKind(kind)) {
+    return ok(userIds)
+  }
+  const muted = await NotificationPreferenceRepository.listMutedUserIds(
+    workspaceId,
+    kind,
+    userIds,
+  )
+  if (!muted.ok) return muted
+  const mutedSet = new Set(muted.value)
+  return ok(userIds.filter((userId) => !mutedSet.has(userId)))
+}
 
 /**
  * Tipos aceitos pelo filtro: o cruzamento de `module` (resolvido pela tabela
@@ -156,6 +179,11 @@ export const NotificationService = {
    * chama já decidiu os destinatários (membros do workspace). Publica o
    * evento genérico de tempo real para a caixa de entrada e o contador do
    * cabeçalho se atualizarem sem recarregar.
+   *
+   * `actorId` (who caused the event) is never notified about their own
+   * action. Non-ServiceDesk kinds honor the per-user mute preferences
+   * (`NotificationPreference`); ServiceDesk callers filter with their own.
+   * `dedupeKey` makes the call idempotent per user (job re-runs).
    */
   async notifyUsers(input: {
     workspaceId: string
@@ -164,8 +192,20 @@ export const NotificationService = {
     title: string
     body: string
     href?: string
+    actorId?: string | null
+    dedupeKey?: string
   }): Promise<Result<number>> {
-    const userIds = Array.from(new Set(input.userIds))
+    const candidates = Array.from(new Set(input.userIds)).filter(
+      (userId) => !input.actorId || userId !== input.actorId,
+    )
+    const recipients = await withoutMuted(
+      input.workspaceId,
+      input.kind,
+      candidates,
+    )
+    if (!recipients.ok) return recipients
+    const userIds = recipients.value
+
     const created = await NotificationRepository.createMany(
       userIds.map((userId) => ({
         workspaceId: input.workspaceId,
@@ -174,6 +214,7 @@ export const NotificationService = {
         title: input.title,
         body: input.body,
         href: input.href ?? null,
+        dedupeKey: input.dedupeKey ?? null,
       })),
     )
     if (!created.ok || created.value === 0) return created

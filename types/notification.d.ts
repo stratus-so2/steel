@@ -19,6 +19,27 @@ export type NotificationKindDTO =
   | 'SD_PROBLEM_SUGGESTED'
   | 'SD_KB_REVIEW'
   | 'SD_REPORT_READY'
+  | 'CRM_LEAD_ASSIGNED'
+  | 'CRM_OPPORTUNITY_ASSIGNED'
+  | 'CRM_DEAL_CLOSED'
+  | 'CRM_TASK_ASSIGNED'
+  | 'CRM_TASK_DUE'
+  | 'CRM_PROPOSAL_VIEWED'
+  | 'CRM_PROPOSAL_ACCEPTED'
+  | 'CRM_PROPOSAL_EXPIRED'
+  | 'CRM_FORM_SUBMITTED'
+  | 'CRM_CAMPAIGN_FINISHED'
+  | 'CRM_WORKFLOW_FAILED'
+  | 'CRM_WORKFLOW_WAITING'
+  | 'CRM_SOCIAL_POST_FAILED'
+  | 'CRM_COMPETITOR_SYNC_FAILED'
+  | 'MEMBER_JOINED'
+  | 'DATA_EXPORT_READY'
+  | 'TRIAL_ENDED'
+  | 'BILLING_PAYMENT_FAILED'
+  | 'BILLING_SUBSCRIPTION_CANCELED'
+  | 'AI_QUOTA_WARNING'
+  | 'AI_QUOTA_EXCEEDED'
 
 export type NotificationModuleDTO =
   | 'SERVICE_DESK'
@@ -70,4 +91,18 @@ export interface NotificationListDTO {
 /** Resultado de uma ação (individual ou em lote). */
 export interface NotificationActionResultDTO {
   updated: number
+}
+
+/** One row of the notification preferences screen (non-ServiceDesk kinds). */
+export interface NotificationPreferenceDTO {
+  kind: NotificationKindDTO
+  module: NotificationModuleDTO
+  /** Module name in pt-BR (group header). */
+  moduleLabel: string
+  /** What happened, in pt-BR. */
+  label: string
+  icon: string
+  color: string
+  /** In-app delivery on (default) or muted. */
+  inApp: boolean
 }

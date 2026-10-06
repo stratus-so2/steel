@@ -12,6 +12,7 @@ function row(overrides: Partial<Notification> = {}): Notification {
     body: 'Faltam 15 minutos para o prazo de resolução.',
     href: '/acme/servicedesk/tickets/123',
     readAt: null,
+    dedupeKey: null,
     archivedAt: null,
     deletedAt: null,
     createdAt: new Date('2026-09-18T12:00:00.000Z'),

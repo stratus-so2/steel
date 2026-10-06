@@ -7,6 +7,7 @@ import type { NotificationListQueryDTO } from '@/src/schemas/notification.schema
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/notification.repository')
+vi.mock('@/src/repositories/notification-preference.repository')
 vi.mock('@/src/lib/notifications/realtime', () => ({
   publishNotificationEvent: vi.fn().mockResolvedValue(undefined),
 }))
@@ -16,6 +17,7 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { publishNotificationEvent } from '@/src/lib/notifications/realtime'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { NotificationRepository } from '@/src/repositories/notification.repository'
+import { NotificationPreferenceRepository } from '@/src/repositories/notification-preference.repository'
 import { NotificationService } from '../notification.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -33,6 +35,7 @@ function row(overrides: Partial<Notification> = {}): Notification {
     body: 'Média -0,50',
     href: '/clinica/zap?conversa=c1',
     readAt: null,
+    dedupeKey: null,
     archivedAt: null,
     deletedAt: null,
     createdAt: new Date('2026-09-18T12:00:00Z'),
@@ -60,6 +63,9 @@ beforeEach(() => {
     ok({ items: [row()], nextCursor: null }),
   )
   mockedNotificationRepo.countFolders.mockResolvedValue(ok(COUNTS))
+  vi.mocked(
+    NotificationPreferenceRepository,
+  ).listMutedUserIds.mockResolvedValue(ok([]))
 })
 
 describe('NotificationService.list', () => {
@@ -410,5 +416,124 @@ describe('NotificationService failure paths', () => {
       'DATABASE_ERROR',
     )
     expect(mockedPublish).not.toHaveBeenCalled()
+  })
+})
+
+describe('NotificationService.notifyUsers — actor, preferences and dedupe', () => {
+  const mockedPreferenceRepo = vi.mocked(NotificationPreferenceRepository)
+
+  beforeEach(() => {
+    mockedPreferenceRepo.listMutedUserIds.mockResolvedValue(ok([]))
+    mockedNotificationRepo.createMany.mockImplementation(async (rows) =>
+      ok(rows.length),
+    )
+  })
+
+  it('should never notify the actor of the action', async () => {
+    expectOk(
+      await NotificationService.notifyUsers({
+        workspaceId: 'ws1',
+        userIds: ['actor', 'b'],
+        actorId: 'actor',
+        kind: 'CRM_LEAD_ASSIGNED',
+        title: 't',
+        body: 'b',
+      }),
+    )
+
+    expect(mockedNotificationRepo.createMany).toHaveBeenCalledWith([
+      expect.objectContaining({ userId: 'b' }),
+    ])
+    expect(mockedPublish).toHaveBeenCalledWith('ws1', ['b'], expect.anything())
+  })
+
+  it('should not deliver a muted kind', async () => {
+    mockedPreferenceRepo.listMutedUserIds.mockResolvedValue(ok(['a']))
+
+    expect(
+      expectOk(
+        await NotificationService.notifyUsers({
+          workspaceId: 'ws1',
+          userIds: ['a', 'b'],
+          kind: 'CRM_TASK_DUE',
+          title: 't',
+          body: 'b',
+        }),
+      ),
+    ).toBe(1)
+
+    expect(mockedPreferenceRepo.listMutedUserIds).toHaveBeenCalledWith(
+      'ws1',
+      'CRM_TASK_DUE',
+      ['a', 'b'],
+    )
+    expect(mockedNotificationRepo.createMany).toHaveBeenCalledWith([
+      expect.objectContaining({ userId: 'b' }),
+    ])
+  })
+
+  it('should leave ServiceDesk kinds to their own preferences', async () => {
+    await NotificationService.notifyUsers({
+      workspaceId: 'ws1',
+      userIds: ['a'],
+      kind: 'SD_TICKET_ASSIGNED',
+      title: 't',
+      body: 'b',
+    })
+
+    expect(mockedPreferenceRepo.listMutedUserIds).not.toHaveBeenCalled()
+  })
+
+  it('should skip the preference lookup when only the actor was a candidate', async () => {
+    expectOk(
+      await NotificationService.notifyUsers({
+        workspaceId: 'ws1',
+        userIds: ['actor'],
+        actorId: 'actor',
+        kind: 'CRM_DEAL_CLOSED',
+        title: 't',
+        body: 'b',
+      }),
+    )
+
+    expect(mockedPreferenceRepo.listMutedUserIds).not.toHaveBeenCalled()
+    expect(mockedPublish).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a preference lookup failure without creating', async () => {
+    mockedPreferenceRepo.listMutedUserIds.mockResolvedValue(
+      err({ code: 'DATABASE_ERROR', message: 'down' }),
+    )
+
+    expectErr(
+      await NotificationService.notifyUsers({
+        workspaceId: 'ws1',
+        userIds: ['a'],
+        kind: 'MEMBER_JOINED',
+        title: 't',
+        body: 'b',
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedNotificationRepo.createMany).not.toHaveBeenCalled()
+  })
+
+  it('should store the dedupe key on every row', async () => {
+    await NotificationService.notifyUsers({
+      workspaceId: 'ws1',
+      userIds: ['a'],
+      kind: 'CRM_TASK_DUE',
+      title: 't',
+      body: 'b',
+      href: '/acme/crm/tasks?record=t1',
+      dedupeKey: 'crm-task-due:t1',
+    })
+
+    expect(mockedNotificationRepo.createMany).toHaveBeenCalledWith([
+      expect.objectContaining({
+        dedupeKey: 'crm-task-due:t1',
+        href: '/acme/crm/tasks?record=t1',
+      }),
+    ])
   })
 })
