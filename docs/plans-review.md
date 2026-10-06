@@ -20,6 +20,33 @@
   são considerados** no limite de convites: um BUSINESS que paga 30 assentos
   continua travado em 12.
 
+## Cobrança desligada (`BILLING_ENABLED`)
+
+Decisão do dono do produto em 06/10/2026: **não há cobrança pelo Steel por
+enquanto**. O código do AbacatePay continua no repositório, mas fica atrás da
+flag `BILLING_ENABLED` (default `false`; só `'true'` liga — `isBillingEnabled()`
+em `src/lib/billing.ts`). Com a flag desligada:
+
+- Checkout (`POST /api/payment/plan`) e cupom (`GET /api/coupons/validate`)
+  respondem `BILLING_DISABLED` (503) sem chamar o provedor; o webhook
+  (`POST /api/payment/webhook`) responde 404 sem processar nada — logo as
+  notificações `BILLING_PAYMENT_FAILED` / assinatura cancelada nunca disparam.
+- `/upgrade` redireciona para `/talk-to-sales`; `settings/billing` mostra o
+  plano e os assentos, mas troca a grade de upgrade por "Planos e cobrança
+  indisponíveis no momento — fale com a Stratus Telecom"; o banner do fim do
+  trial some; na página de preços os planos pagos levam a vendas.
+- O componente "Assinatura" (pagamento) sai da coleta e da página de status
+  (o histórico antigo continua legível) e o AbacatePay sai da lista de
+  subprocessadores.
+- Plano e trial definidos pelo admin global continuam funcionando. Na
+  exclusão de workspace, uma assinatura `PAID`/`PENDING` antiga vira tentativa
+  `FAILED` (o provedor não é chamado) e barra a exclusão — o admin pode forçar.
+- `ABACATE_PAY` e `ABACATE_PAY_WEBHOOK_SECRET` ficam opcionais e passam a ser
+  obrigatórias no boot assim que `BILLING_ENABLED=true`.
+
+Para religar: `BILLING_ENABLED=true` + as duas credenciais no `.env` do
+servidor (SOPS) e reiniciar os containers — não precisa de rebuild.
+
 ## Limites numéricos (`LIMITS`)
 
 | Limite | FREE | PRO | BUSINESS | ENTERPRISE | Onde é aplicado |
