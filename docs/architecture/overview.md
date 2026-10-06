@@ -212,6 +212,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `crm-proposal-expiry` | expira propostas com validade vencida e avisa o responsável | cron 00:05 |
 | `crm-task-reminders` | avisa na caixa de entrada o responsável por tarefas do CRM que vencem em até 1 h ou acabaram de atrasar (uma vez cada, por `dedupeKey`) | cron a cada 15 min |
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
+| `steel-agents` | Steel Agents: `tick` dispara agentes de agenda (cron + `lastRunAt`) e expira aprovações vencidas; `run` executa ou retoma uma execução, com as permissões do responsável ([ADR 0020](../adr/0020-steel-agents-owner-identity-and-approvals.md), [Steel AI](../steel-ai/README.md#steel-agents)) | a cada 1 min + sob demanda (tentativa única) |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |
 | `changelog` | e-mails de changelog | sob demanda |
 | `database-backup` | backup FULL (03:15), prune (03:30), backup por workspace, **cópia offsite**, exclusão e restauração de workspace pelo painel admin | cron + sob demanda |
