@@ -27,7 +27,7 @@ painel. Overrides de chaves que saíram do catálogo são ignorados.
 
 | Chave | Módulo | Gate no service | UI escondida |
 | ----- | ------ | --------------- | ------------ |
-| `crm.aiAssistant` | CRM | criar conversa, enviar mensagem, anexar arquivo | widget de IA no layout do workspace |
+| `crm.aiAssistant` | CRM | análise de concorrentes com IA (`crm-competitor-analysis.service.ts`) | — (o widget de chat do CRM foi removido; o assistente agora é o Steel AI, ver `docs/steel-ai/README.md`) |
 | `crm.socialPublishing` | CRM | criar, reagendar e publicar post agendado | página "Redes sociais" do CRM |
 | `communication.broadcasts` | WhatsApp | criar, disparar e importar CSV de transmissão | página "Transmissões" |
 

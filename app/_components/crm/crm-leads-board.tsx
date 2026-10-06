@@ -146,6 +146,11 @@ export function CrmLeadsBoard({
     refetch,
   } = useCrmResourceList<CrmLeadDTO>(workspaceId, 'leads')
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
+  // Deep link (`?record=<id>`, e.g. from Steel AI): opens that lead once loaded.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('record')
+    if (id) setSelectedLeadId(id)
+  }, [])
   const [createOpen, setCreateOpen] = useState(false)
 
   const byStage = useMemo(() => {

@@ -13,7 +13,7 @@ describe('toWorkspaceFeatureDTOs()', () => {
     const ai = dtos.find((d) => d.key === 'crm.aiAssistant')
     expect(ai).toMatchObject({
       module: 'CRM',
-      label: 'Assistente de IA do CRM',
+      label: 'IA do CRM',
       planDefault: true,
       override: null,
       enabled: true,

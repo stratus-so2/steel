@@ -25,7 +25,7 @@
 | Limite | FREE | PRO | BUSINESS | ENTERPRISE | Onde é aplicado |
 | ------ | ---- | --- | -------- | ---------- | --------------- |
 | `seats` (membros + convites pendentes) | 12 | ilimitado | **12** | ilimitado | `InvitationService.assertSeatAvailable` (`src/services/invitation.service.ts`) ao criar convite (workspace e projeto) e ao aceitar → `SEAT_LIMIT_REACHED` (403). Exibido em `settings/billing` (usa `subscription.seats` se houver, senão o limite do plano) |
-| `aiCreditsPerSeat` | 500 | 1.000 | 2.000 | ilimitado | **Não aplicado.** A IA do CRM (`crm-ai.service.ts`) e a do WhatsApp (`whatsapp-ai-reply`) não contam créditos. Só na página de preços |
+| `aiCreditsPerSeat` | 500 | 1.000 | 2.000 | ilimitado | **Não aplicado.** O Steel AI (`src/lib/ai/`) e a IA do WhatsApp (`whatsapp-ai-reply`) não contam créditos. Só na página de preços |
 | `guestsPerSeat` | 0 | 5 | 5 | ilimitado | **Não aplicado.** Não existe papel "convidado" (papéis: OWNER, ADMIN, MEMBER, VIEWER) |
 | `pageVersions` | 0 | 20 | 60 | ilimitado | **Não aplicado.** Não há versionamento de páginas no código |
 | `pageVersionDays` | 0 | 30 | 90 | ilimitado | **Não aplicado** (idem) |
@@ -38,7 +38,7 @@ Outros valores relacionados, fora do catálogo:
 | Preço BUSINESS | R$ 80,06/assento/mês · R$ 836,81/assento/ano | idem |
 | Trial | BUSINESS por 14 dias; banner a partir de 5 dias do fim; reversão de hora em hora | `src/config/trial.ts`, fila `trial-lifecycle` |
 | Assentos na compra | 1 a 10.000 | `src/schemas/subscription.schema.ts` |
-| Upload de mídia (genérico / anexo da IA / vídeo de landing page) | 5 MB / 10 MB / 25 MB | `src/services/media/_media.ts`, `crm-ai-attachment.ts`, `media/crm-landing-page-media.service.ts` — iguais para todos os planos |
+| Upload de mídia (genérico / vídeo de landing page) | 5 MB / 25 MB | `src/services/media/_media.ts`, `media/crm-landing-page-media.service.ts` — iguais para todos os planos |
 
 ## Features e capabilities (`FEATURE_MIN_TIER`, `CAPABILITIES`)
 
