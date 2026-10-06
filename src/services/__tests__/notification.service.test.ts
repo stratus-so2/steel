@@ -500,22 +500,25 @@ describe('NotificationService.notifyUsers — actor, preferences and dedupe', ()
     expect(mockedPublish).not.toHaveBeenCalled()
   })
 
-  it('should propagate a preference lookup failure without creating', async () => {
+  it('should fail open (deliver to everyone) when the preference lookup fails', async () => {
     mockedPreferenceRepo.listMutedUserIds.mockResolvedValue(
       err({ code: 'DATABASE_ERROR', message: 'down' }),
     )
 
-    expectErr(
-      await NotificationService.notifyUsers({
-        workspaceId: 'ws1',
-        userIds: ['a'],
-        kind: 'MEMBER_JOINED',
-        title: 't',
-        body: 'b',
-      }),
-      'DATABASE_ERROR',
-    )
-    expect(mockedNotificationRepo.createMany).not.toHaveBeenCalled()
+    expect(
+      expectOk(
+        await NotificationService.notifyUsers({
+          workspaceId: 'ws1',
+          userIds: ['a'],
+          kind: 'MEMBER_JOINED',
+          title: 't',
+          body: 'b',
+        }),
+      ),
+    ).toBe(1)
+    expect(mockedNotificationRepo.createMany).toHaveBeenCalledWith([
+      expect.objectContaining({ userId: 'a' }),
+    ])
   })
 
   it('should store the dedupe key on every row', async () => {

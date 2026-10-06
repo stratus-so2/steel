@@ -44,7 +44,7 @@ describe('/api/workspaces/[id]/notifications/preferences', () => {
       user.cookie,
     )
 
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(422)
   })
 
   it('should forbid non-members', async () => {

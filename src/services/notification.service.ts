@@ -1,5 +1,6 @@
 import type { NotificationKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import {
   isConfigurableNotificationKind,
   notificationKindsOfModule,
@@ -27,18 +28,26 @@ async function withoutMuted(
   workspaceId: string,
   kind: NotificationKind,
   userIds: string[],
-): Promise<Result<string[]>> {
+): Promise<string[]> {
   if (userIds.length === 0 || !isConfigurableNotificationKind(kind)) {
-    return ok(userIds)
+    return userIds
   }
   const muted = await NotificationPreferenceRepository.listMutedUserIds(
     workspaceId,
     kind,
     userIds,
   )
-  if (!muted.ok) return muted
+  // Fail open: a preference lookup failure must not drop the notice.
+  if (!muted.ok) {
+    logger.warn('notifications.preferences_lookup_failed', {
+      workspaceId,
+      kind,
+      reason: muted.error.code,
+    })
+    return userIds
+  }
   const mutedSet = new Set(muted.value)
-  return ok(userIds.filter((userId) => !mutedSet.has(userId)))
+  return userIds.filter((userId) => !mutedSet.has(userId))
 }
 
 /**
@@ -198,13 +207,11 @@ export const NotificationService = {
     const candidates = Array.from(new Set(input.userIds)).filter(
       (userId) => !input.actorId || userId !== input.actorId,
     )
-    const recipients = await withoutMuted(
+    const userIds = await withoutMuted(
       input.workspaceId,
       input.kind,
       candidates,
     )
-    if (!recipients.ok) return recipients
-    const userIds = recipients.value
 
     const created = await NotificationRepository.createMany(
       userIds.map((userId) => ({

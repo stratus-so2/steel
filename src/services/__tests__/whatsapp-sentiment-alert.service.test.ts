@@ -13,6 +13,14 @@ import { ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/notification.repository')
+vi.mock('@/src/repositories/notification-preference.repository', async () => {
+  const { ok } = await import('@/src/lib/result')
+  return {
+    NotificationPreferenceRepository: {
+      listMutedUserIds: vi.fn(async () => ok([])),
+    },
+  }
+})
 vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/repositories/whatsapp-conversation-event.repository')
 vi.mock('@/src/repositories/whatsapp-settings.repository')
