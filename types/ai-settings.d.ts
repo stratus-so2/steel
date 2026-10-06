@@ -34,6 +34,8 @@ export interface WorkspaceAiSettingsDTO {
   whatsappSentimentModel: string
   monthlyQuotaUsd: number
   usdPer1kTokens: number
+  /** Steel AI agent mode (write tools, always confirmed). Admin switch. */
+  agentModeEnabled: boolean
   usage: AiUsageSummaryDTO
   /** Modelo escolhido pelo usuário atual (`null` = segue o padrão). */
   userPreference: string | null

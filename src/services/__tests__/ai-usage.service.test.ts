@@ -98,6 +98,38 @@ describe('AiUsageService.prepare()', () => {
     expect(call.provider.id).toBe('anthropic')
   })
 
+  it('should prefer the user choice on the Steel AI assistant', async () => {
+    setup({ settings, preference: 'anthropic:claude-sonnet-5' })
+    const call = expectOk(
+      await AiUsageService.prepare('ws1', 'STEEL_ASSISTANT', 'u1'),
+    )
+    expect(call.feature).toBe('STEEL_ASSISTANT')
+    expect(call.model.key).toBe('anthropic:claude-sonnet-5')
+  })
+
+  it('should not apply the user choice to Steel Agents', async () => {
+    setup({ settings, preference: 'anthropic:claude-sonnet-5' })
+    const call = expectOk(
+      await AiUsageService.prepare('ws1', 'STEEL_AGENT', 'u1'),
+    )
+    expect(call.model.key).toBe('openai:gpt-4o-mini')
+    expect(mockedPreferenceRepo.find).not.toHaveBeenCalled()
+  })
+
+  it('resolveModel() should return null when no model is usable', async () => {
+    setup({
+      settings: createFakeWorkspaceAiSettings({
+        enabledModels: ['anthropic:claude-sonnet-5'],
+        crmAssistantModel: 'anthropic:claude-sonnet-5',
+      }),
+      anthropicAvailable: false,
+    })
+    const resolved = expectOk(
+      await AiUsageService.resolveModel('ws1', 'STEEL_ASSISTANT', 'u1'),
+    )
+    expect(resolved.model).toBeNull()
+  })
+
   it('should ignore a user choice that is no longer enabled', async () => {
     setup({ settings, preference: 'anthropic:claude-opus-5' })
     const call = expectOk(

@@ -242,6 +242,10 @@ export const WorkspaceAiSettingsDTO = dto(
     whatsappSentimentModel: z.string(),
     monthlyQuotaUsd: z.number(),
     usdPer1kTokens: z.number(),
+    agentModeEnabled: z.boolean().meta({
+      description:
+        'Modo agente do Steel AI (ferramentas de escrita, sempre com confirmação). Desligado = só exploração.',
+    }),
     usage: z.object({
       periodStart: dateTime().meta({ description: '1º dia do mês (UTC).' }),
       inputTokens: z.number().int(),

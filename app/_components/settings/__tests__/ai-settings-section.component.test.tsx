@@ -49,6 +49,7 @@ function settings(
     whatsappSentimentModel: 'openai:gpt-4o-mini',
     monthlyQuotaUsd: 50,
     usdPer1kTokens: 4,
+    agentModeEnabled: true,
     usage: {
       periodStart: '2026-09-01T00:00:00.000Z',
       inputTokens: 1500,
@@ -130,7 +131,35 @@ describe('<AiSettingsSection />', () => {
       whatsappReplyModel: 'openai:gpt-4o-mini',
       whatsappSentimentModel: 'openai:gpt-4o-mini',
       monthlyQuotaUsd: 120,
+      agentModeEnabled: true,
     })
+  })
+
+  it('lets an admin turn the Steel AI agent mode off', async () => {
+    const fetchSpy = mockFetch([
+      {
+        method: 'PATCH',
+        match: URL,
+        data: settings({ agentModeEnabled: false }),
+      },
+      { match: URL, data: settings() },
+    ])
+    renderAs(true)
+
+    const toggle = await screen.findByRole('switch', {
+      name: 'Permitir o modo agente neste workspace',
+    })
+    fireEvent.click(toggle)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Salvar ajustes de IA' }),
+    )
+
+    await waitFor(() =>
+      expect(fetchBody(fetchSpy, URL, 'PATCH')).toMatchObject({
+        agentModeEnabled: false,
+      }),
+    )
+    expect(screen.getByText('Steel AI (assistente)')).toBeTruthy()
   })
 
   it('warns when the quota is exhausted', async () => {

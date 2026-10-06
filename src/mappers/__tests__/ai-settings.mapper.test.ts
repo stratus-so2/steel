@@ -16,7 +16,16 @@ describe('toEffectiveAiSettings()', () => {
       whatsappSentimentModel: 'openai:gpt-4o-mini',
       monthlyQuotaUsd: 50,
       usdPer1kTokens: 4,
+      agentModeEnabled: true,
     })
+  })
+
+  it('should carry the agent mode switch from the row', () => {
+    expect(
+      toEffectiveAiSettings(
+        createFakeWorkspaceAiSettings({ agentModeEnabled: false }),
+      ).agentModeEnabled,
+    ).toBe(false)
   })
 
   it('should convert decimals and drop models no longer in the catalog', () => {
