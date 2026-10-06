@@ -221,6 +221,25 @@ describe('AiUsageService.record()', () => {
     })
   })
 
+  it('should price usage with the same rule as the ledger', async () => {
+    setup({ settings })
+    const call = expectOk(
+      await AiUsageService.prepare('ws1', 'CRM_ASSISTANT', 'u1'),
+    )
+    expect(
+      AiUsageService.price(call, {
+        inputTokens: 800_000,
+        outputTokens: 200_000,
+      }),
+    ).toBe(0.24)
+    expect(
+      AiUsageService.price(
+        { ...call, costMargin: undefined },
+        { inputTokens: 800_000, outputTokens: 200_000 },
+      ),
+    ).toBe(0.24)
+  })
+
   it('should apply the platform margin read at prepare time', async () => {
     setup({ settings, margin: 2 })
     const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))

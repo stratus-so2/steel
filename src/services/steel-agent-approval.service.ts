@@ -1,5 +1,6 @@
 import type { AiPendingAction, Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { forbidden } from '@/src/errors'
 import {
@@ -85,10 +86,10 @@ function alreadyDecided(action: AiPendingAction): Result<AiPendingActionDTO> {
 async function resume(runId: string): Promise<void> {
   const queued = await enqueueSteelAgentRun(runId)
   if (!queued.ok) {
-    logger.warn('steel_agents.resume_enqueue_failed', {
-      component: 'SteelAgentApprovalService',
-      runId,
-    })
+    logger.warn(
+      'steel_agents.resume_enqueue_failed',
+      logFields({ component: 'SteelAgentApprovalService' }, { runId }),
+    )
   }
 }
 

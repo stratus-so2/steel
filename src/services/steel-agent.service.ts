@@ -1,5 +1,6 @@
 import type { ModuleKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { forbidden } from '@/src/errors'
 import {
@@ -351,12 +352,13 @@ export const SteelAgentService = {
       targetId: run.value.id,
       meta: { workspaceId, agentId },
     })
-    logger.info('steel_agents.run_requested', {
-      component: 'SteelAgentService',
-      workspaceId,
-      agentId,
-      runId: run.value.id,
-    })
+    logger.info(
+      'steel_agents.run_requested',
+      logFields(
+        { component: 'SteelAgentService', workspaceId },
+        { agentId, runId: run.value.id },
+      ),
+    )
     return ok(toSteelAgentRunDTO(run.value))
   },
 

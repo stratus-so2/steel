@@ -4,8 +4,9 @@ import {
   type SteelAgentRunStatus,
 } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
-import { currentPeriodStart, tokensToUsd } from '@/src/lib/ai/quota'
+import { currentPeriodStart } from '@/src/lib/ai/quota'
 import {
   type AiToolAccess,
   availableTools,
@@ -199,13 +200,10 @@ async function finish(
     status === 'SKIPPED'
       ? 'steel_agents.run_skipped'
       : 'steel_agents.run_failed',
-    {
-      component: 'SteelAgentRunner',
-      workspaceId: run.workspaceId,
-      agentId: run.agentId,
-      runId: run.id,
-      reason: message,
-    },
+    logFields(
+      { component: 'SteelAgentRunner', workspaceId: run.workspaceId },
+      { agentId: run.agentId, runId: run.id, reason: message },
+    ),
   )
   if (status === 'FAILED' && done.value) {
     await notifyAgentRunFailed({
@@ -337,7 +335,11 @@ export async function executeSteelAgentRun(
     source: 'agent',
     agentId: agent.id,
   }
-  const usage: AiUsageTokens = { inputTokens: 0, outputTokens: 0 }
+  const usage: AiUsageTokens = {
+    inputTokens: 0,
+    outputTokens: 0,
+    cachedInputTokens: 0,
+  }
   let roundsThisPass = 0
   let lastText = ''
 
@@ -346,11 +348,13 @@ export async function executeSteelAgentRun(
   ) => {
     const saved = await SteelAgentRunStepRepository.create(data)
     if (!saved.ok) {
-      logger.warn('steel_agents.step_failed', {
-        component: 'SteelAgentRunner',
-        runId: run.id,
-        message: saved.error.message,
-      })
+      logger.warn(
+        'steel_agents.step_failed',
+        logFields(
+          { component: 'SteelAgentRunner', message: saved.error.message },
+          { runId: run.id },
+        ),
+      )
     }
   }
 
@@ -416,15 +420,18 @@ export async function executeSteelAgentRun(
         targetType: target?.type ?? null,
         targetId: target?.id ?? null,
         args: input,
-        outcome: result.ok ? result.output.summary : 'Falhou',
+        outcome: result.ok ? 'success' : 'failure',
+        summary: result.ok ? result.output.summary : null,
         error: result.ok ? null : result.error.message,
       })
       if (!log.ok) {
-        logger.error('steel_agents.action_log_failed', {
-          component: 'SteelAgentRunner',
-          runId: run.id,
-          message: log.error.message,
-        })
+        logger.error(
+          'steel_agents.action_log_failed',
+          logFields(
+            { component: 'SteelAgentRunner', message: log.error.message },
+            { runId: run.id },
+          ),
+        )
       }
       auditMutation({
         entity: 'steel_agent_run',
@@ -495,13 +502,7 @@ export async function executeSteelAgentRun(
     rounds: { increment: roundsThisPass },
     inputTokens: { increment: usage.inputTokens },
     outputTokens: { increment: usage.outputTokens },
-    costUsd: {
-      increment: tokensToUsd(
-        usage.inputTokens,
-        usage.outputTokens,
-        call.usdPer1kTokens,
-      ),
-    },
+    costUsd: { increment: AiUsageService.price(call, usage) },
   })
   const record = () =>
     AiUsageService.record(call, {
@@ -526,6 +527,8 @@ export async function executeSteelAgentRun(
       roundsThisPass++
       usage.inputTokens += response.usage.inputTokens
       usage.outputTokens += response.usage.outputTokens
+      usage.cachedInputTokens =
+        (usage.cachedInputTokens ?? 0) + (response.usage.cachedInputTokens ?? 0)
       if (response.text) lastText = response.text
       await step({
         runId: run.id,
@@ -567,26 +570,34 @@ export async function executeSteelAgentRun(
           round: state.round,
           count: state.pendingActionIds.length,
         })
-        logger.info('steel_agents.run_waiting', {
-          component: 'SteelAgentRunner',
-          workspaceId: run.workspaceId,
-          agentId: agent.id,
-          runId: run.id,
-          pendingActions: state.pendingActionIds.length,
-        })
+        logger.info(
+          'steel_agents.run_waiting',
+          logFields(
+            { component: 'SteelAgentRunner', workspaceId: run.workspaceId },
+            {
+              agentId: agent.id,
+              runId: run.id,
+              pendingActions: state.pendingActionIds.length,
+            },
+          ),
+        )
         return ok('waiting')
       }
       if (response.toolCalls.length === 0 || forceText) break
     }
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause)
-    logger.error('steel_agents.provider_failed', {
-      component: 'SteelAgentRunner',
-      workspaceId: run.workspaceId,
-      agentId: agent.id,
-      runId: run.id,
-      message,
-    })
+    logger.error(
+      'steel_agents.provider_failed',
+      logFields(
+        {
+          component: 'SteelAgentRunner',
+          workspaceId: run.workspaceId,
+          message,
+        },
+        { agentId: agent.id, runId: run.id },
+      ),
+    )
     await SteelAgentRunRepository.update(run.id, {
       status: 'FAILED',
       error: `${PROVIDER_ERROR}: ${message}`.slice(0, 2_000),
@@ -617,14 +628,18 @@ export async function executeSteelAgentRun(
   await record()
   if (!saved.ok) return err(saved.error)
 
-  logger.info('steel_agents.run_succeeded', {
-    component: 'SteelAgentRunner',
-    workspaceId: run.workspaceId,
-    agentId: agent.id,
-    runId: run.id,
-    rounds: state.round,
-    inputTokens: usage.inputTokens,
-    outputTokens: usage.outputTokens,
-  })
+  logger.info(
+    'steel_agents.run_succeeded',
+    logFields(
+      { component: 'SteelAgentRunner', workspaceId: run.workspaceId },
+      {
+        agentId: agent.id,
+        runId: run.id,
+        rounds: state.round,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+      },
+    ),
+  )
   return ok('succeeded')
 }

@@ -232,6 +232,7 @@ function setup(
   access.mockResolvedValue(ok(ACCESS))
   usage.prepare.mockResolvedValue(ok(prepared(fake.provider)))
   usage.record.mockResolvedValue(undefined)
+  usage.price.mockReturnValue(0.25)
   vi.mocked(UserRepository.findById).mockResolvedValue(
     ok(createFakeUser({ name: 'Ana' })),
   )
@@ -320,8 +321,9 @@ describe('executeSteelAgentRun — tools', () => {
     expect(usage.record).toHaveBeenCalledWith(expect.anything(), {
       workspaceId: 'ws1',
       userId: null,
-      usage: { inputTokens: 200, outputTokens: 100 },
+      usage: { inputTokens: 200, outputTokens: 100, cachedInputTokens: 0 },
     })
+    expect(lastUpdate().costUsd).toEqual({ increment: 0.25 })
     expect(usage.prepare).toHaveBeenCalledWith('ws1', 'STEEL_AGENT', null)
   })
 
@@ -372,7 +374,8 @@ describe('executeSteelAgentRun — tools', () => {
         toolName: 'crm_create_task',
         targetType: 'crm_task',
         targetId: 'task1',
-        outcome: 'Tarefa criada',
+        outcome: 'success',
+        summary: 'Tarefa criada',
         error: null,
       }),
     )
@@ -387,7 +390,11 @@ describe('executeSteelAgentRun — tools', () => {
     })
     expect(expectOk(await executeSteelAgentRun('run1'))).toBe('succeeded')
     expect(logs.create).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'Falhou', targetId: null }),
+      expect.objectContaining({
+        outcome: 'failure',
+        summary: null,
+        targetId: null,
+      }),
     )
     expect(steps.create).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'TOOL', status: 'FAILED' }),

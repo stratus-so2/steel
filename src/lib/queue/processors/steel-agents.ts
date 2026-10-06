@@ -1,4 +1,5 @@
 import type { Job } from 'bullmq'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { runSteelAgentTick } from '@/src/services/steel-agent-dispatcher'
 import { executeSteelAgentRun } from '@/src/services/steel-agent-runner'
@@ -12,11 +13,10 @@ export async function processSteelAgents(job: Job): Promise<unknown> {
   switch (job.name) {
     case SteelAgentsJob.Tick: {
       const result = await runSteelAgentTick()
-      logger.info('queue.steel_agents.tick_completed', {
-        component: 'Worker',
-        jobId: job.id,
-        ...result,
-      })
+      logger.info(
+        'queue.steel_agents.tick_completed',
+        logFields({ component: 'Worker' }, { jobId: job.id, ...result }),
+      )
       return result
     }
     case SteelAgentsJob.Run: {
@@ -27,12 +27,13 @@ export async function processSteelAgents(job: Job): Promise<unknown> {
           `steel-agents run ${runId} failed: ${result.error.code} ${result.error.message}`,
         )
       }
-      logger.info('queue.steel_agents.run_completed', {
-        component: 'Worker',
-        jobId: job.id,
-        runId,
-        outcome: result.value,
-      })
+      logger.info(
+        'queue.steel_agents.run_completed',
+        logFields(
+          { component: 'Worker' },
+          { jobId: job.id, runId, outcome: result.value },
+        ),
+      )
       return result.value
     }
     default:

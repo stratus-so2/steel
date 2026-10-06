@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { enqueueSteelAgentRun } from '@/src/lib/steel-agents/enqueue'
 import type { SteelAgentEventKey } from '@/src/lib/steel-agents/events'
@@ -138,12 +139,13 @@ export async function dispatchSteelAgentEvent(
   try {
     const origin = currentSteelAgentContext()
     if (origin) {
-      logger.info('steel_agents.event_ignored_from_agent', {
-        component: 'SteelAgentDispatcher',
-        workspaceId,
-        eventKey,
-        agentId: origin.agentId,
-      })
+      logger.info(
+        'steel_agents.event_ignored_from_agent',
+        logFields(
+          { component: 'SteelAgentDispatcher', workspaceId },
+          { eventKey, agentId: origin.agentId },
+        ),
+      )
       return 0
     }
     const agents = await SteelAgentRepository.listByEvent(workspaceId, eventKey)
@@ -165,12 +167,17 @@ export async function dispatchSteelAgentEvent(
     }
     return dispatched
   } catch (cause) {
-    logger.warn('steel_agents.event_dispatch_failed', {
-      component: 'SteelAgentDispatcher',
-      workspaceId,
-      eventKey,
-      message: cause instanceof Error ? cause.message : String(cause),
-    })
+    logger.warn(
+      'steel_agents.event_dispatch_failed',
+      logFields(
+        {
+          component: 'SteelAgentDispatcher',
+          workspaceId,
+          message: cause instanceof Error ? cause.message : String(cause),
+        },
+        { eventKey },
+      ),
+    )
     return 0
   }
 }

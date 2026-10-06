@@ -1,3 +1,4 @@
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { appError } from '@/src/errors/app-error'
 import { SteelAgentsJob } from '@/src/lib/queue/jobs'
@@ -16,11 +17,16 @@ export async function enqueueSteelAgentRun(
     await getSteelAgentsQueue().add(SteelAgentsJob.Run, { runId })
     return ok(true)
   } catch (cause) {
-    logger.error('steel_agents.enqueue_failed', {
-      component: 'SteelAgents',
-      runId,
-      message: cause instanceof Error ? cause.message : String(cause),
-    })
+    logger.error(
+      'steel_agents.enqueue_failed',
+      logFields(
+        {
+          component: 'SteelAgents',
+          message: cause instanceof Error ? cause.message : String(cause),
+        },
+        { runId },
+      ),
+    )
     return err(
       appError(
         'INTERNAL_SERVER_ERROR',
