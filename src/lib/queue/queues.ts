@@ -742,3 +742,42 @@ export async function closeQueues(): Promise<void> {
   servicedeskRiskQueue = null
   servicedeskIntegrationsQueue = null
 }
+
+// Typed as a full record so a new queue without an entry fails the build.
+const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
+  [QueueName.DataRetention]: getDataRetentionQueue,
+  [QueueName.AccountLifecycle]: getAccountLifecycleQueue,
+  [QueueName.DataExport]: getDataExportQueue,
+  [QueueName.TrialLifecycle]: getTrialLifecycleQueue,
+  [QueueName.WhatsappMedia]: getWhatsappMediaQueue,
+  [QueueName.WhatsappAiReply]: getWhatsappAiReplyQueue,
+  [QueueName.WhatsappSentiment]: getWhatsappSentimentQueue,
+  [QueueName.WhatsappBroadcast]: getWhatsappBroadcastQueue,
+  [QueueName.WhatsappTemplateSync]: getWhatsappTemplateSyncQueue,
+  [QueueName.WhatsappConversationLifecycle]:
+    getWhatsappConversationLifecycleQueue,
+  [QueueName.CrmScheduledSend]: getCrmScheduledSendQueue,
+  [QueueName.CrmWorkflowSchedule]: getCrmWorkflowScheduleQueue,
+  [QueueName.CrmCompetitorSync]: getCrmCompetitorSyncQueue,
+  [QueueName.CrmSocialPostsTick]: getCrmSocialPostsTickQueue,
+  [QueueName.CrmSocialPublish]: getCrmSocialPublishQueue,
+  [QueueName.CrmProposalExpiry]: getCrmProposalExpiryQueue,
+  [QueueName.Changelog]: getChangelogQueue,
+  [QueueName.DatabaseBackup]: getDatabaseBackupQueue,
+  [QueueName.StatusCollect]: getStatusCollectQueue,
+  [QueueName.UsageRollup]: getUsageRollupQueue,
+  [QueueName.ServicedeskSla]: getServicedeskSlaQueue,
+  [QueueName.ServicedeskAi]: getServicedeskAiQueue,
+  [QueueName.ServicedeskMail]: getServicedeskMailQueue,
+  [QueueName.ServicedeskDigest]: getServicedeskDigestQueue,
+  [QueueName.ServicedeskRecurring]: getServicedeskRecurringQueue,
+  [QueueName.ServicedeskBilling]: getServicedeskBillingQueue,
+  [QueueName.ServicedeskReports]: getServicedeskReportsQueue,
+  [QueueName.ServicedeskRisk]: getServicedeskRiskQueue,
+  [QueueName.ServicedeskIntegrations]: getServicedeskIntegrationsQueue,
+}
+
+/** Resolves a queue singleton by name, for code that is generic over queues. */
+export function getQueueByName(name: QueueName): Queue {
+  return QUEUE_GETTERS[name]() as Queue
+}

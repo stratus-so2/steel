@@ -1,10 +1,12 @@
 import { type Job, Worker } from 'bullmq'
 import { processTrialLifecycle } from '@/src/lib/queue/processors/trial-lifecycle'
 import { logger } from '../lib/axiom/logger'
+import { getQueueConnection } from '../src/lib/queue/connection'
+import { createJobFailureAlarm } from '../src/lib/queue/failure-alarm'
 import {
-  closeQueueConnection,
-  getQueueConnection,
-} from '../src/lib/queue/connection'
+  type JobFailureListener,
+  startJobFailureListener,
+} from '../src/lib/queue/failure-listener'
 import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
 import { processChangelog } from '../src/lib/queue/processors/changelog'
@@ -33,7 +35,6 @@ import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-b
 import { processWhatsappConversationLifecycle } from '../src/lib/queue/processors/whatsapp-conversation-lifecycle'
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
 import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-sentiment'
-import { closeQueues } from '../src/lib/queue/queues'
 import '../src/lib/zod-locale'
 import {
   scheduleCrmCompetitorSyncJobs,
@@ -57,8 +58,13 @@ import {
   scheduleWhatsappBroadcastJobs,
   scheduleWhatsappConversationLifecycleJobs,
 } from '../src/lib/queue/scheduler'
+import { closeWorkerResources } from '../src/lib/queue/worker-shutdown'
 
 const workers: Worker[] = []
+// One alarm shared by every Worker and the QueueEvents backstop, so its
+// dedup ledger sees both reports of the same death.
+const failureAlarm = createJobFailureAlarm()
+let failureListener: JobFailureListener | null = null
 
 type Processor = (job: Job) => Promise<unknown>
 
@@ -80,16 +86,17 @@ function registerWorker(name: QueueName, processor: Processor): Worker {
     })
   })
 
+  // Logs every failed attempt and raises `queue.job.exhausted` (and the
+  // #alerts post) once BullMQ gives up on the job. That includes a job that
+  // exceeded `maxStalledCount`: BullMQ fails it on its next pickup with an
+  // UnrecoverableError, which arrives here as reason `stalled`.
   worker.on('failed', (job, err) => {
-    logger.error('queue.job.failed', {
-      component: 'Worker',
-      queue: name,
-      jobName: job?.name,
-      jobId: job?.id,
-      attemptsMade: job?.attemptsMade,
-      message: err.message,
-      stack: err.stack,
-    })
+    failureAlarm.workerFailed(name, job, err)
+  })
+
+  // A stall that BullMQ requeues: a warning, never the alarm.
+  worker.on('stalled', (jobId) => {
+    failureAlarm.stalled(name, jobId)
   })
 
   worker.on('error', (err) => {
@@ -111,10 +118,7 @@ async function shutdown(signal: NodeJS.Signals): Promise<void> {
   })
 
   try {
-    await Promise.all(workers.map((w) => w.close()))
-    await closeQueues()
-    await closeQueueConnection()
-    await logger.flush()
+    await closeWorkerResources({ workers, failureListener, failureAlarm })
   } catch (err) {
     const e = err as Error
     logger.error('queue.worker.shutdown_error', {
@@ -187,6 +191,11 @@ async function main(): Promise<void> {
       QueueName.ServicedeskIntegrations,
       processServicedeskIntegrations,
     ),
+  )
+
+  failureListener = startJobFailureListener(
+    workers.map((w) => w.name as QueueName),
+    { alarm: failureAlarm, connection: getQueueConnection() },
   )
 
   await scheduleDataRetentionJobs()

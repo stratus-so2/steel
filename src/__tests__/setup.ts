@@ -8,6 +8,11 @@ import { vi } from 'vitest'
 process.env.BETTER_AUTH_SECRET ??= 'test-only-better-auth-secret'
 process.env.BETTER_AUTH_URL ??= 'http://localhost:3001'
 
+// A developer who put a real webhook in the local .env (to try the alerts end
+// to end) must not have every test run post to Slack. Tests that exercise the
+// alerts set the webhook explicitly on a mocked env.
+delete process.env.SLACK_ALERTS_WEBHOOK_URL
+
 // `next/font/google` só resolve fontes de verdade via o transform SWC do
 // Next.js — fora do build (aqui, sob Vitest) os exports vêm vazios. Mocka
 // qualquer função de fonte pra devolver um objeto com `className`/`variable`

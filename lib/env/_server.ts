@@ -52,6 +52,7 @@ const serverEnv = {
   WORKBENCH_USER: process.env.WORKBENCH_USER,
   WORKBENCH_PASS: process.env.WORKBENCH_PASS,
   STATUS_APP_PROBE_URL: process.env.STATUS_APP_PROBE_URL,
+  SLACK_ALERTS_WEBHOOK_URL: process.env.SLACK_ALERTS_WEBHOOK_URL,
   BACKUP_OFFSITE_ENDPOINT: process.env.BACKUP_OFFSITE_ENDPOINT,
   BACKUP_OFFSITE_REGION: process.env.BACKUP_OFFSITE_REGION,
   BACKUP_OFFSITE_BUCKET: process.env.BACKUP_OFFSITE_BUCKET,
@@ -194,6 +195,15 @@ const serverEnvSchema = z.object({
     (v) => (v === '' ? undefined : v),
     z.url().startsWith('http').optional(),
   ),
+  // Incoming Webhook of the #alerts channel: status component transitions and
+  // background job deaths (src/lib/alerts/slack.ts). Optional and lenient on
+  // purpose -- a malformed webhook must never stop the app from booting. Unset
+  // or blank disables alerts (logged no-op); a bad value fails at send time as
+  // `alerts.slack.failed`.
+  SLACK_ALERTS_WEBHOOK_URL: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : undefined)),
   // Cópia offsite (fora do servidor) do backup FULL diário, em qualquer
   // storage S3-compatível (Backblaze B2, Cloudflare R2, AWS S3, Wasabi...).
   // Tudo opcional: sem ENDPOINT/BUCKET/chaves a cópia offsite fica inerte (só
@@ -328,6 +338,7 @@ export const {
   WORKBENCH_USER,
   WORKBENCH_PASS,
   STATUS_APP_PROBE_URL,
+  SLACK_ALERTS_WEBHOOK_URL,
   BACKUP_OFFSITE_ENDPOINT,
   BACKUP_OFFSITE_REGION,
   BACKUP_OFFSITE_BUCKET,
