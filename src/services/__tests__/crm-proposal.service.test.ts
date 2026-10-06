@@ -7,6 +7,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }))
@@ -34,6 +35,11 @@ import { CrmProposalTemplateRepository } from '@/src/repositories/crm-proposal-t
 import { CrmSettingsRepository } from '@/src/repositories/crm-settings.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import {
+  notifyCrmProposalAccepted,
+  notifyCrmProposalExpired,
+  notifyCrmProposalViewed,
+} from '../crm-notifications'
 import { CrmProposalService } from '../crm-proposal.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -234,6 +240,26 @@ describe('CrmProposalService', () => {
 
       await CrmProposalService.getPublicByShareToken('tok')
       expect(mockedProposalRepo.setStatus).toHaveBeenCalledWith('p1', 'VIEWED')
+      expect(notifyCrmProposalViewed).toHaveBeenCalledWith({
+        workspaceId: expect.any(String),
+        proposal: expect.objectContaining({ id: 'p1' }),
+      })
+    })
+
+    it('should not notify on later views or when the status write fails', async () => {
+      vi.mocked(notifyCrmProposalViewed).mockClear()
+      mockedProposalRepo.findByShareToken.mockResolvedValue(
+        ok(fakeProposalWithSections({ id: 'p1', status: 'VIEWED' })),
+      )
+      await CrmProposalService.getPublicByShareToken('tok')
+
+      mockedProposalRepo.findByShareToken.mockResolvedValue(
+        ok(fakeProposalWithSections({ id: 'p1', status: 'SENT' })),
+      )
+      mockedProposalRepo.setStatus.mockResolvedValue(err(databaseError()))
+      await CrmProposalService.getPublicByShareToken('tok')
+
+      expect(notifyCrmProposalViewed).not.toHaveBeenCalled()
     })
   })
 
@@ -536,6 +562,11 @@ describe('CrmProposalService', () => {
         name: 'Maria',
         at: expect.any(Date),
       })
+      expect(notifyCrmProposalAccepted).toHaveBeenCalledWith({
+        workspaceId: existing.workspaceId,
+        proposal: existing,
+        acceptedByName: 'Maria',
+      })
     })
 
     it('should block acceptance after expiry with a clear message', async () => {
@@ -616,6 +647,10 @@ describe('CrmProposalService', () => {
           proposalUrl: expect.stringContaining('/acme/crm/proposals/p1'),
         }),
       )
+      expect(notifyCrmProposalExpired).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        proposal: expect.objectContaining({ id: 'p1' }),
+      })
     })
 
     it('should not notify when the workspace turned the e-mail off', async () => {
@@ -632,6 +667,8 @@ describe('CrmProposalService', () => {
       expect(result.expired).toBe(1)
       expect(result.notified).toBe(0)
       expect(mockedSendExpired).not.toHaveBeenCalled()
+      // The e-mail toggle is workspace-wide; in-app has per-user mute.
+      expect(notifyCrmProposalExpired).toHaveBeenCalled()
     })
 
     it('should keep a proposal valid until the end of its last day', async () => {

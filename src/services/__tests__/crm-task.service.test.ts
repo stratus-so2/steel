@@ -6,6 +6,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-task.repository')
 vi.mock('@/src/repositories/crm-activity.repository')
@@ -17,6 +18,7 @@ import { CrmActivityRepository } from '@/src/repositories/crm-activity.repositor
 import { CrmTaskRepository } from '@/src/repositories/crm-task.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { notifyCrmTaskAssigned } from '../crm-notifications'
 import { CrmTaskService } from '../crm-task.service'
 import { dispatchCrmWorkflowRecordEvent } from '../crm-workflow-dispatcher'
 
@@ -309,5 +311,62 @@ describe('CrmTaskService', () => {
         'DATABASE_ERROR',
       )
     })
+  })
+})
+
+describe('CrmTaskService notifications', () => {
+  const mockedAssigned = vi.mocked(notifyCrmTaskAssigned)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedModuleAccess.isEnabled.mockResolvedValue(ok(true))
+    mockedActivityRepo.record.mockResolvedValue(ok({} as never))
+    asRole('MEMBER')
+  })
+
+  it('should notify the assignee of a new task (the actor filter is downstream)', async () => {
+    const task = createFakeCrmTask({ id: 't1', assigneeId: 'u2' })
+    mockedTaskRepo.create.mockResolvedValue(ok(task))
+
+    expectOk(
+      await CrmTaskService.create('u1', 'ws1', {
+        title: 'Ligar',
+        status: 'TODO',
+        assigneeId: 'u2',
+      }),
+    )
+
+    expect(mockedAssigned).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      task,
+      assigneeId: 'u2',
+      actorId: 'u1',
+    })
+  })
+
+  it('should notify the new assignee when it changes on update', async () => {
+    mockedTaskRepo.findById.mockResolvedValue(
+      ok(createFakeCrmTask({ id: 't1', assigneeId: 'old' })),
+    )
+    const updated = createFakeCrmTask({ id: 't1', assigneeId: 'u3' })
+    mockedTaskRepo.update.mockResolvedValue(ok(updated))
+
+    expectOk(
+      await CrmTaskService.update('u1', 'ws1', 't1', { assigneeId: 'u3' }),
+    )
+
+    expect(mockedAssigned).toHaveBeenCalledWith(
+      expect.objectContaining({ assigneeId: 'u3', task: updated }),
+    )
+  })
+
+  it('should not notify when the assignee did not change', async () => {
+    const same = createFakeCrmTask({ id: 't1', assigneeId: 'u3' })
+    mockedTaskRepo.findById.mockResolvedValue(ok(same))
+    mockedTaskRepo.update.mockResolvedValue(ok(same))
+
+    expectOk(await CrmTaskService.update('u1', 'ws1', 't1', { title: 'Novo' }))
+
+    expect(mockedAssigned).not.toHaveBeenCalled()
   })
 })

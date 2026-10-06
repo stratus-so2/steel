@@ -1,6 +1,7 @@
 import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
 import { CrmScheduledPostRepository } from '@/src/repositories/crm-social.repository'
+import { notifyCrmSocialPostFailed } from '@/src/services/crm-notifications'
 import { publishScheduledPost } from '@/src/services/crm-social-scheduler'
 import { CrmSocialPostsTickJob } from '../jobs'
 
@@ -38,8 +39,18 @@ async function runTick(): Promise<TickResult> {
     if (!claimed.value) continue
 
     try {
-      await publishScheduledPost({ ...post, status: 'PUBLISHING' })
+      const status = await publishScheduledPost({
+        ...post,
+        status: 'PUBLISHING',
+      })
       dispatched++
+      if (status !== 'PUBLISHED') {
+        await notifyCrmSocialPostFailed({
+          workspaceId: post.workspaceId,
+          post,
+          partial: status === 'PARTIALLY_FAILED',
+        })
+      }
     } catch (error) {
       errors++
       logger.error('queue.crm_social_posts_tick.publish_failed', {
@@ -49,6 +60,11 @@ async function runTick(): Promise<TickResult> {
       })
       await CrmScheduledPostRepository.setStatus(post.id, 'FAILED', {
         lastError: 'Erro inesperado ao publicar',
+      })
+      await notifyCrmSocialPostFailed({
+        workspaceId: post.workspaceId,
+        post,
+        partial: false,
       })
     }
   }

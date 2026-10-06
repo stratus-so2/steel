@@ -13,6 +13,7 @@ import { createFakeMembership } from '@/src/__tests__/factories/membership.facto
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-lead.repository')
 vi.mock('@/src/repositories/crm-lead-scoring-rule.repository')

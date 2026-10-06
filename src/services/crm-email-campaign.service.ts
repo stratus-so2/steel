@@ -35,6 +35,7 @@ import type {
   CrmEmailCampaignRecipientDTO,
 } from '@/types/crm-email-marketing'
 import { assertModuleMember } from './authz'
+import { notifyCrmCampaignFinished } from './crm-notifications'
 
 export const CrmEmailCampaignService = {
   async list(
@@ -296,12 +297,26 @@ export const CrmEmailCampaignService = {
     }
 
     const attempted = recipients.value.length - skipped
+    const finalStatus =
+      attempted > 0 && failures === attempted ? 'FAILED' : 'SENT'
     const result = await CrmEmailCampaignRepository.setStatus(
       campaignId,
-      attempted > 0 && failures === attempted ? 'FAILED' : 'SENT',
+      finalStatus,
       new Date(),
     )
     if (!result.ok) return result
+
+    // Awaited (never throws): the scheduler tick runs this in the worker.
+    await notifyCrmCampaignFinished({
+      workspaceId,
+      campaign: campaign.value,
+      status: finalStatus,
+      sent: attempted - failures,
+      failed: failures,
+      // A SCHEDULED campaign is sent by the scheduler on the creator's
+      // behalf: the creator still wants to hear about it.
+      actorId: campaign.value.status === 'SCHEDULED' ? null : actorId,
+    })
 
     auditMutation({
       entity: 'crm_email_campaign',

@@ -5,6 +5,7 @@ import {
   CrmProposalExpiryJob,
   CrmScheduledSendJob,
   CrmSocialPostsTickJob,
+  CrmTaskRemindersJob,
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
   DataRetentionJob,
@@ -27,6 +28,7 @@ import {
   getCrmProposalExpiryQueue,
   getCrmScheduledSendQueue,
   getCrmSocialPostsTickQueue,
+  getCrmTaskRemindersQueue,
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
   getDataRetentionQueue,
@@ -49,6 +51,7 @@ import {
   CrmProposalExpiryCron,
   CrmScheduledSendCron,
   CrmSocialPostsTickCron,
+  CrmTaskRemindersCron,
   CrmWorkflowScheduleCron,
   DatabaseBackupCron,
   RetentionCron,
@@ -409,6 +412,21 @@ export async function scheduleServicedeskIntegrationsJobs(): Promise<void> {
   logger.info('queue.scheduler.servicedesk_integrations_registered', {
     component: 'Worker',
     pattern: ServicedeskIntegrationsCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleCrmTaskRemindersJobs(): Promise<void> {
+  const queue = getCrmTaskRemindersQueue()
+  await queue.upsertJobScheduler(
+    CrmTaskRemindersJob.RunTick,
+    { pattern: CrmTaskRemindersCron, tz: RetentionTimezone },
+    { name: CrmTaskRemindersJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.crm_task_reminders_registered', {
+    component: 'Worker',
+    pattern: CrmTaskRemindersCron,
     timezone: RetentionTimezone,
   })
 }

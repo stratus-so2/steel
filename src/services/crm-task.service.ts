@@ -10,6 +10,7 @@ import type {
 import type { CrmTaskDTO } from '@/types/crm-task'
 import { assertModuleMember } from './authz'
 import { recordCrmActivity } from './crm-activity-recorder'
+import { notifyCrmTaskAssigned } from './crm-notifications'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
 export const CrmTaskService = {
@@ -89,6 +90,13 @@ export const CrmTaskService = {
       record: createdDto,
     })
 
+    void notifyCrmTaskAssigned({
+      workspaceId,
+      task: result.value,
+      assigneeId: result.value.assigneeId,
+      actorId,
+    })
+
     return ok(createdDto)
   },
 
@@ -144,6 +152,18 @@ export const CrmTaskService = {
       event: 'updated',
       record: updatedDto,
     })
+
+    if (
+      result.value.assigneeId &&
+      result.value.assigneeId !== existing.value.assigneeId
+    ) {
+      void notifyCrmTaskAssigned({
+        workspaceId,
+        task: result.value,
+        assigneeId: result.value.assigneeId,
+        actorId,
+      })
+    }
 
     return ok(updatedDto)
   },

@@ -15,6 +15,8 @@ import {
   type CrmSocialPostsTickJobPayload,
   type CrmSocialPublishJob,
   type CrmSocialPublishJobPayload,
+  type CrmTaskRemindersJob,
+  type CrmTaskRemindersJobPayload,
   type CrmWorkflowScheduleJob,
   type CrmWorkflowScheduleJobPayload,
   type DatabaseBackupJob,
@@ -83,6 +85,7 @@ let crmScheduledSendQueue: Queue | null = null
 let crmWorkflowScheduleQueue: Queue | null = null
 let crmCompetitorSyncQueue: Queue | null = null
 let crmProposalExpiryQueue: Queue | null = null
+let crmTaskRemindersQueue: Queue | null = null
 let crmSocialPostsTickQueue: Queue | null = null
 let crmSocialPublishQueue: Queue | null = null
 let changelogQueue: Queue | null = null
@@ -712,6 +715,7 @@ export async function closeQueues(): Promise<void> {
     servicedeskReportsQueue?.close(),
     servicedeskRiskQueue?.close(),
     servicedeskIntegrationsQueue?.close(),
+    crmTaskRemindersQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -726,6 +730,7 @@ export async function closeQueues(): Promise<void> {
   crmScheduledSendQueue = null
   crmCompetitorSyncQueue = null
   crmProposalExpiryQueue = null
+  crmTaskRemindersQueue = null
   crmSocialPostsTickQueue = null
   crmSocialPublishQueue = null
   changelogQueue = null
@@ -741,4 +746,22 @@ export async function closeQueues(): Promise<void> {
   servicedeskReportsQueue = null
   servicedeskRiskQueue = null
   servicedeskIntegrationsQueue = null
+}
+
+export function getCrmTaskRemindersQueue(): Queue<
+  CrmTaskRemindersJobPayload[CrmTaskRemindersJob],
+  unknown,
+  CrmTaskRemindersJob
+> {
+  if (!crmTaskRemindersQueue) {
+    crmTaskRemindersQueue = new Queue(QueueName.CrmTaskReminders, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return crmTaskRemindersQueue as Queue<
+    CrmTaskRemindersJobPayload[CrmTaskRemindersJob],
+    unknown,
+    CrmTaskRemindersJob
+  >
 }

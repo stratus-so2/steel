@@ -31,6 +31,7 @@ import {
   withCustomFields,
   withCustomFieldsList,
 } from './crm-custom-field-sync'
+import { notifyCrmOpportunityAssigned } from './crm-notifications'
 import { CrmPipelineService } from './crm-pipeline.service'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
 
@@ -322,6 +323,18 @@ export const CrmOpportunityService = {
       event: 'updated',
       record: updatedMerged.value,
     })
+
+    if (
+      result.value.ownerId &&
+      result.value.ownerId !== existing.value.ownerId
+    ) {
+      void notifyCrmOpportunityAssigned({
+        workspaceId,
+        opportunity: result.value,
+        ownerId: result.value.ownerId,
+        actorId,
+      })
+    }
 
     return ok(updatedMerged.value)
   },

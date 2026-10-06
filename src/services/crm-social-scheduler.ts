@@ -20,7 +20,7 @@ export const CRM_SCHEDULED_POST_BUCKET = 'crm-scheduled-posts'
  */
 export async function publishScheduledPost(
   post: CrmScheduledPostWithRelations,
-): Promise<void> {
+): Promise<'PUBLISHED' | 'FAILED' | 'PARTIALLY_FAILED'> {
   const cache = new Map<string, CrmSocialPublishMedia>()
   const media = post.media ?? []
   const firstImage = media.find((m) => m.kind === 'IMAGE') ?? null
@@ -61,7 +61,7 @@ export async function publishScheduledPost(
     await CrmScheduledPostRepository.setStatus(post.id, 'FAILED', {
       lastError: 'Falha ao carregar a mídia do armazenamento',
     })
-    return
+    return 'FAILED'
   }
 
   let published = 0
@@ -111,4 +111,5 @@ export async function publishScheduledPost(
     publishedAt: finalStatus === 'FAILED' ? null : new Date(),
     lastError: firstError,
   })
+  return finalStatus
 }

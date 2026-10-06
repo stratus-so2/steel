@@ -113,6 +113,7 @@ import {
   updateCrmResource,
 } from '@/src/hooks/use-crm-resource-list'
 import type { Lookups } from '@/src/hooks/use-crm-workspace-lookups'
+import { useRecordParam } from '@/src/hooks/use-record-param'
 import { CRM_ROUTE_RESOURCE } from '@/src/lib/permissions'
 
 type CalcType =
@@ -826,6 +827,13 @@ export function DataTable<TData extends WithId>({
     },
     [onOpenRecord, rows],
   )
+
+  // Deep link from the notification inbox: `?record=<id>` opens the panel.
+  const isRowLoaded = React.useCallback(
+    (id: string) => rows.some((row) => row.id === id),
+    [rows],
+  )
+  useRecordParam(openRecordById, isRowLoaded)
 
   /**
    * Cria a linha já no banco (sem etapa de confirmação) e a abre em edição.

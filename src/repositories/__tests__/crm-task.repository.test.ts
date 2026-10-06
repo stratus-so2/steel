@@ -200,3 +200,66 @@ describe('CrmTaskRepository', () => {
     })
   })
 })
+
+describe('CrmTaskRepository.listDueForReminder()', () => {
+  const NOW = new Date('2026-10-06T12:00:00.000Z')
+  const at = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000)
+
+  async function enableCrm(workspaceId: string, grantedById: string) {
+    await prisma.workspaceModuleAccess.create({
+      data: { workspaceId, module: 'CRM', enabled: true, grantedById },
+    })
+  }
+
+  it('should list open, assigned tasks in the window of CRM-enabled workspaces', async () => {
+    const [workspace, disabled, user] = await Promise.all([
+      seedWorkspace(),
+      seedWorkspace(),
+      seedUser(),
+    ])
+    await enableCrm(workspace.id, user.id)
+
+    const task = (
+      workspaceId: string,
+      dueDate: Date | null,
+      extra: Record<string, unknown> = {},
+    ) =>
+      prisma.crmTask.create({
+        data: {
+          title: 'Seed Task',
+          workspaceId,
+          createdById: user.id,
+          assigneeId: user.id,
+          dueDate,
+          ...extra,
+        },
+      })
+
+    const soon = await task(workspace.id, at(30))
+    const late = await task(workspace.id, at(-30))
+    await Promise.all([
+      task(workspace.id, at(120)), // beyond the window
+      task(workspace.id, at(-60 * 48)), // older than the lookback
+      task(workspace.id, at(10), { status: 'DONE' }),
+      task(workspace.id, at(10), { assigneeId: null }),
+      task(workspace.id, at(10), { deletedAt: new Date() }),
+      task(workspace.id, null),
+      task(disabled.id, at(10)), // CRM not enabled there
+    ])
+
+    const list = expectOk(
+      await CrmTaskRepository.listDueForReminder(at(-60 * 24), at(60), 50),
+    )
+
+    expect(list.map((t) => t.id)).toEqual([late.id, soon.id])
+  })
+
+  it('should map a database failure to DATABASE_ERROR', async () => {
+    vi.spyOn(prisma.crmTask, 'findMany').mockRejectedValueOnce(new Error('x'))
+
+    expectErr(
+      await CrmTaskRepository.listDueForReminder(NOW, NOW, 10),
+      'DATABASE_ERROR',
+    )
+  })
+})

@@ -56,6 +56,7 @@ import type {
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
 import { assertModuleEnabled, assertModuleMember } from './authz'
+import { notifyCrmDealClosed, notifyCrmLeadAssigned } from './crm-notifications'
 import { resolveProposalValidUntil } from './crm-proposal.service'
 import { CrmSettingsService } from './crm-settings.service'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
@@ -343,6 +344,15 @@ export const CrmLeadService = {
       event: 'created',
       record: lead,
     })
+    if (ownerId) {
+      void notifyCrmLeadAssigned({
+        workspaceId,
+        lead: result.value,
+        ownerId,
+        actorId: auditActorId,
+        routed: true,
+      })
+    }
 
     return ok({ lead, created: true })
   },
@@ -445,6 +455,17 @@ export const CrmLeadService = {
       result.value,
       Object.keys(dto),
     )
+    if (
+      result.value.ownerId &&
+      result.value.ownerId !== existing.value.ownerId
+    ) {
+      void notifyCrmLeadAssigned({
+        workspaceId,
+        lead: result.value,
+        ownerId: result.value.ownerId,
+        actorId,
+      })
+    }
 
     return ok(toCrmLeadDTO(result.value))
   },
@@ -1095,6 +1116,12 @@ export const CrmLeadService = {
       'closeResult',
       'convertedPersonId',
     ])
+    void notifyCrmDealClosed({
+      workspaceId,
+      lead: updated.value,
+      result: 'WON',
+      actorId,
+    })
 
     return ok(toCrmPersonDTO(person))
   },
@@ -1152,6 +1179,12 @@ export const CrmLeadService = {
       'closeResult',
       'lostReason',
     ])
+    void notifyCrmDealClosed({
+      workspaceId,
+      lead: updated.value,
+      result: 'LOST',
+      actorId,
+    })
 
     return ok(toCrmLeadDTO(updated.value))
   },

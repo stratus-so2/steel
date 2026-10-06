@@ -2,6 +2,7 @@ import type { Job } from 'bullmq'
 import { logger } from '@/lib/axiom/logger'
 import { CrmEmailCampaignRepository } from '@/src/repositories/crm-email-campaign.repository'
 import { CrmEmailCampaignService } from '@/src/services/crm-email-campaign.service'
+import { notifyCrmCampaignFinished } from '@/src/services/crm-notifications'
 import { CrmScheduledSendJob } from '../jobs'
 
 type TickResult = {
@@ -32,6 +33,14 @@ async function runTick(): Promise<TickResult> {
       // reprocessar a campanha a cada minuto (e nunca recalcula "todos").
       if (result.error.code === 'CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS') {
         await CrmEmailCampaignRepository.setStatus(campaign.id, 'FAILED')
+        await notifyCrmCampaignFinished({
+          workspaceId: campaign.workspaceId,
+          campaign,
+          status: 'FAILED',
+          sent: 0,
+          failed: 0,
+          actorId: null,
+        })
       }
       logger.error('queue.crm_scheduled_send.campaign_failed', {
         component: 'Worker',

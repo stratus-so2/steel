@@ -29,7 +29,9 @@ import type {
   CrmCompetitorTodayStatsDTO,
 } from '@/types/crm-competitor'
 import { assertModuleMember } from './authz'
+import { notifyCrmCompetitorSyncFailed } from './crm-notifications'
 import { getFreshAccessToken } from './crm-social-token'
+import { workspaceAdminIds } from './notification-emitter'
 
 const RANGE_DAYS: Record<CrmCompetitorMetricsRange, number> = {
   '7d': 7,
@@ -97,6 +99,13 @@ function buildMetricsSeries(
 
 type SyncResult = { processed: number; synced: number; failed: number }
 
+/** `YYYY-MM-DD` in America/Sao_Paulo (dedupe day of the failure notice). */
+function saoPauloDay(now: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+  }).format(now)
+}
+
 /**
  * Agrupa por workspace+plataforma pra reaproveitar o token e gravar um
  * único snapshot da própria conta conectada por grupo, em vez de um por
@@ -105,6 +114,8 @@ type SyncResult = { processed: number; synced: number; failed: number }
  */
 async function syncCompetitorGroups(
   competitors: CrmTrackedCompetitor[],
+  /** Optional per-workspace failure counter (daily job notification). */
+  failures?: Map<string, number>,
 ): Promise<SyncResult> {
   const groups = new Map<string, CrmTrackedCompetitor[]>()
   for (const competitor of competitors) {
@@ -131,6 +142,7 @@ async function syncCompetitorGroups(
           lastSyncedAt: now,
         })
         failed += 1
+        failures?.set(workspaceId, (failures.get(workspaceId) ?? 0) + 1)
       }
       continue
     }
@@ -192,6 +204,7 @@ async function syncCompetitorGroups(
           lastSyncedAt: now,
         })
         failed += 1
+        failures?.set(workspaceId, (failures.get(workspaceId) ?? 0) + 1)
         continue
       }
 
@@ -564,7 +577,18 @@ export const CrmCompetitorService = {
       throw new Error(`Failed to list syncable competitors: ${due.error.code}`)
     }
 
-    return syncCompetitorGroups(due.value)
+    const failures = new Map<string, number>()
+    const result = await syncCompetitorGroups(due.value, failures)
+    const day = saoPauloDay(new Date())
+    for (const [workspaceId, count] of failures) {
+      await notifyCrmCompetitorSyncFailed({
+        workspaceId,
+        adminIds: await workspaceAdminIds(workspaceId),
+        failed: count,
+        day,
+      })
+    }
+    return result
   },
 
   /**

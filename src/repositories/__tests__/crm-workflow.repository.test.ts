@@ -681,3 +681,31 @@ describe('CrmWorkflow repositories — database failures', () => {
     )
   })
 })
+
+describe('CrmWorkflowRunRepository.findRunWorkflow()', () => {
+  it('should return the workflow (id, name, owner) of a run', async () => {
+    const [workspace, user] = await Promise.all([seedWorkspace(), seedUser()])
+    const workflow = await seedCrmWorkflow(workspace.id, user.id, {
+      name: 'Boas-vindas',
+    })
+    const run = await seedCrmWorkflowRun(workflow.id, workflow.versions[0].id)
+
+    expect(
+      expectOk(await CrmWorkflowRunRepository.findRunWorkflow(run.id)),
+    ).toEqual({ id: workflow.id, name: 'Boas-vindas', createdById: user.id })
+    expect(
+      expectOk(await CrmWorkflowRunRepository.findRunWorkflow('missing')),
+    ).toBeNull()
+  })
+
+  it('should map a database failure to DATABASE_ERROR', async () => {
+    vi.spyOn(prisma.crmWorkflowRun, 'findUnique').mockRejectedValueOnce(
+      new Error('x'),
+    )
+
+    expectErr(
+      await CrmWorkflowRunRepository.findRunWorkflow('r'),
+      'DATABASE_ERROR',
+    )
+  })
+})

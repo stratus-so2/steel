@@ -10,6 +10,10 @@ import type {
   CrmWorkflowNode,
   CrmWorkflowTriggerType,
 } from '@/src/schemas/crm-workflow.schema'
+import {
+  notifyCrmWorkflowFailed,
+  notifyCrmWorkflowWaiting,
+} from './crm-notifications'
 
 /**
  * Engine in-process — caminha pelo grafo a partir do trigger, executa cada
@@ -340,8 +344,17 @@ async function executeNode(
     case 'form': {
       // Sinaliza pause. O loop principal cria o step com status PENDING,
       // grava o scope no run e sai.
+      const assignee = data.assigneeId
+        ? resolveExpression(data.assigneeId, scope)
+        : null
       return {
-        output: { paused: true, fields: data.fields.map((f) => f.name) },
+        output: {
+          paused: true,
+          fields: data.fields.map((f) => f.name),
+          title: data.title,
+          assigneeId:
+            typeof assignee === 'string' && assignee ? assignee : null,
+        },
         pause: true,
       }
     }
@@ -553,6 +566,16 @@ async function processQueue(args: {
         })
         await CrmWorkflowRunRepository.setStatus(params.runId, 'WAITING')
         paused = true
+        const waiting = result.output as {
+          title?: string
+          assigneeId?: string | null
+        }
+        await notifyRunOutcome(params, {
+          kind: 'waiting',
+          stepId,
+          formTitle: waiting.title ?? 'Formulário',
+          assigneeId: waiting.assigneeId ?? null,
+        })
         break
       }
 
@@ -605,4 +628,49 @@ async function processQueue(args: {
     failed ? 'FAILED' : 'COMPLETED',
     { error: firstError, finishedAt: new Date() },
   )
+  if (failed) {
+    await notifyRunOutcome(params, { kind: 'failed', error: firstError })
+  }
+}
+
+type RunOutcome =
+  | { kind: 'failed'; error: string | null }
+  | {
+      kind: 'waiting'
+      stepId: string
+      formTitle: string
+      assigneeId: string | null
+    }
+
+/**
+ * In-app notice for a run that failed or paused on a form. Never throws (the
+ * emitter swallows errors). In test mode the person who pressed "Run" is the
+ * actor and already sees the result on screen, so they are not notified.
+ */
+async function notifyRunOutcome(
+  params: RunCrmWorkflowParams,
+  outcome: RunOutcome,
+): Promise<void> {
+  const workflow = await CrmWorkflowRunRepository.findRunWorkflow(params.runId)
+  if (!workflow.ok || !workflow.value) return
+  const actorId = params.testMode ? params.actingUserId : null
+
+  if (outcome.kind === 'failed') {
+    await notifyCrmWorkflowFailed({
+      workspaceId: params.workspaceId,
+      workflow: workflow.value,
+      runId: params.runId,
+      error: outcome.error,
+      actorId,
+    })
+    return
+  }
+  await notifyCrmWorkflowWaiting({
+    workspaceId: params.workspaceId,
+    workflow: workflow.value,
+    stepId: outcome.stepId,
+    formTitle: outcome.formTitle,
+    assigneeId: outcome.assigneeId,
+    actorId,
+  })
 }

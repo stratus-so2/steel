@@ -6,6 +6,8 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/notification-emitter')
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/lib/axiom/audit')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-competitor.repository')
@@ -31,8 +33,10 @@ import { CrmSocialConnectionRepository } from '@/src/repositories/crm-social.rep
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmCompetitorService } from '../crm-competitor.service'
+import { notifyCrmCompetitorSyncFailed } from '../crm-notifications'
 import { fetchEnrichedMediaSince } from '../crm-social-instagram.service'
 import { getFreshAccessToken } from '../crm-social-token'
+import { workspaceAdminIds } from '../notification-emitter'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedCompetitorRepo = vi.mocked(CrmCompetitorRepository)
@@ -437,9 +441,17 @@ describe('CrmCompetitorService', () => {
         ok(createFakeCrmCompetitor()),
       )
 
+      vi.mocked(workspaceAdminIds).mockResolvedValue(['admin-1'])
+
       const result = await CrmCompetitorService.syncAll()
 
       expect(result).toEqual({ processed: 2, synced: 0, failed: 2 })
+      expect(notifyCrmCompetitorSyncFailed).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        adminIds: ['admin-1'],
+        failed: 2,
+        day: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+      })
       expect(mockedCompetitorRepo.recordSyncResult).toHaveBeenCalledTimes(2)
       expect(mockedCompetitorRepo.recordSyncResult).toHaveBeenCalledWith(
         'c1',
@@ -506,9 +518,11 @@ describe('CrmCompetitorService', () => {
         }),
       )
 
+      vi.mocked(notifyCrmCompetitorSyncFailed).mockClear()
       const result = await CrmCompetitorService.syncAll()
 
       expect(result).toEqual({ processed: 2, synced: 2, failed: 0 })
+      expect(notifyCrmCompetitorSyncFailed).not.toHaveBeenCalled()
       expect(mockedGetFreshAccessToken).toHaveBeenCalledTimes(1)
       expect(mockedSocialRepo.createMetricSnapshot).toHaveBeenCalledTimes(1)
       expect(mockedCompetitorRepo.createSnapshot).toHaveBeenCalledTimes(2)
@@ -642,9 +656,13 @@ describe('CrmCompetitorService', () => {
         ok(createFakeCrmCompetitor()),
       )
 
+      vi.mocked(notifyCrmCompetitorSyncFailed).mockClear()
       const result = await CrmCompetitorService.syncAll()
 
       expect(result).toEqual({ processed: 1, synced: 0, failed: 1 })
+      expect(notifyCrmCompetitorSyncFailed).toHaveBeenCalledWith(
+        expect.objectContaining({ workspaceId: 'ws1', failed: 1 }),
+      )
       expect(mockedCompetitorRepo.createSnapshot).not.toHaveBeenCalled()
       expect(mockedCompetitorRepo.recordSyncResult).toHaveBeenCalledWith(
         'c1',
@@ -1175,9 +1193,11 @@ describe('CrmCompetitorService', () => {
         }),
       )
 
+      vi.mocked(notifyCrmCompetitorSyncFailed).mockClear()
       const result = await CrmCompetitorService.syncAll()
 
       expect(result).toEqual({ processed: 2, synced: 2, failed: 0 })
+      expect(notifyCrmCompetitorSyncFailed).not.toHaveBeenCalled()
       expect(mockedGetFreshAccessToken).toHaveBeenCalledTimes(2)
       expect(mockedSocialRepo.createMetricSnapshot).not.toHaveBeenCalled()
       expect(errorSpy).toHaveBeenCalledWith(
