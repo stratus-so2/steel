@@ -96,3 +96,31 @@ export type SteelAiStreamEvent =
       usage: { inputTokens: number; outputTokens: number }
     }
   | { type: 'error'; code: string; message: string }
+
+/** `GET .../ai/capabilities` — what the chat screen may offer this user. */
+export interface AiCapabilitiesDTO {
+  /** Workspace kill switch for the agent mode (write tools). */
+  agentModeEnabled: boolean
+  /** Modules enabled in the workspace (the tools the assistant can reach). */
+  modules: AiModuleDTO[]
+  /** Model the next turn will use ("<provider>:<model>"), or null if none. */
+  modelKey: string | null
+  quota: { usedUsd: number; quotaUsd: number }
+}
+
+/** One write executed by AI (assistant confirm or agent run). */
+export interface AiActionLogDTO {
+  id: string
+  source: 'ASSISTANT' | 'AGENT'
+  actorId: string | null
+  agentId: string | null
+  pendingActionId: string | null
+  toolName: string
+  kind: AiActionKindDTO
+  module: AiModuleDTO | null
+  targetType: string | null
+  targetId: string | null
+  outcome: string
+  error: string | null
+  createdAt: string
+}
