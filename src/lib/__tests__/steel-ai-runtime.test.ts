@@ -2,7 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { createFakeAiMessage } from '@/src/__tests__/factories/steel-ai.factory'
 import type { SteelAiStreamEvent } from '@/types/steel-ai'
 import { encodeSseEvent, steelAiSseResponse } from '../ai/sse'
-import { capHistory, toProviderHistory } from '../ai/steel-ai-history'
+import {
+  capHistory,
+  compactToolContent,
+  HISTORY_MAX_CHARS,
+  HISTORY_MAX_TOKENS,
+  HISTORY_TOOL_RESULT_MAX_CHARS,
+  toProviderHistory,
+} from '../ai/steel-ai-history'
 import {
   buildSteelAiSystemPrompt,
   formatPromptDate,
@@ -87,6 +94,41 @@ describe('capHistory()', () => {
     ])
     expect(capHistory(rows, 120).map((r) => r.id)).toEqual(['u2', 'a3'])
     expect(capHistory(rows, 1)).toEqual([])
+  })
+})
+
+describe('history token budget', () => {
+  it('should size the history cap by tokens (~4 chars each)', () => {
+    expect(HISTORY_MAX_CHARS).toBe(HISTORY_MAX_TOKENS * 4)
+  })
+
+  it('should cut earlier tool results and count them cut', () => {
+    const big = 'x'.repeat(HISTORY_TOOL_RESULT_MAX_CHARS + 500)
+    expect(compactToolContent('short')).toBe('short')
+    expect(compactToolContent(big)).toBe(
+      `${'x'.repeat(HISTORY_TOOL_RESULT_MAX_CHARS)}… [resultado truncado]`,
+    )
+    const rows = [
+      createFakeAiMessage({ id: 'u1', role: 'USER', content: 'liste' }),
+      createFakeAiMessage({
+        id: 'a1',
+        role: 'ASSISTANT',
+        content: '',
+        toolCalls: [{ id: 'c1', name: 'sd_list', arguments: {} }],
+      }),
+      createFakeAiMessage({
+        id: 't1',
+        role: 'TOOL',
+        toolCallId: 'c1',
+        toolName: 'sd_list',
+        content: 'y'.repeat(50_000),
+      }),
+    ]
+    // 50k chars of result would blow the cap; cut, the turn fits.
+    expect(capHistory(rows).map((r) => r.id)).toEqual(['u1', 'a1', 't1'])
+    const history = toProviderHistory(rows, 'e agora?')
+    const tool = history.find((m) => m.role === 'tool') as { content: string }
+    expect(tool.content.length).toBeLessThan(HISTORY_TOOL_RESULT_MAX_CHARS + 30)
   })
 })
 

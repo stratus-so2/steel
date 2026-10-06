@@ -1,9 +1,10 @@
 import { createId } from '@paralleldrive/cuid2'
 import type { AiConversation, ModuleKind, Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { aiAgentModeDisabled, aiToolNotAllowed } from '@/src/errors/app-error'
-import { currentPeriodStart } from '@/src/lib/ai/quota'
+import { addAiUsage, currentPeriodStart } from '@/src/lib/ai/quota'
 import {
   capHistory,
   HISTORY_MAX_ROWS,
@@ -18,8 +19,14 @@ import {
   runReadTool,
   type SteelAiMode,
   toolMeta,
-  toToolSpecs,
 } from '@/src/lib/ai/tools/registry'
+import {
+  FIND_TOOLS_TOOL_NAME,
+  findTools,
+  pinnedToolsFromHistory,
+  selectionSpecs,
+  selectSteelAiTools,
+} from '@/src/lib/ai/tools/selection'
 import { serializeToolResult } from '@/src/lib/ai/tools/tool-result'
 import type { AiToolContext, AnySteelAiTool } from '@/src/lib/ai/tools/types'
 import type {
@@ -102,6 +109,10 @@ interface TurnInput {
   history: AiMessage[]
   content: string
   isFirstExchange: boolean
+  /** Tools called/activated in the recent history, most recent first. */
+  pinnedTools: string[]
+  /** Earlier user messages, most recent first (module detection). */
+  previousMessages: string[]
 }
 
 async function generateTitle(
@@ -121,16 +132,19 @@ async function generateTitle(
       ],
       maxTokens: 40,
     })
-    usage.inputTokens += response.usage.inputTokens
-    usage.outputTokens += response.usage.outputTokens
+    addAiUsage(usage, response.usage)
     const title = cleanTitle(response.text)
     if (title) return title
   } catch (cause) {
-    logger.warn('steel_ai.title_failed', {
-      component: 'SteelAiChatService',
-      conversationId: input.conversation.id,
-      message: cause instanceof Error ? cause.message : String(cause),
-    })
+    logger.warn(
+      'steel_ai.title_failed',
+      logFields({
+        component: 'SteelAiChatService',
+        workspaceId: input.workspaceId,
+        conversationId: input.conversation.id,
+        message: cause instanceof Error ? cause.message : String(cause),
+      }),
+    )
   }
   return fallbackTitle(input.content)
 }
@@ -141,8 +155,23 @@ async function* runTurn(
   const { conversation, call } = input
   const messageId = createId()
   const startedAt = new Date()
+  // Everything the caller may run; each round only *shows* a selection.
   const tools = availableTools(input.access, input.mode)
-  const specs = toToolSpecs(tools)
+  const activated: string[] = []
+  const roundSpecs = () =>
+    selectionSpecs(
+      selectSteelAiTools({
+        available: tools,
+        message: input.content,
+        previousMessages: input.previousMessages,
+        pinned: [
+          ...activated,
+          ...[...toolNames].reverse(),
+          ...input.pinnedTools,
+        ],
+      }),
+    )
+  let maxSpecChars = 0
   const ctx: AiToolContext = {
     workspaceId: input.workspaceId,
     actorId: input.actorId,
@@ -195,6 +224,16 @@ async function* runTurn(
         error: { code: 'ROUND_LIMIT', message: ROUND_LIMIT_NOTE },
       })
       summary = 'Não executada'
+    } else if (toolCall.name === FIND_TOOLS_TOOL_NAME) {
+      const found = findTools(tools, toolCall.arguments)
+      activated.unshift(...found.names)
+      content = serializeToolResult({
+        status: 'done',
+        summary: found.summary,
+        data: found.data,
+      })
+      status = 'done'
+      summary = found.summary
     } else if (!tool) {
       const error = aiToolNotAllowed(
         'Ferramenta indisponível neste modo ou para o seu perfil',
@@ -249,6 +288,8 @@ async function* runTurn(
         stopAfterNextRound || round === STEEL_AI_MAX_TOOL_ROUNDS - 1
       let response: AiChatResponse | null = null
       let roundHasText = false
+      const specs = roundSpecs()
+      maxSpecChars = Math.max(maxSpecChars, JSON.stringify(specs).length)
 
       for await (const chunk of call.provider.chatStream({
         model: call.model.model,
@@ -271,8 +312,7 @@ async function* runTurn(
       }
       if (!response) throw new Error('Provider stream ended without a response')
 
-      usage.inputTokens += response.usage.inputTokens
-      usage.outputTokens += response.usage.outputTokens
+      addAiUsage(usage, response.usage)
 
       let text = response.text
       if (!text && response.stopReason === 'refusal') {
@@ -340,14 +380,15 @@ async function* runTurn(
     const persistFailure = cause instanceof PersistError
     logger.error(
       persistFailure ? 'steel_ai.persist_failed' : 'steel_ai.provider_failed',
-      {
-        component: 'SteelAiChatService',
-        workspaceId: input.workspaceId,
-        conversationId: conversation.id,
-        provider: call.model.provider,
-        model: call.model.model,
-        message: cause instanceof Error ? cause.message : String(cause),
-      },
+      logFields(
+        {
+          component: 'SteelAiChatService',
+          workspaceId: input.workspaceId,
+          conversationId: conversation.id,
+          message: cause instanceof Error ? cause.message : String(cause),
+        },
+        { model: call.model.key },
+      ),
     )
     // What was consumed before the failure still counts against the quota.
     await AiUsageService.record(call, {
@@ -385,23 +426,35 @@ async function* runTurn(
     modelKey: call.model.key,
   })
   if (!touched.ok) {
-    logger.warn('steel_ai.touch_failed', {
-      component: 'SteelAiChatService',
-      conversationId: conversation.id,
-    })
+    logger.warn(
+      'steel_ai.touch_failed',
+      logFields({
+        component: 'SteelAiChatService',
+        workspaceId: input.workspaceId,
+        conversationId: conversation.id,
+      }),
+    )
   }
 
-  logger.info('steel_ai.turn_completed', {
-    component: 'SteelAiChatService',
-    workspaceId: input.workspaceId,
-    conversationId: conversation.id,
-    mode: input.mode,
-    model: call.model.key,
-    tools: toolNames,
-    pendingActions: pendingActions.length,
-    inputTokens: usage.inputTokens,
-    outputTokens: usage.outputTokens,
-  })
+  logger.info(
+    'steel_ai.turn_completed',
+    logFields(
+      {
+        component: 'SteelAiChatService',
+        workspaceId: input.workspaceId,
+        conversationId: conversation.id,
+      },
+      {
+        mode: input.mode,
+        model: call.model.key,
+        tools: toolNames,
+        pendingActions: pendingActions.length,
+        inputTokens: usage.inputTokens,
+        outputTokens: usage.outputTokens,
+        maxToolSpecChars: maxSpecChars,
+      },
+    ),
+  )
 
   const message: AiMessageDTO = {
     id: messageId,
@@ -515,6 +568,7 @@ export const SteelAiChatService = {
       mode,
     })
 
+    const capped = capHistory(recent.value)
     return ok(
       runTurn({
         actorId,
@@ -524,9 +578,14 @@ export const SteelAiChatService = {
         access: access.value,
         call: prepared.value,
         system,
-        history: toProviderHistory(capHistory(recent.value), input.content),
+        history: toProviderHistory(capped, input.content),
         content: input.content,
         isFirstExchange: !recent.value.some((row) => row.role === 'USER'),
+        pinnedTools: pinnedToolsFromHistory(capped),
+        previousMessages: capped
+          .filter((row) => row.role === 'USER')
+          .map((row) => row.content)
+          .reverse(),
       }),
     )
   },
