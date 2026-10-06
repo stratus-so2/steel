@@ -8,6 +8,7 @@ import {
   ContextPrimaryAction,
   ContextSidebar,
 } from '@/app/_components/navigation/sidebar-context'
+import { SteelAgentsNavLink } from '@/app/_components/steel-agents/steel-agents-nav-link'
 import { SteelAiProvider } from '@/app/_components/steel-ai/steel-ai-context'
 import { SteelAiHistory } from '@/app/_components/steel-ai/steel-ai-history'
 import { SteelIcon } from '@/components/icon/icon'
@@ -56,6 +57,9 @@ export default async function AiLayout({
               </ContextPrimaryAction>
             }
           />
+          <div className='mb-3'>
+            <SteelAgentsNavLink slug={slug} />
+          </div>
           <SteelAiHistory />
         </ContextSidebar>
       </div>
