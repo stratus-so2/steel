@@ -21,6 +21,7 @@ import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.r
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import { AiUsageService } from './ai-usage.service'
+import { dispatchSteelAgentEvent } from './steel-agent-dispatcher'
 import {
   notifyWhatsAppUsers,
   whatsAppAdminIds,
@@ -414,6 +415,9 @@ export const WhatsAppAiReplyService = {
         body: `${label} precisa de um atendente.`,
         path: whatsAppConversationPath(conversationId),
         meta: { conversationId },
+      })
+      void dispatchSteelAgentEvent(workspaceId, 'zap.ai.handoff', {
+        conversationId,
       })
     }
 

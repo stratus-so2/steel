@@ -35,6 +35,7 @@ import type {
   WhatsAppConversationEventDTO,
 } from '@/types/whatsapp-conversation'
 import { assertMember, assertModuleMember } from './authz'
+import { dispatchSteelAgentEvent } from './steel-agent-dispatcher'
 import {
   notifyWhatsAppUsers,
   whatsAppConversationPath,
@@ -672,6 +673,10 @@ export const WhatsAppConversationService = {
         body: `Conversa com ${contact.name ?? contact.waId}.`,
         path: whatsAppConversationPath(id),
         meta: { conversationId: id },
+      })
+      void dispatchSteelAgentEvent(workspaceId, 'zap.conversation.assigned', {
+        conversationId: id,
+        assignedUserId,
       })
     }
 

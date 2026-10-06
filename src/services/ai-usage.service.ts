@@ -214,6 +214,15 @@ export const AiUsageService = {
   },
 
   /**
+   * Cost (US$) of `usage` under the prepared call's pricing — the same rule
+   * `record` freezes in the ledger (model price × platform margin). For
+   * callers that also keep the cost on their own record (Steel Agents runs).
+   */
+  price(call: PreparedAiCall, usage: AiUsageTokens): number {
+    return priceAiUsage(aiModelPricing(call.model), usage, call.costMargin ?? 1)
+  },
+
+  /**
    * Lança o consumo de uma interação (pode somar várias chamadas, ex.: o
    * loop de tools). Falha de escrita só é logada — a resposta já foi gerada.
    */

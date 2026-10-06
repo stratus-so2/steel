@@ -428,6 +428,16 @@ export const ERROR_CODES = {
     code: 'AI_DOUBLE_CONFIRMATION_REQUIRED',
     status: 422,
   },
+  // Steel Agents (autonomous agents running with the owner's permissions).
+  STEEL_AGENT_NOT_FOUND: { code: 'STEEL_AGENT_NOT_FOUND', status: 404 },
+  STEEL_AGENT_RUN_NOT_FOUND: { code: 'STEEL_AGENT_RUN_NOT_FOUND', status: 404 },
+  STEEL_AGENT_INVALID_TOOL: { code: 'STEEL_AGENT_INVALID_TOOL', status: 422 },
+  STEEL_AGENT_INVALID_TRIGGER: {
+    code: 'STEEL_AGENT_INVALID_TRIGGER',
+    status: 422,
+  },
+  STEEL_AGENT_INVALID_OWNER: { code: 'STEEL_AGENT_INVALID_OWNER', status: 422 },
+  STEEL_AGENT_DISABLED: { code: 'STEEL_AGENT_DISABLED', status: 409 },
 
   // ServiceDesk (ITIL)
   SD_TICKET_NOT_FOUND: { code: 'SD_TICKET_NOT_FOUND', status: 404 },

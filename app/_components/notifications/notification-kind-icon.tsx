@@ -1,4 +1,5 @@
 import {
+  AiBrain01Icon,
   AlarmClockIcon,
   Alert02Icon,
   AnalyticsUpIcon,
@@ -89,6 +90,7 @@ const ICONS: Record<string, IconSvg> = {
   disconnected: WifiDisconnected01Icon,
   broadcast: Megaphone01Icon,
   template: FileRemoveIcon,
+  agent: AiBrain01Icon,
 }
 
 /**

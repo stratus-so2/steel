@@ -31,6 +31,7 @@ import { processServicedeskRisk } from '../src/lib/queue/processors/servicedesk-
 import { processServicedeskSla } from '../src/lib/queue/processors/servicedesk-sla'
 import { processServicedeskTaskReminders } from '../src/lib/queue/processors/servicedesk-task-reminders'
 import { processStatusCollect } from '../src/lib/queue/processors/status-collect'
+import { processSteelAgents } from '../src/lib/queue/processors/steel-agents'
 import { processUsageRollup } from '../src/lib/queue/processors/usage-rollup'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
 import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-broadcast'
@@ -57,6 +58,7 @@ import {
   scheduleServicedeskSlaJobs,
   scheduleServicedeskTaskRemindersJobs,
   scheduleStatusCollectJobs,
+  scheduleSteelAgentsJobs,
   scheduleTrialLifecycleJobs,
   scheduleUsageRollupJobs,
   scheduleWhatsappBroadcastJobs,
@@ -203,6 +205,7 @@ async function main(): Promise<void> {
   workers.push(
     registerWorker(QueueName.CrmTaskReminders, processCrmTaskReminders),
   )
+  workers.push(registerWorker(QueueName.SteelAgents, processSteelAgents))
 
   failureListener = startJobFailureListener(
     workers.map((w) => w.name as QueueName),
@@ -231,6 +234,7 @@ async function main(): Promise<void> {
   await scheduleServicedeskIntegrationsJobs()
   await scheduleCrmTaskRemindersJobs()
   await scheduleServicedeskTaskRemindersJobs()
+  await scheduleSteelAgentsJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

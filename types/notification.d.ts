@@ -52,6 +52,8 @@ export type NotificationKindDTO =
   | 'WHATSAPP_CONNECTION_LOST'
   | 'WHATSAPP_BROADCAST_FINISHED'
   | 'WHATSAPP_TEMPLATE_REJECTED'
+  | 'AGENT_APPROVAL_REQUESTED'
+  | 'AGENT_RUN_FAILED'
 
 export type NotificationModuleDTO =
   | 'SERVICE_DESK'

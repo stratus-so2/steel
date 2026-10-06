@@ -60,6 +60,8 @@ export const PERMISSION_RESOURCES = [
   // ServiceDesk — relatórios agendados e integrações (Slack/GitHub)
   'sd-reports',
   'sd-integrations',
+  // Steel AI — agentes autônomos: admin gerencia, membro visualiza
+  'steel-agents',
 ] as const
 export type PermissionResource = (typeof PERMISSION_RESOURCES)[number]
 
@@ -121,6 +123,8 @@ const MEMBER_READONLY = new Set<PermissionResource>([
   // coisa de admin. Integrações (`sd-integrations`) nem aparecem: conectar
   // Slack/GitHub exige token do workspace.
   'sd-reports',
+  // Membro acompanha os agentes e as execuções; criar e editar é de admin.
+  'steel-agents',
 ])
 
 function fullMatrix(): PermissionMap {

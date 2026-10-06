@@ -151,6 +151,9 @@ export type AuditEntity =
   | 'notification_preference'
   // Global admin — platform AI cost margin (ADR 0019)
   | 'platform_ai_settings'
+  // Steel Agents
+  | 'steel_agent'
+  | 'steel_agent_run'
 
 export type AuditAction =
   | 'create'
@@ -202,6 +205,8 @@ export type AuditAction =
   | 'unlink'
   | 'request'
   | 'confirm'
+  | 'approve'
+  | 'reject'
 
 type AuditOutcome = 'success' | 'failure'
 

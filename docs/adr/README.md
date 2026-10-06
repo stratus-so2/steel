@@ -38,3 +38,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0017 | [Sentry e PostHog, opcionais e inertes, sem origem nova na CSP](./0017-sentry-and-posthog-optional-and-inert.md) | Aceita | 2026-10-02 |
 | 0018 | [Steel AI: modo agente com confirmação no servidor](./0018-steel-ai-agent-mode-server-confirmation.md) | Aceita | 2026-10-06 |
 | 0019 | [Custo real de IA por modelo com margem da plataforma](./0019-real-ai-cost-per-model-with-platform-margin.md) | Aceita | 2026-10-06 |
+| 0020 | [Steel Agents: identidade do responsável, ferramenta automática ou aprovada](./0020-steel-agents-owner-identity-and-approvals.md) | Aceita | 2026-10-06 |

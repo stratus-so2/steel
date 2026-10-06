@@ -30,6 +30,7 @@ export const QueueName = {
   ServicedeskIntegrations: 'servicedesk-integrations',
   CrmTaskReminders: 'crm-task-reminders',
   ServicedeskTaskReminders: 'servicedesk-task-reminders',
+  SteelAgents: 'steel-agents',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -563,4 +564,24 @@ export type ServicedeskTaskRemindersJob =
 
 export type ServicedeskTaskRemindersJobPayload = {
   [ServicedeskTaskRemindersJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Steel Agents: `tick` (every minute) dispatches SCHEDULE agents whose cron
+ * occurrence is due (croner + `lastRunAt` dedupe) and expires overdue
+ * approvals; `run` executes (or resumes, after an approval decision) one
+ * `SteelAgentRun`. Single attempt — a retry could repeat automatic writes;
+ * failures are persisted on the run.
+ */
+export const SteelAgentsJob = {
+  Tick: 'tick',
+  Run: 'run',
+} as const
+
+export type SteelAgentsJob =
+  (typeof SteelAgentsJob)[keyof typeof SteelAgentsJob]
+
+export type SteelAgentsJobPayload = {
+  [SteelAgentsJob.Tick]: Record<string, never>
+  [SteelAgentsJob.Run]: { runId: string }
 }

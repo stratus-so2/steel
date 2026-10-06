@@ -8,6 +8,7 @@ import { registerPublicPaths } from './paths/public'
 import { registerServiceDeskPaths } from './paths/servicedesk'
 import { registerServiceDeskKnowledgePaths } from './paths/servicedesk-knowledge'
 import { registerSdTicketPaths } from './paths/servicedesk-tickets'
+import { registerSteelAgentsPaths } from './paths/steel-agents'
 import { registerSteelAiPaths } from './paths/steel-ai'
 import { registerWhatsAppPaths } from './paths/whatsapp'
 import { OpenApiRegistry } from './registry'
@@ -26,6 +27,7 @@ export function createRegistry(): OpenApiRegistry {
   registerServiceDeskPaths(registry)
   registerSdTicketPaths(registry)
   registerSteelAiPaths(registry)
+  registerSteelAgentsPaths(registry)
   return registry
 }
 
