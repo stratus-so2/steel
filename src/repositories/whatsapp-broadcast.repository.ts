@@ -220,6 +220,49 @@ export const WhatsAppBroadcastRepository = {
     }
   },
 
+  /** Recipients of the list per status (every status present, 0 default). */
+  async countRecipientsByStatus(
+    broadcastListId: string,
+  ): Promise<Result<Record<WhatsAppBroadcastRecipientStatus, number>>> {
+    try {
+      const rows = await prisma.whatsAppBroadcastRecipient.groupBy({
+        by: ['status'],
+        where: { broadcastListId },
+        _count: { _all: true },
+      })
+      const counts: Record<WhatsAppBroadcastRecipientStatus, number> = {
+        PENDING: 0,
+        SENT: 0,
+        FAILED: 0,
+        SKIPPED: 0,
+      }
+      for (const row of rows) counts[row.status] = row._count._all
+      return ok(counts)
+    } catch (error) {
+      return err(dbError('Failed to count broadcast recipients', error))
+    }
+  },
+
+  /**
+   * Closes a list that is still sending (QUEUED/RUNNING). Returns the list
+   * when **this** call closed it, `null` when another job already did — so
+   * the completion is announced once.
+   */
+  async closeIfRunning(
+    id: string,
+    status: Extract<WhatsAppBroadcastStatus, 'DONE' | 'FAILED'>,
+  ): Promise<Result<WhatsAppBroadcastList | null>> {
+    try {
+      const [list] = await prisma.whatsAppBroadcastList.updateManyAndReturn({
+        where: { id, status: { in: ['QUEUED', 'RUNNING'] } },
+        data: { status },
+      })
+      return ok(list ?? null)
+    } catch (error) {
+      return err(dbError('Failed to close whatsapp broadcast', error))
+    }
+  },
+
   async countPendingRecipients(
     broadcastListId: string,
   ): Promise<Result<number>> {

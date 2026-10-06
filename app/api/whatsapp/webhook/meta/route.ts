@@ -8,6 +8,10 @@ import {
 import { consume, whatsappWebhookLimiter } from '@/src/lib/rate-limit'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { assertModuleEnabled } from '@/src/services/authz'
+import {
+  metaConnectionError,
+  WhatsAppConnectionHealthService,
+} from '@/src/services/whatsapp-connection-health.service'
 import { WhatsAppWebhookService } from '@/src/services/whatsapp-webhook.service'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
 import { parseJson } from '@/utils/http-request'
@@ -58,7 +62,11 @@ interface MetaWebhookValue {
   metadata?: { phone_number_id?: string }
   contacts?: { wa_id?: string; profile?: { name?: string } }[]
   messages?: MetaMessage[]
-  statuses?: { id?: string; status?: string }[]
+  statuses?: {
+    id?: string
+    status?: string
+    errors?: { code?: number; title?: string; message?: string }[]
+  }[]
 }
 
 function extractMessageContent(message: MetaMessage): {
@@ -209,6 +217,18 @@ export const POST = withAxiom(async (request: NextRequest) => {
   }
 
   const status = value.statuses?.[0]
+  // A failure that says the number itself stopped working (token expired,
+  // account restricted…) takes the connection down — once per transition.
+  if (status?.status === 'failed') {
+    const problem = metaConnectionError(status.errors)
+    if (problem) {
+      await WhatsAppConnectionHealthService.markDown(connection, {
+        status: 'ERROR',
+        error: problem,
+        source: 'meta_webhook',
+      })
+    }
+  }
   if (status?.id && status.status) {
     const mapped = META_STATUS_MAP[status.status]
     if (mapped) {

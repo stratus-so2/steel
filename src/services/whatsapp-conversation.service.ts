@@ -35,6 +35,10 @@ import type {
   WhatsAppConversationEventDTO,
 } from '@/types/whatsapp-conversation'
 import { assertMember, assertModuleMember } from './authz'
+import {
+  notifyWhatsAppUsers,
+  whatsAppConversationHref,
+} from './whatsapp-notify'
 import { WhatsAppSettingsService } from './whatsapp-settings.service'
 
 /** Máximo de conversas fechadas por inatividade a cada tick do job. */
@@ -654,6 +658,22 @@ export const WhatsAppConversationService = {
       targetId: id,
       meta: { assignedUserId },
     })
+
+    // The new assignee hears about it — not on self-assign (the actor is
+    // filtered out) nor when nothing changed.
+    if (assignedUserId && assignedUserId !== existing.value.assignedUserId) {
+      const contact = fresh.value.contact
+      await notifyWhatsAppUsers({
+        workspaceId,
+        kind: 'WHATSAPP_CONVERSATION_ASSIGNED',
+        userIds: [assignedUserId],
+        actorId,
+        title: 'Conversa atribuída a você',
+        body: `Conversa com ${contact.name ?? contact.waId}.`,
+        hrefFor: (slug) => whatsAppConversationHref(slug, id),
+        meta: { conversationId: id },
+      })
+    }
 
     return ok(dto)
   },

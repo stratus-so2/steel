@@ -24,6 +24,11 @@ vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
 }))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/src/services/whatsapp-notify', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../whatsapp-notify')>()),
+  notifyWhatsAppUsers: vi.fn(async () => 1),
+  whatsAppAdminIds: vi.fn(async () => ['owner', 'admin']),
+}))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import {
@@ -43,6 +48,7 @@ import {
   type PreparedAiCall,
 } from '@/src/services/ai-usage.service'
 import { WhatsAppAiReplyService } from '../whatsapp-ai-reply.service'
+import { notifyWhatsAppUsers, whatsAppAdminIds } from '../whatsapp-notify'
 
 const mockedConversationRepo = vi.mocked(WhatsAppConversationRepository)
 const mockedAiConfigRepo = vi.mocked(WhatsAppAiConfigRepository)
@@ -375,5 +381,59 @@ describe('WhatsAppAiReplyService.generateReply()', () => {
       }),
       'DATABASE_ERROR',
     )
+  })
+})
+
+describe('WhatsAppAiReplyService · handoff notice', () => {
+  const notify = vi.mocked(notifyWhatsAppUsers)
+  const admins = vi.mocked(whatsAppAdminIds)
+
+  function handoff(conversation = {}) {
+    arrange({ conversation })
+    mockedAiUsage.prepare.mockResolvedValue(
+      ok(
+        preparedCall(
+          vi.fn(async () => response('Um momento. [[TRANSFERIR_ATENDENTE]]')),
+        ),
+      ),
+    )
+    return WhatsAppAiReplyService.generateReply({
+      conversationId: CONV,
+      messageId: 'm1',
+    })
+  }
+
+  it('tells the assignee when the AI hands the conversation over', async () => {
+    expectOk(await handoff({ assignedUserId: 'agent' }))
+    expect(admins).not.toHaveBeenCalled()
+    const [input] = notify.mock.calls[0]
+    expect(input).toMatchObject({
+      workspaceId: WS,
+      kind: 'WHATSAPP_AI_HANDOFF',
+      userIds: ['agent'],
+      title: 'A IA transferiu uma conversa para você',
+    })
+    expect(input.body).toContain('precisa de um atendente')
+    expect(input.hrefFor('acme')).toBe(`/acme/zap?conversa=${CONV}`)
+  })
+
+  it('falls back to the capped module admins without an assignee', async () => {
+    expectOk(await handoff({ assignedUserId: null }))
+    expect(admins).toHaveBeenCalledWith(WS)
+    expect(notify.mock.calls[0][0].userIds).toEqual(['owner', 'admin'])
+  })
+
+  it('never notifies a regular AI reply', async () => {
+    arrange()
+    mockedAiUsage.prepare.mockResolvedValue(
+      ok(preparedCall(vi.fn(async () => response('Claro, posso ajudar.')))),
+    )
+    expectOk(
+      await WhatsAppAiReplyService.generateReply({
+        conversationId: CONV,
+        messageId: 'm1',
+      }),
+    )
+    expect(notify).not.toHaveBeenCalled()
   })
 })

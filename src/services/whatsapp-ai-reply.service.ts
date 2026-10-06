@@ -21,6 +21,11 @@ import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.r
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import { AiUsageService } from './ai-usage.service'
+import {
+  notifyWhatsAppUsers,
+  whatsAppAdminIds,
+  whatsAppConversationHref,
+} from './whatsapp-notify'
 
 const HISTORY_LIMIT = 20
 const TRANSCRIPTION_MODEL = 'whisper-1'
@@ -395,6 +400,20 @@ export const WhatsAppAiReplyService = {
         actorId: null,
         targetId: conversationId,
         meta: { aiHandoff: true, trigger: 'ai', actor: 'system' },
+      })
+      // A human must take over: the assignee, else the module admins
+      // (capped) — never every member with conversation access.
+      const label = contact.value.name ?? contact.value.waId
+      await notifyWhatsAppUsers({
+        workspaceId,
+        kind: 'WHATSAPP_AI_HANDOFF',
+        userIds: conversation.assignedUserId
+          ? [conversation.assignedUserId]
+          : await whatsAppAdminIds(workspaceId),
+        title: 'A IA transferiu uma conversa para você',
+        body: `${label} precisa de um atendente.`,
+        hrefFor: (slug) => whatsAppConversationHref(slug, conversationId),
+        meta: { conversationId },
       })
     }
 

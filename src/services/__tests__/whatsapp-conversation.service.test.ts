@@ -13,12 +13,17 @@ vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
 }))
+vi.mock('@/src/services/whatsapp-notify', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../whatsapp-notify')>()),
+  notifyWhatsAppUsers: vi.fn(async () => 1),
+}))
 
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppContactRepository } from '@/src/repositories/whatsapp-contact.repository'
 import { WhatsAppConversationRepository } from '@/src/repositories/whatsapp-conversation.repository'
 import { WhatsAppConversationService } from '../whatsapp-conversation.service'
+import { notifyWhatsAppUsers } from '../whatsapp-notify'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
@@ -545,6 +550,77 @@ describe('WhatsAppConversationService', () => {
         clearedAt: expect.any(Date),
         lastMessageAt: null,
       })
+    })
+  })
+})
+
+describe('WhatsAppConversationService.assign() · notice', () => {
+  const notify = vi.mocked(notifyWhatsAppUsers)
+
+  function arrange(currentAssignee: string | null) {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'MEMBER' })),
+    )
+    const conversation = createFakeWhatsAppConversationWithPreview({
+      id: 'conv1',
+      assignedUserId: currentAssignee,
+    })
+    mockedConversationRepo.findById.mockResolvedValue(ok(conversation))
+    mockedConversationRepo.update.mockResolvedValue(ok(conversation))
+    return conversation
+  }
+
+  it('tells the new assignee, never the actor', async () => {
+    const conversation = arrange(null)
+    expectOk(
+      await WhatsAppConversationService.assign('u1', 'ws1', 'conv1', 'u2'),
+    )
+    const [input] = notify.mock.calls[0]
+    const contact = conversation.contact
+    expect(input).toMatchObject({
+      workspaceId: 'ws1',
+      kind: 'WHATSAPP_CONVERSATION_ASSIGNED',
+      userIds: ['u2'],
+      actorId: 'u1',
+      title: 'Conversa atribuída a você',
+      body: `Conversa com ${contact.name ?? contact.waId}.`,
+    })
+    expect(input.hrefFor('acme')).toBe('/acme/zap?conversa=conv1')
+  })
+
+  it('falls back to the number when the contact has no name', async () => {
+    const conversation = arrange(null)
+    mockedConversationRepo.findById.mockResolvedValue(
+      ok({
+        ...conversation,
+        contact: { ...conversation.contact, name: null, waId: '5511900001111' },
+      }),
+    )
+    expectOk(
+      await WhatsAppConversationService.assign('u1', 'ws1', 'conv1', 'u2'),
+    )
+    expect(notify.mock.calls[0][0].body).toBe('Conversa com 5511900001111.')
+  })
+
+  it('stays quiet when unassigning or when the assignee did not change', async () => {
+    arrange('u2')
+    expectOk(
+      await WhatsAppConversationService.assign('u1', 'ws1', 'conv1', 'u2'),
+    )
+    expectOk(
+      await WhatsAppConversationService.assign('u1', 'ws1', 'conv1', null),
+    )
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('passes the actor along so a self-assign is filtered out', async () => {
+    arrange(null)
+    expectOk(
+      await WhatsAppConversationService.assign('u1', 'ws1', 'conv1', 'u1'),
+    )
+    expect(notify.mock.calls[0][0]).toMatchObject({
+      userIds: ['u1'],
+      actorId: 'u1',
     })
   })
 })

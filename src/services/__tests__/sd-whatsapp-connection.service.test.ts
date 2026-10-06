@@ -12,6 +12,11 @@ vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-settings.repository')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/lib/axiom/audit')
+vi.mock('../whatsapp-connection-health.service', () => ({
+  WhatsAppConnectionHealthService: {
+    markDown: vi.fn(async () => ({ ok: true, value: false })),
+  },
+}))
 vi.mock('@/src/lib/crypto', () => ({
   encryptConnectionSecret: vi.fn(async (value: string) => `enc:${value}`),
   decryptConnectionSecret: vi.fn(async (value: string) =>
@@ -33,6 +38,7 @@ import { SdSettingsRepository } from '@/src/repositories/sd-settings.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { SdWhatsappConnectionService } from '../sd-whatsapp-connection.service'
+import { WhatsAppConnectionHealthService } from '../whatsapp-connection-health.service'
 
 const connections = vi.mocked(WhatsAppConnectionRepository)
 const settings = vi.mocked(SdSettingsRepository)
@@ -617,6 +623,48 @@ describe('qrCode()', () => {
     connections.findById.mockResolvedValue(err(databaseError()))
     expectErr(
       await SdWhatsappConnectionService.qrCode(ADMIN, WS, 'conn-zapi'),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('test() · connection lost notice', () => {
+  const markDown = vi.mocked(WhatsAppConnectionHealthService.markDown)
+
+  beforeEach(() => markDown.mockClear())
+
+  it('hands a failing test to the health service (notifies once per drop)', async () => {
+    const connection = metaConnection()
+    connections.findById.mockResolvedValue(ok(connection))
+    meta.mockReturnValue({
+      getConnectionStatus: vi.fn(async () => ({ connected: false })),
+    } as never)
+    expectOk(await SdWhatsappConnectionService.test(ADMIN, WS, 'conn-meta'))
+    expect(markDown).toHaveBeenCalledWith(connection, {
+      status: 'DISCONNECTED',
+      error: 'O provedor informou que o número não está conectado',
+      source: 'test',
+      actorId: ADMIN,
+    })
+  })
+
+  it('never calls it for a healthy connection', async () => {
+    connections.findById.mockResolvedValue(ok(metaConnection()))
+    meta.mockReturnValue({
+      getConnectionStatus: vi.fn(async () => ({ connected: true })),
+    } as never)
+    expectOk(await SdWhatsappConnectionService.test(ADMIN, WS, 'conn-meta'))
+    expect(markDown).not.toHaveBeenCalled()
+  })
+
+  it('propagates a failure to record the status', async () => {
+    connections.findById.mockResolvedValue(ok(metaConnection()))
+    meta.mockReturnValue({
+      getConnectionStatus: vi.fn(async () => ({ connected: false })),
+    } as never)
+    markDown.mockResolvedValueOnce(err(databaseError()))
+    expectErr(
+      await SdWhatsappConnectionService.test(ADMIN, WS, 'conn-meta'),
       'DATABASE_ERROR',
     )
   })

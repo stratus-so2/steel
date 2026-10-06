@@ -16,6 +16,9 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
   WhatsAppSend: { text: vi.fn(), media: vi.fn(), template: vi.fn() },
 }))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/src/services/whatsapp-notify', () => ({
+  notifyWhatsAppUsers: vi.fn(async () => 1),
+}))
 
 const { addBulk } = vi.hoisted(() => ({
   addBulk: vi.fn(async (_jobs: unknown[]) => []),
@@ -32,6 +35,7 @@ import { WhatsAppBroadcastRepository } from '@/src/repositories/whatsapp-broadca
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
 import { WhatsAppBroadcastService } from '../whatsapp-broadcast.service'
+import { notifyWhatsAppUsers } from '../whatsapp-notify'
 
 const mockedBroadcastRepo = vi.mocked(WhatsAppBroadcastRepository)
 const mockedConnectionRepo = vi.mocked(WhatsAppConnectionRepository)
@@ -70,7 +74,12 @@ function arrangeRecipient(options?: {
   mockedBroadcastRepo.updateRecipientStatus.mockResolvedValue(ok(undefined))
   mockedBroadcastRepo.markRecipientsSkipped.mockResolvedValue(ok(1))
   mockedBroadcastRepo.countPendingRecipients.mockResolvedValue(ok(0))
-  mockedBroadcastRepo.updateStatus.mockResolvedValue(ok(undefined))
+  mockedBroadcastRepo.countRecipientsByStatus.mockResolvedValue(
+    ok({ PENDING: 0, SENT: 1, FAILED: 0, SKIPPED: 0 }),
+  )
+  mockedBroadcastRepo.closeIfRunning.mockResolvedValue(
+    ok(createFakeWhatsAppBroadcastList({ id: 'list1' })),
+  )
   return { connection }
 }
 
@@ -103,7 +112,7 @@ describe('WhatsAppBroadcastService.sendToRecipient()', () => {
     ])
     expect(mockedSend.text).not.toHaveBeenCalled()
     expect(mockedSend.media).not.toHaveBeenCalled()
-    expect(mockedBroadcastRepo.updateStatus).toHaveBeenCalledWith(
+    expect(mockedBroadcastRepo.closeIfRunning).toHaveBeenCalledWith(
       'list1',
       'DONE',
     )
@@ -126,7 +135,7 @@ describe('WhatsAppBroadcastService.sendToRecipient()', () => {
       'r1',
       expect.objectContaining({ status: 'SENT', providerMessageId: 'wamid-1' }),
     )
-    expect(mockedBroadcastRepo.updateStatus).toHaveBeenCalledWith(
+    expect(mockedBroadcastRepo.closeIfRunning).toHaveBeenCalledWith(
       'list1',
       'DONE',
     )
@@ -146,7 +155,7 @@ describe('WhatsAppBroadcastService.sendToRecipient()', () => {
 
     await WhatsAppBroadcastService.sendToRecipient('list1', 'r1')
 
-    expect(mockedBroadcastRepo.updateStatus).not.toHaveBeenCalled()
+    expect(mockedBroadcastRepo.closeIfRunning).not.toHaveBeenCalled()
   })
 
   it('should send video media as video with the message as caption', async () => {
@@ -329,5 +338,88 @@ describe('WhatsAppBroadcastService.enqueueDueScheduledRecipients()', () => {
       await WhatsAppBroadcastService.enqueueDueScheduledRecipients(new Date()),
       'DATABASE_ERROR',
     )
+  })
+})
+
+describe('WhatsAppBroadcastService · finished notice', () => {
+  const notify = vi.mocked(notifyWhatsAppUsers)
+
+  it('tells the creator the broadcast finished, with the tally', async () => {
+    arrangeRecipient()
+    mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'wamid-1' }))
+    mockedBroadcastRepo.countRecipientsByStatus.mockResolvedValue(
+      ok({ PENDING: 0, SENT: 8, FAILED: 2, SKIPPED: 1 }),
+    )
+    mockedBroadcastRepo.closeIfRunning.mockResolvedValue(
+      ok(
+        createFakeWhatsAppBroadcastList({
+          id: 'list1',
+          workspaceId: 'ws1',
+          name: 'Black Friday',
+          createdById: 'creator',
+        }),
+      ),
+    )
+
+    expectOk(await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'))
+
+    expect(mockedBroadcastRepo.closeIfRunning).toHaveBeenCalledWith(
+      'list1',
+      'DONE',
+    )
+    const [input] = notify.mock.calls[0]
+    expect(input).toMatchObject({
+      workspaceId: 'ws1',
+      kind: 'WHATSAPP_BROADCAST_FINISHED',
+      userIds: ['creator'],
+      title: 'Transmissão "Black Friday" concluída',
+      body: '8 enviada(s), 2 com falha.',
+    })
+    expect(input.hrefFor('acme')).toBe('/acme/zap/transmissoes')
+  })
+
+  it('closes as FAILED and says so when nothing went out', async () => {
+    arrangeRecipient()
+    mockedSend.text.mockResolvedValue(
+      err(whatsappProviderError('Número inválido')),
+    )
+    mockedBroadcastRepo.countRecipientsByStatus.mockResolvedValue(
+      ok({ PENDING: 0, SENT: 0, FAILED: 3, SKIPPED: 0 }),
+    )
+    mockedBroadcastRepo.closeIfRunning.mockResolvedValue(
+      ok(createFakeWhatsAppBroadcastList({ id: 'list1', name: 'Aviso' })),
+    )
+
+    expectOk(await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'))
+
+    expect(mockedBroadcastRepo.closeIfRunning).toHaveBeenCalledWith(
+      'list1',
+      'FAILED',
+    )
+    expect(notify.mock.calls[0][0].title).toBe('Transmissão "Aviso" falhou')
+  })
+
+  it('is announced once: a job that lost the race to close stays quiet', async () => {
+    arrangeRecipient()
+    mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'wamid-1' }))
+    mockedBroadcastRepo.closeIfRunning.mockResolvedValue(ok(null))
+
+    expectOk(await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'))
+
+    expect(notify).not.toHaveBeenCalled()
+    expect(auditMutation).not.toHaveBeenCalled()
+  })
+
+  it('does not close the list when the tally cannot be read', async () => {
+    arrangeRecipient()
+    mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'wamid-1' }))
+    mockedBroadcastRepo.countRecipientsByStatus.mockResolvedValue(
+      err(databaseError()),
+    )
+
+    expectOk(await WhatsAppBroadcastService.sendToRecipient('list1', 'r1'))
+
+    expect(mockedBroadcastRepo.closeIfRunning).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
   })
 })

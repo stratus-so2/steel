@@ -3,6 +3,7 @@ import { withAxiom } from '@/lib/axiom/server'
 import { consume, whatsappWebhookLimiter } from '@/src/lib/rate-limit'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { assertModuleEnabled } from '@/src/services/authz'
+import { WhatsAppConnectionHealthService } from '@/src/services/whatsapp-connection-health.service'
 import { WhatsAppWebhookService } from '@/src/services/whatsapp-webhook.service'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
 
@@ -38,6 +39,8 @@ interface ZapiPayload {
   contact?: { displayName?: string; vcard?: string }
   // Present on the payload when this message is a reply/quote to another one.
   referenceMessageId?: string
+  // DisconnectedCallback: why the instance dropped.
+  error?: string
 }
 
 function waIdFromVcard(vcard: string | undefined): string | undefined {
@@ -155,6 +158,21 @@ export const POST = withAxiom(async (request: NextRequest) => {
       })
     }
     return new Response('STATUS_RECEIVED', { status: 200 })
+  }
+
+  // Instance lost/regained the phone session: the admins hear about a drop
+  // once per transition (the health service ignores repeats).
+  if (body.type === 'DisconnectedCallback') {
+    await WhatsAppConnectionHealthService.markDown(connection, {
+      status: 'DISCONNECTED',
+      error: body.error ?? null,
+      source: 'zapi_webhook',
+    })
+    return new Response('DISCONNECTED_RECEIVED', { status: 200 })
+  }
+  if (body.type === 'ConnectedCallback') {
+    await WhatsAppConnectionHealthService.markUp(connection)
+    return new Response('CONNECTED_RECEIVED', { status: 200 })
   }
 
   if (body.type !== 'ReceivedCallback') {

@@ -441,6 +441,65 @@ describe('WhatsAppBroadcastRepository', () => {
       ).toBe(1)
     })
 
+    it('should tally recipients per status', async () => {
+      const { list } = await seedListWithRecipients()
+      const [first] = expectOk(
+        await WhatsAppBroadcastRepository.listRecipients(list.id),
+      )
+      expectOk(
+        await WhatsAppBroadcastRepository.updateRecipientStatus(first.id, {
+          status: 'FAILED',
+          errorMessage: 'x',
+        }),
+      )
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.countRecipientsByStatus(list.id),
+        ),
+      ).toEqual({ PENDING: 1, SENT: 0, FAILED: 1, SKIPPED: 0 })
+    })
+
+    it('should close a sending list only once', async () => {
+      const { list } = await seedListWithRecipients()
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.closeIfRunning(list.id, 'DONE'),
+        ),
+      ).toBeNull()
+
+      expectOk(
+        await WhatsAppBroadcastRepository.updateStatus(list.id, 'RUNNING'),
+      )
+      const closed = expectOk(
+        await WhatsAppBroadcastRepository.closeIfRunning(list.id, 'FAILED'),
+      )
+      expect(closed).toMatchObject({ id: list.id, status: 'FAILED' })
+      expect(
+        expectOk(
+          await WhatsAppBroadcastRepository.closeIfRunning(list.id, 'DONE'),
+        ),
+      ).toBeNull()
+    })
+
+    it('should map thrown tally and close failures to DATABASE_ERROR', async () => {
+      const group = vi
+        .spyOn(prisma.whatsAppBroadcastRecipient, 'groupBy')
+        .mockRejectedValueOnce(new Error('boom'))
+      const close = vi
+        .spyOn(prisma.whatsAppBroadcastList, 'updateManyAndReturn')
+        .mockRejectedValueOnce(new Error('boom'))
+      expectErr(
+        await WhatsAppBroadcastRepository.countRecipientsByStatus('b'),
+        'DATABASE_ERROR',
+      )
+      expectErr(
+        await WhatsAppBroadcastRepository.closeIfRunning('b', 'DONE'),
+        'DATABASE_ERROR',
+      )
+      group.mockRestore()
+      close.mockRestore()
+    })
+
     it('should mark only PENDING recipients as SKIPPED', async () => {
       const { list } = await seedListWithRecipients()
       const [first, second] = expectOk(
