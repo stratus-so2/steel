@@ -23,7 +23,9 @@ vi.mock('@/src/lib/prisma', () => ({
     $queryRaw: vi.fn().mockResolvedValue([{ '?column?': 1 }]),
   },
 }))
+vi.mock('@/src/lib/billing', () => ({ isBillingEnabled: vi.fn(() => true) }))
 
+import { isBillingEnabled } from '@/src/lib/billing'
 import { ensureRedisConnected } from '@/src/lib/redis'
 import {
   componentsForTier,
@@ -40,6 +42,7 @@ let fetchSpy: MockInstance<typeof fetch>
 
 beforeEach(() => {
   fetchSpy = vi.spyOn(globalThis, 'fetch')
+  vi.mocked(isBillingEnabled).mockReturnValue(true)
 })
 
 afterEach(() => {
@@ -216,5 +219,31 @@ describe('probeApp() with an app URL (worker collection)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('with billing disabled', () => {
+  beforeEach(() => {
+    vi.mocked(isBillingEnabled).mockReturnValue(false)
+  })
+
+  it('drops the payment component from the peripheral tier', () => {
+    expect(componentsForTier('peripheral')).toEqual(['email', 'storage'])
+    expect(componentsForTier('core')).toEqual([
+      'app',
+      'database',
+      'cache',
+      'auth',
+    ])
+  })
+
+  it('never probes AbacatePay', async () => {
+    fetchSpy.mockResolvedValue(new Response('ok', { status: 200 }))
+
+    const result = await runProbesForTier('peripheral')
+
+    expect(Object.keys(result).sort()).toEqual(['email', 'storage'])
+    const urls = fetchSpy.mock.calls.map(([input]) => String(input))
+    expect(urls.some((url) => url.includes('abacatepay'))).toBe(false)
   })
 })

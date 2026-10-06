@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { BASE_URL } from '@/src/__tests__/setup.e2e'
 
+// "payment" (AbacatePay) only exists while billing is on.
+const BILLING_ON = process.env.BILLING_ENABLED === 'true'
+
 describe('GET /api/status', () => {
   it('should return 200 with snapshot envelope', async () => {
     const res = await fetch(`${BASE_URL}/api/status`)
@@ -20,7 +23,7 @@ describe('GET /api/status', () => {
     expect(cacheControl).toContain('stale-while-revalidate=60')
   })
 
-  it('should include all known components in snapshot', async () => {
+  it('should include the active components in snapshot', async () => {
     const res = await fetch(`${BASE_URL}/api/status`)
     const body = await res.json()
 
@@ -32,7 +35,7 @@ describe('GET /api/status', () => {
         'cache',
         'database',
         'email',
-        'payment',
+        ...(BILLING_ON ? ['payment'] : []),
         'storage',
       ].sort(),
     )

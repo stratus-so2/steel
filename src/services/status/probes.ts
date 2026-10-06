@@ -3,7 +3,8 @@ import { ABACATE_PAY, MINIO_ENDPOINT, RESEND_API_KEY } from '@/lib/env/server'
 import { auth } from '@/src/lib/auth'
 import { prisma } from '@/src/lib/prisma'
 import { ensureRedisConnected } from '@/src/lib/redis'
-import { COMPONENTS, type ComponentKey, type ComponentTier } from './components'
+import { activeComponents } from './active-components'
+import type { ComponentKey, ComponentTier } from './components'
 
 type ProbeStatus = 'OPERATIONAL' | 'DEGRADED' | 'MAJOR_OUTAGE'
 
@@ -146,7 +147,7 @@ export function componentsForTier(
   tier: ComponentTier,
 ): ReadonlyArray<ComponentKey> {
   const keys: ComponentKey[] = []
-  for (const c of COMPONENTS) {
+  for (const c of activeComponents()) {
     if (c.tier === tier) keys.push(c.key)
   }
   return keys
