@@ -8,6 +8,10 @@ import {
 } from '@/src/__tests__/helpers/e2e'
 import { BASE_URL } from '@/src/__tests__/setup.e2e'
 
+// The server and this process share the env (CI sets BILLING_ENABLED=true),
+// so each state of the billing flag runs its own cases.
+const BILLING_ON = process.env.BILLING_ENABLED === 'true'
+
 // NOTE: success path (201 with subscription created) is intentionally NOT
 // tested here because it would require either a live AbacatePay sandbox or
 // patching `lib/abacatepay.ts` to support a configurable base URL pointing to
@@ -68,7 +72,9 @@ describe('POST /api/payment/plan', () => {
     )
     expect(res.status).toBe(422)
   })
+})
 
+describe.runIf(BILLING_ON)('POST /api/payment/plan — billing on', () => {
   it('should return 403 when user is not a member of workspace', async () => {
     const [{ workspace }, stranger] = await Promise.all([
       authenticatedOwner(),
@@ -105,5 +111,20 @@ describe('POST /api/payment/plan', () => {
       viewer.cookie,
     )
     expect(res.status).toBe(403)
+  })
+})
+
+describe.runIf(!BILLING_ON)('POST /api/payment/plan — billing off', () => {
+  it('should return 503 BILLING_DISABLED even for the OWNER', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const res = await postJson(
+      '/api/payment/plan',
+      { plan: 'PRO', workspaceId: workspace.id, seats: 1, interval: 'monthly' },
+      user.cookie,
+    )
+    expect(res.status).toBe(503)
+    const body = await res.json()
+    expect(body.error.code).toBe('BILLING_DISABLED')
   })
 })

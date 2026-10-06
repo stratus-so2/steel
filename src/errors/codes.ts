@@ -657,6 +657,10 @@ export const ERROR_CODES = {
   // painel: os outros blocos da página continuam de pé.
   ANALYTICS_QUERY_FAILED: { code: 'ANALYTICS_QUERY_FAILED', status: 502 },
   BACKUP_FAILED: { code: 'BACKUP_FAILED', status: 500 },
+  // Billing is switched off (`BILLING_ENABLED` is not `'true'`): checkout,
+  // coupons and the payment webhook are unavailable, not broken. 503 because
+  // it is a deliberate, temporary unavailability of the whole feature.
+  BILLING_DISABLED: { code: 'BILLING_DISABLED', status: 503 },
 } as const
 
 export type ErrorCode = keyof typeof ERROR_CODES

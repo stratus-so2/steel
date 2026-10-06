@@ -196,6 +196,10 @@ jobs:
       # (status collector, payment webhook) accept the requests the e2e tests send.
       STATUS_COLLECTOR_SECRET: ci-status-collector-secret
       ABACATE_PAY_WEBHOOK_SECRET: ci-abacate-webhook-secret
+      # Billing is off by default; the e2e suite runs with it on so the
+      # checkout, coupon and webhook tests keep proving today's behavior (the
+      # off state is covered by unit tests and the flag-aware e2e cases).
+      BILLING_ENABLED: 'true'
       # `next start` runs in production mode, where better-auth's built-in rate
       # limiter is on and would 429 the suite's repeated sign-ups. The app keeps
       # its own auth rate limiting; disable only better-auth's here.

@@ -22,6 +22,7 @@ const serverEnv = {
   GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   HUGEICONS_TOKEN: process.env.HUGEICONS_TOKEN,
+  BILLING_ENABLED: process.env.BILLING_ENABLED,
   ABACATE_PAY: process.env.ABACATE_PAY,
   ABACATE_PAY_WEBHOOK_SECRET: process.env.ABACATE_PAY_WEBHOOK_SECRET,
   ABACATE_PAY_CANCEL_PATH: process.env.ABACATE_PAY_CANCEL_PATH,
@@ -93,7 +94,35 @@ const flag = z.preprocess(
   z.enum(['true', 'false']).optional(),
 )
 
-const serverEnvSchema = z.object({
+/** Credentials that only matter while billing is on. */
+const BILLING_CREDENTIALS = ['ABACATE_PAY', 'ABACATE_PAY_WEBHOOK_SECRET'] as const
+
+/**
+ * The AbacatePay credentials are optional as long as billing is off, and
+ * required as soon as `BILLING_ENABLED=true` — turning billing back on must
+ * fail at boot, not at the first checkout.
+ */
+export function requireBillingCredentials(
+  env: {
+    BILLING_ENABLED?: string
+    ABACATE_PAY?: string
+    ABACATE_PAY_WEBHOOK_SECRET?: string
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (env.BILLING_ENABLED !== 'true') return
+  for (const key of BILLING_CREDENTIALS) {
+    if (!env[key]) {
+      ctx.addIssue({
+        code: 'custom',
+        path: [key],
+        message: `${key} is required when BILLING_ENABLED=true`,
+      })
+    }
+  }
+}
+
+export const serverEnvSchema = z.object({
   POSTGRES_USER: z.string().min(2).max(63),
   POSTGRES_PASSWORD: z.string().min(8).max(128),
   POSTGRES_DB: z.string().min(1).max(63),
@@ -133,8 +162,19 @@ const serverEnvSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().length(40),
   RESEND_API_KEY: z.string().startsWith('re_'),
   HUGEICONS_TOKEN: z.string().regex(/^[A-F0-9]{8}(-[A-F0-9]{8}){3}$/),
-  ABACATE_PAY: z.string().min(1).max(100),
-  ABACATE_PAY_WEBHOOK_SECRET: z.string().min(1).max(100),
+  // Billing kill-switch (AbacatePay checkout, coupons, webhook, the status
+  // probe and every upgrade CTA). Off by default: with anything but `'true'`
+  // the provider is never called and its credentials become optional (see
+  // `requireBillingCredentials`). Read it through `isBillingEnabled()`.
+  BILLING_ENABLED: flag,
+  ABACATE_PAY: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(1).max(100).optional(),
+  ),
+  ABACATE_PAY_WEBHOOK_SECRET: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().min(1).max(100).optional(),
+  ),
   // Caminho do cancelamento de assinatura no AbacatePay. Existe só para
   // sobrescrever a rota se o provedor mudá-la; vazio = `/subscriptions/cancel`
   // (o default fica em lib/abacatepay.ts).
@@ -280,7 +320,7 @@ const serverEnvSchema = z.object({
   SENTRY_ORG: blankOptional,
   SENTRY_PROJECT: blankOptional,
   SENTRY_AUTH_TOKEN: blankOptional,
-})
+}).superRefine(requireBillingCredentials)
 
 const validatedServerEnv =
   process.env.NODE_ENV === 'test' || process.env.SKIP_ENV_VALIDATION === 'true'
@@ -309,6 +349,7 @@ export const {
   GITHUB_CLIENT_SECRET,
   RESEND_API_KEY,
   HUGEICONS_TOKEN,
+  BILLING_ENABLED,
   ABACATE_PAY,
   ABACATE_PAY_WEBHOOK_SECRET,
   ABACATE_PAY_CANCEL_PATH,

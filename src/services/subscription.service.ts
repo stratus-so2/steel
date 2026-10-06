@@ -5,7 +5,8 @@ import { logger } from '@/lib/axiom/logger'
 import { BETTER_AUTH_URL } from '@/lib/env/server'
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
 import { WorkspaceFeaturesCache } from '@/src/cache/workspace-features.cache'
-import { forbidden, paymentError } from '@/src/errors'
+import { billingDisabled, forbidden, paymentError } from '@/src/errors'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { err, ok, type Result } from '@/src/lib/result'
 import { toSubscriptionDTO } from '@/src/mappers/subscription.mapper'
 import { SubscriptionRepository } from '@/src/repositories/subscription.repository'
@@ -66,6 +67,8 @@ export const SubscriptionService = {
     actorId: string,
     dto: CreateSubscriptionDTO,
   ): Promise<Result<SubscriptionDTO>> {
+    if (!isBillingEnabled()) return err(billingDisabled())
+
     const membership = await assertMember(actorId, dto.workspaceId)
     if (!membership.ok) return membership
 
@@ -202,6 +205,10 @@ export const SubscriptionService = {
     event: string,
     billId: string,
   ): Promise<Result<void>> {
+    // The route already refuses the webhook while billing is off; this keeps
+    // any other caller from changing plans behind the flag.
+    if (!isBillingEnabled()) return err(billingDisabled())
+
     const subscription = await SubscriptionRepository.findByBillId(billId)
     if (!subscription.ok) return subscription
 
@@ -330,6 +337,7 @@ export const SubscriptionService = {
     if (!found.ok) return found
 
     const attempts: SubscriptionCancellationAttempt[] = []
+    const billingEnabled = isBillingEnabled()
 
     // Sequencial de propósito: são poucas assinaturas por workspace e a
     // ordem das tentativas precisa bater com a ordem da auditoria.
@@ -339,6 +347,25 @@ export const SubscriptionService = {
         plan: String(subscription.plan),
         status: String(subscription.status),
         interval: String(subscription.interval),
+      }
+
+      // Billing off: the provider is never called, but a chargeable row
+      // still means a charge may be alive at AbacatePay (created while the
+      // flag was on). Report it as FAILED so the caller keeps blocking the
+      // deletion (the admin can still force it) instead of losing the billId.
+      if (!billingEnabled) {
+        logger.warn('subscription.cancel_skipped_billing_disabled', {
+          workspaceId,
+          billId: subscription.billId,
+          source,
+        })
+        attempts.push({
+          ...base,
+          outcome: 'FAILED',
+          error:
+            'Cobrança desligada (BILLING_ENABLED=false): cancele a assinatura no painel do AbacatePay',
+        })
+        continue
       }
 
       try {

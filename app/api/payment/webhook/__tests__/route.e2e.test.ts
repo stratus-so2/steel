@@ -5,6 +5,9 @@ import { BASE_URL } from '@/src/__tests__/setup.e2e'
 import { prisma } from '@/src/lib/prisma'
 
 const SECRET = process.env.ABACATE_PAY_WEBHOOK_SECRET ?? ''
+// The server and this process share the env (CI sets BILLING_ENABLED=true),
+// so each state of the billing flag runs its own cases.
+const BILLING_ON = process.env.BILLING_ENABLED === 'true'
 
 async function postWebhook(body: unknown, secret: string | null = SECRET) {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
@@ -34,7 +37,26 @@ async function seedSubscription(opts: {
   })
 }
 
-describe('POST /api/payment/webhook', () => {
+describe.runIf(!BILLING_ON)('POST /api/payment/webhook — billing off', () => {
+  it('should return 404 and leave the subscription untouched', async () => {
+    const { workspace } = await authenticatedOwner({
+      slug: `wh-${createId().slice(0, 6)}`,
+    })
+    const billId = `bill_off_${createId()}`
+    await seedSubscription({ workspaceId: workspace.id, billId })
+
+    const res = await postWebhook({
+      event: 'subscription.completed',
+      data: { id: billId },
+    })
+
+    expect(res.status).toBe(404)
+    const sub = await prisma.subscription.findUnique({ where: { billId } })
+    expect(sub?.status).toBe('PENDING')
+  })
+})
+
+describe.runIf(BILLING_ON)('POST /api/payment/webhook', () => {
   it('should return 401 when x-webhook-secret header is missing', async () => {
     const res = await postWebhook(
       { event: 'subscription.completed', data: { id: 'bill_x' } },

@@ -1,13 +1,16 @@
 import { AbacatePayClient } from '@/lib/abacatepay'
 import { logger } from '@/lib/axiom/logger'
 import type { CouponPreviewDTO } from '@/types/coupon'
-import { couponInvalid, paymentError } from '../errors'
+import { billingDisabled, couponInvalid, paymentError } from '../errors'
+import { isBillingEnabled } from '../lib/billing'
 import { err, ok, type Result } from '../lib/result'
 import { toCouponPreviewDTO } from '../mappers/coupon.mapper'
 import type { ValidateCouponDTO } from '../schemas/coupon.schema'
 
 export const CouponService = {
   async validate(dto: ValidateCouponDTO): Promise<Result<CouponPreviewDTO>> {
+    if (!isBillingEnabled()) return err(billingDisabled())
+
     let coupon: Awaited<ReturnType<typeof AbacatePayClient.getCoupon>>
 
     try {

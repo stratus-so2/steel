@@ -6,13 +6,19 @@ import { CouponService } from '../coupon.service'
 vi.mock('@/lib/abacatepay', () => ({
   AbacatePayClient: { getCoupon: vi.fn() },
 }))
+vi.mock('@/src/lib/billing', () => ({ isBillingEnabled: vi.fn(() => true) }))
 
 import { AbacatePayClient } from '@/lib/abacatepay'
+import { isBillingEnabled } from '@/src/lib/billing'
 
 const mockedAbacate = vi.mocked(AbacatePayClient)
+const mockedBillingEnabled = vi.mocked(isBillingEnabled)
 
 describe('CouponService.validate()', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedBillingEnabled.mockReturnValue(true)
+  })
 
   it('returns the preview for an active coupon', async () => {
     mockedAbacate.getCoupon.mockResolvedValue(
@@ -62,5 +68,20 @@ describe('CouponService.validate()', () => {
   it('returns PAYMENT_ERROR for a non-Error gateway rejection', async () => {
     mockedAbacate.getCoupon.mockRejectedValue('socket hang up')
     expectErr(await CouponService.validate({ code: 'X' }), 'PAYMENT_ERROR')
+  })
+})
+
+describe('CouponService.validate() with billing disabled', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedBillingEnabled.mockReturnValue(false)
+  })
+
+  it('returns BILLING_DISABLED without calling the gateway', async () => {
+    expectErr(
+      await CouponService.validate({ code: 'BLACKFRIDAY' }),
+      'BILLING_DISABLED',
+    )
+    expect(mockedAbacate.getCoupon).not.toHaveBeenCalled()
   })
 })

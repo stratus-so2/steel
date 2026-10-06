@@ -7,6 +7,7 @@ export {
   backupNotFound,
   backupNotRestorable,
   badRequest,
+  billingDisabled,
   changelogLocked,
   changelogNotFound,
   conflict,

@@ -1173,7 +1173,7 @@ const billing: RouteConfig[] = [
     tags: ['Assinaturas'],
     summary: 'Assinar plano',
     description:
-      'Cria a cobrança na AbacatePay para o plano, assentos e periodicidade informados e devolve a `paymentUrl` do checkout. Só OWNER/ADMIN do workspace. O plano só muda quando o webhook confirma o pagamento.',
+      'Cria a cobrança na AbacatePay para o plano, assentos e periodicidade informados e devolve a `paymentUrl` do checkout. Só OWNER/ADMIN do workspace. O plano só muda quando o webhook confirma o pagamento. Com a cobrança desligada (`BILLING_ENABLED` diferente de `true`) responde `BILLING_DISABLED` sem chamar a AbacatePay.',
     consent: true,
     body: {
       schema: CreateSubscriptionSchema,
@@ -1197,6 +1197,7 @@ const billing: RouteConfig[] = [
       'WORKSPACE_SUSPENDED',
       'COUPON_INVALID',
       'PAYMENT_ERROR',
+      'BILLING_DISABLED',
     ],
   },
   {
@@ -1205,7 +1206,7 @@ const billing: RouteConfig[] = [
     tags: ['Assinaturas'],
     summary: 'Webhook da AbacatePay',
     description:
-      'Recebe os eventos de cobrança. `subscription.completed` ativa o plano pago; `subscription.cancelled`/`subscription.expired` voltam o workspace ao FREE. Eventos desconhecidos são ignorados (200). Idempotente.',
+      'Recebe os eventos de cobrança. `subscription.completed` ativa o plano pago; `subscription.cancelled`/`subscription.expired` voltam o workspace ao FREE. Eventos desconhecidos são ignorados (200). Idempotente. Com a cobrança desligada (`BILLING_ENABLED` diferente de `true`) o endpoint responde 404 sem ler nem processar nada.',
     auth: 'abacatePayWebhook',
     body: {
       schema: z.object({
@@ -1224,6 +1225,11 @@ const billing: RouteConfig[] = [
         message: 'Invalid webhook secret',
         when: 'Segredo ausente ou inválido',
       },
+      {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'Not found',
+        when: 'Cobrança desligada (`BILLING_ENABLED`)',
+      },
     ],
   },
   {
@@ -1232,12 +1238,12 @@ const billing: RouteConfig[] = [
     tags: ['Assinaturas'],
     summary: 'Validar cupom',
     description:
-      'Consulta o cupom na AbacatePay e devolve o desconto, para prévia no checkout.',
+      'Consulta o cupom na AbacatePay e devolve o desconto, para prévia no checkout. Com a cobrança desligada responde `BILLING_DISABLED`.',
     query: ValidateCouponSchema,
     responses: {
       200: { description: 'Cupom válido.', schema: CouponPreviewDTO },
     },
-    errors: ['COUPON_INVALID', 'PAYMENT_ERROR'],
+    errors: ['COUPON_INVALID', 'PAYMENT_ERROR', 'BILLING_DISABLED'],
   },
 ]
 
@@ -1248,7 +1254,7 @@ const platform: RouteConfig[] = [
     tags: ['Status'],
     summary: 'Status atual da plataforma',
     description:
-      'Situação geral e de cada componente (app, banco, cache, auth, pagamento, e-mail, storage) com uptime de 90 dias. Público, cacheável (`Cache-Control: public, max-age=30, stale-while-revalidate=60`).',
+      'Situação geral e de cada componente (app, banco, cache, auth, pagamento — só com a cobrança ligada —, e-mail, storage) com uptime de 90 dias. Público, cacheável (`Cache-Control: public, max-age=30, stale-while-revalidate=60`).',
     auth: 'public',
     rateLimit: 'ip',
     responses: {
