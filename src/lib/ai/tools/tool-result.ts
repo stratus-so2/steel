@@ -37,6 +37,9 @@ export function actionResultCallId(actionId: string): string {
   return `${ACTION_RESULT_PREFIX}${actionId}`
 }
 
+const TRUNCATED_NOTE =
+  'Resultado truncado por tamanho. Refine a consulta (filtros ou limit menor) se precisar do restante.'
+
 function byteLength(text: string): number {
   return Buffer.byteLength(text, 'utf8')
 }
@@ -54,24 +57,19 @@ export function serializeToolResult(
   if (byteLength(full) <= maxBytes || payload.data === undefined) return full
 
   const { data, ...rest } = payload
-  const envelope = JSON.stringify({
-    ...rest,
-    truncated: true,
-    note: 'Resultado truncado por tamanho. Refine a consulta (filtros ou limit menor) se precisar do restante.',
-    data: '',
-  })
-  const budget = Math.max(0, maxBytes - byteLength(envelope) - 16)
   let text = JSON.stringify(data)
-  // Cut by characters until the UTF-8 size fits (multi-byte safe).
-  while (byteLength(text) > budget) {
+  // Cut the data by characters until the whole JSON (escapes included)
+  // fits the UTF-8 budget.
+  for (;;) {
+    const out = JSON.stringify({
+      ...rest,
+      truncated: true,
+      note: rest.note ? `${rest.note} ${TRUNCATED_NOTE}` : TRUNCATED_NOTE,
+      data: `${text}…`,
+    })
+    if (byteLength(out) <= maxBytes || text.length === 0) return out
     text = text.slice(0, Math.floor(text.length * 0.9))
   }
-  return JSON.stringify({
-    ...rest,
-    truncated: true,
-    note: 'Resultado truncado por tamanho. Refine a consulta (filtros ou limit menor) se precisar do restante.',
-    data: `${text}…`,
-  })
 }
 
 /** Lenient parse of a TOOL row; unknown content becomes `done`. */

@@ -203,8 +203,6 @@ export const AiConversationService = {
     if (!messages.ok) return messages
     if (!actions.ok) return actions
 
-    return ok(
-      toAiMessageDTOs(messages.value, actions.value, (name) => toolMeta(name)),
-    )
+    return ok(toAiMessageDTOs(messages.value, actions.value, toolMeta))
   },
 }

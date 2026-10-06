@@ -1,0 +1,379 @@
+import { describe, expect, it, vi } from 'vitest'
+import { createFakeWorkspaceAiSettings } from '@/src/__tests__/factories/ai-settings.factory'
+import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
+import { createFakeAiPendingAction } from '@/src/__tests__/factories/steel-ai.factory'
+import { createFakeWorkspaceModuleAccess } from '@/src/__tests__/factories/workspace-module-access.factory'
+import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { databaseError, forbidden } from '@/src/errors'
+import { validationError } from '@/src/errors/app-error'
+import { err, ok } from '@/src/lib/result'
+
+vi.mock('@/src/repositories/membership.repository')
+vi.mock('@/src/repositories/ai-settings.repository')
+vi.mock('@/src/repositories/ai-pending-action.repository')
+
+import { AiPendingActionRepository } from '@/src/repositories/ai-pending-action.repository'
+import { WorkspaceAiSettingsRepository } from '@/src/repositories/ai-settings.repository'
+import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { STEEL_AI_TOOLS } from '../ai/tools'
+import {
+  type AiToolAccess,
+  assertValidToolRegistry,
+  availableTools,
+  findTool,
+  PENDING_ACTION_TTL_MS,
+  proposeWriteTool,
+  resolveToolAccess,
+  runReadTool,
+  runTool,
+  toolMeta,
+  toToolSpecs,
+  validateToolRegistry,
+} from '../ai/tools/registry'
+import type { AnySteelAiTool } from '../ai/tools/types'
+
+const ctx = { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' as const }
+
+function tool(overrides: Partial<AnySteelAiTool>): AnySteelAiTool {
+  return {
+    name: 'x_tool',
+    label: 'Ferramenta',
+    module: null,
+    kind: 'READ',
+    description: 'd',
+    parameters: { type: 'object', properties: {} },
+    parse: (args) => ok(args),
+    execute: vi.fn(async () => ok({ data: { a: 1 }, summary: 'ok' })),
+    ...overrides,
+  }
+}
+
+const read = tool({ name: 'sd_list', module: 'SERVICE_DESK' })
+const crmRead = tool({
+  name: 'crm_list',
+  module: 'CRM',
+  permission: { resource: 'leads', action: 'VIEW' },
+})
+const write = tool({
+  name: 'sd_create',
+  module: 'SERVICE_DESK',
+  kind: 'CREATE',
+  preview: vi.fn(async () => ok({ title: 'Criar', summary: 's' })),
+})
+const remove = tool({
+  name: 'sd_delete',
+  module: 'SERVICE_DESK',
+  kind: 'DELETE',
+  permission: { resource: 'sd-tickets', action: 'DELETE' },
+  preview: vi.fn(async () => ok({ title: 'Excluir', summary: 's' })),
+})
+const TOOLS = [read, crmRead, write, remove]
+
+const access = (overrides: Partial<AiToolAccess> = {}): AiToolAccess => ({
+  modules: ['SERVICE_DESK', 'CRM'],
+  isPrivileged: false,
+  permissions: { leads: ['VIEW'], 'sd-tickets': ['VIEW', 'CREATE'] },
+  agentModeEnabled: true,
+  ...overrides,
+})
+
+const names = (tools: AnySteelAiTool[]) => tools.map((t) => t.name)
+
+describe('tool registry validation', () => {
+  it('should accept every registered Steel AI tool', () => {
+    expect(validateToolRegistry(STEEL_AI_TOOLS)).toEqual([])
+    expect(() => assertValidToolRegistry(STEEL_AI_TOOLS)).not.toThrow()
+  })
+
+  it('should report duplicates, bad names, missing previews and schemas', () => {
+    const problems = validateToolRegistry([
+      read,
+      read,
+      tool({ name: 'Bad-Name' }),
+      tool({ name: 'w_tool', kind: 'UPDATE' }),
+      tool({ name: 'p_tool', parameters: { type: 'string' } }),
+    ])
+    expect(problems).toEqual([
+      'Duplicate tool name "sd_list"',
+      'Tool "Bad-Name" must be snake_case (≤ 64 chars)',
+      'Write tool "w_tool" must implement preview()',
+      'Tool "p_tool" parameters must be an object schema',
+    ])
+    expect(() => assertValidToolRegistry([read, read])).toThrow(
+      'Invalid Steel AI tool registry',
+    )
+  })
+})
+
+describe('availableTools()', () => {
+  it('should only offer READ tools in EXPLORE', () => {
+    expect(names(availableTools(access(), 'EXPLORE', TOOLS))).toEqual([
+      'sd_list',
+      'crm_list',
+    ])
+  })
+
+  it('should add the write tools the profile allows in AGENT', () => {
+    expect(names(availableTools(access(), 'AGENT', TOOLS))).toEqual([
+      'sd_list',
+      'crm_list',
+      'sd_create',
+    ])
+  })
+
+  it('should hide writes when the workspace switched agent mode off', () => {
+    expect(
+      names(
+        availableTools(access({ agentModeEnabled: false }), 'AGENT', TOOLS),
+      ),
+    ).toEqual(['sd_list', 'crm_list'])
+  })
+
+  it('should hide tools of disabled modules', () => {
+    expect(
+      names(availableTools(access({ modules: ['CRM'] }), 'AGENT', TOOLS)),
+    ).toEqual(['crm_list'])
+  })
+
+  it('should deny by default without a permission map, unless privileged', () => {
+    expect(
+      names(availableTools(access({ permissions: null }), 'AGENT', TOOLS)),
+    ).toEqual(['sd_list', 'sd_create'])
+    expect(
+      names(
+        availableTools(
+          access({ permissions: null, isPrivileged: true }),
+          'AGENT',
+          TOOLS,
+        ),
+      ),
+    ).toEqual(['sd_list', 'crm_list', 'sd_create', 'sd_delete'])
+  })
+
+  it('should default to the registered tools', () => {
+    expect(availableTools(access({ isPrivileged: true }), 'AGENT')).toEqual(
+      STEEL_AI_TOOLS.filter((t) => !t.module || t.module !== 'COMMUNICATION'),
+    )
+  })
+})
+
+describe('findTool() / toolMeta() / toToolSpecs()', () => {
+  it('should find tools and describe unknown ones by name', () => {
+    expect(findTool('sd_list', TOOLS)).toBe(read)
+    expect(findTool('nope', TOOLS)).toBeUndefined()
+    expect(findTool('ws_overview')?.kind).toBe('READ')
+    expect(toolMeta('sd_list', TOOLS)).toEqual({
+      label: 'Ferramenta',
+      module: 'SERVICE_DESK',
+    })
+    expect(toolMeta('nope', TOOLS)).toEqual({ label: 'nope', module: null })
+    expect(toolMeta('ws_members').label).toBe('Consultando membros')
+    expect(toToolSpecs([read])).toEqual([
+      { name: 'sd_list', description: 'd', parameters: read.parameters },
+    ])
+  })
+})
+
+describe('resolveToolAccess()', () => {
+  const memberships = vi.mocked(MembershipRepository)
+  const settings = vi.mocked(WorkspaceAiSettingsRepository)
+  const modules = vi.mocked(WorkspaceModuleAccessRepository)
+
+  it('should combine membership, enabled modules and the agent switch', async () => {
+    memberships.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'ADMIN' })),
+    )
+    modules.listByWorkspace.mockResolvedValue(
+      ok([
+        createFakeWorkspaceModuleAccess({ module: 'CRM', enabled: true }),
+        createFakeWorkspaceModuleAccess({
+          module: 'SERVICE_DESK',
+          enabled: false,
+        }),
+      ]),
+    )
+    settings.findByWorkspace.mockResolvedValue(
+      ok(createFakeWorkspaceAiSettings({ agentModeEnabled: false })),
+    )
+    expect(expectOk(await resolveToolAccess('u1', 'ws1'))).toEqual(
+      expect.objectContaining({
+        modules: ['CRM'],
+        isPrivileged: true,
+        agentModeEnabled: false,
+      }),
+    )
+
+    settings.findByWorkspace.mockResolvedValue(ok(null))
+    expect(
+      expectOk(await resolveToolAccess('u1', 'ws1')).agentModeEnabled,
+    ).toBe(true)
+  })
+
+  it('should propagate membership, module and settings failures', async () => {
+    memberships.findByUserAndWorkspace.mockResolvedValue(ok(null))
+    expectErr(await resolveToolAccess('u1', 'ws1'), 'FORBIDDEN')
+
+    memberships.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership()),
+    )
+    modules.listByWorkspace.mockResolvedValue(err(databaseError()))
+    settings.findByWorkspace.mockResolvedValue(ok(null))
+    expectErr(await resolveToolAccess('u1', 'ws1'), 'DATABASE_ERROR')
+
+    modules.listByWorkspace.mockResolvedValue(ok([]))
+    settings.findByWorkspace.mockResolvedValue(err(databaseError()))
+    expectErr(await resolveToolAccess('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+})
+
+describe('runTool() / runReadTool()', () => {
+  it('should execute and serialize the payload', async () => {
+    const run = await runReadTool(read, ctx, { q: 1 })
+    expect(run.ok).toBe(true)
+    expect(JSON.parse(run.content)).toEqual({
+      status: 'done',
+      summary: 'ok',
+      data: { a: 1 },
+    })
+    expect(read.execute).toHaveBeenCalledWith(ctx, { q: 1 })
+  })
+
+  it('should turn parse, execution and thrown errors into error payloads', async () => {
+    const invalid = await runTool(
+      tool({ parse: () => err(validationError('Campo x inválido')) }),
+      ctx,
+      {},
+    )
+    expect(invalid.ok).toBe(false)
+    expect(JSON.parse(invalid.content).error).toEqual({
+      code: 'VALIDATION_ERROR',
+      message: 'Campo x inválido',
+    })
+
+    const denied = await runTool(
+      tool({ execute: async () => err(forbidden()) }),
+      ctx,
+      {},
+    )
+    expect(denied.ok ? null : denied.error.code).toBe('FORBIDDEN')
+
+    const thrown = await runTool(
+      tool({
+        execute: async () => {
+          throw new Error('boom')
+        },
+      }),
+      ctx,
+      {},
+    )
+    expect(thrown.ok ? null : thrown.error.code).toBe('INTERNAL_SERVER_ERROR')
+
+    const nonError = await runTool(
+      tool({
+        execute: async () => {
+          throw 'string'
+        },
+      }),
+      ctx,
+      {},
+    )
+    expect(nonError.ok).toBe(false)
+  })
+
+  it('should refuse to run a write tool as a read', async () => {
+    const run = await runReadTool(write, ctx, {})
+    expect(run.ok ? null : run.error.code).toBe('AI_TOOL_NOT_ALLOWED')
+    expect(write.execute).not.toHaveBeenCalled()
+  })
+})
+
+describe('proposeWriteTool()', () => {
+  const repo = vi.mocked(AiPendingActionRepository)
+  const now = new Date('2026-10-06T12:00:00.000Z')
+
+  it('should store a PENDING action with preview and 30 min expiry', async () => {
+    repo.create.mockResolvedValue(ok(createFakeAiPendingAction()))
+    expectOk(
+      await proposeWriteTool(
+        write,
+        ctx,
+        { title: 'x' },
+        { conversationId: 'c1', toolCallId: 'call1' },
+        now,
+      ),
+    )
+    expect(repo.create).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      requestedById: 'u1',
+      conversationId: 'c1',
+      agentRunId: null,
+      toolName: 'sd_create',
+      toolCallId: 'call1',
+      kind: 'CREATE',
+      module: 'SERVICE_DESK',
+      args: { title: 'x' },
+      preview: { title: 'Criar', summary: 's' },
+      requiresDoubleConfirm: false,
+      expiresAt: new Date(now.getTime() + PENDING_ACTION_TTL_MS),
+    })
+    expect(write.execute).not.toHaveBeenCalled()
+  })
+
+  it('should require the double confirmation for deletes and keep agent runs unowned', async () => {
+    repo.create.mockResolvedValue(ok(createFakeAiPendingAction()))
+    await proposeWriteTool(
+      remove,
+      { ...ctx, source: 'agent', agentId: 'ag1' },
+      {},
+      { agentRunId: 'run1' },
+    )
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestedById: null,
+        conversationId: null,
+        toolCallId: null,
+        agentRunId: 'run1',
+        requiresDoubleConfirm: true,
+      }),
+    )
+  })
+
+  it('should refuse read tools and stop on parse/preview errors', async () => {
+    expectErr(await proposeWriteTool(read, ctx, {}), 'AI_TOOL_NOT_ALLOWED')
+    expectErr(
+      await proposeWriteTool(tool({ ...write, preview: undefined }), ctx, {}),
+      'AI_TOOL_NOT_ALLOWED',
+    )
+    expectErr(
+      await proposeWriteTool(
+        { ...write, parse: () => err(validationError('x')) },
+        ctx,
+        {},
+      ),
+      'VALIDATION_ERROR',
+    )
+    expectErr(
+      await proposeWriteTool(
+        { ...write, preview: async () => err(forbidden()) },
+        ctx,
+        {},
+      ),
+      'FORBIDDEN',
+    )
+    expectErr(
+      await proposeWriteTool(
+        {
+          ...write,
+          preview: async () => {
+            throw new Error('boom')
+          },
+        },
+        ctx,
+        {},
+      ),
+      'INTERNAL_SERVER_ERROR',
+    )
+    expect(repo.create).not.toHaveBeenCalled()
+  })
+})

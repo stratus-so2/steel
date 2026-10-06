@@ -378,6 +378,16 @@ export const TAG_GROUPS = [
     ],
   },
   {
+    name: 'Steel AI',
+    tags: [
+      {
+        name: 'Steel AI',
+        description:
+          'Assistente de IA transversal (ServiceDesk, CRM, Comunicação e plataforma): conversas privadas, resposta em stream (SSE) e ações propostas no modo agente, que só executam com a confirmação do usuário.',
+      },
+    ],
+  },
+  {
     name: 'Legado (Nexo)',
     tags: [
       {
