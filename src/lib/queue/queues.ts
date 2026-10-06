@@ -44,6 +44,8 @@ import {
   type ServicedeskRiskJobPayload,
   type ServicedeskSlaJob,
   type ServicedeskSlaJobPayload,
+  type ServicedeskTaskRemindersJob,
+  type ServicedeskTaskRemindersJobPayload,
   type StatusCollectJob,
   type StatusCollectJobPayload,
   type TrialLifecycleJob,
@@ -101,6 +103,7 @@ let servicedeskBillingQueue: Queue | null = null
 let servicedeskReportsQueue: Queue | null = null
 let servicedeskRiskQueue: Queue | null = null
 let servicedeskIntegrationsQueue: Queue | null = null
+let servicedeskTaskRemindersQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -684,6 +687,31 @@ export function getServicedeskIntegrationsQueue(): Queue<
   >
 }
 
+/**
+ * Task due-date notices: a single attempt. The stamps make the tick
+ * idempotent and the next one (15 min) picks up whatever was left.
+ */
+export function getServicedeskTaskRemindersQueue(): Queue<
+  ServicedeskTaskRemindersJobPayload[ServicedeskTaskRemindersJob],
+  unknown,
+  ServicedeskTaskRemindersJob
+> {
+  if (!servicedeskTaskRemindersQueue) {
+    servicedeskTaskRemindersQueue = new Queue(
+      QueueName.ServicedeskTaskReminders,
+      {
+        connection: getQueueConnection(),
+        defaultJobOptions: { ...defaultJobOptions, attempts: 1 },
+      },
+    )
+  }
+  return servicedeskTaskRemindersQueue as Queue<
+    ServicedeskTaskRemindersJobPayload[ServicedeskTaskRemindersJob],
+    unknown,
+    ServicedeskTaskRemindersJob
+  >
+}
+
 export async function closeQueues(): Promise<void> {
   await Promise.all([
     dataRetentionQueue?.close(),
@@ -716,6 +744,7 @@ export async function closeQueues(): Promise<void> {
     servicedeskRiskQueue?.close(),
     servicedeskIntegrationsQueue?.close(),
     crmTaskRemindersQueue?.close(),
+    servicedeskTaskRemindersQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -746,6 +775,7 @@ export async function closeQueues(): Promise<void> {
   servicedeskReportsQueue = null
   servicedeskRiskQueue = null
   servicedeskIntegrationsQueue = null
+  servicedeskTaskRemindersQueue = null
 }
 
 export function getCrmTaskRemindersQueue(): Queue<

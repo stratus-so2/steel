@@ -29,6 +29,7 @@ import { processServicedeskRecurring } from '../src/lib/queue/processors/service
 import { processServicedeskReports } from '../src/lib/queue/processors/servicedesk-reports'
 import { processServicedeskRisk } from '../src/lib/queue/processors/servicedesk-risk'
 import { processServicedeskSla } from '../src/lib/queue/processors/servicedesk-sla'
+import { processServicedeskTaskReminders } from '../src/lib/queue/processors/servicedesk-task-reminders'
 import { processStatusCollect } from '../src/lib/queue/processors/status-collect'
 import { processUsageRollup } from '../src/lib/queue/processors/usage-rollup'
 import { processWhatsappAiReply } from '../src/lib/queue/processors/whatsapp-ai-reply'
@@ -54,6 +55,7 @@ import {
   scheduleServicedeskReportsJobs,
   scheduleServicedeskRiskJobs,
   scheduleServicedeskSlaJobs,
+  scheduleServicedeskTaskRemindersJobs,
   scheduleStatusCollectJobs,
   scheduleTrialLifecycleJobs,
   scheduleUsageRollupJobs,
@@ -193,6 +195,10 @@ async function main(): Promise<void> {
       QueueName.ServicedeskIntegrations,
       processServicedeskIntegrations,
     ),
+    registerWorker(
+      QueueName.ServicedeskTaskReminders,
+      processServicedeskTaskReminders,
+    ),
   )
   workers.push(
     registerWorker(QueueName.CrmTaskReminders, processCrmTaskReminders),
@@ -224,6 +230,7 @@ async function main(): Promise<void> {
   await scheduleServicedeskRiskJobs()
   await scheduleServicedeskIntegrationsJobs()
   await scheduleCrmTaskRemindersJobs()
+  await scheduleServicedeskTaskRemindersJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

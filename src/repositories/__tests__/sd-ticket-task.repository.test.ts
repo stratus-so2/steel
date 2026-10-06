@@ -89,6 +89,83 @@ describe('SdTicketTaskRepository', () => {
     expect(untouched.position).toBe(5)
   })
 
+  it('lists the tasks owing a due-date notice and claims each one once', async () => {
+    const { workspace, user, ticket } = await setup()
+    const now = new Date('2026-10-06T12:00:00.000Z')
+    const at = (minutes: number) => new Date(now.getTime() + minutes * 60_000)
+    const seed = (title: string, data = {}) =>
+      seedSdTicketTask(workspace.id, ticket.id, user.id, {
+        title,
+        assigneeId: user.id,
+        ...data,
+      })
+
+    const soon = await seed('soon', { dueDate: at(30) })
+    const overdue = await seed('overdue', { dueDate: at(-30) })
+    await seed('far', { dueDate: at(180) })
+    await seed('ancient', { dueDate: at(-60 * 48) })
+    await seed('done', { dueDate: at(10), status: 'DONE' })
+    await seed('unassigned', { dueDate: at(10), assigneeId: null })
+    await seed('warned', { dueDate: at(10), dueSoonNotifiedAt: now })
+    await seed('late-warned', { dueDate: at(-10), overdueNotifiedAt: now })
+    const params = {
+      workspaceIds: [workspace.id],
+      now,
+      soonUntil: at(60),
+      overdueFrom: at(-60 * 24),
+      limit: 50,
+    }
+
+    const rows = expectOk(await SdTicketTaskRepository.listDueReminders(params))
+    expect(rows.map((row) => row.title)).toEqual(['overdue', 'soon'])
+    expect(rows[0].ticket).toMatchObject({
+      id: ticket.id,
+      number: ticket.number,
+      participants: [],
+      contact: null,
+    })
+    expect(
+      expectOk(
+        await SdTicketTaskRepository.listDueReminders({
+          ...params,
+          workspaceIds: [],
+        }),
+      ),
+    ).toEqual([])
+
+    expect(
+      expectOk(
+        await SdTicketTaskRepository.claimReminder(soon.id, 'due_soon', now),
+      ),
+    ).toBe(true)
+    expect(
+      expectOk(
+        await SdTicketTaskRepository.claimReminder(soon.id, 'due_soon', now),
+      ),
+    ).toBe(false)
+    expect(
+      expectOk(
+        await SdTicketTaskRepository.claimReminder(overdue.id, 'overdue', now),
+      ),
+    ).toBe(true)
+    expect(
+      expectOk(await SdTicketTaskRepository.listDueReminders(params)),
+    ).toEqual([])
+
+    // Trashed tickets are skipped.
+    await prisma.sdTicketTask.updateMany({
+      where: { id: soon.id },
+      data: { dueSoonNotifiedAt: null },
+    })
+    await prisma.sdTicket.update({
+      where: { id: ticket.id },
+      data: { deletedAt: now },
+    })
+    expect(
+      expectOk(await SdTicketTaskRepository.listDueReminders(params)),
+    ).toEqual([])
+  })
+
   it('maps failures to DATABASE_ERROR', async () => {
     const many = vi
       .spyOn(prisma.sdTicketTask, 'findMany')
@@ -119,6 +196,28 @@ describe('SdTicketTaskRepository', () => {
       'DATABASE_ERROR',
     )
     expectErr(await SdTicketTaskRepository.delete('missing'), 'DATABASE_ERROR')
+    const findManyAgain = vi
+      .spyOn(prisma.sdTicketTask, 'findMany')
+      .mockRejectedValueOnce(new Error('boom'))
+    expectErr(
+      await SdTicketTaskRepository.listDueReminders({
+        workspaceIds: ['w'],
+        now: new Date(),
+        soonUntil: new Date(),
+        overdueFrom: new Date(),
+        limit: 1,
+      }),
+      'DATABASE_ERROR',
+    )
+    findManyAgain.mockRestore()
+    const updateMany = vi
+      .spyOn(prisma.sdTicketTask, 'updateMany')
+      .mockRejectedValueOnce(new Error('boom'))
+    expectErr(
+      await SdTicketTaskRepository.claimReminder('a', 'overdue', new Date()),
+      'DATABASE_ERROR',
+    )
+    updateMany.mockRestore()
     many.mockRestore()
     first.mockRestore()
     tx.mockRestore()

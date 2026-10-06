@@ -378,3 +378,69 @@ describe('reorder', () => {
     )
   })
 })
+
+describe('update · due-date notices', () => {
+  const due = new Date('2026-10-06T15:00:00.000Z')
+
+  beforeEach(() => {
+    repo.update.mockClear()
+    repo.findById.mockResolvedValue(
+      ok(createFakeSdTicketTask({ id: 'k1', assigneeId: 'a1', dueDate: due })),
+    )
+  })
+
+  it('re-arms both notices when the due date moves', async () => {
+    expectOk(
+      await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', {
+        dueDate: new Date('2026-10-07T15:00:00.000Z'),
+      }),
+    )
+    expect(repo.update.mock.calls[0]?.[1]).toMatchObject({
+      dueSoonNotifiedAt: null,
+      overdueNotifiedAt: null,
+    })
+  })
+
+  it('re-arms them when the due date is cleared', async () => {
+    expectOk(
+      await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', {
+        dueDate: null,
+      }),
+    )
+    expect(repo.update.mock.calls[0]?.[1]).toHaveProperty(
+      'overdueNotifiedAt',
+      null,
+    )
+  })
+
+  it('re-arms them when a task first gets a due date', async () => {
+    repo.findById.mockResolvedValue(
+      ok(createFakeSdTicketTask({ id: 'k1', assigneeId: 'a1', dueDate: null })),
+    )
+    expectOk(
+      await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', {
+        dueDate: due,
+      }),
+    )
+    expect(repo.update.mock.calls[0]?.[1]).toHaveProperty(
+      'dueSoonNotifiedAt',
+      null,
+    )
+  })
+
+  it('keeps them when the due date is unchanged or not sent', async () => {
+    expectOk(
+      await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', {
+        dueDate: new Date(due),
+      }),
+    )
+    expectOk(
+      await SdTicketTaskService.update('u1', 'ws1', 't1', 'k1', {
+        title: 'Outro título',
+      }),
+    )
+    for (const [, data] of repo.update.mock.calls) {
+      expect(data).not.toHaveProperty('dueSoonNotifiedAt')
+    }
+  })
+})
