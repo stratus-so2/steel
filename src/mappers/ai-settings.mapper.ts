@@ -66,9 +66,8 @@ export function toWorkspaceAiSettingsDTO(input: {
 }): WorkspaceAiSettingsDTO {
   const { settings, usage } = input
   const enabled = new Set<string>(settings.enabledModels)
-  const prices = new Map(
-    toAiModelPriceDTOs(input.costMargin ?? 1).map((p) => [p.key, p]),
-  )
+  // Same order as the catalog.
+  const prices = toAiModelPriceDTOs(input.costMargin ?? 1)
   const usedUsd = Math.round(usage.costUsd * 100) / 100
 
   return {
@@ -78,15 +77,15 @@ export function toWorkspaceAiSettingsDTO(input: {
       label: AI_PROVIDER_LABELS[id],
       available: input.isProviderAvailable(id),
     })),
-    models: AI_MODEL_CATALOG.map((m) => ({
+    models: AI_MODEL_CATALOG.map((m, index) => ({
       key: m.key,
       provider: m.provider,
       model: m.model,
       label: m.label,
       available: input.isProviderAvailable(m.provider),
       enabled: enabled.has(m.key),
-      inputUsdPer1M: prices.get(m.key)?.chargedInputUsdPer1M ?? 0,
-      outputUsdPer1M: prices.get(m.key)?.chargedOutputUsdPer1M ?? 0,
+      inputUsdPer1M: prices[index].chargedInputUsdPer1M,
+      outputUsdPer1M: prices[index].chargedOutputUsdPer1M,
     })),
     enabledModels: settings.enabledModels,
     crmAssistantModel: settings.crmAssistantModel,

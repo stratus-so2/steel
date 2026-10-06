@@ -22,7 +22,7 @@ export function toAiModelPriceDTOs(margin: number): PlatformAiModelPriceDTO[] {
     label: m.label,
     inputUsdPer1M: m.pricing.inputUsdPer1M,
     outputUsdPer1M: m.pricing.outputUsdPer1M,
-    cachedInputUsdPer1M: m.pricing.cachedInputUsdPer1M ?? null,
+    cachedInputUsdPer1M: m.pricing.cachedInputUsdPer1M,
     chargedInputUsdPer1M: charged(m.pricing.inputUsdPer1M, margin),
     chargedOutputUsdPer1M: charged(m.pricing.outputUsdPer1M, margin),
   }))

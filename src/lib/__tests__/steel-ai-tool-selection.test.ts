@@ -249,7 +249,12 @@ describe('selectSteelAiTools()', () => {
     const selection = selectSteelAiTools({
       available: ALL,
       message: 'e os de ontem?',
-      pinned: ['crm_list_leads', 'removed_tool', 'crm_list_leads'],
+      pinned: [
+        'crm_list_leads',
+        'removed_tool',
+        'crm_list_leads',
+        'ws_overview',
+      ],
     })
     expect(names(selection.tools)).toEqual([
       'ws_overview',

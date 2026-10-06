@@ -1,10 +1,18 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import {
   PLATFORM_AI_SETTINGS_ID,
   PlatformAiSettingsRepository,
 } from '../platform-ai-settings.repository'
+
+// Not in the shared TRUNCATE list (no FK to users): clean the single row here.
+beforeEach(async () => {
+  await prisma.platformAiSettings.deleteMany()
+})
+afterEach(async () => {
+  await prisma.platformAiSettings.deleteMany()
+})
 
 describe('PlatformAiSettingsRepository', () => {
   it('should return null until the first save, then upsert the single row', async () => {
