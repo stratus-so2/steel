@@ -31,6 +31,10 @@ import type {
   SdPublicApprovalDTO,
   SdTicketApprovalDTO,
 } from '@/types/sd-ticket-approval'
+import {
+  notifySdApprovalCanceled,
+  notifySdApprovalsExpired,
+} from './sd-approval-notify'
 import { registerSdRoundVote } from './sd-approval-round.service'
 import { fireSdAutomations } from './sd-automation-engine'
 import { notifySdEvent, type SdNotifyInput } from './sd-notification.service'
@@ -196,7 +200,17 @@ async function lazyExpire(
     logger.warn('servicedesk.approval.expire_failed', {
       reason: expired.error.code,
     })
+    return
   }
+  if (expired.value.length === 0) return
+  await notifySdApprovalsExpired(
+    expired.value.map((row) => ({
+      workspaceId: row.workspaceId,
+      ticketId: row.ticketId,
+      requestedById: row.requestedById,
+      label: row.approverName ?? row.approverEmail,
+    })),
+  )
 }
 
 async function publishApproval(
@@ -377,7 +391,7 @@ export const SdTicketApprovalService = {
       { agentOnly: true },
     )
     if (!loaded.ok) return loaded
-    const { ticket } = loaded.value
+    const { ticket, code } = loaded.value
     const existing = await SdTicketApprovalRepository.findById(
       approvalId,
       ticket.id,
@@ -387,6 +401,14 @@ export const SdTicketApprovalService = {
     const canceled = await SdTicketApprovalRepository.cancel(approvalId)
     if (!canceled.ok) return canceled
     if (!canceled.value) return err(sdApprovalNotPending())
+
+    await notifySdApprovalCanceled({
+      ticket,
+      code,
+      actorId,
+      approverUserIds: [existing.value.approverUserId],
+      body: existing.value.message?.trim() || ticket.title,
+    })
 
     await recordSdTicketEvent({
       workspaceId,

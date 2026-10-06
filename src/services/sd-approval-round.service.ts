@@ -23,6 +23,10 @@ import { SdCabBoardRepository } from '@/src/repositories/sd-cab-board.repository
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
 import type { OpenSdApprovalRoundDTO } from '@/src/schemas/sd-approval-round.schema'
 import type { SdApprovalRoundDTO } from '@/types/sd-cab'
+import {
+  notifySdApprovalCanceled,
+  notifySdApprovalsExpired,
+} from './sd-approval-notify'
 import { selectSdCabBoard } from './sd-cab-board.service'
 import { notifySdEvent, type SdNotifyInput } from './sd-notification.service'
 import { newSdApprovalToken, sdApprovalUrl } from './sd-ticket-approval.service'
@@ -81,7 +85,17 @@ async function lazyExpire(ticketId: string): Promise<void> {
       ticketId,
       reason: expired.error.code,
     })
+    return
   }
+  if (expired.value.length === 0) return
+  await notifySdApprovalsExpired(
+    expired.value.map((round) => ({
+      workspaceId: round.workspaceId,
+      ticketId: round.ticketId,
+      requestedById: round.requestedById,
+      label: round.boardName ? `comitê ${round.boardName}` : 'comitê',
+    })),
+  )
 }
 
 interface RoundMailContext {
@@ -425,6 +439,20 @@ export const SdApprovalRoundService = {
     const canceled =
       await SdApprovalRoundRepository.cancelPendingApprovals(roundId)
     if (!canceled.ok) return canceled
+
+    await notifySdApprovalCanceled({
+      ticket,
+      code: loaded.value.code,
+      actorId,
+      approverUserIds: existing.value.approvals
+        .filter((approval) => approval.status === 'PENDING')
+        .map((approval) => approval.approverUserId),
+      body: `A rodada do ${
+        existing.value.board?.name
+          ? `comitê ${existing.value.board.name}`
+          : 'comitê'
+      } foi cancelada — seu voto não é mais necessário.`,
+    })
 
     await recordSdTicketEvent({
       workspaceId,

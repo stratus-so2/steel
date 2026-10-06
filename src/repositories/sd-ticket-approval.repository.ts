@@ -14,6 +14,21 @@ export type SdTicketApprovalWithRelations = Prisma.SdTicketApprovalGetPayload<{
   include: typeof SD_APPROVAL_INCLUDE
 }>
 
+const SD_EXPIRED_APPROVAL_SELECT = {
+  id: true,
+  workspaceId: true,
+  ticketId: true,
+  roundId: true,
+  requestedById: true,
+  approverName: true,
+  approverEmail: true,
+} as const satisfies Prisma.SdTicketApprovalSelect
+
+/** Request moved to EXPIRED by a lazy expiration. */
+export type SdExpiredApproval = Prisma.SdTicketApprovalGetPayload<{
+  select: typeof SD_EXPIRED_APPROVAL_SELECT
+}>
+
 const PUBLIC_INCLUDE = {
   ...SD_APPROVAL_INCLUDE,
   workspace: { select: { id: true, name: true, slug: true } },
@@ -141,13 +156,16 @@ export const SdTicketApprovalRepository = {
   async expireOverdue(
     scope: { ticketId: string } | { id: string },
     now: Date,
-  ): Promise<Result<number>> {
+  ): Promise<Result<SdExpiredApproval[]>> {
     try {
-      const result = await prisma.sdTicketApproval.updateMany({
+      // `RETURNING` only hands back the rows this call moved, so two
+      // concurrent lazy expirations never report (and notify) the same row.
+      const rows = await prisma.sdTicketApproval.updateManyAndReturn({
         where: { ...scope, status: 'PENDING', expiresAt: { lte: now } },
         data: { status: 'EXPIRED' },
+        select: SD_EXPIRED_APPROVAL_SELECT,
       })
-      return ok(result.count)
+      return ok(rows)
     } catch (error) {
       return err(dbError('Failed to expire ServiceDesk approvals', error))
     }

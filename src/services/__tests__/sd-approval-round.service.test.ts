@@ -34,12 +34,20 @@ vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   SdTicketEngine: { touchActivity: vi.fn() },
 }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
+vi.mock('../sd-approval-notify', () => ({
+  notifySdApprovalCanceled: vi.fn(async () => undefined),
+  notifySdApprovalsExpired: vi.fn(async () => undefined),
+}))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { sendSdApprovalRequestEmail } from '@/src/lib/mail/servicedesk/send-sd-approval-request'
 import { SdApprovalRoundRepository } from '@/src/repositories/sd-approval-round.repository'
 import { SdCabBoardRepository } from '@/src/repositories/sd-cab-board.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import {
+  notifySdApprovalCanceled,
+  notifySdApprovalsExpired,
+} from '../sd-approval-notify'
 import {
   registerSdRoundVote,
   SdApprovalRoundService,
@@ -109,7 +117,7 @@ const openedRound = (overrides = {}) =>
 
 beforeEach(() => {
   load.mockResolvedValue(ok(sdTabScope()))
-  repo.expireOverdue.mockResolvedValue(ok(0))
+  repo.expireOverdue.mockResolvedValue(ok([]))
   repo.findOpenByTicket.mockResolvedValue(ok(null))
   repo.listByTicket.mockResolvedValue(ok([openedRound()]))
   repo.findById.mockResolvedValue(ok(openedRound()))
@@ -623,5 +631,98 @@ describe('SdApprovalRoundService.cancel', () => {
       await SdApprovalRoundService.cancel('u1', 'ws1', '7', 'r1'),
       'SD_APPROVAL_ROUND_NOT_FOUND',
     )
+  })
+})
+
+describe('SdApprovalRoundService · approval notices', () => {
+  const canceledNotice = vi.mocked(notifySdApprovalCanceled)
+  const expiredNotice = vi.mocked(notifySdApprovalsExpired)
+
+  beforeEach(() => {
+    canceledNotice.mockClear()
+    expiredNotice.mockClear()
+  })
+
+  it('tells the approvers who had not voted that the round was canceled', async () => {
+    repo.findById.mockResolvedValue(
+      ok(
+        openedRound({
+          approvals: [
+            createFakeSdTicketApproval({
+              id: 'a1',
+              roundId: 'r1',
+              approverUserId: 'ana',
+              status: 'APPROVED',
+            }),
+            createFakeSdTicketApproval({
+              id: 'a2',
+              roundId: 'r1',
+              approverUserId: 'bruno',
+            }),
+          ],
+        }),
+      ),
+    )
+    expectOk(await SdApprovalRoundService.cancel('u1', 'ws1', '7', 'r1'))
+    expect(canceledNotice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'u1',
+        approverUserIds: ['bruno'],
+        body: expect.stringContaining('CAB de infraestrutura'),
+      }),
+    )
+  })
+
+  it('names an unnamed committee generically', async () => {
+    repo.findById.mockResolvedValue(ok(openedRound({ board: null })))
+    expectOk(await SdApprovalRoundService.cancel('u1', 'ws1', '7', 'r1'))
+    expect(canceledNotice.mock.calls[0][0].body).toContain('do comitê foi')
+  })
+
+  it('does not notify when the cancel lost the race', async () => {
+    repo.close.mockResolvedValue(ok(false))
+    expectErr(await SdApprovalRoundService.cancel('u1', 'ws1', '7', 'r1'))
+    expect(canceledNotice).not.toHaveBeenCalled()
+  })
+
+  it('notifies the rounds that the lazy expiration moved', async () => {
+    repo.expireOverdue.mockResolvedValue(
+      ok([
+        {
+          id: 'r1',
+          workspaceId: 'ws1',
+          ticketId: 't1',
+          requestedById: 'u1',
+          boardName: 'CAB',
+        },
+        {
+          id: 'r2',
+          workspaceId: 'ws1',
+          ticketId: 't1',
+          requestedById: 'u2',
+          boardName: null,
+        },
+      ]),
+    )
+    expectOk(await SdApprovalRoundService.list('u1', 'ws1', '7'))
+    expect(expiredNotice).toHaveBeenCalledWith([
+      {
+        workspaceId: 'ws1',
+        ticketId: 't1',
+        requestedById: 'u1',
+        label: 'comitê CAB',
+      },
+      {
+        workspaceId: 'ws1',
+        ticketId: 't1',
+        requestedById: 'u2',
+        label: 'comitê',
+      },
+    ])
+  })
+
+  it('stays quiet when nothing expired', async () => {
+    expectOk(await SdApprovalRoundService.list('u1', 'ws1', '7'))
+    expect(expiredNotice).not.toHaveBeenCalled()
   })
 })
