@@ -78,10 +78,11 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   const scrollToBottom = useCallback((smooth = false) => {
     const node = scrollRef.current
     if (!node) return
-    node.scrollTo({
-      top: node.scrollHeight,
-      behavior: smooth ? 'smooth' : 'auto',
-    })
+    if (smooth && typeof node.scrollTo === 'function') {
+      node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' })
+    } else {
+      node.scrollTop = node.scrollHeight
+    }
   }, [])
 
   const submit = useCallback(
