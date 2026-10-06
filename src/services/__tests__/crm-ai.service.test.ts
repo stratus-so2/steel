@@ -79,7 +79,7 @@ function response(overrides: Partial<AiChatResponse>): AiChatResponse {
 function preparedCall(chat: AiProvider['chat']): PreparedAiCall {
   return {
     feature: 'CRM_ASSISTANT',
-    provider: { id: 'anthropic', chat },
+    provider: { id: 'anthropic', chat, chatStream: vi.fn() },
     model: {
       key: 'anthropic:claude-sonnet-5',
       provider: 'anthropic',

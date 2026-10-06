@@ -74,7 +74,7 @@ function response(text: string): AiChatResponse {
 function preparedCall(chat: AiProvider['chat']): PreparedAiCall {
   return {
     feature: 'WHATSAPP_REPLY',
-    provider: { id: 'openai', chat },
+    provider: { id: 'openai', chat, chatStream: vi.fn() },
     model: {
       key: 'openai:gpt-4o-mini',
       provider: 'openai',

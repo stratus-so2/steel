@@ -5,6 +5,7 @@ import {
   type AiContentPart,
   type AiMessage,
   type AiProvider,
+  type AiStreamChunk,
   type AiToolCall,
   parseToolArguments,
 } from './types'
@@ -111,6 +112,88 @@ function buildTools(request: AiChatRequest): ToolUnion[] {
   return tools
 }
 
+function buildParams(request: AiChatRequest): CreateParams {
+  const tools = buildTools(request)
+  return {
+    model: request.model,
+    max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+    messages: toAnthropicMessages(request.messages),
+    ...(request.system && { system: request.system }),
+    ...(tools.length > 0 && { tools }),
+    ...(tools.length > 0 &&
+      request.toolChoice && { tool_choice: { type: request.toolChoice } }),
+    ...(request.jsonSchema && {
+      output_config: {
+        format: { type: 'json_schema', schema: request.jsonSchema.schema },
+      },
+    }),
+  }
+}
+
+function inputTokensOf(usage: Anthropic.Usage): number {
+  return (
+    usage.input_tokens +
+    (usage.cache_creation_input_tokens ?? 0) +
+    (usage.cache_read_input_tokens ?? 0)
+  )
+}
+
+/** Continuation request after a `pause_turn` (server-side web search loop). */
+function continuation(
+  params: CreateParams,
+  content: ContentBlock[],
+): CreateParams {
+  return {
+    ...params,
+    messages: [
+      ...params.messages,
+      { role: 'assistant', content: [...content] as ContentBlockParam[] },
+    ],
+  }
+}
+
+function toChatResponse(
+  content: ContentBlock[],
+  usage: { inputTokens: number; outputTokens: number },
+  stopReason: Anthropic.Message['stop_reason'],
+): AiChatResponse {
+  const toolCalls: AiToolCall[] = content
+    .filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+    )
+    .map((block) => ({
+      id: block.id,
+      name: block.name,
+      arguments: parseToolArguments(block.input),
+    }))
+
+  const text = content
+    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+    .map((block) => block.text)
+    .join('')
+    .trim()
+
+  return {
+    text,
+    toolCalls,
+    message: {
+      role: 'assistant',
+      content: text,
+      ...(toolCalls.length > 0 && { toolCalls }),
+      raw: { provider: 'anthropic', content },
+    },
+    usage,
+    stopReason:
+      stopReason === 'refusal'
+        ? 'refusal'
+        : toolCalls.length > 0
+          ? 'tool_use'
+          : stopReason === 'max_tokens'
+            ? 'max_tokens'
+            : 'end',
+  }
+}
+
 /**
  * Adaptador do Claude (Anthropic Messages API, sem betas). Recusas dos
  * classificadores de segurança (`stop_reason: 'refusal'`) são devolvidas
@@ -121,24 +204,7 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
   return {
     id: 'anthropic',
     async chat(request: AiChatRequest): Promise<AiChatResponse> {
-      const tools = buildTools(request)
-      const messages = toAnthropicMessages(request.messages)
-
-      const params: CreateParams = {
-        model: request.model,
-        max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        messages,
-        ...(request.system && { system: request.system }),
-        ...(tools.length > 0 && { tools }),
-        ...(tools.length > 0 &&
-          request.toolChoice && { tool_choice: { type: request.toolChoice } }),
-        ...(request.jsonSchema && {
-          output_config: {
-            format: { type: 'json_schema', schema: request.jsonSchema.schema },
-          },
-        }),
-      }
-
+      const params = buildParams(request)
       const content: ContentBlock[] = []
       let inputTokens = 0
       let outputTokens = 0
@@ -146,10 +212,7 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
 
       for (let i = 0; ; i++) {
         content.push(...response.content)
-        inputTokens +=
-          response.usage.input_tokens +
-          (response.usage.cache_creation_input_tokens ?? 0) +
-          (response.usage.cache_read_input_tokens ?? 0)
+        inputTokens += inputTokensOf(response.usage)
         outputTokens += response.usage.output_tokens
 
         // A busca web roda num loop server-side que pode pausar; reenviar o
@@ -160,49 +223,54 @@ export function createAnthropicProvider(client: Anthropic): AiProvider {
         ) {
           break
         }
-        response = await client.messages.create({
-          ...params,
-          messages: [
-            ...messages,
-            { role: 'assistant', content: [...content] as ContentBlockParam[] },
-          ],
-        })
+        response = await client.messages.create(continuation(params, content))
       }
 
-      const toolCalls: AiToolCall[] = content
-        .filter(
-          (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+      return toChatResponse(
+        content,
+        { inputTokens, outputTokens },
+        response.stop_reason,
+      )
+    },
+
+    async *chatStream(request: AiChatRequest): AsyncIterable<AiStreamChunk> {
+      const params = buildParams(request)
+      const content: ContentBlock[] = []
+      let inputTokens = 0
+      let outputTokens = 0
+
+      for (let i = 0; ; i++) {
+        const stream = client.messages.stream(
+          i === 0 ? params : continuation(params, content),
         )
-        .map((block) => ({
-          id: block.id,
-          name: block.name,
-          arguments: parseToolArguments(block.input),
-        }))
+        for await (const event of stream) {
+          if (
+            event.type === 'content_block_delta' &&
+            event.delta.type === 'text_delta' &&
+            event.delta.text
+          ) {
+            yield { type: 'text', delta: event.delta.text }
+          }
+        }
+        const response = await stream.finalMessage()
+        content.push(...response.content)
+        inputTokens += inputTokensOf(response.usage)
+        outputTokens += response.usage.output_tokens
 
-      const text = content
-        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-        .map((block) => block.text)
-        .join('')
-        .trim()
-
-      return {
-        text,
-        toolCalls,
-        message: {
-          role: 'assistant',
-          content: text,
-          ...(toolCalls.length > 0 && { toolCalls }),
-          raw: { provider: 'anthropic', content },
-        },
-        usage: { inputTokens, outputTokens },
-        stopReason:
-          response.stop_reason === 'refusal'
-            ? 'refusal'
-            : toolCalls.length > 0
-              ? 'tool_use'
-              : response.stop_reason === 'max_tokens'
-                ? 'max_tokens'
-                : 'end',
+        if (
+          response.stop_reason !== 'pause_turn' ||
+          i >= MAX_PAUSE_CONTINUATIONS
+        ) {
+          yield {
+            type: 'done',
+            response: toChatResponse(
+              content,
+              { inputTokens, outputTokens },
+              response.stop_reason,
+            ),
+          }
+          return
+        }
       }
     },
   }

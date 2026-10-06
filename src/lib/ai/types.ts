@@ -4,8 +4,8 @@ import type { AiProviderId } from './models'
  * Abstração de chat independente de provedor. Cobre exatamente o que as
  * funcionalidades do produto usam hoje: system prompt, histórico com texto
  * e imagens, tool calling (function tools + busca web nativa do provedor),
- * saída JSON com schema e contagem de tokens. Não há streaming porque
- * nenhuma funcionalidade consome resposta token-a-token.
+ * saída JSON com schema e contagem de tokens. `chatStream` entrega o texto
+ * token a token (Steel AI) e termina com a mesma resposta que `chat`.
  */
 
 export type AiContentPart =
@@ -73,9 +73,19 @@ export interface AiChatResponse {
   stopReason: AiStopReason
 }
 
+/**
+ * Event of a streamed chat: text deltas as they arrive, then exactly one
+ * `done` carrying the same response `chat` would return (tool calls, `raw`
+ * and usage included).
+ */
+export type AiStreamChunk =
+  | { type: 'text'; delta: string }
+  | { type: 'done'; response: AiChatResponse }
+
 export interface AiProvider {
   readonly id: AiProviderId
   chat(request: AiChatRequest): Promise<AiChatResponse>
+  chatStream(request: AiChatRequest): AsyncIterable<AiStreamChunk>
 }
 
 export function parseToolArguments(raw: unknown): Record<string, unknown> {
