@@ -48,6 +48,8 @@ import {
   type ServicedeskTaskRemindersJobPayload,
   type StatusCollectJob,
   type StatusCollectJobPayload,
+  type SteelAgentsJob,
+  type SteelAgentsJobPayload,
   type TrialLifecycleJob,
   type TrialLifecycleJobPayload,
   type UsageRollupJob,
@@ -104,6 +106,7 @@ let servicedeskReportsQueue: Queue | null = null
 let servicedeskRiskQueue: Queue | null = null
 let servicedeskIntegrationsQueue: Queue | null = null
 let servicedeskTaskRemindersQueue: Queue | null = null
+let steelAgentsQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -745,6 +748,7 @@ export async function closeQueues(): Promise<void> {
     servicedeskIntegrationsQueue?.close(),
     crmTaskRemindersQueue?.close(),
     servicedeskTaskRemindersQueue?.close(),
+    steelAgentsQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -776,6 +780,7 @@ export async function closeQueues(): Promise<void> {
   servicedeskRiskQueue = null
   servicedeskIntegrationsQueue = null
   servicedeskTaskRemindersQueue = null
+  steelAgentsQueue = null
 }
 
 export function getCrmTaskRemindersQueue(): Queue<
@@ -793,6 +798,25 @@ export function getCrmTaskRemindersQueue(): Queue<
     CrmTaskRemindersJobPayload[CrmTaskRemindersJob],
     unknown,
     CrmTaskRemindersJob
+  >
+}
+
+/** Steel Agents: single attempt (a retry could repeat automatic writes). */
+export function getSteelAgentsQueue(): Queue<
+  SteelAgentsJobPayload[SteelAgentsJob],
+  unknown,
+  SteelAgentsJob
+> {
+  if (!steelAgentsQueue) {
+    steelAgentsQueue = new Queue(QueueName.SteelAgents, {
+      connection: getQueueConnection(),
+      defaultJobOptions: { ...defaultJobOptions, attempts: 1 },
+    })
+  }
+  return steelAgentsQueue as Queue<
+    SteelAgentsJobPayload[SteelAgentsJob],
+    unknown,
+    SteelAgentsJob
   >
 }
 
@@ -830,6 +854,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.ServicedeskIntegrations]: getServicedeskIntegrationsQueue,
   [QueueName.CrmTaskReminders]: getCrmTaskRemindersQueue,
   [QueueName.ServicedeskTaskReminders]: getServicedeskTaskRemindersQueue,
+  [QueueName.SteelAgents]: getSteelAgentsQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */

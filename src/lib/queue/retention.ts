@@ -115,3 +115,6 @@ export const CrmTaskRemindersCron = '*/15 * * * *' as const
  * hour" is announced with at least 45 minutes to spare.
  */
 export const ServicedeskTaskRemindersCron = '*/15 * * * *' as const
+
+/** Steel Agents tick: every minute (cron agents have minute precision). */
+export const SteelAgentsTickCron = '* * * * *' as const

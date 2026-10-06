@@ -259,6 +259,8 @@ export async function proposeWriteTool(
     conversationId?: string | null
     toolCallId?: string | null
     agentRunId?: string | null
+    /** Overrides the 30 min validity (Steel Agents approve via the inbox). */
+    ttlMs?: number
   } = {},
   now: Date = new Date(),
 ): Promise<Result<AiPendingAction>> {
@@ -287,6 +289,8 @@ export async function proposeWriteTool(
     args: parsed.value as Prisma.InputJsonValue,
     preview: preview.value as unknown as Prisma.InputJsonValue,
     requiresDoubleConfirm: tool.kind === 'DELETE',
-    expiresAt: new Date(now.getTime() + PENDING_ACTION_TTL_MS),
+    expiresAt: new Date(
+      now.getTime() + (origin.ttlMs ?? PENDING_ACTION_TTL_MS),
+    ),
   })
 }

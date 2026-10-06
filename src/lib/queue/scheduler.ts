@@ -19,6 +19,7 @@ import {
   ServicedeskSlaJob,
   ServicedeskTaskRemindersJob,
   StatusCollectJob,
+  SteelAgentsJob,
   TrialLifecycleJob,
   UsageRollupJob,
   WhatsappBroadcastJob,
@@ -43,6 +44,7 @@ import {
   getServicedeskSlaQueue,
   getServicedeskTaskRemindersQueue,
   getStatusCollectQueue,
+  getSteelAgentsQueue,
   getTrialLifecycleQueue,
   getUsageRollupQueue,
   getWhatsappBroadcastQueue,
@@ -69,6 +71,7 @@ import {
   ServicedeskSlaCron,
   ServicedeskTaskRemindersCron,
   StatusCollectCron,
+  SteelAgentsTickCron,
   UsageRollupCron,
   WhatsappBroadcastScheduleCron,
   WhatsappConversationAutoCloseCron,
@@ -445,6 +448,21 @@ export async function scheduleServicedeskTaskRemindersJobs(): Promise<void> {
   logger.info('queue.scheduler.servicedesk_task_reminders_registered', {
     component: 'Worker',
     pattern: ServicedeskTaskRemindersCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleSteelAgentsJobs(): Promise<void> {
+  const queue = getSteelAgentsQueue()
+  await queue.upsertJobScheduler(
+    SteelAgentsJob.Tick,
+    { pattern: SteelAgentsTickCron, tz: RetentionTimezone },
+    { name: SteelAgentsJob.Tick, data: {} },
+  )
+
+  logger.info('queue.scheduler.steel_agents_registered', {
+    component: 'Worker',
+    pattern: SteelAgentsTickCron,
     timezone: RetentionTimezone,
   })
 }

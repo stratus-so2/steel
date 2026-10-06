@@ -65,6 +65,7 @@ export const NOTIFICATION_ICONS = [
   'disconnected',
   'broadcast',
   'template',
+  'agent',
 ] as const
 
 export type NotificationIcon = (typeof NOTIFICATION_ICONS)[number]
@@ -416,6 +417,18 @@ const NOTIFICATION_KINDS: Record<string, KindEntry> = {
     module: 'COMMUNICATION',
     label: 'Template reprovado',
     icon: 'template',
+    color: 'rose',
+  },
+  AGENT_APPROVAL_REQUESTED: {
+    module: 'OTHER',
+    label: 'Agente aguardando aprovação',
+    icon: 'agent',
+    color: 'violet',
+  },
+  AGENT_RUN_FAILED: {
+    module: 'OTHER',
+    label: 'Falha na execução do agente',
+    icon: 'agent',
     color: 'rose',
   },
 }

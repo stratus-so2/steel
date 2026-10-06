@@ -693,6 +693,33 @@ export const aiDoubleConfirmationRequired = (): AppError =>
     'Exclusões exigem confirmação dupla',
   )
 
+export const steelAgentNotFound = (): AppError =>
+  appError('STEEL_AGENT_NOT_FOUND', 'Agente não encontrado')
+
+export const steelAgentRunNotFound = (): AppError =>
+  appError('STEEL_AGENT_RUN_NOT_FOUND', 'Execução do agente não encontrada')
+
+export const steelAgentInvalidTool = (toolName: string): AppError =>
+  appError(
+    'STEEL_AGENT_INVALID_TOOL',
+    `A ferramenta "${toolName}" não existe ou não está disponível neste workspace`,
+  )
+
+export const steelAgentInvalidTrigger = (message: string): AppError =>
+  appError('STEEL_AGENT_INVALID_TRIGGER', message)
+
+export const steelAgentInvalidOwner = (): AppError =>
+  appError(
+    'STEEL_AGENT_INVALID_OWNER',
+    'O responsável pelo agente precisa ser membro do workspace',
+  )
+
+export const steelAgentDisabled = (): AppError =>
+  appError(
+    'STEEL_AGENT_DISABLED',
+    'O agente está pausado. Ative-o para executar.',
+  )
+
 /** Workspace suspenso ou em exclusão pelo admin global. */
 export const workspaceSuspended = (
   message = 'Este workspace está suspenso. Fale com o suporte da Stratus Telecom.',

@@ -112,6 +112,9 @@ model User {
   aiConversations                    AiConversation[]
   aiPendingActionsRequested          AiPendingAction[]             @relation("AiPendingActionRequestedBy")
   aiPendingActionsDecided            AiPendingAction[]             @relation("AiPendingActionDecidedBy")
+  steelAgentsOwned                   SteelAgent[]                  @relation("SteelAgentOwner")
+  steelAgentsCreated                 SteelAgent[]                  @relation("SteelAgentCreatedBy")
+  steelAgentRunsStarted              SteelAgentRun[]               @relation("SteelAgentRunStartedBy")
   crmIntegrationApiKeysCreated       CrmIntegrationApiKey[]        @relation("CrmIntegrationApiKeyCreatedBy")
   crmEmailTemplatesCreated           CrmEmailTemplate[]            @relation("CrmEmailTemplateCreatedBy")
   crmEmailTemplatesUpdated           CrmEmailTemplate[]            @relation("CrmEmailTemplateUpdatedBy")
@@ -424,6 +427,8 @@ model Workspace {
   aiConversations           AiConversation[]
   aiPendingActions          AiPendingAction[]
   aiActionLogs              AiActionLog[]
+  steelAgents               SteelAgent[]
+  steelAgentRuns            SteelAgentRun[]
   crmIntegrationApiKeys     CrmIntegrationApiKey[]
   crmEmailTemplates         CrmEmailTemplate[]
   crmEmailCampaigns         CrmEmailCampaign[]
@@ -3795,6 +3800,7 @@ model AiPendingAction {
   requestedBy  User?           @relation("AiPendingActionRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
   decidedBy    User?           @relation("AiPendingActionDecidedBy", fields: [decidedById], references: [id], onDelete: SetNull)
   conversation AiConversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  agentRun     SteelAgentRun?  @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, status])
   @@index([conversationId])
@@ -3940,6 +3946,10 @@ enum NotificationKind {
   WHATSAPP_CONNECTION_LOST
   WHATSAPP_BROADCAST_FINISHED
   WHATSAPP_TEMPLATE_REJECTED
+  /// Steel Agents: a run proposed a write that waits for approval.
+  AGENT_APPROVAL_REQUESTED
+  /// Steel Agents: a run failed.
+  AGENT_RUN_FAILED
 }
 
 /// Notificação no app (caixa de entrada do usuário no workspace).
@@ -6393,4 +6403,154 @@ model SdIntegrationLink {
   @@unique([integrationId, kind, externalKey])
   @@index([ticketId])
   @@map("sd_integration_links")
+}
+
+// ─── Steel Agents (autonomous AI agents) ─────────────────────────────────────
+
+enum SteelAgentTriggerType {
+  /// Cron expression (`cron` + `timezone`), checked every minute.
+  SCHEDULE
+  /// Domain event (`eventKey`, catalog in `src/lib/steel-agents/events.ts`).
+  EVENT
+  /// Only the "Executar agora" button.
+  MANUAL
+}
+
+/// AUTO = the agent executes the write on its own (never for DELETE tools);
+/// APPROVAL = the write becomes an AiPendingAction approved in the inbox.
+enum SteelAgentToolMode {
+  AUTO
+  APPROVAL
+}
+
+enum SteelAgentRunStatus {
+  QUEUED
+  RUNNING
+  WAITING_APPROVAL
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+enum SteelAgentRunStepKind {
+  MODEL
+  TOOL
+  APPROVAL
+}
+
+enum SteelAgentRunStepStatus {
+  OK
+  FAILED
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+/// Autonomous agent configured by a workspace admin. It runs with the
+/// permissions of `ownerId` (the domain services still enforce RBAC for that
+/// user); no owner (account deleted) = the agent never runs.
+model SteelAgent {
+  id            String                @id @default(cuid())
+  workspaceId   String                @map("workspace_id")
+  name          String
+  description   String?               @db.Text
+  /// System prompt written by the admin.
+  instructions  String                @db.Text
+  triggerType   SteelAgentTriggerType @map("trigger_type")
+  cron          String?
+  timezone      String                @default("America/Sao_Paulo")
+  eventKey      String?               @map("event_key")
+  enabled       Boolean               @default(true)
+  ownerId       String?               @map("owner_id")
+  createdById   String?               @map("created_by_id")
+  maxToolRounds Int                   @default(8) @map("max_tool_rounds")
+  /// Optional cap of runs per calendar month (null = unlimited).
+  monthlyRunCap Int?                  @map("monthly_run_cap")
+  /// Last cron occurrence already dispatched (schedule dedupe).
+  lastRunAt     DateTime?             @map("last_run_at")
+  nextRunAt     DateTime?             @map("next_run_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  workspace Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User?            @relation("SteelAgentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdBy User?            @relation("SteelAgentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  tools     SteelAgentTool[]
+  runs      SteelAgentRun[]
+
+  @@index([workspaceId])
+  @@index([triggerType, enabled])
+  @@map("steel_agents")
+}
+
+/// A registry tool (`STEEL_AI_TOOLS`) the agent may call, and how writes run.
+model SteelAgentTool {
+  id        String             @id @default(cuid())
+  agentId   String             @map("agent_id")
+  toolName  String             @map("tool_name")
+  mode      SteelAgentToolMode @default(APPROVAL)
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  agent SteelAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, toolName])
+  @@map("steel_agent_tools")
+}
+
+/// One execution of an agent. `state` keeps the provider transcript and the
+/// round counter so a run paused on WAITING_APPROVAL resumes exactly.
+model SteelAgentRun {
+  id             String                @id @default(cuid())
+  workspaceId    String                @map("workspace_id")
+  agentId        String                @map("agent_id")
+  status         SteelAgentRunStatus   @default(QUEUED)
+  triggerType    SteelAgentTriggerType @map("trigger_type")
+  triggerPayload Json?                 @map("trigger_payload")
+  /// Human who clicked "Executar agora" (null for schedule/event).
+  startedById    String?               @map("started_by_id")
+  startedAt      DateTime?             @map("started_at")
+  finishedAt     DateTime?             @map("finished_at")
+  summary        String?               @db.Text
+  error          String?               @db.Text
+  modelKey       String?               @map("model_key")
+  rounds         Int                   @default(0)
+  inputTokens    Int                   @default(0) @map("input_tokens")
+  outputTokens   Int                   @default(0) @map("output_tokens")
+  costUsd        Decimal               @default(0) @map("cost_usd") @db.Decimal(14, 6)
+  state          Json?
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  workspace      Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agent          SteelAgent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  startedBy      User?               @relation("SteelAgentRunStartedBy", fields: [startedById], references: [id], onDelete: SetNull)
+  steps          SteelAgentRunStep[]
+  pendingActions AiPendingAction[]
+
+  @@index([agentId, createdAt])
+  @@index([workspaceId, status])
+  @@map("steel_agent_runs")
+}
+
+/// Timeline of a run: each model call, tool call and approval.
+model SteelAgentRunStep {
+  id              String                  @id @default(cuid())
+  runId           String                  @map("run_id")
+  kind            SteelAgentRunStepKind
+  toolName        String?                 @map("tool_name")
+  toolCallId      String?                 @map("tool_call_id")
+  pendingActionId String?                 @map("pending_action_id")
+  input           Json?
+  output          Json?
+  status          SteelAgentRunStepStatus
+  error           String?                 @db.Text
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+
+  run SteelAgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+  @@index([pendingActionId])
+  @@map("steel_agent_run_steps")
 }
