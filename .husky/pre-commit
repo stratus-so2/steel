@@ -4,4 +4,6 @@
 pnpm check:staged
 git update-index --again
 
-pnpm tsc --noEmit
+# The default V8 heap (~4 GB) is too small for this project's type graph and
+# the check dies with "JavaScript heap out of memory"; CI already uses 6 GB.
+NODE_OPTIONS=--max-old-space-size=6144 pnpm tsc --noEmit
