@@ -8,6 +8,7 @@ import {
   DashboardSquare01Icon,
   DatabaseSync01Icon,
   MailAtSign01Icon,
+  SparklesIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -38,6 +39,7 @@ export const ADMIN_NAV: { title: string; items: NavEntry[] }[] = [
       { href: '/admin/workspaces', label: 'Workspaces', icon: Building03Icon },
       { href: '/admin/metrics', label: 'Métricas', icon: ChartHistogramIcon },
       { href: '/admin/backups', label: 'Backups', icon: DatabaseSync01Icon },
+      { href: '/admin/ai', label: 'Steel IA', icon: SparklesIcon },
     ],
   },
   {

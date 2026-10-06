@@ -57,6 +57,18 @@ app/api/**/route.ts  →  Service        →  Repository   →  Prisma
   por requisição (`lib/axiom/request-log.ts`) com rota normalizada,
   usuário/workspace, código de erro e país/cidade (GeoLite2) — **sem IP nem
   User-Agent cru**. É a fonte do [Analytics do admin](../admin-analytics.md).
+- **Limite de campos do Axiom**: o dataset tem teto de 257 colunas e cada
+  chave nova em `fields` (inclusive cada folha de um objeto aninhado) vira
+  uma coluna; passado o teto, o Axiom **descarta** os campos novos. Por isso:
+  o `logger` do servidor (`lib/axiom/logger.ts`) transforma qualquer objeto
+  ou array aninhado em `fields` numa única string JSON (formatter
+  `flattenNestedFields`, `lib/axiom/log-fields.ts`), e os logs do Steel AI,
+  do consumo de IA, dos Steel Agents e das notificações usam `logFields()`:
+  só as chaves fixas `component`, `workspaceId`, `conversationId`,
+  `actionId`, `message` e **uma** string `detail` com o resto (ferramentas,
+  tokens, modelo...). Log novo nessas áreas não cria chave nova — põe no
+  `detail`. O `request` do log de requisição fica na raiz do evento e não é
+  afetado.
 - **Service** (`src/services/*.service.ts`): regras de negócio,
   **autorização** (ownership, papel no workspace, acesso ao módulo) e
   auditoria (`auditMutation`/`auditAuth`, `lib/axiom/audit`).

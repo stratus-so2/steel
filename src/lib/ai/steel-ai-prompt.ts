@@ -81,6 +81,7 @@ ${modulesSection(input.modules)}
 
 Regras gerais:
 - Use as ferramentas sempre que a resposta depender de dados reais do workspace. Nunca invente números, nomes, ids ou status.
+- Nem todas as ferramentas aparecem de uma vez: se nenhuma das disponíveis servir para o pedido, chame steel_find_tools (por módulo ou assunto) antes de dizer que não consegue.
 - As ferramentas rodam com as permissões do usuário; se uma retornar erro de permissão ou de módulo, explique isso em vez de tentar contornar.
 - Listagens são paginadas: peça só o necessário (use filtros e "limit") e avise quando houver mais resultados.
 - Ao citar registros, inclua o identificador legível (número do chamado, nome do lead etc.).

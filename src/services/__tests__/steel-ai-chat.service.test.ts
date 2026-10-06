@@ -368,8 +368,9 @@ describe('SteelAiChatService.sendMessage() — the turn', () => {
     expect(request.messages).toEqual([
       { role: 'user', content: 'Oi, tudo bem?' },
     ])
-    // EXPLORE: only the read tool is offered.
-    expect(request.tools?.map((t) => t.name)).toEqual(['sd_list_tickets'])
+    // A greeting mentions no module: only the meta-tool is offered (the
+    // write tool is not even allowed in EXPLORE).
+    expect(request.tools?.map((t) => t.name)).toEqual(['steel_find_tools'])
     expect(request.toolChoice).toBe('auto')
 
     // User row before the stream; the assistant row carries the message id.
@@ -853,5 +854,122 @@ describe('SteelAiChatService.capabilities()', () => {
     setupCapabilities()
     breakIt()
     expect((await SteelAiChatService.capabilities('u1', 'ws1')).ok).toBe(false)
+  })
+})
+
+describe('SteelAiChatService.sendMessage() — tool selection', () => {
+  const crmTool: AnySteelAiTool = {
+    ...readTool,
+    name: 'crm_list_leads',
+    label: 'Consultando leads',
+    module: 'CRM',
+    description: 'Lista leads do CRM',
+    execute: vi.fn(async () => ok({ data: { total: 1 }, summary: '1 lead' })),
+  }
+  const multiModule = {
+    ...ACCESS,
+    modules: ['SERVICE_DESK' as const, 'CRM' as const],
+  }
+
+  beforeEach(() => {
+    tools.list = [readTool, writeTool, crmTool]
+  })
+
+  it('should show only the tools of the module the message is about', async () => {
+    const fake = setup({ rounds: [{ response: { text: 'Há 3.' } }] })
+    mockedAccess.mockResolvedValue(ok(multiModule))
+
+    await send({ content: 'Quantos chamados abertos eu tenho?' })
+
+    expect(fake.requests[0].tools?.map((t) => t.name)).toEqual([
+      'sd_list_tickets',
+      'steel_find_tools',
+    ])
+  })
+
+  it('should offer write tools of the module in agent mode', async () => {
+    const fake = setup({ rounds: [{ response: { text: 'Ok.' } }] })
+    mockedAccess.mockResolvedValue(ok(multiModule))
+
+    await send({ content: 'Crie um chamado para a impressora', mode: 'AGENT' })
+
+    expect(fake.requests[0].tools?.map((t) => t.name)).toEqual([
+      'sd_list_tickets',
+      'sd_create_ticket',
+      'steel_find_tools',
+    ])
+  })
+
+  it('should activate the tools steel_find_tools returns on the next round', async () => {
+    const fake = setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [call('c1', 'steel_find_tools', { module: 'CRM' })],
+          },
+        },
+        { response: { toolCalls: [call('c2', 'crm_list_leads')] } },
+        { response: { text: 'Você tem 1 lead.' } },
+      ],
+    })
+    mockedAccess.mockResolvedValue(ok(multiModule))
+
+    const events = await send({ content: 'Oi! O que tenho para hoje?' })
+
+    expect(fake.requests[0].tools?.map((t) => t.name)).toEqual([
+      'steel_find_tools',
+    ])
+    expect(fake.requests[1].tools?.map((t) => t.name)).toEqual([
+      'crm_list_leads',
+      'steel_find_tools',
+    ])
+    const ends = events.filter((e) => e.type === 'tool.end') as {
+      call: { name: string; status: string; summary?: string; label: string }
+    }[]
+    expect(ends[0].call).toEqual(
+      expect.objectContaining({
+        name: 'steel_find_tools',
+        status: 'done',
+        summary: '1 ferramenta(s) encontrada(s)',
+        label: 'Procurando ferramentas',
+      }),
+    )
+    expect(ends[1].call.status).toBe('done')
+    const toolRow = messages.createMany.mock.calls[1][0][1] as {
+      toolName: string
+      content: string
+    }
+    expect(toolRow.toolName).toBe('steel_find_tools')
+    expect(JSON.parse(toolRow.content).data.tools[0].name).toBe(
+      'crm_list_leads',
+    )
+  })
+
+  it('should keep offering the tools used earlier in the conversation', async () => {
+    const fake = setup({
+      rounds: [{ response: { text: 'Ontem foram 2.' } }],
+      history: [
+        createFakeAiMessage({ role: 'USER', content: 'Liste os leads' }),
+        createFakeAiMessage({
+          role: 'ASSISTANT',
+          content: '',
+          toolCalls: [{ id: 'c0', name: 'crm_list_leads', arguments: {} }],
+        }),
+        createFakeAiMessage({
+          role: 'TOOL',
+          toolCallId: 'c0',
+          toolName: 'crm_list_leads',
+          content: '{"status":"done"}',
+        }),
+      ],
+    })
+    mockedAccess.mockResolvedValue(ok(multiModule))
+
+    await send({ content: 'E os de ontem?' })
+
+    expect(fake.requests[0].tools?.map((t) => t.name)).toEqual([
+      'crm_list_leads',
+      'steel_find_tools',
+    ])
   })
 })

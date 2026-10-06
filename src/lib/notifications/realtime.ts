@@ -1,4 +1,5 @@
 import 'server-only'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { getQueueConnection } from '@/src/lib/queue/connection'
 
@@ -47,11 +48,17 @@ export async function publishNotificationEvent(
       JSON.stringify(envelope),
     )
   } catch (error) {
-    logger.error('notifications.realtime.publish_failed', {
-      workspaceId,
-      kind: event.kind,
-      message: error instanceof Error ? error.message : String(error),
-    })
+    logger.error(
+      'notifications.realtime.publish_failed',
+      logFields(
+        {
+          component: 'NotificationsRealtime',
+          workspaceId,
+          message: error instanceof Error ? error.message : String(error),
+        },
+        { kind: event.kind },
+      ),
+    )
   }
 }
 
@@ -67,10 +74,14 @@ export function subscribeNotificationEvents(
   const channel = notificationChannelForWorkspace(workspaceId)
 
   subscriber.subscribe(channel).catch((error: unknown) => {
-    logger.error('notifications.realtime.subscribe_failed', {
-      workspaceId,
-      message: error instanceof Error ? error.message : String(error),
-    })
+    logger.error(
+      'notifications.realtime.subscribe_failed',
+      logFields({
+        component: 'NotificationsRealtime',
+        workspaceId,
+        message: error instanceof Error ? error.message : String(error),
+      }),
+    )
   })
 
   subscriber.on('message', (receivedChannel: string, payload: string) => {

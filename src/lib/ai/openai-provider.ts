@@ -133,6 +133,7 @@ function toChatResponse(response: OpenAI.Responses.Response): AiChatResponse {
       item.content.some((part) => part.type === 'refusal'),
   )
   const text = outputText(response)
+  const cachedTokens = response.usage?.input_tokens_details?.cached_tokens ?? 0
 
   return {
     text,
@@ -146,6 +147,8 @@ function toChatResponse(response: OpenAI.Responses.Response): AiChatResponse {
     usage: {
       inputTokens: response.usage?.input_tokens ?? 0,
       outputTokens: response.usage?.output_tokens ?? 0,
+      // Automatic prompt caching: billed at the cached-input price.
+      ...(cachedTokens > 0 && { cachedInputTokens: cachedTokens }),
     },
     stopReason:
       toolCalls.length > 0

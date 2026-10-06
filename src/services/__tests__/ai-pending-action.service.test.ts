@@ -147,7 +147,8 @@ describe('AiPendingActionService.confirm()', () => {
         pendingActionId: 'act1',
         targetType: 'crm_task',
         targetId: 'task1',
-        outcome: 'Tarefa “Ligar” criada',
+        outcome: 'success',
+        summary: 'Tarefa “Ligar” criada',
         error: null,
       }),
     )
@@ -188,7 +189,11 @@ describe('AiPendingActionService.confirm()', () => {
     })
     expect(dto.status).toBe('FAILED')
     expect(logs.create).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'Falhou', error: 'Sem permissão' }),
+      expect.objectContaining({
+        outcome: 'failure',
+        summary: null,
+        error: 'Sem permissão',
+      }),
     )
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({ outcome: 'failure', reason: 'FORBIDDEN' }),

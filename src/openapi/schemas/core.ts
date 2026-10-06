@@ -234,6 +234,13 @@ export const WorkspaceAiSettingsDTO = dto(
         label: z.string(),
         available: z.boolean(),
         enabled: z.boolean(),
+        inputUsdPer1M: z.number().meta({
+          description:
+            'Preço cobrado por 1M tokens de entrada (preço do provedor × margem da plataforma).',
+        }),
+        outputUsdPer1M: z.number().meta({
+          description: 'Preço cobrado por 1M tokens de saída.',
+        }),
       }),
     ),
     enabledModels: z.array(z.string()),
@@ -241,7 +248,6 @@ export const WorkspaceAiSettingsDTO = dto(
     whatsappReplyModel: z.string(),
     whatsappSentimentModel: z.string(),
     monthlyQuotaUsd: z.number(),
-    usdPer1kTokens: z.number(),
     agentModeEnabled: z.boolean().meta({
       description:
         'Modo agente do Steel AI (ferramentas de escrita, sempre com confirmação). Desligado = só exploração.',

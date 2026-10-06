@@ -58,8 +58,11 @@ export interface AiChatRequest {
 }
 
 export interface AiUsageTokens {
+  /** Every input token, cached ones included. */
   inputTokens: number
   outputTokens: number
+  /** Part of `inputTokens` served from the provider cache, when reported. */
+  cachedInputTokens?: number
 }
 
 export type AiStopReason = 'end' | 'tool_use' | 'max_tokens' | 'refusal'

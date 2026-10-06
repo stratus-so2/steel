@@ -1,4 +1,5 @@
 import type { AiPendingAction, ModuleKind, Prisma } from '@prisma/client'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import {
   type AppError,
@@ -13,6 +14,11 @@ import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-mo
 import { assertMember } from '@/src/services/authz'
 import type { AiToolSpec } from '../types'
 import { STEEL_AI_TOOLS } from './index'
+import {
+  compactToolSpec,
+  FIND_TOOLS_LABEL,
+  FIND_TOOLS_TOOL_NAME,
+} from './selection'
 import {
   serializeToolResult,
   TOOL_OUTPUT_MAX_BYTES,
@@ -123,19 +129,22 @@ export function toolMeta(
   name: string,
   tools: readonly AnySteelAiTool[] = STEEL_AI_TOOLS,
 ): { label: string; module: ModuleKind | null } {
+  if (name === FIND_TOOLS_TOOL_NAME) {
+    return { label: FIND_TOOLS_LABEL, module: null }
+  }
   const tool = findTool(name, tools)
   return tool
     ? { label: tool.label, module: tool.module }
     : { label: name, module: null }
 }
 
-/** Provider-neutral specs (what the adapters send to the model). */
+/**
+ * Provider-neutral specs (what the adapters send to the model), with the
+ * JSON Schema compacted — see `compactToolSpec`. To send only the tools a
+ * round needs, pick them first with `selectSteelAiTools`.
+ */
 export function toToolSpecs(tools: readonly AnySteelAiTool[]): AiToolSpec[] {
-  return tools.map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    parameters: tool.parameters,
-  }))
+  return tools.map(compactToolSpec)
 }
 
 /**
@@ -180,11 +189,16 @@ function failure(error: AppError): AiToolRunResult {
 }
 
 function unexpected(tool: AnySteelAiTool, cause: unknown): AppError {
-  logger.error('steel_ai.tool_threw', {
-    component: 'SteelAiToolRegistry',
-    tool: tool.name,
-    message: cause instanceof Error ? cause.message : String(cause),
-  })
+  logger.error(
+    'steel_ai.tool_threw',
+    logFields(
+      {
+        component: 'SteelAiToolRegistry',
+        message: cause instanceof Error ? cause.message : String(cause),
+      },
+      { toolName: tool.name },
+    ),
+  )
   return appError(
     'INTERNAL_SERVER_ERROR',
     'Falha inesperada ao executar a ferramenta',

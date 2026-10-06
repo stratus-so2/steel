@@ -301,6 +301,10 @@
       "description": "E-mails de novidades (changelog) para usuários: rascunho, destinatários e disparo."
     },
     {
+      "name": "Admin · Steel IA",
+      "description": "Margem da plataforma sobre o preço real dos modelos de IA (ADR 0019)."
+    },
+    {
       "name": "Steel AI",
       "description": "Assistente de IA transversal (ServiceDesk, CRM, Comunicação e plataforma): conversas privadas, resposta em stream (SSE) e ações propostas no modo agente, que só executam com a confirmação do usuário."
     },
@@ -416,7 +420,8 @@
         "Admin · Workspaces",
         "Admin · Backups e operações",
         "Admin · Métricas",
-        "Admin · Changelog"
+        "Admin · Changelog",
+        "Admin · Steel IA"
       ]
     },
     {
@@ -434,6 +439,126 @@
     }
   ],
   "paths": {
+    "/admin/ai": {
+      "get": {
+        "tags": ["Admin · Steel IA"],
+        "summary": "Ajustes de IA da plataforma",
+        "operationId": "getAdminAi",
+        "description": "Margem da plataforma e o preço de cada modelo do catálogo (do provedor e cobrado, por 1M tokens).\n\nSó admin global da plataforma.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "responses": {
+          "200": {
+            "description": "Ajustes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PlatformAiSettings"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["Admin · Steel IA"],
+        "summary": "Alterar a margem de IA",
+        "operationId": "patchAdminAi",
+        "description": "Custo de cada chamada = preço do provedor × margem, congelado no consumo. Vale para as chamadas seguintes (até 1 min para todos os processos).\n\nSó admin global da plataforma.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "costMargin": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 100,
+                    "description": "Multiplicador sobre o preço do provedor (1 = custo)."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": ["costMargin"]
+              },
+              "example": {
+                "costMargin": 1.3,
+                "reason": "Cobrir impostos e infraestrutura"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ajustes atualizados.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PlatformAiSettings"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/admin/analytics": {
       "get": {
         "tags": ["Admin · Métricas"],
@@ -113617,6 +113742,77 @@
         },
         "required": ["priorityChanges", "stateChanges", "comments", "mentions"]
       },
+      "PlatformAiSettings": {
+        "type": "object",
+        "properties": {
+          "costMargin": {
+            "type": "number",
+            "description": "Multiplicador sobre o preço do provedor (1 = custo)."
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "provider": {
+                  "type": "string",
+                  "enum": ["openai", "anthropic"]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "inputUsdPer1M": {
+                  "type": "number"
+                },
+                "outputUsdPer1M": {
+                  "type": "number"
+                },
+                "cachedInputUsdPer1M": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "chargedInputUsdPer1M": {
+                  "type": "number"
+                },
+                "chargedOutputUsdPer1M": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "key",
+                "provider",
+                "label",
+                "inputUsdPer1M",
+                "outputUsdPer1M",
+                "cachedInputUsdPer1M",
+                "chargedInputUsdPer1M",
+                "chargedOutputUsdPer1M"
+              ]
+            }
+          }
+        },
+        "required": ["costMargin", "updatedAt", "models"]
+      },
       "Profile": {
         "type": "object",
         "properties": {
@@ -132242,9 +132438,26 @@
                 },
                 "enabled": {
                   "type": "boolean"
+                },
+                "inputUsdPer1M": {
+                  "type": "number",
+                  "description": "Preço cobrado por 1M tokens de entrada (preço do provedor × margem da plataforma)."
+                },
+                "outputUsdPer1M": {
+                  "type": "number",
+                  "description": "Preço cobrado por 1M tokens de saída."
                 }
               },
-              "required": ["key", "provider", "model", "label", "available", "enabled"]
+              "required": [
+                "key",
+                "provider",
+                "model",
+                "label",
+                "available",
+                "enabled",
+                "inputUsdPer1M",
+                "outputUsdPer1M"
+              ]
             }
           },
           "enabledModels": {
@@ -132263,9 +132476,6 @@
             "type": "string"
           },
           "monthlyQuotaUsd": {
-            "type": "number"
-          },
-          "usdPer1kTokens": {
             "type": "number"
           },
           "agentModeEnabled": {
@@ -132327,7 +132537,6 @@
           "whatsappReplyModel",
           "whatsappSentimentModel",
           "monthlyQuotaUsd",
-          "usdPer1kTokens",
           "agentModeEnabled",
           "usage",
           "userPreference",

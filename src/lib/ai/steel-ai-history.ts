@@ -1,5 +1,6 @@
 import type { AiMessage as AiMessageRow } from '@prisma/client'
 import type { AiProviderId } from './models'
+import { CHARS_PER_TOKEN } from './tools/selection'
 import { ACTION_RESULT_PREFIX, serializeToolResult } from './tools/tool-result'
 import type { AiAssistantMessage, AiMessage, AiToolCall } from './types'
 
@@ -10,13 +11,36 @@ import type { AiAssistantMessage, AiMessage, AiToolCall } from './types'
 
 /** Rows loaded per turn (before the size cap). */
 export const HISTORY_MAX_ROWS = 80
-/** ~20k tokens at ~4 chars/token — older turns are dropped first. */
-export const HISTORY_MAX_CHARS = 80_000
+/**
+ * Approximate token budget of the history resent on every provider call —
+ * older turns are dropped first. Measured in chars (~4 per token).
+ */
+export const HISTORY_MAX_TOKENS = 6_000
+export const HISTORY_MAX_CHARS = HISTORY_MAX_TOKENS * CHARS_PER_TOKEN
+/**
+ * Tool results of earlier turns are resent cut to this size: the answer
+ * built from them is already in the transcript, and a fresh query can be
+ * made when the details matter again.
+ */
+export const HISTORY_TOOL_RESULT_MAX_CHARS = 1_500
 /** Decision notes are inlined as text; keep them short. */
 const DECISION_NOTE_MAX_CHARS = 2_000
 
+/** Earlier-turn tool result as resent to the provider. */
+export function compactToolContent(
+  content: string,
+  maxChars: number = HISTORY_TOOL_RESULT_MAX_CHARS,
+): string {
+  return content.length > maxChars
+    ? `${content.slice(0, maxChars)}… [resultado truncado]`
+    : content
+}
+
 function rowSize(row: AiMessageRow): number {
-  let size = row.content.length
+  let size =
+    row.role === 'TOOL'
+      ? compactToolContent(row.content).length
+      : row.content.length
   if (row.toolCalls) size += JSON.stringify(row.toolCalls).length
   if (row.raw) size += JSON.stringify(row.raw).length
   return size
@@ -113,7 +137,7 @@ export function toProviderHistory(
           role: 'tool',
           toolCallId: row.toolCallId,
           name: unanswered.get(row.toolCallId) as string,
-          content: row.content,
+          content: compactToolContent(row.content),
         })
         unanswered.delete(row.toolCallId)
       }

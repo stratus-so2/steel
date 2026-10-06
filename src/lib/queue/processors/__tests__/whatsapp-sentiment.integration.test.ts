@@ -110,7 +110,8 @@ describe('processWhatsappSentiment()', () => {
       where: { workspaceId: workspace.id },
     })
     expect(usage?.feature).toBe('WHATSAPP_SENTIMENT')
-    expect(usage?.costUsd.toNumber()).toBe(0.4)
+    // Claude Haiku 4.5 at cost: 80 × US$ 1/1M + 20 × US$ 5/1M (ADR 0019)
+    expect(usage?.costUsd.toNumber()).toBe(0.00018)
   })
 
   it('should skip without calling the AI when the quota is exhausted', async () => {

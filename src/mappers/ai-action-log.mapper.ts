@@ -13,7 +13,15 @@ export function toAiActionLogDTO(row: AiActionLog): AiActionLogDTO {
     module: row.module,
     targetType: row.targetType,
     targetId: row.targetId,
-    outcome: row.outcome,
+    // Rows written before the outcome fix were backfilled by the migration;
+    // anything else unexpected is classified by the presence of an error.
+    outcome:
+      row.outcome === 'success' || row.outcome === 'failure'
+        ? row.outcome
+        : row.error
+          ? 'failure'
+          : 'success',
+    summary: row.summary,
     error: row.error,
     createdAt: row.createdAt.toISOString(),
   }

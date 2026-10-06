@@ -26,50 +26,105 @@ export const AI_FEATURE_LABELS: Record<AiFeature, string> = {
   WHATSAPP_SENTIMENT: 'Análise de sentimento do WhatsApp',
 }
 
+/** Provider list price in US$ per 1 million tokens. */
+export interface AiModelPricing {
+  inputUsdPer1M: number
+  outputUsdPer1M: number
+  /** Price of input tokens served from the provider cache, when it reports them. */
+  cachedInputUsdPer1M?: number
+}
+
 export interface AiModelDefinition {
   key: string
   provider: AiProviderId
   model: string
   label: string
+  /** Absent only for definitions built outside the catalog (tests, legacy). */
+  pricing?: AiModelPricing
 }
 
+/*
+ * Prices (standard tier, text, US$ per 1M tokens), checked on 2026-10-06:
+ * - OpenAI: https://developers.openai.com/api/docs/pricing ("short context"
+ *   input / cached input / output).
+ * - Anthropic: platform.claude.com pricing (model table cached 2026-09-25 in
+ *   the official claude-api reference); cache reads cost 0.1x the input.
+ * Update this table when a provider changes prices — `AiUsage.costUsd` is
+ * frozen at call time, so past usage keeps the price it was charged with.
+ */
 export const AI_MODEL_CATALOG = [
   {
     key: 'openai:gpt-4o-mini',
     provider: 'openai',
     model: 'gpt-4o-mini',
     label: 'GPT-4o mini',
+    pricing: {
+      inputUsdPer1M: 0.15,
+      outputUsdPer1M: 0.6,
+      cachedInputUsdPer1M: 0.075,
+    },
   },
   {
     key: 'openai:gpt-4.1-mini',
     provider: 'openai',
     model: 'gpt-4.1-mini',
     label: 'GPT-4.1 mini',
+    pricing: {
+      inputUsdPer1M: 0.4,
+      outputUsdPer1M: 1.6,
+      cachedInputUsdPer1M: 0.1,
+    },
   },
   {
     key: 'openai:gpt-5-mini',
     provider: 'openai',
     model: 'gpt-5-mini',
     label: 'GPT-5 mini',
+    pricing: {
+      inputUsdPer1M: 0.25,
+      outputUsdPer1M: 2,
+      cachedInputUsdPer1M: 0.025,
+    },
   },
-  { key: 'openai:gpt-5', provider: 'openai', model: 'gpt-5', label: 'GPT-5' },
+  {
+    key: 'openai:gpt-5',
+    provider: 'openai',
+    model: 'gpt-5',
+    label: 'GPT-5',
+    pricing: {
+      inputUsdPer1M: 1.25,
+      outputUsdPer1M: 10,
+      cachedInputUsdPer1M: 0.125,
+    },
+  },
   {
     key: 'anthropic:claude-haiku-4-5',
     provider: 'anthropic',
     model: 'claude-haiku-4-5',
     label: 'Claude Haiku 4.5',
+    pricing: { inputUsdPer1M: 1, outputUsdPer1M: 5, cachedInputUsdPer1M: 0.1 },
   },
   {
     key: 'anthropic:claude-sonnet-5',
     provider: 'anthropic',
     model: 'claude-sonnet-5',
     label: 'Claude Sonnet 5',
+    pricing: {
+      inputUsdPer1M: 2,
+      outputUsdPer1M: 10,
+      cachedInputUsdPer1M: 0.2,
+    },
   },
   {
     key: 'anthropic:claude-opus-5',
     provider: 'anthropic',
     model: 'claude-opus-5',
     label: 'Claude Opus 5',
+    pricing: {
+      inputUsdPer1M: 5,
+      outputUsdPer1M: 25,
+      cachedInputUsdPer1M: 0.5,
+    },
   },
 ] as const satisfies readonly AiModelDefinition[]
 
@@ -86,12 +141,35 @@ export const AI_MODEL_KEYS = AI_MODEL_CATALOG.map((m) => m.key) as [
  */
 export const DEFAULT_AI_MODEL_KEY: AiModelKey = 'openai:gpt-4o-mini'
 
-/** Regra de custo definida pelo produto: 1000 tokens = US$ 4,00. */
+/**
+ * @deprecated Old fixed cost rule (1000 tokens = US$ 4,00), replaced by the
+ * per-model price × platform margin (ADR 0019). Only the default of the
+ * legacy `usd_per_1k_tokens` column.
+ */
 export const DEFAULT_USD_PER_1K_TOKENS = 4
 
 /**
- * Cota mensal padrão por workspace: US$ 50,00 (= 12.500 tokens na regra
- * acima). O admin do workspace pode alterar em Ajustes > Steel IA.
+ * Pricing for a model outside the catalog (removed from it, or a call
+ * built by hand): the most expensive catalog price, so an unknown model is
+ * never under-charged.
+ */
+export const FALLBACK_AI_MODEL_PRICING: AiModelPricing = AI_MODEL_CATALOG.map(
+  (m): AiModelPricing => m.pricing,
+).reduce((max, p) =>
+  p.inputUsdPer1M + p.outputUsdPer1M > max.inputUsdPer1M + max.outputUsdPer1M
+    ? p
+    : max,
+)
+
+/** Default platform margin over the provider price (1 = at cost). */
+export const DEFAULT_AI_COST_MARGIN = 1
+export const MIN_AI_COST_MARGIN = 0.1
+export const MAX_AI_COST_MARGIN = 100
+
+/**
+ * Cota mensal padrão por workspace: US$ 50,00 de custo real (preço do
+ * provedor × margem da plataforma). O admin do workspace pode alterar em
+ * Ajustes > Steel IA.
  */
 export const DEFAULT_MONTHLY_QUOTA_USD = 50
 
@@ -108,4 +186,16 @@ export function findAiModel(key: string): AiModelDefinition | undefined {
 
 export function isAiModelKey(key: string): key is AiModelKey {
   return CATALOG_BY_KEY.has(key)
+}
+
+/** Price of a model: catalog first, then its own, then the fallback. */
+export function aiModelPricing(model: {
+  key: string
+  pricing?: AiModelPricing
+}): AiModelPricing {
+  return (
+    CATALOG_BY_KEY.get(model.key)?.pricing ??
+    model.pricing ??
+    FALLBACK_AI_MODEL_PRICING
+  )
 }

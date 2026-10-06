@@ -242,8 +242,8 @@ describe('processWhatsappAiReply() — provider and quota', () => {
         outputTokens: 200,
       }),
     )
-    // 500 tokens × US$ 4 / 1000 = US$ 2
-    expect(usage[0].costUsd.toNumber()).toBe(2)
+    // Claude Haiku 4.5 at cost: 300 × US$ 1/1M + 200 × US$ 5/1M (ADR 0019)
+    expect(usage[0].costUsd.toNumber()).toBe(0.0013)
   })
 
   it('should skip gracefully (no AI call, no reply) when the quota is exhausted', async () => {
