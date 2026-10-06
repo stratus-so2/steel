@@ -37,7 +37,7 @@ import type {
 import { assertMember, assertModuleMember } from './authz'
 import {
   notifyWhatsAppUsers,
-  whatsAppConversationHref,
+  whatsAppConversationPath,
 } from './whatsapp-notify'
 import { WhatsAppSettingsService } from './whatsapp-settings.service'
 
@@ -670,7 +670,7 @@ export const WhatsAppConversationService = {
         actorId,
         title: 'Conversa atribuída a você',
         body: `Conversa com ${contact.name ?? contact.waId}.`,
-        hrefFor: (slug) => whatsAppConversationHref(slug, id),
+        path: whatsAppConversationPath(id),
         meta: { conversationId: id },
       })
     }

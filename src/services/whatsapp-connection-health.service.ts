@@ -50,10 +50,10 @@ export function metaConnectionError(
   return hit.title ?? hit.message ?? `Erro ${hit.code} da Meta`
 }
 
-function settingsHref(connection: WhatsAppConnection, slug: string): string {
+function settingsPath(connection: WhatsAppConnection): string {
   return connection.module === 'SERVICE_DESK'
-    ? `/${slug}/servicedesk/settings?tab=whatsapp`
-    : `/${slug}/zap/configuracoes`
+    ? '/servicedesk/settings?tab=whatsapp'
+    : '/zap/configuracoes'
 }
 
 export const WhatsAppConnectionHealthService = {
@@ -105,7 +105,7 @@ export const WhatsAppConnectionHealthService = {
       body: `${connection.phoneNumber} parou de responder${
         input.error ? ` (${input.error})` : ''
       }. Reconecte para voltar a enviar e receber mensagens.`,
-      hrefFor: (slug) => settingsHref(connection, slug),
+      path: settingsPath(connection),
       meta: { connectionId: connection.id, source: input.source },
     })
     return ok(true)

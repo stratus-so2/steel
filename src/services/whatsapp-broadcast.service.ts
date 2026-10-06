@@ -165,7 +165,7 @@ async function completeIfDrained(broadcastListId: string): Promise<void> {
         ? `Transmissão "${list.name}" falhou`
         : `Transmissão "${list.name}" concluída`,
     body: `${sent} enviada(s), ${failed} com falha.`,
-    hrefFor: (slug) => `/${slug}/zap/transmissoes`,
+    path: '/zap/transmissoes',
     meta: { broadcastListId, status },
   })
 }

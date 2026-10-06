@@ -61,7 +61,7 @@ describe('WhatsAppConnectionHealthService.markDown', () => {
       title: 'Conexão do WhatsApp caiu: Atendimento',
     })
     expect(input.body).toContain('(phone offline)')
-    expect(input.hrefFor('acme')).toBe('/acme/zap/configuracoes')
+    expect(input.path).toBe('/zap/configuracoes')
   })
 
   it('links ServiceDesk connections to their settings tab and spares the actor', async () => {
@@ -74,9 +74,7 @@ describe('WhatsAppConnectionHealthService.markDown', () => {
     const [input] = notify.mock.calls[0]
     expect(input.actorId).toBe('admin')
     expect(input.body).not.toContain('(')
-    expect(input.hrefFor('acme')).toBe(
-      '/acme/servicedesk/settings?tab=whatsapp',
-    )
+    expect(input.path).toBe('/servicedesk/settings?tab=whatsapp')
   })
 
   it('does not repeat the notice while the connection is still down', async () => {

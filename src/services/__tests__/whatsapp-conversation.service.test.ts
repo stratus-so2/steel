@@ -585,7 +585,7 @@ describe('WhatsAppConversationService.assign() · notice', () => {
       title: 'Conversa atribuída a você',
       body: `Conversa com ${contact.name ?? contact.waId}.`,
     })
-    expect(input.hrefFor('acme')).toBe('/acme/zap?conversa=conv1')
+    expect(input.path).toBe('/zap?conversa=conv1')
   })
 
   it('falls back to the number when the contact has no name', async () => {

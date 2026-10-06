@@ -28,17 +28,4 @@ export const NotificationAudienceRepository = {
       return err(dbError('Failed to list workspace admins', error))
     }
   },
-
-  /** Workspace slug, to build the notification link. `null` = gone. */
-  async findWorkspaceSlug(workspaceId: string): Promise<Result<string | null>> {
-    try {
-      const row = await prisma.workspace.findUnique({
-        where: { id: workspaceId },
-        select: { slug: true },
-      })
-      return ok(row?.slug ?? null)
-    } catch (error) {
-      return err(dbError('Failed to find workspace slug', error))
-    }
-  },
 }

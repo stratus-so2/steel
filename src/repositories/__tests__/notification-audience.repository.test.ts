@@ -50,34 +50,14 @@ describe('NotificationAudienceRepository', () => {
     ).toHaveLength(1)
   })
 
-  it('finds the workspace slug', async () => {
-    const workspace = await seedWorkspace()
-    expect(
-      expectOk(
-        await NotificationAudienceRepository.findWorkspaceSlug(workspace.id),
-      ),
-    ).toBe(workspace.slug)
-    expect(
-      expectOk(await NotificationAudienceRepository.findWorkspaceSlug('nope')),
-    ).toBeNull()
-  })
-
   it('maps failures to DATABASE_ERROR', async () => {
     const many = vi
       .spyOn(prisma.membership, 'findMany')
-      .mockRejectedValueOnce(new Error('boom'))
-    const unique = vi
-      .spyOn(prisma.workspace, 'findUnique')
       .mockRejectedValueOnce(new Error('boom'))
     expectErr(
       await NotificationAudienceRepository.listPrivilegedUserIds('w', 1),
       'DATABASE_ERROR',
     )
-    expectErr(
-      await NotificationAudienceRepository.findWorkspaceSlug('w'),
-      'DATABASE_ERROR',
-    )
     many.mockRestore()
-    unique.mockRestore()
   })
 })

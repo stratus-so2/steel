@@ -375,7 +375,7 @@ describe('WhatsAppBroadcastService · finished notice', () => {
       title: 'Transmissão "Black Friday" concluída',
       body: '8 enviada(s), 2 com falha.',
     })
-    expect(input.hrefFor('acme')).toBe('/acme/zap/transmissoes')
+    expect(input.path).toBe('/zap/transmissoes')
   })
 
   it('closes as FAILED and says so when nothing went out', async () => {

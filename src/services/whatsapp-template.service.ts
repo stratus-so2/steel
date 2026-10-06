@@ -175,7 +175,7 @@ export const WhatsAppTemplateService = {
             ? 'Template reprovado pela Meta'
             : `${rejected.length} templates reprovados pela Meta`,
         body: `Reprovado(s): ${rejected.join(', ')}.`,
-        hrefFor: (slug) => `/${slug}/zap/templates`,
+        path: '/zap/templates',
         meta: { connectionId, rejected: rejected.length },
       })
     }

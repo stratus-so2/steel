@@ -1,94 +1,62 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { databaseError } from '@/src/errors'
-import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
-vi.mock('@/src/repositories/notification-audience.repository')
-vi.mock('../notification.service', () => ({
-  NotificationService: { notifyUsers: vi.fn() },
+vi.mock('../notification-emitter', () => ({
+  emitNotification: vi.fn(),
+  workspaceAdminIds: vi.fn(),
 }))
 
-import { logger } from '@/lib/axiom/logger'
-import { NotificationAudienceRepository } from '@/src/repositories/notification-audience.repository'
-import { NotificationService } from '../notification.service'
+import { emitNotification, workspaceAdminIds } from '../notification-emitter'
 import {
   notifyWhatsAppUsers,
   WHATSAPP_NOTIFY_ADMIN_CAP,
   whatsAppAdminIds,
-  whatsAppConversationHref,
+  whatsAppConversationPath,
 } from '../whatsapp-notify'
 
-const audience = vi.mocked(NotificationAudienceRepository)
-const notifications = vi.mocked(NotificationService)
-
-const input = (overrides = {}) => ({
-  workspaceId: 'ws1',
-  kind: 'WHATSAPP_CONVERSATION_ASSIGNED' as const,
-  userIds: ['u1', 'u2', null, '', 'u1', 'actor'],
-  actorId: 'actor',
-  title: 'Conversa atribuída a você',
-  body: 'Conversa com Ana.',
-  hrefFor: (slug: string) => whatsAppConversationHref(slug, 'c1'),
-  ...overrides,
-})
+const emit = vi.mocked(emitNotification)
+const admins = vi.mocked(workspaceAdminIds)
 
 beforeEach(() => {
   vi.clearAllMocks()
-  audience.findWorkspaceSlug.mockResolvedValue(ok('acme'))
-  notifications.notifyUsers.mockImplementation(async (args) =>
-    ok(args.userIds.length),
-  )
+  emit.mockResolvedValue(2)
 })
 
 describe('notifyWhatsAppUsers', () => {
-  it('delivers to the unique recipients, never the actor, with the slug link', async () => {
-    expect(await notifyWhatsAppUsers(input())).toBe(2)
-    expect(notifications.notifyUsers).toHaveBeenCalledWith({
+  it('hands the notice to the shared emitter (actor, members and mute are handled there)', async () => {
+    expect(
+      await notifyWhatsAppUsers({
+        workspaceId: 'ws1',
+        kind: 'WHATSAPP_CONVERSATION_ASSIGNED',
+        userIds: ['u1', null],
+        actorId: 'actor',
+        title: 'Conversa atribuída a você',
+        body: 'Conversa com Ana.',
+        path: whatsAppConversationPath('c1'),
+        meta: { conversationId: 'c1' },
+      }),
+    ).toBe(2)
+    expect(emit).toHaveBeenCalledWith({
       workspaceId: 'ws1',
-      userIds: ['u1', 'u2'],
+      recipients: ['u1', null],
+      actorId: 'actor',
       kind: 'WHATSAPP_CONVERSATION_ASSIGNED',
       title: 'Conversa atribuída a você',
       body: 'Conversa com Ana.',
-      href: '/acme/zap?conversa=c1',
+      path: '/zap?conversa=c1',
     })
-  })
-
-  it('does nothing without recipients (e.g. self-assign)', async () => {
-    expect(await notifyWhatsAppUsers(input({ userIds: ['actor'] }))).toBe(0)
-    expect(audience.findWorkspaceSlug).not.toHaveBeenCalled()
-  })
-
-  it('swallows every failure, only logging it', async () => {
-    audience.findWorkspaceSlug.mockResolvedValueOnce(err(databaseError()))
-    expect(await notifyWhatsAppUsers(input())).toBe(0)
-    audience.findWorkspaceSlug.mockResolvedValueOnce(ok(null))
-    expect(await notifyWhatsAppUsers(input())).toBe(0)
-    notifications.notifyUsers.mockResolvedValueOnce(err(databaseError()))
-    expect(await notifyWhatsAppUsers(input())).toBe(0)
-    expect(
-      vi.mocked(logger.warn).mock.calls.map((call) => call[1]?.reason),
-    ).toEqual(['DATABASE_ERROR', 'WORKSPACE_MISSING', 'DATABASE_ERROR'])
   })
 })
 
 describe('whatsAppAdminIds', () => {
-  it('lists the capped admins', async () => {
-    audience.listPrivilegedUserIds.mockResolvedValue(ok(['owner']))
-    expect(await whatsAppAdminIds('ws1')).toEqual(['owner'])
-    expect(audience.listPrivilegedUserIds).toHaveBeenCalledWith(
-      'ws1',
-      WHATSAPP_NOTIFY_ADMIN_CAP,
+  it('caps the workspace admins', async () => {
+    admins.mockResolvedValue(
+      Array.from({ length: 30 }, (_, index) => `admin-${index}`),
     )
-  })
-
-  it('falls back to nobody on failure', async () => {
-    audience.listPrivilegedUserIds.mockResolvedValue(err(databaseError()))
-    expect(await whatsAppAdminIds('ws1')).toEqual([])
-    expect(logger.warn).toHaveBeenCalledWith(
-      'whatsapp.notify.admins_failed',
-      expect.objectContaining({ workspaceId: 'ws1' }),
-    )
+    const ids = await whatsAppAdminIds('ws1')
+    expect(ids).toHaveLength(WHATSAPP_NOTIFY_ADMIN_CAP)
+    expect(admins).toHaveBeenCalledWith('ws1')
   })
 })

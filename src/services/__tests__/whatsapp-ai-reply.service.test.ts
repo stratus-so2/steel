@@ -414,7 +414,7 @@ describe('WhatsAppAiReplyService · handoff notice', () => {
       title: 'A IA transferiu uma conversa para você',
     })
     expect(input.body).toContain('precisa de um atendente')
-    expect(input.hrefFor('acme')).toBe(`/acme/zap?conversa=${CONV}`)
+    expect(input.path).toBe(`/zap?conversa=${CONV}`)
   })
 
   it('falls back to the capped module admins without an assignee', async () => {

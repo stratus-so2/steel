@@ -318,7 +318,7 @@ describe('WhatsAppTemplateService.sync() · rejection notice', () => {
       title: '2 templates reprovados pela Meta',
       body: 'Reprovado(s): promo (pt_BR), aviso (pt_BR).',
     })
-    expect(input.hrefFor('acme')).toBe('/acme/zap/templates')
+    expect(input.path).toBe('/zap/templates')
   })
 
   it('uses the singular title for one template', async () => {

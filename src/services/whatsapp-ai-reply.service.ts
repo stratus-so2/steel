@@ -24,7 +24,7 @@ import { AiUsageService } from './ai-usage.service'
 import {
   notifyWhatsAppUsers,
   whatsAppAdminIds,
-  whatsAppConversationHref,
+  whatsAppConversationPath,
 } from './whatsapp-notify'
 
 const HISTORY_LIMIT = 20
@@ -412,7 +412,7 @@ export const WhatsAppAiReplyService = {
           : await whatsAppAdminIds(workspaceId),
         title: 'A IA transferiu uma conversa para você',
         body: `${label} precisa de um atendente.`,
-        hrefFor: (slug) => whatsAppConversationHref(slug, conversationId),
+        path: whatsAppConversationPath(conversationId),
         meta: { conversationId },
       })
     }
