@@ -9,6 +9,9 @@ import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
+/** Result of an AI-executed write; the readable text goes in `summary`. */
+export type AiActionOutcome = 'success' | 'failure'
+
 export interface CreateAiActionLogInput {
   workspaceId: string
   source: AiActionSource
@@ -21,7 +24,9 @@ export interface CreateAiActionLogInput {
   targetType?: string | null
   targetId?: string | null
   args: Prisma.InputJsonValue
-  outcome: string
+  outcome: AiActionOutcome
+  /** pt-BR summary of what was done (success only). */
+  summary?: string | null
   error?: string | null
 }
 

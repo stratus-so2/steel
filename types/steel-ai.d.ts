@@ -120,7 +120,9 @@ export interface AiActionLogDTO {
   module: AiModuleDTO | null
   targetType: string | null
   targetId: string | null
-  outcome: string
+  outcome: 'success' | 'failure'
+  /** pt-BR summary of what the tool did (null on failure). */
+  summary: string | null
   error: string | null
   createdAt: string
 }

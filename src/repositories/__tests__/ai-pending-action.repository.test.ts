@@ -216,7 +216,8 @@ describe('AiActionLogRepository', () => {
       kind: 'CREATE' as const,
       module: 'CRM' as const,
       args: {},
-      outcome: 'ok',
+      outcome: 'success' as const,
+      summary: 'Tarefa criada',
     }
     const first = expectOk(
       await AiActionLogRepository.create({
@@ -233,6 +234,10 @@ describe('AiActionLogRepository', () => {
       await AiActionLogRepository.listByWorkspace(workspace.id, { limit: 10 }),
     )
     expect(all.map((l) => l.id)).toEqual([second.id, first.id])
+    expect(first).toMatchObject({
+      outcome: 'success',
+      summary: 'Tarefa criada',
+    })
 
     const filtered = expectOk(
       await AiActionLogRepository.listByWorkspace(workspace.id, {
@@ -254,7 +259,7 @@ describe('AiActionLogRepository', () => {
         kind: 'ACTION',
         module: null,
         args: {},
-        outcome: 'x',
+        outcome: 'failure',
       }),
       'DATABASE_ERROR',
     )

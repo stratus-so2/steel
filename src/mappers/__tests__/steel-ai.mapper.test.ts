@@ -94,10 +94,25 @@ describe('toAiActionLogDTO()', () => {
       module: 'CRM',
       targetType: 'crm_task',
       targetId: row.targetId,
-      outcome: 'Tarefa criada',
+      outcome: 'success',
+      summary: 'Tarefa criada',
       error: null,
       createdAt: '2026-10-06T12:00:00.000Z',
     })
+  })
+
+  it('should classify a legacy free-text outcome by the error column', () => {
+    expect(
+      toAiActionLogDTO(createFakeAiActionLog({ outcome: 'Tarefa criada' }))
+        .outcome,
+    ).toBe('success')
+    const failed = toAiActionLogDTO(
+      createFakeAiActionLog({ outcome: 'Falhou', summary: null, error: 'x' }),
+    )
+    expect(failed).toMatchObject({ outcome: 'failure', summary: null })
+    expect(
+      toAiActionLogDTO(createFakeAiActionLog({ outcome: 'failure' })).outcome,
+    ).toBe('failure')
   })
 })
 
