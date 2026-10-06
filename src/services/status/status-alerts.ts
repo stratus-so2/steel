@@ -46,7 +46,17 @@ export const STABLE_PERIOD_MS = 15 * 60_000
 export const ALERT_HISTORY_LOOKBACK_MS = 3 * 60 * 60_000
 
 // Public status page of this deployment (homologação or production).
-export const STATUS_PAGE_URL = new URL('/status', BETTER_AUTH_URL).toString()
+// Evaluated at import time, so it must not throw while `next build` collects
+// route data inside the Docker image, where BETTER_AUTH_URL is not set yet.
+export const STATUS_PAGE_URL = statusPageUrl(BETTER_AUTH_URL)
+
+export function statusPageUrl(baseUrl: string | undefined): string {
+  try {
+    return new URL('/status', baseUrl).toString()
+  } catch {
+    return '/status'
+  }
+}
 
 export interface StatusPoint {
   status: ComponentStatus

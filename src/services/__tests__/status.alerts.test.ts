@@ -8,6 +8,7 @@ import {
   STABLE_PERIOD_MS,
   STATUS_PAGE_URL,
   type StatusPoint,
+  statusPageUrl,
 } from '@/src/services/status/status-alerts'
 
 const MINUTE = 60_000
@@ -223,5 +224,18 @@ describe('componentAlertText', () => {
         { ...base, from: M, to: M },
       ),
     ).toContain('estabilizou fora do ar')
+  })
+})
+
+describe('statusPageUrl', () => {
+  it('builds the absolute status page link from the auth base url', () => {
+    expect(statusPageUrl('https://steel.example.com')).toBe(
+      'https://steel.example.com/status',
+    )
+  })
+
+  it('falls back to the relative path when the base url is missing', () => {
+    expect(statusPageUrl(undefined)).toBe('/status')
+    expect(statusPageUrl('')).toBe('/status')
   })
 })
