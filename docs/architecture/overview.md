@@ -193,6 +193,15 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 
 Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
 
+### Alertas no Slack (#alerts)
+
+O worker avisa o canal **#alerts** por um Incoming Webhook (`SLACK_ALERTS_WEBHOOK_URL`, que o deploy acrescenta ao `.env` a partir do secret do GitHub de mesmo nome). Sem a variável, os alertas viram só log (`alerts.slack.disabled`). O envio nunca derruba nada: POST simples com timeout de 3 s, e qualquer falha vira `alerts.slack.failed` no Axiom, sem a URL.
+
+- **Componentes do `/status`** (`src/services/status/status-alerts.ts`): cada mudança de estado (caiu, piorou, melhorou, voltou). Se o componente oscila — 4 mudanças em 30 min —, sai um único "instável" e ele fica em silêncio até passar 15 min num mesmo estado, quando sai um "estabilizou". A regra relê `health_checks`, então sobrevive a restart. Se a coleta não consegue gravar no banco, sai um "a coleta de status falhou" e outro quando volta.
+- **Job que morreu** (`src/lib/queue/failure-alarm.ts`): quando o BullMQ desiste de um job (tentativas esgotadas, erro irrecuperável ou stall), com dedup entre o `Worker` e o `QueueEvents`. Como quase todos os ticks rodam a cada minuto com `attempts: 1`, cada par fila/job avisa no máximo uma vez a cada 30 min; a mensagem seguinte diz quantas mortes iguais ficaram só no log (`queue.job.exhausted`).
+
+Avisos de CI/CD vão para outro canal (secret `SLACK_WEBHOOK_URL`). Queda do servidor inteiro — quando o próprio worker cai — fica com o monitor externo do Better Stack.
+
 ## Infraestrutura
 
 | Serviço | Container | Porta (host) | Observação |

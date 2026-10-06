@@ -258,9 +258,17 @@ jobs:
           if [ -n "${AXIOM_QUERY_TOKEN}" ]; then
             printf 'AXIOM_QUERY_TOKEN=%s\n' "${AXIOM_QUERY_TOKEN}" >> "${DEPLOY_DIR}/.env"
           fi
+          # Runtime alerts (status transitions, dead jobs) for the #alerts
+          # Slack channel, read by both the app and the worker. Same reason
+          # as above: the secret cannot be read back into sops. sops wins if
+          # it ever defines the variable itself.
+          if [ -n "${SLACK_ALERTS_WEBHOOK_URL}" ] && ! grep -q '^SLACK_ALERTS_WEBHOOK_URL=' "${DEPLOY_DIR}/.env"; then
+            printf 'SLACK_ALERTS_WEBHOOK_URL=%s\n' "${SLACK_ALERTS_WEBHOOK_URL}" >> "${DEPLOY_DIR}/.env"
+          fi
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
           AXIOM_QUERY_TOKEN: ${{ secrets.AXIOM_QUERY_TOKEN }}
+          SLACK_ALERTS_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
 
       - name: Deploy versioned image
         env:

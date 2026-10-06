@@ -5,6 +5,8 @@ checagem de rotina depois de um deploy/reinício.
 
 Siga na ordem; pare quando achar o problema e vá para o runbook indicado.
 
+> Os problemas costumam chegar antes pelo Slack: o canal **#alerts** recebe as quedas e voltas dos componentes do `/status` e os jobs do worker que morreram; o Better Stack avisa se o servidor inteiro sair do ar. Detalhes em [Alertas no Slack](../architecture/overview.md#alertas-no-slack-alerts).
+
 ## 1. Status page (de fora, sem acessar o servidor)
 
 1. Abra `https://<domínio>/status`.

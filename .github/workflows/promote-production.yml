@@ -214,8 +214,13 @@ jobs:
       - name: Decrypt production secrets
         run: |
           sops --decrypt secrets/production.enc.env > "${DEPLOY_DIR}/.env"
+          # Runtime alerts for the #alerts Slack channel (see cd.yml).
+          if [ -n "${SLACK_ALERTS_WEBHOOK_URL}" ] && ! grep -q '^SLACK_ALERTS_WEBHOOK_URL=' "${DEPLOY_DIR}/.env"; then
+            printf 'SLACK_ALERTS_WEBHOOK_URL=%s\n' "${SLACK_ALERTS_WEBHOOK_URL}" >> "${DEPLOY_DIR}/.env"
+          fi
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+          SLACK_ALERTS_WEBHOOK_URL: ${{ secrets.SLACK_ALERTS_WEBHOOK_URL }}
 
       - name: Deploy versioned image
         run: |
