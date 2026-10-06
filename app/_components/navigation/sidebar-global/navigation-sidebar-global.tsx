@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  AiMagicIcon,
   Settings02Icon,
   Ticket01Icon,
   UserGroupIcon,
@@ -42,6 +43,13 @@ export function GlobalSidebarNavigation({ slug }: { slug: string }) {
           <SteelIcon icon={WhatsappBusinessIcon} className='size-5' />
         </GlobalButtonNavigation>
         <div className='w-full h-px bg-secondary' />
+        <GlobalButtonNavigation
+          linkNavigation={`${base}/ai`}
+          description='Steel AI'
+          active={isActive(`${base}/ai`)}
+        >
+          <SteelIcon icon={AiMagicIcon} className='size-5' />
+        </GlobalButtonNavigation>
         <GlobalButtonNavigation
           linkNavigation={`${base}/settings`}
           description='Ajustes'

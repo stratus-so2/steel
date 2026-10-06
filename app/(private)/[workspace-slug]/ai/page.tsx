@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
+import { SteelAiWelcome } from '@/app/_components/steel-ai/steel-ai-welcome'
 
 export const metadata: Metadata = {
-  title: 'IA | Steel',
-  description: 'Converse com a IA do Steel para planejar e executar tarefas.',
+  title: 'Steel AI | Steel',
+  description: 'Converse com o Steel AI para consultar e executar tarefas.',
 }
 
 export default function AiPage() {
-  return <h1>AI Page</h1>
+  return <SteelAiWelcome />
 }
