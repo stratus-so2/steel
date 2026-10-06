@@ -27,6 +27,8 @@ export const UpdateWorkspaceAiSettingsSchema = z.object({
     .max(MAX_MONTHLY_QUOTA_USD, 'Cota acima do limite permitido')
     .multipleOf(0.01, 'Use no máximo duas casas decimais')
     .optional(),
+  /** Steel AI agent mode (write tools). Off = explore only. */
+  agentModeEnabled: z.boolean().optional(),
 })
 
 export type UpdateWorkspaceAiSettingsDTO = z.infer<

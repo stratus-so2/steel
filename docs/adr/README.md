@@ -36,3 +36,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0015 | [Suíte dividida em projetos e piso de cobertura de 95%](./0015-test-projects-and-coverage-floor.md) | Aceita | 2026-09-19 |
 | 0016 | [Risco preditivo por heurística explicável, não por modelo treinado](./0016-predictive-risk-explainable-heuristic.md) | Aceita | 2026-10-02 |
 | 0017 | [Sentry e PostHog, opcionais e inertes, sem origem nova na CSP](./0017-sentry-and-posthog-optional-and-inert.md) | Aceita | 2026-10-02 |
+| 0018 | [Steel AI: modo agente com confirmação no servidor](./0018-steel-ai-agent-mode-server-confirmation.md) | Aceita | 2026-10-06 |

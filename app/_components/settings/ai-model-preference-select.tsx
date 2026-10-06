@@ -16,7 +16,7 @@ import type { WorkspaceAiSettingsDTO } from '@/types/ai-settings'
 const WORKSPACE_DEFAULT = '__workspace_default__'
 
 /**
- * Seletor do modelo pessoal do usuário (assistente do CRM). Só lista os
+ * Seletor do modelo pessoal do usuário (Steel AI). Só lista os
  * modelos habilitados no workspace cujo provedor está disponível — o
  * backend valida de novo (`AI_MODEL_NOT_ENABLED`).
  */

@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { useAiSettings, useUpdateAiSettings } from '@/src/hooks/use-ai-settings'
@@ -42,7 +43,7 @@ type FeatureField =
 const FEATURES: { field: FeatureField; label: string; hint: string }[] = [
   {
     field: 'crmAssistantModel',
-    label: 'Assistente de IA do CRM',
+    label: 'Steel AI (assistente)',
     hint: 'Padrão para quem não escolheu um modelo próprio.',
   },
   {
@@ -63,6 +64,7 @@ interface FormState {
   whatsappReplyModel: string
   whatsappSentimentModel: string
   monthlyQuotaUsd: string
+  agentModeEnabled: boolean
 }
 
 function toForm(settings: WorkspaceAiSettingsDTO): FormState {
@@ -72,6 +74,7 @@ function toForm(settings: WorkspaceAiSettingsDTO): FormState {
     whatsappReplyModel: settings.whatsappReplyModel,
     whatsappSentimentModel: settings.whatsappSentimentModel,
     monthlyQuotaUsd: String(settings.monthlyQuotaUsd),
+    agentModeEnabled: settings.agentModeEnabled,
   }
 }
 
@@ -175,8 +178,8 @@ function UsageCard({ settings }: { settings: WorkspaceAiSettingsDTO }) {
         </p>
         {usage.exceeded && (
           <p className='rounded-md border border-destructive/40 bg-destructive/10 p-3 text-destructive text-sm'>
-            A cota mensal foi atingida. As funcionalidades de IA (assistente do
-            CRM, resposta automática e análise de sentimento do WhatsApp) ficam
+            A cota mensal foi atingida. As funcionalidades de IA (Steel AI,
+            resposta automática e análise de sentimento do WhatsApp) ficam
             bloqueadas até o próximo mês ou até um administrador aumentar a
             cota.
           </p>
@@ -198,8 +201,8 @@ function PreferenceCard({
       <CardHeader>
         <CardTitle>Meu modelo</CardTitle>
         <CardDescription>
-          Modelo que o assistente de IA do CRM usa nas suas conversas. Só
-          aparecem os modelos habilitados neste workspace.
+          Modelo que o Steel AI usa nas suas conversas. Só aparecem os modelos
+          habilitados neste workspace.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -268,6 +271,7 @@ function AdminForm({
         whatsappReplyModel: form.whatsappReplyModel,
         whatsappSentimentModel: form.whatsappSentimentModel,
         monthlyQuotaUsd: Math.round(quota * 100) / 100,
+        agentModeEnabled: form.agentModeEnabled,
       },
       {
         onSuccess: () => notify.success('Ajustes de IA salvos'),
@@ -338,9 +342,8 @@ function AdminForm({
         <CardHeader>
           <CardTitle>Modelo padrão por funcionalidade</CardTitle>
           <CardDescription>
-            Jobs em segundo plano sempre usam o padrão do workspace; no
-            assistente do CRM cada usuário pode escolher outro modelo
-            habilitado.
+            Jobs em segundo plano sempre usam o padrão do workspace; no Steel AI
+            cada usuário pode escolher outro modelo habilitado.
           </CardDescription>
         </CardHeader>
         <CardContent className='grid gap-4'>
@@ -380,6 +383,33 @@ function AdminForm({
               </Select>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Modo agente do Steel AI</CardTitle>
+          <CardDescription>
+            No modo agente o Steel AI pode propor alterações (criar, editar,
+            excluir e enviar). Nada é executado sem o usuário confirmar na tela,
+            e exclusões pedem confirmação dupla. Desligado, o Steel AI só
+            consulta dados.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='flex items-center justify-between gap-4'>
+          <Label htmlFor='agentModeEnabled' className='font-normal'>
+            Permitir o modo agente neste workspace
+          </Label>
+          <Switch
+            id='agentModeEnabled'
+            checked={form.agentModeEnabled}
+            onCheckedChange={(checked) =>
+              setForm((current) => ({
+                ...current,
+                agentModeEnabled: checked === true,
+              }))
+            }
+          />
         </CardContent>
       </Card>
 

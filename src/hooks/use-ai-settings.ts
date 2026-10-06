@@ -11,6 +11,7 @@ export interface UpdateAiSettingsInput {
   whatsappReplyModel?: string
   whatsappSentimentModel?: string
   monthlyQuotaUsd?: number
+  agentModeEnabled?: boolean
 }
 
 export function useAiSettings(workspaceId: string) {

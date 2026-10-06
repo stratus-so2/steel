@@ -131,6 +131,9 @@ export const AiSettingsService = {
       ...(dto.monthlyQuotaUsd !== undefined && {
         monthlyQuotaUsd: dto.monthlyQuotaUsd,
       }),
+      ...(dto.agentModeEnabled !== undefined && {
+        agentModeEnabled: dto.agentModeEnabled,
+      }),
     }
 
     // Só barra provedor sem chave no que está sendo alterado agora: um
@@ -173,6 +176,7 @@ export const AiSettingsService = {
       whatsappReplyModel: next.whatsappReplyModel,
       whatsappSentimentModel: next.whatsappSentimentModel,
       monthlyQuotaUsd: next.monthlyQuotaUsd,
+      agentModeEnabled: next.agentModeEnabled,
     })
     if (!saved.ok) return saved
 
@@ -184,6 +188,7 @@ export const AiSettingsService = {
       meta: {
         enabledModels: next.enabledModels,
         monthlyQuotaUsd: next.monthlyQuotaUsd,
+        agentModeEnabled: next.agentModeEnabled,
       },
     })
 

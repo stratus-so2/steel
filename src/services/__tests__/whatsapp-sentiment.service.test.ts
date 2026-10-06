@@ -43,7 +43,7 @@ const mockedAlert = vi.mocked(WhatsAppSentimentAlertService)
 function preparedCall(chat: AiProvider['chat']): PreparedAiCall {
   return {
     feature: 'WHATSAPP_SENTIMENT',
-    provider: { id: 'openai', chat },
+    provider: { id: 'openai', chat, chatStream: vi.fn() },
     model: {
       key: 'openai:gpt-4o-mini',
       provider: 'openai',

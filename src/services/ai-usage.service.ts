@@ -48,6 +48,12 @@ const MODEL_FIELD_BY_FEATURE: Record<
   STEEL_AGENT: 'crmAssistantModel',
 }
 
+/** Features where the user's own model preference applies. */
+const USER_PREFERENCE_FEATURES = new Set<AiUsageFeature>([
+  'CRM_ASSISTANT',
+  'STEEL_ASSISTANT',
+])
+
 export interface PreparedAiCall {
   feature: AiUsageFeature
   provider: AiProvider
@@ -64,23 +70,30 @@ export interface PreparedAiCall {
 export const AiUsageService = {
   /**
    * Ordem de resolução do modelo:
-   *  1. preferência do usuário (só no assistente do CRM — jobs em
-   *     background não têm usuário e usam o padrão do workspace);
+   *  1. preferência do usuário (só nos assistentes conversacionais — Steel AI
+   *     e o antigo assistente do CRM; jobs em background não têm usuário e
+   *     usam o padrão do workspace);
    *  2. padrão do workspace para a funcionalidade;
    *  3. primeiro modelo habilitado cujo provedor está disponível.
-   * Candidatos desabilitados ou de provedor sem chave são pulados.
+   * Candidatos desabilitados ou de provedor sem chave são pulados. Não
+   * confere a cota — `prepare` faz isso.
    */
-  async prepare(
+  async resolveModel(
     workspaceId: string,
     feature: AiUsageFeature,
     userId?: string | null,
-  ): Promise<Result<PreparedAiCall>> {
+  ): Promise<
+    Result<{
+      settings: EffectiveAiSettings
+      model: AiModelDefinition | null
+    }>
+  > {
     const row = await WorkspaceAiSettingsRepository.findByWorkspace(workspaceId)
     if (!row.ok) return row
     const settings = toEffectiveAiSettings(row.value)
 
     const candidates: string[] = []
-    if (feature === 'CRM_ASSISTANT' && userId) {
+    if (USER_PREFERENCE_FEATURES.has(feature) && userId) {
       const preference = await UserAiPreferenceRepository.find(
         workspaceId,
         userId,
@@ -96,7 +109,23 @@ export const AiUsageService = {
     const key = candidates.find((candidate) =>
       isModelUsable(settings, candidate),
     )
-    const model = key ? findAiModel(key) : undefined
+    // isModelUsable() already guarantees the key is in the catalog.
+    const model = key ? (findAiModel(key) as AiModelDefinition) : null
+    return ok({ settings, model })
+  },
+
+  async prepare(
+    workspaceId: string,
+    feature: AiUsageFeature,
+    userId?: string | null,
+  ): Promise<Result<PreparedAiCall>> {
+    const resolved = await AiUsageService.resolveModel(
+      workspaceId,
+      feature,
+      userId,
+    )
+    if (!resolved.ok) return resolved
+    const { settings, model } = resolved.value
     const provider = model ? getAiProvider(model.provider) : null
     if (!model || !provider) return err(aiProviderUnavailable())
 

@@ -21,7 +21,7 @@ export const AI_FEATURES = [
 export type AiFeature = (typeof AI_FEATURES)[number]
 
 export const AI_FEATURE_LABELS: Record<AiFeature, string> = {
-  CRM_ASSISTANT: 'Assistente de IA do CRM',
+  CRM_ASSISTANT: 'Steel AI (assistente)',
   WHATSAPP_REPLY: 'Resposta automática do WhatsApp',
   WHATSAPP_SENTIMENT: 'Análise de sentimento do WhatsApp',
 }

@@ -22,6 +22,8 @@ export interface EffectiveAiSettings {
   whatsappSentimentModel: AiModelKey
   monthlyQuotaUsd: number
   usdPer1kTokens: number
+  /** Steel AI agent mode (write tools); on by default. */
+  agentModeEnabled: boolean
 }
 
 function modelOrDefault(key: string): AiModelKey {
@@ -39,6 +41,7 @@ export function toEffectiveAiSettings(
       whatsappSentimentModel: DEFAULT_AI_MODEL_KEY,
       monthlyQuotaUsd: DEFAULT_MONTHLY_QUOTA_USD,
       usdPer1kTokens: DEFAULT_USD_PER_1K_TOKENS,
+      agentModeEnabled: true,
     }
   }
   return {
@@ -49,6 +52,7 @@ export function toEffectiveAiSettings(
     whatsappSentimentModel: modelOrDefault(row.whatsappSentimentModel),
     monthlyQuotaUsd: row.monthlyQuotaUsd.toNumber(),
     usdPer1kTokens: row.usdPer1kTokens.toNumber(),
+    agentModeEnabled: row.agentModeEnabled,
   }
 }
 
@@ -86,6 +90,7 @@ export function toWorkspaceAiSettingsDTO(input: {
     whatsappSentimentModel: settings.whatsappSentimentModel,
     monthlyQuotaUsd: settings.monthlyQuotaUsd,
     usdPer1kTokens: settings.usdPer1kTokens,
+    agentModeEnabled: settings.agentModeEnabled,
     usage: {
       periodStart: input.periodStart.toISOString(),
       inputTokens: usage.inputTokens,

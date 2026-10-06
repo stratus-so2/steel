@@ -1,0 +1,533 @@
+import { createId } from '@paralleldrive/cuid2'
+import type { AiConversation, ModuleKind, Prisma } from '@prisma/client'
+import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
+import { aiAgentModeDisabled, aiToolNotAllowed } from '@/src/errors/app-error'
+import { currentPeriodStart } from '@/src/lib/ai/quota'
+import {
+  capHistory,
+  HISTORY_MAX_ROWS,
+  toProviderHistory,
+} from '@/src/lib/ai/steel-ai-history'
+import { buildSteelAiSystemPrompt } from '@/src/lib/ai/steel-ai-prompt'
+import {
+  type AiToolAccess,
+  availableTools,
+  proposeWriteTool,
+  resolveToolAccess,
+  runReadTool,
+  type SteelAiMode,
+  toolMeta,
+  toToolSpecs,
+} from '@/src/lib/ai/tools/registry'
+import { serializeToolResult } from '@/src/lib/ai/tools/tool-result'
+import type { AiToolContext, AnySteelAiTool } from '@/src/lib/ai/tools/types'
+import type {
+  AiChatResponse,
+  AiMessage,
+  AiToolCall,
+  AiUsageTokens,
+} from '@/src/lib/ai/types'
+import { err, ok, type Result } from '@/src/lib/result'
+import { toAiToolCallDTO } from '@/src/mappers/ai-conversation.mapper'
+import { toAiPendingActionDTO } from '@/src/mappers/ai-pending-action.mapper'
+import {
+  AiConversationRepository,
+  AiMessageRepository,
+  type CreateAiMessageInput,
+} from '@/src/repositories/ai-conversation.repository'
+import { AiUsageRepository } from '@/src/repositories/ai-settings.repository'
+import { UserRepository } from '@/src/repositories/user.repository'
+import { UserPreferenceRepository } from '@/src/repositories/user-preference.repository'
+import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
+import type { SendAiMessageDTO } from '@/src/schemas/steel-ai.schema'
+import type {
+  AiCapabilitiesDTO,
+  AiMessageDTO,
+  AiModuleDTO,
+  AiPendingActionDTO,
+  AiToolCallDTO,
+  SteelAiStreamEvent,
+} from '@/types/steel-ai'
+import { AiUsageService, type PreparedAiCall } from './ai-usage.service'
+
+/** Tool rounds per user message (the last one is forced to answer in text). */
+export const STEEL_AI_MAX_TOOL_ROUNDS = 8
+
+const DEFAULT_TIMEZONE = 'America/Sao_Paulo'
+const MODULE_ORDER: ModuleKind[] = ['SERVICE_DESK', 'CRM', 'COMMUNICATION']
+
+const REFUSAL_REPLY =
+  'Não posso ajudar com esse pedido. Tente reformular a pergunta.'
+const EMPTY_REPLY = 'Não consegui gerar uma resposta agora.'
+const PROVIDER_ERROR =
+  'Não foi possível falar com o provedor de IA agora. Tente novamente em instantes.'
+const PERSIST_ERROR =
+  'Não foi possível salvar a conversa. Tente novamente em instantes.'
+const PENDING_NOTE =
+  'Proposta registrada e aguardando o usuário confirmar ou cancelar na tela. Não chame esta ferramenta de novo; responda em uma ou duas frases o que foi proposto.'
+const ROUND_LIMIT_NOTE =
+  'Limite de etapas desta resposta atingido; a ferramenta não foi executada. Responda com o que já sabe.'
+const TITLE_PROMPT =
+  'Crie um título curto (no máximo 6 palavras) em português do Brasil para a conversa abaixo. Responda só com o título, sem aspas nem pontuação final.'
+
+function sortModules(modules: ModuleKind[]): AiModuleDTO[] {
+  return MODULE_ORDER.filter((m) => modules.includes(m))
+}
+
+/** Thrown inside the turn when a round cannot be persisted. */
+class PersistError extends Error {}
+
+function fallbackTitle(content: string): string {
+  const oneLine = content.replace(/\s+/g, ' ').trim()
+  return oneLine.length > 60 ? `${oneLine.slice(0, 57)}…` : oneLine
+}
+
+function cleanTitle(text: string): string {
+  return text
+    .replace(/^["'“”«»\s#*]+|["'“”«»\s.*]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, 80)
+    .trim()
+}
+
+interface TurnInput {
+  actorId: string
+  workspaceId: string
+  conversation: AiConversation
+  mode: SteelAiMode
+  access: AiToolAccess
+  call: PreparedAiCall
+  system: string
+  history: AiMessage[]
+  content: string
+  isFirstExchange: boolean
+}
+
+async function generateTitle(
+  input: TurnInput,
+  reply: string,
+  usage: AiUsageTokens,
+): Promise<string> {
+  try {
+    const response = await input.call.provider.chat({
+      model: input.call.model.model,
+      system: TITLE_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `Usuário: ${input.content.slice(0, 1_000)}\n\nAssistente: ${reply.slice(0, 1_000)}`,
+        },
+      ],
+      maxTokens: 40,
+    })
+    usage.inputTokens += response.usage.inputTokens
+    usage.outputTokens += response.usage.outputTokens
+    const title = cleanTitle(response.text)
+    if (title) return title
+  } catch (cause) {
+    logger.warn('steel_ai.title_failed', {
+      component: 'SteelAiChatService',
+      conversationId: input.conversation.id,
+      message: cause instanceof Error ? cause.message : String(cause),
+    })
+  }
+  return fallbackTitle(input.content)
+}
+
+async function* runTurn(
+  input: TurnInput,
+): AsyncGenerator<SteelAiStreamEvent, void, undefined> {
+  const { conversation, call } = input
+  const messageId = createId()
+  const startedAt = new Date()
+  const tools = availableTools(input.access, input.mode)
+  const specs = toToolSpecs(tools)
+  const ctx: AiToolContext = {
+    workspaceId: input.workspaceId,
+    actorId: input.actorId,
+    source: 'assistant',
+  }
+  const messages: AiMessage[] = [...input.history]
+  const usage: AiUsageTokens = { inputTokens: 0, outputTokens: 0 }
+  const texts: string[] = []
+  const toolCalls: AiToolCallDTO[] = []
+  const pendingActions: AiPendingActionDTO[] = []
+  const toolNames: string[] = []
+  let firstRow = true
+
+  yield { type: 'message.start', conversationId: conversation.id, messageId }
+
+  const persist = async (rows: CreateAiMessageInput[]) => {
+    const saved = await AiMessageRepository.createMany(
+      rows.map((row, index) =>
+        firstRow && index === 0 ? { ...row, id: messageId } : row,
+      ),
+    )
+    if (!saved.ok) throw new PersistError(saved.error.message)
+    firstRow = false
+  }
+
+  /** Executes one tool call (or turns a write into a pending action). */
+  async function* handleToolCall(
+    toolCall: AiToolCall,
+    forceText: boolean,
+  ): AsyncGenerator<
+    SteelAiStreamEvent,
+    { content: string; proposed: boolean },
+    undefined
+  > {
+    const running = toAiToolCallDTO(toolCall, toolMeta, 'running')
+    yield { type: 'tool.start', call: running }
+    toolNames.push(toolCall.name)
+
+    const tool: AnySteelAiTool | undefined = tools.find(
+      (t) => t.name === toolCall.name,
+    )
+    let status: AiToolCallDTO['status'] = 'error'
+    let summary: string | undefined
+    let content: string
+    let proposed = false
+
+    if (forceText) {
+      content = serializeToolResult({
+        status: 'error',
+        error: { code: 'ROUND_LIMIT', message: ROUND_LIMIT_NOTE },
+      })
+      summary = 'Não executada'
+    } else if (!tool) {
+      const error = aiToolNotAllowed(
+        'Ferramenta indisponível neste modo ou para o seu perfil',
+      )
+      content = serializeToolResult({
+        status: 'error',
+        error: { code: error.code, message: error.message },
+      })
+      summary = error.message
+    } else if (tool.kind === 'READ') {
+      const run = await runReadTool(tool, ctx, toolCall.arguments)
+      content = run.content
+      status = run.ok ? 'done' : 'error'
+      summary = run.ok ? run.output.summary : run.error.message
+    } else {
+      const action = await proposeWriteTool(tool, ctx, toolCall.arguments, {
+        conversationId: conversation.id,
+        toolCallId: toolCall.id,
+      })
+      if (action.ok) {
+        const dto = toAiPendingActionDTO(action.value)
+        pendingActions.push(dto)
+        yield { type: 'action.pending', action: dto }
+        content = serializeToolResult({
+          status: 'pending_confirmation',
+          actionId: dto.id,
+          summary: dto.preview.title,
+          note: PENDING_NOTE,
+        })
+        status = 'pending_confirmation'
+        summary = dto.preview.title
+        proposed = true
+      } else {
+        content = serializeToolResult({
+          status: 'error',
+          error: { code: action.error.code, message: action.error.message },
+        })
+        summary = action.error.message
+      }
+    }
+
+    const finished: AiToolCallDTO = { ...running, status, summary }
+    toolCalls.push(finished)
+    yield { type: 'tool.end', call: finished }
+    return { content, proposed }
+  }
+
+  try {
+    let stopAfterNextRound = false
+    for (let round = 0; round < STEEL_AI_MAX_TOOL_ROUNDS; round++) {
+      const forceText =
+        stopAfterNextRound || round === STEEL_AI_MAX_TOOL_ROUNDS - 1
+      let response: AiChatResponse | null = null
+      let roundHasText = false
+
+      for await (const chunk of call.provider.chatStream({
+        model: call.model.model,
+        system: input.system,
+        messages,
+        ...(specs.length > 0 && {
+          tools: specs,
+          toolChoice: forceText ? ('none' as const) : ('auto' as const),
+        }),
+      })) {
+        if (chunk.type === 'done') {
+          response = chunk.response
+          continue
+        }
+        if (!roundHasText && texts.length > 0) {
+          yield { type: 'text.delta', delta: '\n\n' }
+        }
+        roundHasText = true
+        yield { type: 'text.delta', delta: chunk.delta }
+      }
+      if (!response) throw new Error('Provider stream ended without a response')
+
+      usage.inputTokens += response.usage.inputTokens
+      usage.outputTokens += response.usage.outputTokens
+
+      let text = response.text
+      if (!text && response.stopReason === 'refusal') {
+        text = REFUSAL_REPLY
+        yield {
+          type: 'text.delta',
+          delta: texts.length > 0 ? `\n\n${text}` : text,
+        }
+      }
+      if (text) texts.push(text)
+
+      const rows: CreateAiMessageInput[] = [
+        {
+          conversationId: conversation.id,
+          role: 'ASSISTANT',
+          content: text,
+          ...(response.toolCalls.length > 0 && {
+            toolCalls: response.toolCalls as unknown as Prisma.InputJsonValue,
+          }),
+          ...(response.message.raw && {
+            raw: response.message.raw as unknown as Prisma.InputJsonValue,
+          }),
+          modelKey: call.model.key,
+          inputTokens: response.usage.inputTokens,
+          outputTokens: response.usage.outputTokens,
+        },
+      ]
+      const toolMessages: AiMessage[] = []
+      for (const toolCall of response.toolCalls) {
+        const handled = yield* handleToolCall(toolCall, forceText)
+        if (handled.proposed) stopAfterNextRound = true
+        rows.push({
+          conversationId: conversation.id,
+          role: 'TOOL',
+          toolCallId: toolCall.id,
+          toolName: toolCall.name,
+          content: handled.content,
+        })
+        toolMessages.push({
+          role: 'tool',
+          toolCallId: toolCall.id,
+          name: toolCall.name,
+          content: handled.content,
+        })
+      }
+      await persist(rows)
+      messages.push(response.message, ...toolMessages)
+
+      if (response.toolCalls.length === 0 || forceText) break
+    }
+
+    if (texts.length === 0) {
+      texts.push(EMPTY_REPLY)
+      yield { type: 'text.delta', delta: EMPTY_REPLY }
+      await persist([
+        {
+          conversationId: conversation.id,
+          role: 'ASSISTANT',
+          content: EMPTY_REPLY,
+          modelKey: call.model.key,
+        },
+      ])
+    }
+  } catch (cause) {
+    const persistFailure = cause instanceof PersistError
+    logger.error(
+      persistFailure ? 'steel_ai.persist_failed' : 'steel_ai.provider_failed',
+      {
+        component: 'SteelAiChatService',
+        workspaceId: input.workspaceId,
+        conversationId: conversation.id,
+        provider: call.model.provider,
+        model: call.model.model,
+        message: cause instanceof Error ? cause.message : String(cause),
+      },
+    )
+    // What was consumed before the failure still counts against the quota.
+    await AiUsageService.record(call, {
+      workspaceId: input.workspaceId,
+      userId: input.actorId,
+      usage,
+    })
+    yield persistFailure
+      ? { type: 'error', code: 'DATABASE_ERROR', message: PERSIST_ERROR }
+      : {
+          type: 'error',
+          code: 'AI_PROVIDER_UNAVAILABLE',
+          message: PROVIDER_ERROR,
+        }
+    return
+  }
+
+  const reply = texts.join('\n\n')
+
+  if (input.isFirstExchange && !conversation.title) {
+    const title = await generateTitle(input, reply, usage)
+    const won = await AiConversationRepository.setTitleIfEmpty(
+      conversation.id,
+      title,
+    )
+    if (won.ok && won.value) yield { type: 'conversation.title', title }
+  }
+
+  await AiUsageService.record(call, {
+    workspaceId: input.workspaceId,
+    userId: input.actorId,
+    usage,
+  })
+  const touched = await AiConversationRepository.update(conversation.id, {
+    modelKey: call.model.key,
+  })
+  if (!touched.ok) {
+    logger.warn('steel_ai.touch_failed', {
+      component: 'SteelAiChatService',
+      conversationId: conversation.id,
+    })
+  }
+
+  logger.info('steel_ai.turn_completed', {
+    component: 'SteelAiChatService',
+    workspaceId: input.workspaceId,
+    conversationId: conversation.id,
+    mode: input.mode,
+    model: call.model.key,
+    tools: toolNames,
+    pendingActions: pendingActions.length,
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+  })
+
+  const message: AiMessageDTO = {
+    id: messageId,
+    conversationId: conversation.id,
+    role: 'ASSISTANT',
+    content: reply,
+    toolCalls,
+    pendingActions,
+    createdAt: startedAt.toISOString(),
+  }
+  yield { type: 'message.end', message, usage: { ...usage } }
+}
+
+export const SteelAiChatService = {
+  /** What the chat screen may offer: agent mode, modules, model and quota. */
+  async capabilities(
+    actorId: string,
+    workspaceId: string,
+  ): Promise<Result<AiCapabilitiesDTO>> {
+    const access = await resolveToolAccess(actorId, workspaceId)
+    if (!access.ok) return access
+
+    const [resolved, usage] = await Promise.all([
+      AiUsageService.resolveModel(workspaceId, 'STEEL_ASSISTANT', actorId),
+      AiUsageRepository.sumSince(workspaceId, currentPeriodStart()),
+    ])
+    if (!resolved.ok) return resolved
+    if (!usage.ok) return usage
+
+    return ok({
+      agentModeEnabled: access.value.agentModeEnabled,
+      modules: sortModules(access.value.modules),
+      modelKey: resolved.value.model?.key ?? null,
+      quota: {
+        usedUsd: Math.round(usage.value.costUsd * 100) / 100,
+        quotaUsd: resolved.value.settings.monthlyQuotaUsd,
+      },
+    })
+  },
+
+  /**
+   * Sends a user message and returns the turn as a stream of events.
+   * Everything that can fail *before* the model is called (membership,
+   * conversation ownership, agent-mode switch, provider/quota) comes back
+   * as a Result error so the route answers with a JSON envelope; once the
+   * stream starts, failures are `error` events.
+   */
+  async sendMessage(
+    actorId: string,
+    workspaceId: string,
+    conversationId: string,
+    input: SendAiMessageDTO,
+  ): Promise<Result<AsyncIterable<SteelAiStreamEvent>>> {
+    const access = await resolveToolAccess(actorId, workspaceId)
+    if (!access.ok) return access
+
+    const conversation = await AiConversationRepository.findById(
+      conversationId,
+      workspaceId,
+      actorId,
+    )
+    if (!conversation.ok) return conversation
+
+    const mode: SteelAiMode = input.mode ?? conversation.value.mode
+    if (mode === 'AGENT' && !access.value.agentModeEnabled) {
+      return err(aiAgentModeDisabled())
+    }
+
+    const prepared = await AiUsageService.prepare(
+      workspaceId,
+      'STEEL_ASSISTANT',
+      actorId,
+    )
+    if (!prepared.ok) return prepared
+
+    const [user, workspace, preference, recent] = await Promise.all([
+      UserRepository.findById(actorId),
+      WorkspaceRepository.findById(workspaceId),
+      UserPreferenceRepository.findByUserId(actorId),
+      AiMessageRepository.listRecent(conversationId, HISTORY_MAX_ROWS),
+    ])
+    if (!user.ok) return user
+    if (!workspace.ok) return workspace
+    if (!recent.ok) return recent
+
+    if (mode !== conversation.value.mode) {
+      const switched = await AiConversationRepository.update(conversationId, {
+        mode,
+      })
+      if (!switched.ok) return switched
+      auditMutation({
+        entity: 'ai_conversation',
+        action: 'update',
+        actorId,
+        targetId: conversationId,
+        meta: { workspaceId, fields: ['mode'], mode },
+      })
+    }
+
+    const saved = await AiMessageRepository.createMany([
+      { conversationId, role: 'USER', content: input.content },
+    ])
+    if (!saved.ok) return saved
+
+    const system = buildSteelAiSystemPrompt({
+      userName: user.value.name,
+      workspaceName: workspace.value.name,
+      now: new Date(),
+      timezone: preference.ok ? preference.value.timezone : DEFAULT_TIMEZONE,
+      modules: access.value.modules,
+      mode,
+    })
+
+    return ok(
+      runTurn({
+        actorId,
+        workspaceId,
+        conversation: conversation.value,
+        mode,
+        access: access.value,
+        call: prepared.value,
+        system,
+        history: toProviderHistory(capHistory(recent.value), input.content),
+        content: input.content,
+        isFirstExchange: !recent.value.some((row) => row.role === 'USER'),
+      }),
+    )
+  },
+}

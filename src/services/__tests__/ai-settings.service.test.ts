@@ -135,6 +135,36 @@ describe('AiSettingsService', () => {
       expect(dto.canManage).toBe(true)
     })
 
+    it('should let an ADMIN switch the Steel AI agent mode off', async () => {
+      asRole('ADMIN')
+      withState()
+
+      expectOk(
+        await AiSettingsService.update('u1', 'ws1', {
+          agentModeEnabled: false,
+        }),
+      )
+      expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ agentModeEnabled: false }),
+      )
+    })
+
+    it('should keep the agent mode when the patch does not mention it', async () => {
+      asRole('OWNER')
+      withState({
+        settings: createFakeWorkspaceAiSettings({ agentModeEnabled: false }),
+      })
+
+      expectOk(
+        await AiSettingsService.update('u1', 'ws1', { monthlyQuotaUsd: 10 }),
+      )
+      expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ agentModeEnabled: false }),
+      )
+    })
+
     it('should never let the admin change the cost rate', async () => {
       asRole('ADMIN')
       withState()

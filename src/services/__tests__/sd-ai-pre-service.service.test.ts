@@ -91,7 +91,7 @@ function config(overrides = {}) {
 function preparedCall() {
   return {
     feature: 'SERVICEDESK_PRE_SERVICE' as const,
-    provider: { id: 'openai' as const, chat },
+    provider: { id: 'openai' as const, chat, chatStream: vi.fn() },
     model: {
       key: 'openai:gpt-4o-mini',
       provider: 'openai' as const,
