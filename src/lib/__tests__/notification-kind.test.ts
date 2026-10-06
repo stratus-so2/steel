@@ -82,9 +82,15 @@ describe('notificationModuleOf / notificationKindsOfModule', () => {
     expect(
       sd.every((kind) => notificationModuleOf(kind) === 'SERVICE_DESK'),
     ).toBe(true)
-    expect(notificationKindsOfModule('COMMUNICATION')).toEqual([
-      'WHATSAPP_NEGATIVE_SENTIMENT',
-    ])
+    const zap = notificationKindsOfModule('COMMUNICATION')
+    expect(zap).toEqual(
+      expect.arrayContaining([
+        'WHATSAPP_NEGATIVE_SENTIMENT',
+        'WHATSAPP_CONVERSATION_ASSIGNED',
+        'WHATSAPP_CONNECTION_LOST',
+      ]),
+    )
+    expect(zap.every((kind) => kind.startsWith('WHATSAPP_'))).toBe(true)
   })
 
   it('should list the CRM and platform kinds under their modules', () => {
