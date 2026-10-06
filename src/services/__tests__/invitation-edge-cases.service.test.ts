@@ -15,6 +15,7 @@ import { UserRepository } from '@/src/repositories/user.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
 import { InvitationService } from '../invitation.service'
 
+vi.mock('@/src/services/platform-notifications')
 vi.mock('@/src/cache/user.cache')
 vi.mock('@/src/repositories/invitation.repository')
 vi.mock('@/src/repositories/membership.repository')

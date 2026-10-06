@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   claim: vi.fn(),
   setStatus: vi.fn(),
   publishScheduledPost: vi.fn(),
+  notifyFailed: vi.fn(),
 }))
 
 vi.mock('@/lib/axiom/logger', () => ({ logger: mocks.loggerMock }))
@@ -19,6 +20,9 @@ vi.mock('@/src/repositories/crm-social.repository', () => ({
 }))
 vi.mock('@/src/services/crm-social-scheduler', () => ({
   publishScheduledPost: mocks.publishScheduledPost,
+}))
+vi.mock('@/src/services/crm-notifications', () => ({
+  notifyCrmSocialPostFailed: mocks.notifyFailed,
 }))
 
 import { CrmSocialPostsTickJob } from '@/src/lib/queue/jobs'
@@ -36,6 +40,31 @@ beforeEach(() => {
 })
 
 describe('processCrmSocialPostsTick', () => {
+  it('notifies the author when a post fails or only partially publishes', async () => {
+    mocks.findDue.mockResolvedValue({
+      ok: true,
+      value: [post('p1'), post('p2')],
+    })
+    mocks.claim.mockResolvedValue({ ok: true, value: true })
+    mocks.publishScheduledPost
+      .mockResolvedValueOnce('FAILED')
+      .mockResolvedValueOnce('PARTIALLY_FAILED')
+
+    const result = await processCrmSocialPostsTick(tickJob())
+
+    expect(result).toEqual({ considered: 2, dispatched: 2, errors: 0 })
+    expect(mocks.notifyFailed).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      post: expect.objectContaining({ id: 'p1' }),
+      partial: false,
+    })
+    expect(mocks.notifyFailed).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      post: expect.objectContaining({ id: 'p2' }),
+      partial: true,
+    })
+  })
+
   it('claims and publishes each due post, tallying outcomes', async () => {
     mocks.findDue.mockResolvedValue({
       ok: true,
@@ -51,7 +80,7 @@ describe('processCrmSocialPostsTick', () => {
       .mockResolvedValueOnce({ ok: true, value: true }) // p4 publish lança Error
       .mockResolvedValueOnce({ ok: true, value: true }) // p5 publish lança string
     mocks.publishScheduledPost
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce('PUBLISHED')
       .mockRejectedValueOnce(new Error('graph down'))
       .mockRejectedValueOnce('weird')
 
@@ -68,6 +97,13 @@ describe('processCrmSocialPostsTick', () => {
     })
     expect(mocks.setStatus).toHaveBeenCalledWith('p5', 'FAILED', {
       lastError: 'Erro inesperado ao publicar',
+    })
+    // The two crashed posts tell their authors; the published one does not.
+    expect(mocks.notifyFailed).toHaveBeenCalledTimes(2)
+    expect(mocks.notifyFailed).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      post: expect.objectContaining({ id: 'p4' }),
+      partial: false,
     })
     expect(mocks.loggerMock.error).toHaveBeenCalledWith(
       'queue.crm_social_posts_tick.publish_failed',

@@ -9,6 +9,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-form.repository')
 vi.mock('@/src/repositories/crm-lead.repository')
@@ -30,6 +31,10 @@ import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmFormService } from '../crm-form.service'
+import {
+  notifyCrmFormSubmitted,
+  notifyCrmLeadAssigned,
+} from '../crm-notifications'
 
 const mockedModuleAccess = vi.mocked(WorkspaceModuleAccessRepository)
 const mockedCompanyRepo = vi.mocked(CrmCompanyRepository)
@@ -1016,5 +1021,118 @@ describe('CrmFormService (extended)', () => {
         'DATABASE_ERROR',
       )
     })
+  })
+})
+
+describe('CrmFormService.submit() notifications', () => {
+  const mockedFormSubmitted = vi.mocked(notifyCrmFormSubmitted)
+  const mockedLeadAssigned = vi.mocked(notifyCrmLeadAssigned)
+  const emailField = {
+    key: 'email',
+    label: 'E-mail',
+    type: 'email',
+    required: true,
+    mapping: { target: 'lead', attribute: 'email' },
+  }
+
+  function routeTo(ownerId: string) {
+    mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(
+      ok([
+        {
+          id: 'rr1',
+          workspaceId: 'ws1',
+          field: 'source',
+          operator: 'equals',
+          value: 'form',
+          ownerId,
+          active: true,
+          position: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]),
+    )
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedModuleAccess.isEnabled.mockResolvedValue(ok(true))
+    mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
+      ok(leadForm([emailField])),
+    )
+    mockLeadIntake()
+    mockedSubmissionRepo.create.mockResolvedValue(ok(fakeSubmission('lead1')))
+  })
+
+  it('should notify the form owner when the lead went to someone else', async () => {
+    routeTo('seller1')
+    mockedLeadRepo.create.mockResolvedValue(
+      ok(createFakeCrmLead({ id: 'lead1', ownerId: 'seller1' })),
+    )
+
+    expectOk(
+      await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+        values: { email: 'jane@acme.com' },
+      }),
+    )
+
+    expect(mockedFormSubmitted).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      form: expect.objectContaining({ id: 'f1', createdById: 'owner1' }),
+    })
+    expect(mockedLeadAssigned).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerId: 'seller1' }),
+    )
+  })
+
+  it('should not double-notify the owner who also received the routed lead', async () => {
+    routeTo('owner1')
+    mockedLeadRepo.create.mockResolvedValue(
+      ok(createFakeCrmLead({ id: 'lead1', ownerId: 'owner1' })),
+    )
+
+    expectOk(
+      await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+        values: { email: 'jane@acme.com' },
+      }),
+    )
+
+    expect(mockedLeadAssigned).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerId: 'owner1' }),
+    )
+    expect(mockedFormSubmitted).not.toHaveBeenCalled()
+  })
+
+  it('should notify the form owner for a non-lead form', async () => {
+    mockedFormRepo.findPublishedByPublicToken.mockResolvedValue(
+      ok(
+        createFakeCrmForm({
+          id: 'f2',
+          action: 'COMPANY',
+          workspaceId: 'ws1',
+          createdById: 'owner1',
+          fields: [
+            {
+              key: 'name',
+              label: 'Empresa',
+              type: 'text',
+              required: true,
+              mapping: { target: 'company', attribute: 'name' },
+            },
+          ] as never,
+        }),
+      ),
+    )
+    mockedCompanyRepo.create.mockResolvedValue(ok({ id: 'c1' } as never))
+
+    expectOk(
+      await CrmFormService.submit('tok', '1.2.3.4', undefined, {
+        values: { name: 'Acme' },
+      }),
+    )
+
+    expect(mockedFormSubmitted).toHaveBeenCalledWith(
+      expect.objectContaining({ form: expect.objectContaining({ id: 'f2' }) }),
+    )
   })
 })

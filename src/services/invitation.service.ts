@@ -29,6 +29,7 @@ import type {
   InviteToProjectDTO,
 } from '../schemas/invitation.schema'
 import { assertMember, assertPrivileged } from './authz'
+import { notifyMemberJoined } from './platform-notifications'
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -322,6 +323,13 @@ export const InvitationService = {
       actorId,
       targetId: invite.id,
       meta: { workspaceId: invite.workspaceId },
+    })
+
+    void notifyMemberJoined({
+      workspaceId: invite.workspaceId,
+      inviterId: invite.invitedById,
+      memberId: actorId,
+      memberEmail: invite.email,
     })
 
     return ok({

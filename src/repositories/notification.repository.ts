@@ -79,7 +79,12 @@ export const NotificationRepository = {
   ): Promise<Result<number>> {
     if (data.length === 0) return ok(0)
     try {
-      const result = await prisma.notification.createMany({ data })
+      // `skipDuplicates` makes `dedupeKey` idempotent: a row whose
+      // (userId, dedupeKey) already exists is silently skipped.
+      const result = await prisma.notification.createMany({
+        data,
+        skipDuplicates: true,
+      })
       return ok(result.count)
     } catch (error) {
       return err(dbError('Failed to create notifications', error))

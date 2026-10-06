@@ -60,6 +60,7 @@ model User {
   whatsappAiKnowledgeDocumentsCreated WhatsAppAiKnowledgeDocument[] @relation("WhatsAppAiKnowledgeDocumentCreatedBy")
   whatsappConversationEventsActed     WhatsAppConversationEvent[]   @relation("WhatsAppConversationEventActor")
   notifications                       Notification[]
+  notificationPreferences             NotificationPreference[]
 
   crmCompaniesCreated                CrmCompany[]                  @relation("CrmCompanyCreatedBy")
   crmCompaniesOwned                  CrmCompany[]                  @relation("CrmCompanyAccountOwner")
@@ -390,6 +391,7 @@ model Workspace {
   whatsappSettings             WhatsAppSettings?
   whatsappConversationEvents   WhatsAppConversationEvent[]
   notifications                Notification[]
+  notificationPreferences      NotificationPreference[]
   whatsappGroups               WhatsAppGroup[]
   whatsappGroupMessages        WhatsAppGroupMessage[]
   whatsappAiKnowledgeDocuments WhatsAppAiKnowledgeDocument[]
@@ -3855,6 +3857,48 @@ enum NotificationKind {
   SD_KB_REVIEW
   /// Relatório agendado pronto para baixar.
   SD_REPORT_READY
+  /// CRM: lead assigned (routed on intake or owner changed).
+  CRM_LEAD_ASSIGNED
+  /// CRM: opportunity assigned to a new owner.
+  CRM_OPPORTUNITY_ASSIGNED
+  /// CRM: lead closed as won or lost.
+  CRM_DEAL_CLOSED
+  /// CRM: task assigned.
+  CRM_TASK_ASSIGNED
+  /// CRM: task due within 1 h or overdue.
+  CRM_TASK_DUE
+  /// CRM: proposal opened by the client for the first time.
+  CRM_PROPOSAL_VIEWED
+  /// CRM: proposal accepted by the client.
+  CRM_PROPOSAL_ACCEPTED
+  /// CRM: proposal expired without an answer.
+  CRM_PROPOSAL_EXPIRED
+  /// CRM: public form submitted.
+  CRM_FORM_SUBMITTED
+  /// CRM: e-mail campaign finished (sent or failed).
+  CRM_CAMPAIGN_FINISHED
+  /// CRM: workflow run failed.
+  CRM_WORKFLOW_FAILED
+  /// CRM: workflow run waiting for a human action.
+  CRM_WORKFLOW_WAITING
+  /// CRM: scheduled social post failed.
+  CRM_SOCIAL_POST_FAILED
+  /// CRM: competitor sync failed.
+  CRM_COMPETITOR_SYNC_FAILED
+  /// Platform: invitation accepted, new workspace member.
+  MEMBER_JOINED
+  /// Platform: data export (LGPD) ready.
+  DATA_EXPORT_READY
+  /// Platform: trial ended.
+  TRIAL_ENDED
+  /// Platform: subscription payment failed.
+  BILLING_PAYMENT_FAILED
+  /// Platform: subscription canceled.
+  BILLING_SUBSCRIPTION_CANCELED
+  /// Platform: 80% of the monthly AI quota used.
+  AI_QUOTA_WARNING
+  /// Platform: monthly AI quota exhausted.
+  AI_QUOTA_EXCEEDED
 }
 
 /// Notificação no app (caixa de entrada do usuário no workspace).
@@ -3868,6 +3912,9 @@ model Notification {
   /// Caminho interno para onde o clique leva (ex.: a conversa).
   href        String?
   readAt      DateTime?        @map("read_at")
+  /// Optional idempotency key: a re-run job never duplicates the same
+  /// notification for the same user (unique with `userId`).
+  dedupeKey   String?          @map("dedupe_key")
   /// Arquivada pelo usuário: sai de "Tudo" e vive na pasta "Arquivadas".
   archivedAt  DateTime?        @map("archived_at")
   /// Exclusão lógica: nunca mais aparece na caixa de entrada.
@@ -3877,10 +3924,30 @@ model Notification {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, dedupeKey])
   @@index([userId, workspaceId, createdAt])
   @@index([userId, workspaceId, readAt])
   @@index([userId, workspaceId, archivedAt, deletedAt])
   @@map("notifications")
+}
+
+/// Per-user, per-kind preference for non-ServiceDesk notifications (the
+/// ServiceDesk has its own, `SdNotificationPreference`). No row = enabled.
+model NotificationPreference {
+  id          String           @id @default(cuid())
+  userId      String           @map("user_id")
+  workspaceId String           @map("workspace_id")
+  kind        NotificationKind
+  inApp       Boolean          @default(true) @map("in_app")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId, kind])
+  @@index([workspaceId, kind])
+  @@map("notification_preferences")
 }
 
 // ============================================================================

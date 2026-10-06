@@ -31,10 +31,23 @@ vi.mock('@/src/repositories/crm-workflow.repository', () => ({
     updateStep: vi.fn().mockResolvedValue(ok({})),
     pause: vi.fn().mockResolvedValue(ok({})),
     clearPause: vi.fn().mockResolvedValue(ok({})),
+    findRunWorkflow: vi
+      .fn()
+      .mockResolvedValue(
+        ok({ id: 'wf-1', name: 'Fluxo', createdById: 'owner-1' }),
+      ),
   },
+}))
+vi.mock('../crm-notifications', () => ({
+  notifyCrmWorkflowFailed: vi.fn().mockResolvedValue(1),
+  notifyCrmWorkflowWaiting: vi.fn().mockResolvedValue(1),
 }))
 
 import { CrmWorkflowRunRepository } from '@/src/repositories/crm-workflow.repository'
+import {
+  notifyCrmWorkflowFailed,
+  notifyCrmWorkflowWaiting,
+} from '../crm-notifications'
 import { resumeCrmWorkflow, runCrmWorkflow } from '../crm-workflow-runner'
 
 const mockedSendEmail = vi.mocked(sendEmail)
@@ -1143,7 +1156,12 @@ describe('runCrmWorkflow() — graph traversal', () => {
     )
     expect(mockedRunRepo.updateStep).toHaveBeenCalledWith('step-1', {
       status: 'PENDING',
-      output: { paused: true, fields: ['ok', 'nota'] },
+      output: {
+        paused: true,
+        fields: ['ok', 'nota'],
+        title: 'F',
+        assigneeId: null,
+      },
       startedAt: expect.any(Date),
     })
     expect(mockedRunRepo.pause).toHaveBeenCalledWith('run-1', {
@@ -1387,5 +1405,113 @@ describe('runCrmWorkflow() — unresolved expressions', () => {
       triggerPayload: { record: { v: 5 } },
     })
     expect(stepOutputs()[0]).toEqual({ passes: true })
+  })
+})
+
+describe('runCrmWorkflow() — notifications', () => {
+  const failing = (): CrmWorkflowDefinition =>
+    ({
+      trigger: {
+        id: 'trigger',
+        position: { x: 0, y: 0 },
+        data: { type: 'launch-manually', inputs: [] },
+      },
+      nodes: [
+        {
+          id: 'mail',
+          position: { x: 0, y: 0 },
+          data: { type: 'send-email', to: 'a@b.com', subject: 's', body: 'b' },
+        },
+      ],
+      edges: [{ id: 'e1', source: 'trigger', target: 'mail' }],
+    }) as unknown as CrmWorkflowDefinition
+
+  const formFlow = (assigneeId?: string): CrmWorkflowDefinition =>
+    ({
+      trigger: {
+        id: 'trigger',
+        position: { x: 0, y: 0 },
+        data: { type: 'launch-manually', inputs: [] },
+      },
+      nodes: [
+        {
+          id: 'form1',
+          position: { x: 0, y: 0 },
+          data: {
+            type: 'form',
+            title: 'Aprovar desconto',
+            fields: [{ name: 'ok', type: 'boolean', required: false }],
+            ...(assigneeId ? { assigneeId } : {}),
+          },
+        },
+      ],
+      edges: [{ id: 'e1', source: 'trigger', target: 'form1' }],
+    }) as unknown as CrmWorkflowDefinition
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedRunRepo.setStatus.mockResolvedValue(ok({} as never))
+    mockedRunRepo.createStep.mockResolvedValue(ok({ id: 'step-1' } as never))
+    mockedRunRepo.updateStep.mockResolvedValue(ok({} as never))
+    mockedRunRepo.pause.mockResolvedValue(ok({} as never))
+    mockedRunRepo.findRunWorkflow.mockResolvedValue(
+      ok({ id: 'wf-1', name: 'Fluxo', createdById: 'owner-1' }),
+    )
+  })
+
+  it('should notify the workflow owner when a run fails', async () => {
+    mockedSendEmail.mockRejectedValue(new Error('smtp down'))
+
+    await runCrmWorkflow(baseParams(failing()))
+
+    expect(notifyCrmWorkflowFailed).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      workflow: { id: 'wf-1', name: 'Fluxo', createdById: 'owner-1' },
+      runId: 'run-1',
+      error: 'sendEmail: smtp down',
+      actorId: null,
+    })
+  })
+
+  it('should treat the person who pressed Run as the actor in test mode', async () => {
+    await runCrmWorkflow({ ...baseParams(formFlow()), testMode: true })
+
+    expect(notifyCrmWorkflowWaiting).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: 'user-1' }),
+    )
+  })
+
+  it('should not notify when the workflow of the run is gone', async () => {
+    mockedSendEmail.mockRejectedValue(new Error('smtp down'))
+    mockedRunRepo.findRunWorkflow.mockResolvedValue(ok(null))
+
+    await runCrmWorkflow(baseParams(failing()))
+
+    expect(notifyCrmWorkflowFailed).not.toHaveBeenCalled()
+  })
+
+  it('should notify the resolved form assignee when a run pauses', async () => {
+    await runCrmWorkflow({
+      ...baseParams(formFlow('{{trigger.record.ownerId}}')),
+      triggerPayload: { record: { id: 'lead-1', ownerId: 'seller-1' } },
+    })
+
+    expect(notifyCrmWorkflowWaiting).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      workflow: { id: 'wf-1', name: 'Fluxo', createdById: 'owner-1' },
+      stepId: 'step-1',
+      formTitle: 'Aprovar desconto',
+      assigneeId: 'seller-1',
+      actorId: null,
+    })
+    expect(notifyCrmWorkflowFailed).not.toHaveBeenCalled()
+  })
+
+  it('should pass no assignee when the form has none', async () => {
+    await runCrmWorkflow(baseParams(formFlow()))
+
+    expect(notifyCrmWorkflowWaiting).toHaveBeenCalledWith(
+      expect.objectContaining({ assigneeId: null }),
+    )
   })
 })

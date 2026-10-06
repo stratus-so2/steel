@@ -11,7 +11,9 @@ import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
 import { InvitationService } from '@/src/services/invitation.service'
+import { notifyMemberJoined } from '@/src/services/platform-notifications'
 
+vi.mock('@/src/services/platform-notifications')
 vi.mock('@/src/cache/user.cache')
 vi.mock('@/src/repositories/invitation.repository')
 vi.mock('@/src/repositories/membership.repository')
@@ -224,6 +226,12 @@ describe('InvitationService', () => {
           projectId: null,
         }),
       )
+      expect(notifyMemberJoined).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        inviterId: pendingInvite.invitedById,
+        memberId: 'user',
+        memberEmail: 'invitee@example.com',
+      })
     })
 
     it('should return SEAT_LIMIT_REACHED when the workspace is full', async () => {

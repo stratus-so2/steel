@@ -106,3 +106,6 @@ export const StatusCollectCron = {
 
 /** Rollup do uso por módulo (Redis → `module_usage_daily`). */
 export const UsageRollupCron = '*/15 * * * *'
+
+/** CRM task reminders (due within 1 h / overdue): every 15 minutes. */
+export const CrmTaskRemindersCron = '*/15 * * * *' as const

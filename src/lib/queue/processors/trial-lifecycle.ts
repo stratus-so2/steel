@@ -3,6 +3,7 @@ import { logger } from '@/lib/axiom/logger'
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
 import { WorkspaceFeaturesCache } from '@/src/cache/workspace-features.cache'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
+import { notifyTrialEnded } from '@/src/services/platform-notifications'
 import { TrialLifecycleJob } from '../jobs'
 
 export async function processTrialLifecycle(
@@ -22,6 +23,11 @@ export async function processTrialLifecycle(
           WorkspaceFeaturesCache.invalidate(workspaceId),
         ]),
       )
+
+      const day = new Date().toISOString().slice(0, 10)
+      for (const workspaceId of result.value) {
+        await notifyTrialEnded({ workspaceId, day })
+      }
 
       logger.info('queue.trial_lifecycle.trials_reverted', {
         component: 'Worker',

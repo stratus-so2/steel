@@ -335,6 +335,23 @@ export const CrmWorkflowVersionRepository = {
 }
 
 export const CrmWorkflowRunRepository = {
+  /** Workflow (id, name, owner) a run belongs to — notification target. */
+  async findRunWorkflow(
+    runId: string,
+  ): Promise<Result<{ id: string; name: string; createdById: string } | null>> {
+    try {
+      const run = await prisma.crmWorkflowRun.findUnique({
+        where: { id: runId },
+        select: {
+          workflow: { select: { id: true, name: true, createdById: true } },
+        },
+      })
+      return ok(run?.workflow ?? null)
+    } catch (error) {
+      return err(dbError('Failed to find the workflow of a CRM run', error))
+    }
+  },
+
   async create(data: {
     workflowId: string
     versionId: string

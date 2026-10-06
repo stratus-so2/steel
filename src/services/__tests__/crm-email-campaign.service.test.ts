@@ -9,6 +9,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-email-campaign.repository')
 vi.mock('@/src/repositories/crm-person.repository')
@@ -29,6 +30,7 @@ import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmEmailCampaignService } from '../crm-email-campaign.service'
+import { notifyCrmCampaignFinished } from '../crm-notifications'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedCampaignRepo = vi.mocked(CrmEmailCampaignRepository)
@@ -344,6 +346,53 @@ describe('CrmEmailCampaignService', () => {
         'c1',
         'SENT',
         expect.any(Date),
+      )
+      // Manual send: the clicker is the actor (not notified about it).
+      expect(notifyCrmCampaignFinished).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        campaign,
+        status: 'SENT',
+        sent: 1,
+        failed: 0,
+        actorId: 'u1',
+      })
+    })
+
+    it('should notify the creator (no actor) when the scheduler sends and every e-mail fails', async () => {
+      vi.mocked(notifyCrmCampaignFinished).mockClear()
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'MEMBER' })),
+      )
+      const campaign = createFakeCrmEmailCampaign({
+        id: 'c1',
+        status: 'SCHEDULED',
+      })
+      mockedCampaignRepo.findById.mockResolvedValue(ok(campaign))
+      mockedCampaignRepo.setStatus.mockResolvedValue(
+        ok({ ...campaign, status: 'FAILED' }),
+      )
+      mockedRecipientRepo.listByCampaign.mockResolvedValue(
+        ok([
+          createFakeCrmEmailCampaignRecipient({
+            id: 'r1',
+            campaignId: 'c1',
+            email: 'jane@acme.com',
+          }),
+        ]),
+      )
+      mockedRecipientRepo.markFailed.mockResolvedValue(ok(undefined))
+      mockedOptOutRepo.indexByWorkspace.mockResolvedValue(optOutIndex([]))
+      mockedSendEmail.mockRejectedValueOnce(new Error('smtp down'))
+
+      expectOk(await CrmEmailCampaignService.send('u1', 'ws1', 'c1'))
+
+      expect(notifyCrmCampaignFinished).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'FAILED',
+          sent: 0,
+          failed: 1,
+          actorId: null,
+        }),
       )
     })
 

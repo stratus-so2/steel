@@ -50,6 +50,11 @@ import {
   assertModulePrivileged,
 } from './authz'
 import {
+  notifyCrmProposalAccepted,
+  notifyCrmProposalExpired,
+  notifyCrmProposalViewed,
+} from './crm-notifications'
+import {
   CrmSettingsService,
   type ResolvedCrmSettings,
 } from './crm-settings.service'
@@ -422,7 +427,16 @@ export const CrmProposalService = {
 
     // A 1ª visualização pública marca a proposta como vista.
     if (result.value.status === 'SENT') {
-      await CrmProposalRepository.setStatus(result.value.id, 'VIEWED')
+      const viewed = await CrmProposalRepository.setStatus(
+        result.value.id,
+        'VIEWED',
+      )
+      if (viewed.ok) {
+        void notifyCrmProposalViewed({
+          workspaceId: result.value.workspaceId,
+          proposal: result.value,
+        })
+      }
     }
 
     return ok(toCrmProposalPublicDTO(result.value))
@@ -622,6 +636,11 @@ export const CrmProposalService = {
       targetId: proposal.value.id,
       meta: { via: 'public_link', ipHash: hashIp(ip) },
     })
+    void notifyCrmProposalAccepted({
+      workspaceId: proposal.value.workspaceId,
+      proposal: proposal.value,
+      acceptedByName: dto.name,
+    })
 
     const updated = await CrmProposalRepository.findByShareToken(shareToken)
     if (!updated.ok) return updated
@@ -668,6 +687,12 @@ export const CrmProposalService = {
         actorId: null,
         targetId: proposal.id,
         meta: { status: 'EXPIRED', via: 'crm-proposal-expiry' },
+      })
+      // In-app goes regardless of the workspace e-mail toggle below: each
+      // user mutes it on their own notification preferences.
+      await notifyCrmProposalExpired({
+        workspaceId: proposal.workspaceId,
+        proposal,
       })
 
       let settings = settingsByWorkspace.get(proposal.workspaceId)

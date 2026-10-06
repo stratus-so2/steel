@@ -14,6 +14,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-opportunity.repository')
 vi.mock('@/src/repositories/crm-pipeline.repository')
@@ -43,6 +44,7 @@ import { CrmProductRepository } from '@/src/repositories/crm-product.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { dispatchCrmWorkflowRecordEvent } from '@/src/services/crm-workflow-dispatcher'
+import { notifyCrmOpportunityAssigned } from '../crm-notifications'
 import {
   CrmOpportunityLineItemService,
   CrmOpportunityService,
@@ -1100,5 +1102,48 @@ describe('CrmOpportunityLineItemService — authz, errors and edge branches', ()
         'DATABASE_ERROR',
       )
     })
+  })
+})
+
+describe('CrmOpportunityService.update() notifications', () => {
+  const mockedAssigned = vi.mocked(notifyCrmOpportunityAssigned)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedCustomFieldValueRepo.listByRecords.mockResolvedValue(ok([]))
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'MEMBER' })),
+    )
+  })
+
+  it('should notify the new owner when the owner changes', async () => {
+    mockedOpportunityRepo.findById.mockResolvedValue(
+      ok(createFakeCrmOpportunity({ id: 'op1', ownerId: 'old' })),
+    )
+    const updated = createFakeCrmOpportunity({ id: 'op1', ownerId: 'u2' })
+    mockedOpportunityRepo.update.mockResolvedValue(ok(updated))
+
+    expectOk(
+      await CrmOpportunityService.update('u1', 'ws1', 'op1', { ownerId: 'u2' }),
+    )
+
+    expect(mockedAssigned).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      opportunity: updated,
+      ownerId: 'u2',
+      actorId: 'u1',
+    })
+  })
+
+  it('should not notify when the owner stays the same', async () => {
+    const same = createFakeCrmOpportunity({ id: 'op1', ownerId: 'u2' })
+    mockedOpportunityRepo.findById.mockResolvedValue(ok(same))
+    mockedOpportunityRepo.update.mockResolvedValue(ok(same))
+
+    expectOk(
+      await CrmOpportunityService.update('u1', 'ws1', 'op1', { name: 'X' }),
+    )
+
+    expect(mockedAssigned).not.toHaveBeenCalled()
   })
 })

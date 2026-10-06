@@ -14,6 +14,7 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { crmProposalNotFound, databaseError, notFound } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 
+vi.mock('@/src/services/crm-notifications')
 vi.mock('@/lib/axiom/audit')
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-lead.repository')
@@ -36,6 +37,10 @@ import { CrmSettingsRepository } from '@/src/repositories/crm-settings.repositor
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { CrmLeadService } from '../crm-lead.service'
+import {
+  notifyCrmDealClosed,
+  notifyCrmLeadAssigned,
+} from '../crm-notifications'
 import { dispatchCrmWorkflowRecordEvent } from '../crm-workflow-dispatcher'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -1594,5 +1599,180 @@ describe('CrmLeadService.reopen() — gates and failures', () => {
       }),
     )
     expect(mockedDispatch).not.toHaveBeenCalled()
+  })
+})
+
+describe('CrmLeadService notifications', () => {
+  const mockedLeadAssigned = vi.mocked(notifyCrmLeadAssigned)
+  const mockedDealClosed = vi.mocked(notifyCrmDealClosed)
+  const routingRule = {
+    id: 'rr1',
+    workspaceId: 'ws1',
+    field: 'source' as const,
+    operator: 'equals' as const,
+    value: 'form',
+    ownerId: 'seller1',
+    active: true,
+    position: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockedSettingsRepo.findByWorkspace.mockResolvedValue(ok(null))
+  })
+
+  it('should notify the routed owner on a system intake (no actor)', async () => {
+    mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
+    mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+    mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(ok([routingRule]))
+    const lead = createFakeCrmLead({ id: 'l1', ownerId: 'seller1' })
+    mockedLeadRepo.create.mockResolvedValue(ok(lead))
+
+    expectOk(
+      await CrmLeadService.intake(
+        'ws1',
+        { kind: 'system', createdById: 'owner1', via: 'form', refId: 'f1' },
+        { name: 'Jane', phones: ['81 99999-0000'], source: 'form' },
+      ),
+    )
+
+    expect(mockedLeadAssigned).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      lead,
+      ownerId: 'seller1',
+      actorId: null,
+      routed: true,
+    })
+  })
+
+  it('should pass the human creator as actor so self-routing is not notified', async () => {
+    mockRole()
+    mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
+    mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+    mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(ok([routingRule]))
+    mockedLeadRepo.create.mockResolvedValue(
+      ok(createFakeCrmLead({ id: 'l1', ownerId: 'seller1' })),
+    )
+
+    expectOk(
+      await CrmLeadService.create('u1', 'ws1', {
+        name: 'Jane',
+        phones: ['81 99999-0000'],
+        source: 'form',
+      }),
+    )
+
+    expect(mockedLeadAssigned).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: 'u1', ownerId: 'seller1' }),
+    )
+  })
+
+  it('should not notify when intake routes to nobody', async () => {
+    mockedLeadRepo.findOpenByContacts.mockResolvedValue(ok(null))
+    mockedScoringRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+    mockedRoutingRepo.listActiveByWorkspace.mockResolvedValue(ok([]))
+    mockedLeadRepo.create.mockResolvedValue(ok(createFakeCrmLead()))
+
+    expectOk(
+      await CrmLeadService.intake(
+        'ws1',
+        { kind: 'system', createdById: 'owner1', via: 'form', refId: 'f1' },
+        { name: 'Jane', phones: ['81 99999-0000'], source: 'site' },
+      ),
+    )
+
+    expect(mockedLeadAssigned).not.toHaveBeenCalled()
+  })
+
+  it('should notify the new owner when the owner changes on update', async () => {
+    mockRole()
+    mockedLeadRepo.findById.mockResolvedValue(
+      ok(createFakeCrmLead({ id: 'l1', ownerId: 'old' })),
+    )
+    const updated = createFakeCrmLead({ id: 'l1', ownerId: 'u2' })
+    mockedLeadRepo.update.mockResolvedValue(ok(updated))
+
+    expectOk(await CrmLeadService.update('u1', 'ws1', 'l1', { ownerId: 'u2' }))
+
+    expect(mockedLeadAssigned).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      lead: updated,
+      ownerId: 'u2',
+      actorId: 'u1',
+    })
+  })
+
+  it('should not notify when the owner did not change', async () => {
+    mockRole()
+    const lead = createFakeCrmLead({ id: 'l1', ownerId: 'u2' })
+    mockedLeadRepo.findById.mockResolvedValue(ok(lead))
+    mockedLeadRepo.update.mockResolvedValue(ok(lead))
+
+    expectOk(await CrmLeadService.update('u1', 'ws1', 'l1', { linkedin: 'x' }))
+
+    expect(mockedLeadAssigned).not.toHaveBeenCalled()
+  })
+
+  it('should notify the owner when the lead is closed as lost', async () => {
+    mockRole()
+    mockedLeadRepo.findById.mockResolvedValue(
+      ok(createFakeCrmLead({ id: 'l1', stage: 'IN_CONTACT' })),
+    )
+    const closed = createFakeCrmLead({
+      id: 'l1',
+      stage: 'CLOSED',
+      closeResult: 'LOST',
+      ownerId: 'seller1',
+    })
+    mockedLeadRepo.update.mockResolvedValue(ok(closed))
+
+    expectOk(
+      await CrmLeadService.closeLost('u1', 'ws1', 'l1', {
+        lostReason: 'Preço',
+      }),
+    )
+
+    expect(mockedDealClosed).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      lead: closed,
+      result: 'LOST',
+      actorId: 'u1',
+    })
+  })
+
+  it('should notify the owner when the lead is closed as won', async () => {
+    mockRole()
+    mockedLeadRepo.findById.mockResolvedValue(
+      ok(createFakeCrmLead({ id: 'l1', stage: 'PROPOSAL' })),
+    )
+    mockedLeadRepo.listProposalPresentations.mockResolvedValue(
+      ok([createFakeCrmLeadProposalPresentation({ leadId: 'l1' })]),
+    )
+    mockedPersonRepo.findFirstByContacts.mockResolvedValue(ok(null))
+    mockedPersonRepo.create.mockResolvedValue(
+      ok(createFakeCrmPerson({ id: 'p1' })),
+    )
+    const closed = createFakeCrmLead({
+      id: 'l1',
+      stage: 'CLOSED',
+      closeResult: 'WON',
+      ownerId: 'seller1',
+    })
+    mockedLeadRepo.update.mockResolvedValue(ok(closed))
+
+    expectOk(
+      await CrmLeadService.closeWon('u1', 'ws1', 'l1', {
+        contractSignedAt: new Date(),
+        billingType: 'MONTHLY',
+        closedAmount: 1500,
+        contractSignedConfirmed: true,
+      }),
+    )
+
+    expect(mockedDealClosed).toHaveBeenCalledWith(
+      expect.objectContaining({ result: 'WON', actorId: 'u1', lead: closed }),
+    )
   })
 })

@@ -10,12 +10,14 @@ import {
   getPresignedDownloadUrl,
   putObject,
 } from '@/src/lib/storage/s3'
+import { MembershipRepository } from '@/src/repositories/membership.repository'
 import {
   type ExportAuditEntry,
   USER_EXPORT_SCHEMA_VERSION,
   type UserExportPayload,
   UserExportPayloadSchema,
 } from '@/src/schemas/user-export.schema'
+import { notifyDataExportReady } from '@/src/services/platform-notifications'
 import { DataExportJob } from '../jobs'
 
 export const EXPORT_BUCKET = 'user-exports'
@@ -240,6 +242,15 @@ export async function processDataExport(
       message,
     })
   }
+
+  const memberships = await MembershipRepository.listByUser(userId)
+  await notifyDataExportReady({
+    userId,
+    workspaceIds: memberships.ok
+      ? memberships.value.map((m) => m.workspaceId)
+      : [],
+    exportId: jobId,
+  })
 
   auditMutation({
     entity: 'user',

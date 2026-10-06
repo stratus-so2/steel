@@ -8,8 +8,13 @@ import {
 } from '@/src/__tests__/mocks/abacatepay.mock'
 import { couponInvalid, databaseError, notFound } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
+import {
+  notifyBillingPaymentFailed,
+  notifyBillingSubscriptionCanceled,
+} from '@/src/services/platform-notifications'
 import { SubscriptionService } from '@/src/services/subscription.service'
 
+vi.mock('@/src/services/platform-notifications')
 vi.mock('@/lib/abacatepay', () => ({
   AbacatePayClient: {
     createSubscription: vi.fn(),
@@ -426,7 +431,32 @@ describe('SubscriptionService', () => {
         'CANCELLED',
       )
       expect(mockedWorkspaceCache.invalidate).toHaveBeenCalledWith('ws1')
+      expect(notifyBillingSubscriptionCanceled).toHaveBeenCalledWith({
+        workspaceId: 'ws1',
+        billId: 'bill_xyz',
+        expired: false,
+      })
     })
+
+    it.each(['subscription.failed', 'billing.failed'])(
+      'should only notify the owners on %s',
+      async (event) => {
+        const subscription = createFakeSubscription({
+          billId: 'bill_f',
+          workspaceId: 'ws1',
+        })
+        mockedSubRepo.findByBillId.mockResolvedValue(ok(subscription))
+
+        expectOk(await SubscriptionService.handleWebhookEvent(event, 'bill_f'))
+
+        expect(notifyBillingPaymentFailed).toHaveBeenCalledWith({
+          workspaceId: 'ws1',
+          billId: 'bill_f',
+          event,
+        })
+        expect(mockedSubRepo.deactivateByBillId).not.toHaveBeenCalled()
+      },
+    )
 
     it('should revert plan to FREE on expired', async () => {
       const subscription = createFakeSubscription({
@@ -448,6 +478,9 @@ describe('SubscriptionService', () => {
       expect(mockedSubRepo.deactivateByBillId).toHaveBeenCalledWith(
         'bill_exp',
         'EXPIRED',
+      )
+      expect(notifyBillingSubscriptionCanceled).toHaveBeenCalledWith(
+        expect.objectContaining({ expired: true, billId: 'bill_exp' }),
       )
     })
 

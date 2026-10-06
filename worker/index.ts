@@ -15,6 +15,7 @@ import { processCrmProposalExpiry } from '../src/lib/queue/processors/crm-propos
 import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
 import { processCrmSocialPostsTick } from '../src/lib/queue/processors/crm-social-posts-tick'
 import { processCrmSocialPublish } from '../src/lib/queue/processors/crm-social-publish'
+import { processCrmTaskReminders } from '../src/lib/queue/processors/crm-task-reminders'
 import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-workflow-schedule'
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
@@ -41,6 +42,7 @@ import {
   scheduleCrmProposalExpiryJobs,
   scheduleCrmScheduledSendJobs,
   scheduleCrmSocialPostsTickJobs,
+  scheduleCrmTaskRemindersJobs,
   scheduleCrmWorkflowScheduleJobs,
   scheduleDatabaseBackupJobs,
   scheduleDataRetentionJobs,
@@ -192,6 +194,9 @@ async function main(): Promise<void> {
       processServicedeskIntegrations,
     ),
   )
+  workers.push(
+    registerWorker(QueueName.CrmTaskReminders, processCrmTaskReminders),
+  )
 
   failureListener = startJobFailureListener(
     workers.map((w) => w.name as QueueName),
@@ -218,6 +223,7 @@ async function main(): Promise<void> {
   await scheduleServicedeskReportsJobs()
   await scheduleServicedeskRiskJobs()
   await scheduleServicedeskIntegrationsJobs()
+  await scheduleCrmTaskRemindersJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

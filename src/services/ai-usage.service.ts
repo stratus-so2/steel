@@ -24,6 +24,7 @@ import {
   WorkspaceAiSettingsRepository,
 } from '@/src/repositories/ai-settings.repository'
 import { AI_FEATURE_SETTING_FIELDS, isModelUsable } from './ai-settings.service'
+import { notifyAiQuota } from './platform-notifications'
 
 /**
  * Modelo padrão de cada funcionalidade. As do ServiceDesk ainda não têm
@@ -54,11 +55,46 @@ const USER_PREFERENCE_FEATURES = new Set<AiUsageFeature>([
   'STEEL_ASSISTANT',
 ])
 
+/** Share of the monthly quota that triggers the early warning. */
+export const AI_QUOTA_WARNING_RATIO = 0.8
+
+/**
+ * After a usage write: notifies the admins when the month crosses 80% or
+ * 100% of the quota. Idempotent per month and threshold (dedupe key), so
+ * calling it after every AI call is safe. Never fails the caller.
+ */
+async function warnQuotaThreshold(
+  workspaceId: string,
+  quotaUsd: number | undefined,
+): Promise<void> {
+  if (!quotaUsd || quotaUsd <= 0) return
+  const periodStart = currentPeriodStart()
+  const usage = await AiUsageRepository.sumSince(workspaceId, periodStart)
+  if (!usage.ok) return
+  const used = usage.value.costUsd
+  const threshold = isQuotaExceeded(used, quotaUsd)
+    ? 'exceeded'
+    : used >= quotaUsd * AI_QUOTA_WARNING_RATIO
+      ? 'warning'
+      : null
+  if (!threshold) return
+  await notifyAiQuota({
+    workspaceId,
+    threshold,
+    period: periodStart.toISOString().slice(0, 7),
+  })
+}
+
 export interface PreparedAiCall {
   feature: AiUsageFeature
   provider: AiProvider
   model: AiModelDefinition
   usdPer1kTokens: number
+  /**
+   * Monthly quota of the workspace when the call was prepared — `record`
+   * uses it to warn the admins at 80% and at 100% (absent = no warning).
+   */
+  monthlyQuotaUsd?: number
 }
 
 /**
@@ -155,6 +191,7 @@ export const AiUsageService = {
       provider,
       model,
       usdPer1kTokens: settings.usdPer1kTokens,
+      monthlyQuotaUsd: settings.monthlyQuotaUsd,
     })
   },
 
@@ -210,5 +247,7 @@ export const AiUsageService = {
       outputTokens: input.usage.outputTokens,
       costUsd,
     })
+
+    await warnQuotaThreshold(input.workspaceId, call.monthlyQuotaUsd)
   },
 }

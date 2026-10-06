@@ -1,7 +1,7 @@
 'use client'
 
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   LEAD_STAGES,
   STAGE_LABELS,
@@ -49,6 +49,7 @@ import {
   useCrmResourceList,
 } from '@/src/hooks/use-crm-resource-list'
 import { useCrmSettings } from '@/src/hooks/use-crm-settings'
+import { useRecordParam } from '@/src/hooks/use-record-param'
 import type {
   CrmLeadContactAttemptDTO,
   CrmLeadDTO,
@@ -155,6 +156,12 @@ export function CrmLeadsBoard({
   }, [leads])
 
   const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null
+  // Deep link from the notification inbox: `?record=<id>` opens the lead.
+  const isLeadLoaded = useCallback(
+    (id: string) => leads.some((lead) => lead.id === id),
+    [leads],
+  )
+  useRecordParam(setSelectedLeadId, isLeadLoaded)
 
   return (
     <div className='flex h-full min-h-0 w-full flex-col gap-4 p-4'>

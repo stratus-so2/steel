@@ -147,6 +147,8 @@ export type AuditEntity =
   | 'sd_time_entry'
   // ServiceDesk — relatórios de SLA agendados
   | 'sd_scheduled_report'
+  // Notifications — per-user mute preferences (non-ServiceDesk kinds)
+  | 'notification_preference'
 
 export type AuditAction =
   | 'create'

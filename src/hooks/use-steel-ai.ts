@@ -17,7 +17,6 @@ import type {
   AiCapabilitiesDTO,
   AiConversationDTO,
   AiMessageDTO,
-  AiModuleDTO,
   AiPendingActionDTO,
   AiPendingActionStatusDTO,
 } from '@/types/steel-ai'

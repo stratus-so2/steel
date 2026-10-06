@@ -133,8 +133,23 @@ cursor, seleção múltipla com ações em lote, desfazer e atalhos de teclado
   carimbos — a exclusão é lógica, o que permite restaurar ("desfazer").
 - **Quem produz**: qualquer módulo, sempre por
   `NotificationService.notifyUsers` (ServiceDesk via
-  `notifySdEvent`/`sd-notification`, o alerta de sentimento do WhatsApp e,
-  quando houver, o CRM).
+  `notifySdEvent`/`sd-notification`, o alerta de sentimento do WhatsApp, o
+  CRM e a Plataforma). CRM e Plataforma entram por `emitNotification`
+  (`src/services/notification-emitter.ts`), com o texto em
+  `crm-notifications.ts`/`platform-notifications.ts`: é *fire-and-forget*
+  (nunca derruba a operação de negócio), filtra quem não é mais membro e
+  monta o link a partir do slug.
+- **Regras de entrega** (em `notifyUsers`): quem causou o evento
+  (`actorId`) nunca é avisado da própria ação; tipos fora do ServiceDesk
+  respeitam a preferência por usuário (`NotificationPreference`, sem linha =
+  ligado; o ServiceDesk tem a dele, `SdNotificationPreference`); e
+  `dedupeKey` (único por usuário) torna idempotente o aviso disparado por
+  job — rodar de novo não duplica.
+- **Preferências**: `Ajustes do Workspace > Notificações`
+  (`/[slug]/settings/notifications`), por tipo e agrupadas por módulo, via
+  `GET|PUT /api/workspaces/[id]/notifications/preferences`.
+- **Links para registros do CRM**: `?record=<id>` abre o painel do registro
+  nas grades do CRM (`DataTable`) e no funil de leads.
 - **Módulo, rótulo, ícone e cor** de cada `kind` vêm de uma tabela pura,
   `src/lib/notification-kind.ts` — o mapper já entrega `module`,
   `moduleLabel`, `kindLabel`, `icon` e `color` no DTO, e a interface nunca
@@ -178,6 +193,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `crm-workflow-schedule` | workflows `on-a-schedule` | a cada 1 min |
 | `crm-competitor-sync` | métricas e posts públicos de concorrentes (e da conta própria) para a análise comparativa | cron 04:00 |
 | `crm-proposal-expiry` | expira propostas com validade vencida e avisa o responsável | cron 00:05 |
+| `crm-task-reminders` | avisa na caixa de entrada o responsável por tarefas do CRM que vencem em até 1 h ou acabaram de atrasar (uma vez cada, por `dedupeKey`) | cron a cada 15 min |
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |
 | `changelog` | e-mails de changelog | sob demanda |

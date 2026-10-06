@@ -28,6 +28,7 @@ export const QueueName = {
   ServicedeskReports: 'servicedesk-reports',
   ServicedeskRisk: 'servicedesk-risk',
   ServicedeskIntegrations: 'servicedesk-integrations',
+  CrmTaskReminders: 'crm-task-reminders',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -529,4 +530,20 @@ export type ServicedeskIntegrationsJobPayload = {
     payload?: Record<string, unknown>
   }
   [ServicedeskIntegrationsJob.SyncGithubState]: { workspaceId?: string }
+}
+
+/**
+ * CRM task reminders: every 15 min, notifies the assignee of tasks due within
+ * the next hour and of tasks that just became overdue — once each, through
+ * the notification `dedupeKey`.
+ */
+export const CrmTaskRemindersJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type CrmTaskRemindersJob =
+  (typeof CrmTaskRemindersJob)[keyof typeof CrmTaskRemindersJob]
+
+export type CrmTaskRemindersJobPayload = {
+  [CrmTaskRemindersJob.RunTick]: Record<string, never>
 }

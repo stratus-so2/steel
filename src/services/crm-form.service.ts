@@ -29,6 +29,7 @@ import type {
 } from '@/types/crm-form'
 import { assertModuleEnabled, assertModuleMember } from './authz'
 import { CrmLeadService } from './crm-lead.service'
+import { notifyCrmFormSubmitted } from './crm-notifications'
 
 /** Todo `phaseId` referenciado por um campo precisa existir em `phases`.
  * Usada no update quando o PATCH manda só `fields` ou só `phases` — o Zod
@@ -337,6 +338,9 @@ export const CrmFormService = {
     let createdCompanyId: string | undefined
     let createdPersonId: string | undefined
     let createdLeadId: string | undefined
+    // The lead routed to the form owner already notified them
+    // (CRM_LEAD_ASSIGNED) — no second notice for the same submission.
+    let ownerNotifiedByLead = false
 
     if (form.value.action === 'COMPANY') {
       const attrs = byTarget.company ?? {}
@@ -392,6 +396,9 @@ export const CrmFormService = {
       )
       if (!intake.ok) return intake
       createdLeadId = intake.value.lead.id
+      ownerNotifiedByLead =
+        intake.value.created &&
+        intake.value.lead.ownerId === form.value.createdById
     }
 
     const result = await CrmFormSubmissionRepository.create({
@@ -405,6 +412,13 @@ export const CrmFormService = {
       referrer,
     })
     if (!result.ok) return result
+
+    if (!ownerNotifiedByLead) {
+      void notifyCrmFormSubmitted({
+        workspaceId: form.value.workspaceId,
+        form: form.value,
+      })
+    }
 
     return ok(toCrmFormSubmissionDTO(result.value))
   },

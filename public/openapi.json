@@ -35129,6 +35129,163 @@
         ]
       }
     },
+    "/workspaces/{id}/notifications/preferences": {
+      "get": {
+        "tags": ["Configurações do workspace"],
+        "summary": "Preferências de notificação",
+        "operationId": "getWorkspacesByIdNotificationsPreferences",
+        "description": "Preferências do próprio usuário no workspace para os tipos fora do ServiceDesk (CRM, Comunicação e Plataforma), um item por tipo do catálogo. Tipo sem preferência salva vem ligado. O ServiceDesk tem preferências próprias, por evento e canal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Um item por tipo configurável.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/NotificationPreferenceList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": ["Configurações do workspace"],
+        "summary": "Silenciar ou reativar tipos de notificação",
+        "operationId": "putWorkspacesByIdNotificationsPreferences",
+        "description": "Liga ou desliga a entrega na caixa de entrada por tipo (até 100 itens; o último vence quando o tipo se repete). Tipos do ServiceDesk são recusados. Devolve a lista completa atualizada.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preferences": {
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "WHATSAPP_NEGATIVE_SENTIMENT",
+                            "CRM_LEAD_ASSIGNED",
+                            "CRM_OPPORTUNITY_ASSIGNED",
+                            "CRM_DEAL_CLOSED",
+                            "CRM_TASK_ASSIGNED",
+                            "CRM_TASK_DUE",
+                            "CRM_PROPOSAL_VIEWED",
+                            "CRM_PROPOSAL_ACCEPTED",
+                            "CRM_PROPOSAL_EXPIRED",
+                            "CRM_FORM_SUBMITTED",
+                            "CRM_CAMPAIGN_FINISHED",
+                            "CRM_WORKFLOW_FAILED",
+                            "CRM_WORKFLOW_WAITING",
+                            "CRM_SOCIAL_POST_FAILED",
+                            "CRM_COMPETITOR_SYNC_FAILED",
+                            "MEMBER_JOINED",
+                            "DATA_EXPORT_READY",
+                            "TRIAL_ENDED",
+                            "BILLING_PAYMENT_FAILED",
+                            "BILLING_SUBSCRIPTION_CANCELED",
+                            "AI_QUOTA_WARNING",
+                            "AI_QUOTA_EXCEEDED"
+                          ]
+                        },
+                        "inApp": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["kind", "inApp"]
+                    }
+                  }
+                },
+                "required": ["preferences"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferências atualizadas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/NotificationPreferenceList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/notifications/read": {
       "post": {
         "tags": ["Configurações do workspace"],
@@ -113918,7 +114075,28 @@
                     "SD_APPROVAL_REQUESTED",
                     "SD_TASK_ASSIGNED",
                     "SD_TICKET_CSAT",
-                    "SD_DIGEST"
+                    "SD_DIGEST",
+                    "CRM_LEAD_ASSIGNED",
+                    "CRM_OPPORTUNITY_ASSIGNED",
+                    "CRM_DEAL_CLOSED",
+                    "CRM_TASK_ASSIGNED",
+                    "CRM_TASK_DUE",
+                    "CRM_PROPOSAL_VIEWED",
+                    "CRM_PROPOSAL_ACCEPTED",
+                    "CRM_PROPOSAL_EXPIRED",
+                    "CRM_FORM_SUBMITTED",
+                    "CRM_CAMPAIGN_FINISHED",
+                    "CRM_WORKFLOW_FAILED",
+                    "CRM_WORKFLOW_WAITING",
+                    "CRM_SOCIAL_POST_FAILED",
+                    "CRM_COMPETITOR_SYNC_FAILED",
+                    "MEMBER_JOINED",
+                    "DATA_EXPORT_READY",
+                    "TRIAL_ENDED",
+                    "BILLING_PAYMENT_FAILED",
+                    "BILLING_SUBSCRIPTION_CANCELED",
+                    "AI_QUOTA_WARNING",
+                    "AI_QUOTA_EXCEEDED"
                   ]
                 },
                 "title": {
@@ -114058,6 +114236,43 @@
           }
         },
         "required": ["items", "unreadCount", "nextCursor", "counts"]
+      },
+      "NotificationPreferenceList": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "example": "CRM_LEAD_ASSIGNED"
+            },
+            "module": {
+              "type": "string",
+              "enum": ["COMMUNICATION", "CRM", "OTHER"]
+            },
+            "moduleLabel": {
+              "type": "string",
+              "example": "CRM"
+            },
+            "label": {
+              "type": "string",
+              "example": "Lead atribuído"
+            },
+            "icon": {
+              "type": "string",
+              "example": "assign"
+            },
+            "color": {
+              "type": "string",
+              "example": "violet"
+            },
+            "inApp": {
+              "type": "boolean",
+              "description": "Entrega na caixa de entrada (padrão: ligada)."
+            }
+          },
+          "required": ["kind", "module", "moduleLabel", "label", "icon", "color", "inApp"]
+        }
       },
       "NotificationRealtimeEvent": {
         "type": "object",

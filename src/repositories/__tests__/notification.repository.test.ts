@@ -467,3 +467,38 @@ describe('NotificationRepository — edge cases and failures', () => {
     )
   })
 })
+
+describe('NotificationRepository dedupe key', () => {
+  it('should store a (user, dedupeKey) pair once and skip re-runs', async () => {
+    const [workspace, alice, bob] = await Promise.all([
+      seedWorkspace(),
+      seedUser(),
+      seedUser(),
+    ])
+    const rows = [
+      notification(workspace.id, alice.id, 'Tarefa atrasada', {
+        dedupeKey: 'crm-task-due:t1:overdue',
+      }),
+      notification(workspace.id, bob.id, 'Tarefa atrasada', {
+        dedupeKey: 'crm-task-due:t1:overdue',
+      }),
+    ]
+
+    expect(expectOk(await NotificationRepository.createMany(rows))).toBe(2)
+    // The job runs again: nothing new is created.
+    expect(expectOk(await NotificationRepository.createMany(rows))).toBe(0)
+    // Without a key, rows are never deduplicated.
+    expect(
+      expectOk(
+        await NotificationRepository.createMany([
+          notification(workspace.id, alice.id, 'Livre'),
+          notification(workspace.id, alice.id, 'Livre'),
+        ]),
+      ),
+    ).toBe(2)
+
+    expect(
+      await prisma.notification.count({ where: { userId: alice.id } }),
+    ).toBe(3)
+  })
+})

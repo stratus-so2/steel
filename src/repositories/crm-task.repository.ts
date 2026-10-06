@@ -122,4 +122,34 @@ export const CrmTaskRepository = {
       return err(dbError('Failed to reorder CRM tasks', error))
     }
   },
+
+  /**
+   * Open, assigned tasks whose due date falls in `[from, to]`, in workspaces
+   * that are active and have the CRM module enabled (reminder tick).
+   */
+  async listDueForReminder(
+    from: Date,
+    to: Date,
+    limit: number,
+  ): Promise<Result<CrmTask[]>> {
+    try {
+      const tasks = await prisma.crmTask.findMany({
+        where: {
+          deletedAt: null,
+          status: { not: 'DONE' },
+          assigneeId: { not: null },
+          dueDate: { gte: from, lte: to },
+          workspace: {
+            status: 'ACTIVE',
+            moduleAccess: { some: { module: 'CRM', enabled: true } },
+          },
+        },
+        orderBy: { dueDate: 'asc' },
+        take: limit,
+      })
+      return ok(tasks)
+    } catch (error) {
+      return err(dbError('Failed to list CRM tasks due for reminder', error))
+    }
+  },
 }

@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   listDueScheduled: vi.fn(),
   setCampaignStatus: vi.fn(),
   sendCampaign: vi.fn(),
+  notifyCampaignFinished: vi.fn(),
+  notifyTrialEnded: vi.fn(),
   prisma: {
     session: { deleteMany: vi.fn() },
     verification: { deleteMany: vi.fn() },
@@ -40,6 +42,12 @@ vi.mock('@/src/services/crm-email-campaign.service', () => ({
   CrmEmailCampaignService: { send: mocks.sendCampaign },
 }))
 vi.mock('@/src/lib/prisma', () => ({ prisma: mocks.prisma }))
+vi.mock('@/src/services/crm-notifications', () => ({
+  notifyCrmCampaignFinished: mocks.notifyCampaignFinished,
+}))
+vi.mock('@/src/services/platform-notifications', () => ({
+  notifyTrialEnded: mocks.notifyTrialEnded,
+}))
 
 import {
   CrmCompetitorSyncJob,
@@ -75,6 +83,11 @@ describe('processTrialLifecycle', () => {
     expect(mocks.workspaceCacheInvalidate).toHaveBeenCalledWith('ws-1')
     expect(mocks.workspaceCacheInvalidate).toHaveBeenCalledWith('ws-2')
     expect(mocks.featuresCacheInvalidate).toHaveBeenCalledTimes(2)
+    expect(mocks.notifyTrialEnded).toHaveBeenCalledTimes(2)
+    expect(mocks.notifyTrialEnded).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      day: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    })
     expect(mocks.loggerMock.info).toHaveBeenCalledWith(
       'queue.trial_lifecycle.trials_reverted',
       expect.objectContaining({ reverted: ['ws-1', 'ws-2'] }),
@@ -155,6 +168,16 @@ describe('processCrmScheduledSend', () => {
     // Só a campanha sem destinatários é marcada FAILED.
     expect(mocks.setCampaignStatus).toHaveBeenCalledTimes(1)
     expect(mocks.setCampaignStatus).toHaveBeenCalledWith('c2', 'FAILED')
+    // Terminal failure (no recipients) tells the creator; retryable ones don't.
+    expect(mocks.notifyCampaignFinished).toHaveBeenCalledTimes(1)
+    expect(mocks.notifyCampaignFinished).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: 'ws-1',
+        status: 'FAILED',
+        actorId: null,
+        campaign: expect.objectContaining({ id: 'c2' }),
+      }),
+    )
     expect(mocks.loggerMock.error).toHaveBeenCalledTimes(2)
   })
 

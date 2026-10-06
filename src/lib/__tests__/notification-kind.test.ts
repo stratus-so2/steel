@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  configurableNotificationKinds,
+  isConfigurableNotificationKind,
   NOTIFICATION_ICONS,
   NOTIFICATION_MODULE_LABELS,
   NOTIFICATION_MODULES,
@@ -85,9 +87,14 @@ describe('notificationModuleOf / notificationKindsOfModule', () => {
     ])
   })
 
-  it('should return an empty list for a module with no kinds yet', () => {
-    expect(notificationKindsOfModule('CRM')).toEqual([])
-    expect(notificationKindsOfModule('OTHER')).toEqual([])
+  it('should list the CRM and platform kinds under their modules', () => {
+    expect(notificationKindsOfModule('CRM')).toContain('CRM_LEAD_ASSIGNED')
+    expect(notificationKindsOfModule('CRM')).toContain('CRM_TASK_DUE')
+    expect(notificationKindsOfModule('OTHER')).toContain('MEMBER_JOINED')
+    expect(notificationKindsOfModule('OTHER')).toContain('AI_QUOTA_EXCEEDED')
+    expect(
+      notificationKindsOfModule('OTHER').some((kind) => kind.startsWith('SD_')),
+    ).toBe(false)
   })
 })
 
@@ -113,5 +120,32 @@ describe('notificationTicketRef', () => {
     expect(
       notificationTicketRef('https://x.com/a/servicedesk/tickets/1'),
     ).toBeNull()
+  })
+})
+
+describe('configurable notification kinds', () => {
+  it('should treat everything outside the ServiceDesk as configurable', () => {
+    expect(isConfigurableNotificationKind('CRM_DEAL_CLOSED')).toBe(true)
+    expect(isConfigurableNotificationKind('WHATSAPP_NEGATIVE_SENTIMENT')).toBe(
+      true,
+    )
+    expect(isConfigurableNotificationKind('TRIAL_ENDED')).toBe(true)
+    expect(isConfigurableNotificationKind('SD_TICKET_ASSIGNED')).toBe(false)
+  })
+
+  it('should list only configurable kinds, with pt-BR labels', () => {
+    const catalog = configurableNotificationKinds()
+
+    expect(catalog.some((info) => info.module === 'SERVICE_DESK')).toBe(false)
+    expect(catalog.find((info) => info.kind === 'CRM_LEAD_ASSIGNED')).toEqual(
+      expect.objectContaining({
+        module: 'CRM',
+        moduleLabel: 'CRM',
+        label: 'Lead atribuído',
+      }),
+    )
+    expect(
+      catalog.find((info) => info.kind === 'MEMBER_JOINED')?.moduleLabel,
+    ).toBe('Plataforma')
   })
 })
