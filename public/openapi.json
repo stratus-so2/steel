@@ -301,6 +301,10 @@
       "description": "E-mails de novidades (changelog) para usuários: rascunho, destinatários e disparo."
     },
     {
+      "name": "Steel AI",
+      "description": "Assistente de IA transversal (ServiceDesk, CRM, Comunicação e plataforma): conversas privadas, resposta em stream (SSE) e ações propostas no modo agente, que só executam com a confirmação do usuário."
+    },
+    {
       "name": "Sticky Notes",
       "description": "Notas rápidas pessoais. **Legado da base Nexo** — mantido por compatibilidade, sem evolução planejada."
     },
@@ -414,6 +418,10 @@
         "Admin · Métricas",
         "Admin · Changelog"
       ]
+    },
+    {
+      "name": "Steel AI",
+      "tags": ["Steel AI"]
     },
     {
       "name": "Legado (Nexo)",
@@ -8956,6 +8964,9 @@
                     "minimum": 0,
                     "maximum": 1000000,
                     "multipleOf": 0.01
+                  },
+                  "agentModeEnabled": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -8998,7 +9009,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "503": {
-            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_3"
           }
         },
         "security": [
@@ -9082,6 +9093,793 @@
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_3"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/actions": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Listar ações pendentes",
+        "operationId": "getWorkspacesByIdAiActions",
+        "description": "Ações propostas pelo Steel AI ao usuário (mais recentes primeiro, máx. 100). Ações vencidas viram `EXPIRED` nesta leitura.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["PENDING", "EXECUTED", "FAILED", "CANCELED", "EXPIRED"]
+            }
+          },
+          {
+            "name": "conversationId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ações.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AiPendingAction"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/actions/{actionId}/cancel": {
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Cancelar ação",
+        "operationId": "postWorkspacesByIdAiActionsByActionIdCancel",
+        "description": "Descarta a ação pendente; o Steel AI fica sabendo na próxima mensagem. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "actionId",
+            "in": "path",
+            "required": true,
+            "description": "ID da ação pendente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ação cancelada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiPendingAction"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_AI_PENDING_ACTION_NOT_PENDING"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/actions/{actionId}/confirm": {
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Confirmar ação",
+        "operationId": "postWorkspacesByIdAiActionsByActionIdConfirm",
+        "description": "Executa a escrita proposta. O servidor revalida dono, status, validade (30 min), modo agente, módulo e permissão e valida os argumentos de novo. Exclusões exigem `doubleConfirmed: true`. Idempotente: um segundo clique devolve o resultado do primeiro (`EXECUTED`/`FAILED`) sem executar de novo. Falha do domínio responde `200` com `status: FAILED` e `error`. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "actionId",
+            "in": "path",
+            "required": true,
+            "description": "ID da ação pendente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "doubleConfirmed": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ação decidida.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiPendingAction"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_TOOL_NOT_ALLOWED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_AI_PENDING_ACTION_NOT_PENDING"
+          },
+          "410": {
+            "$ref": "#/components/responses/410_AI_PENDING_ACTION_EXPIRED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_DOUBLE_CONFIRMATION_REQUIRED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/capabilities": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Capacidades do Steel AI",
+        "operationId": "getWorkspacesByIdAiCapabilities",
+        "description": "O que a tela do Steel AI pode oferecer ao usuário: modo agente ligado, módulos habilitados, modelo resolvido (preferência do usuário → padrão do workspace) e consumo da cota mensal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Capacidades.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiCapabilities"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/conversations": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Listar conversas",
+        "operationId": "getWorkspacesByIdAiConversations",
+        "description": "Conversas do usuário no workspace: fixadas primeiro, depois `updatedAt` desc (máx. 100). `q` filtra pelo título.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AiConversation"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Criar conversa",
+        "operationId": "postWorkspacesByIdAiConversations",
+        "description": "Abre uma conversa vazia. `mode`: `EXPLORE` (só leitura, padrão) ou `AGENT` (propõe escritas que o usuário confirma).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "mode": {
+                    "default": "EXPLORE",
+                    "type": "string",
+                    "enum": ["EXPLORE", "AGENT"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversa criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/conversations/{conversationId}": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Detalhar conversa",
+        "operationId": "getWorkspacesByIdAiConversationsByConversationId",
+        "description": "Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["Steel AI"],
+        "summary": "Atualizar conversa",
+        "operationId": "patchWorkspacesByIdAiConversationsByConversationId",
+        "description": "Renomear, trocar o modo ou fixar/desafixar (`pinned`). Informe ao menos um campo. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["EXPLORE", "AGENT"]
+                  },
+                  "pinned": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversa atualizada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Steel AI"],
+        "summary": "Excluir conversa",
+        "operationId": "deleteWorkspacesByIdAiConversationsByConversationId",
+        "description": "Exclusão lógica (soft delete); devolve a conversa excluída. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversa excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiConversation"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/conversations/{conversationId}/messages": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Listar mensagens",
+        "operationId": "getWorkspacesByIdAiConversationsByConversationIdMessages",
+        "description": "Histórico em ordem cronológica. Cada resposta do assistente agrupa as rodadas de ferramentas do turno (`toolCalls` com o status final) e as ações propostas (`pendingActions`). Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mensagens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AiMessage"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Enviar mensagem (stream)",
+        "operationId": "postWorkspacesByIdAiConversationsByConversationIdMessages",
+        "description": "Grava a mensagem e responde em **`text/event-stream`**: um frame por evento, `event: <type>\\ndata: <json>\\n\\n`, no formato `SteelAiStreamEvent` (`types/steel-ai.d.ts`):\n\n- `message.start` → `text.delta`* → (`tool.start` / `tool.end` / `action.pending`)* → `conversation.title`? → `message.end` (mensagem final + uso de tokens);\n- falha do provedor ou ao gravar no meio do stream vira um evento `error` (`code`, `message`).\n\nAté 8 rodadas de ferramentas por mensagem. No modo `AGENT`, toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. `mode` no corpo troca o modo da conversa a partir desta mensagem.\n\nErros detectados **antes** do stream (sessão, consentimento, validação, conversa, modo agente, cota, provedor) voltam no envelope JSON normal. Limite próprio: 20 mensagens por minuto por usuário.\n\nConversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": ["EXPLORE", "AGENT"]
+                  }
+                },
+                "required": ["content"]
+              },
+              "example": {
+                "content": "Quantos chamados críticos estão abertos?"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stream de eventos do turno.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "event: message.start\ndata: {\"type\":\"message.start\",\"conversationId\":\"c1\",\"messageId\":\"m1\"}\n\nevent: text.delta\ndata: {\"type\":\"text.delta\",\"delta\":\"Há 3\"}\n\n"
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "402": {
+            "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED_2"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9953,7 +10751,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "503": {
-            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_3"
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_4"
           }
         },
         "security": [
@@ -11783,7 +12581,7 @@
             "$ref": "#/components/responses/502_CRM_COMPETITOR_IDEAS_FAILED"
           },
           "503": {
-            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_4"
+            "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
           }
         },
         "security": [
@@ -86158,6 +86956,129 @@
           }
         }
       },
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_AGENT_MODE_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "AI_AGENT_MODE_DISABLED": {
+                "summary": "AI_AGENT_MODE_DISABLED — Modo agente pedido com o interruptor do workspace desligado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O modo agente do Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_AGENT_MODE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_TOOL_NOT_ALLOWED": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_AGENT_MODE_DISABLED`, `AI_TOOL_NOT_ALLOWED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "AI_AGENT_MODE_DISABLED": {
+                "summary": "AI_AGENT_MODE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O modo agente do Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_AGENT_MODE_DISABLED"
+                  }
+                }
+              },
+              "AI_TOOL_NOT_ALLOWED": {
+                "summary": "AI_TOOL_NOT_ALLOWED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem permissão para esta ação do Steel AI",
+                  "error": {
+                    "code": "AI_TOOL_NOT_ALLOWED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "403_MODULE_DISABLED": {
         "description": "Acesso negado: `MODULE_DISABLED`",
         "content": {
@@ -86388,6 +87309,52 @@
                   "message": "Você não tem acesso a este chamado",
                   "error": {
                     "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_AI_CONVERSATION_NOT_FOUND": {
+        "description": "Não encontrado: `AI_CONVERSATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_CONVERSATION_NOT_FOUND": {
+                "summary": "AI_CONVERSATION_NOT_FOUND — Conversa inexistente, excluída ou de outro usuário",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "AI_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_AI_PENDING_ACTION_NOT_FOUND": {
+        "description": "Não encontrado: `AI_PENDING_ACTION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_PENDING_ACTION_NOT_FOUND": {
+                "summary": "AI_PENDING_ACTION_NOT_FOUND — Ação inexistente ou pedida por outro usuário",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Ação não encontrada",
+                  "error": {
+                    "code": "AI_PENDING_ACTION_NOT_FOUND"
                   }
                 }
               }
@@ -91156,6 +92123,29 @@
           }
         }
       },
+      "409_AI_PENDING_ACTION_NOT_PENDING": {
+        "description": "Conflito com o estado atual: `AI_PENDING_ACTION_NOT_PENDING`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_PENDING_ACTION_NOT_PENDING": {
+                "summary": "AI_PENDING_ACTION_NOT_PENDING",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Esta ação já foi decidida e não pode ser alterada",
+                  "error": {
+                    "code": "AI_PENDING_ACTION_NOT_PENDING"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_BACKUP_NOT_RESTORABLE_WORKSPACE_STATUS_CONFLICT_WORKSPACE_OPERATION_IN_PROGRESS": {
         "description": "Conflito com o estado atual: `BACKUP_NOT_RESTORABLE`, `WORKSPACE_STATUS_CONFLICT`, `WORKSPACE_OPERATION_IN_PROGRESS`",
         "content": {
@@ -93254,6 +94244,29 @@
           }
         }
       },
+      "410_AI_PENDING_ACTION_EXPIRED": {
+        "description": "Expirado: `AI_PENDING_ACTION_EXPIRED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_PENDING_ACTION_EXPIRED": {
+                "summary": "AI_PENDING_ACTION_EXPIRED",
+                "value": {
+                  "success": false,
+                  "statusCode": 410,
+                  "message": "Esta ação expirou. Peça ao Steel AI para propor de novo.",
+                  "error": {
+                    "code": "AI_PENDING_ACTION_EXPIRED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "410_INVITATION_EXPIRED": {
         "description": "Expirado: `INVITATION_EXPIRED`",
         "content": {
@@ -94501,6 +95514,47 @@
                   "message": "Módulo inválido",
                   "error": {
                     "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_AI_DOUBLE_CONFIRMATION_REQUIRED": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `AI_DOUBLE_CONFIRMATION_REQUIRED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "AI_DOUBLE_CONFIRMATION_REQUIRED": {
+                "summary": "AI_DOUBLE_CONFIRMATION_REQUIRED",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Exclusões exigem confirmação dupla",
+                  "error": {
+                    "code": "AI_DOUBLE_CONFIRMATION_REQUIRED"
                   }
                 }
               }
@@ -97572,7 +98626,7 @@
             },
             "examples": {
               "AI_PROVIDER_UNAVAILABLE": {
-                "summary": "AI_PROVIDER_UNAVAILABLE",
+                "summary": "AI_PROVIDER_UNAVAILABLE — Nenhum modelo habilitado com provedor configurado",
                 "value": {
                   "success": false,
                   "statusCode": 503,
@@ -97587,6 +98641,29 @@
         }
       },
       "503_AI_PROVIDER_UNAVAILABLE_3": {
+        "description": "Serviço indisponível: `AI_PROVIDER_UNAVAILABLE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_PROVIDER_UNAVAILABLE": {
+                "summary": "AI_PROVIDER_UNAVAILABLE",
+                "value": {
+                  "success": false,
+                  "statusCode": 503,
+                  "message": "Nenhum provedor de IA habilitado está disponível neste ambiente",
+                  "error": {
+                    "code": "AI_PROVIDER_UNAVAILABLE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "503_AI_PROVIDER_UNAVAILABLE_4": {
         "description": "Serviço indisponível: `AI_PROVIDER_UNAVAILABLE`",
         "content": {
           "application/json": {
@@ -97611,29 +98688,6 @@
                   "success": false,
                   "statusCode": 503,
                   "message": "Não foi possível falar com o provedor de IA agora. Tente novamente em instantes.",
-                  "error": {
-                    "code": "AI_PROVIDER_UNAVAILABLE"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "503_AI_PROVIDER_UNAVAILABLE_4": {
-        "description": "Serviço indisponível: `AI_PROVIDER_UNAVAILABLE`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "AI_PROVIDER_UNAVAILABLE": {
-                "summary": "AI_PROVIDER_UNAVAILABLE — Nenhum modelo habilitado com provedor configurado",
-                "value": {
-                  "success": false,
-                  "statusCode": 503,
-                  "message": "Nenhum provedor de IA habilitado está disponível neste ambiente",
                   "error": {
                     "code": "AI_PROVIDER_UNAVAILABLE"
                   }
@@ -100261,6 +101315,362 @@
           }
         },
         "required": ["id", "name", "slug", "activePlan", "status", "memberCount", "createdAt"]
+      },
+      "AiCapabilities": {
+        "type": "object",
+        "properties": {
+          "agentModeEnabled": {
+            "type": "boolean",
+            "description": "Interruptor do workspace para o modo agente (ferramentas de escrita)."
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+            },
+            "description": "Módulos habilitados — as ferramentas que o Steel AI alcança."
+          },
+          "modelKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Modelo da próxima resposta (`<provider>:<model>`; preferência do usuário → padrão do workspace). `null` sem modelo utilizável.",
+            "example": "openai:gpt-4o-mini"
+          },
+          "quota": {
+            "type": "object",
+            "properties": {
+              "usedUsd": {
+                "type": "number"
+              },
+              "quotaUsd": {
+                "type": "number"
+              }
+            },
+            "required": ["usedUsd", "quotaUsd"]
+          }
+        },
+        "required": ["agentModeEnabled", "modules", "modelKey", "quota"]
+      },
+      "AiConversation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["EXPLORE", "AGENT"]
+          },
+          "modelKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pinnedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["id", "title", "mode", "modelKey", "pinnedAt", "createdAt", "updatedAt"],
+        "description": "Conversa com o Steel AI (privada do usuário)."
+      },
+      "AiMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["USER", "ASSISTANT"]
+          },
+          "content": {
+            "type": "string"
+          },
+          "toolCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "ws_overview"
+                },
+                "label": {
+                  "type": "string",
+                  "example": "Consultando o workspace"
+                },
+                "module": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["running", "done", "error", "pending_confirmation"]
+                },
+                "summary": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "name", "label", "module", "status"]
+            }
+          },
+          "pendingActions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiPendingAction"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "role",
+          "content",
+          "toolCalls",
+          "pendingActions",
+          "createdAt"
+        ]
+      },
+      "AiPendingAction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "agentRunId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "toolName": {
+            "type": "string",
+            "example": "crm_create_task"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["CREATE", "UPDATE", "DELETE", "ACTION"]
+          },
+          "module": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "preview": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              },
+              "fields": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string"
+                    },
+                    "before": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "after": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": ["label"]
+                }
+              },
+              "target": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "href": {
+                    "type": "string"
+                  }
+                },
+                "required": ["type", "label"]
+              }
+            },
+            "required": ["title", "summary"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["PENDING", "EXECUTED", "FAILED", "CANCELED", "EXPIRED"]
+          },
+          "requiresDoubleConfirm": {
+            "type": "boolean",
+            "description": "Exclusões: confirme com `doubleConfirmed: true`."
+          },
+          "resultSummary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "executedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "agentRunId",
+          "toolName",
+          "kind",
+          "module",
+          "preview",
+          "status",
+          "requiresDoubleConfirm",
+          "resultSummary",
+          "error",
+          "expiresAt",
+          "decidedAt",
+          "executedAt",
+          "createdAt"
+        ],
+        "description": "Escrita proposta pelo Steel AI que só executa depois da confirmação humana."
       },
       "AuthSession": {
         "type": "object",
@@ -112226,6 +113636,13 @@
           "AI_MODEL_NOT_ENABLED",
           "AI_PROVIDER_UNAVAILABLE",
           "FEATURE_NOT_ENABLED",
+          "AI_CONVERSATION_NOT_FOUND",
+          "AI_AGENT_MODE_DISABLED",
+          "AI_TOOL_NOT_ALLOWED",
+          "AI_PENDING_ACTION_NOT_FOUND",
+          "AI_PENDING_ACTION_NOT_PENDING",
+          "AI_PENDING_ACTION_EXPIRED",
+          "AI_DOUBLE_CONFIRMATION_REQUIRED",
           "SD_TICKET_NOT_FOUND",
           "SD_TICKET_FORBIDDEN",
           "SD_NOT_AGENT",
@@ -112342,7 +113759,7 @@
           "ANALYTICS_QUERY_FAILED",
           "BACKUP_FAILED"
         ],
-        "description": "Código estável do erro (fonte: `src/errors/codes.ts`). Use o código — não a mensagem — para tratar erros no cliente.\n\n| Código | Status HTTP |\n| ------ | ----------- |\n| `UNAUTHORIZED` | 401 |\n| `INVALID_TOKEN` | 401 |\n| `TOKEN_EXPIRED` | 401 |\n| `INVALID_CREDENTIALS` | 401 |\n| `FORBIDDEN` | 403 |\n| `INSUFFICIENT_PERMISSIONS` | 403 |\n| `PROJECT_FORBIDDEN` | 403 |\n| `SEAT_LIMIT_REACHED` | 403 |\n| `FEATURE_NOT_IN_PLAN` | 403 |\n| `CONNECTION_FORBIDDEN` | 403 |\n| `MODULE_DISABLED` | 403 |\n| `WORKSPACE_SUSPENDED` | 403 |\n| `BACKUP_DOWNLOAD_LINK_INVALID` | 403 |\n| `BAD_REQUEST` | 400 |\n| `VALIDATION_ERROR` | 422 |\n| `RESOURCE_NOT_FOUND` | 404 |\n| `CONFLICT` | 409 |\n| `USERNAME_CONFLICT` | 409 |\n| `RATE_LIMITED` | 429 |\n| `PROJECT_NOT_FOUND` | 404 |\n| `PROJECT_SLUG_CONFLICT` | 409 |\n| `INVITATION_NOT_FOUND` | 404 |\n| `INVITATION_NOT_PENDING` | 409 |\n| `INVITATION_EXPIRED` | 410 |\n| `INVITATION_EMAIL_MISMATCH` | 403 |\n| `INVITATION_DUPLICATE` | 409 |\n| `INVITATION_ALREADY_MEMBER` | 409 |\n| `PROJECT_MEMBER_ALREADY_EXISTS` | 409 |\n| `PROJECT_MEMBER_NOT_FOUND` | 404 |\n| `PROJECT_MEMBER_NOT_IN_WORKSPACE` | 409 |\n| `COUPON_INVALID` | 422 |\n| `CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_CONFLICT` | 409 |\n| `WHATSAPP_CONTACT_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `WHATSAPP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_ALREADY_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_NOT_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_AI_HANDLING` | 409 |\n| `WHATSAPP_QUICK_REPLY_NOT_FOUND` | 404 |\n| `WHATSAPP_QUICK_REPLY_CONFLICT` | 409 |\n| `WHATSAPP_TEMPLATE_NOT_FOUND` | 404 |\n| `WHATSAPP_TEMPLATE_NOT_APPROVED` | 422 |\n| `WHATSAPP_BROADCAST_NOT_FOUND` | 404 |\n| `WHATSAPP_BROADCAST_LOCKED` | 409 |\n| `WHATSAPP_BROADCAST_MEDIA_INVALID` | 422 |\n| `WHATSAPP_BROADCAST_NO_RECIPIENTS` | 422 |\n| `WHATSAPP_AI_CONFIG_NOT_FOUND` | 404 |\n| `WHATSAPP_PROVIDER_ERROR` | 502 |\n| `WHATSAPP_WEBHOOK_UNAUTHORIZED` | 401 |\n| `WHATSAPP_GROUP_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED` | 422 |\n| `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE` | 422 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND` | 404 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE` | 422 |\n| `CRM_COMPANY_NOT_FOUND` | 404 |\n| `CRM_COMPANY_CONFLICT` | 409 |\n| `CRM_PERSON_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_IN_USE` | 409 |\n| `CRM_PRODUCT_NOT_FOUND` | 404 |\n| `CRM_PRODUCT_CONFLICT` | 409 |\n| `CRM_OPPORTUNITY_NOT_FOUND` | 404 |\n| `CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND` | 404 |\n| `CRM_LEAD_NOT_FOUND` | 404 |\n| `CRM_LEAD_ALREADY_CONVERTED` | 409 |\n| `CRM_LEAD_SCORING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_ROUTING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_STAGE_TRANSITION_INVALID` | 409 |\n| `CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET` | 422 |\n| `CRM_LEAD_ALREADY_CLOSED` | 409 |\n| `CRM_LEAD_QUALIFICATION_NOT_FOUND` | 404 |\n| `CRM_LEAD_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_LEAD_DUPLICATE` | 409 |\n| `CRM_LEAD_REOPEN_NOT_ALLOWED` | 409 |\n| `CRM_CUSTOM_FIELD_NOT_FOUND` | 404 |\n| `CRM_CUSTOM_FIELD_CONFLICT` | 409 |\n| `CRM_CUSTOM_FIELD_INVALID` | 422 |\n| `CRM_TASK_NOT_FOUND` | 404 |\n| `CRM_NOTE_NOT_FOUND` | 404 |\n| `CRM_QUOTA_NOT_FOUND` | 404 |\n| `CRM_QUOTA_CONFLICT` | 409 |\n| `CRM_REPORT_NOT_FOUND` | 404 |\n| `CRM_REPORT_INVALID_SOURCE` | 422 |\n| `CRM_DASHBOARD_NOT_FOUND` | 404 |\n| `CRM_DASHBOARD_WIDGET_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_EXPIRED` | 409 |\n| `CRM_PROPOSAL_NOT_ACCEPTABLE` | 409 |\n| `CRM_PROPOSAL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_PUBLISHED` | 422 |\n| `CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `CRM_AI_NOT_CONFIGURED` | 503 |\n| `CRM_INTEGRATION_KEY_NOT_FOUND` | 404 |\n| `CRM_INTEGRATION_KEY_INVALID` | 401 |\n| `CRM_EMAIL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_ALREADY_SENT` | 409 |\n| `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS` | 422 |\n| `CRM_EMAIL_UNSUBSCRIBE_INVALID` | 400 |\n| `CRM_MAILING_LIST_NOT_FOUND` | 404 |\n| `CRM_MAILING_LIST_MEMBER_CONFLICT` | 409 |\n| `CRM_WORKFLOW_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_NOT_ACTIVE` | 409 |\n| `CRM_WORKFLOW_VERSION_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_VERSION_NOT_DRAFT` | 409 |\n| `CRM_WORKFLOW_INVALID_DEFINITION` | 422 |\n| `CRM_WORKFLOW_EXECUTION_FAILED` | 500 |\n| `CRM_WORKFLOW_WEBHOOK_INVALID` | 404 |\n| `CRM_LANDING_PAGE_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_CONFLICT` | 409 |\n| `CRM_SOCIAL_OAUTH_FAILED` | 502 |\n| `CRM_SOCIAL_STATE_INVALID` | 400 |\n| `CRM_SOCIAL_NOT_CONFIGURED` | 503 |\n| `CRM_SOCIAL_NO_PAGE` | 422 |\n| `CRM_SOCIAL_IG_NOT_LINKED` | 422 |\n| `CRM_SOCIAL_TOKEN_EXPIRED` | 409 |\n| `CRM_SOCIAL_SCOPE_MISSING` | 409 |\n| `CRM_SOCIAL_VIDEO_INVALID` | 422 |\n| `CRM_COMPETITOR_PROFILE_NOT_FOUND` | 404 |\n| `CRM_COMPETITOR_NO_POSTS` | 422 |\n| `CRM_COMPETITOR_IDEAS_FAILED` | 502 |\n| `CRM_SCHEDULED_POST_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_ALREADY_PUBLISHED` | 409 |\n| `CRM_SCHEDULED_POST_INVALID` | 400 |\n| `CRM_EMAIL_ACCOUNT_NOT_FOUND` | 404 |\n| `CRM_EMAIL_ACCOUNT_CONFLICT` | 409 |\n| `CRM_EMAIL_MESSAGE_NOT_FOUND` | 404 |\n| `CRM_CALENDAR_EVENT_NOT_FOUND` | 404 |\n| `CRM_AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `PROFILE_NOT_FOUND` | 404 |\n| `PROFILE_NAME_TAKEN` | 409 |\n| `PROFILE_SYSTEM_PROTECTED` | 409 |\n| `PROFILE_IN_USE` | 409 |\n| `CRM_HOOK_VAULT_ITEM_NOT_FOUND` | 404 |\n| `CRM_TRACKED_COMPETITOR_NOT_FOUND` | 404 |\n| `CHANGELOG_NOT_FOUND` | 404 |\n| `CHANGELOG_LOCKED` | 409 |\n| `BACKUP_NOT_FOUND` | 404 |\n| `BACKUP_NOT_RESTORABLE` | 409 |\n| `WORKSPACE_STATUS_CONFLICT` | 409 |\n| `WORKSPACE_OPERATION_IN_PROGRESS` | 409 |\n| `WORKSPACE_CONFIRMATION_MISMATCH` | 422 |\n| `AI_QUOTA_EXCEEDED` | 402 |\n| `AI_MODEL_NOT_ENABLED` | 422 |\n| `AI_PROVIDER_UNAVAILABLE` | 503 |\n| `FEATURE_NOT_ENABLED` | 403 |\n| `SD_TICKET_NOT_FOUND` | 404 |\n| `SD_TICKET_FORBIDDEN` | 403 |\n| `SD_NOT_AGENT` | 403 |\n| `SD_TICKET_CLOSED` | 409 |\n| `SD_PHASE_NOT_FOUND` | 404 |\n| `SD_PHASE_TRANSITION_NOT_ALLOWED` | 422 |\n| `SD_PHASE_REQUIREMENTS_UNMET` | 422 |\n| `SD_APPROVAL_REQUIRED` | 422 |\n| `SD_APPROVAL_NOT_FOUND` | 404 |\n| `SD_APPROVAL_NOT_PENDING` | 409 |\n| `SD_APPROVAL_EXPIRED` | 410 |\n| `SD_SIGNATURE_REQUIRED` | 422 |\n| `SD_CATEGORY_NOT_FOUND` | 404 |\n| `SD_CATEGORY_LEVEL_INVALID` | 422 |\n| `SD_DEPARTMENT_NOT_FOUND` | 404 |\n| `SD_DEPARTMENT_DEPTH_EXCEEDED` | 422 |\n| `SD_CUSTOMER_NOT_FOUND` | 404 |\n| `SD_CUSTOMER_DOCUMENT_CONFLICT` | 409 |\n| `SD_DOCUMENT_INVALID` | 422 |\n| `SD_CONTACT_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_TYPE_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_CYCLE` | 422 |\n| `SD_CONFIG_NOT_FOUND` | 404 |\n| `SD_CONFIG_CONFLICT` | 409 |\n| `SD_CUSTOM_FIELD_INVALID` | 422 |\n| `SD_KB_ARTICLE_NOT_FOUND` | 404 |\n| `SD_KB_ARTICLE_FORBIDDEN` | 403 |\n| `SD_KB_ARTICLE_MOVE_INVALID` | 422 |\n| `SD_KB_COMMENT_NOT_FOUND` | 404 |\n| `SD_KB_COMMENT_FORBIDDEN` | 403 |\n| `SD_KB_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `SD_ATTACHMENT_NOT_FOUND` | 404 |\n| `SD_ATTACHMENT_INVALID` | 422 |\n| `SD_CEP_NOT_FOUND` | 404 |\n| `SD_CEP_LOOKUP_FAILED` | 502 |\n| `SD_PORTAL_DISABLED` | 403 |\n| `SD_WHATSAPP_NOT_CONFIGURED` | 422 |\n| `SD_AI_DISABLED` | 403 |\n| `SD_MESSAGE_NOT_FOUND` | 404 |\n| `SD_MESSAGE_FORBIDDEN` | 403 |\n| `SD_TASK_NOT_FOUND` | 404 |\n| `SD_COST_NOT_FOUND` | 404 |\n| `SD_TICKET_PART_NOT_FOUND` | 404 |\n| `SD_PART_STATUS_INVALID` | 422 |\n| `SD_PART_OUT_OF_STOCK` | 409 |\n| `SD_SIGNATURE_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_CLOSED` | 409 |\n| `SD_WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_WHATSAPP_WINDOW_CLOSED` | 422 |\n| `SD_CSAT_ALREADY_SUBMITTED` | 409 |\n| `SD_CSAT_NOT_AVAILABLE` | 422 |\n| `SD_MAILBOX_NOT_FOUND` | 404 |\n| `SD_MAILBOX_CONFLICT` | 409 |\n| `SD_MAILBOX_CONNECTION_FAILED` | 502 |\n| `SD_MONITOR_SOURCE_NOT_FOUND` | 404 |\n| `SD_MONITOR_TOKEN_INVALID` | 401 |\n| `SD_MONITOR_PAYLOAD_INVALID` | 422 |\n| `SD_PORTAL_LINK_INVALID` | 401 |\n| `SD_PORTAL_LINK_EXPIRED` | 410 |\n| `SD_PORTAL_SESSION_EXPIRED` | 401 |\n| `SD_PORTAL_CONTACT_INACTIVE` | 403 |\n| `SD_NOTIFICATION_EVENT_UNKNOWN` | 422 |\n| `SD_CONTRACT_NOT_FOUND` | 404 |\n| `SD_CONTRACT_INACTIVE` | 422 |\n| `SD_CONTRACT_OVERLAP` | 409 |\n| `SD_CONTRACT_PERIOD_NOT_FOUND` | 404 |\n| `SD_CONTRACT_PERIOD_CLOSED` | 409 |\n| `SD_TIME_ENTRY_NOT_FOUND` | 404 |\n| `SD_TIME_ENTRY_RUNNING` | 409 |\n| `SD_TIME_ENTRY_INVALID` | 422 |\n| `SD_CHANGE_WINDOW_NOT_FOUND` | 404 |\n| `SD_CHANGE_WINDOW_INVALID` | 422 |\n| `SD_CHANGE_FROZEN` | 409 |\n| `SD_CHANGE_CONFLICT` | 409 |\n| `SD_CAB_BOARD_NOT_FOUND` | 404 |\n| `SD_CAB_QUORUM_INVALID` | 422 |\n| `SD_APPROVAL_ROUND_NOT_FOUND` | 404 |\n| `SD_APPROVAL_ROUND_CLOSED` | 409 |\n| `SD_ONCALL_SCHEDULE_NOT_FOUND` | 404 |\n| `SD_ONCALL_LAYER_INVALID` | 422 |\n| `SD_ONCALL_OVERRIDE_OVERLAP` | 409 |\n| `SD_RECURRING_NOT_FOUND` | 404 |\n| `SD_RECURRING_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_NOT_FOUND` | 404 |\n| `SD_REPORT_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_RECIPIENTS_REQUIRED` | 422 |\n| `SD_REPORT_RUN_NOT_FOUND` | 404 |\n| `SD_REPORT_GENERATION_FAILED` | 500 |\n| `SD_KB_REVIEW_NOT_FOUND` | 404 |\n| `SD_KB_REVIEW_CLOSED` | 409 |\n| `SD_KB_REVIEW_FORBIDDEN` | 403 |\n| `SD_RISK_PREDICTION_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_CLOSED` | 409 |\n| `SD_INTEGRATION_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_EXISTS` | 409 |\n| `SD_INTEGRATION_NOT_CONFIGURED` | 503 |\n| `SD_INTEGRATION_LINK_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_LINK_EXISTS` | 409 |\n| `SD_INTEGRATION_SIGNATURE_INVALID` | 401 |\n| `SD_INTEGRATION_REQUEST_FAILED` | 502 |\n| `TOTP_NOT_ENABLED` | 409 |\n| `TOTP_INVALID_CODE` | 401 |\n| `INTERNAL_SERVER_ERROR` | 500 |\n| `DATABASE_ERROR` | 500 |\n| `STORAGE_ERROR` | 500 |\n| `PAYMENT_ERROR` | 502 |\n| `SUBSCRIPTION_CANCEL_FAILED` | 502 |\n| `MAIL_ERROR` | 502 |\n| `CONNECTION_TEST_FAILED` | 502 |\n| `RELEASE_NOTES_UNAVAILABLE` | 502 |\n| `ANALYTICS_QUERY_FAILED` | 502 |\n| `BACKUP_FAILED` | 500 |"
+        "description": "Código estável do erro (fonte: `src/errors/codes.ts`). Use o código — não a mensagem — para tratar erros no cliente.\n\n| Código | Status HTTP |\n| ------ | ----------- |\n| `UNAUTHORIZED` | 401 |\n| `INVALID_TOKEN` | 401 |\n| `TOKEN_EXPIRED` | 401 |\n| `INVALID_CREDENTIALS` | 401 |\n| `FORBIDDEN` | 403 |\n| `INSUFFICIENT_PERMISSIONS` | 403 |\n| `PROJECT_FORBIDDEN` | 403 |\n| `SEAT_LIMIT_REACHED` | 403 |\n| `FEATURE_NOT_IN_PLAN` | 403 |\n| `CONNECTION_FORBIDDEN` | 403 |\n| `MODULE_DISABLED` | 403 |\n| `WORKSPACE_SUSPENDED` | 403 |\n| `BACKUP_DOWNLOAD_LINK_INVALID` | 403 |\n| `BAD_REQUEST` | 400 |\n| `VALIDATION_ERROR` | 422 |\n| `RESOURCE_NOT_FOUND` | 404 |\n| `CONFLICT` | 409 |\n| `USERNAME_CONFLICT` | 409 |\n| `RATE_LIMITED` | 429 |\n| `PROJECT_NOT_FOUND` | 404 |\n| `PROJECT_SLUG_CONFLICT` | 409 |\n| `INVITATION_NOT_FOUND` | 404 |\n| `INVITATION_NOT_PENDING` | 409 |\n| `INVITATION_EXPIRED` | 410 |\n| `INVITATION_EMAIL_MISMATCH` | 403 |\n| `INVITATION_DUPLICATE` | 409 |\n| `INVITATION_ALREADY_MEMBER` | 409 |\n| `PROJECT_MEMBER_ALREADY_EXISTS` | 409 |\n| `PROJECT_MEMBER_NOT_FOUND` | 404 |\n| `PROJECT_MEMBER_NOT_IN_WORKSPACE` | 409 |\n| `COUPON_INVALID` | 422 |\n| `CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_CONFLICT` | 409 |\n| `WHATSAPP_CONTACT_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `WHATSAPP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_ALREADY_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_NOT_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_AI_HANDLING` | 409 |\n| `WHATSAPP_QUICK_REPLY_NOT_FOUND` | 404 |\n| `WHATSAPP_QUICK_REPLY_CONFLICT` | 409 |\n| `WHATSAPP_TEMPLATE_NOT_FOUND` | 404 |\n| `WHATSAPP_TEMPLATE_NOT_APPROVED` | 422 |\n| `WHATSAPP_BROADCAST_NOT_FOUND` | 404 |\n| `WHATSAPP_BROADCAST_LOCKED` | 409 |\n| `WHATSAPP_BROADCAST_MEDIA_INVALID` | 422 |\n| `WHATSAPP_BROADCAST_NO_RECIPIENTS` | 422 |\n| `WHATSAPP_AI_CONFIG_NOT_FOUND` | 404 |\n| `WHATSAPP_PROVIDER_ERROR` | 502 |\n| `WHATSAPP_WEBHOOK_UNAUTHORIZED` | 401 |\n| `WHATSAPP_GROUP_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED` | 422 |\n| `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE` | 422 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND` | 404 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE` | 422 |\n| `CRM_COMPANY_NOT_FOUND` | 404 |\n| `CRM_COMPANY_CONFLICT` | 409 |\n| `CRM_PERSON_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_IN_USE` | 409 |\n| `CRM_PRODUCT_NOT_FOUND` | 404 |\n| `CRM_PRODUCT_CONFLICT` | 409 |\n| `CRM_OPPORTUNITY_NOT_FOUND` | 404 |\n| `CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND` | 404 |\n| `CRM_LEAD_NOT_FOUND` | 404 |\n| `CRM_LEAD_ALREADY_CONVERTED` | 409 |\n| `CRM_LEAD_SCORING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_ROUTING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_STAGE_TRANSITION_INVALID` | 409 |\n| `CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET` | 422 |\n| `CRM_LEAD_ALREADY_CLOSED` | 409 |\n| `CRM_LEAD_QUALIFICATION_NOT_FOUND` | 404 |\n| `CRM_LEAD_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_LEAD_DUPLICATE` | 409 |\n| `CRM_LEAD_REOPEN_NOT_ALLOWED` | 409 |\n| `CRM_CUSTOM_FIELD_NOT_FOUND` | 404 |\n| `CRM_CUSTOM_FIELD_CONFLICT` | 409 |\n| `CRM_CUSTOM_FIELD_INVALID` | 422 |\n| `CRM_TASK_NOT_FOUND` | 404 |\n| `CRM_NOTE_NOT_FOUND` | 404 |\n| `CRM_QUOTA_NOT_FOUND` | 404 |\n| `CRM_QUOTA_CONFLICT` | 409 |\n| `CRM_REPORT_NOT_FOUND` | 404 |\n| `CRM_REPORT_INVALID_SOURCE` | 422 |\n| `CRM_DASHBOARD_NOT_FOUND` | 404 |\n| `CRM_DASHBOARD_WIDGET_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_EXPIRED` | 409 |\n| `CRM_PROPOSAL_NOT_ACCEPTABLE` | 409 |\n| `CRM_PROPOSAL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_PUBLISHED` | 422 |\n| `CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `CRM_AI_NOT_CONFIGURED` | 503 |\n| `CRM_INTEGRATION_KEY_NOT_FOUND` | 404 |\n| `CRM_INTEGRATION_KEY_INVALID` | 401 |\n| `CRM_EMAIL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_ALREADY_SENT` | 409 |\n| `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS` | 422 |\n| `CRM_EMAIL_UNSUBSCRIBE_INVALID` | 400 |\n| `CRM_MAILING_LIST_NOT_FOUND` | 404 |\n| `CRM_MAILING_LIST_MEMBER_CONFLICT` | 409 |\n| `CRM_WORKFLOW_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_NOT_ACTIVE` | 409 |\n| `CRM_WORKFLOW_VERSION_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_VERSION_NOT_DRAFT` | 409 |\n| `CRM_WORKFLOW_INVALID_DEFINITION` | 422 |\n| `CRM_WORKFLOW_EXECUTION_FAILED` | 500 |\n| `CRM_WORKFLOW_WEBHOOK_INVALID` | 404 |\n| `CRM_LANDING_PAGE_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_CONFLICT` | 409 |\n| `CRM_SOCIAL_OAUTH_FAILED` | 502 |\n| `CRM_SOCIAL_STATE_INVALID` | 400 |\n| `CRM_SOCIAL_NOT_CONFIGURED` | 503 |\n| `CRM_SOCIAL_NO_PAGE` | 422 |\n| `CRM_SOCIAL_IG_NOT_LINKED` | 422 |\n| `CRM_SOCIAL_TOKEN_EXPIRED` | 409 |\n| `CRM_SOCIAL_SCOPE_MISSING` | 409 |\n| `CRM_SOCIAL_VIDEO_INVALID` | 422 |\n| `CRM_COMPETITOR_PROFILE_NOT_FOUND` | 404 |\n| `CRM_COMPETITOR_NO_POSTS` | 422 |\n| `CRM_COMPETITOR_IDEAS_FAILED` | 502 |\n| `CRM_SCHEDULED_POST_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_ALREADY_PUBLISHED` | 409 |\n| `CRM_SCHEDULED_POST_INVALID` | 400 |\n| `CRM_EMAIL_ACCOUNT_NOT_FOUND` | 404 |\n| `CRM_EMAIL_ACCOUNT_CONFLICT` | 409 |\n| `CRM_EMAIL_MESSAGE_NOT_FOUND` | 404 |\n| `CRM_CALENDAR_EVENT_NOT_FOUND` | 404 |\n| `CRM_AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `PROFILE_NOT_FOUND` | 404 |\n| `PROFILE_NAME_TAKEN` | 409 |\n| `PROFILE_SYSTEM_PROTECTED` | 409 |\n| `PROFILE_IN_USE` | 409 |\n| `CRM_HOOK_VAULT_ITEM_NOT_FOUND` | 404 |\n| `CRM_TRACKED_COMPETITOR_NOT_FOUND` | 404 |\n| `CHANGELOG_NOT_FOUND` | 404 |\n| `CHANGELOG_LOCKED` | 409 |\n| `BACKUP_NOT_FOUND` | 404 |\n| `BACKUP_NOT_RESTORABLE` | 409 |\n| `WORKSPACE_STATUS_CONFLICT` | 409 |\n| `WORKSPACE_OPERATION_IN_PROGRESS` | 409 |\n| `WORKSPACE_CONFIRMATION_MISMATCH` | 422 |\n| `AI_QUOTA_EXCEEDED` | 402 |\n| `AI_MODEL_NOT_ENABLED` | 422 |\n| `AI_PROVIDER_UNAVAILABLE` | 503 |\n| `FEATURE_NOT_ENABLED` | 403 |\n| `AI_CONVERSATION_NOT_FOUND` | 404 |\n| `AI_AGENT_MODE_DISABLED` | 403 |\n| `AI_TOOL_NOT_ALLOWED` | 403 |\n| `AI_PENDING_ACTION_NOT_FOUND` | 404 |\n| `AI_PENDING_ACTION_NOT_PENDING` | 409 |\n| `AI_PENDING_ACTION_EXPIRED` | 410 |\n| `AI_DOUBLE_CONFIRMATION_REQUIRED` | 422 |\n| `SD_TICKET_NOT_FOUND` | 404 |\n| `SD_TICKET_FORBIDDEN` | 403 |\n| `SD_NOT_AGENT` | 403 |\n| `SD_TICKET_CLOSED` | 409 |\n| `SD_PHASE_NOT_FOUND` | 404 |\n| `SD_PHASE_TRANSITION_NOT_ALLOWED` | 422 |\n| `SD_PHASE_REQUIREMENTS_UNMET` | 422 |\n| `SD_APPROVAL_REQUIRED` | 422 |\n| `SD_APPROVAL_NOT_FOUND` | 404 |\n| `SD_APPROVAL_NOT_PENDING` | 409 |\n| `SD_APPROVAL_EXPIRED` | 410 |\n| `SD_SIGNATURE_REQUIRED` | 422 |\n| `SD_CATEGORY_NOT_FOUND` | 404 |\n| `SD_CATEGORY_LEVEL_INVALID` | 422 |\n| `SD_DEPARTMENT_NOT_FOUND` | 404 |\n| `SD_DEPARTMENT_DEPTH_EXCEEDED` | 422 |\n| `SD_CUSTOMER_NOT_FOUND` | 404 |\n| `SD_CUSTOMER_DOCUMENT_CONFLICT` | 409 |\n| `SD_DOCUMENT_INVALID` | 422 |\n| `SD_CONTACT_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_TYPE_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_CYCLE` | 422 |\n| `SD_CONFIG_NOT_FOUND` | 404 |\n| `SD_CONFIG_CONFLICT` | 409 |\n| `SD_CUSTOM_FIELD_INVALID` | 422 |\n| `SD_KB_ARTICLE_NOT_FOUND` | 404 |\n| `SD_KB_ARTICLE_FORBIDDEN` | 403 |\n| `SD_KB_ARTICLE_MOVE_INVALID` | 422 |\n| `SD_KB_COMMENT_NOT_FOUND` | 404 |\n| `SD_KB_COMMENT_FORBIDDEN` | 403 |\n| `SD_KB_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `SD_ATTACHMENT_NOT_FOUND` | 404 |\n| `SD_ATTACHMENT_INVALID` | 422 |\n| `SD_CEP_NOT_FOUND` | 404 |\n| `SD_CEP_LOOKUP_FAILED` | 502 |\n| `SD_PORTAL_DISABLED` | 403 |\n| `SD_WHATSAPP_NOT_CONFIGURED` | 422 |\n| `SD_AI_DISABLED` | 403 |\n| `SD_MESSAGE_NOT_FOUND` | 404 |\n| `SD_MESSAGE_FORBIDDEN` | 403 |\n| `SD_TASK_NOT_FOUND` | 404 |\n| `SD_COST_NOT_FOUND` | 404 |\n| `SD_TICKET_PART_NOT_FOUND` | 404 |\n| `SD_PART_STATUS_INVALID` | 422 |\n| `SD_PART_OUT_OF_STOCK` | 409 |\n| `SD_SIGNATURE_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_CLOSED` | 409 |\n| `SD_WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_WHATSAPP_WINDOW_CLOSED` | 422 |\n| `SD_CSAT_ALREADY_SUBMITTED` | 409 |\n| `SD_CSAT_NOT_AVAILABLE` | 422 |\n| `SD_MAILBOX_NOT_FOUND` | 404 |\n| `SD_MAILBOX_CONFLICT` | 409 |\n| `SD_MAILBOX_CONNECTION_FAILED` | 502 |\n| `SD_MONITOR_SOURCE_NOT_FOUND` | 404 |\n| `SD_MONITOR_TOKEN_INVALID` | 401 |\n| `SD_MONITOR_PAYLOAD_INVALID` | 422 |\n| `SD_PORTAL_LINK_INVALID` | 401 |\n| `SD_PORTAL_LINK_EXPIRED` | 410 |\n| `SD_PORTAL_SESSION_EXPIRED` | 401 |\n| `SD_PORTAL_CONTACT_INACTIVE` | 403 |\n| `SD_NOTIFICATION_EVENT_UNKNOWN` | 422 |\n| `SD_CONTRACT_NOT_FOUND` | 404 |\n| `SD_CONTRACT_INACTIVE` | 422 |\n| `SD_CONTRACT_OVERLAP` | 409 |\n| `SD_CONTRACT_PERIOD_NOT_FOUND` | 404 |\n| `SD_CONTRACT_PERIOD_CLOSED` | 409 |\n| `SD_TIME_ENTRY_NOT_FOUND` | 404 |\n| `SD_TIME_ENTRY_RUNNING` | 409 |\n| `SD_TIME_ENTRY_INVALID` | 422 |\n| `SD_CHANGE_WINDOW_NOT_FOUND` | 404 |\n| `SD_CHANGE_WINDOW_INVALID` | 422 |\n| `SD_CHANGE_FROZEN` | 409 |\n| `SD_CHANGE_CONFLICT` | 409 |\n| `SD_CAB_BOARD_NOT_FOUND` | 404 |\n| `SD_CAB_QUORUM_INVALID` | 422 |\n| `SD_APPROVAL_ROUND_NOT_FOUND` | 404 |\n| `SD_APPROVAL_ROUND_CLOSED` | 409 |\n| `SD_ONCALL_SCHEDULE_NOT_FOUND` | 404 |\n| `SD_ONCALL_LAYER_INVALID` | 422 |\n| `SD_ONCALL_OVERRIDE_OVERLAP` | 409 |\n| `SD_RECURRING_NOT_FOUND` | 404 |\n| `SD_RECURRING_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_NOT_FOUND` | 404 |\n| `SD_REPORT_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_RECIPIENTS_REQUIRED` | 422 |\n| `SD_REPORT_RUN_NOT_FOUND` | 404 |\n| `SD_REPORT_GENERATION_FAILED` | 500 |\n| `SD_KB_REVIEW_NOT_FOUND` | 404 |\n| `SD_KB_REVIEW_CLOSED` | 409 |\n| `SD_KB_REVIEW_FORBIDDEN` | 403 |\n| `SD_RISK_PREDICTION_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_CLOSED` | 409 |\n| `SD_INTEGRATION_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_EXISTS` | 409 |\n| `SD_INTEGRATION_NOT_CONFIGURED` | 503 |\n| `SD_INTEGRATION_LINK_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_LINK_EXISTS` | 409 |\n| `SD_INTEGRATION_SIGNATURE_INVALID` | 401 |\n| `SD_INTEGRATION_REQUEST_FAILED` | 502 |\n| `TOTP_NOT_ENABLED` | 409 |\n| `TOTP_INVALID_CODE` | 401 |\n| `INTERNAL_SERVER_ERROR` | 500 |\n| `DATABASE_ERROR` | 500 |\n| `STORAGE_ERROR` | 500 |\n| `PAYMENT_ERROR` | 502 |\n| `SUBSCRIPTION_CANCEL_FAILED` | 502 |\n| `MAIL_ERROR` | 502 |\n| `CONNECTION_TEST_FAILED` | 502 |\n| `RELEASE_NOTES_UNAVAILABLE` | 502 |\n| `ANALYTICS_QUERY_FAILED` | 502 |\n| `BACKUP_FAILED` | 500 |"
       },
       "ErrorResponse": {
         "type": "object",
@@ -131329,6 +132746,10 @@
           "usdPer1kTokens": {
             "type": "number"
           },
+          "agentModeEnabled": {
+            "type": "boolean",
+            "description": "Modo agente do Steel AI (ferramentas de escrita, sempre com confirmação). Desligado = só exploração."
+          },
           "usage": {
             "type": "object",
             "properties": {
@@ -131385,6 +132806,7 @@
           "whatsappSentimentModel",
           "monthlyQuotaUsd",
           "usdPer1kTokens",
+          "agentModeEnabled",
           "usage",
           "userPreference",
           "canManage"
