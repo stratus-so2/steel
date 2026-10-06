@@ -41,6 +41,8 @@ const mockedPrismaIncident = vi.mocked(prisma.incident.findMany)
 
 beforeEach(() => {
   mockedPrismaIncident.mockResolvedValue([])
+  // No prior checks: the alert history is covered by status.service.alerts.
+  mockedStatusRepo.findRecentChecks.mockResolvedValue(ok([]))
 })
 
 describe('StatusService.getCurrentSnapshot()', () => {
