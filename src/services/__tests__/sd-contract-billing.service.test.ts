@@ -12,18 +12,25 @@ import { err, ok } from '@/src/lib/result'
 vi.mock('@/src/repositories/sd-contract.repository')
 vi.mock('@/src/repositories/sd-contract-period.repository')
 vi.mock('@/src/repositories/sd-time-entry.repository')
+vi.mock('@/src/repositories/notification-audience.repository')
+vi.mock('../sd-notification.service', () => ({ notifySdUsers: vi.fn() }))
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }))
 
+import { logger } from '@/lib/axiom/logger'
+import { NotificationAudienceRepository } from '@/src/repositories/notification-audience.repository'
 import { SdContractRepository } from '@/src/repositories/sd-contract.repository'
 import { SdContractPeriodRepository } from '@/src/repositories/sd-contract-period.repository'
 import { SdTimeEntryRepository } from '@/src/repositories/sd-time-entry.repository'
 import { SdContractBillingService } from '../sd-contract-billing.service'
+import { notifySdUsers } from '../sd-notification.service'
 
 const contracts = vi.mocked(SdContractRepository)
 const periods = vi.mocked(SdContractPeriodRepository)
 const entries = vi.mocked(SdTimeEntryRepository)
+const audience = vi.mocked(NotificationAudienceRepository)
+const notify = vi.mocked(notifySdUsers)
 
 const OCT = new Date('2026-10-01T00:00:00.000Z')
 const NOV = new Date('2026-11-01T00:00:00.000Z')
@@ -45,6 +52,12 @@ function periodEntry(
 }
 
 beforeEach(() => {
+  periods.claimWarning.mockReset()
+  periods.claimWarning.mockResolvedValue(ok(true))
+  audience.listPrivilegedUserIds.mockReset()
+  audience.listPrivilegedUserIds.mockResolvedValue(ok(['owner', 'admin']))
+  notify.mockReset()
+  notify.mockResolvedValue(ok({ recipients: 2, inApp: 2 }))
   contracts.listActiveForBilling.mockResolvedValue(ok([]))
   periods.findByStart.mockResolvedValue(ok(null))
   periods.findPrevious.mockResolvedValue(ok(null))
@@ -349,5 +362,111 @@ describe('runTick', () => {
   it('usa a data corrente quando nenhuma é informada', async () => {
     expectOk(await SdContractBillingService.runTick())
     expect(contracts.listActiveForBilling).toHaveBeenCalled()
+  })
+})
+
+describe('consolidate · franchise warnings', () => {
+  const contract = () =>
+    createFakeSdContract({ id: 'ct1', name: 'Suporte 24x7', createdById: 'u1' })
+
+  function totals(billable: number, included = 600) {
+    entries.listForPeriod.mockResolvedValue(ok([periodEntry(billable)]))
+    entries.linkPeriod.mockResolvedValue(ok(1))
+    periods.update.mockImplementation(async (_id, data) =>
+      ok(
+        createFakeSdContractPeriod({
+          includedMinutes: included,
+          billableMinutes: data.billableMinutes ?? 0,
+          overageMinutes: data.overageMinutes ?? 0,
+        }),
+      ),
+    )
+    return createFakeSdContractPeriod({ includedMinutes: included })
+  }
+
+  it('warns at 80% of the franchise, once per period', async () => {
+    const period = totals(480)
+    expectOk(await SdContractBillingService.consolidate(contract(), period))
+    expect(periods.claimWarning).toHaveBeenCalledWith(
+      'per1',
+      'franchise',
+      expect.any(Date),
+    )
+    const [input] = notify.mock.calls[0]
+    expect(input).toMatchObject({
+      workspaceId: 'ws1',
+      event: 'contract.franchise',
+      userIds: ['u1', 'owner', 'admin'],
+      title: expect.stringContaining('Franquia em 80%: Suporte 24x7'),
+      body: 'Consumo de 8h de 10h da franquia neste período.',
+    })
+    expect(input.hrefFor('acme')).toBe(
+      '/acme/servicedesk/settings?tab=contracts',
+    )
+  })
+
+  it('does not repeat a warning already claimed', async () => {
+    periods.claimWarning.mockResolvedValue(ok(false))
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(500)),
+    )
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('warns about overage and settles the 80% warning with it', async () => {
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(690)),
+    )
+    expect(periods.claimWarning.mock.calls.map((call) => call[1])).toEqual([
+      'overage',
+      'franchise',
+    ])
+    expect(notify.mock.calls[0][0]).toMatchObject({
+      title: expect.stringContaining('Contrato em excedente'),
+      body: expect.stringContaining('1,5h já são cobradas como excedente'),
+    })
+  })
+
+  it('stays quiet below 80% or without a franchise', async () => {
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(100)),
+    )
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(100, 0)),
+    )
+    expect(periods.claimWarning).not.toHaveBeenCalled()
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('never fails the consolidation when warning fails', async () => {
+    periods.claimWarning.mockResolvedValueOnce(err(databaseError()))
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(500)),
+    )
+    audience.listPrivilegedUserIds.mockResolvedValueOnce(err(databaseError()))
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(500)),
+    )
+    notify.mockResolvedValueOnce(err(databaseError()))
+    expectOk(
+      await SdContractBillingService.consolidate(contract(), totals(500)),
+    )
+    expect(logger.warn).toHaveBeenCalledWith(
+      'servicedesk.billing.franchise_notify_failed',
+      expect.objectContaining({ contractId: 'ct1', reason: 'DATABASE_ERROR' }),
+    )
+  })
+
+  it('does not warn when the period update failed', async () => {
+    entries.listForPeriod.mockResolvedValue(ok([periodEntry(600)]))
+    entries.linkPeriod.mockResolvedValue(ok(1))
+    periods.update.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdContractBillingService.consolidate(
+        contract(),
+        createFakeSdContractPeriod({ includedMinutes: 600 }),
+      ),
+    )
+    expect(periods.claimWarning).not.toHaveBeenCalled()
   })
 })

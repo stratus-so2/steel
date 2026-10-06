@@ -42,6 +42,10 @@ vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   },
 }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
+vi.mock('../sd-notification.service', () => ({ notifySdEvent: vi.fn() }))
+vi.mock('../sd-oncall-resolver', () => ({
+  sdOnCallEscalationTarget: vi.fn(async () => ({ ok: true, value: null })),
+}))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
@@ -53,6 +57,8 @@ import { assertModuleEnabled } from '../authz'
 import { fireSdAutomations } from '../sd-automation-engine'
 import { SdMonitorIngestService } from '../sd-monitor-ingest.service'
 import { hashSdMonitorToken } from '../sd-monitor-source.service'
+import { notifySdEvent } from '../sd-notification.service'
+import { sdOnCallEscalationTarget } from '../sd-oncall-resolver'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 
@@ -659,5 +665,112 @@ describe('OK / RESOLVED', () => {
       await SdMonitorIngestService.ingest(token, recovery),
       'DATABASE_ERROR',
     )
+  })
+})
+
+describe('on-call notice', () => {
+  const onCall = vi.mocked(sdOnCallEscalationTarget)
+  const notify = vi.mocked(notifySdEvent)
+  const target = (userId: string | null) =>
+    ok({
+      scheduleId: 'sch-1',
+      scheduleName: 'Redes',
+      slot: userId
+        ? {
+            layerId: 'l1',
+            layerName: 'N1',
+            level: 1,
+            userId,
+            source: 'rotation' as const,
+            overrideId: null,
+            periodStart: new Date(),
+            periodEnd: new Date(),
+          }
+        : null,
+      resolution: {} as never,
+    })
+
+  beforeEach(() => {
+    onCall.mockReset()
+    notify.mockReset()
+    onCall.mockResolvedValue(target('plantonista'))
+    notify.mockResolvedValue(ok({}) as never)
+  })
+
+  it('tells whoever is on call when an alert opens a ticket', async () => {
+    const result = expectOk(await SdMonitorIngestService.ingest(token, problem))
+    expect(result.outcome).toBe('ticket_created')
+    expect(onCall).toHaveBeenCalledWith(
+      WS,
+      ticket().departmentId,
+      expect.any(Date),
+      1,
+    )
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: WS,
+        event: 'monitor.alert',
+        audience: 'payload',
+        payload: expect.objectContaining({
+          title: 'Alerta do monitoramento abriu INC-000042',
+          body: 'Sem resposta do agente no SRV-01 (SRV-01)',
+          userIds: ['plantonista'],
+        }),
+      }),
+    )
+  })
+
+  it('says the alert came back when it reopens the ticket', async () => {
+    alerts.findByExternalId.mockResolvedValue(
+      ok(
+        createFakeSdMonitorAlert({
+          id: 'a1',
+          status: 'RESOLVED',
+          resolvedAt: new Date(Date.now() - 60_000),
+          ticketId: 't1',
+        }),
+      ),
+    )
+    tickets.findById.mockResolvedValue(
+      ok(ticket({ phase: createFakeSdPhase({ category: 'RESOLVED' }) })),
+    )
+    const result = expectOk(
+      await SdMonitorIngestService.ingest(token, {
+        ...problem,
+        hostName: undefined,
+      }),
+    )
+    expect(result.outcome).toBe('ticket_reopened')
+    expect(notify.mock.calls[0][0].payload).toMatchObject({
+      title: 'Alerta voltou e reabriu INC-000042',
+      body: 'Sem resposta do agente no SRV-01',
+    })
+  })
+
+  it('stays quiet when nobody is on call', async () => {
+    onCall.mockResolvedValue(target(null))
+    expectOk(await SdMonitorIngestService.ingest(token, problem))
+    onCall.mockResolvedValue(ok(null))
+    expectOk(await SdMonitorIngestService.ingest(token, problem))
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('never notifies for a repeated or resolved alert', async () => {
+    alerts.findByExternalId.mockResolvedValue(
+      ok(createFakeSdMonitorAlert({ id: 'a1', status: 'OPEN' })),
+    )
+    expectOk(await SdMonitorIngestService.ingest(token, problem))
+    expectOk(await SdMonitorIngestService.ingest(token, recovery))
+    expect(onCall).not.toHaveBeenCalled()
+  })
+
+  it('keeps the ingestion when the on-call lookup or the delivery fails', async () => {
+    onCall.mockResolvedValue(err(databaseError()))
+    expectOk(await SdMonitorIngestService.ingest(token, problem))
+    expect(notify).not.toHaveBeenCalled()
+
+    onCall.mockResolvedValue(target('plantonista'))
+    notify.mockResolvedValue(err(databaseError()))
+    expectOk(await SdMonitorIngestService.ingest(token, problem))
   })
 })

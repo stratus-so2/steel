@@ -6,6 +6,7 @@ import {
   resolveSdEntryRate,
   sdPeriodRange,
 } from '@/src/lib/servicedesk/billing'
+import { NotificationAudienceRepository } from '@/src/repositories/notification-audience.repository'
 import {
   SdContractRepository,
   type SdContractWithRelations,
@@ -15,6 +16,7 @@ import {
   type SdContractPeriodWithRelations,
 } from '@/src/repositories/sd-contract-period.repository'
 import { SdTimeEntryRepository } from '@/src/repositories/sd-time-entry.repository'
+import { notifySdUsers } from './sd-notification.service'
 
 /**
  * Ciclo de vida e consolidação dos períodos de faturamento. É a camada que a
@@ -79,6 +81,81 @@ async function openCurrentPeriod(
   return ok({ period: created.value, created: true })
 }
 
+/** Share of the franchise that triggers the first warning. */
+export const SD_FRANCHISE_WARNING_RATIO = 0.8
+/** Admins told about a contract, at most. */
+const ADMIN_CAP = 20
+
+function hours(minutes: number): string {
+  const value = Math.round((minutes / 60) * 10) / 10
+  return `${value.toLocaleString('pt-BR')}h`
+}
+
+/**
+ * Franchise warnings of a period (`contract.franchise`): once when the
+ * billable time reaches 80% of the franchise and once when it goes into
+ * overage, to whoever created the contract and the workspace admins. Each
+ * threshold is claimed with a stamp on the period, so it is announced once
+ * per period. Never fails the consolidation.
+ */
+async function warnFranchise(
+  contract: SdContractWithRelations,
+  period: SdContractPeriodWithRelations,
+): Promise<void> {
+  if (period.includedMinutes <= 0) return
+  const overage = period.overageMinutes > 0
+  const nearLimit =
+    period.billableMinutes >=
+    period.includedMinutes * SD_FRANCHISE_WARNING_RATIO
+  if (!overage && !nearLimit) return
+
+  const warn = (reason: string) =>
+    logger.warn('servicedesk.billing.franchise_notify_failed', {
+      workspaceId: contract.workspaceId,
+      contractId: contract.id,
+      periodId: period.id,
+      reason,
+    })
+
+  const now = new Date()
+  const kind = overage ? 'overage' : 'franchise'
+  const claimed = await SdContractPeriodRepository.claimWarning(
+    period.id,
+    kind,
+    now,
+  )
+  if (!claimed.ok) return warn(claimed.error.code)
+  if (!claimed.value) return
+  // Going straight into overage also settles the 80% warning: it would only
+  // be old news later on.
+  if (overage) {
+    await SdContractPeriodRepository.claimWarning(period.id, 'franchise', now)
+  }
+
+  const admins = await NotificationAudienceRepository.listPrivilegedUserIds(
+    contract.workspaceId,
+    ADMIN_CAP,
+  )
+  if (!admins.ok) return warn(admins.error.code)
+
+  const label = `${contract.name} (${contract.customer.name})`
+  const usage = `${hours(period.billableMinutes)} de ${hours(period.includedMinutes)}`
+  const sent = await notifySdUsers({
+    workspaceId: contract.workspaceId,
+    event: 'contract.franchise',
+    userIds: [contract.createdById, ...admins.value],
+    title: overage
+      ? `Contrato em excedente: ${label}`
+      : `Franquia em 80%: ${label}`,
+    body: overage
+      ? `Consumo de ${usage} da franquia — ${hours(period.overageMinutes)} já são cobradas como excedente.`
+      : `Consumo de ${usage} da franquia neste período.`,
+    hrefFor: (slug) => `/${slug}/servicedesk/settings?tab=contracts`,
+    meta: { contractId: contract.id, periodId: period.id, kind },
+  })
+  if (!sent.ok) warn(sent.error.code)
+}
+
 export const SdContractBillingService = {
   /**
    * Período aberto do ciclo que contém `at` (abre se ainda não existe).
@@ -137,7 +214,7 @@ export const SdContractBillingService = {
     )
     if (!linked.ok) return linked
 
-    return SdContractPeriodRepository.update(period.id, {
+    const updated = await SdContractPeriodRepository.update(period.id, {
       usedMinutes: totals.usedMinutes,
       billableMinutes: totals.billableMinutes,
       overageMinutes: totals.overageMinutes,
@@ -151,6 +228,8 @@ export const SdContractBillingService = {
           }
         : {}),
     })
+    if (updated.ok) await warnFranchise(contract, updated.value)
+    return updated
   },
 
   /**

@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import {
   sdKbCommentForbidden,
   sdKbCommentNestingTooDeep,
@@ -7,7 +8,10 @@ import {
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import { toSdKbCommentDTO } from '@/src/mappers/sd-kb-comment.mapper'
-import { SdKbArticleRepository } from '@/src/repositories/sd-kb-article.repository'
+import {
+  SdKbArticleRepository,
+  type SdKbArticleWithRefs,
+} from '@/src/repositories/sd-kb-article.repository'
 import { SdKbCommentRepository } from '@/src/repositories/sd-kb-comment.repository'
 import type {
   CreateSdKbCommentDTO,
@@ -17,6 +21,7 @@ import type {
 import type { SdKbCommentDTO } from '@/types/sd-kb-comment'
 import type { SdAccessContext } from './sd-access'
 import { resolveSdKbEditor } from './sd-kb-access'
+import { notifySdUsers } from './sd-notification.service'
 
 /**
  * Discussões do editor (port dos comentários da Wiki do Nexo). São internas:
@@ -26,17 +31,78 @@ import { resolveSdKbEditor } from './sd-kb-access'
 
 const ENTITY = 'sd_kb_comment'
 
+async function gateWithArticle(
+  actorId: string,
+  workspaceId: string,
+  articleId: string,
+  action: 'VIEW' | 'EDIT',
+): Promise<Result<{ ctx: SdAccessContext; article: SdKbArticleWithRefs }>> {
+  const ctx = await resolveSdKbEditor(actorId, workspaceId, action)
+  if (!ctx.ok) return ctx
+  const article = await SdKbArticleRepository.findById(articleId, workspaceId)
+  if (!article.ok) return article
+  return ok({ ctx: ctx.value, article: article.value })
+}
+
 async function gate(
   actorId: string,
   workspaceId: string,
   articleId: string,
   action: 'VIEW' | 'EDIT',
 ): Promise<Result<SdAccessContext>> {
-  const ctx = await resolveSdKbEditor(actorId, workspaceId, action)
-  if (!ctx.ok) return ctx
-  const article = await SdKbArticleRepository.findById(articleId, workspaceId)
-  if (!article.ok) return article
-  return ctx
+  const gated = await gateWithArticle(actorId, workspaceId, articleId, action)
+  if (!gated.ok) return gated
+  return ok(gated.value.ctx)
+}
+
+const PREVIEW_LENGTH = 140
+
+/** Plain text of a Plate value (the comment body), for the notice. */
+export function sdKbCommentPreview(content: unknown): string {
+  const parts: string[] = []
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      for (const child of node) walk(child)
+      return
+    }
+    if (!node || typeof node !== 'object') return
+    const { text, children } = node as { text?: unknown; children?: unknown }
+    if (typeof text === 'string') parts.push(text)
+    if (children) walk(children)
+  }
+  walk(content)
+  const text = parts.join(' ').replace(/\s+/g, ' ').trim()
+  if (!text) return 'Novo comentário'
+  return text.length > PREVIEW_LENGTH
+    ? `${text.slice(0, PREVIEW_LENGTH - 1)}…`
+    : text
+}
+
+/** `kb.comment` to the article author (never the commenter). */
+async function notifyAuthor(
+  workspaceId: string,
+  actorId: string,
+  article: SdKbArticleWithRefs,
+  content: unknown,
+): Promise<void> {
+  if (!article.createdById) return
+  const sent = await notifySdUsers({
+    workspaceId,
+    event: 'kb.comment',
+    userIds: [article.createdById],
+    actorId,
+    title: `Novo comentário em "${article.title}"`,
+    body: sdKbCommentPreview(content),
+    hrefFor: (slug) => `/${slug}/servicedesk/knowledge/${article.id}`,
+    meta: { articleId: article.id },
+  })
+  if (!sent.ok) {
+    logger.warn('servicedesk.kb_comment.notify_failed', {
+      workspaceId,
+      articleId: article.id,
+      reason: sent.error.code,
+    })
+  }
 }
 
 async function loadInArticle(commentId: string, articleId: string) {
@@ -66,8 +132,8 @@ export const SdKbCommentService = {
     articleId: string,
     dto: CreateSdKbCommentDTO,
   ): Promise<Result<SdKbCommentDTO>> {
-    const ctx = await gate(actorId, workspaceId, articleId, 'EDIT')
-    if (!ctx.ok) return ctx
+    const gated = await gateWithArticle(actorId, workspaceId, articleId, 'EDIT')
+    if (!gated.ok) return gated
 
     let markId = dto.markId
     if (dto.parentId) {
@@ -95,6 +161,7 @@ export const SdKbCommentService = {
       targetId: result.value.id,
       meta: { articleId },
     })
+    await notifyAuthor(workspaceId, actorId, gated.value.article, dto.content)
     return ok(toSdKbCommentDTO(result.value))
   },
 

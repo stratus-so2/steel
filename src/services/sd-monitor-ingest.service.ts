@@ -10,6 +10,7 @@ import {
   sdMonitorSeverityMap,
   sdMonitorTicketBody,
 } from '@/src/lib/servicedesk/monitoring'
+import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import { toSdMonitorAlertDTO } from '@/src/mappers/sd-monitor.mapper'
 import { SdAutomationRepository } from '@/src/repositories/sd-automation.repository'
@@ -26,6 +27,8 @@ import type { SdMonitorAlertDTO, SdMonitorIngestDTO } from '@/types/sd-monitor'
 import { assertModuleEnabled } from './authz'
 import { fireSdAutomations } from './sd-automation-engine'
 import { hashSdMonitorToken } from './sd-monitor-source.service'
+import { notifySdEvent } from './sd-notification.service'
+import { sdOnCallEscalationTarget } from './sd-oncall-resolver'
 import {
   type SdEngineConfig,
   SdTicketEngine,
@@ -304,6 +307,52 @@ async function trace(
   })
 }
 
+/**
+ * Alert that opened or reopened a ticket: whoever is on call right now for
+ * the ticket's team (first layer, only while the schedule applies) hears
+ * about it through `monitor.alert`. Never fails the ingestion.
+ */
+async function notifyOnCall(
+  ticket: SdTicketWithRelations,
+  event: SdMonitorEvent,
+  config: SdEngineConfig,
+  reopened: boolean,
+  now: Date,
+): Promise<void> {
+  const warn = (reason: string) =>
+    logger.warn('servicedesk.monitor.oncall_notify_failed', {
+      workspaceId: ticket.workspaceId,
+      ticketId: ticket.id,
+      reason,
+    })
+  const target = await sdOnCallEscalationTarget(
+    ticket.workspaceId,
+    ticket.departmentId,
+    now,
+    1,
+  )
+  if (!target.ok) return warn(target.error.code)
+  const userId = target.value?.slot?.userId
+  if (!userId) return
+
+  const code = sdTicketCode(ticket, config.prefixes)
+  const sent = await notifySdEvent({
+    workspaceId: ticket.workspaceId,
+    event: 'monitor.alert',
+    ticket: sdNotifyTicketOf(ticket, code),
+    audience: 'payload',
+    payload: {
+      title: reopened
+        ? `Alerta voltou e reabriu ${code}`
+        : `Alerta do monitoramento abriu ${code}`,
+      body: event.host ? `${event.subject} (${event.host})` : event.subject,
+      userIds: [userId],
+      meta: { scheduleId: target.value?.scheduleId, reopened },
+    },
+  })
+  if (!sent.ok) warn(sent.error.code)
+}
+
 interface Handled {
   alert: SdMonitorAlertWithRelations
   outcome: SdMonitorIngestDTO['outcome']
@@ -571,6 +620,18 @@ export const SdMonitorIngestService = {
     await SdMonitorSourceRepository.touchLastEvent(source.id, now)
     const { alert, outcome, ticket } = handled.value
     if (ticket) await publish(ticket, 'ticket.updated')
+    if (
+      ticket &&
+      (outcome === 'ticket_created' || outcome === 'ticket_reopened')
+    ) {
+      await notifyOnCall(
+        ticket,
+        event,
+        config.value,
+        outcome === 'ticket_reopened',
+        now,
+      )
+    }
 
     auditMutation({
       entity: 'sd_monitor_alert',

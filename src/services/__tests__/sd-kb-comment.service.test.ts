@@ -17,12 +17,21 @@ vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-kb-article.repository')
 vi.mock('@/src/repositories/sd-kb-comment.repository')
 vi.mock('@/lib/axiom/audit')
+vi.mock('@/lib/axiom/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}))
+vi.mock('../sd-notification.service', () => ({ notifySdUsers: vi.fn() }))
 
 import { auditMutation } from '@/lib/axiom/audit'
+import { logger } from '@/lib/axiom/logger'
 import { SdKbArticleRepository } from '@/src/repositories/sd-kb-article.repository'
 import { SdKbCommentRepository } from '@/src/repositories/sd-kb-comment.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
-import { SdKbCommentService } from '../sd-kb-comment.service'
+import {
+  SdKbCommentService,
+  sdKbCommentPreview,
+} from '../sd-kb-comment.service'
+import { notifySdUsers } from '../sd-notification.service'
 
 const articles = vi.mocked(SdKbArticleRepository)
 const comments = vi.mocked(SdKbCommentRepository)
@@ -46,7 +55,11 @@ const reply = createFakeSdKbComment({
   parentId: 'root',
 })
 
+const notify = vi.mocked(notifySdUsers)
+
 beforeEach(() => {
+  notify.mockReset()
+  notify.mockResolvedValue(ok({ recipients: 1, inApp: 1 }))
   moduleAccess.isEnabled.mockResolvedValue(ok(true))
   articles.findById.mockResolvedValue(
     ok(createFakeSdKbArticle({ id: ARTICLE, workspaceId: WS })),
@@ -315,5 +328,99 @@ describe('SdKbCommentService', () => {
         'SD_NOT_AGENT',
       )
     })
+  })
+})
+
+describe('SdKbCommentService.create · author notice', () => {
+  beforeEach(() => {
+    actAs('agent')
+    articles.findById.mockResolvedValue(
+      ok(
+        createFakeSdKbArticle({
+          id: ARTICLE,
+          workspaceId: WS,
+          title: 'VPN no Windows',
+          createdById: 'author',
+        }),
+      ),
+    )
+    comments.create.mockResolvedValue(ok(root))
+  })
+
+  it('tells the article author, never the commenter', async () => {
+    expectOk(
+      await SdKbCommentService.create('u1', WS, ARTICLE, {
+        markId: 'm1',
+        content,
+      }),
+    )
+    const [input] = notify.mock.calls[0]
+    expect(input).toMatchObject({
+      workspaceId: WS,
+      event: 'kb.comment',
+      userIds: ['author'],
+      actorId: 'u1',
+      title: 'Novo comentário em "VPN no Windows"',
+      body: 'ok',
+    })
+    expect(input.hrefFor('acme')).toBe(`/acme/servicedesk/knowledge/${ARTICLE}`)
+  })
+
+  it('skips an article without a known author', async () => {
+    articles.findById.mockResolvedValue(
+      ok(createFakeSdKbArticle({ id: ARTICLE, createdById: null })),
+    )
+    expectOk(
+      await SdKbCommentService.create('u1', WS, ARTICLE, {
+        markId: 'm1',
+        content,
+      }),
+    )
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('keeps the comment when the notice fails', async () => {
+    notify.mockResolvedValue(err(databaseError()))
+    expectOk(
+      await SdKbCommentService.create('u1', WS, ARTICLE, {
+        markId: 'm1',
+        content,
+      }),
+    )
+    expect(logger.warn).toHaveBeenCalledWith(
+      'servicedesk.kb_comment.notify_failed',
+      expect.objectContaining({ articleId: ARTICLE }),
+    )
+  })
+
+  it('does not notify when the comment was not saved', async () => {
+    comments.create.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdKbCommentService.create('u1', WS, ARTICLE, {
+        markId: 'm1',
+        content,
+      }),
+    )
+    expect(notify).not.toHaveBeenCalled()
+  })
+})
+
+describe('sdKbCommentPreview', () => {
+  it('flattens the Plate value into plain text', () => {
+    expect(
+      sdKbCommentPreview([
+        { type: 'p', children: [{ text: 'Olá' }, { text: ' mundo' }] },
+        { type: 'p', children: [{ text: '\n segundo ' }] },
+        null,
+        'solto',
+      ]),
+    ).toBe('Olá mundo segundo')
+  })
+
+  it('truncates long text and has a fallback for empty content', () => {
+    const long = sdKbCommentPreview([{ text: 'x'.repeat(300) }])
+    expect(long).toHaveLength(140)
+    expect(sdKbCommentPreview([])).toBe('Novo comentário')
+    expect(sdKbCommentPreview(undefined)).toBe('Novo comentário')
   })
 })

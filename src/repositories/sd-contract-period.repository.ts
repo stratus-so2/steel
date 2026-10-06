@@ -168,4 +168,27 @@ export const SdContractPeriodRepository = {
       return err(dbError('Failed to update ServiceDesk contract period', error))
     }
   },
+
+  /**
+   * Stamps the franchise warning of the period if nobody did it first.
+   * `false` = already sent (once per period per threshold).
+   */
+  async claimWarning(
+    id: string,
+    kind: 'franchise' | 'overage',
+    at: Date,
+  ): Promise<Result<boolean>> {
+    const field = kind === 'overage' ? 'overageWarnedAt' : 'franchiseWarnedAt'
+    try {
+      const result = await prisma.sdContractPeriod.updateMany({
+        where: { id, [field]: null },
+        data: { [field]: at },
+      })
+      return ok(result.count > 0)
+    } catch (error) {
+      return err(
+        dbError('Failed to claim ServiceDesk contract period warning', error),
+      )
+    }
+  },
 }
