@@ -31,9 +31,14 @@ import { billingParser } from './plans-params'
 
 interface PricingCardPlanProps {
   plan: PlanGrid
+  /** Billing off: paid plans have no checkout, the CTA goes to sales. */
+  billingEnabled: boolean
 }
 
-export function PricingCardPlan({ plan }: PricingCardPlanProps) {
+export function PricingCardPlan({
+  plan,
+  billingEnabled,
+}: PricingCardPlanProps) {
   const [billing] = useQueryState('billing', billingParser)
 
   const { description, features } = PLANS[plan]
@@ -67,7 +72,7 @@ export function PricingCardPlan({ plan }: PricingCardPlanProps) {
           </div>
           <Muted className='text-sm'>{description}</Muted>
           <div className='flex flex-col gap-2'>
-            {plan === 'ENTERPRISE' ? (
+            {plan === 'ENTERPRISE' || (plan !== 'FREE' && !billingEnabled) ? (
               <Button
                 nativeButton={false}
                 size='sm'

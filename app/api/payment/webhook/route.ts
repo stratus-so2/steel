@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import z from 'zod'
 import { withAxiom } from '@/lib/axiom/server'
 import { ABACATE_PAY_WEBHOOK_SECRET } from '@/lib/env/server'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { SubscriptionService } from '@/src/services/subscription.service'
 import {
   handleError,
@@ -26,9 +27,19 @@ const WebhookPayloadSchema = z.object({
 })
 
 export const POST = withAxiom(async (request: NextRequest) => {
+  // Billing off: the endpoint does not exist. Nothing is read or processed,
+  // and a 404 (not a 5xx) keeps the provider from retrying forever.
+  if (!isBillingEnabled()) {
+    return standardError('RESOURCE_NOT_FOUND', 'Not found')
+  }
+
   const secret = request.headers.get('x-webhook-secret')
 
-  if (!secret || !constantTimeEqual(secret, ABACATE_PAY_WEBHOOK_SECRET)) {
+  if (
+    !secret ||
+    !ABACATE_PAY_WEBHOOK_SECRET ||
+    !constantTimeEqual(secret, ABACATE_PAY_WEBHOOK_SECRET)
+  ) {
     return standardError('UNAUTHORIZED', 'Invalid webhook secret')
   }
 

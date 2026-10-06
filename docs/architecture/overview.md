@@ -31,10 +31,15 @@ BullMQ · MinIO (S3) · Better Auth · Axiom (logs) · pnpm.
  └─────────┘   │limit, pub/│   │exports    │     do backup FULL diário
                │sub        │   └───────────┘
                └───────────┘
- Externos: Resend (e-mail) · AbacatePay (pagamento) · Meta Cloud API / Z-API
- (WhatsApp) · OpenAI/Anthropic (IA) · Google/GitHub OAuth · redes sociais
- (Meta, TikTok, X, LinkedIn, YouTube, Google Ads) · Axiom (logs)
+ Externos: Resend (e-mail) · AbacatePay (pagamento, desligado*) · Meta Cloud
+ API / Z-API (WhatsApp) · OpenAI/Anthropic (IA) · Google/GitHub OAuth · redes
+ sociais (Meta, TikTok, X, LinkedIn, YouTube, Google Ads) · Axiom (logs)
 ```
+
+\* A cobrança está desligada por decisão de produto (06/10/2026): a flag
+`BILLING_ENABLED` (default `false`) esconde checkout, cupons, webhook, CTAs
+de upgrade e a sonda de pagamento do status, sem remover o código. Detalhes
+e como religar em `docs/plans-review.md`.
 
 ## Camadas (fluxo de uma requisição)
 

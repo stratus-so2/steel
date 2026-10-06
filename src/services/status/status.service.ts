@@ -22,8 +22,8 @@ import type {
   IncidentSummaryDTO,
   Snapshot,
 } from '@/types/status'
+import { activeComponents } from './active-components'
 import {
-  COMPONENTS,
   COMPONENTS_BY_KEY,
   type ComponentKey,
   type ComponentTier,
@@ -276,8 +276,9 @@ async function buildSnapshot(): Promise<Result<Snapshot>> {
   const today = startOfUtcDay()
   const fromDay = addDays(today, -(HISTORY_WINDOW_DAYS - 1))
 
+  const components = activeComponents()
   const dailiesResult = await StatusRepository.findDailiesForKeys(
-    COMPONENTS.map((c) => c.key),
+    components.map((c) => c.key),
     fromDay,
     today,
   )
@@ -301,7 +302,7 @@ async function buildSnapshot(): Promise<Result<Snapshot>> {
     latestByKey.set(row.componentKey as ComponentKey, row)
   }
 
-  const components: ComponentSnapshot[] = COMPONENTS.map((def) => {
+  const snapshots: ComponentSnapshot[] = components.map((def) => {
     const rawHistory = buildHistory(dailiesByKey.get(def.key) ?? [])
     const history = attachIncidentIds(rawHistory, def.key, incidentMap)
     const latest = latestByKey.get(def.key)
@@ -317,9 +318,9 @@ async function buildSnapshot(): Promise<Result<Snapshot>> {
   })
 
   return ok({
-    overallStatus: computeOverallStatus(components),
+    overallStatus: computeOverallStatus(snapshots),
     generatedAt: new Date().toISOString(),
-    components,
+    components: snapshots,
   })
 }
 

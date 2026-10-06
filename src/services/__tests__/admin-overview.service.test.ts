@@ -10,7 +10,9 @@ vi.mock('@/src/repositories/admin-operation.repository')
 vi.mock('@/src/repositories/status.repository')
 vi.mock('@/src/repositories/backup.repository')
 vi.mock('@/src/lib/queue/health', () => ({ getQueueHealth: vi.fn() }))
+vi.mock('@/src/lib/billing', () => ({ isBillingEnabled: vi.fn(() => true) }))
 
+import { isBillingEnabled } from '@/src/lib/billing'
 import { getQueueHealth } from '@/src/lib/queue/health'
 import { AdminAuditLogRepository } from '@/src/repositories/admin-audit-log.repository'
 import { AdminMetricsRepository } from '@/src/repositories/admin-metrics.repository'
@@ -27,6 +29,7 @@ const admin = createFakeUser({
 })
 
 beforeEach(() => {
+  vi.mocked(isBillingEnabled).mockReturnValue(true)
   vi.mocked(UserRepository.findById).mockResolvedValue(ok(admin))
   vi.mocked(AdminOverviewRepository.workspaceCounts).mockResolvedValue(
     ok({
@@ -189,5 +192,39 @@ describe('AdminOverviewService.get() failures', () => {
     arrangeFailure()
 
     expectErr(await AdminOverviewService.get(admin.id), 'DATABASE_ERROR')
+  })
+})
+
+describe('AdminOverviewService.get() and the billing flag', () => {
+  const paymentCheck = {
+    id: 'h3',
+    componentKey: 'payment',
+    status: 'MAJOR_OUTAGE' as const,
+    latencyMs: 5000,
+    error: 'AbacatePay HTTP 502',
+    checkedAt: new Date('2026-09-18T12:00:00Z'),
+  }
+
+  beforeEach(() => {
+    vi.mocked(getQueueHealth).mockResolvedValue([])
+    vi.mocked(StatusRepository.findLatestPerComponent).mockResolvedValue(
+      ok([paymentCheck]),
+    )
+  })
+
+  it('lists the payment component while billing is on', async () => {
+    const dto = expectOk(await AdminOverviewService.get(admin.id))
+
+    expect(dto.status).toEqual([
+      expect.objectContaining({ componentKey: 'payment', name: 'Assinatura' }),
+    ])
+  })
+
+  it('hides the payment component while billing is off', async () => {
+    vi.mocked(isBillingEnabled).mockReturnValue(false)
+
+    const dto = expectOk(await AdminOverviewService.get(admin.id))
+
+    expect(dto.status).toEqual([])
   })
 })

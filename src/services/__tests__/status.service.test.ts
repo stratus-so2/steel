@@ -12,6 +12,7 @@ vi.mock('@/lib/axiom/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }))
 vi.mock('@/src/cache/status.cache')
+vi.mock('@/src/lib/billing', () => ({ isBillingEnabled: vi.fn(() => true) }))
 vi.mock('@/src/repositories/status.repository')
 vi.mock('@/src/repositories/incident.repository')
 vi.mock('@/src/services/status/probes', () => {
@@ -27,6 +28,7 @@ vi.mock('@/src/services/status/probes', () => {
 
 import { logger } from '@/lib/axiom/logger'
 import { StatusCache } from '@/src/cache/status.cache'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { prisma } from '@/src/lib/prisma'
 import { IncidentRepository } from '@/src/repositories/incident.repository'
 import { StatusRepository } from '@/src/repositories/status.repository'
@@ -40,6 +42,7 @@ const mockedRunProbes = vi.mocked(runProbesForTier)
 const mockedPrismaIncident = vi.mocked(prisma.incident.findMany)
 
 beforeEach(() => {
+  vi.mocked(isBillingEnabled).mockReturnValue(true)
   mockedPrismaIncident.mockResolvedValue([])
   // No prior checks: the alert history is covered by status.service.alerts.
   mockedStatusRepo.findRecentChecks.mockResolvedValue(ok([]))
@@ -872,6 +875,85 @@ describe('StatusService edge cases', () => {
         'status.cache_invalidate_failed',
         expect.objectContaining({ message: 'redis closed' }),
       )
+    })
+  })
+})
+
+describe('StatusService and the billing flag', () => {
+  beforeEach(() => {
+    mockedCache.get.mockResolvedValue(null)
+    mockedCache.set.mockResolvedValue(undefined)
+    mockedStatusRepo.findDailiesForKeys.mockResolvedValue(ok([]))
+    mockedStatusRepo.findLatestPerComponent.mockResolvedValue(ok([]))
+  })
+
+  it('shows the payment component while billing is on', async () => {
+    const value = expectOk(await StatusService.getCurrentSnapshot())
+
+    expect(value.components.map((c) => c.key)).toContain('payment')
+    expect(mockedStatusRepo.findDailiesForKeys).toHaveBeenLastCalledWith(
+      expect.arrayContaining(['payment']),
+      expect.any(Date),
+      expect.any(Date),
+    )
+  })
+
+  it('drops the payment component (and its stale checks) while billing is off', async () => {
+    vi.mocked(isBillingEnabled).mockReturnValue(false)
+    mockedStatusRepo.findLatestPerComponent.mockResolvedValue(
+      ok([
+        {
+          id: 'hc-pay',
+          componentKey: 'payment',
+          status: 'MAJOR_OUTAGE',
+          latencyMs: 5000,
+          error: 'AbacatePay HTTP 502',
+          checkedAt: new Date(),
+        },
+      ] as never),
+    )
+
+    const value = expectOk(await StatusService.getCurrentSnapshot())
+
+    expect(value.components.map((c) => c.key)).toEqual([
+      'app',
+      'database',
+      'cache',
+      'auth',
+      'email',
+      'storage',
+    ])
+    // An old failing payment check must not drag the overall status down.
+    expect(value.overallStatus).toBe('OPERATIONAL')
+    expect(mockedStatusRepo.findDailiesForKeys).toHaveBeenLastCalledWith(
+      expect.not.arrayContaining(['payment']),
+      expect.any(Date),
+      expect.any(Date),
+    )
+  })
+
+  it('still renders old payment history and incidents while billing is off', async () => {
+    vi.mocked(isBillingEnabled).mockReturnValue(false)
+    mockedStatusRepo.findDailies.mockResolvedValue(ok([]))
+    mockedIncidentRepo.findInWindow.mockResolvedValue(
+      ok([
+        {
+          id: 'inc-pay',
+          componentKey: 'payment',
+          severity: 'MAJOR_OUTAGE',
+          title: 'Assinatura: Indisponível',
+          startedAt: new Date('2026-09-01T10:00:00Z'),
+          resolvedAt: new Date('2026-09-01T11:00:00Z'),
+        },
+      ] as never),
+    )
+
+    expectOk(await StatusService.getHistory('payment', 30))
+    const incidents = expectOk(await StatusService.listIncidents())
+
+    expect(incidents[0]).toMatchObject({
+      componentKey: 'payment',
+      componentName: 'Assinatura',
     })
   })
 })

@@ -16,7 +16,11 @@ import {
 } from '../plans'
 import { billingParser } from '../plans-params'
 
-export function PricingTableHeader() {
+export function PricingTableHeader({
+  billingEnabled,
+}: {
+  billingEnabled: boolean
+}) {
   const [billing] = useQueryState('billing', billingParser)
 
   return (
@@ -26,14 +30,25 @@ export function PricingTableHeader() {
       </div>
       <div className='border-border w-full flex shrink-0 justify-evenly lg:w-[70%]'>
         {PLAN_ORDER.map((plan) => (
-          <PlanColumn key={plan} plan={plan} billing={billing} />
+          <PlanColumn
+            key={plan}
+            plan={plan}
+            billing={billing}
+            billingEnabled={billingEnabled}
+          />
         ))}
       </div>
     </div>
   )
 }
 
-function PlanColumn({ plan, billing }: { plan: PlanGrid; billing: Billing }) {
+interface PlanColumnProps {
+  plan: PlanGrid
+  billing: Billing
+  billingEnabled: boolean
+}
+
+function PlanColumn({ plan, billing, billingEnabled }: PlanColumnProps) {
   const price = getPrice(plan)
 
   return (
@@ -53,27 +68,28 @@ function PlanColumn({ plan, billing }: { plan: PlanGrid; billing: Billing }) {
           </strong>
         )}
       </Muted>
-      <PlanCta plan={plan} billing={billing} />
+      <PlanCta plan={plan} billing={billing} billingEnabled={billingEnabled} />
     </div>
   )
 }
 
-function PlanCta({ plan, billing }: { plan: PlanGrid; billing: Billing }) {
-  if (plan === 'ENTERPRISE') {
-    return (
-      <Button
-        nativeButton={false}
-        render={<Link href='/talk-to-sales'>Fale conosco</Link>}
-      />
-    )
-  }
-
+function PlanCta({ plan, billing, billingEnabled }: PlanColumnProps) {
   if (plan === 'FREE') {
     return (
       <Button
         variant='outline'
         nativeButton={false}
         render={<Link href='/sign-up'>Comece grátis</Link>}
+      />
+    )
+  }
+
+  // Billing off: no self-service checkout, paid plans are sold by sales.
+  if (plan === 'ENTERPRISE' || !billingEnabled) {
+    return (
+      <Button
+        nativeButton={false}
+        render={<Link href='/talk-to-sales'>Fale conosco</Link>}
       />
     )
   }

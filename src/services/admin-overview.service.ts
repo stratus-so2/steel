@@ -14,11 +14,8 @@ import { StatusRepository } from '@/src/repositories/status.repository'
 import type { AdminOverviewDTO, QueueHealthDTO } from '@/types/admin-workspace'
 import { listBackupDTOs } from './admin-backup.service'
 import { assertPlatformAdmin } from './authz'
-import {
-  COMPONENTS,
-  COMPONENTS_BY_KEY,
-  type ComponentKey,
-} from './status/components'
+import { activeComponents } from './status/active-components'
+import { COMPONENTS_BY_KEY, type ComponentKey } from './status/components'
 
 async function safeQueueHealth(): Promise<QueueHealthDTO[] | null> {
   try {
@@ -75,7 +72,7 @@ export const AdminOverviewService = {
     if (!backups.ok) return backups
     if (!operations.ok) return operations
 
-    const known = new Set<string>(COMPONENTS.map((c) => c.key))
+    const known = new Set<string>(activeComponents().map((c) => c.key))
     const status = health.value
       .filter((row) => known.has(row.componentKey))
       .map((row) => ({

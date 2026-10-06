@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { connection } from 'next/server'
 import { H1 } from '@/components/typography/heading/h1'
 import { Muted } from '@/components/typography/text/muted'
 import { P } from '@/components/typography/text/p'
@@ -11,6 +12,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { PRIVACY_VERSION } from '@/lib/legal/versions'
+import { isBillingEnabled } from '@/src/lib/billing'
 
 export const metadata: Metadata = {
   title: 'Subprocessadores | Steel',
@@ -83,6 +85,8 @@ const SUBPROCESSORS = [
     location: 'Estados Unidos',
   },
   {
+    // Listed only while billing is on (`BILLING_ENABLED`): a provider that
+    // processes nothing is not a subprocessor.
     name: 'AbacatePay',
     purpose: 'Processamento de pagamentos e cobrança de assinaturas',
     data: 'Nome, endereço de cobrança, dados de cartão',
@@ -109,7 +113,14 @@ const SUBPROCESSORS = [
   },
 ] as const
 
-export default function SubprocessorsPage() {
+export default async function SubprocessorsPage() {
+  // Per request, so the list follows the billing flag without a rebuild.
+  await connection()
+  const billingEnabled = isBillingEnabled()
+  const subprocessors = SUBPROCESSORS.filter(
+    (sp) => billingEnabled || sp.name !== 'AbacatePay',
+  )
+
   return (
     <main className='mx-auto flex max-w-4xl flex-col gap-6 px-6 py-16'>
       <header className='flex flex-col gap-2 text-left'>
@@ -137,7 +148,7 @@ export default function SubprocessorsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {SUBPROCESSORS.map((sp) => (
+            {subprocessors.map((sp) => (
               <TableRow key={sp.name}>
                 <TableCell className='font-medium'>{sp.name}</TableCell>
                 <TableCell>{sp.purpose}</TableCell>

@@ -14,9 +14,11 @@ import { Muted } from '@/components/typography/text/muted'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { getAuthSession } from '@/src/lib/auth-session'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { limitOf } from '@/src/lib/plans'
 import { MembershipService } from '@/src/services/membership.service'
 import { SubscriptionService } from '@/src/services/subscription.service'
+import { BillingUnavailable } from './billing-unavailable'
 import { BillingUpgrade } from './billing-upgrade'
 
 export const metadata: Metadata = {
@@ -53,6 +55,9 @@ export default async function SettingsBillingPage({
   )
   if (!membership.ok || !membership.value) notFound()
   const workspace = membership.value.workspace
+  // Billing off: the plan card stays (plans and trials are set by the global
+  // admin), but nothing here leads to a checkout.
+  const billingEnabled = isBillingEnabled()
 
   const [subResult, membersResult] = await Promise.all([
     SubscriptionService.getActiveByWorkspace(workspace.id),
@@ -110,8 +115,9 @@ export default async function SettingsBillingPage({
         <div>
           <H3>Assinatura e Planos</H3>
           <Muted>
-            Escolha seu plano, gerencie assinaturas e faça upgrade facilmente
-            conforme suas necessidades crescem.
+            {billingEnabled
+              ? 'Escolha seu plano, gerencie assinaturas e faça upgrade facilmente conforme suas necessidades crescem.'
+              : 'Acompanhe o plano e os assentos do seu workspace.'}
           </Muted>
         </div>
 
@@ -136,8 +142,9 @@ export default async function SettingsBillingPage({
                 </Badge>
               </div>
               <Muted>
-                Explore todos os recursos Business. Quando estiver pronto,
-                escolha assinar. Você não será cobrado automaticamente.
+                {billingEnabled
+                  ? 'Explore todos os recursos Business. Quando estiver pronto, escolha assinar. Você não será cobrado automaticamente.'
+                  : 'Explore todos os recursos Business. Você não será cobrado automaticamente.'}
               </Muted>
             </div>
           </div>
@@ -151,7 +158,7 @@ export default async function SettingsBillingPage({
                 Seu Plano
               </Badge>
             </div>
-            {subscription && (
+            {billingEnabled && subscription && (
               <Button variant='outline' size='sm'>
                 Gerenciar assinatura
               </Button>
@@ -178,7 +185,11 @@ export default async function SettingsBillingPage({
           </div>
         </div>
 
-        <BillingUpgrade currentPlan={workspace.activePlan} />
+        {billingEnabled ? (
+          <BillingUpgrade currentPlan={workspace.activePlan} />
+        ) : (
+          <BillingUnavailable />
+        )}
       </div>
     </div>
   )

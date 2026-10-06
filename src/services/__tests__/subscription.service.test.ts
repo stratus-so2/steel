@@ -26,9 +26,11 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/cache/workspace.cache')
 vi.mock('@/src/cache/workspace-features.cache')
 vi.mock('@/src/services/coupon.service')
+vi.mock('@/src/lib/billing', () => ({ isBillingEnabled: vi.fn(() => true) }))
 
 import { AbacatePayClient } from '@/lib/abacatepay'
 import { WorkspaceCache } from '@/src/cache/workspace.cache'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { SubscriptionRepository } from '@/src/repositories/subscription.repository'
 import { CouponService } from '@/src/services/coupon.service'
@@ -38,6 +40,12 @@ const mockedSubRepo = vi.mocked(SubscriptionRepository)
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
 const mockedWorkspaceCache = vi.mocked(WorkspaceCache)
 const mockedCoupon = vi.mocked(CouponService)
+const mockedBillingEnabled = vi.mocked(isBillingEnabled)
+
+// Billing on is today's behavior; the "billing disabled" block flips it.
+beforeEach(() => {
+  mockedBillingEnabled.mockReturnValue(true)
+})
 
 describe('SubscriptionService', () => {
   describe('create()', () => {
@@ -723,5 +731,107 @@ describe('SubscriptionService edge cases', () => {
       expectOk(await SubscriptionService.getActiveByWorkspace('ws1')),
     ).toBe(active)
     expect(mockedSubRepo.findActiveByWorkspaceId).toHaveBeenCalledWith('ws1')
+  })
+})
+
+describe('SubscriptionService with billing disabled', () => {
+  beforeEach(() => {
+    mockedBillingEnabled.mockReturnValue(false)
+    mockedAbacate.createSubscription.mockReset()
+    mockedAbacate.cancelSubscription.mockReset()
+    mockedSubRepo.listCancellableByWorkspaceId.mockReset()
+    mockedSubRepo.deactivateByBillId.mockReset()
+    mockedSubRepo.findByBillId.mockReset()
+    mockedMembershipRepo.findByUserAndWorkspace.mockReset()
+    mockedCoupon.validate.mockReset()
+    mockedWorkspaceCache.invalidate.mockClear()
+  })
+
+  it('create() refuses with BILLING_DISABLED before touching anything', async () => {
+    const error = expectErr(
+      await SubscriptionService.create('owner', {
+        plan: 'PRO',
+        workspaceId: 'ws1',
+        seats: 1,
+        interval: 'monthly',
+        coupon: 'PROMO',
+      }),
+      'BILLING_DISABLED',
+    )
+
+    expect(error.message).toContain('Stratus Telecom')
+    expect(mockedMembershipRepo.findByUserAndWorkspace).not.toHaveBeenCalled()
+    expect(mockedCoupon.validate).not.toHaveBeenCalled()
+    expect(mockedAbacate.createSubscription).not.toHaveBeenCalled()
+    expect(mockedSubRepo.create).not.toHaveBeenCalled()
+  })
+
+  it('handleWebhookEvent() refuses with BILLING_DISABLED and changes no plan', async () => {
+    expectErr(
+      await SubscriptionService.handleWebhookEvent(
+        'subscription.completed',
+        'bill_1',
+      ),
+      'BILLING_DISABLED',
+    )
+
+    expect(mockedSubRepo.findByBillId).not.toHaveBeenCalled()
+    expect(mockedSubRepo.activateWithPlan).not.toHaveBeenCalled()
+    expect(notifyBillingSubscriptionCanceled).not.toHaveBeenCalled()
+  })
+
+  it('cancelWorkspaceSubscriptions() returns an empty report when nothing is billable', async () => {
+    mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(ok([]))
+
+    const report = expectOk(
+      await SubscriptionService.cancelWorkspaceSubscriptions({
+        workspaceId: 'ws1',
+        actorId: 'owner',
+        source: 'owner_workspace_deletion',
+      }),
+    )
+
+    expect(report).toEqual({ attempts: [], cancelled: [], failed: [] })
+    expect(mockedAbacate.cancelSubscription).not.toHaveBeenCalled()
+    expect(mockedWorkspaceCache.invalidate).not.toHaveBeenCalled()
+  })
+
+  it('cancelWorkspaceSubscriptions() never calls the provider and reports leftovers as FAILED', async () => {
+    mockedSubRepo.listCancellableByWorkspaceId.mockResolvedValue(
+      ok([
+        createFakeSubscription({
+          billId: 'bill_left',
+          workspaceId: 'ws1',
+          status: 'PAID',
+        }),
+      ]),
+    )
+
+    const report = expectOk(
+      await SubscriptionService.cancelWorkspaceSubscriptions({
+        workspaceId: 'ws1',
+        actorId: 'admin1',
+        source: 'admin_workspace_deletion',
+      }),
+    )
+
+    expect(report.cancelled).toEqual([])
+    expect(report.failed).toEqual([
+      expect.objectContaining({
+        billId: 'bill_left',
+        outcome: 'FAILED',
+        error: expect.stringContaining('BILLING_ENABLED=false'),
+      }),
+    ])
+    expect(mockedAbacate.cancelSubscription).not.toHaveBeenCalled()
+    expect(mockedSubRepo.deactivateByBillId).not.toHaveBeenCalled()
+  })
+
+  it('getActiveByWorkspace() keeps reading the local subscription', async () => {
+    mockedSubRepo.findActiveByWorkspaceId.mockResolvedValue(ok(null))
+
+    expect(
+      expectOk(await SubscriptionService.getActiveByWorkspace('ws1')),
+    ).toBeNull()
   })
 })

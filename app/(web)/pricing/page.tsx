@@ -4,8 +4,10 @@ import {
   Shield01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
+import { connection } from 'next/server'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { CardCertifications } from '../_components/card-certifications'
 import { Faq } from '../_components/faq'
 import { BillingToggle } from '../_components/pricing/pricing-billing-toggle'
@@ -15,7 +17,12 @@ import { PricingTableDetailsPlan } from '../_components/pricing/table/pricing-ta
 import { SubTitle } from '../_components/text/sub-title'
 import { Title } from '../_components/text/title'
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  // Read the billing flag per request (a restart flips it, no rebuild). With
+  // billing off the page stays informative and paid-plan CTAs go to sales.
+  await connection()
+  const billingEnabled = isBillingEnabled()
+
   return (
     <main className='mx-auto w-full flex flex-col items-center px-4 py-3 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384'>
       <div className='border-border lg:border-x mx-auto w-full flex flex-col items-center gap-4 py-20'>
@@ -39,10 +46,10 @@ export default function PricingPage() {
         <BillingToggle />
       </div>
       <div className='border-x border-border grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-4'>
-        <PricingCardPlan plan='FREE' />
-        <PricingCardPlan plan='PRO' />
-        <PricingCardPlan plan='BUSINESS' />
-        <PricingCardPlan plan='ENTERPRISE' />
+        <PricingCardPlan plan='FREE' billingEnabled={billingEnabled} />
+        <PricingCardPlan plan='PRO' billingEnabled={billingEnabled} />
+        <PricingCardPlan plan='BUSINESS' billingEnabled={billingEnabled} />
+        <PricingCardPlan plan='ENTERPRISE' billingEnabled={billingEnabled} />
       </div>
       <div className='grid grid-cols-3 border border-border gap-4 px-5 py-8'>
         <div className='flex gap-2'>
@@ -107,7 +114,7 @@ export default function PricingPage() {
           Recursos que desbloqueiam apenas quando você precisa deles
         </h4>
       </div>
-      <PricingTableDetailsPlan />
+      <PricingTableDetailsPlan billingEnabled={billingEnabled} />
       <CardCertifications />
       <Faq />
     </main>

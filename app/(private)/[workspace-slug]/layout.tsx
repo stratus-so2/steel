@@ -8,6 +8,7 @@ import { WorkspaceBlockedScreen } from '@/app/_components/workspace/workspace-bl
 import { WorkspacePermissionsProvider } from '@/app/_components/workspace/workspace-permissions'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
 import { getAuthSession } from '@/src/lib/auth-session'
+import { isBillingEnabled } from '@/src/lib/billing'
 import { assertMember } from '@/src/services/authz'
 import { MembershipService } from '@/src/services/membership.service'
 import { SubscriptionService } from '@/src/services/subscription.service'
@@ -99,9 +100,11 @@ export default async function WorkspaceLayout({
       }
     : { isPrivileged: false, permissions: null }
 
-  // Banner só nos últimos TRIAL_BANNER_DAYS dias do trial.
+  // Banner só nos últimos TRIAL_BANNER_DAYS dias do trial. Its CTA is a
+  // checkout, so it only shows while billing is on.
   const now = Date.now()
   const trialEndingSoon =
+    isBillingEnabled() &&
     workspace.trialEndsAt !== null &&
     workspace.trialEndsAt.getTime() > now &&
     workspace.trialEndsAt.getTime() <= now + TRIAL_BANNER_DAYS * 86_400_000

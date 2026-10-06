@@ -130,6 +130,7 @@ export default defineConfig({
         'src/lib/rate-limit.ts',
         'src/lib/rate-limit-helpers.ts',
         'src/lib/result.ts',
+        'src/lib/billing.ts',
         'utils/**',
         'lib/abacatepay.ts',
         // Lógica pura e testável das duas integrações de observabilidade. O

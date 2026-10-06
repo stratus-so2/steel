@@ -1124,3 +1124,11 @@ export const totpNotEnabled = (
 export const totpInvalidCode = (
   message = 'Código inválido ou expirado',
 ): AppError => appError('TOTP_INVALID_CODE', message)
+
+/**
+ * Billing is switched off (`BILLING_ENABLED`): checkout, coupons and the
+ * payment webhook do not reach AbacatePay. Plans are set by Stratus Telecom.
+ */
+export const billingDisabled = (
+  message = 'Planos e cobrança indisponíveis no momento — fale com a Stratus Telecom',
+): AppError => appError('BILLING_DISABLED', message)
