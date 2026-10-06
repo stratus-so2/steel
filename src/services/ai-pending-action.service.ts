@@ -4,6 +4,7 @@ import type {
   Prisma,
 } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import {
   aiAgentModeDisabled,
@@ -54,11 +55,16 @@ async function appendDecision(
     },
   ])
   if (!appended.ok) {
-    logger.error('steel_ai.decision_append_failed', {
-      component: 'AiPendingActionService',
-      actionId: action.id,
-      message: appended.error.message,
-    })
+    logger.error(
+      'steel_ai.decision_append_failed',
+      logFields({
+        component: 'AiPendingActionService',
+        workspaceId: action.workspaceId,
+        conversationId: action.conversationId,
+        actionId: action.id,
+        message: appended.error.message,
+      }),
+    )
   }
 }
 
@@ -112,15 +118,20 @@ export async function executeClaimedAction(
     targetType: target?.type ?? null,
     targetId: target?.id ?? null,
     args: action.args as Prisma.InputJsonValue,
-    outcome: run.ok ? run.output.summary : 'Falhou',
+    outcome: run.ok ? 'success' : 'failure',
+    summary: run.ok ? run.output.summary : null,
     error: run.ok ? null : run.error.message,
   })
   if (!log.ok) {
-    logger.error('steel_ai.action_log_failed', {
-      component: 'AiPendingActionService',
-      actionId: action.id,
-      message: log.error.message,
-    })
+    logger.error(
+      'steel_ai.action_log_failed',
+      logFields({
+        component: 'AiPendingActionService',
+        workspaceId: action.workspaceId,
+        actionId: action.id,
+        message: log.error.message,
+      }),
+    )
   }
 
   auditMutation({
@@ -267,13 +278,13 @@ export const AiPendingActionService = {
     })
     if (!executed.ok) return executed
 
-    logger.info('steel_ai.action_confirmed', {
-      component: 'AiPendingActionService',
-      workspaceId,
-      actionId,
-      toolName: action.value.toolName,
-      status: executed.value.status,
-    })
+    logger.info(
+      'steel_ai.action_confirmed',
+      logFields(
+        { component: 'AiPendingActionService', workspaceId, actionId },
+        { toolName: action.value.toolName, status: executed.value.status },
+      ),
+    )
 
     return ok(toAiPendingActionDTO(executed.value))
   },

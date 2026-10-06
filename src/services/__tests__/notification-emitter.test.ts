@@ -94,9 +94,9 @@ describe('emitNotification', () => {
     expect(mockedLogger.warn).toHaveBeenCalledWith(
       'notifications.emit.failed',
       {
+        component: 'NotificationEmitter',
         workspaceId: 'ws1',
-        kind: 'CRM_LEAD_ASSIGNED',
-        reason: 'DATABASE_ERROR',
+        detail: '{"kind":"CRM_LEAD_ASSIGNED","reason":"DATABASE_ERROR"}',
       },
     )
   })
@@ -117,7 +117,7 @@ describe('emitNotification', () => {
 
     expect(mockedLogger.warn).toHaveBeenCalledWith(
       'notifications.emit.failed',
-      expect.objectContaining({ reason: 'weird' }),
+      expect.objectContaining({ detail: expect.stringContaining('weird') }),
     )
   })
 })

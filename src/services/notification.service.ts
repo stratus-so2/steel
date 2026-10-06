@@ -1,5 +1,6 @@
 import type { NotificationKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import {
   isConfigurableNotificationKind,
@@ -39,11 +40,13 @@ async function withoutMuted(
   )
   // Fail open: a preference lookup failure must not drop the notice.
   if (!muted.ok) {
-    logger.warn('notifications.preferences_lookup_failed', {
-      workspaceId,
-      kind,
-      reason: muted.error.code,
-    })
+    logger.warn(
+      'notifications.preferences_lookup_failed',
+      logFields(
+        { component: 'NotificationService', workspaceId },
+        { kind, reason: muted.error.code },
+      ),
+    )
     return userIds
   }
   const mutedSet = new Set(muted.value)

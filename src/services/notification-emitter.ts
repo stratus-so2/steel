@@ -1,4 +1,5 @@
 import type { NotificationKind } from '@prisma/client'
+import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { NotificationRecipientRepository } from '@/src/repositories/notification-recipient.repository'
 import { NotificationService } from './notification.service'
@@ -84,7 +85,10 @@ export async function workspaceAdminIds(
   const ids =
     await NotificationRecipientRepository.listPrivilegedIds(workspaceId)
   if (!ids.ok) {
-    logger.warn('notifications.emit.admins_lookup_failed', { workspaceId })
+    logger.warn(
+      'notifications.emit.admins_lookup_failed',
+      logFields({ component: 'NotificationEmitter', workspaceId }),
+    )
     return []
   }
   return ids.value
@@ -96,16 +100,21 @@ export async function workspaceOwnerIds(
 ): Promise<string[]> {
   const ids = await NotificationRecipientRepository.listOwnerIds(workspaceId)
   if (!ids.ok) {
-    logger.warn('notifications.emit.owners_lookup_failed', { workspaceId })
+    logger.warn(
+      'notifications.emit.owners_lookup_failed',
+      logFields({ component: 'NotificationEmitter', workspaceId }),
+    )
     return []
   }
   return ids.value
 }
 
 function logEmitFailure(input: EmitNotificationInput, reason: string) {
-  logger.warn('notifications.emit.failed', {
-    workspaceId: input.workspaceId,
-    kind: input.kind,
-    reason,
-  })
+  logger.warn(
+    'notifications.emit.failed',
+    logFields(
+      { component: 'NotificationEmitter', workspaceId: input.workspaceId },
+      { kind: input.kind, reason },
+    ),
+  )
 }
