@@ -115,11 +115,27 @@ describe('SdTicketApprovalRepository', () => {
       ).sentAt,
     ).not.toBeNull()
 
+    const first = expectOk(
+      await SdTicketApprovalRepository.expireOverdue({ id: overdue.id }, now),
+    )
+    expect(first).toEqual([
+      expect.objectContaining({
+        id: overdue.id,
+        ticketId: ticket.id,
+        workspaceId: workspace.id,
+        requestedById: user.id,
+        roundId: null,
+      }),
+    ])
     expect(
       expectOk(
-        await SdTicketApprovalRepository.expireOverdue({ id: overdue.id }, now),
-      ),
-    ).toBe(1)
+        await SdTicketApprovalRepository.expireOverdue(
+          { ticketId: ticket.id },
+          now,
+        ),
+      ).map((row) => row.id),
+    ).toEqual([overdue2.id])
+    // Already expired: a second pass reports nothing (no double notice).
     expect(
       expectOk(
         await SdTicketApprovalRepository.expireOverdue(
@@ -127,7 +143,7 @@ describe('SdTicketApprovalRepository', () => {
           now,
         ),
       ),
-    ).toBe(1)
+    ).toEqual([])
     expect(await statusOf(overdue2.id)).toBe('EXPIRED')
     expect(await statusOf(live.id)).toBe('PENDING')
 
@@ -250,6 +266,8 @@ describe('SdTicketApprovalRepository', () => {
       .spyOn(prisma.sdTicketApproval, 'updateMany')
       .mockRejectedValueOnce(new Error('boom'))
       .mockRejectedValueOnce(new Error('boom'))
+    const updateManyAndReturn = vi
+      .spyOn(prisma.sdTicketApproval, 'updateManyAndReturn')
       .mockRejectedValueOnce(new Error('boom'))
     const tx = vi
       .spyOn(prisma, '$transaction')
@@ -291,6 +309,14 @@ describe('SdTicketApprovalRepository', () => {
       }),
       'DATABASE_ERROR',
     )
-    for (const spy of [many, first, unique, updateMany, tx]) spy.mockRestore()
+    for (const spy of [
+      many,
+      first,
+      unique,
+      updateMany,
+      updateManyAndReturn,
+      tx,
+    ])
+      spy.mockRestore()
   })
 })

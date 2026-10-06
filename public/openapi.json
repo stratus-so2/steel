@@ -34782,7 +34782,12 @@
                             "BILLING_PAYMENT_FAILED",
                             "BILLING_SUBSCRIPTION_CANCELED",
                             "AI_QUOTA_WARNING",
-                            "AI_QUOTA_EXCEEDED"
+                            "AI_QUOTA_EXCEEDED",
+                            "WHATSAPP_CONVERSATION_ASSIGNED",
+                            "WHATSAPP_AI_HANDOFF",
+                            "WHATSAPP_CONNECTION_LOST",
+                            "WHATSAPP_BROADCAST_FINISHED",
+                            "WHATSAPP_TEMPLATE_REJECTED"
                           ]
                         },
                         "inApp": {
@@ -55682,7 +55687,7 @@
                 "properties": {
                   "items": {
                     "default": [],
-                    "maxItems": 69,
+                    "maxItems": 90,
                     "type": "array",
                     "items": {
                       "type": "object",
@@ -113328,7 +113333,19 @@
                     "BILLING_PAYMENT_FAILED",
                     "BILLING_SUBSCRIPTION_CANCELED",
                     "AI_QUOTA_WARNING",
-                    "AI_QUOTA_EXCEEDED"
+                    "AI_QUOTA_EXCEEDED",
+                    "SD_APPROVAL_CANCELED",
+                    "SD_APPROVAL_EXPIRED",
+                    "SD_TASK_DUE",
+                    "SD_ONCALL_SHIFT",
+                    "SD_CONTRACT_FRANCHISE",
+                    "SD_KB_COMMENT",
+                    "SD_MONITOR_ALERT",
+                    "WHATSAPP_CONVERSATION_ASSIGNED",
+                    "WHATSAPP_AI_HANDOFF",
+                    "WHATSAPP_CONNECTION_LOST",
+                    "WHATSAPP_BROADCAST_FINISHED",
+                    "WHATSAPP_TEMPLATE_REJECTED"
                   ]
                 },
                 "title": {

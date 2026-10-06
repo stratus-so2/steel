@@ -22,6 +22,7 @@ import type {
   SdWhatsappQrCodeDTO,
 } from '@/types/sd-whatsapp'
 import { SdAccess } from './sd-access'
+import { WhatsAppConnectionHealthService } from './whatsapp-connection-health.service'
 
 /**
  * Conexões do WhatsApp do ServiceDesk (`WhatsAppConnection.module =
@@ -278,11 +279,22 @@ export const SdWhatsappConnectionService = {
     }
 
     const status = connected ? 'CONNECTED' : failed ? 'ERROR' : 'DISCONNECTED'
-    const updated = await WhatsAppConnectionRepository.update(id, {
-      status,
-      statusError: connected ? null : error,
-    })
-    if (!updated.ok) return updated
+    if (status === 'CONNECTED') {
+      const updated = await WhatsAppConnectionRepository.update(id, {
+        status,
+        statusError: null,
+      })
+      if (!updated.ok) return updated
+    } else {
+      // Going down from CONNECTED tells the admins (once per transition).
+      const down = await WhatsAppConnectionHealthService.markDown(connection, {
+        status,
+        error,
+        source: 'test',
+        actorId,
+      })
+      if (!down.ok) return down
+    }
     audit('test', actorId, workspaceId, id, { meta: { connected } })
     logger.info('servicedesk.whatsapp.connection_tested', {
       workspaceId,

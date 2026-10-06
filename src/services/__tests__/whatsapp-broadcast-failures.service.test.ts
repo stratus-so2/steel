@@ -23,6 +23,9 @@ vi.mock('@/src/lib/whatsapp/send', () => ({
   WhatsAppSend: { text: vi.fn(), media: vi.fn(), template: vi.fn() },
 }))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/src/services/whatsapp-notify', () => ({
+  notifyWhatsAppUsers: vi.fn(async () => 1),
+}))
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }))
@@ -349,7 +352,12 @@ describe('WhatsAppBroadcastService.sendToRecipient() failures', () => {
     mockedBroadcastRepo.updateRecipientStatus.mockResolvedValue(ok(undefined))
     mockedBroadcastRepo.markRecipientsSkipped.mockResolvedValue(ok(1))
     mockedBroadcastRepo.countPendingRecipients.mockResolvedValue(ok(0))
-    mockedBroadcastRepo.updateStatus.mockResolvedValue(ok(undefined))
+    mockedBroadcastRepo.countRecipientsByStatus.mockResolvedValue(
+      ok({ PENDING: 0, SENT: 1, FAILED: 0, SKIPPED: 0 }),
+    )
+    mockedBroadcastRepo.closeIfRunning.mockResolvedValue(
+      ok(createFakeWhatsAppBroadcastList({ id: 'list1' })),
+    )
   }
 
   const send = () => WhatsAppBroadcastService.sendToRecipient('list1', 'r1')
@@ -359,7 +367,7 @@ describe('WhatsAppBroadcastService.sendToRecipient() failures', () => {
     mockedBroadcastRepo.markRecipientsSkipped.mockResolvedValue(err(DB_ERROR))
 
     expectErr(await send(), 'DATABASE_ERROR')
-    expect(mockedBroadcastRepo.updateStatus).not.toHaveBeenCalled()
+    expect(mockedBroadcastRepo.closeIfRunning).not.toHaveBeenCalled()
   })
 
   it('should propagate a connection lookup failure', async () => {
@@ -410,7 +418,7 @@ describe('WhatsAppBroadcastService.sendToRecipient() failures', () => {
   it('should keep the list open when closing it fails', async () => {
     arrangeRecipient()
     mockedSend.text.mockResolvedValue(ok({ providerMessageId: 'wamid-1' }))
-    mockedBroadcastRepo.updateStatus.mockResolvedValue(err(DB_ERROR))
+    mockedBroadcastRepo.closeIfRunning.mockResolvedValue(err(DB_ERROR))
 
     expectOk(await send())
 

@@ -370,7 +370,7 @@ Contrato compartilhado já pronto (fundação): `src/services/sd-access.ts`,
   (de hora em hora, :10: enfileira e gera os relatórios de SLA agendados,
   idempotente por `(reportId, periodStart)`) e `servicedesk-risk` (10 min:
   recalcula o risco preditivo dos chamados abertos; de hora em hora, :25,
-  agrupa os incidentes repetidos da janela). A fila `servicedesk-integrations` leva os eventos ao canal do Slack (`deliver-event`) e reconcilia o estado das issues/PRs vinculadas (`sync-github-state`, de hora em hora às :40).
+  agrupa os incidentes repetidos da janela). A fila `servicedesk-integrations` leva os eventos ao canal do Slack (`deliver-event`) e reconcilia o estado das issues/PRs vinculadas (`sync-github-state`, de hora em hora às :40). A fila `servicedesk-task-reminders` (a cada 15 min) avisa o responsável de cada tarefa uma vez quando ela vence em menos de 1 hora e uma vez quando venceu (evento `task.due`; carimbos `dueSoonNotifiedAt`/`overdueNotifiedAt` na tarefa, rearmados quando o prazo muda; prazos vencidos há mais de 24 h não são anunciados).
 - **Notificações**: Configurações > Notificações é a tela de **cada
   usuário** (não é configuração do workspace). O canal WhatsApp só aparece
   quando existe conexão do ServiceDesk ativa. "Restaurar padrões" apaga as

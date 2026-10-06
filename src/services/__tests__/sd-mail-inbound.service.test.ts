@@ -45,6 +45,9 @@ vi.mock('../sd-automation-engine', () => ({
 vi.mock('../sd-ticket-event-recorder', () => ({
   recordSdTicketEvent: vi.fn(async () => undefined),
 }))
+vi.mock('../sd-ticket-reply-notify', () => ({
+  notifySdTicketReply: vi.fn(async () => undefined),
+}))
 vi.mock('../sd-mail-outbound.service', () => ({
   SdMailOutboundService: { sendAcknowledgement: vi.fn() },
 }))
@@ -77,6 +80,7 @@ import {
 import { SdMailOutboundService } from '../sd-mail-outbound.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
+import { notifySdTicketReply } from '../sd-ticket-reply-notify'
 
 const mailboxes = vi.mocked(SdMailboxRepository)
 const messages = vi.mocked(SdMailMessageRepository)
@@ -1060,5 +1064,70 @@ describe('syncNow', () => {
       await SdMailInboundService.syncNow('admin-1', WS, 'mb1'),
       'DATABASE_ERROR',
     )
+  })
+})
+
+describe('processMessage · team notification', () => {
+  const notifyReply = vi.mocked(notifySdTicketReply)
+
+  it('tells the team about a reply on an open ticket, as the contact user', async () => {
+    messages.findThreadTicketId.mockResolvedValue(ok('t1'))
+    messages.findContactIdByEmail.mockResolvedValue(
+      ok({ id: 'c1', userId: 'u9' }),
+    )
+
+    await SdMailInboundService.processMessage(
+      mailbox(),
+      config(),
+      createFakeFetchedMail({ inReplyTo: '<raiz@empresa.com.br>' }),
+    )
+    expect(notifyReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: WS,
+        channel: 'EMAIL',
+        actorId: 'u9',
+        body: 'A impressora do 3º andar não liga.',
+        attachments: 0,
+      }),
+    )
+  })
+
+  it('does not double-notify when the reply reopened the ticket', async () => {
+    messages.findThreadTicketId.mockResolvedValue(ok('t1'))
+    tickets.findById.mockResolvedValue(
+      ok(openTicket({ phase: { category: 'RESOLVED' } as never })),
+    )
+    await SdMailInboundService.processMessage(
+      mailbox(),
+      config(),
+      createFakeFetchedMail(),
+    )
+    expect(engine.reopen).toHaveBeenCalled()
+    expect(notifyReply).not.toHaveBeenCalled()
+  })
+
+  it('still notifies when the reopen failed', async () => {
+    messages.findThreadTicketId.mockResolvedValue(ok('t1'))
+    tickets.findById.mockResolvedValue(
+      ok(openTicket({ phase: { category: 'RESOLVED' } as never })),
+    )
+    engine.reopen.mockResolvedValue(err(databaseError()))
+    await SdMailInboundService.processMessage(
+      mailbox(),
+      config(),
+      createFakeFetchedMail(),
+    )
+    expect(notifyReply).toHaveBeenCalledWith(
+      expect.objectContaining({ channel: 'EMAIL' }),
+    )
+  })
+
+  it('never notifies when a new ticket is opened', async () => {
+    await SdMailInboundService.processMessage(
+      mailbox(),
+      config(),
+      createFakeFetchedMail(),
+    )
+    expect(notifyReply).not.toHaveBeenCalled()
   })
 })

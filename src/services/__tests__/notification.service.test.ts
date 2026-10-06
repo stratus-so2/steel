@@ -2,6 +2,7 @@ import type { Notification } from '@prisma/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
+import { notificationKindsOfModule } from '@/src/lib/notification-kind'
 import { err, ok } from '@/src/lib/result'
 import type { NotificationListQueryDTO } from '@/src/schemas/notification.schema'
 
@@ -139,7 +140,12 @@ describe('NotificationService.listInbox', () => {
     )
 
     expect(mockedNotificationRepo.listPage).toHaveBeenCalledWith(
-      expect.objectContaining({ kinds: ['WHATSAPP_NEGATIVE_SENTIMENT'] }),
+      expect.objectContaining({
+        kinds: notificationKindsOfModule('COMMUNICATION'),
+      }),
+    )
+    expect(notificationKindsOfModule('COMMUNICATION')).toContain(
+      'WHATSAPP_NEGATIVE_SENTIMENT',
     )
   })
 

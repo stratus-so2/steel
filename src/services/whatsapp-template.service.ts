@@ -17,6 +17,7 @@ import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template
 import type { CreateWhatsAppTemplateInput } from '@/src/schemas/whatsapp-template.schema'
 import type { WhatsAppTemplateDTO } from '@/types/whatsapp-template'
 import { assertModuleMember } from './authz'
+import { notifyWhatsAppUsers, whatsAppAdminIds } from './whatsapp-notify'
 
 const STATUS_MAP: Record<string, 'APPROVED' | 'PENDING' | 'REJECTED'> = {
   APPROVED: 'APPROVED',
@@ -128,6 +129,18 @@ export const WhatsAppTemplateService = {
       )
     }
 
+    // Status before the sync, to spot the templates that *became* REJECTED
+    // (one first seen already rejected is old news, not a transition).
+    const before = new Map<string, string>()
+    const known = await WhatsAppTemplateRepository.listByWorkspace(workspaceId)
+    if (known.ok) {
+      for (const template of known.value) {
+        if (template.connectionId !== connectionId) continue
+        before.set(`${template.name}|${template.language}`, template.status)
+      }
+    }
+    const rejected: string[] = []
+
     const synced: WhatsAppTemplateDTO[] = []
     for (const item of raw) {
       const result = await WhatsAppTemplateRepository.upsertSynced({
@@ -139,7 +152,32 @@ export const WhatsAppTemplateService = {
         status: STATUS_MAP[item.status] ?? 'PENDING',
         components: item.components as never,
       })
-      if (result.ok) synced.push(toWhatsAppTemplateDTO(result.value))
+      if (!result.ok) continue
+      synced.push(toWhatsAppTemplateDTO(result.value))
+      const previous = before.get(`${item.name}|${item.language}`)
+      if (
+        result.value.status === 'REJECTED' &&
+        previous !== undefined &&
+        previous !== 'REJECTED'
+      ) {
+        rejected.push(`${item.name} (${item.language})`)
+      }
+    }
+
+    if (rejected.length > 0) {
+      await notifyWhatsAppUsers({
+        workspaceId,
+        kind: 'WHATSAPP_TEMPLATE_REJECTED',
+        userIds: await whatsAppAdminIds(workspaceId),
+        actorId,
+        title:
+          rejected.length === 1
+            ? 'Template reprovado pela Meta'
+            : `${rejected.length} templates reprovados pela Meta`,
+        body: `Reprovado(s): ${rejected.join(', ')}.`,
+        path: '/zap/templates',
+        meta: { connectionId, rejected: rejected.length },
+      })
     }
 
     auditMutation({

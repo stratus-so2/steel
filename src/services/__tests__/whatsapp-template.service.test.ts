@@ -62,6 +62,7 @@ describe('WhatsAppTemplateService', () => {
       mockedConnectionRepo.findById.mockResolvedValue(ok(connection))
       const synced = createFakeWhatsAppTemplate({ name: 'boas_vindas' })
       mockedTemplateRepo.upsertSynced.mockResolvedValue(ok(synced))
+      mockedTemplateRepo.listByWorkspace.mockResolvedValue(ok([]))
 
       const result = await WhatsAppTemplateService.sync('u1', 'ws1', 'conn1')
 

@@ -46,6 +46,9 @@ vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   },
 }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
+vi.mock('../sd-ticket-reply-notify', () => ({
+  notifySdTicketReply: vi.fn(async () => undefined),
+}))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { enqueueSdAiWhatsappReply } from '@/src/lib/servicedesk/ai-queue'
@@ -59,6 +62,7 @@ import { fireSdAutomations } from '../sd-automation-engine'
 import { SdContactService } from '../sd-contact.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
+import { notifySdTicketReply } from '../sd-ticket-reply-notify'
 import {
   mirrorSdWhatsappMessage,
   publishSdTicketMessage,
@@ -839,5 +843,54 @@ describe('onMessageUpdated()', () => {
     tickets.findByIdUnscoped.mockResolvedValue(err(sdTicketNotFound()))
     await SdWhatsappInboundService.onMessageUpdated(inbound())
     expect(publishEvent).not.toHaveBeenCalled()
+  })
+})
+
+describe('route() · team notification', () => {
+  const notifyReply = vi.mocked(notifySdTicketReply)
+  const input = () => ({
+    connection: connection(),
+    conversationId: CONV,
+    contact: waContact(),
+    message: inbound(),
+  })
+
+  beforeEach(() => {
+    notifyReply.mockClear()
+    sdWa.findOpenTicket.mockResolvedValue(
+      ok({ id: 't1', number: 12, type: 'INCIDENT' }),
+    )
+  })
+
+  it('tells the team about a new customer message', async () => {
+    expectOk(await SdWhatsappInboundService.route(input()))
+    expect(notifyReply).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceId: WS, channel: 'WHATSAPP' }),
+    )
+  })
+
+  it('stays quiet on a webhook retry of a mirrored message', async () => {
+    sdWa.hasMirror.mockResolvedValue(ok(true))
+    expectOk(await SdWhatsappInboundService.route(input()))
+    expect(notifyReply).not.toHaveBeenCalled()
+  })
+
+  it('does not double-notify when the message reopened the ticket', async () => {
+    tickets.findById.mockResolvedValue(ok(ticket({ phase: phase('RESOLVED') })))
+    engine.loadConfig.mockResolvedValue(
+      ok(config({ reopenOnRequesterReply: true })),
+    )
+    expectOk(await SdWhatsappInboundService.route(input()))
+    expect(notifyReply).not.toHaveBeenCalled()
+  })
+
+  it('notifies when the reopen failed', async () => {
+    tickets.findById.mockResolvedValue(ok(ticket({ phase: phase('RESOLVED') })))
+    engine.loadConfig.mockResolvedValue(
+      ok(config({ reopenOnRequesterReply: true })),
+    )
+    engine.reopen.mockResolvedValue(err(databaseError()))
+    expectOk(await SdWhatsappInboundService.route(input()))
+    expect(notifyReply).toHaveBeenCalledTimes(1)
   })
 })

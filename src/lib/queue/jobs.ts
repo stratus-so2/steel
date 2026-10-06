@@ -29,6 +29,7 @@ export const QueueName = {
   ServicedeskRisk: 'servicedesk-risk',
   ServicedeskIntegrations: 'servicedesk-integrations',
   CrmTaskReminders: 'crm-task-reminders',
+  ServicedeskTaskReminders: 'servicedesk-task-reminders',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -546,4 +547,20 @@ export type CrmTaskRemindersJob =
 
 export type CrmTaskRemindersJobPayload = {
   [CrmTaskRemindersJob.RunTick]: Record<string, never>
+}
+
+/**
+ * Due-date notices of ticket tasks (`SdTaskReminderService`): every 15 min
+ * the tick tells each assignee once when a task is due within the hour and
+ * once when it is past due. Idempotent through the stamps on the task.
+ */
+export const ServicedeskTaskRemindersJob = {
+  RunTick: 'run-tick',
+} as const
+
+export type ServicedeskTaskRemindersJob =
+  (typeof ServicedeskTaskRemindersJob)[keyof typeof ServicedeskTaskRemindersJob]
+
+export type ServicedeskTaskRemindersJobPayload = {
+  [ServicedeskTaskRemindersJob.RunTick]: Record<string, never>
 }

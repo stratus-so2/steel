@@ -10,6 +10,10 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/whatsapp-connection.repository')
 vi.mock('@/src/repositories/whatsapp-template.repository')
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/src/services/whatsapp-notify', () => ({
+  notifyWhatsAppUsers: vi.fn(async () => 1),
+  whatsAppAdminIds: vi.fn(async () => ['owner', 'admin']),
+}))
 vi.mock('@/src/lib/crypto', () => ({
   decryptConnectionSecret: vi.fn(async (envelope: string) =>
     envelope.replace(/^enc:/, ''),
@@ -28,6 +32,7 @@ import {
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
 import { WhatsAppTemplateRepository } from '@/src/repositories/whatsapp-template.repository'
+import { notifyWhatsAppUsers } from '../whatsapp-notify'
 import { WhatsAppTemplateService } from '../whatsapp-template.service'
 
 const mockedMembershipRepo = vi.mocked(MembershipRepository)
@@ -251,5 +256,87 @@ describe('WhatsAppTemplateService.create() failures and components', () => {
       'DATABASE_ERROR',
     )
     expect(auditMutation).not.toHaveBeenCalled()
+  })
+})
+
+describe('WhatsAppTemplateService.sync() · rejection notice', () => {
+  const notify = vi.mocked(notifyWhatsAppUsers)
+  const sync = () => WhatsAppTemplateService.sync('u1', 'ws1', 'conn1')
+  const known = (name: string, status: 'PENDING' | 'APPROVED' | 'REJECTED') =>
+    createFakeWhatsAppTemplate({
+      connectionId: 'conn1',
+      name,
+      language: 'pt_BR',
+      status,
+    })
+
+  function arrange(
+    before: ReturnType<typeof known>[],
+    fetched: [string, string][],
+  ) {
+    arrangeMeta()
+    mockedTemplateRepo.listByWorkspace.mockResolvedValue(ok(before))
+    mockedFetch.mockResolvedValue(
+      fetched.map(([name, status]) => metaItem(name, status)),
+    )
+    mockedTemplateRepo.upsertSynced.mockImplementation(async (data) =>
+      ok(createFakeWhatsAppTemplate({ ...data, components: [] })),
+    )
+  }
+
+  it('tells the admins (not the actor) about templates that became REJECTED', async () => {
+    arrange(
+      [
+        known('promo', 'PENDING'),
+        known('aviso', 'APPROVED'),
+        known('velho', 'REJECTED'),
+        createFakeWhatsAppTemplate({
+          connectionId: 'other-conn',
+          name: 'outra',
+          language: 'pt_BR',
+          status: 'PENDING',
+        }),
+      ],
+      [
+        ['promo', 'REJECTED'],
+        ['aviso', 'REJECTED'],
+        ['velho', 'REJECTED'],
+        ['outra', 'REJECTED'],
+        ['novo', 'REJECTED'],
+      ],
+    )
+
+    expectOk(await sync())
+
+    expect(notify).toHaveBeenCalledTimes(1)
+    const [input] = notify.mock.calls[0]
+    expect(input).toMatchObject({
+      workspaceId: 'ws1',
+      kind: 'WHATSAPP_TEMPLATE_REJECTED',
+      userIds: ['owner', 'admin'],
+      actorId: 'u1',
+      title: '2 templates reprovados pela Meta',
+      body: 'Reprovado(s): promo (pt_BR), aviso (pt_BR).',
+    })
+    expect(input.path).toBe('/zap/templates')
+  })
+
+  it('uses the singular title for one template', async () => {
+    arrange([known('promo', 'PENDING')], [['promo', 'REJECTED']])
+    expectOk(await sync())
+    expect(notify.mock.calls[0][0].title).toBe('Template reprovado pela Meta')
+  })
+
+  it('stays quiet when nothing changed to REJECTED', async () => {
+    arrange([known('promo', 'PENDING')], [['promo', 'APPROVED']])
+    expectOk(await sync())
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('still syncs when the previous statuses cannot be read', async () => {
+    arrange([], [['promo', 'REJECTED']])
+    mockedTemplateRepo.listByWorkspace.mockResolvedValue(err(DB_ERROR))
+    expect(expectOk(await sync())).toHaveLength(1)
+    expect(notify).not.toHaveBeenCalled()
   })
 })

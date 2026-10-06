@@ -210,6 +210,63 @@ describe('WhatsAppConnectionRepository', () => {
     })
   })
 
+  describe('transitionStatus()', () => {
+    it('moves the status only from the expected states, once', async () => {
+      const { workspace, user } = await seedWorkspaceAndUser()
+      const connection = expectOk(
+        await WhatsAppConnectionRepository.create({
+          workspaceId: workspace.id,
+          provider: 'ZAPI',
+          label: 'Plantão',
+          phoneNumber: '5511900000401',
+          zapiInstanceId: 'inst-401',
+          encryptedZapiToken: 'enc',
+          createdById: user.id,
+        }),
+      )
+      await WhatsAppConnectionRepository.update(connection.id, {
+        status: 'CONNECTED',
+      })
+      const down = { status: 'DISCONNECTED' as const, statusError: 'offline' }
+
+      expect(
+        expectOk(
+          await WhatsAppConnectionRepository.transitionStatus(
+            connection.id,
+            ['CONNECTED'],
+            down,
+          ),
+        ),
+      ).toBe(true)
+      expect(
+        expectOk(
+          await WhatsAppConnectionRepository.transitionStatus(
+            connection.id,
+            ['CONNECTED'],
+            down,
+          ),
+        ),
+      ).toBe(false)
+      const stored = await prisma.whatsAppConnection.findUniqueOrThrow({
+        where: { id: connection.id },
+      })
+      expect(stored).toMatchObject(down)
+    })
+
+    it('maps a thrown update to DATABASE_ERROR', async () => {
+      vi.spyOn(prisma.whatsAppConnection, 'updateMany').mockRejectedValueOnce(
+        new Error('boom'),
+      )
+      expectErr(
+        await WhatsAppConnectionRepository.transitionStatus('c', ['ERROR'], {
+          status: 'CONNECTED',
+          statusError: null,
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
   describe('update()', () => {
     it('should update the connection fields', async () => {
       const { workspace, user } = await seedWorkspaceAndUser()

@@ -39,6 +39,7 @@ import type {
 } from '@/types/whatsapp-broadcast'
 import { assertModuleMember } from './authz'
 import { assertFeature } from './feature-flag.service'
+import { notifyWhatsAppUsers } from './whatsapp-notify'
 
 const STAGGER_DELAY_MS = 4000
 
@@ -123,23 +124,49 @@ async function sendBroadcastMedia(
   return sent
 }
 
-/** Fecha a lista (DONE) quando não sobra destinatário PENDING. */
+/**
+ * Fecha a lista quando não sobra destinatário PENDING: FAILED se nada foi
+ * enviado e houve falha, DONE nos demais casos. A troca de status é
+ * condicional (só a partir de QUEUED/RUNNING), então só um dos jobs que
+ * terminam juntos fecha a lista — e só ele avisa quem a criou.
+ */
 async function completeIfDrained(broadcastListId: string): Promise<void> {
   const pending =
     await WhatsAppBroadcastRepository.countPendingRecipients(broadcastListId)
   if (!pending.ok || pending.value > 0) return
 
-  const updated = await WhatsAppBroadcastRepository.updateStatus(
+  const counts =
+    await WhatsAppBroadcastRepository.countRecipientsByStatus(broadcastListId)
+  if (!counts.ok) return
+  const sent = counts.value.SENT
+  const failed = counts.value.FAILED
+  const status = sent === 0 && failed > 0 ? 'FAILED' : 'DONE'
+
+  const closed = await WhatsAppBroadcastRepository.closeIfRunning(
     broadcastListId,
-    'DONE',
+    status,
   )
-  if (!updated.ok) return
+  if (!closed.ok || !closed.value) return
   auditMutation({
     entity: 'whatsapp_broadcast_list',
     action: 'update',
     actorId: null,
     targetId: broadcastListId,
-    meta: { status: 'DONE', actor: 'system', via: 'whatsapp_broadcast_job' },
+    meta: { status, actor: 'system', via: 'whatsapp_broadcast_job' },
+  })
+
+  const list = closed.value
+  await notifyWhatsAppUsers({
+    workspaceId: list.workspaceId,
+    kind: 'WHATSAPP_BROADCAST_FINISHED',
+    userIds: [list.createdById],
+    title:
+      status === 'FAILED'
+        ? `Transmissão "${list.name}" falhou`
+        : `Transmissão "${list.name}" concluída`,
+    body: `${sent} enviada(s), ${failed} com falha.`,
+    path: '/zap/transmissoes',
+    meta: { broadcastListId, status },
   })
 }
 

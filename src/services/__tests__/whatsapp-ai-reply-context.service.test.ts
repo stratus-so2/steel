@@ -24,6 +24,11 @@ vi.mock('@/src/lib/whatsapp/realtime', () => ({
   publishWhatsAppEvent: vi.fn(async () => undefined),
 }))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/src/services/whatsapp-notify', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../whatsapp-notify')>()),
+  notifyWhatsAppUsers: vi.fn(async () => 1),
+  whatsAppAdminIds: vi.fn(async () => ['owner', 'admin']),
+}))
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
 }))

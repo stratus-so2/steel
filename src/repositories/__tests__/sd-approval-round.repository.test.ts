@@ -216,7 +216,18 @@ describe('SdApprovalRoundRepository', () => {
 
     expect(
       expectOk(await SdApprovalRoundRepository.expireOverdue(ticket.id, now)),
-    ).toBe(1)
+    ).toEqual([
+      {
+        id: stale.id,
+        workspaceId: workspace.id,
+        ticketId: ticket.id,
+        requestedById: admin.id,
+        boardName: null,
+      },
+    ])
+    expect(
+      expectOk(await SdApprovalRoundRepository.expireOverdue(ticket.id, now)),
+    ).toEqual([])
     expect(await statusOf(stale.id)).toBe('EXPIRED')
     const approval = await prisma.sdTicketApproval.findUniqueOrThrow({
       where: { id: overdue.id },
@@ -236,7 +247,7 @@ describe('SdApprovalRoundRepository', () => {
       expectOk(
         await SdApprovalRoundRepository.expireOverdue(ticket.id, new Date()),
       ),
-    ).toBe(0)
+    ).toEqual([])
     expect(await statusOf(round.id)).toBe('PENDING')
   })
 
@@ -252,7 +263,7 @@ describe('SdApprovalRoundRepository', () => {
       expectOk(
         await SdApprovalRoundRepository.expireOverdue(ticket.id, new Date()),
       ),
-    ).toBe(0)
+    ).toEqual([])
     expect(await statusOf(round.id)).toBe('PENDING')
   })
 

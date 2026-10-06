@@ -1,4 +1,9 @@
-import type { ModuleKind, Prisma, WhatsAppConnection } from '@prisma/client'
+import type {
+  ModuleKind,
+  Prisma,
+  WhatsAppConnection,
+  WhatsAppConnectionStatus,
+} from '@prisma/client'
 import { whatsappConnectionConflict } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -100,6 +105,27 @@ export const WhatsAppConnectionRepository = {
       return ok(connection)
     } catch (error) {
       return err(dbError('Failed to update whatsapp connection', error))
+    }
+  },
+
+  /**
+   * Moves the connection to `data.status` only if it is currently in one of
+   * `from`. `true` = this call made the transition (so the caller announces
+   * it once, never again while the state stays the same).
+   */
+  async transitionStatus(
+    id: string,
+    from: WhatsAppConnectionStatus[],
+    data: { status: WhatsAppConnectionStatus; statusError: string | null },
+  ): Promise<Result<boolean>> {
+    try {
+      const result = await prisma.whatsAppConnection.updateMany({
+        where: { id, status: { in: from } },
+        data,
+      })
+      return ok(result.count > 0)
+    } catch (error) {
+      return err(dbError('Failed to update whatsapp connection status', error))
     }
   },
 

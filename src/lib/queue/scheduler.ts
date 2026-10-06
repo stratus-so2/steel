@@ -17,6 +17,7 @@ import {
   ServicedeskReportsJob,
   ServicedeskRiskJob,
   ServicedeskSlaJob,
+  ServicedeskTaskRemindersJob,
   StatusCollectJob,
   TrialLifecycleJob,
   UsageRollupJob,
@@ -40,6 +41,7 @@ import {
   getServicedeskReportsQueue,
   getServicedeskRiskQueue,
   getServicedeskSlaQueue,
+  getServicedeskTaskRemindersQueue,
   getStatusCollectQueue,
   getTrialLifecycleQueue,
   getUsageRollupQueue,
@@ -65,6 +67,7 @@ import {
   ServicedeskReportsCron,
   ServicedeskRiskCron,
   ServicedeskSlaCron,
+  ServicedeskTaskRemindersCron,
   StatusCollectCron,
   UsageRollupCron,
   WhatsappBroadcastScheduleCron,
@@ -427,6 +430,21 @@ export async function scheduleCrmTaskRemindersJobs(): Promise<void> {
   logger.info('queue.scheduler.crm_task_reminders_registered', {
     component: 'Worker',
     pattern: CrmTaskRemindersCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleServicedeskTaskRemindersJobs(): Promise<void> {
+  const queue = getServicedeskTaskRemindersQueue()
+  await queue.upsertJobScheduler(
+    ServicedeskTaskRemindersJob.RunTick,
+    { pattern: ServicedeskTaskRemindersCron, tz: RetentionTimezone },
+    { name: ServicedeskTaskRemindersJob.RunTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.servicedesk_task_reminders_registered', {
+    component: 'Worker',
+    pattern: ServicedeskTaskRemindersCron,
     timezone: RetentionTimezone,
   })
 }

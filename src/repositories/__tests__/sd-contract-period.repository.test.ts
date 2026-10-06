@@ -161,6 +161,52 @@ describe('SdContractPeriodRepository', () => {
     expect(closed.closedBy?.id).toBe(user.id)
   })
 
+  it('claims each franchise warning once per period', async () => {
+    const { workspace, contract } = await setup()
+    const period = await seedSdContractPeriod(workspace.id, contract.id, {
+      periodStart: OCT,
+      periodEnd: NOV,
+    })
+    const at = new Date()
+    expect(
+      expectOk(
+        await SdContractPeriodRepository.claimWarning(
+          period.id,
+          'franchise',
+          at,
+        ),
+      ),
+    ).toBe(true)
+    expect(
+      expectOk(
+        await SdContractPeriodRepository.claimWarning(
+          period.id,
+          'franchise',
+          at,
+        ),
+      ),
+    ).toBe(false)
+    expect(
+      expectOk(
+        await SdContractPeriodRepository.claimWarning(period.id, 'overage', at),
+      ),
+    ).toBe(true)
+    const row = await prisma.sdContractPeriod.findUniqueOrThrow({
+      where: { id: period.id },
+    })
+    expect(row.franchiseWarnedAt).toEqual(at)
+    expect(row.overageWarnedAt).toEqual(at)
+
+    const updateMany = vi
+      .spyOn(prisma.sdContractPeriod, 'updateMany')
+      .mockRejectedValueOnce(new Error('boom'))
+    expectErr(
+      await SdContractPeriodRepository.claimWarning(period.id, 'overage', at),
+      'DATABASE_ERROR',
+    )
+    updateMany.mockRestore()
+  })
+
   it('maps failures to DATABASE_ERROR', async () => {
     const many = vi
       .spyOn(prisma.sdContractPeriod, 'findMany')

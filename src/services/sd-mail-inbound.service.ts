@@ -49,6 +49,7 @@ import {
   sdTicketCode,
 } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
+import { notifySdTicketReply } from './sd-ticket-reply-notify'
 
 /**
  * Recepção do canal de e-mail (fluxo de sistema, sem usuário): o tick
@@ -346,6 +347,7 @@ async function appendToTicket(
     },
   })
 
+  let reopenNotified = false
   if (
     ticket.phase.category === 'RESOLVED' &&
     config.settings.reopenOnRequesterReply
@@ -361,7 +363,18 @@ async function appendToTicket(
         ticketId: ticket.id,
         reason: reopened.error.code,
       })
-    }
+    } else reopenNotified = true
+  }
+  // The reopen already told the team (`ticket.reopened`): no second notice.
+  if (!reopenNotified) {
+    await notifySdTicketReply({
+      workspaceId: mailbox.workspaceId,
+      ticket,
+      channel: 'EMAIL',
+      actorId: contact.userId,
+      body,
+      attachments: attachments.length,
+    })
   }
 
   void fireSdAutomations('MESSAGE_RECEIVED', ticket.id)

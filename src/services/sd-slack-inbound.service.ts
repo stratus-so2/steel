@@ -36,6 +36,7 @@ import {
   sdTicketCode,
 } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
+import { notifySdTicketReply } from './sd-ticket-reply-notify'
 
 /**
  * Entrada pública do Slack (`POST /api/servicedesk/integrations/slack`) —
@@ -436,6 +437,13 @@ async function mirrorThreadReply(
     },
   })
   void fireSdAutomations('MESSAGE_RECEIVED', link.value.ticketId)
+  await notifySdTicketReply({
+    workspaceId: integration.workspaceId,
+    ticket: { id: link.value.ticketId },
+    channel: 'SLACK',
+    actorId: authorUserId,
+    body: `${authorName}: ${event.text ?? ''}`,
+  })
 
   logger.info('servicedesk.slack.reply_mirrored', {
     workspaceId: integration.workspaceId,

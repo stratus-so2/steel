@@ -1,3 +1,4 @@
+import { logger } from '@/lib/axiom/logger'
 import { sdOnCallLayerInvalid, sdOnCallOverrideOverlap } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
@@ -38,6 +39,7 @@ import type {
 } from '@/types/sd-oncall'
 import { SdAccess } from './sd-access'
 import { assertSdRefs, sdAdminMutation } from './sd-config-support'
+import { notifySdUsers } from './sd-notification.service'
 
 /**
  * Escalas de plantão (on-call): quem responde fora do horário, por camadas,
@@ -77,6 +79,58 @@ async function assertRefs(
     departmentIds: [dto.departmentId],
     calendarIds: [dto.calendarId],
   })
+}
+
+function onCallHref(slug: string): string {
+  return `/${slug}/servicedesk/settings?tab=oncall`
+}
+
+/** `dd/mm HH:mm` in the schedule time zone (never the server's). */
+export function formatSdOnCallMoment(at: Date, timeZone: string): string {
+  const options: Intl.DateTimeFormatOptions = {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }
+  try {
+    return new Intl.DateTimeFormat('pt-BR', { ...options, timeZone }).format(at)
+  } catch {
+    return new Intl.DateTimeFormat('pt-BR', {
+      ...options,
+      timeZone: 'UTC',
+    }).format(at)
+  }
+}
+
+/** `oncall.shift` to whoever is going on call. Never fails the change. */
+async function notifyOnCall(input: {
+  workspaceId: string
+  actorId: string
+  userIds: string[]
+  title: string
+  body: string
+  scheduleId: string
+}): Promise<void> {
+  if (input.userIds.length === 0) return
+  const sent = await notifySdUsers({
+    workspaceId: input.workspaceId,
+    event: 'oncall.shift',
+    userIds: input.userIds,
+    actorId: input.actorId,
+    title: input.title,
+    body: input.body,
+    hrefFor: onCallHref,
+    meta: { scheduleId: input.scheduleId },
+  })
+  if (!sent.ok) {
+    logger.warn('servicedesk.oncall.notify_failed', {
+      workspaceId: input.workspaceId,
+      scheduleId: input.scheduleId,
+      reason: sent.error.code,
+    })
+  }
 }
 
 export const SdOnCallService = {
@@ -326,7 +380,8 @@ export const SdOnCallService = {
           workspaceId,
         )
         if (!schedule.ok) return schedule
-        if (!schedule.value.layers.some((l) => l.id === layerId)) {
+        const layer = schedule.value.layers.find((l) => l.id === layerId)
+        if (!layer) {
           return err(sdOnCallLayerInvalid('Camada não encontrada'))
         }
         const refs = await assertSdRefs(workspaceId, { userIds: dto.userIds })
@@ -336,6 +391,18 @@ export const SdOnCallService = {
           dto.userIds,
         )
         if (!saved.ok) return saved
+
+        // Only who just joined the rotation hears about it (a reorder is
+        // not news to anybody).
+        const before = new Set(layer.participants.map((p) => p.userId))
+        await notifyOnCall({
+          workspaceId,
+          actorId,
+          scheduleId,
+          userIds: dto.userIds.filter((userId) => !before.has(userId)),
+          title: `Você entrou no plantão "${schedule.value.name}"`,
+          body: `Camada ${layer.name} — confira na escala quando é a sua vez.`,
+        })
         return SdOnCallService.reload(scheduleId, workspaceId)
       },
     })
@@ -413,6 +480,16 @@ export const SdOnCallService = {
           createdById: actorId,
         })
         if (!created.ok) return created
+
+        const zone = schedule.value.timezone
+        await notifyOnCall({
+          workspaceId,
+          actorId,
+          scheduleId: dto.scheduleId,
+          userIds: [dto.userId],
+          title: `Você cobre o plantão "${schedule.value.name}"`,
+          body: `De ${formatSdOnCallMoment(dto.startsAt, zone)} a ${formatSdOnCallMoment(dto.endsAt, zone)} (${zone})${dto.reason ? ` — ${dto.reason}` : ''}.`,
+        })
         return ok(toSdOnCallOverrideDTO(created.value))
       },
     })

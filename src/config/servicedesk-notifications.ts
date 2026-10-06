@@ -292,6 +292,85 @@ export const SD_NOTIFICATION_EVENTS: SdNotificationEventSpec[] = [
     defaultChannels: [],
     agentOnly: true,
   },
+  {
+    key: 'approval.canceled',
+    kind: 'SD_APPROVAL_CANCELED',
+    label: 'Aprovação cancelada',
+    description:
+      'Um pedido de aprovação enviado a você foi cancelado antes da resposta.',
+    // Sem público: quem dispara passa o aprovador em `payload.userIds`.
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: ['IN_APP'],
+  },
+  {
+    key: 'approval.expired',
+    kind: 'SD_APPROVAL_EXPIRED',
+    label: 'Aprovação expirada',
+    description:
+      'Um pedido (ou rodada do comitê) venceu sem resposta — o chamado segue esperando.',
+    // Responsável do chamado + quem pediu (vem em `payload.userIds`).
+    audience: ['assignee'],
+    channels: APP_MAIL,
+    defaultChannels: APP_MAIL,
+    agentOnly: true,
+  },
+  {
+    key: 'task.due',
+    kind: 'SD_TASK_DUE',
+    label: 'Prazo de tarefa',
+    description: 'Uma tarefa sua vence na próxima hora ou já venceu.',
+    audience: [],
+    channels: APP_MAIL,
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
+  {
+    key: 'kb.comment',
+    kind: 'SD_KB_COMMENT',
+    label: 'Comentário no seu artigo',
+    description: 'Alguém comentou num artigo da base que você escreveu.',
+    // Sem público: não é chamado — o serviço de comentários avisa o autor.
+    audience: [],
+    channels: ['IN_APP'],
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
+  {
+    key: 'oncall.shift',
+    kind: 'SD_ONCALL_SHIFT',
+    label: 'Plantão',
+    description:
+      'Você entrou no rodízio de uma escala ou foi escalado numa troca pontual.',
+    audience: [],
+    channels: ['IN_APP'],
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
+  {
+    key: 'monitor.alert',
+    kind: 'SD_MONITOR_ALERT',
+    label: 'Alerta no seu plantão',
+    description:
+      'O monitoramento abriu (ou reabriu) um chamado no time em que você está de plantão.',
+    // O plantonista vem em `payload.userIds` (resolvido pela escala).
+    audience: [],
+    channels: ALL,
+    defaultChannels: APP_MAIL,
+    agentOnly: true,
+  },
+  {
+    key: 'contract.franchise',
+    kind: 'SD_CONTRACT_FRANCHISE',
+    label: 'Franquia de contrato',
+    description:
+      'O período de um contrato consumiu 80% da franquia ou entrou em excedente.',
+    // Quem criou o contrato + admins do workspace (uma vez por período).
+    audience: [],
+    channels: ['IN_APP'],
+    defaultChannels: ['IN_APP'],
+    agentOnly: true,
+  },
 ]
 
 /**
@@ -332,17 +411,33 @@ export const SD_NOTIFICATION_GROUPS: SdNotificationGroup[] = [
   },
   {
     label: 'Base de conhecimento',
-    events: ['kb.review_requested', 'kb.review_decided', 'kb.review_due'],
+    events: [
+      'kb.review_requested',
+      'kb.review_decided',
+      'kb.review_due',
+      'kb.comment',
+    ],
   },
   {
     label: 'Aprovações e tarefas',
-    events: ['approval.requested', 'approval.responded', 'task.assigned'],
+    events: [
+      'approval.requested',
+      'approval.responded',
+      'approval.canceled',
+      'approval.expired',
+      'task.assigned',
+      'task.due',
+    ],
   },
   {
     label: 'Problemas e relatórios',
     events: ['problem.cluster_detected', 'report.ready'],
   },
   { label: 'Resumos', events: [SD_DIGEST_EVENT] },
+  {
+    label: 'Plantão, monitoramento e contratos',
+    events: ['oncall.shift', 'monitor.alert', 'contract.franchise'],
+  },
 ]
 
 const BY_KEY = new Map(SD_NOTIFICATION_EVENTS.map((e) => [e.key, e]))

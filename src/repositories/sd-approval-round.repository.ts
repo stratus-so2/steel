@@ -37,6 +37,15 @@ export interface SdApprovalRoundMemberData {
 
 const OPEN: SdApprovalRoundStatus = 'PENDING'
 
+/** Rodada movida para EXPIRED por uma expiração lazy. */
+export interface SdExpiredApprovalRound {
+  id: string
+  workspaceId: string
+  ticketId: string
+  requestedById: string
+  boardName: string | null
+}
+
 /**
  * Rodadas de aprovação do CAB (`SdApprovalRound`). A rodada e os pedidos
  * (`SdTicketApproval.roundId`) nascem na mesma transação; a contagem de votos
@@ -179,9 +188,14 @@ export const SdApprovalRoundRepository = {
 
   /**
    * Expira (lazy) as rodadas abertas cujos pedidos todos venceram, junto com
-   * os pedidos. Devolve quantas rodadas expiraram.
+   * os pedidos. Devolve as rodadas que **esta** chamada expirou (a troca de
+   * status é condicional, então duas chamadas concorrentes não devolvem a
+   * mesma rodada).
    */
-  async expireOverdue(ticketId: string, now: Date): Promise<Result<number>> {
+  async expireOverdue(
+    ticketId: string,
+    now: Date,
+  ): Promise<Result<SdExpiredApprovalRound[]>> {
     return sdDb('Failed to expire ServiceDesk approval rounds', async () => {
       const open = await prisma.sdApprovalRound.findMany({
         where: { ticketId, status: OPEN },
@@ -201,19 +215,36 @@ export const SdApprovalRoundRepository = {
             (a) => a.status === 'PENDING' && a.expiresAt <= now,
           ),
         )
-      if (stale.length === 0) return 0
+      if (stale.length === 0) return []
       const ids = stale.map((round) => round.id)
-      await prisma.$transaction([
-        prisma.sdTicketApproval.updateMany({
-          where: { roundId: { in: ids }, status: 'PENDING' },
-          data: { status: 'EXPIRED' },
-        }),
-        prisma.sdApprovalRound.updateMany({
+      return prisma.$transaction(async (tx) => {
+        const expired = await tx.sdApprovalRound.updateManyAndReturn({
           where: { id: { in: ids }, status: OPEN },
           data: { status: 'EXPIRED', decidedAt: now },
-        }),
-      ])
-      return ids.length
+          select: {
+            id: true,
+            workspaceId: true,
+            ticketId: true,
+            requestedById: true,
+            board: { select: { name: true } },
+          },
+        })
+        // Empty `in` (lost the race for every round) updates nothing.
+        await tx.sdTicketApproval.updateMany({
+          where: {
+            roundId: { in: expired.map((round) => round.id) },
+            status: 'PENDING',
+          },
+          data: { status: 'EXPIRED' },
+        })
+        return expired.map((round) => ({
+          id: round.id,
+          workspaceId: round.workspaceId,
+          ticketId: round.ticketId,
+          requestedById: round.requestedById,
+          boardName: round.board?.name ?? null,
+        }))
+      })
     })
   },
 

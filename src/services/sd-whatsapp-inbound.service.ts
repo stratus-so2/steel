@@ -37,6 +37,7 @@ import {
   sdTicketCode,
 } from './sd-ticket-engine'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
+import { notifySdTicketReply } from './sd-ticket-reply-notify'
 
 /**
  * Roteamento do WhatsApp do ServiceDesk (fluxo de sistema, sem usuário):
@@ -420,6 +421,7 @@ export const SdWhatsappInboundService = {
       })
       if (!mirrored.ok) return mirrored
       await SdTicketEngine.touchActivity(ticket.value.id)
+      let reopenNotified = false
       if (
         ticket.value.phase.category === 'RESOLVED' &&
         settings.reopenOnRequesterReply
@@ -435,7 +437,17 @@ export const SdWhatsappInboundService = {
             ticketId: ticket.value.id,
             reason: reopened.error.code,
           })
-        }
+        } else reopenNotified = true
+      }
+      // Only a newly mirrored message notifies (webhook retries are no-ops),
+      // and never on top of the reopen notice.
+      if (mirrored.value && !reopenNotified) {
+        await notifySdTicketReply({
+          workspaceId,
+          ticket: ticket.value,
+          channel: 'WHATSAPP',
+          body: sdWhatsappMessageBody(input.message.type, input.message.text),
+        })
       }
       void fireSdAutomations('MESSAGE_RECEIVED', ticket.value.id)
 

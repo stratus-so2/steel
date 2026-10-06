@@ -50,6 +50,9 @@ vi.mock('../sd-ticket-engine', async (importOriginal) => ({
   },
 }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
+vi.mock('../sd-ticket-reply-notify', () => ({
+  notifySdTicketReply: vi.fn(async () => undefined),
+}))
 
 import { SdIntegrationEventCache } from '@/src/cache/sd-integration-event.cache'
 import {
@@ -63,6 +66,7 @@ import { fireSdAutomations } from '../sd-automation-engine'
 import { SdSlackInboundService } from '../sd-slack-inbound.service'
 import { SdTicketEngine } from '../sd-ticket-engine'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
+import { notifySdTicketReply } from '../sd-ticket-reply-notify'
 
 const repo = vi.mocked(SdIntegrationRepository)
 const ctxRepo = vi.mocked(SdTicketContextRepository)
@@ -275,6 +279,28 @@ describe('resposta na thread → histórico do chamado', () => {
     expect(fireSdAutomations).toHaveBeenCalledWith('MESSAGE_RECEIVED', 't1')
     expect(recordSdTicketEvent).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'message.posted' }),
+    )
+  })
+
+  it('tells the ticket team about the thread reply', async () => {
+    expectOk(await SdSlackInboundService.handle(reply()))
+    expect(notifySdTicketReply).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      ticket: { id: 't1' },
+      channel: 'SLACK',
+      actorId: null,
+      body: expect.stringContaining('Já resolvi'),
+    })
+  })
+
+  it('never notifies the matched Steel user who replied', async () => {
+    slack.getUser.mockResolvedValue(
+      ok({ id: 'U1', name: 'Ana', email: 'ana@acme.test', isBot: false }),
+    )
+    repo.findWorkspaceUserByEmail.mockResolvedValue(ok({ id: 'u9' }))
+    expectOk(await SdSlackInboundService.handle(reply()))
+    expect(vi.mocked(notifySdTicketReply)).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: 'u9' }),
     )
   })
 

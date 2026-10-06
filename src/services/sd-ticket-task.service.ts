@@ -54,6 +54,19 @@ async function assertMember(
   return ok(undefined)
 }
 
+/**
+ * A new due date re-arms the due-date notices (`servicedesk-task-reminders`
+ * tick): the old ones were about the old deadline.
+ */
+function dueReminderReset(
+  next: Date | null | undefined,
+  current: Date | null,
+): Pick<SdTicketTaskData, 'dueSoonNotifiedAt' | 'overdueNotifiedAt'> {
+  if (next === undefined) return {}
+  if ((next?.getTime() ?? null) === (current?.getTime() ?? null)) return {}
+  return { dueSoonNotifiedAt: null, overdueNotifiedAt: null }
+}
+
 async function notifyAssignee(
   scope: SdTicketTabScope,
   assigneeId: string | null | undefined,
@@ -194,6 +207,7 @@ export const SdTicketTaskService = {
     const updated = await SdTicketTaskRepository.update(taskId, {
       ...dto,
       ...completion(dto.status, existing.value.status),
+      ...dueReminderReset(dto.dueDate, existing.value.dueDate),
     })
     if (!updated.ok) return updated
     const task = updated.value
