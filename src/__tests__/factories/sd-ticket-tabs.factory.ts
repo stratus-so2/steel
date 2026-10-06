@@ -94,6 +94,8 @@ export function createFakeSdTicketTask(
     createdById: 'u1',
     createdAt: fixed(),
     updatedAt: fixed(),
+    dueSoonNotifiedAt: null,
+    overdueNotifiedAt: null,
     assignee: null,
     createdBy: author(),
     ...overrides,

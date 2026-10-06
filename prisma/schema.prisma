@@ -3899,6 +3899,25 @@ enum NotificationKind {
   AI_QUOTA_WARNING
   /// Platform: monthly AI quota exhausted.
   AI_QUOTA_EXCEEDED
+  /// Pedido de aprovação cancelado (aviso ao aprovador).
+  SD_APPROVAL_CANCELED
+  /// Pedido/rodada de aprovação venceu sem resposta.
+  SD_APPROVAL_EXPIRED
+  /// Tarefa do chamado vence em breve ou venceu.
+  SD_TASK_DUE
+  /// Plantão: troca pontual ou entrada no rodízio.
+  SD_ONCALL_SHIFT
+  /// Contrato: franquia em 80% ou excedente no período.
+  SD_CONTRACT_FRANCHISE
+  /// Comentário num artigo da base de conhecimento.
+  SD_KB_COMMENT
+  /// Alerta do monitoramento abriu/reabriu chamado no plantão.
+  SD_MONITOR_ALERT
+  WHATSAPP_CONVERSATION_ASSIGNED
+  WHATSAPP_AI_HANDOFF
+  WHATSAPP_CONNECTION_LOST
+  WHATSAPP_BROADCAST_FINISHED
+  WHATSAPP_TEMPLATE_REJECTED
 }
 
 /// Notificação no app (caixa de entrada do usuário no workspace).
@@ -5053,19 +5072,23 @@ model SdTicketAttachment {
 }
 
 model SdTicketTask {
-  id          String       @id @default(cuid())
-  workspaceId String       @map("workspace_id")
-  ticketId    String       @map("ticket_id")
-  title       String
-  description String?
-  status      SdTaskStatus @default(TODO)
-  assigneeId  String?      @map("assignee_id")
-  dueDate     DateTime?    @map("due_date")
-  completedAt DateTime?    @map("completed_at")
-  position    Int          @default(0)
-  createdById String       @map("created_by_id")
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  id                String       @id @default(cuid())
+  workspaceId       String       @map("workspace_id")
+  ticketId          String       @map("ticket_id")
+  title             String
+  description       String?
+  status            SdTaskStatus @default(TODO)
+  assigneeId        String?      @map("assignee_id")
+  dueDate           DateTime?    @map("due_date")
+  completedAt       DateTime?    @map("completed_at")
+  position          Int          @default(0)
+  createdById       String       @map("created_by_id")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  /// Aviso "vence em breve" já enviado (zerado quando o prazo muda).
+  dueSoonNotifiedAt DateTime?    @map("due_soon_notified_at")
+  /// Aviso "venceu" já enviado (zerado quando o prazo muda).
+  overdueNotifiedAt DateTime?    @map("overdue_notified_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   ticket    SdTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
@@ -5074,6 +5097,7 @@ model SdTicketTask {
 
   @@index([ticketId, position])
   @@index([workspaceId, assigneeId])
+  @@index([status, dueDate])
   @@map("sd_ticket_tasks")
 }
 
@@ -5738,23 +5762,27 @@ enum SdContractPeriodStatus {
 /// Fechamento do período: quanto foi usado, quanto passou da franquia e o
 /// valor apurado. Gerado pelo worker e fechado por um admin.
 model SdContractPeriod {
-  id              String                 @id @default(cuid())
-  workspaceId     String                 @map("workspace_id")
-  contractId      String                 @map("contract_id")
-  periodStart     DateTime               @map("period_start")
-  periodEnd       DateTime               @map("period_end")
-  status          SdContractPeriodStatus @default(OPEN)
+  id                String                 @id @default(cuid())
+  workspaceId       String                 @map("workspace_id")
+  contractId        String                 @map("contract_id")
+  periodStart       DateTime               @map("period_start")
+  periodEnd         DateTime               @map("period_end")
+  status            SdContractPeriodStatus @default(OPEN)
   /// Franquia do período (inclui saldo acumulado, quando `carryOver`).
-  includedMinutes Int                    @default(0) @map("included_minutes")
-  usedMinutes     Int                    @default(0) @map("used_minutes")
-  billableMinutes Int                    @default(0) @map("billable_minutes")
-  overageMinutes  Int                    @default(0) @map("overage_minutes")
-  carriedMinutes  Int                    @default(0) @map("carried_minutes")
-  amount          Decimal                @default(0) @db.Decimal(14, 2)
-  closedAt        DateTime?              @map("closed_at")
-  closedById      String?                @map("closed_by_id")
-  createdAt       DateTime               @default(now()) @map("created_at")
-  updatedAt       DateTime               @updatedAt @map("updated_at")
+  includedMinutes   Int                    @default(0) @map("included_minutes")
+  usedMinutes       Int                    @default(0) @map("used_minutes")
+  billableMinutes   Int                    @default(0) @map("billable_minutes")
+  overageMinutes    Int                    @default(0) @map("overage_minutes")
+  carriedMinutes    Int                    @default(0) @map("carried_minutes")
+  amount            Decimal                @default(0) @db.Decimal(14, 2)
+  closedAt          DateTime?              @map("closed_at")
+  closedById        String?                @map("closed_by_id")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  /// Aviso de franquia em 80% já enviado neste período.
+  franchiseWarnedAt DateTime?              @map("franchise_warned_at")
+  /// Aviso de excedente já enviado neste período.
+  overageWarnedAt   DateTime?              @map("overage_warned_at")
 
   workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   contract    SdContract    @relation(fields: [contractId], references: [id], onDelete: Cascade)

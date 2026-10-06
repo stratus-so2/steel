@@ -468,6 +468,114 @@ export async function notifySdEvent(
   })
 }
 
+/* ------------------------- eventos sem chamado ---------------------------- */
+
+export interface SdNotifyUsersInput {
+  workspaceId: string
+  /** Chave do catálogo (`oncall.shift`, `kb.comment`…). */
+  event: string
+  /** Destinatários escolhidos por quem dispara. */
+  userIds: (string | null | undefined)[]
+  /** Quem causou o evento — nunca é notificado. */
+  actorId?: string | null
+  title: string
+  body: string
+  /** Caminho interno, montado com o slug do workspace. */
+  hrefFor: (slug: string) => string
+  /** Contexto extra para o log. */
+  meta?: Record<string, unknown>
+}
+
+export interface SdNotifyUsersOutcome {
+  recipients: number
+  inApp: number
+}
+
+/**
+ * Evento do ServiceDesk que **não** é de um chamado (plantão, contrato,
+ * comentário na base): mesmo catálogo e mesma preferência por usuário de
+ * `notifySdEvent`, mas só pelo canal IN_APP — o e-mail do módulo é o do
+ * chamado, e estes eventos não têm um. Evento `agentOnly` só chega a quem
+ * atende. Nunca lança.
+ */
+export async function notifySdUsers(
+  input: SdNotifyUsersInput,
+): Promise<Result<SdNotifyUsersOutcome>> {
+  const spec = sdNotificationEvent(input.event)
+  if (!spec) {
+    return err(
+      sdNotificationEventUnknown(
+        `Evento de notificação desconhecido: ${input.event}`,
+      ),
+    )
+  }
+
+  const excluded = input.actorId ?? ''
+  let userIds = Array.from(new Set(clean(input.userIds))).filter(
+    (id) => id !== excluded,
+  )
+  if (spec.agentOnly && userIds.length > 0) {
+    const agents = await SdNotificationRepository.filterAgentIds(
+      input.workspaceId,
+      userIds,
+    )
+    if (!agents.ok) return agents
+    userIds = agents.value
+  }
+  if (userIds.length === 0) return ok({ recipients: 0, inApp: 0 })
+
+  const [workspace, prefs] = await Promise.all([
+    SdTicketContextRepository.findWorkspace(input.workspaceId),
+    SdNotificationRepository.listPreferencesForEvent(
+      input.workspaceId,
+      userIds,
+      spec.key,
+    ),
+  ])
+  if (!workspace.ok) return workspace
+  if (!prefs.ok) return prefs
+  if (!workspace.value) return ok({ recipients: 0, inApp: 0 })
+
+  const perUser = new Map<string, Map<string, boolean>>()
+  for (const row of prefs.value) {
+    const current = perUser.get(row.userId) ?? new Map<string, boolean>()
+    current.set(`${row.event}|${row.channel}`, row.enabled)
+    perUser.set(row.userId, current)
+  }
+  const wanted = userIds.filter((userId) =>
+    sdChannelEnabled(spec, 'IN_APP', perUser.get(userId) ?? EMPTY_PREFS),
+  )
+
+  let inApp = 0
+  if (wanted.length > 0) {
+    const created = await NotificationService.notifyUsers({
+      workspaceId: input.workspaceId,
+      userIds: wanted,
+      kind: spec.kind,
+      title: input.title,
+      body: input.body,
+      href: input.hrefFor(workspace.value.slug),
+    })
+    if (created.ok) inApp = created.value
+    else {
+      logger.error('servicedesk.notify.in_app_failed', {
+        workspaceId: input.workspaceId,
+        event: input.event,
+        reason: created.error.code,
+      })
+    }
+  }
+
+  logger.info('servicedesk.notify.users_delivered', {
+    workspaceId: input.workspaceId,
+    event: input.event,
+    recipients: userIds.length,
+    inApp,
+    ...input.meta,
+  })
+  return ok({ recipients: userIds.length, inApp })
+}
+
 /* --------------------------- preferências (API) --------------------------- */
 
 /**

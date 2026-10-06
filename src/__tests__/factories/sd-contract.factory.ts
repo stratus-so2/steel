@@ -95,6 +95,8 @@ export function createFakeSdContractPeriod(
     closedById: null,
     createdAt: fixed(),
     updatedAt: fixed(),
+    franchiseWarnedAt: null,
+    overageWarnedAt: null,
     closedBy: null,
     ...overrides,
   }
