@@ -36,6 +36,7 @@ export const WORKSPACE_CHILD_MODELS: Record<string, (ws: string) => Where> = {
   crmFormSubmission: (ws) => ({ form: { workspaceId: ws } }),
   crmAiMessage: (ws) => ({ conversation: { workspaceId: ws } }),
   crmAiAttachment: (ws) => ({ conversation: { workspaceId: ws } }),
+  aiMessage: (ws) => ({ conversation: { workspaceId: ws } }),
   crmEmailCampaignRecipient: (ws) => ({ campaign: { workspaceId: ws } }),
   crmMailingListMember: (ws) => ({ mailingList: { workspaceId: ws } }),
   crmWorkflowVersion: (ws) => ({ workflow: { workspaceId: ws } }),
