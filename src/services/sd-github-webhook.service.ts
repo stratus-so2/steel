@@ -11,6 +11,7 @@ import { GithubClient } from '@/src/lib/servicedesk/github-client'
 import {
   parseSdGithubConfig,
   parseSdGithubRepo,
+  SD_GITHUB_STATE_LABEL,
   type SdGithubExternalState,
   type SdGithubRefKind,
   sdGithubLinkKey,
@@ -26,6 +27,7 @@ import {
   decryptSdIntegrationToken,
 } from './sd-integration-credentials'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
+import { notifySdTicketReply } from './sd-ticket-reply-notify'
 
 /**
  * Entrada pública do GitHub (`POST /api/servicedesk/integrations/github`):
@@ -151,6 +153,14 @@ export async function applySdGithubState(input: {
       workspaceId: integration.workspaceId,
       ticketId: link.ticketId,
       reason: message.error.code,
+    })
+  } else {
+    const what = input.kind === 'GITHUB_PULL_REQUEST' ? 'Pull request' : 'Issue'
+    await notifySdTicketReply({
+      workspaceId: integration.workspaceId,
+      ticket: { id: link.ticketId },
+      channel: 'GITHUB',
+      body: `${what} ${link.externalKey}: ${SD_GITHUB_STATE_LABEL[state].toLowerCase()}`,
     })
   }
 

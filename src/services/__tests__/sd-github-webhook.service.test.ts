@@ -30,6 +30,9 @@ vi.mock('@/src/lib/servicedesk/github-client', () => ({
 vi.mock('@/src/repositories/sd-integration.repository')
 vi.mock('../authz', () => ({ assertModuleEnabled: vi.fn() }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
+vi.mock('../sd-ticket-reply-notify', () => ({
+  notifySdTicketReply: vi.fn(async () => undefined),
+}))
 
 import { SdIntegrationEventCache } from '@/src/cache/sd-integration-event.cache'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
@@ -41,6 +44,7 @@ import {
   SdGithubWebhookService,
 } from '../sd-github-webhook.service'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
+import { notifySdTicketReply } from '../sd-ticket-reply-notify'
 
 const repo = vi.mocked(SdIntegrationRepository)
 const cache = vi.mocked(SdIntegrationEventCache)
@@ -502,5 +506,44 @@ describe('SdGithubSyncService.runTick', () => {
   it('propaga erro de banco na listagem', async () => {
     repo.listGithubLinksToSync.mockResolvedValue(err(databaseError()))
     expectErr(await SdGithubSyncService.runTick(), 'DATABASE_ERROR')
+  })
+})
+
+describe('SdGithubWebhookService.handle — team notification', () => {
+  const notifyReply = vi.mocked(notifySdTicketReply)
+
+  beforeEach(() => notifyReply.mockClear())
+
+  it('tells the ticket team about the issue state change', async () => {
+    expectOk(await SdGithubWebhookService.handle(call(issueClosed)))
+    expect(notifyReply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ticket: { id: expect.any(String) },
+        channel: 'GITHUB',
+        body: expect.stringMatching(/^Issue /),
+      }),
+    )
+  })
+
+  it('names a pull request as such', async () => {
+    expectOk(
+      await SdGithubWebhookService.handle(
+        call(
+          {
+            action: 'closed',
+            repository: { full_name: 'stratus-so2/steel' },
+            pull_request: { number: 9, state: 'closed', merged: true },
+          },
+          'pull_request',
+        ),
+      ),
+    )
+    expect(notifyReply.mock.calls[0][0].body).toMatch(/^Pull request /)
+  })
+
+  it('does not notify when the ticket message could not be written', async () => {
+    repo.createTicketMessage.mockResolvedValue(err(databaseError()))
+    expectOk(await SdGithubWebhookService.handle(call(issueClosed)))
+    expect(notifyReply).not.toHaveBeenCalled()
   })
 })
