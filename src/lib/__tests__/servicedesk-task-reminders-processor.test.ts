@@ -45,6 +45,12 @@ describe('processServicedeskTaskReminders', () => {
     ).rejects.toThrow('servicedesk-task-reminders tick failed')
   })
 
+  it('names a job without id as unknown', async () => {
+    await expect(
+      processServicedeskTaskReminders({ name: 'nope', data: {} } as Job),
+    ).rejects.toThrow('(id=unknown)')
+  })
+
   it('rejects an unknown job', async () => {
     await expect(processServicedeskTaskReminders(job('nope'))).rejects.toThrow(
       'Unknown servicedesk-task-reminders job',

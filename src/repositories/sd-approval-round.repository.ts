@@ -229,15 +229,14 @@ export const SdApprovalRoundRepository = {
             board: { select: { name: true } },
           },
         })
-        if (expired.length > 0) {
-          await tx.sdTicketApproval.updateMany({
-            where: {
-              roundId: { in: expired.map((round) => round.id) },
-              status: 'PENDING',
-            },
-            data: { status: 'EXPIRED' },
-          })
-        }
+        // Empty `in` (lost the race for every round) updates nothing.
+        await tx.sdTicketApproval.updateMany({
+          where: {
+            roundId: { in: expired.map((round) => round.id) },
+            status: 'PENDING',
+          },
+          data: { status: 'EXPIRED' },
+        })
         return expired.map((round) => ({
           id: round.id,
           workspaceId: round.workspaceId,

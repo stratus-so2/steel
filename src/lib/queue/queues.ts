@@ -829,6 +829,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.ServicedeskRisk]: getServicedeskRiskQueue,
   [QueueName.ServicedeskIntegrations]: getServicedeskIntegrationsQueue,
   [QueueName.CrmTaskReminders]: getCrmTaskRemindersQueue,
+  [QueueName.ServicedeskTaskReminders]: getServicedeskTaskRemindersQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */
