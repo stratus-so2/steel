@@ -14,6 +14,10 @@ import type { SubscriptionDTO } from '@/types/subscription'
 import { PAID_PLAN_PRICES } from '../config/plan-prices'
 import { assertMember } from './authz'
 import { CouponService } from './coupon.service'
+import {
+  notifyBillingPaymentFailed,
+  notifyBillingSubscriptionCanceled,
+} from './platform-notifications'
 
 const PLAN_PRODUCTS: Record<
   CreateSubscriptionDTO['plan'],
@@ -277,6 +281,25 @@ export const SubscriptionService = {
           },
         })
 
+        void notifyBillingSubscriptionCanceled({
+          workspaceId: subscription.value.workspaceId,
+          billId,
+          expired: event === 'subscription.expired',
+        })
+
+        return ok(undefined)
+      }
+
+      // Payment failure: no state change here (the gateway retries and
+      // later sends `subscription.cancelled`/`expired`); only the owners are
+      // told so they can update the payment method in time.
+      case 'subscription.failed':
+      case 'billing.failed': {
+        void notifyBillingPaymentFailed({
+          workspaceId: subscription.value.workspaceId,
+          billId,
+          event,
+        })
         return ok(undefined)
       }
 

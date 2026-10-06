@@ -12,6 +12,8 @@ const {
   getPresignedDownloadUrlMock,
   sendExportEmailMock,
   auditMutationMock,
+  listMembershipsMock,
+  notifyExportReadyMock,
 } = vi.hoisted(() => ({
   userFindUniqueMock: vi.fn(),
   sessionFindManyMock: vi.fn(),
@@ -23,6 +25,8 @@ const {
   getPresignedDownloadUrlMock: vi.fn(),
   sendExportEmailMock: vi.fn(),
   auditMutationMock: vi.fn(),
+  listMembershipsMock: vi.fn(),
+  notifyExportReadyMock: vi.fn(),
 }))
 
 vi.mock('@/src/lib/prisma', () => ({
@@ -49,6 +53,12 @@ vi.mock('@/src/lib/storage/s3', () => ({
   ensureBucket: ensureBucketMock,
   putObject: putObjectMock,
   getPresignedDownloadUrl: getPresignedDownloadUrlMock,
+}))
+vi.mock('@/src/repositories/membership.repository', () => ({
+  MembershipRepository: { listByUser: listMembershipsMock },
+}))
+vi.mock('@/src/services/platform-notifications', () => ({
+  notifyDataExportReady: notifyExportReadyMock,
 }))
 vi.mock('@/src/lib/mail/user/send-export-data', () => ({
   sendExportDataEmail: sendExportEmailMock,
@@ -99,6 +109,40 @@ describe('processDataExport', () => {
       'https://minio.local/user-exports/user-1/job-1.json?sig=abc',
     )
     sendExportEmailMock.mockResolvedValue({ id: 'email-1' })
+    listMembershipsMock.mockResolvedValue({
+      ok: true,
+      value: [{ workspaceId: 'ws-1' }, { workspaceId: 'ws-2' }],
+    })
+    notifyExportReadyMock.mockResolvedValue(2)
+  })
+
+  it('notifies the requester in-app in every workspace they belong to', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+
+    await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
+
+    expect(notifyExportReadyMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      workspaceIds: ['ws-1', 'ws-2'],
+      exportId: 'job-1',
+    })
+  })
+
+  it('still finishes when the memberships lookup fails', async () => {
+    userFindUniqueMock.mockResolvedValue(buildUser())
+    listMembershipsMock.mockResolvedValue({
+      ok: false,
+      error: { code: 'DATABASE_ERROR', message: 'down' },
+    })
+
+    const result = await processDataExport(
+      fakeJob('export-user-data', { userId: 'user-1' }),
+    )
+
+    expect(result.exported).toBe(true)
+    expect(notifyExportReadyMock).toHaveBeenCalledWith(
+      expect.objectContaining({ workspaceIds: [] }),
+    )
   })
 
   it('uploads JSON, signs URL, sends email and audits export_completed', async () => {

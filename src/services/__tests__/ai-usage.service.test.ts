@@ -7,6 +7,7 @@ import {
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { err, ok } from '@/src/lib/result'
 
+vi.mock('@/src/services/platform-notifications')
 vi.mock('@/src/repositories/ai-settings.repository')
 vi.mock('@/src/lib/ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/src/lib/ai')>()
@@ -29,6 +30,7 @@ import {
   WorkspaceAiSettingsRepository,
 } from '@/src/repositories/ai-settings.repository'
 import { AiUsageService } from '../ai-usage.service'
+import { notifyAiQuota } from '../platform-notifications'
 
 const mockedSettingsRepo = vi.mocked(WorkspaceAiSettingsRepository)
 const mockedPreferenceRepo = vi.mocked(UserAiPreferenceRepository)
@@ -234,4 +236,64 @@ describe('AiUsageService edge cases', () => {
       expect(mockedUsageRepo.record).toHaveBeenCalledTimes(written ? 1 : 0)
     },
   )
+})
+
+describe('AiUsageService.record() quota notifications', () => {
+  const mockedNotifyQuota = vi.mocked(notifyAiQuota)
+  const usage = { inputTokens: 10, outputTokens: 10 }
+
+  async function recordWithUsed(usedUsd: number, quota = 50) {
+    setup({ settings })
+    const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))
+    mockedUsageRepo.sumSince.mockResolvedValue(
+      ok({ inputTokens: 0, outputTokens: 0, costUsd: usedUsd }),
+    )
+    mockedNotifyQuota.mockClear()
+    await AiUsageService.record(
+      { ...call, monthlyQuotaUsd: quota },
+      { workspaceId: 'ws1', userId: null, usage },
+    )
+  }
+
+  it('should carry the workspace quota on the prepared call', async () => {
+    setup({ settings })
+    const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))
+    expect(call.monthlyQuotaUsd).toBe(50)
+  })
+
+  it('should warn the admins once the month reaches 80% of the quota', async () => {
+    await recordWithUsed(40)
+    expect(mockedNotifyQuota).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      threshold: 'warning',
+      period: expect.stringMatching(/^\d{4}-\d{2}$/),
+    })
+  })
+
+  it('should report the quota as exhausted at 100%', async () => {
+    await recordWithUsed(50)
+    expect(mockedNotifyQuota).toHaveBeenCalledWith(
+      expect.objectContaining({ threshold: 'exceeded' }),
+    )
+  })
+
+  it('should stay quiet below 80%', async () => {
+    await recordWithUsed(39.99)
+    expect(mockedNotifyQuota).not.toHaveBeenCalled()
+  })
+
+  it('should skip the check without a quota or when the usage sum fails', async () => {
+    await recordWithUsed(100, 0)
+    expect(mockedNotifyQuota).not.toHaveBeenCalled()
+
+    setup({ settings })
+    const call = expectOk(await AiUsageService.prepare('ws1', 'WHATSAPP_REPLY'))
+    mockedUsageRepo.sumSince.mockResolvedValue(err(databaseError()))
+    await AiUsageService.record(call, {
+      workspaceId: 'ws1',
+      userId: null,
+      usage,
+    })
+    expect(mockedNotifyQuota).not.toHaveBeenCalled()
+  })
 })
