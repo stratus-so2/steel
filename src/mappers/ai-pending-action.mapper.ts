@@ -25,6 +25,7 @@ export function toAiPendingActionDTO(row: AiPendingAction): AiPendingActionDTO {
     preview: row.preview as unknown as AiToolPreviewDTO,
     status: row.status,
     requiresDoubleConfirm: row.requiresDoubleConfirm,
+    autoExecuted: row.autoExecuted,
     resultSummary: resultSummary(row.result),
     error: row.error,
     expiresAt: row.expiresAt.toISOString(),

@@ -15,14 +15,17 @@ import {
   aiToolNotAllowed,
 } from '@/src/errors/app-error'
 import {
+  type AiToolRunResult,
   findTool,
   isToolAllowed,
+  proposeWriteTool,
   resolveToolAccess,
   runTool,
 } from '@/src/lib/ai/tools/registry'
 import {
   actionResultCallId,
   serializeToolResult,
+  TOOL_OUTPUT_MAX_BYTES,
   type ToolResultPayload,
 } from '@/src/lib/ai/tools/tool-result'
 import type { AiToolContext, AnySteelAiTool } from '@/src/lib/ai/tools/types'
@@ -68,22 +71,26 @@ async function appendDecision(
   }
 }
 
+/** Outcome of running a claimed action, plus the raw tool run. */
+interface ClaimedRun {
+  action: AiPendingAction
+  run: AiToolRunResult
+}
+
 /**
- * Executes an action that the caller already claimed (conditional
- * `PENDING → EXECUTED`): re-parses `args`, runs the tool, stores the
- * outcome (EXECUTED or FAILED), writes the AiActionLog + audit and appends
- * the result to the conversation. Shared with Steel Agents, whose approval
- * flow claims the action its own way.
+ * Runs a claimed action and records it everywhere: outcome on the row
+ * (EXECUTED or FAILED), AiActionLog and audit. `autopilot` marks writes
+ * that ran without a confirmation (audit action `auto_execute`).
  */
-export async function executeClaimedAction(
+async function runClaimed(
   action: AiPendingAction,
   tool: AnySteelAiTool,
   input: {
     ctx: AiToolContext
-    /** Human who confirmed/approved (null = automatic agent tool). */
     deciderId: string | null
+    autopilot?: boolean
   },
-): Promise<Result<AiPendingAction>> {
+): Promise<Result<ClaimedRun>> {
   const run = await runTool(
     tool,
     input.ctx,
@@ -136,7 +143,7 @@ export async function executeClaimedAction(
 
   auditMutation({
     entity: 'ai_pending_action',
-    action: 'confirm',
+    action: input.autopilot ? 'auto_execute' : 'confirm',
     actorId: input.deciderId,
     targetId: action.id,
     outcome: run.ok ? 'success' : 'failure',
@@ -148,8 +155,32 @@ export async function executeClaimedAction(
       module: action.module,
       targetType: target?.type,
       targetRecordId: target?.id,
+      ...(input.autopilot && { mode: 'AUTOPILOT' }),
     },
   })
+
+  return ok({ action: completed.value, run })
+}
+
+/**
+ * Executes an action that the caller already claimed (conditional
+ * `PENDING → EXECUTED`): re-parses `args`, runs the tool, stores the
+ * outcome (EXECUTED or FAILED), writes the AiActionLog + audit and appends
+ * the result to the conversation. Shared with Steel Agents, whose approval
+ * flow claims the action its own way.
+ */
+export async function executeClaimedAction(
+  action: AiPendingAction,
+  tool: AnySteelAiTool,
+  input: {
+    ctx: AiToolContext
+    /** Human who confirmed/approved (null = automatic agent tool). */
+    deciderId: string | null
+  },
+): Promise<Result<AiPendingAction>> {
+  const claimed = await runClaimed(action, tool, input)
+  if (!claimed.ok) return claimed
+  const { run } = claimed.value
 
   await appendDecision(
     action,
@@ -169,7 +200,77 @@ export async function executeClaimedAction(
         },
   )
 
-  return ok(completed.value)
+  return ok(claimed.value.action)
+}
+
+const AUTOPILOT_DONE_NOTE =
+  'Executada automaticamente (modo Autopilot), sem pedir confirmação. Informe o resultado ao usuário.'
+const AUTOPILOT_FAILED_NOTE =
+  'A execução automática (modo Autopilot) falhou; nada foi alterado por esta chamada.'
+
+/**
+ * AUTOPILOT write: `parse` → `preview` (shown as the result card) → row born
+ * claimed by the user → execute now → AiActionLog (ASSISTANT, actor = user)
+ * + audit `auto_execute`. Deletes and customer-facing actions included —
+ * the workspace opted in (`autopilotEnabled`). `content` is the tool result
+ * for the model (the turn persists it as the TOOL row, so no decision note
+ * is appended). A failed `parse`/`preview` creates nothing.
+ */
+export async function executeAutopilotWrite(
+  tool: AnySteelAiTool,
+  ctx: AiToolContext,
+  rawArgs: Record<string, unknown>,
+  origin: { conversationId: string; toolCallId: string },
+  now: Date = new Date(),
+): Promise<Result<{ action: AiPendingAction; content: string }>> {
+  const created = await proposeWriteTool(
+    tool,
+    ctx,
+    rawArgs,
+    { ...origin, claimedBy: ctx.actorId },
+    now,
+  )
+  if (!created.ok) return created
+
+  const claimed = await runClaimed(created.value, tool, {
+    ctx,
+    deciderId: ctx.actorId,
+    autopilot: true,
+  })
+  if (!claimed.ok) return claimed
+  const { action, run } = claimed.value
+
+  logger.info(
+    'steel_ai.autopilot_executed',
+    logFields(
+      {
+        component: 'AiPendingActionService',
+        workspaceId: ctx.workspaceId,
+        conversationId: origin.conversationId,
+        actionId: action.id,
+      },
+      { toolName: tool.name, kind: tool.kind, status: action.status },
+    ),
+  )
+
+  const payload: ToolResultPayload = run.ok
+    ? {
+        status: 'executed',
+        actionId: action.id,
+        summary: run.output.summary,
+        data: run.output.data,
+        note: AUTOPILOT_DONE_NOTE,
+      }
+    : {
+        status: 'failed',
+        actionId: action.id,
+        error: { code: run.error.code, message: run.error.message },
+        note: AUTOPILOT_FAILED_NOTE,
+      }
+  return ok({
+    action,
+    content: serializeToolResult(payload, TOOL_OUTPUT_MAX_BYTES),
+  })
 }
 
 /** Answer for an action that is no longer PENDING (double click etc.). */

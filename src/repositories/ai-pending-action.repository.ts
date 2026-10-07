@@ -25,6 +25,11 @@ export interface CreateAiPendingActionInput {
   preview: Prisma.InputJsonValue
   requiresDoubleConfirm: boolean
   expiresAt: Date
+  /** AUTOPILOT: created already claimed (see `proposeWriteTool`). */
+  status?: 'PENDING' | 'EXECUTED'
+  decidedById?: string | null
+  decidedAt?: Date | null
+  autoExecuted?: boolean
 }
 
 /** Writes proposed by Steel AI that wait for a human decision. */

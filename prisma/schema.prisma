@@ -3815,6 +3815,8 @@ model AiPendingAction {
   decidedById           String?               @map("decided_by_id")
   decidedAt             DateTime?             @map("decided_at")
   executedAt            DateTime?             @map("executed_at")
+  /// Executed straight away in AUTOPILOT mode (born claimed, never PENDING).
+  autoExecuted          Boolean               @default(false) @map("auto_executed")
   createdAt             DateTime              @default(now()) @map("created_at")
   updatedAt             DateTime              @updatedAt @map("updated_at")
 
