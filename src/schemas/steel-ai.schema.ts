@@ -1,6 +1,10 @@
 import z from 'zod'
 
-export const AiConversationModeSchema = z.enum(['EXPLORE', 'AGENT'])
+export const AiConversationModeSchema = z.enum([
+  'EXPLORE',
+  'AGENT',
+  'AUTOPILOT',
+])
 
 export const CreateAiConversationSchema = z.object({
   title: z.string().trim().max(200).optional(),

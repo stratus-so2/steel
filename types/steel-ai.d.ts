@@ -3,7 +3,8 @@
  * the backend, the `/ai` chat screen and, later, Steel Agents.
  */
 
-export type AiConversationModeDTO = 'EXPLORE' | 'AGENT'
+/** UI labels: EXPLORE = Ask, AGENT = Build, AUTOPILOT = Autopilot. */
+export type AiConversationModeDTO = 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
 
 export type AiMessageRoleDTO = 'USER' | 'ASSISTANT' | 'TOOL'
 

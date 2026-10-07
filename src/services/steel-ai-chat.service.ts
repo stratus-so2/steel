@@ -518,7 +518,10 @@ export const SteelAiChatService = {
     )
     if (!conversation.ok) return conversation
 
-    const mode: SteelAiMode = input.mode ?? conversation.value.mode
+    // AUTOPILOT exists in the schema ahead of its runtime: until the chat
+    // slice implements it, it behaves like AGENT (every write confirms).
+    const requested = input.mode ?? conversation.value.mode
+    const mode: SteelAiMode = requested === 'AUTOPILOT' ? 'AGENT' : requested
     if (mode === 'AGENT' && !access.value.agentModeEnabled) {
       return err(aiAgentModeDisabled())
     }

@@ -428,6 +428,16 @@ export const ERROR_CODES = {
     code: 'AI_DOUBLE_CONFIRMATION_REQUIRED',
     status: 422,
   },
+  // Steel AI 2: master switch, autopilot, attachments, skills, memory.
+  AI_DISABLED: { code: 'AI_DISABLED', status: 403 },
+  AI_AUTOPILOT_DISABLED: { code: 'AI_AUTOPILOT_DISABLED', status: 403 },
+  AI_ATTACHMENT_NOT_FOUND: { code: 'AI_ATTACHMENT_NOT_FOUND', status: 404 },
+  AI_ATTACHMENT_UNSUPPORTED: { code: 'AI_ATTACHMENT_UNSUPPORTED', status: 415 },
+  AI_ATTACHMENT_TOO_LARGE: { code: 'AI_ATTACHMENT_TOO_LARGE', status: 413 },
+  AI_SKILL_NOT_FOUND: { code: 'AI_SKILL_NOT_FOUND', status: 404 },
+  AI_SKILL_SLUG_TAKEN: { code: 'AI_SKILL_SLUG_TAKEN', status: 409 },
+  AI_MEMORY_NOT_FOUND: { code: 'AI_MEMORY_NOT_FOUND', status: 404 },
+  AI_MEMORY_DISABLED: { code: 'AI_MEMORY_DISABLED', status: 403 },
   // Steel Agents (autonomous agents running with the owner's permissions).
   STEEL_AGENT_NOT_FOUND: { code: 'STEEL_AGENT_NOT_FOUND', status: 404 },
   STEEL_AGENT_RUN_NOT_FOUND: { code: 'STEEL_AGENT_RUN_NOT_FOUND', status: 404 },

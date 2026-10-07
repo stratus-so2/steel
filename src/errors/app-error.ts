@@ -693,6 +693,45 @@ export const aiDoubleConfirmationRequired = (): AppError =>
     'Exclusões exigem confirmação dupla',
   )
 
+export const aiDisabled = (): AppError =>
+  appError(
+    'AI_DISABLED',
+    'O Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.',
+  )
+
+export const aiAutopilotDisabled = (): AppError =>
+  appError(
+    'AI_AUTOPILOT_DISABLED',
+    'O modo Autopilot está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.',
+  )
+
+export const aiAttachmentNotFound = (): AppError =>
+  appError('AI_ATTACHMENT_NOT_FOUND', 'Anexo não encontrado')
+
+export const aiAttachmentUnsupported = (): AppError =>
+  appError(
+    'AI_ATTACHMENT_UNSUPPORTED',
+    'Tipo de arquivo não suportado pelo Steel AI',
+  )
+
+export const aiAttachmentTooLarge = (): AppError =>
+  appError('AI_ATTACHMENT_TOO_LARGE', 'Arquivo grande demais para o Steel AI')
+
+export const aiSkillNotFound = (): AppError =>
+  appError('AI_SKILL_NOT_FOUND', 'Skill não encontrada')
+
+export const aiSkillSlugTaken = (): AppError =>
+  appError('AI_SKILL_SLUG_TAKEN', 'Já existe uma skill com este comando')
+
+export const aiMemoryNotFound = (): AppError =>
+  appError('AI_MEMORY_NOT_FOUND', 'Memória não encontrada')
+
+export const aiMemoryDisabled = (): AppError =>
+  appError(
+    'AI_MEMORY_DISABLED',
+    'A memória do Steel AI está desligada neste workspace.',
+  )
+
 export const steelAgentNotFound = (): AppError =>
   appError('STEEL_AGENT_NOT_FOUND', 'Agente não encontrado')
 

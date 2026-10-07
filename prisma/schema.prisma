@@ -427,6 +427,8 @@ model Workspace {
   aiConversations           AiConversation[]
   aiPendingActions          AiPendingAction[]
   aiActionLogs              AiActionLog[]
+  aiSkills                  AiSkill[]
+  aiMemories                AiMemory[]
   steelAgents               SteelAgent[]
   steelAgentRuns            SteelAgentRun[]
   crmIntegrationApiKeys     CrmIntegrationApiKey[]
@@ -3627,6 +3629,14 @@ model WorkspaceAiSettings {
   /// Kill switch for the Steel AI "agente" mode (write tools). Off = the
   /// assistant only explores, whatever the user picks.
   agentModeEnabled       Boolean  @default(true) @map("agent_mode_enabled")
+  /// Master switch for every Steel AI feature in the workspace.
+  aiEnabled              Boolean  @default(true) @map("ai_enabled")
+  /// Steel Agents may run (schedule, events, manual).
+  agentsEnabled          Boolean  @default(true) @map("agents_enabled")
+  /// Steel AI may save and use memories (workspace + personal).
+  memoryEnabled          Boolean  @default(true) @map("memory_enabled")
+  /// AUTOPILOT mode allowed: writes run without per-action confirmation.
+  autopilotEnabled       Boolean  @default(false) @map("autopilot_enabled")
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")
 
@@ -3669,21 +3679,27 @@ enum AiUsageFeature {
 /// seguem a regra antiga de US$ 4/1000 tokens). `userId` nulo para jobs em
 /// background.
 model AiUsage {
-  id           String         @id @default(cuid())
-  workspaceId  String         @map("workspace_id")
-  userId       String?        @map("user_id")
-  feature      AiUsageFeature
-  provider     String
-  model        String
-  inputTokens  Int            @default(0) @map("input_tokens")
-  outputTokens Int            @default(0) @map("output_tokens")
-  costUsd      Decimal        @map("cost_usd") @db.Decimal(14, 6)
-  createdAt    DateTime       @default(now()) @map("created_at")
+  id             String         @id @default(cuid())
+  workspaceId    String         @map("workspace_id")
+  userId         String?        @map("user_id")
+  feature        AiUsageFeature
+  provider       String
+  model          String
+  inputTokens    Int            @default(0) @map("input_tokens")
+  outputTokens   Int            @default(0) @map("output_tokens")
+  costUsd        Decimal        @map("cost_usd") @db.Decimal(14, 6)
+  /// Analytics scope: the module whose tools the call touched (null =
+  /// platform or no tool), plus the conversation / agent run it came from.
+  module         ModuleKind?
+  conversationId String?        @map("conversation_id")
+  agentRunId     String?        @map("agent_run_id")
+  createdAt      DateTime       @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
+  @@index([workspaceId, userId, createdAt])
   @@map("ai_usage")
 }
 
@@ -3692,8 +3708,13 @@ model AiUsage {
 /// EXPLORE = read-only tools; AGENT = write tools too, every write goes
 /// through an AiPendingAction confirmed by a human.
 enum AiConversationMode {
+  /// "Ask" in the UI.
   EXPLORE
+  /// "Build" in the UI.
   AGENT
+  /// Writes run without per-action confirmation (still logged); requires
+  /// WorkspaceAiSettings.autopilotEnabled.
+  AUTOPILOT
 }
 
 enum AiMessageRole {
@@ -3720,6 +3741,7 @@ model AiConversation {
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages       AiMessage[]
   pendingActions AiPendingAction[]
+  attachments    AiAttachment[]
 
   @@index([workspaceId, userId, updatedAt])
   @@map("ai_conversations")
@@ -3856,6 +3878,101 @@ model PlatformAiSettings {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("platform_ai_settings")
+}
+
+enum AiAttachmentKind {
+  IMAGE
+  DOCUMENT
+}
+
+/// File or photo sent to Steel AI. Uploaded before the message is sent
+/// (`messageId` null until then). IMAGE goes to the model as vision input;
+/// DOCUMENT is sent as `extractedText` (bounded).
+model AiAttachment {
+  id             String           @id @default(cuid())
+  workspaceId    String           @map("workspace_id")
+  conversationId String           @map("conversation_id")
+  messageId      String?          @map("message_id")
+  uploadedById   String           @map("uploaded_by_id")
+  kind           AiAttachmentKind
+  filename       String
+  contentType    String           @map("content_type")
+  sizeBytes      Int              @map("size_bytes")
+  storageKey     String           @map("storage_key")
+  extractedText  String?          @map("extracted_text") @db.Text
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([messageId])
+  @@map("ai_attachments")
+}
+
+enum AiScope {
+  WORKSPACE
+  PERSONAL
+}
+
+/// Reusable instruction invoked with "/<slug>" in the chat (or picked by
+/// the model when the request matches its description), also usable by
+/// Steel Agents. Built-in skills ship with the product (`builtIn`).
+model AiSkill {
+  id           String              @id @default(cuid())
+  workspaceId  String              @map("workspace_id")
+  scope        AiScope
+  /// Owner of a PERSONAL skill; null for WORKSPACE scope.
+  ownerId      String?             @map("owner_id")
+  slug         String
+  name         String
+  description  String
+  instructions String              @db.Text
+  /// Suggested mode when invoked (null = keep the conversation mode).
+  mode         AiConversationMode?
+  /// Optional tool allowlist hint (empty = any available tool).
+  toolNames    String[]            @map("tool_names")
+  enabled      Boolean             @default(true)
+  builtIn      Boolean             @default(false) @map("built_in")
+  createdById  String?             @map("created_by_id")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  deletedAt    DateTime?           @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, scope])
+  @@index([workspaceId, ownerId])
+  @@map("ai_skills")
+}
+
+enum AiMemorySource {
+  AUTO
+  MANUAL
+}
+
+/// A fact Steel AI keeps about the workspace (WORKSPACE scope, shared) or
+/// about one user (PERSONAL). Saved automatically by the model or by hand;
+/// always reviewable and deletable in the Memória tab.
+model AiMemory {
+  id                   String         @id @default(cuid())
+  workspaceId          String         @map("workspace_id")
+  scope                AiScope
+  /// Owner of a PERSONAL memory; null for WORKSPACE scope.
+  userId               String?        @map("user_id")
+  content              String         @db.Text
+  source               AiMemorySource
+  sourceConversationId String?        @map("source_conversation_id")
+  createdById          String?        @map("created_by_id")
+  lastUsedAt           DateTime?      @map("last_used_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  deletedAt            DateTime?      @map("deleted_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, scope])
+  @@index([workspaceId, userId])
+  @@map("ai_memories")
 }
 
 // ─── Notificações no app ─────────────────────────────────────────────────────
