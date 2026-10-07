@@ -145,11 +145,11 @@ export function PricingCalculator() {
 
   return (
     <div
-      className='w-full grid lg:grid-cols-3 border border-border scroll-mt-20'
+      className='w-full grid grid-cols-1 lg:grid-cols-3 border border-border scroll-mt-20'
       id='calculator'
     >
-      <div className='w-full flex flex-col lg:col-span-2'>
-        <div className='w-full flex flex-col gap-8 p-8 pb-4'>
+      <div className='w-full min-w-0 flex flex-col lg:col-span-2'>
+        <div className='w-full flex flex-col gap-8 p-4 pb-4 sm:p-8'>
           <div className='flex flex-col gap-4'>
             <div className='flex items-center justify-between'>
               <Label className='text-base'>Número de membros</Label>
@@ -186,7 +186,7 @@ export function PricingCalculator() {
             onValueChange={setKmId}
           />
         </div>
-        <div className='w-full grid flex-col gap-8 p-8 pt-4 border-t border-border'>
+        <div className='w-full grid flex-col gap-8 p-4 pt-4 sm:p-8 border-t border-border'>
           <div className='w-full grid lg:grid-cols-2 gap-8'>
             <div className='flex flex-col gap-2'>
               <Muted>Plano</Muted>
@@ -223,7 +223,7 @@ export function PricingCalculator() {
           </div>
         </div>
       </div>
-      <div className='flex flex-col gap-8 p-8 lg:col-span-1 border-l border-border'>
+      <div className='flex flex-col gap-8 p-4 sm:p-8 lg:col-span-1 border-t lg:border-t-0 lg:border-l border-border'>
         <h4>Nós fizemos as contas para você.</h4>
         <div className='flex flex-1 flex-col justify-evenly gap-8'>
           <ResultCard
@@ -257,7 +257,7 @@ function ToolSelect({
   return (
     <fieldset className='flex flex-col gap-2'>
       <Label className='mb-1 text-muted-foreground text-base'>{label}</Label>
-      <div className='flex item-center gap-2'>
+      <div className='flex flex-wrap item-center gap-2'>
         {tools.map((tool) => (
           <label
             key={tool.id}
