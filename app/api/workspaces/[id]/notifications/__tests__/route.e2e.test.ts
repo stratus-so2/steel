@@ -39,7 +39,12 @@ describe('/api/workspaces/[id]/notifications', () => {
     expect(body.data.items[0].title).toBe('Sentimento negativo: Maria')
     expect(body.data.items[0].module).toBe('COMMUNICATION')
     expect(body.data.items[0].moduleLabel).toBe('Comunicação')
-    expect(body.data.counts).toEqual({ all: 1, unread: 1, archived: 0 })
+    expect(body.data.counts).toEqual({
+      all: 1,
+      unread: 1,
+      archived: 0,
+      snoozed: 0,
+    })
     expect(body.data.nextCursor).toBeNull()
 
     const read = await postJson(`${base}/read`, {}, user.cookie)
@@ -181,7 +186,12 @@ describe('POST /api/workspaces/[id]/notifications/actions', () => {
     const all = await getJson(base, user.cookie)
     const allBody = await all.json()
     expect(allBody.data.items).toHaveLength(0)
-    expect(allBody.data.counts).toEqual({ all: 0, unread: 0, archived: 1 })
+    expect(allBody.data.counts).toEqual({
+      all: 0,
+      unread: 0,
+      archived: 1,
+      snoozed: 0,
+    })
 
     const archived = await getJson(`${base}?folder=archived`, user.cookie)
     expect((await archived.json()).data.items[0].archived).toBe(true)
@@ -204,6 +214,7 @@ describe('POST /api/workspaces/[id]/notifications/actions', () => {
       all: 0,
       unread: 0,
       archived: 0,
+      snoozed: 0,
     })
 
     const restore = await postJson(
