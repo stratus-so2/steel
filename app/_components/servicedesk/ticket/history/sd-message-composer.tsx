@@ -42,8 +42,11 @@ import type {
   SdMessageVisibilityDTO,
   SdTicketAttachmentDTO,
 } from '@/types/sd-ticket-message'
-import { SD_TONE } from '../sd-ticket-meta'
+import { SD_TONE_BORDER, SD_TONE_TEXT } from '../../sd-tone'
 import { formatBytes } from '../shared/sd-tab-format'
+
+/** `id` do campo de texto — o "Responder" do cabeçalho foca nele. */
+export const SD_COMPOSER_INPUT_ID = 'sd-ticket-composer'
 
 /** Limite por arquivo (o servidor confere de novo). */
 export const SD_ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024
@@ -239,7 +242,7 @@ export function SdMessageComposer({
 
   if (disabled && disabledReason) {
     return (
-      <p className='border-border border-t px-4 py-3 text-center text-muted-foreground text-sm'>
+      <p className='shrink-0 px-4 py-3 text-center text-muted-foreground text-sm'>
         {disabledReason}
       </p>
     )
@@ -248,257 +251,278 @@ export function SdMessageComposer({
   const internal = isAgent && visibility === 'INTERNAL'
 
   return (
-    <div
-      className={cn(
-        'relative flex flex-col gap-2 border-border border-t p-3',
-        // Nota interna: 5% de âmbar, mais fraco que `SD_TONE` de propósito —
-        // é fundo de área de digitação, não selo de status.
-        internal && 'bg-amber-500/5',
-        dragging && 'ring-2 ring-primary ring-inset',
-      )}
-      onDragOver={(e) => {
-        e.preventDefault()
-        setDragging(true)
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={onDrop}
-      data-testid='sd-composer'
-    >
-      {isAgent ? (
-        <div className='flex gap-1' role='radiogroup' aria-label='Visibilidade'>
-          <Button
-            type='button'
-            size='xs'
-            role='radio'
-            aria-checked={visibility === 'PUBLIC'}
-            variant={visibility === 'PUBLIC' ? 'secondary' : 'ghost'}
-            onClick={() => setVisibility('PUBLIC')}
+    <div className='shrink-0 px-4 pt-2 pb-4 sm:px-6'>
+      <div
+        className={cn(
+          'relative flex flex-col gap-1 rounded-lg border border-border bg-background px-2 pt-1.5 pb-1.5 transition-colors focus-within:border-ring/60',
+          // Nota interna: borda tracejada no tom âmbar — sem fundo colorido.
+          internal && cn('border-dashed', SD_TONE_BORDER.amber),
+          dragging && 'ring-2 ring-primary ring-inset',
+        )}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDragging(true)
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+        data-testid='sd-composer'
+      >
+        {isAgent ? (
+          <div
+            className='flex gap-0.5 px-1'
+            role='radiogroup'
+            aria-label='Visibilidade'
           >
-            Público
-          </Button>
-          <Button
-            type='button'
-            size='xs'
-            role='radio'
-            aria-checked={visibility === 'INTERNAL'}
-            variant={visibility === 'INTERNAL' ? 'secondary' : 'ghost'}
-            className={cn(visibility === 'INTERNAL' && SD_TONE.amber)}
-            onClick={() => setVisibility('INTERNAL')}
-          >
-            Nota interna
-          </Button>
-        </div>
-      ) : null}
-
-      {pending.length > 0 ? (
-        <ul className='flex flex-wrap gap-1.5' aria-label='Anexos a enviar'>
-          {pending.map((p) => (
-            <li
-              key={p.key}
+            <Button
+              type='button'
+              variant='ghost'
+              size='xs'
+              role='radio'
+              aria-checked={visibility === 'PUBLIC'}
+              onClick={() => setVisibility('PUBLIC')}
               className={cn(
-                'flex max-w-56 items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs',
-                p.status === 'error' && 'border-destructive text-destructive',
+                'h-6 px-1.5 font-normal text-xs hover:bg-transparent',
+                visibility === 'PUBLIC'
+                  ? 'font-medium text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              <SteelIcon icon={File02Icon} size={14} />
-              <span className='truncate'>{p.file.name}</span>
-              <span className='shrink-0 text-muted-foreground'>
-                {p.status === 'uploading'
-                  ? 'enviando…'
-                  : p.status === 'error'
-                    ? 'falhou'
-                    : formatBytes(p.file.size)}
-              </span>
-              <button
-                type='button'
-                aria-label={`Remover ${p.file.name}`}
-                onClick={() => discard(p)}
-                className='shrink-0 text-muted-foreground hover:text-foreground'
-              >
-                <SteelIcon icon={Cancel01Icon} size={12} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      <div className='relative'>
-        {slashQuery !== null && slashMatches.length > 0 ? (
-          <div
-            role='listbox'
-            aria-label='Respostas prontas'
-            className='absolute bottom-full left-0 z-20 mb-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md'
-          >
-            {slashMatches.map((r) => (
-              <div key={r.id}>
-                <button
-                  type='button'
-                  role='option'
-                  aria-selected={false}
-                  onClick={() => applyCanned(r)}
-                  className='flex w-full flex-col items-start rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
-                >
-                  <span className='font-medium'>
-                    {r.shortcut ? `/${r.shortcut} · ` : ''}
-                    {r.title}
-                  </span>
-                  <span className='line-clamp-1 text-muted-foreground text-xs'>
-                    {r.body}
-                  </span>
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {mention !== null && mentionMatches.length > 0 ? (
-          <div
-            role='listbox'
-            aria-label='Mencionar agente'
-            className='absolute bottom-full left-0 z-20 mb-1 w-64 rounded-md border border-border bg-popover p-1 shadow-md'
-          >
-            {mentionMatches.map((a) => (
-              <div key={a.id}>
-                <button
-                  type='button'
-                  role='option'
-                  aria-selected={false}
-                  onClick={() => applyMention(a)}
-                  className='w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
-                >
-                  {a.name}
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onPaste={onPaste}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              if (slashQuery !== null && slashMatches[0]) {
-                applyCanned(slashMatches[0])
-                return
-              }
-              void submit()
-            }
-          }}
-          disabled={disabled}
-          placeholder={
-            internal
-              ? 'Nota interna (o solicitante não vê)…'
-              : isAgent
-                ? 'Escreva uma resposta… ( / para respostas prontas)'
-                : 'Escreva uma mensagem…'
-          }
-          aria-label='Mensagem'
-          className='max-h-48 min-h-16 resize-none bg-background'
-        />
-      </div>
-
-      <div className='flex items-center gap-1'>
-        <input
-          ref={fileInput}
-          type='file'
-          multiple
-          hidden
-          data-testid='sd-composer-file'
-          onChange={(e) => {
-            addFiles(e.target.files)
-            e.target.value = ''
-          }}
-        />
-        <Button
-          type='button'
-          variant='ghost'
-          size='icon-sm'
-          aria-label='Anexar arquivo'
-          disabled={disabled}
-          onClick={() => fileInput.current?.click()}
-        >
-          <SteelIcon icon={Attachment01Icon} size={18} />
-        </Button>
-
-        <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-          <PopoverTrigger
-            render={
-              <Button
-                type='button'
-                variant='ghost'
-                size='icon-sm'
-                disabled={disabled}
-                aria-label='Emoji'
-              >
-                <SteelIcon icon={SmileIcon} size={18} />
-              </Button>
-            }
-          />
-          <PopoverContent className='h-80 w-72 p-0'>
-            <EmojiPicker
-              className='h-full'
-              onEmojiSelect={({ emoji }) => setText((c) => `${c}${emoji}`)}
+              Público
+            </Button>
+            <Button
+              type='button'
+              variant='ghost'
+              size='xs'
+              role='radio'
+              aria-checked={visibility === 'INTERNAL'}
+              onClick={() => setVisibility('INTERNAL')}
+              className={cn(
+                'h-6 px-1.5 font-normal text-xs hover:bg-transparent',
+                visibility === 'INTERNAL'
+                  ? cn('font-medium', SD_TONE_TEXT.amber)
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
             >
-              <EmojiPickerSearch />
-              <EmojiPickerContent />
-              <EmojiPickerFooter />
-            </EmojiPicker>
-          </PopoverContent>
-        </Popover>
+              Nota interna
+            </Button>
+          </div>
+        ) : null}
 
-        {isAgent ? (
-          <Popover open={cannedOpen} onOpenChange={setCannedOpen}>
+        {pending.length > 0 ? (
+          <ul className='flex flex-wrap gap-1.5' aria-label='Anexos a enviar'>
+            {pending.map((p) => (
+              <li
+                key={p.key}
+                className={cn(
+                  'flex max-w-56 items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs',
+                  p.status === 'error' && 'border-destructive text-destructive',
+                )}
+              >
+                <SteelIcon icon={File02Icon} size={14} />
+                <span className='truncate'>{p.file.name}</span>
+                <span className='shrink-0 text-muted-foreground'>
+                  {p.status === 'uploading'
+                    ? 'enviando…'
+                    : p.status === 'error'
+                      ? 'falhou'
+                      : formatBytes(p.file.size)}
+                </span>
+                <button
+                  type='button'
+                  aria-label={`Remover ${p.file.name}`}
+                  onClick={() => discard(p)}
+                  className='shrink-0 text-muted-foreground hover:text-foreground'
+                >
+                  <SteelIcon icon={Cancel01Icon} size={12} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div className='relative'>
+          {slashQuery !== null && slashMatches.length > 0 ? (
+            <div
+              role='listbox'
+              aria-label='Respostas prontas'
+              className='absolute bottom-full left-0 z-20 mb-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md'
+            >
+              {slashMatches.map((r) => (
+                <div key={r.id}>
+                  <button
+                    type='button'
+                    role='option'
+                    aria-selected={false}
+                    onClick={() => applyCanned(r)}
+                    className='flex w-full flex-col items-start rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
+                  >
+                    <span className='font-medium'>
+                      {r.shortcut ? `/${r.shortcut} · ` : ''}
+                      {r.title}
+                    </span>
+                    <span className='line-clamp-1 text-muted-foreground text-xs'>
+                      {r.body}
+                    </span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {mention !== null && mentionMatches.length > 0 ? (
+            <div
+              role='listbox'
+              aria-label='Mencionar agente'
+              className='absolute bottom-full left-0 z-20 mb-1 w-64 rounded-md border border-border bg-popover p-1 shadow-md'
+            >
+              {mentionMatches.map((a) => (
+                <div key={a.id}>
+                  <button
+                    type='button'
+                    role='option'
+                    aria-selected={false}
+                    onClick={() => applyMention(a)}
+                    className='w-full rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
+                  >
+                    {a.name}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <Textarea
+            id={SD_COMPOSER_INPUT_ID}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onPaste={onPaste}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                if (slashQuery !== null && slashMatches[0]) {
+                  applyCanned(slashMatches[0])
+                  return
+                }
+                void submit()
+              }
+            }}
+            disabled={disabled}
+            placeholder={
+              internal
+                ? 'Nota interna (o solicitante não vê)…'
+                : isAgent
+                  ? 'Escreva uma resposta… ( / para respostas prontas)'
+                  : 'Escreva uma mensagem…'
+            }
+            aria-label='Mensagem'
+            className='max-h-48 min-h-14 resize-none border-0 bg-transparent px-1.5 shadow-none focus-visible:ring-0 dark:bg-transparent'
+          />
+        </div>
+
+        <div className='flex items-center gap-1'>
+          <input
+            ref={fileInput}
+            type='file'
+            multiple
+            hidden
+            data-testid='sd-composer-file'
+            onChange={(e) => {
+              addFiles(e.target.files)
+              e.target.value = ''
+            }}
+          />
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon-sm'
+            className='text-muted-foreground'
+            aria-label='Anexar arquivo'
+            disabled={disabled}
+            onClick={() => fileInput.current?.click()}
+          >
+            <SteelIcon icon={Attachment01Icon} size={16} />
+          </Button>
+
+          <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
             <PopoverTrigger
               render={
                 <Button
                   type='button'
                   variant='ghost'
                   size='icon-sm'
+                  className='text-muted-foreground'
                   disabled={disabled}
-                  aria-label='Respostas prontas'
+                  aria-label='Emoji'
                 >
-                  <SteelIcon icon={FlashIcon} size={18} />
+                  <SteelIcon icon={SmileIcon} size={16} />
                 </Button>
               }
             />
-            <PopoverContent className='max-h-72 w-80 overflow-y-auto p-1'>
-              {canned.length === 0 ? (
-                <p className='p-3 text-muted-foreground text-sm'>
-                  Nenhuma resposta pronta cadastrada.
-                </p>
-              ) : (
-                canned.map((r) => (
-                  <button
-                    key={r.id}
-                    type='button'
-                    onClick={() => applyCanned(r)}
-                    className='flex w-full flex-col items-start rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
-                  >
-                    <span className='font-medium'>{r.title}</span>
-                    <span className='line-clamp-2 text-muted-foreground text-xs'>
-                      {r.body}
-                    </span>
-                  </button>
-                ))
-              )}
+            <PopoverContent className='h-80 w-72 p-0'>
+              <EmojiPicker
+                className='h-full'
+                onEmojiSelect={({ emoji }) => setText((c) => `${c}${emoji}`)}
+              >
+                <EmojiPickerSearch />
+                <EmojiPickerContent />
+                <EmojiPickerFooter />
+              </EmojiPicker>
             </PopoverContent>
           </Popover>
-        ) : null}
 
-        <span className='ml-auto hidden text-[11px] text-muted-foreground sm:inline'>
-          Enter envia · Shift+Enter quebra linha
-        </span>
-        <Button
-          type='button'
-          size='sm'
-          onClick={() => void submit()}
-          disabled={!canSend}
-          aria-label='Enviar mensagem'
-        >
-          <SteelIcon icon={SentIcon} />
-          {internal ? 'Salvar nota' : 'Enviar'}
-        </Button>
+          {isAgent ? (
+            <Popover open={cannedOpen} onOpenChange={setCannedOpen}>
+              <PopoverTrigger
+                render={
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon-sm'
+                    className='text-muted-foreground'
+                    disabled={disabled}
+                    aria-label='Respostas prontas'
+                  >
+                    <SteelIcon icon={FlashIcon} size={16} />
+                  </Button>
+                }
+              />
+              <PopoverContent className='max-h-72 w-80 overflow-y-auto p-1'>
+                {canned.length === 0 ? (
+                  <p className='p-3 text-muted-foreground text-sm'>
+                    Nenhuma resposta pronta cadastrada.
+                  </p>
+                ) : (
+                  canned.map((r) => (
+                    <button
+                      key={r.id}
+                      type='button'
+                      onClick={() => applyCanned(r)}
+                      className='flex w-full flex-col items-start rounded px-2 py-1.5 text-left text-sm hover:bg-muted'
+                    >
+                      <span className='font-medium'>{r.title}</span>
+                      <span className='line-clamp-2 text-muted-foreground text-xs'>
+                        {r.body}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </PopoverContent>
+            </Popover>
+          ) : null}
+
+          <span className='ml-auto hidden text-[11px] text-muted-foreground sm:inline'>
+            Enter envia · Shift+Enter quebra linha
+          </span>
+          <Button
+            type='button'
+            size='sm'
+            variant={canSend ? 'default' : 'secondary'}
+            onClick={() => void submit()}
+            disabled={!canSend}
+            aria-label='Enviar mensagem'
+          >
+            <SteelIcon icon={SentIcon} />
+            {internal ? 'Salvar nota' : 'Enviar'}
+          </Button>
+        </div>
       </div>
     </div>
   )

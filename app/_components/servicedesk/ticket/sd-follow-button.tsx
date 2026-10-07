@@ -26,9 +26,12 @@ import {
 export function SdFollowButton({
   workspaceId,
   ticketRef,
+  compact,
 }: {
   workspaceId: string
   ticketRef: string
+  /** Só o ícone (botão fantasma) — cabeçalho enxuto da tela do chamado. */
+  compact?: boolean
 }) {
   const query = useSdTicketFollowers(workspaceId, ticketRef)
   const toggle = useToggleSdTicketFollow(workspaceId, ticketRef)
@@ -46,9 +49,10 @@ export function SdFollowButton({
         render={
           <Button
             type='button'
-            size='sm'
-            variant={following ? 'secondary' : 'outline'}
+            size={compact ? 'icon-sm' : 'sm'}
+            variant={compact ? 'ghost' : following ? 'secondary' : 'outline'}
             aria-pressed={following}
+            aria-label={compact ? label : undefined}
             disabled={query.isLoading || toggle.isPending}
             onClick={() =>
               toggle.mutate(!following, {
@@ -66,8 +70,8 @@ export function SdFollowButton({
               icon={following ? Notification03Icon : NotificationOff01Icon}
               strokeWidth={2}
             />
-            {label}
-            {others > 0 ? (
+            {compact ? null : label}
+            {others > 0 && !compact ? (
               <span className='text-muted-foreground text-xs tabular-nums'>
                 +{others}
               </span>

@@ -86,3 +86,17 @@ export const SD_TONE_FILL: Record<SdTone, string> = {
   red: 'bg-red-500',
   rose: 'bg-rose-500',
 }
+
+/** Só a borda do tom — marcador lateral discreto (ex.: nota interna). */
+export const SD_TONE_BORDER: Record<SdTone, string> = {
+  slate: 'border-slate-500/50',
+  sky: 'border-sky-500/50',
+  indigo: 'border-indigo-500/50',
+  violet: 'border-violet-500/50',
+  teal: 'border-teal-500/50',
+  emerald: 'border-emerald-500/50',
+  amber: 'border-amber-500/50',
+  orange: 'border-orange-500/50',
+  red: 'border-red-500/50',
+  rose: 'border-rose-500/50',
+}

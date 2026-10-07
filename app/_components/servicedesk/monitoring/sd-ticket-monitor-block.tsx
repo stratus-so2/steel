@@ -3,6 +3,7 @@
 import { RadarIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { useSdMonitorAlerts } from '@/src/hooks/use-sd-monitoring'
 import type { SdMonitorAlertDTO } from '@/types/sd-monitor'
 import type { SdTicketDTO } from '@/types/sd-ticket'
@@ -36,9 +37,12 @@ function Row({ label, value }: { label: string; value: string }) {
 export function SdTicketMonitorBlock({
   workspaceId,
   ticket,
+  className,
 }: {
   workspaceId: string
   ticket: SdTicketDTO
+  /** Ajuste de moldura (a tela do chamado usa sem borda). */
+  className?: string
 }) {
   const { data } = useSdMonitorAlerts(
     workspaceId,
@@ -51,7 +55,10 @@ export function SdTicketMonitorBlock({
   return (
     <section
       aria-label='Alerta de monitoramento'
-      className='flex flex-col gap-2 rounded-lg border border-border bg-card p-3'
+      className={cn(
+        'flex flex-col gap-2 rounded-lg border border-border bg-card p-3',
+        className,
+      )}
     >
       <header className='flex items-center justify-between gap-2'>
         <span className='flex items-center gap-1.5 font-medium text-sm'>

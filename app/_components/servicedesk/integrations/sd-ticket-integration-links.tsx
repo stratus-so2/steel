@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import {
   useSdIntegrationLinkMutations,
   useSdIntegrationLinks,
@@ -120,10 +121,13 @@ export function SdTicketIntegrationLinks({
   workspaceId,
   ticket,
   mode,
+  className,
 }: {
   workspaceId: string
   ticket: SdTicketDTO
   mode: 'agent' | 'requester'
+  /** Ajuste de moldura (a tela do chamado usa sem borda). */
+  className?: string
 }) {
   const enabled = mode === 'agent'
   const { data } = useSdIntegrationLinks(workspaceId, ticket.id, { enabled })
@@ -142,7 +146,10 @@ export function SdTicketIntegrationLinks({
   return (
     <section
       aria-label='Integrações do chamado'
-      className='flex flex-col gap-2 rounded-lg border border-border bg-card p-3'
+      className={cn(
+        'flex flex-col gap-2 rounded-lg border border-border bg-card p-3',
+        className,
+      )}
     >
       <header className='flex items-center gap-1.5 font-medium text-sm'>
         <SteelIcon icon={Link04Icon} strokeWidth={2} />

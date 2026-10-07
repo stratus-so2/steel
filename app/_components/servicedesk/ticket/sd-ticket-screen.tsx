@@ -2,6 +2,7 @@
 
 import {
   Alert02Icon,
+  ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowUpDoubleIcon,
   Copy01Icon,
@@ -10,7 +11,9 @@ import {
   HierarchyIcon,
   Link01Icon,
   MoreHorizontalIcon,
+  SidebarRightIcon,
   Unlink01Icon,
+  UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -36,11 +39,20 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
@@ -53,33 +65,33 @@ import {
   useSetSdTicketParent,
   useUpdateSdTicket,
 } from '@/src/hooks/use-sd-tickets'
-import type { SdConfigBootstrapDTO } from '@/types/sd-config'
+import type {
+  SdAgentDTO,
+  SdConfigBootstrapDTO,
+  SdMeDTO,
+} from '@/types/sd-config'
 import type { SdTicketDTO } from '@/types/sd-ticket'
-import { SdRiskBadge, SdRiskWidget } from '../risk/sd-risk-badge'
+import { SdRiskBadge } from '../risk/sd-risk-badge'
+import { SD_COMPOSER_INPUT_ID } from './history/sd-message-composer'
 import { SdCreateTicketSheet } from './sd-create-ticket-sheet'
 import { SdFollowButton } from './sd-follow-button'
-import { SdOnCallBadge } from './sd-oncall-badge'
 import { SdOptionSelect } from './sd-option-select'
 import { useSdPhaseMover } from './sd-phase-mover'
 import { SdRichTextEditor, SdRichTextView } from './sd-rich-text-editor'
-import {
-  SdLevelBadge,
-  SdProgressBar,
-  SdSlaWidget,
-  SdTypeBadge,
-  useSdNow,
-} from './sd-ticket-badges'
+import { SdSlaIndicator, useSdNow } from './sd-ticket-badges'
 import {
   SD_PHASE_CATEGORY_COLOR,
+  SD_TICKET_TYPE_LABEL,
   SD_TICKET_TYPE_PLURAL,
-  SD_TONE,
   SD_TYPE_ROUTE,
+  sdPrimarySla,
   sdTicketHref,
 } from './sd-ticket-meta'
 import { sdTypePhases } from './sd-ticket-options'
 import { SdTicketPicker } from './sd-ticket-picker'
 import { SdTicketSidebar } from './sd-ticket-sidebar'
 import { SdTicketTabs, sdResolveTab } from './ticket-tabs'
+import { useSdIsDesktop } from './use-sd-is-desktop'
 
 function EditableTitle({
   workspaceId,
@@ -126,7 +138,7 @@ function EditableTitle({
             setEditing(false)
           }
         }}
-        className='h-9 font-semibold text-lg'
+        className='h-9 font-medium text-lg'
       />
     )
   }
@@ -137,16 +149,16 @@ function EditableTitle({
         setValue(ticket.title)
         setEditing(true)
       }}
-      className='group flex min-w-0 items-center gap-2 text-left'
+      className='group flex min-w-0 items-start gap-2 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50'
       title='Editar título'
     >
-      <h1 className='truncate font-semibold text-lg leading-tight'>
+      <h1 className='line-clamp-2 font-medium text-lg leading-snug'>
         {ticket.title}
       </h1>
       <SteelIcon
         icon={Edit02Icon}
         strokeWidth={2}
-        className='size-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100'
+        className='mt-1.5 size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
       />
     </button>
   )
@@ -162,57 +174,140 @@ function Description({
   const update = useUpdateSdTicket(workspaceId, ticket.id)
   const [editing, setEditing] = useState(false)
   const [html, setHtml] = useState(ticket.description ?? '')
-  return (
-    <section className='border-b px-4 py-3'>
-      <div className='mb-1.5 flex items-center gap-2'>
-        <h2 className='font-semibold text-muted-foreground text-xs uppercase tracking-wider'>
-          Descrição
-        </h2>
-        {editing ? (
-          <div className='ml-auto flex gap-1'>
-            <Button variant='ghost' size='xs' onClick={() => setEditing(false)}>
-              Cancelar
-            </Button>
-            <Button
-              size='xs'
-              disabled={update.isPending}
-              onClick={() =>
-                update.mutate(
-                  { description: html || null },
-                  {
-                    onSuccess: () => setEditing(false),
-                    onError: notify.error,
-                  },
-                )
-              }
-            >
-              Salvar
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant='ghost'
-            size='xs'
-            className='ml-auto'
-            onClick={() => {
-              setHtml(ticket.description ?? '')
-              setEditing(true)
-            }}
-          >
-            <SteelIcon icon={Edit02Icon} strokeWidth={2} />
-            Editar
-          </Button>
-        )}
-      </div>
-      {editing ? (
+
+  if (editing) {
+    return (
+      <section aria-label='Descrição' className='px-4 pt-4 sm:px-6'>
         <SdRichTextEditor value={html} onChange={setHtml} minHeight={120} />
-      ) : (
+        <div className='mt-2 flex justify-end gap-1'>
+          <Button variant='ghost' size='xs' onClick={() => setEditing(false)}>
+            Cancelar
+          </Button>
+          <Button
+            size='xs'
+            disabled={update.isPending}
+            onClick={() =>
+              update.mutate(
+                { description: html || null },
+                {
+                  onSuccess: () => setEditing(false),
+                  onError: notify.error,
+                },
+              )
+            }
+          >
+            Salvar
+          </Button>
+        </div>
+      </section>
+    )
+  }
+  return (
+    <section
+      aria-label='Descrição'
+      className='group relative px-4 pt-4 sm:px-6'
+    >
+      {ticket.description ? (
         <SdRichTextView
           html={ticket.description}
-          className='max-h-64 overflow-y-auto'
+          className='max-h-64 overflow-y-auto pr-8 text-sm'
         />
+      ) : (
+        <p className='text-muted-foreground text-sm'>Sem descrição.</p>
       )}
+      <Button
+        variant='ghost'
+        size='icon-xs'
+        aria-label='Editar descrição'
+        className='absolute top-3 right-3 text-muted-foreground opacity-60 hover:opacity-100 focus-visible:opacity-100 sm:right-5'
+        onClick={() => {
+          setHtml(ticket.description ?? '')
+          setEditing(true)
+        }}
+      >
+        <SteelIcon icon={Edit02Icon} strokeWidth={2} />
+      </Button>
     </section>
+  )
+}
+
+/** "Atribuir": eu, outro agente ou ninguém — salva na hora. */
+function AssignMenu({
+  workspaceId,
+  ticket,
+  agents,
+  me,
+}: {
+  workspaceId: string
+  ticket: SdTicketDTO
+  agents: SdAgentDTO[]
+  me: SdMeDTO
+}) {
+  const update = useUpdateSdTicket(workspaceId, ticket.id)
+  const options = agents.filter((a) => a.isAgent)
+  const assign = (assigneeId: string | null) =>
+    update.mutate(
+      { assigneeId },
+      {
+        onSuccess: () =>
+          notify.success(
+            assigneeId ? 'Responsável atualizado.' : 'Responsável removido.',
+          ),
+        onError: notify.error,
+      },
+    )
+  const mine = ticket.assignee?.id === me.userId
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant='ghost'
+            size='sm'
+            disabled={update.isPending}
+            aria-label={`Atribuir — responsável: ${ticket.assignee?.name ?? 'ninguém'}`}
+            className='max-w-48'
+          >
+            <SteelIcon icon={UserIcon} strokeWidth={2} />
+            <span className='truncate'>
+              {ticket.assignee?.name ?? 'Atribuir'}
+            </span>
+            <SteelIcon
+              icon={ArrowDown01Icon}
+              strokeWidth={2}
+              className='size-3.5 text-muted-foreground'
+            />
+          </Button>
+        }
+      />
+      <DropdownMenuContent align='end' className='max-h-80 w-56'>
+        {mine ? null : (
+          <DropdownMenuItem onClick={() => assign(me.userId)}>
+            Atribuir a mim
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Agentes</DropdownMenuLabel>
+          {options.map((agent) => (
+            <DropdownMenuItem
+              key={agent.id}
+              disabled={agent.id === ticket.assignee?.id}
+              onClick={() => assign(agent.id)}
+            >
+              <span className='truncate'>{agent.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+        {ticket.assignee ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => assign(null)}>
+              Remover responsável
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -221,17 +316,25 @@ function Header({
   slug,
   ticket,
   config,
-  isAdmin,
+  me,
+  agents,
+  isDesktop,
   onPhaseChange,
   onTab,
+  onReply,
+  onDetails,
 }: {
   workspaceId: string
   slug: string
   ticket: SdTicketDTO
   config: SdConfigBootstrapDTO
-  isAdmin: boolean
+  me: SdMeDTO
+  agents: SdAgentDTO[]
+  isDesktop: boolean
   onPhaseChange: (phaseId: string) => void
   onTab: (tab: string) => void
+  onReply: () => void
+  onDetails: () => void
 }) {
   const router = useRouter()
   const now = useSdNow(30_000)
@@ -241,9 +344,9 @@ function Header({
   const [linkingParent, setLinkingParent] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const phases = sdTypePhases(config, ticket.type)
-  const phaseColor =
-    ticket.phase.color ?? SD_PHASE_CATEGORY_COLOR[ticket.phase.category]
   const boardHref = `/${slug}/servicedesk/${SD_TYPE_ROUTE[ticket.type]}`
+  const sla = sdPrimarySla(ticket.sla, now)
+  const priorityColor = ticket.priority?.color ?? null
 
   function copyLink() {
     const url = `${window.location.origin}${sdTicketHref(slug, ticket)}`
@@ -254,11 +357,11 @@ function Header({
   }
 
   return (
-    <header className='flex shrink-0 flex-col gap-3 border-b bg-background px-4 pt-3 pb-3'>
-      <div className='flex flex-wrap items-center gap-2 text-sm'>
+    <header className='flex shrink-0 flex-col gap-2 border-b px-4 pt-3 pb-3 sm:px-6'>
+      <div className='flex min-w-0 items-center gap-2 text-muted-foreground text-xs'>
         <Link
           href={boardHref}
-          className='inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground'
+          className='inline-flex shrink-0 items-center gap-1 hover:text-foreground'
         >
           <SteelIcon
             icon={ArrowLeft01Icon}
@@ -267,62 +370,33 @@ function Header({
           />
           {SD_TICKET_TYPE_PLURAL[ticket.type]}
         </Link>
-        <span className='text-muted-foreground'>/</span>
+        <span aria-hidden>/</span>
         <button
           type='button'
           onClick={copyLink}
-          className='inline-flex items-center gap-1 font-medium font-mono text-xs hover:underline'
+          className='inline-flex shrink-0 items-center gap-1 font-mono text-foreground hover:underline'
           title='Copiar link'
         >
           {ticket.code}
-          <SteelIcon
-            icon={Copy01Icon}
-            strokeWidth={2}
-            className='size-3 text-muted-foreground'
-          />
+          <SteelIcon icon={Copy01Icon} strokeWidth={2} className='size-3' />
         </button>
-        <SdTypeBadge type={ticket.type} />
-        <SdLevelBadge level={ticket.priority} prefix='Prioridade' />
-        <SdLevelBadge level={ticket.severity} prefix='Severidade' />
-        {ticket.escalationLevel > 0 ? (
-          <span
-            className={cn(
-              'rounded-md px-1.5 py-0.5 font-medium text-xs',
-              SD_TONE.orange,
-            )}
-          >
-            Escalonado N{ticket.escalationLevel}
-          </span>
-        ) : null}
-        <SdRiskBadge risk={ticket.risk} />
-        <SdOnCallBadge
-          workspaceId={workspaceId}
-          departmentId={ticket.department?.id}
-        />
-        {ticket.parent ? (
-          <Link
-            href={`/${slug}/servicedesk/tickets/${ticket.parent.number}`}
-            className='inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-muted-foreground text-xs hover:text-foreground'
-          >
-            <SteelIcon
-              icon={HierarchyIcon}
-              strokeWidth={2}
-              className='size-3'
-            />
-            Filho de {ticket.parent.code}
-          </Link>
-        ) : null}
+        <span className='hidden truncate sm:inline'>
+          · {SD_TICKET_TYPE_LABEL[ticket.type]}
+        </span>
 
-        <div className='ml-auto flex items-center gap-2'>
-          <SdFollowButton workspaceId={workspaceId} ticketRef={ticket.id} />
-
+        <div className='ml-auto flex shrink-0 items-center gap-0.5'>
+          <SdFollowButton
+            workspaceId={workspaceId}
+            ticketRef={ticket.id}
+            compact
+          />
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant='outline'
+                  variant='ghost'
                   size='icon-sm'
-                  aria-label='Ações do chamado'
+                  aria-label='Mais ações do chamado'
                 >
                   <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
                 </Button>
@@ -358,7 +432,7 @@ function Header({
                 <SteelIcon icon={Copy01Icon} strokeWidth={2} />
                 Copiar link
               </DropdownMenuItem>
-              {isAdmin ? (
+              {me.isAdmin ? (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -381,46 +455,100 @@ function Header({
         ticket={ticket}
       />
 
-      <div className='flex flex-wrap items-stretch gap-3'>
-        <div className='flex min-w-60 flex-1 flex-col justify-center gap-1.5 rounded-lg border bg-card/60 px-2.5 py-1.5'>
-          <div className='flex items-center gap-2'>
-            <span className='font-medium text-[11px] text-muted-foreground uppercase tracking-wide'>
-              Fase
-            </span>
-            <span className='ml-auto font-semibold text-xs tabular-nums'>
+      <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
+        <dl className='flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-xs'>
+          {ticket.priority ? (
+            <div className='flex items-center gap-1.5'>
+              <dt className='sr-only'>Prioridade</dt>
+              <span
+                aria-hidden
+                className='size-1.5 shrink-0 rounded-full bg-muted-foreground'
+                style={
+                  priorityColor ? { backgroundColor: priorityColor } : undefined
+                }
+              />
+              <dd className='text-foreground' title='Prioridade'>
+                {ticket.priority.name}
+              </dd>
+            </div>
+          ) : null}
+          <div className='flex items-center'>
+            <dt className='sr-only'>SLA</dt>
+            <dd>
+              <SdSlaIndicator
+                live={sla.live}
+                label={
+                  sla.kind === 'firstResponse' ? '1ª resposta' : 'Resolução'
+                }
+              />
+            </dd>
+          </div>
+          {ticket.escalationLevel > 0 ? (
+            <div>
+              <dt className='sr-only'>Escalonamento</dt>
+              <dd>Escalonado N{ticket.escalationLevel}</dd>
+            </div>
+          ) : null}
+          {ticket.parent ? (
+            <div>
+              <dt className='sr-only'>Item pai</dt>
+              <dd>
+                <Link
+                  href={`/${slug}/servicedesk/tickets/${ticket.parent.number}`}
+                  className='hover:text-foreground hover:underline'
+                >
+                  Filho de {ticket.parent.code}
+                </Link>
+              </dd>
+            </div>
+          ) : null}
+          {ticket.risk ? (
+            <div>
+              <dt className='sr-only'>Risco preditivo</dt>
+              <dd>
+                <SdRiskBadge risk={ticket.risk} />
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+
+        <div className='flex flex-wrap items-center gap-1 sm:ml-auto'>
+          <div className='flex items-center gap-1.5'>
+            <SdOptionSelect
+              aria-label='Mudar fase'
+              allowClear={false}
+              value={ticket.phaseId}
+              onChange={(phaseId) => phaseId && onPhaseChange(phaseId)}
+              className='h-8 w-auto min-w-24 max-w-44 border-transparent bg-transparent shadow-none hover:bg-muted dark:bg-transparent'
+              options={phases.map((p) => ({
+                value: p.id,
+                label: p.name,
+                color: p.color ?? SD_PHASE_CATEGORY_COLOR[p.category],
+                hint: `${p.completionPercent}%`,
+              }))}
+            />
+            <span className='shrink-0 text-muted-foreground text-xs tabular-nums'>
               {ticket.completionPercent}%
             </span>
           </div>
-          <SdOptionSelect
-            aria-label='Mudar fase'
-            allowClear={false}
-            value={ticket.phaseId}
-            onChange={(phaseId) => phaseId && onPhaseChange(phaseId)}
-            options={phases.map((p) => ({
-              value: p.id,
-              label: p.name,
-              color: p.color ?? SD_PHASE_CATEGORY_COLOR[p.category],
-              hint: `${p.completionPercent}%`,
-            }))}
+          <AssignMenu
+            workspaceId={workspaceId}
+            ticket={ticket}
+            agents={agents}
+            me={me}
           />
-          <SdProgressBar
-            percent={ticket.completionPercent}
-            color={phaseColor}
-          />
+          <div className='flex items-center gap-1'>
+            {isDesktop ? null : (
+              <Button variant='outline' size='sm' onClick={onDetails}>
+                <SteelIcon icon={SidebarRightIcon} strokeWidth={2} />
+                Detalhes
+              </Button>
+            )}
+            <Button size='sm' onClick={onReply}>
+              Responder
+            </Button>
+          </div>
         </div>
-        <SdSlaWidget
-          label='1ª resposta'
-          timer={ticket.sla.firstResponse}
-          now={now}
-          doneAt={ticket.firstRespondedAt}
-        />
-        <SdSlaWidget
-          label='Resolução'
-          timer={ticket.sla.resolution}
-          now={now}
-          doneAt={ticket.resolvedAt}
-        />
-        <SdRiskWidget risk={ticket.risk} now={now} />
       </div>
 
       <SdCreateTicketSheet
@@ -496,10 +624,12 @@ function Header({
 }
 
 /**
- * Tela do chamado (agente): cabeçalho fixo (código, título editável, fase
- * com % e SLAs ao vivo, ações), coluna principal com descrição e abas
- * (lembradas em `?tab=`) e barra lateral com todos os campos editáveis.
- * Atualiza em tempo real a cada evento deste chamado.
+ * Tela do chamado (agente), minimalista: cabeçalho compacto (código,
+ * título editável, prioridade e SLA em texto discreto, ações principais
+ * Responder / Atribuir / Fase e o resto no menu "Mais"), a conversa como
+ * protagonista e os detalhes numa coluna lateral recolhível — abaixo de
+ * `lg` eles abrem num Sheet ("Detalhes"). Aba ativa lembrada em `?tab=`;
+ * atualiza em tempo real a cada evento deste chamado.
  */
 export function SdTicketScreen({
   workspaceId,
@@ -513,6 +643,8 @@ export function SdTicketScreen({
   const params = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  const isDesktop = useSdIsDesktop()
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const ticket = useSdTicket(workspaceId, ticketRef)
   const config = useSdConfig(workspaceId)
   const me = useSdMe(workspaceId)
@@ -534,12 +666,27 @@ export function SdTicketScreen({
     router.replace(`${pathname}?${search.toString()}`, { scroll: false })
   }
 
+  function reply() {
+    if (tab !== 'history') setTab('history')
+    // A aba pode estar montando: tenta de novo no próximo quadro.
+    const focus = (tries: number) => {
+      const input = document.getElementById(SD_COMPOSER_INPUT_ID)
+      if (input) {
+        input.scrollIntoView?.({ block: 'center' })
+        input.focus()
+      } else if (tries > 0) {
+        requestAnimationFrame(() => focus(tries - 1))
+      }
+    }
+    focus(20)
+  }
+
   if (ticket.isLoading || config.isLoading || me.isLoading) {
     return (
-      <div className='flex flex-col gap-3 p-4'>
-        <Skeleton className='h-5 w-48' />
-        <Skeleton className='h-8 w-2/3' />
-        <Skeleton className='h-16 w-full' />
+      <div className='flex flex-col gap-3 p-4 sm:px-6'>
+        <Skeleton className='h-4 w-40' />
+        <Skeleton className='h-7 w-2/3' />
+        <Skeleton className='h-4 w-1/2' />
         <Skeleton className='h-64 w-full' />
       </div>
     )
@@ -569,6 +716,19 @@ export function SdTicketScreen({
   }
 
   const data = ticket.data
+  const sidebar = (
+    <SdTicketSidebar
+      workspaceId={workspaceId}
+      ticket={data}
+      config={config.data}
+      agents={agents.data ?? []}
+      onPhaseChange={(phaseId) => mover.move(data, phaseId)}
+      onTab={(next) => {
+        setDetailsOpen(false)
+        setTab(next)
+      }}
+    />
+  )
   return (
     <div className='flex h-full min-h-0 flex-col'>
       <Header
@@ -576,12 +736,16 @@ export function SdTicketScreen({
         slug={slug}
         ticket={data}
         config={config.data}
-        isAdmin={me.data.isAdmin}
+        me={me.data}
+        agents={agents.data ?? []}
+        isDesktop={isDesktop}
         onPhaseChange={(phaseId) => mover.move(data, phaseId)}
         onTab={setTab}
+        onReply={reply}
+        onDetails={() => setDetailsOpen(true)}
       />
-      <div className='grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_24rem]'>
-        <main className='min-h-0 overflow-y-auto'>
+      <div className='grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]'>
+        <main className='flex min-h-0 flex-col overflow-y-auto'>
           <Description
             key={data.description ?? ''}
             workspaceId={workspaceId}
@@ -604,14 +768,31 @@ export function SdTicketScreen({
             }}
           />
         </main>
-        <SdTicketSidebar
-          workspaceId={workspaceId}
-          ticket={data}
-          config={config.data}
-          agents={agents.data ?? []}
-          onPhaseChange={(phaseId) => mover.move(data, phaseId)}
-        />
+        {isDesktop ? (
+          <aside
+            aria-label='Detalhes do chamado'
+            className='min-h-0 overflow-y-auto border-l'
+          >
+            {sidebar}
+          </aside>
+        ) : null}
       </div>
+      {isDesktop ? null : (
+        <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <SheetContent
+            side='right'
+            className={cn('w-full gap-0 p-0 sm:max-w-md')}
+          >
+            <SheetHeader className='border-b'>
+              <SheetTitle>Detalhes</SheetTitle>
+              <SheetDescription>
+                {data.code} · {data.title}
+              </SheetDescription>
+            </SheetHeader>
+            <div className='min-h-0 flex-1 overflow-y-auto'>{sidebar}</div>
+          </SheetContent>
+        </Sheet>
+      )}
       {mover.dialog}
     </div>
   )
