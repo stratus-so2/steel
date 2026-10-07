@@ -70,8 +70,8 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm prisma:generate
 
-      - name: Push database schema
-        run: pnpm prisma db push
+      - name: Apply database migrations
+        run: pnpm prisma migrate deploy
 
       - name: Build application
         run: pnpm build
@@ -140,8 +140,8 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm prisma:generate
 
-      - name: Push database schema
-        run: pnpm prisma db push
+      - name: Apply database migrations
+        run: pnpm prisma migrate deploy
 
       - name: Build application
         run: pnpm build
