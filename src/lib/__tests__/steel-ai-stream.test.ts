@@ -181,6 +181,15 @@ describe('applySteelAiStreamEvent', () => {
     })
   })
 
+  it('adds autopilot executions to the live actions', () => {
+    const executed = { ...action('EXECUTED'), autoExecuted: true }
+    const state = applySteelAiStreamEvent(emptySteelAiLiveMessage(), {
+      type: 'action.executed',
+      action: executed,
+    })
+    expect(state.pendingActions).toEqual([executed])
+  })
+
   it('marks the message as failed on an error event', () => {
     const state = applySteelAiStreamEvent(emptySteelAiLiveMessage(), {
       type: 'error',
