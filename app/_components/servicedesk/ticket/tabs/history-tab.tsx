@@ -51,7 +51,7 @@ export function SdTicketHistoryTab({
 
   return (
     <div className='flex h-full min-h-[28rem] flex-col'>
-      <div className='flex flex-1 flex-col gap-3 overflow-y-auto p-4'>
+      <div className='flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-5 sm:px-6'>
         {query.hasNextPage ? (
           <div className='flex justify-center'>
             <Button

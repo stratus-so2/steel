@@ -3,6 +3,7 @@
 import {
   AiMagicIcon,
   ArrowDown01Icon,
+  ArrowRight01Icon,
   Cancel01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type ReactNode, useState } from 'react'
@@ -18,24 +19,38 @@ import {
 } from '@/components/ui/collapsible'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { useSdTicketKbLinks } from '@/src/hooks/use-sd-knowledge'
+import { useSdTicketApprovals } from '@/src/hooks/use-sd-ticket-approvals'
+import { useSdTicketCosts } from '@/src/hooks/use-sd-ticket-costs'
+import { useSdTicketTasks } from '@/src/hooks/use-sd-ticket-tasks'
 import {
   type UpdateSdTicketInput,
   useAddSdTicketParticipant,
   useRemoveSdTicketParticipant,
   useUpdateSdTicket,
 } from '@/src/hooks/use-sd-tickets'
+import { useSdTimeEntries } from '@/src/hooks/use-sd-time-entries'
+import { SD_RISK_LEVEL_LABEL } from '@/src/lib/servicedesk/risk'
 import type { SdAgentDTO, SdConfigBootstrapDTO } from '@/types/sd-config'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { sdApplicableCustomFields } from '../custom-fields/sd-custom-fields-utils'
+import { SdRiskFactorList } from '../risk/sd-risk-badge'
+import { SD_APPROVAL_STATUS_LABEL } from './approvals/sd-approval-labels'
+import { SdOnCallBadge } from './sd-oncall-badge'
 import { SdOptionSelect } from './sd-option-select'
-import { SdTypeBadge, SdUserAvatar } from './sd-ticket-badges'
+import { SdSlaIndicator, SdUserAvatar, useSdNow } from './sd-ticket-badges'
 import { SdTicketFieldControl, sdIsDraftField } from './sd-ticket-field-control'
 import {
   SD_CHANNEL_LABEL,
+  SD_TICKET_TYPE_LABEL,
   SD_TONE_TEXT,
   sdFormatDateTime,
+  sdFormatDuration,
+  sdLiveSla,
+  sdRelativeTime,
 } from './sd-ticket-meta'
 import { sdTicketFieldLabel, sdTicketFieldValue } from './sd-ticket-options'
+import { formatBRL } from './shared/sd-tab-format'
 
 /** Campo → corpo do PATCH (cascata do catálogo, campos customizados, vazios). */
 export function sdFieldPatch(
@@ -60,6 +75,23 @@ function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
 }
 
+/**
+ * Controles "silenciosos": selects, pickers e inputs da coluna aparecem
+ * como texto (sem borda nem fundo) e só mostram a moldura no hover/foco —
+ * a coluna lê como pares rótulo/valor e continua editável no lugar.
+ */
+const QUIET_CONTROLS = cn(
+  '[&_[data-slot=select-trigger]]:border-transparent [&_[data-slot=select-trigger]]:bg-transparent [&_[data-slot=select-trigger]]:px-1.5 [&_[data-slot=select-trigger]]:shadow-none dark:[&_[data-slot=select-trigger]]:bg-transparent',
+  '[&_[data-slot=select-trigger]:hover]:bg-muted/70 [&_[data-slot=select-trigger]:focus-visible]:border-ring',
+  '[&_[data-slot=button]]:border-transparent [&_[data-slot=button]]:bg-transparent [&_[data-slot=button]]:px-1.5 [&_[data-slot=button]]:shadow-none dark:[&_[data-slot=button]]:bg-transparent',
+  '[&_[data-slot=button]:hover]:bg-muted/70 [&_[data-slot=button]:focus-visible]:border-ring',
+  '[&_[data-slot=input]]:border-transparent [&_[data-slot=input]]:bg-transparent [&_[data-slot=input]]:px-1.5 [&_[data-slot=input]]:shadow-none dark:[&_[data-slot=input]]:bg-transparent',
+  '[&_[data-slot=input]:hover]:border-input [&_[data-slot=input]:focus-visible]:border-ring',
+)
+
+const ROW = 'grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-2'
+const LABEL = 'pt-1.5 text-muted-foreground text-xs leading-tight'
+
 interface FieldProps {
   workspaceId: string
   ticket: SdTicketDTO
@@ -73,7 +105,7 @@ interface FieldProps {
   disabled?: boolean
 }
 
-/** Linha editável da barra lateral (salva ao escolher ou ao sair do campo). */
+/** Linha editável da coluna (salva ao escolher ou ao sair do campo). */
 function SidebarField({
   workspaceId,
   ticket,
@@ -103,15 +135,10 @@ function SidebarField({
       field === 'workaround')
 
   return (
-    <div
-      className={cn(
-        'grid items-start gap-x-3 gap-y-1',
-        wide ? 'grid-cols-1' : 'grid-cols-[7.5rem_minmax(0,1fr)]',
-      )}
-    >
+    <div className={cn(wide ? 'flex flex-col gap-1' : ROW)}>
       <label
         htmlFor={id}
-        className='pt-2 text-muted-foreground text-xs leading-tight'
+        className={wide ? 'text-muted-foreground text-xs' : LABEL}
       >
         {label}
       </label>
@@ -155,31 +182,42 @@ function SidebarField({
   )
 }
 
-function Section({
+/** Seção recolhível da coluna: título discreto, sem moldura. */
+export function SdSidebarSection({
   title,
   children,
   defaultOpen = true,
   icon,
+  aside,
 }: {
   title: string
   children: ReactNode
   defaultOpen?: boolean
   icon?: ReactNode
+  /** Resumo à direita do título (ex.: "2/3"). */
+  aside?: ReactNode
 }) {
   return (
-    <Collapsible defaultOpen={defaultOpen} className='border-b last:border-b-0'>
-      <CollapsibleTrigger className='group flex w-full items-center gap-2 px-4 py-2.5 text-left'>
-        {icon}
-        <span className='font-semibold text-muted-foreground text-xs uppercase tracking-wider'>
-          {title}
-        </span>
+    <Collapsible defaultOpen={defaultOpen} className='px-2 py-1'>
+      <CollapsibleTrigger className='group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50'>
         <SteelIcon
           icon={ArrowDown01Icon}
           strokeWidth={2}
-          className='ml-auto size-4 text-muted-foreground transition-transform group-data-[panel-open]:rotate-0 -rotate-90'
+          className='-rotate-90 size-3.5 text-muted-foreground transition-transform group-data-[panel-open]:rotate-0'
         />
+        {icon}
+        <span className='font-medium text-muted-foreground text-xs'>
+          {title}
+        </span>
+        {aside ? (
+          <span className='ml-auto text-muted-foreground text-xs tabular-nums'>
+            {aside}
+          </span>
+        ) : null}
       </CollapsibleTrigger>
-      <CollapsibleContent className='flex flex-col gap-2 px-4 pb-4'>
+      <CollapsibleContent
+        className={cn('flex flex-col gap-1 px-2 pt-1 pb-3', QUIET_CONTROLS)}
+      >
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -188,10 +226,114 @@ function Section({
 
 function ReadRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className='grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3 text-sm'>
-      <span className='text-muted-foreground text-xs'>{label}</span>
-      <span className='min-w-0 truncate'>{children}</span>
+    <div className={cn(ROW, 'items-baseline')}>
+      <span className={cn(LABEL, 'pt-0')}>{label}</span>
+      <span className='min-w-0 px-1.5 py-1 text-sm'>{children}</span>
     </div>
+  )
+}
+
+/** Atalho da coluna para uma aba (Tarefas, Aprovação, Custos…). */
+function TabLink({
+  label,
+  value,
+  onClick,
+}: {
+  label: string
+  value: ReactNode
+  onClick: () => void
+}) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      className={cn(
+        ROW,
+        'group items-center rounded-md py-1 text-left outline-none hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50',
+      )}
+    >
+      <span className='pl-0 text-muted-foreground text-xs'>{label}</span>
+      <span className='flex min-w-0 items-center gap-1 px-1.5 text-sm'>
+        <span className='truncate'>{value}</span>
+        <SteelIcon
+          icon={ArrowRight01Icon}
+          strokeWidth={2}
+          className='ml-auto size-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'
+        />
+      </span>
+    </button>
+  )
+}
+
+/** Resumo do trabalho no chamado; cada linha abre a aba correspondente. */
+function WorkSummary({
+  workspaceId,
+  ticket,
+  onTab,
+}: {
+  workspaceId: string
+  ticket: SdTicketDTO
+  onTab: (tab: string) => void
+}) {
+  const tasks = useSdTicketTasks(workspaceId, ticket.id)
+  const approvals = useSdTicketApprovals(workspaceId, ticket.id)
+  const costs = useSdTicketCosts(workspaceId, ticket.id)
+  const hours = useSdTimeEntries(workspaceId, ticket.id)
+  const kb = useSdTicketKbLinks(workspaceId, ticket.id)
+
+  const progress = tasks.data?.progress
+  const latestApproval = approvals.data?.[0]
+  const pendingApprovals =
+    approvals.data?.filter((a) => a.status === 'PENDING').length ?? 0
+  const minutes = hours.data?.summary.totalMinutes ?? 0
+  const kbCount = kb.data?.length ?? 0
+
+  return (
+    <>
+      <TabLink
+        label='Tarefas'
+        value={
+          progress && progress.total > 0
+            ? `${progress.done} de ${progress.total} concluídas`
+            : 'Nenhuma'
+        }
+        onClick={() => onTab('tasks')}
+      />
+      <TabLink
+        label='Aprovação'
+        value={
+          pendingApprovals > 0
+            ? `${pendingApprovals} pendente${pendingApprovals > 1 ? 's' : ''}`
+            : latestApproval
+              ? SD_APPROVAL_STATUS_LABEL[latestApproval.status]
+              : 'Nenhuma'
+        }
+        onClick={() => onTab('approvals')}
+      />
+      <TabLink
+        label='Horas'
+        value={minutes > 0 ? sdFormatDuration(minutes) : 'Nenhuma'}
+        onClick={() => onTab('hours')}
+      />
+      <TabLink
+        label='Custos'
+        value={
+          costs.data && costs.data.items.length > 0
+            ? formatBRL(costs.data.summary.total)
+            : 'Nenhum'
+        }
+        onClick={() => onTab('costs')}
+      />
+      <TabLink
+        label='Conhecimento'
+        value={
+          kbCount > 0
+            ? `${kbCount} artigo${kbCount > 1 ? 's' : ''}`
+            : 'Nenhum artigo'
+        }
+        onClick={() => onTab('knowledge')}
+      />
+    </>
   )
 }
 
@@ -208,26 +350,24 @@ function Participants({
   const remove = useRemoveSdTicketParticipant(workspaceId, ticket.id)
   const current = new Set(ticket.participants.map((p) => p.id))
   return (
-    <div className='grid grid-cols-[7.5rem_minmax(0,1fr)] items-start gap-3'>
-      <span className='pt-1.5 text-muted-foreground text-xs'>
-        Participantes
-      </span>
-      <div className='flex min-w-0 flex-col gap-1.5'>
+    <div className={ROW}>
+      <span className={LABEL}>Participantes</span>
+      <div className='flex min-w-0 flex-col gap-1'>
         {ticket.participants.length > 0 ? (
-          <ul className='flex flex-wrap gap-1'>
+          <ul className='flex flex-col gap-0.5 px-1.5 pt-1'>
             {ticket.participants.map((p) => (
               <li
                 key={p.id}
-                className='inline-flex items-center gap-1 rounded-full border py-0.5 pr-1 pl-0.5 text-xs'
+                className='group/p flex items-center gap-1.5 text-sm'
               >
                 <SdUserAvatar user={p} className='size-4' />
-                <span className='max-w-28 truncate'>{p.name}</span>
+                <span className='min-w-0 flex-1 truncate'>{p.name}</span>
                 <button
                   type='button'
                   aria-label={`Remover ${p.name}`}
                   disabled={remove.isPending}
                   onClick={() => remove.mutate(p.id, { onError: notify.error })}
-                  className='rounded-full p-0.5 hover:bg-muted'
+                  className='rounded p-0.5 text-muted-foreground opacity-0 hover:bg-muted hover:text-foreground focus-visible:opacity-100 group-hover/p:opacity-100'
                 >
                   <SteelIcon
                     icon={Cancel01Icon}
@@ -258,10 +398,11 @@ function Participants({
 }
 
 /**
- * Barra lateral da tela do chamado: todos os campos editáveis inline
- * (salvam com `useUpdateSdTicket`, erro da API embaixo do campo),
- * participantes, campos customizados, campos de Mudança/Problema, datas e
- * o copiloto de IA (recolhível).
+ * Coluna de detalhes da tela do chamado (ou conteúdo do Sheet "Detalhes"
+ * abaixo de `lg`): SLA em texto, campos editáveis no lugar (salvam com
+ * `useUpdateSdTicket`, erro da API embaixo do campo) em seções recolhíveis,
+ * resumo do trabalho com atalho para as abas, risco, integrações, datas e
+ * o copiloto de IA.
  */
 export function SdTicketSidebar({
   workspaceId,
@@ -269,13 +410,17 @@ export function SdTicketSidebar({
   config,
   agents,
   onPhaseChange,
+  onTab,
 }: {
   workspaceId: string
   ticket: SdTicketDTO
   config: SdConfigBootstrapDTO
   agents: SdAgentDTO[]
   onPhaseChange: (phaseId: string) => void
+  /** Abre uma aba da coluna principal (atalhos do resumo). */
+  onTab: (tab: string) => void
 }) {
+  const now = useSdNow(30_000)
   const update = useUpdateSdTicket(workspaceId, ticket.id)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [savingField, setSavingField] = useState<string | null>(null)
@@ -322,21 +467,34 @@ export function SdTicketSidebar({
       ticket.service?.id,
     ],
   })
+  const first = sdLiveSla(ticket.sla.firstResponse, now)
+  const resolution = sdLiveSla(ticket.sla.resolution, now)
+  const risk = ticket.risk
 
   return (
-    <aside
-      aria-label='Campos do chamado'
-      className='flex flex-col overflow-y-auto border-l bg-card/30'
-    >
-      <Section title='Detalhes'>
-        <ReadRow label='Tipo'>
-          <SdTypeBadge type={ticket.type} />
-        </ReadRow>
-        <div className='grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-3'>
-          <label
-            htmlFor='sd-side-phase'
-            className='text-muted-foreground text-xs'
-          >
+    <div className='flex flex-col py-2' data-testid='sd-ticket-details'>
+      <section
+        aria-label='SLA'
+        className='flex flex-col gap-1.5 px-4 pt-1 pb-3'
+      >
+        <div className='flex items-center justify-between gap-2'>
+          <span className='text-muted-foreground text-xs'>1ª resposta</span>
+          <SdSlaIndicator live={first} label='1ª resposta' showLabel={false} />
+        </div>
+        <div className='flex items-center justify-between gap-2'>
+          <span className='text-muted-foreground text-xs'>Resolução</span>
+          <SdSlaIndicator
+            live={resolution}
+            label='Resolução'
+            showLabel={false}
+          />
+        </div>
+      </section>
+
+      <SdSidebarSection title='Geral'>
+        <ReadRow label='Tipo'>{SD_TICKET_TYPE_LABEL[ticket.type]}</ReadRow>
+        <div className={ROW}>
+          <label htmlFor='sd-side-phase' className={LABEL}>
             Fase
           </label>
           <SdOptionSelect
@@ -359,10 +517,14 @@ export function SdTicketSidebar({
         {field('urgencyId', 'Urgência')}
         {field('classificationId', 'Classificação')}
         <ReadRow label='Canal'>{SD_CHANNEL_LABEL[ticket.channel]}</ReadRow>
-        <SdTicketMonitorBlock workspaceId={workspaceId} ticket={ticket} />
-      </Section>
+        <SdTicketMonitorBlock
+          workspaceId={workspaceId}
+          ticket={ticket}
+          className='mt-1 border-0 bg-muted/40 p-2.5'
+        />
+      </SdSidebarSection>
 
-      <Section title='Atendimento'>
+      <SdSidebarSection title='Atendimento'>
         {field('assigneeId', 'Responsável')}
         {field('departmentId', 'Departamento')}
         {field('requesterId', 'Solicitante')}
@@ -372,20 +534,29 @@ export function SdTicketSidebar({
           agents={agents}
         />
         {field('tags', 'Tags')}
-      </Section>
+        <SdOnCallBadge
+          workspaceId={workspaceId}
+          departmentId={ticket.department?.id}
+          quiet
+        />
+      </SdSidebarSection>
 
-      <Section title='Catálogo'>
+      <SdSidebarSection title='Trabalho'>
+        <WorkSummary workspaceId={workspaceId} ticket={ticket} onTab={onTab} />
+      </SdSidebarSection>
+
+      <SdSidebarSection title='Catálogo'>
         {field('categoryId', 'Categoria')}
         {field('subcategoryId', 'Subcategoria')}
         {field('serviceId', 'Serviço')}
-      </Section>
+      </SdSidebarSection>
 
-      <Section title='Cliente'>
+      <SdSidebarSection title='Cliente e CMDB'>
         {field('customerId', 'Cliente')}
         {field('companyId', 'Empresa')}
         {field('contactId', 'Contato')}
         {ticket.contact ? (
-          <div className='px-1 pt-1'>
+          <div className='pl-[7rem]'>
             <SdPortalAccessButton
               workspaceId={workspaceId}
               contactId={ticket.contact.id}
@@ -396,15 +567,21 @@ export function SdTicketSidebar({
           </div>
         ) : null}
         {field('configItemId', 'Item de configuração')}
-      </Section>
+      </SdSidebarSection>
 
-      <Section title='Solução' defaultOpen={Boolean(ticket.solution)}>
-        {field('solutionClassificationId', 'Classificação da solução')}
+      {customFields.length > 0 ? (
+        <SdSidebarSection title='Campos customizados'>
+          {customFields.map((d) => field(`customFields.${d.key}`, d.label))}
+        </SdSidebarSection>
+      ) : null}
+
+      <SdSidebarSection title='Solução' defaultOpen={Boolean(ticket.solution)}>
+        {field('solutionClassificationId', 'Classificação')}
         {field('solution', 'Solução')}
-      </Section>
+      </SdSidebarSection>
 
       {ticket.type === 'CHANGE' ? (
-        <Section title='Mudança'>
+        <SdSidebarSection title='Mudança'>
           {field('changeType', 'Tipo de mudança')}
           {field('changeRisk', 'Risco')}
           {field('plannedStartAt', 'Início planejado')}
@@ -412,24 +589,53 @@ export function SdTicketSidebar({
           {field('implementationPlan', 'Plano de implantação')}
           {field('rollbackPlan', 'Plano de retorno')}
           {field('testPlan', 'Plano de testes')}
-        </Section>
+        </SdSidebarSection>
       ) : null}
 
       {ticket.type === 'PROBLEM' ? (
-        <Section title='Problema'>
+        <SdSidebarSection title='Problema'>
           {field('knownError', 'Erro conhecido')}
           {field('rootCause', 'Causa raiz')}
           {field('workaround', 'Solução de contorno')}
-        </Section>
+        </SdSidebarSection>
       ) : null}
 
-      {customFields.length > 0 ? (
-        <Section title='Campos customizados'>
-          {customFields.map((d) => field(`customFields.${d.key}`, d.label))}
-        </Section>
+      {risk ? (
+        <SdSidebarSection
+          title='Risco preditivo'
+          defaultOpen={risk.level !== 'LOW'}
+          aside={`${SD_RISK_LEVEL_LABEL[risk.level]} · ${risk.score}`}
+        >
+          <section
+            aria-label='Risco preditivo'
+            data-risk-level={risk.level}
+            className='flex flex-col gap-1.5 text-xs'
+          >
+            {risk.factors.length > 0 ? (
+              <SdRiskFactorList factors={risk.factors} />
+            ) : (
+              <p className='text-muted-foreground'>
+                Nenhum fator de risco neste chamado.
+              </p>
+            )}
+            {risk.breachEtaAt ? (
+              <p className='text-muted-foreground'>
+                Previsão de estouro do prazo{' '}
+                {sdRelativeTime(risk.breachEtaAt, now)}.
+              </p>
+            ) : null}
+          </section>
+        </SdSidebarSection>
       ) : null}
 
-      <Section title='Datas'>
+      <SdTicketIntegrationLinks
+        workspaceId={workspaceId}
+        ticket={ticket}
+        mode='agent'
+        className='mx-4 my-2 rounded-none border-0 bg-transparent p-0'
+      />
+
+      <SdSidebarSection title='Datas' defaultOpen={false}>
         <ReadRow label='Aberto em'>
           {sdFormatDateTime(ticket.createdAt)}
         </ReadRow>
@@ -451,22 +657,16 @@ export function SdTicketSidebar({
         {ticket.createdBy ? (
           <ReadRow label='Aberto por'>{ticket.createdBy.name}</ReadRow>
         ) : null}
-      </Section>
+      </SdSidebarSection>
 
-      <SdTicketIntegrationLinks
-        workspaceId={workspaceId}
-        ticket={ticket}
-        mode='agent'
-      />
-
-      <Section
+      <SdSidebarSection
         title='Copiloto de IA'
         defaultOpen={false}
         icon={
           <SteelIcon
             icon={AiMagicIcon}
             strokeWidth={2}
-            className={cn('size-4', SD_TONE_TEXT.violet)}
+            className={cn('size-3.5', SD_TONE_TEXT.violet)}
           />
         }
       >
@@ -476,7 +676,7 @@ export function SdTicketSidebar({
             A IA está desligada nas configurações do ServiceDesk.
           </p>
         )}
-      </Section>
-    </aside>
+      </SdSidebarSection>
+    </div>
   )
 }

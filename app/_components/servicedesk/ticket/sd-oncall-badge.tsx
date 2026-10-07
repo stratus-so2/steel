@@ -15,10 +15,13 @@ export function SdOnCallBadge({
   workspaceId,
   departmentId,
   className,
+  quiet,
 }: {
   workspaceId: string
   departmentId: string | null | undefined
   className?: string
+  /** Só texto, sem fundo de tom (coluna de detalhes do chamado). */
+  quiet?: boolean
 }) {
   const { data } = useSdOnCallNow(workspaceId, {
     departmentId: departmentId ?? null,
@@ -36,7 +39,7 @@ export function SdOnCallBadge({
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-medium text-xs',
-        SD_TONE.emerald,
+        quiet ? 'text-muted-foreground' : SD_TONE.emerald,
         className,
       )}
       title={[

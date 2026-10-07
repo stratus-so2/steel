@@ -30,6 +30,7 @@ import {
   SD_SLA_STATE_TONE,
   SD_TICKET_TYPE_LABEL,
   SD_TICKET_TYPE_TONE,
+  SD_TONE_TEXT,
   type SdLiveSla,
   sdFormatDateTime,
   sdInitials,
@@ -282,5 +283,70 @@ export function SdProgressBar({
         }}
       />
     </div>
+  )
+}
+
+/** Cor do texto do SLA discreto: só chama atenção em risco ou violado. */
+export const SD_SLA_STATE_TEXT: Record<SdLiveSla['state'], string> = {
+  ok: 'text-muted-foreground',
+  at_risk: SD_TONE_TEXT.amber,
+  breached: SD_TONE_TEXT.red,
+  met: 'text-muted-foreground',
+  paused: 'text-muted-foreground',
+  none: 'text-muted-foreground',
+}
+
+/**
+ * SLA em uma linha de texto (ponto colorido + "Resolução · 2 h 10 min"),
+ * para o cabeçalho e a coluna de detalhes da tela do chamado. O prazo vai
+ * no tooltip; a cor só aparece quando o relógio pede atenção.
+ */
+export function SdSlaIndicator({
+  live,
+  label,
+  showLabel = true,
+  className,
+}: {
+  live: SdLiveSla
+  /** Qual relógio (vai no texto e no tooltip). */
+  label: string
+  /** `false` quando o rótulo já está ao lado (coluna de detalhes). */
+  showLabel?: boolean
+  className?: string
+}) {
+  const value =
+    live.state === 'ok' || live.state === 'at_risk'
+      ? `${sdSlaShortText(live)} restantes`
+      : sdSlaShortText(live)
+  const text =
+    live.state === 'none' || !showLabel ? value : `${label} · ${value}`
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            data-sla-state={live.state}
+            className={cn(
+              'inline-flex items-center gap-1.5 text-xs tabular-nums',
+              SD_SLA_STATE_TEXT[live.state],
+              className,
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                'size-1.5 shrink-0 rounded-full',
+                SD_SLA_STATE_BAR[live.state],
+              )}
+            />
+            {text}
+          </span>
+        }
+      />
+      <TooltipContent>
+        {label}: {SD_SLA_STATE_LABEL[live.state]}
+        {live.dueAt ? ` — prazo ${sdFormatDateTime(live.dueAt)}` : ''}
+      </TooltipContent>
+    </Tooltip>
   )
 }
