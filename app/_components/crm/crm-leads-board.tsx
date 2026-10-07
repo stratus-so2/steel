@@ -153,6 +153,12 @@ export function CrmLeadsBoard({
     if (id) setSelectedLeadId(id)
   }, [])
   const [createOpen, setCreateOpen] = useState(false)
+  // Quick action from the global search (`?new=1`): opens the create form.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      setCreateOpen(true)
+    }
+  }, [])
 
   const byStage = useMemo(() => {
     const map = new Map<CrmLeadStageDTO, CrmLeadDTO[]>()

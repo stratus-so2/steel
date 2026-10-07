@@ -4,7 +4,7 @@ import {
   FileImportIcon,
   PlusSignIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   SD_PERSON_TYPE_LABEL,
   UF_OPTIONS,
@@ -155,6 +155,11 @@ export function SdCustomersView({
   }
   const { data, isLoading, error } = useSdCustomers(workspaceId, query)
   const [detailId, setDetailId] = useState<string | null>(null)
+  // Deep link (`?record=<id>`, e.g. from the global search): opens it.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('record')
+    if (id) setDetailId(id)
+  }, [])
   const [importing, setImporting] = useState(false)
   const importRows = useImportSdCustomers(workspaceId)
   const [form, setForm] = useState<{
