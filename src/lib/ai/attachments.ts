@@ -188,8 +188,7 @@ export interface AiAttachmentInput {
   data?: Buffer
 }
 
-export const AI_ATTACHMENT_ONLY_PROMPT =
-  'Analise o(s) anexo(s) desta mensagem.'
+export const AI_ATTACHMENT_ONLY_PROMPT = 'Analise o(s) anexo(s) desta mensagem.'
 
 /**
  * User message of the current turn: text (with each document inlined,
@@ -207,7 +206,10 @@ export function buildUserContent(
   const blocks: string[] = []
   for (const doc of attachments.filter((a) => a.kind === 'DOCUMENT')) {
     const body = doc.extractedText ?? ''
-    const max = Math.max(0, Math.min(AI_ATTACHMENT_PROMPT_DOC_MAX_CHARS, budget))
+    const max = Math.max(
+      0,
+      Math.min(AI_ATTACHMENT_PROMPT_DOC_MAX_CHARS, budget),
+    )
     blocks.push(
       max > 0
         ? documentBlock(doc.filename, body, max)

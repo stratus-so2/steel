@@ -112,8 +112,8 @@ Regras gerais:
 ${ATTACHMENTS_RULES}
 
 ${modeRules(input.mode)}${(input.sections ?? [])
-    .map((section) => section.trim())
-    .filter(Boolean)
-    .map((section) => `\n\n${section}`)
-    .join('')}`
+  .map((section) => section.trim())
+  .filter(Boolean)
+  .map((section) => `\n\n${section}`)
+  .join('')}`
 }

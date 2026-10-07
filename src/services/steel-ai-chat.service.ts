@@ -51,14 +51,14 @@ import type {
 import { err, ok, type Result } from '@/src/lib/result'
 import { toAiToolCallDTO } from '@/src/mappers/ai-conversation.mapper'
 import { toAiPendingActionDTO } from '@/src/mappers/ai-pending-action.mapper'
-import { toEffectiveAiSettings } from '@/src/mappers/ai-settings.mapper'
+import type { toEffectiveAiSettings } from '@/src/mappers/ai-settings.mapper'
 import { toAiModelPriceDTOs } from '@/src/mappers/platform-ai-settings.mapper'
+import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
 import {
   AiConversationRepository,
   AiMessageRepository,
   type CreateAiMessageInput,
 } from '@/src/repositories/ai-conversation.repository'
-import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
 import { AiUsageRepository } from '@/src/repositories/ai-settings.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { UserPreferenceRepository } from '@/src/repositories/user-preference.repository'
@@ -149,7 +149,11 @@ const ATTACHMENT_LIMITS: AiCapabilitiesDTO['attachments'] = {
 }
 
 /** System block for a skill invoked with "/<slug>". */
-function skillSection(skill: { slug: string; name: string; instructions: string }): string {
+function skillSection(skill: {
+  slug: string
+  name: string
+  instructions: string
+}): string {
   return `Skill invocada pelo usuário: /${skill.slug} (${skill.name}). Siga estas instruções nesta resposta:\n${skill.instructions}`
 }
 
@@ -766,8 +770,7 @@ export const SteelAiChatService = {
         content: modelText,
         titleSource:
           input.content || attachments.value.map((a) => a.filename).join(', '),
-        storedModelKey:
-          changed.modelKey ?? conversation.value.modelKey ?? null,
+        storedModelKey: changed.modelKey ?? conversation.value.modelKey ?? null,
         isFirstExchange: !recent.value.some((row) => row.role === 'USER'),
         pinnedTools: pinnedToolsFromHistory(capped),
         previousMessages: capped

@@ -61,9 +61,8 @@ vi.mock('@/src/services/ai-settings.service', async (importOriginal) => ({
     typeof import('@/src/services/ai-settings.service')
   >()),
   // Provider keys are not set in unit tests: usable = enabled.
-  isModelUsable: vi.fn(
-    (settings: { enabledModels: string[] }, key: string) =>
-      settings.enabledModels.includes(key),
+  isModelUsable: vi.fn((settings: { enabledModels: string[] }, key: string) =>
+    settings.enabledModels.includes(key),
   ),
 }))
 

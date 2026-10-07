@@ -23,7 +23,8 @@ const MAX_PAUSE_CONTINUATIONS = 5
 /** Modelos sem suporte à versão com filtragem dinâmica da busca web. */
 const BASIC_WEB_SEARCH_MODELS = new Set(['claude-haiku-4-5'])
 
-const DATA_URL = /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]+)$/
+const DATA_URL =
+  /^data:(image\/(?:png|jpeg|gif|webp));base64,([A-Za-z0-9+/=]+)$/
 
 /**
  * Image block: a `data:` URL (private files sent inline) becomes a base64

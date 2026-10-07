@@ -8,6 +8,7 @@ import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import {
   aiAgentModeDisabled,
+  aiDisabled,
   aiDoubleConfirmationRequired,
   aiPendingActionExpired,
   aiPendingActionNotFound,
@@ -36,6 +37,7 @@ import { AiMessageRepository } from '@/src/repositories/ai-conversation.reposito
 import { AiPendingActionRepository } from '@/src/repositories/ai-pending-action.repository'
 import type { ConfirmAiPendingActionDTO } from '@/src/schemas/steel-ai.schema'
 import type { AiPendingActionDTO } from '@/types/steel-ai'
+import { assertSteelAiEnabled } from './ai-conversation.service'
 import { assertMember } from './authz'
 
 /**
@@ -306,6 +308,8 @@ export const AiPendingActionService = {
   ): Promise<Result<AiPendingActionDTO[]>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
+    const enabled = await assertSteelAiEnabled(workspaceId)
+    if (!enabled.ok) return enabled
 
     const expired = await AiPendingActionRepository.expireOverdue(workspaceId)
     if (!expired.ok) return expired
@@ -335,6 +339,7 @@ export const AiPendingActionService = {
   ): Promise<Result<AiPendingActionDTO>> {
     const access = await resolveToolAccess(actorId, workspaceId)
     if (!access.ok) return access
+    if (!access.value.aiEnabled) return err(aiDisabled())
 
     const action = await loadOwnAction(actorId, workspaceId, actionId)
     if (!action.ok) return action
@@ -399,6 +404,8 @@ export const AiPendingActionService = {
   ): Promise<Result<AiPendingActionDTO>> {
     const membership = await assertMember(actorId, workspaceId)
     if (!membership.ok) return membership
+    const enabled = await assertSteelAiEnabled(workspaceId)
+    if (!enabled.ok) return enabled
 
     const action = await loadOwnAction(actorId, workspaceId, actionId)
     if (!action.ok) return action
