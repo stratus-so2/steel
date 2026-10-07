@@ -44,13 +44,14 @@ function micros(value: number): number {
   return Math.round(value * 1_000_000) / 1_000_000
 }
 
-/** First day of the overview query: covers the previous month and week. */
+/**
+ * Days the overview reads: from the previous month's first day to today.
+ * The previous ISO week always falls inside it (it starts at most 13 days
+ * before today, and a month has at least 28).
+ */
 export function overviewQueryRange(now: Date): UtcRange {
-  const monthStart = startOfUtcMonth(now)
-  const previousWeek = addUtcDays(startOfUtcWeek(now), -7)
-  const previousMonth = addUtcMonths(monthStart, -1)
   return {
-    from: previousWeek < previousMonth ? previousWeek : previousMonth,
+    from: addUtcMonths(startOfUtcMonth(now), -1),
     to: addUtcDays(startOfUtcDay(now), 1),
   }
 }
