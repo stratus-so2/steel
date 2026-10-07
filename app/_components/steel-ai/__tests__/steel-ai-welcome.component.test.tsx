@@ -60,19 +60,24 @@ describe('<SteelAiWelcome />', () => {
     renderSteelAi(<SteelAiWelcome />)
     await screen.findByRole('button', { name: /Pipeline por estágio/ })
 
-    fireEvent.click(screen.getByRole('button', { name: /^Agente$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Build$/ }))
     fireEvent.change(screen.getByLabelText('Mensagem para o Steel AI'), {
       target: { value: '  Feche a oportunidade Acme  ' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar mensagem' }))
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/acme/ai/c42'))
-    expect(fetchBody(spy, /\/ai\/conversations$/)).toEqual({ mode: 'AGENT' })
+    expect(fetchBody(spy, /\/ai\/conversations$/)).toEqual({
+      mode: 'AGENT',
+      modelKey: 'openai:gpt-4o-mini',
+    })
     // The message itself is sent by the chat screen, never from here.
     expect(fetchBody(spy, '/messages')).toBeUndefined()
     expect(takeSteelAiPrompt('c42')).toEqual({
       content: 'Feche a oportunidade Acme',
       mode: 'AGENT',
+      modelKey: 'openai:gpt-4o-mini',
+      attachments: [],
     })
     // Taken once: a remount of the chat screen does not resend it.
     expect(takeSteelAiPrompt('c42')).toBeNull()
@@ -85,7 +90,10 @@ describe('<SteelAiWelcome />', () => {
       await screen.findByRole('button', { name: /Criar tarefas de follow-up/ }),
     )
     await waitFor(() => expect(push).toHaveBeenCalledWith('/acme/ai/c42'))
-    expect(fetchBody(spy, /\/ai\/conversations$/)).toEqual({ mode: 'AGENT' })
+    expect(fetchBody(spy, /\/ai\/conversations$/)).toEqual({
+      mode: 'AGENT',
+      modelKey: 'openai:gpt-4o-mini',
+    })
   })
 
   it('submits with Enter but not with Shift+Enter', async () => {
@@ -134,7 +142,7 @@ describe('<SteelAiWelcome />', () => {
     setup(capabilities({ agentModeEnabled: false }))
     renderSteelAi(<SteelAiWelcome />)
     await screen.findByRole('button', { name: /Pipeline por estágio/ })
-    const agent = screen.getByRole('button', { name: /^Agente$/ })
+    const agent = screen.getByRole('button', { name: /^Build$/ })
     expect((agent as HTMLButtonElement).disabled).toBe(true)
     // Agent-only starters are hidden too.
     expect(
@@ -153,15 +161,15 @@ describe('<SteelAiModeSwitch />', () => {
         agentModeEnabled={false}
       />,
     )
-    const explore = screen.getByRole('button', { name: /Explorar/ })
-    const agent = screen.getByRole('button', { name: /^Agente$/ })
+    const explore = screen.getByRole('button', { name: /^Ask$/ })
+    const agent = screen.getByRole('button', { name: /^Build$/ })
     expect(explore.getAttribute('aria-pressed')).toBe('true')
     expect((agent as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(agent)
     expect(onChange).not.toHaveBeenCalled()
 
     fireEvent.focus(agent.parentElement as HTMLElement)
-    expect(await screen.findByText(/O modo Agente foi desativado/)).toBeTruthy()
+    expect(await screen.findByText(/O modo Build foi desativado/)).toBeTruthy()
   })
 
   it('switches modes when enabled', () => {
@@ -173,7 +181,7 @@ describe('<SteelAiModeSwitch />', () => {
         agentModeEnabled
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: /^Agente$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Build$/ }))
     expect(onChange).toHaveBeenCalledWith('AGENT')
   })
 })
