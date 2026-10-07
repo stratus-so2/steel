@@ -544,7 +544,11 @@ describe('Steel AI 2 — master switch and Autopilot', () => {
     vi.mocked(createTask.preview as ReturnType<typeof vi.fn>).mockResolvedValue(
       ok({ title: 'Criar tarefa “Ligar”', summary: 'x' }),
     )
-    const ctx = { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' as const }
+    const ctx = {
+      workspaceId: 'ws1',
+      actorId: 'u1',
+      source: 'assistant' as const,
+    }
 
     const done = expectOk(
       await executeAutopilotWrite(
@@ -587,18 +591,33 @@ describe('Steel AI 2 — master switch and Autopilot', () => {
   it('executeAutopilotWrite() should report failures to the model', async () => {
     setup()
     repo.create.mockImplementation(async (data) =>
-      ok(pending({ ...data, args: data.args as never, preview: data.preview as never })),
+      ok(
+        pending({
+          ...data,
+          args: data.args as never,
+          preview: data.preview as never,
+        }),
+      ),
     )
     vi.mocked(createTask.preview as ReturnType<typeof vi.fn>).mockResolvedValue(
       ok({ title: 'Criar', summary: 'x' }),
     )
     execute.mockResolvedValue(err(forbidden('Sem permissão')))
-    const ctx = { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' as const }
+    const ctx = {
+      workspaceId: 'ws1',
+      actorId: 'u1',
+      source: 'assistant' as const,
+    }
     const failed = expectOk(
-      await executeAutopilotWrite(createTask, ctx, {}, {
-        conversationId: 'conv1',
-        toolCallId: 'call_1',
-      }),
+      await executeAutopilotWrite(
+        createTask,
+        ctx,
+        {},
+        {
+          conversationId: 'conv1',
+          toolCallId: 'call_1',
+        },
+      ),
     )
     expect(failed.action.status).toBe('FAILED')
     expect(JSON.parse(failed.content)).toEqual(
@@ -610,19 +629,29 @@ describe('Steel AI 2 — master switch and Autopilot', () => {
 
     repo.complete.mockResolvedValue(err(databaseError()))
     expectErr(
-      await executeAutopilotWrite(createTask, ctx, {}, {
-        conversationId: 'conv1',
-        toolCallId: 'call_1',
-      }),
+      await executeAutopilotWrite(
+        createTask,
+        ctx,
+        {},
+        {
+          conversationId: 'conv1',
+          toolCallId: 'call_1',
+        },
+      ),
       'DATABASE_ERROR',
     )
 
     repo.create.mockResolvedValue(err(databaseError()))
     expectErr(
-      await executeAutopilotWrite(createTask, ctx, {}, {
-        conversationId: 'conv1',
-        toolCallId: 'call_1',
-      }),
+      await executeAutopilotWrite(
+        createTask,
+        ctx,
+        {},
+        {
+          conversationId: 'conv1',
+          toolCallId: 'call_1',
+        },
+      ),
       'DATABASE_ERROR',
     )
   })

@@ -342,8 +342,16 @@ describe('Steel AI 2 fields', () => {
   })
 
   it('should attach files only to their user message and default to none', () => {
-    const user = createFakeAiMessage({ id: 'm1', role: 'USER', createdAt: at(1) })
-    const other = createFakeAiMessage({ id: 'm2', role: 'USER', createdAt: at(2) })
+    const user = createFakeAiMessage({
+      id: 'm1',
+      role: 'USER',
+      createdAt: at(1),
+    })
+    const other = createFakeAiMessage({
+      id: 'm2',
+      role: 'USER',
+      createdAt: at(2),
+    })
     const loose = createFakeAiAttachment({ id: 'a0', messageId: null })
     const sent = createFakeAiAttachment({ id: 'a1', messageId: 'm1' })
     const dtos = toAiMessageDTOs([user, other], [], meta, {

@@ -91,22 +91,27 @@ describe('AiAttachmentRepository', () => {
       ).map((a) => a.id),
     ).toEqual([mine.id])
     expect(
-      expectOk(
-        await AiAttachmentRepository.listByMessageIds([message.id]),
-      ).map((a) => a.id),
+      expectOk(await AiAttachmentRepository.listByMessageIds([message.id])).map(
+        (a) => a.id,
+      ),
     ).toEqual([mine.id])
-    expect(
-      expectOk(await AiAttachmentRepository.listByMessageIds([])),
-    ).toEqual([])
+    expect(expectOk(await AiAttachmentRepository.listByMessageIds([]))).toEqual(
+      [],
+    )
   })
 
   it('should delete only unsent attachments', async () => {
     const { workspace, user, conversation } = await context()
     const loose = await seedAiAttachment(workspace.id, conversation.id, user.id)
     const message = await seedAiMessage(conversation.id)
-    const sent = await seedAiAttachment(workspace.id, conversation.id, user.id, {
-      messageId: message.id,
-    })
+    const sent = await seedAiAttachment(
+      workspace.id,
+      conversation.id,
+      user.id,
+      {
+        messageId: message.id,
+      },
+    )
 
     expect(expectOk(await AiAttachmentRepository.deleteUnsent(loose.id))).toBe(
       true,

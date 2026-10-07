@@ -89,7 +89,6 @@ import {
 import { resolveToolAccess } from '@/src/lib/ai/tools/registry'
 import { AiActionLogRepository } from '@/src/repositories/ai-action-log.repository'
 import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
-import { AiAttachmentService } from '@/src/services/ai-attachment.service'
 import {
   AiConversationRepository,
   AiMessageRepository,
@@ -99,6 +98,7 @@ import { AiUsageRepository } from '@/src/repositories/ai-settings.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { UserPreferenceRepository } from '@/src/repositories/user-preference.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
+import { AiAttachmentService } from '@/src/services/ai-attachment.service'
 import {
   AiUsageService,
   type PreparedAiCall,
@@ -1216,7 +1216,10 @@ describe('SteelAiChatService.sendMessage() — Steel AI 2', () => {
     })
     mockedAccess.mockResolvedValue(ok(AUTOPILOT_ACCESS))
 
-    const events = await send({ content: 'Exclua o chamado', mode: 'AUTOPILOT' })
+    const events = await send({
+      content: 'Exclua o chamado',
+      mode: 'AUTOPILOT',
+    })
 
     expect(deleteExecute).toHaveBeenCalled()
     expect(pendingRepo.create).toHaveBeenCalledWith(
@@ -1338,18 +1341,21 @@ describe('SteelAiChatService.sendMessage() — Steel AI 2', () => {
 
     await send({ content: '', attachmentIds: ['a1', 'a2'] })
 
-    expect(attachmentService.loadForSend).toHaveBeenCalledWith(
-      'u1',
-      'conv1',
-      ['a1', 'a2'],
-    )
+    expect(attachmentService.loadForSend).toHaveBeenCalledWith('u1', 'conv1', [
+      'a1',
+      'a2',
+    ])
     expect(attachmentRepo.attachToMessage).toHaveBeenCalledWith(
       ['a1', 'a2'],
       expect.any(String),
     )
     const last = fake.requests[0].messages.at(-1)
     expect(last?.role).toBe('user')
-    const parts = last?.content as { type: string; text?: string; url?: string }[]
+    const parts = last?.content as {
+      type: string
+      text?: string
+      url?: string
+    }[]
     expect(parts[0].text).toContain('notas.txt')
     expect(parts[0].text).toContain('Prazo: sexta')
     expect(parts[1]).toEqual({
@@ -1410,9 +1416,7 @@ describe('SteelAiChatService.sendMessage() — Steel AI 2', () => {
       },
       content: '',
     })
-    vi.mocked(skillsCatalogForPrompt).mockResolvedValueOnce(
-      'Skills: /my-work',
-    )
+    vi.mocked(skillsCatalogForPrompt).mockResolvedValueOnce('Skills: /my-work')
     vi.mocked(memoryForPrompt).mockResolvedValueOnce('Memória: prefere tabelas')
 
     await send({ content: '/my-work' })

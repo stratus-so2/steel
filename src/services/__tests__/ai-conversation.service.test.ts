@@ -25,9 +25,8 @@ vi.mock('@/src/services/ai-settings.service', async (importOriginal) => ({
     typeof import('@/src/services/ai-settings.service')
   >()),
   // Provider keys are not set in unit tests: usable = enabled.
-  isModelUsable: vi.fn(
-    (settings: { enabledModels: string[] }, key: string) =>
-      settings.enabledModels.includes(key),
+  isModelUsable: vi.fn((settings: { enabledModels: string[] }, key: string) =>
+    settings.enabledModels.includes(key),
   ),
 }))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
@@ -467,7 +466,9 @@ describe('AiConversationService — Steel AI 2 switches and model', () => {
 
     settings.findByWorkspace.mockResolvedValue(
       ok(
-        createFakeWorkspaceAiSettings({ enabledModels: ['openai:gpt-4o-mini'] }),
+        createFakeWorkspaceAiSettings({
+          enabledModels: ['openai:gpt-4o-mini'],
+        }),
       ),
     )
     expectErr(

@@ -105,8 +105,9 @@ describe('Steel AI attachments', () => {
   it('should normalize and cap extracted text', () => {
     expect(normalizeExtractedText('a  \r\n\r\n\r\n\r\nb\t\n')).toBe('a\n\nb')
     expect(
-      normalizeExtractedText('x'.repeat(AI_ATTACHMENT_STORED_TEXT_MAX_CHARS + 5))
-        .length,
+      normalizeExtractedText(
+        'x'.repeat(AI_ATTACHMENT_STORED_TEXT_MAX_CHARS + 5),
+      ).length,
     ).toBe(AI_ATTACHMENT_STORED_TEXT_MAX_CHARS)
   })
 
@@ -170,9 +171,7 @@ describe('Steel AI attachments', () => {
       },
     ]) as { type: string; text: string }[]
     expect(parts).toHaveLength(1)
-    expect(parts[0].text).toBe(
-      'Resuma\n\n<anexo nome="vazio.txt">\n\n</anexo>',
-    )
+    expect(parts[0].text).toBe('Resuma\n\n<anexo nome="vazio.txt">\n\n</anexo>')
   })
 
   it('should respect the per-document and per-message budgets', () => {

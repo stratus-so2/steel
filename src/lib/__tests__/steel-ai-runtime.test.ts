@@ -263,7 +263,7 @@ describe('toProviderHistory() — attachments', () => {
     const content = withNote.content as typeof parts
     expect(content[0].type).toBe('text')
     expect((content[0] as { text: string }).text).toMatch(
-      /^\[Atualização do sistema.*\n\nVeja$/s,
+      /^\[Atualização do sistema[\s\S]*\n\nVeja$/,
     )
     expect(content[1]).toEqual(parts[1])
 

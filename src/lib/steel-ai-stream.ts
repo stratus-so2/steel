@@ -147,6 +147,7 @@ export function applySteelAiStreamEvent(
     case 'tool.end':
       return { ...state, toolCalls: upsertById(state.toolCalls, event.call) }
     case 'action.pending':
+    case 'action.executed':
       return {
         ...state,
         pendingActions: upsertById(state.pendingActions, event.action),

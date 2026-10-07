@@ -14,6 +14,7 @@ import type {
   UpdateAiConversationDTO,
 } from '@/src/schemas/steel-ai.schema'
 import type {
+  AiAttachmentDTO,
   AiCapabilitiesDTO,
   AiConversationDTO,
   AiMessageDTO,
@@ -251,6 +252,45 @@ export function useCancelSteelAiAction(workspaceId: string) {
   })
 }
 
+/** Uploads a file or photo for the next message (multipart `file`). */
+export function useUploadSteelAiAttachment(workspaceId: string) {
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      file,
+    }: {
+      conversationId: string
+      file: File
+    }) => {
+      const body = new FormData()
+      body.append('file', file)
+      return apiFetch<AiAttachmentDTO>(
+        `${base(workspaceId)}/conversations/${conversationId}/attachments`,
+        { method: 'POST', body },
+        'Erro ao enviar o anexo',
+      )
+    },
+  })
+}
+
+/** Removes an attachment that was not sent yet. */
+export function useDeleteSteelAiAttachment(workspaceId: string) {
+  return useMutation({
+    mutationFn: ({
+      conversationId,
+      attachmentId,
+    }: {
+      conversationId: string
+      attachmentId: string
+    }) =>
+      apiSend(
+        `${base(workspaceId)}/conversations/${conversationId}/attachments/${attachmentId}`,
+        { method: 'DELETE' },
+        'Erro ao remover o anexo',
+      ),
+  })
+}
+
 export interface SteelAiStreamError {
   code: string | null
   message: string
@@ -260,6 +300,8 @@ export interface SteelAiStreamError {
 export interface SteelAiStreamState {
   /** The user's message, shown until the persisted transcript is refetched. */
   pendingUserMessage: string | null
+  /** Files sent with that message (shown in the pending bubble). */
+  pendingAttachments: AiAttachmentDTO[]
   live: SteelAiLiveMessage | null
   isStreaming: boolean
   error: SteelAiStreamError | null
@@ -274,6 +316,7 @@ export interface SteelAiSendResult {
 
 const IDLE: SteelAiStreamState = {
   pendingUserMessage: null,
+  pendingAttachments: [],
   live: null,
   isStreaming: false,
   error: null,
@@ -326,14 +369,18 @@ export function useSteelAiStream(workspaceId: string, conversationId: string) {
   }, [queryClient, workspaceId, conversationId])
 
   const send = useCallback(
-    async (input: SendAiMessageInput): Promise<SteelAiSendResult> => {
+    async (
+      input: SendAiMessageInput,
+      preview: { attachments?: AiAttachmentDTO[] } = {},
+    ): Promise<SteelAiSendResult> => {
       if (controllerRef.current) {
         return { ok: false, stopped: false, error: null }
       }
       const controller = new AbortController()
       controllerRef.current = controller
       setState({
-        pendingUserMessage: input.content,
+        pendingUserMessage: input.content ?? '',
+        pendingAttachments: preview.attachments ?? [],
         live: emptySteelAiLiveMessage(),
         isStreaming: true,
         error: null,

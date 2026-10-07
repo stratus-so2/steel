@@ -1,6 +1,9 @@
 'use client'
 
-import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  Airplane01Icon,
+  ArrowDown01Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import {
@@ -12,6 +15,7 @@ import {
 } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
+import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/src/hooks/_fetch'
 import {
@@ -20,9 +24,14 @@ import {
   useSteelAiConversation,
   useSteelAiMessages,
   useSteelAiStream,
+  useUpdateSteelAiConversation,
 } from '@/src/hooks/use-steel-ai'
 import { isQuotaExceeded } from '@/src/lib/ai/quota'
-import type { AiConversationModeDTO } from '@/types/steel-ai'
+import type { AiAttachmentDTO, AiConversationModeDTO } from '@/types/steel-ai'
+import {
+  STEEL_AI_DEFAULT_ATTACHMENT_LIMITS,
+  useSteelAiDraftAttachments,
+} from './steel-ai-attachments'
 import { SteelAiComposer } from './steel-ai-composer'
 import { useSteelAiWorkspace } from './steel-ai-context'
 import {
@@ -30,7 +39,13 @@ import {
   takeSteelAiPrompt,
 } from './steel-ai-handoff'
 import { STEEL_AI_UNTITLED } from './steel-ai-history'
-import { STEEL_AI_QUOTA_MESSAGE, SteelAiNotice } from './steel-ai-notice'
+import { allowedSteelAiMode } from './steel-ai-mode-switch'
+import {
+  STEEL_AI_AUTOPILOT_NOTICE,
+  STEEL_AI_DISABLED_MESSAGE,
+  STEEL_AI_QUOTA_MESSAGE,
+  SteelAiNotice,
+} from './steel-ai-notice'
 import { SteelAiTopBar } from './steel-ai-top-bar'
 import {
   SteelAiTranscript,
@@ -51,9 +66,18 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   const conversation = useSteelAiConversation(workspaceId, conversationId)
   const messages = useSteelAiMessages(workspaceId, conversationId)
   const stream = useSteelAiStream(workspaceId, conversationId)
+  const updateConversation = useUpdateSteelAiConversation(workspaceId)
+  const caps = capabilities.data
+  const files = useSteelAiDraftAttachments({
+    workspaceId,
+    conversationId,
+    limits: caps?.attachments ?? STEEL_AI_DEFAULT_ATTACHMENT_LIMITS,
+    onReject: (message) => notify.error(message),
+  })
 
   const [draft, setDraft] = useState('')
   const [mode, setMode] = useState<AiConversationModeDTO | null>(null)
+  const [modelKey, setModelKey] = useState<string | null>(null)
   const [handoff, setHandoff] = useState<SteelAiPendingPrompt | null>(null)
   const [dockOffset, setDockOffset] = useState(0)
   const [showJump, setShowJump] = useState(false)
@@ -64,13 +88,14 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   const takenRef = useRef(false)
   const sentRef = useRef(false)
 
-  const agentModeEnabled = capabilities.data?.agentModeEnabled ?? false
+  const agentModeEnabled = caps?.agentModeEnabled ?? false
+  const autopilotEnabled = caps?.autopilotEnabled ?? false
+  const aiDisabled = caps?.aiEnabled === false
   const chosenMode = mode ?? conversation.data?.mode ?? 'EXPLORE'
-  const effectiveMode =
-    chosenMode === 'AGENT' && capabilities.data && !agentModeEnabled
-      ? 'EXPLORE'
-      : chosenMode
-  const quota = capabilities.data?.quota
+  const effectiveMode = allowedSteelAiMode(chosenMode, caps ?? null)
+  const selectedModel =
+    modelKey ?? conversation.data?.modelKey ?? caps?.modelKey ?? null
+  const quota = caps?.quota
   const quotaExhausted = quota
     ? isQuotaExceeded(quota.usedUsd, quota.quotaUsd)
     : false
@@ -86,14 +111,36 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   }, [])
 
   const submit = useCallback(
-    async (content: string, sendMode: AiConversationModeDTO) => {
+    async (
+      content: string,
+      sendMode: AiConversationModeDTO,
+      options: {
+        attachments?: AiAttachmentDTO[]
+        modelKey?: string | null
+      } = {},
+    ) => {
       const text = content.trim()
-      if (!text) return
+      const attachments = options.attachments ?? []
+      if (!text && attachments.length === 0) return
       stickRef.current = true
       setShowJump(false)
-      const result = await stream.send({ content: text, mode: sendMode })
-      if (result.error?.code === 'AI_AGENT_MODE_DISABLED') {
-        setMode('EXPLORE')
+      const result = await stream.send(
+        {
+          content: text,
+          mode: sendMode,
+          ...(options.modelKey && { modelKey: options.modelKey }),
+          attachmentIds: attachments.map((a) => a.id),
+        },
+        { attachments },
+      )
+      const code = result.error?.code
+      if (
+        code === 'AI_AGENT_MODE_DISABLED' ||
+        code === 'AI_AUTOPILOT_DISABLED' ||
+        code === 'AI_DISABLED'
+      ) {
+        if (code === 'AI_AGENT_MODE_DISABLED') setMode('EXPLORE')
+        if (code === 'AI_AUTOPILOT_DISABLED') setMode('AGENT')
         queryClient.invalidateQueries({
           queryKey: STEEL_AI_CAPABILITIES_KEY(workspaceId),
         })
@@ -101,10 +148,36 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
       // Rejected before streaming: nothing was saved, give the text back.
       if (result.error && result.error.status !== null) {
         setDraft((current) => (current.trim() ? current : text))
+        return false
       }
+      return true
     },
     [stream.send, queryClient, workspaceId],
   )
+
+  const changeModel = useCallback(
+    (key: string) => {
+      setModelKey(key)
+      updateConversation.mutate(
+        { conversationId, data: { modelKey: key } },
+        { onError: notify.error },
+      )
+    },
+    [conversationId, updateConversation.mutate],
+  )
+
+  async function sendDraft() {
+    const text = draft
+    const attachments = files.ready
+    setDraft('')
+    const accepted = await submit(text, effectiveMode, {
+      attachments,
+      modelKey: selectedModel,
+    })
+    // The files now belong to the sent message (or the turn failed midway,
+    // which also persisted it); a rejected send keeps them for a retry.
+    if (accepted) files.clear()
+  }
 
   // Take the prompt handed over by the welcome screen (once, before paint,
   // so the composer can start where it was: in the center).
@@ -122,6 +195,7 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
       setDockOffset(Math.max(0, rect.top - centeredTop))
     }
     setMode(prompt.mode)
+    if (prompt.modelKey) setModelKey(prompt.modelKey)
     setHandoff(prompt)
   }, [conversationId])
 
@@ -134,7 +208,10 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   useEffect(() => {
     if (!handoff || sentRef.current) return
     sentRef.current = true
-    submit(handoff.content, handoff.mode)
+    submit(handoff.content, handoff.mode, {
+      attachments: handoff.attachments,
+      modelKey: handoff.modelKey,
+    })
   }, [handoff, submit])
 
   // Follow the reply while the user is at the bottom; never pull them back
@@ -226,6 +303,7 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
                 workspaceId={workspaceId}
                 messages={history}
                 pendingUserMessage={stream.pendingUserMessage}
+                pendingAttachments={stream.pendingAttachments}
                 live={stream.live}
               />
             )}
@@ -249,8 +327,15 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
             </Button>
           ) : null}
           <div className='mx-auto w-full max-w-3xl space-y-2 sm:px-6'>
-            {quotaExhausted && stream.error?.code !== 'AI_QUOTA_EXCEEDED' ? (
+            {aiDisabled ? (
+              <SteelAiNotice>{STEEL_AI_DISABLED_MESSAGE}</SteelAiNotice>
+            ) : quotaExhausted && stream.error?.code !== 'AI_QUOTA_EXCEEDED' ? (
               <SteelAiNotice>{STEEL_AI_QUOTA_MESSAGE}</SteelAiNotice>
+            ) : null}
+            {effectiveMode === 'AUTOPILOT' && !aiDisabled ? (
+              <SteelAiNotice tone='info' icon={Airplane01Icon}>
+                {STEEL_AI_AUTOPILOT_NOTICE}
+              </SteelAiNotice>
             ) : null}
             {errorMessage ? (
               <SteelAiNotice
@@ -271,17 +356,31 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
               containerRef={composerRef}
               value={draft}
               onChange={setDraft}
-              onSubmit={() => {
-                const text = draft
-                setDraft('')
-                submit(text, effectiveMode)
-              }}
+              onSubmit={sendDraft}
               onStop={stream.stop}
               mode={effectiveMode}
               onModeChange={setMode}
               agentModeEnabled={agentModeEnabled}
+              autopilotEnabled={autopilotEnabled}
+              attachments={{
+                items: files.items,
+                onAdd: files.add,
+                onRemove: files.discard,
+                accept: (
+                  caps?.attachments ?? STEEL_AI_DEFAULT_ATTACHMENT_LIMITS
+                ).accept,
+              }}
+              model={
+                caps
+                  ? {
+                      models: caps.models,
+                      value: selectedModel,
+                      onChange: changeModel,
+                    }
+                  : undefined
+              }
               isStreaming={stream.isStreaming}
-              disabled={quotaExhausted}
+              disabled={quotaExhausted || aiDisabled}
               placeholder='Responda ao Steel AI…'
               autoFocus
               style={
@@ -298,7 +397,9 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
               O Steel AI pode errar. Confira as informações importantes
               {effectiveMode === 'AGENT'
                 ? ' — nenhuma alteração é feita sem a sua confirmação.'
-                : '.'}
+                : effectiveMode === 'AUTOPILOT'
+                  ? ' — no Autopilot as alterações são feitas sem confirmação.'
+                  : '.'}
             </p>
           </div>
         </div>

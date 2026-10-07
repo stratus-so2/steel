@@ -207,7 +207,9 @@ describe('AiAttachmentService.upload()', () => {
 describe('AiAttachmentService.download()', () => {
   it('should serve the file to the conversation owner', async () => {
     repo.findById.mockResolvedValue(
-      ok(createFakeAiAttachment({ contentType: 'image/png', filename: 'f.png' })),
+      ok(
+        createFakeAiAttachment({ contentType: 'image/png', filename: 'f.png' }),
+      ),
     )
     expect(
       expectOk(await AiAttachmentService.download('u1', 'ws1', 'conv1', 'a1')),
@@ -300,9 +302,9 @@ describe('AiAttachmentService.remove()', () => {
 
 describe('AiAttachmentService.loadForSend()', () => {
   it('should return nothing without ids', async () => {
-    expect(expectOk(await AiAttachmentService.loadForSend('u1', 'c', []))).toEqual(
-      [],
-    )
+    expect(
+      expectOk(await AiAttachmentService.loadForSend('u1', 'c', [])),
+    ).toEqual([])
     expect(repo.listUnsent).not.toHaveBeenCalled()
   })
 
@@ -328,7 +330,9 @@ describe('AiAttachmentService.loadForSend()', () => {
   })
 
   it('should fail when any id is unknown, sent or someone else’s', async () => {
-    repo.listUnsent.mockResolvedValue(ok([createFakeAiAttachment({ id: 'd1' })]))
+    repo.listUnsent.mockResolvedValue(
+      ok([createFakeAiAttachment({ id: 'd1' })]),
+    )
     expectErr(
       await AiAttachmentService.loadForSend('u1', 'conv1', ['d1', 'x']),
       'AI_ATTACHMENT_NOT_FOUND',
