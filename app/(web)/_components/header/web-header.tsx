@@ -46,7 +46,7 @@ import {
 
 export function WebHeader() {
   return (
-    <header className='mx-auto grid w-full grid-cols-[auto_1fr] items-center gap-2 px-4 lg:grid-cols-[1fr_auto_1fr] py-3 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384'>
+    <header className='mx-auto grid w-full grid-cols-[auto_1fr] items-center gap-2 px-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-0 py-3 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384'>
       <Link href='/' className='justify-self-start'>
         <Image src='/brand/logo.svg' alt='steel-logo' width={100} height={45} />
       </Link>
