@@ -193,6 +193,24 @@ describe('AiUsageAnalyticsRepository', () => {
     expect(mine).toHaveLength(2)
   })
 
+  it('reads empty sums as zero', async () => {
+    const workspace = await seedWorkspace()
+    vi.spyOn(prisma.aiUsage, 'groupBy').mockResolvedValueOnce([
+      {
+        userId: null,
+        _sum: { costUsd: null, inputTokens: null, outputTokens: null },
+        _count: { _all: 0 },
+      },
+    ] as never)
+    expect(
+      expectOk(
+        await AiUsageAnalyticsRepository.groupByUser(workspace.id, RANGE),
+      ),
+    ).toEqual([
+      { userId: null, costUsd: 0, inputTokens: 0, outputTokens: 0, calls: 0 },
+    ])
+  })
+
   it('wraps database failures', async () => {
     const workspace = await seedWorkspace()
     vi.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(new Error('down'))
