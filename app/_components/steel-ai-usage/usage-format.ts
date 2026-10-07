@@ -32,9 +32,15 @@ export function formatUsd(value: number): string {
     : usdCents.format(value)
 }
 
-/** Axis ticks: whole cents only. */
+const usdWhole = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+})
+
+/** Axis ticks: whole dollars from US$ 10 up, cents below. */
 export function formatUsdTick(value: number): string {
-  return usdCents.format(value)
+  return Math.abs(value) >= 10 ? usdWhole.format(value) : usdCents.format(value)
 }
 
 export function formatInteger(value: number): string {

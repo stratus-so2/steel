@@ -111,7 +111,7 @@ export function UsageLineChart({
           color: s.color,
           data: s.values.map((y, i) => ({ x: `${i}`, y })),
         }))}
-        margin={{ top: 10, right: 12, bottom: 26, left: 64 }}
+        margin={{ top: 10, right: 24, bottom: 26, left: 72 }}
         colors={(s) => s.color as string}
         curve='linear'
         lineWidth={2}
