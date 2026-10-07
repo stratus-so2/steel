@@ -53,6 +53,9 @@ const ACCESS = {
   isPrivileged: false,
   permissions: { tasks: ['VIEW' as const, 'CREATE' as const] },
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
 }
 
 const execute = vi.fn()

@@ -406,6 +406,9 @@ const FULL_ACCESS: AiToolAccess = {
   isPrivileged: true,
   permissions: null,
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
 }
 
 /** What every call sent before this change: all tools, raw schemas. */

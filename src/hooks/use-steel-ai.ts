@@ -10,7 +10,7 @@ import {
 } from '@/src/lib/steel-ai-stream'
 import type {
   CreateAiConversationDTO,
-  SendAiMessageDTO,
+  SendAiMessageInput,
   UpdateAiConversationDTO,
 } from '@/src/schemas/steel-ai.schema'
 import type {
@@ -326,7 +326,7 @@ export function useSteelAiStream(workspaceId: string, conversationId: string) {
   }, [queryClient, workspaceId, conversationId])
 
   const send = useCallback(
-    async (input: SendAiMessageDTO): Promise<SteelAiSendResult> => {
+    async (input: SendAiMessageInput): Promise<SteelAiSendResult> => {
       if (controllerRef.current) {
         return { ok: false, stopped: false, error: null }
       }

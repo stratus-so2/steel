@@ -28,6 +28,7 @@ const userMessage: AiMessageDTO = {
   content: 'Qual o valor do pipeline?',
   toolCalls: [],
   pendingActions: [],
+  attachments: [],
   createdAt: '2026-10-06T12:00:00.000Z',
 }
 
@@ -47,6 +48,7 @@ const assistantMessage: AiMessageDTO = {
     },
   ],
   pendingActions: [],
+  attachments: [],
   createdAt: '2026-10-06T12:00:01.000Z',
 }
 

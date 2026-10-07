@@ -91,6 +91,9 @@ const ACCESS = {
   isPrivileged: true,
   permissions: null,
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
 }
 
 const readExecute = vi.fn()

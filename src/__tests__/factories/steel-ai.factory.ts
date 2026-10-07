@@ -1,6 +1,7 @@
 import { createId } from '@paralleldrive/cuid2'
 import type {
   AiActionLog,
+  AiAttachment,
   AiConversation,
   AiMessage,
   AiPendingAction,
@@ -63,6 +64,7 @@ export function createFakeAiPendingAction(
     preview: { title: 'Criar tarefa', summary: 'Ligar para o cliente' },
     status: 'PENDING',
     requiresDoubleConfirm: false,
+    autoExecuted: false,
     result: null,
     error: null,
     expiresAt: new Date(now.getTime() + 30 * 60_000),
@@ -119,6 +121,54 @@ export async function seedAiMessage(
 ) {
   return prisma.aiMessage.create({
     data: { conversationId, role: 'USER', content: 'Olá', ...overrides },
+  })
+}
+
+export function createFakeAiAttachment(
+  overrides?: Partial<AiAttachment>,
+): AiAttachment {
+  const id = overrides?.id ?? createId()
+  return {
+    id,
+    workspaceId: 'ws1',
+    conversationId: 'conv1',
+    messageId: null,
+    uploadedById: 'u1',
+    kind: 'DOCUMENT',
+    filename: 'contrato.pdf',
+    contentType: 'application/pdf',
+    sizeBytes: 1024,
+    storageKey: `ws1/conv1/${id}-contrato.pdf`,
+    extractedText: 'Cláusula 1: prazo de 12 meses.',
+    createdAt: new Date('2026-10-07T12:00:00.000Z'),
+    ...overrides,
+  }
+}
+
+export async function seedAiAttachment(
+  workspaceId: string,
+  conversationId: string,
+  uploadedById: string,
+  overrides?: Partial<
+    Omit<
+      Prisma.AiAttachmentUncheckedCreateInput,
+      'workspaceId' | 'conversationId' | 'uploadedById'
+    >
+  >,
+) {
+  return prisma.aiAttachment.create({
+    data: {
+      workspaceId,
+      conversationId,
+      uploadedById,
+      kind: 'DOCUMENT',
+      filename: 'notas.txt',
+      contentType: 'text/plain',
+      sizeBytes: 10,
+      storageKey: `${workspaceId}/${conversationId}/${createId()}-notas.txt`,
+      extractedText: 'notas',
+      ...overrides,
+    },
   })
 }
 

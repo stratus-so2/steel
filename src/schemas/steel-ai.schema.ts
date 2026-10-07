@@ -54,6 +54,8 @@ export const SendAiMessageSchema = z
     path: ['content'],
   })
 export type SendAiMessageDTO = z.infer<typeof SendAiMessageSchema>
+/** Request body as the client sends it (defaults not applied yet). */
+export type SendAiMessageInput = z.input<typeof SendAiMessageSchema>
 
 /**
  * Confirming a pending action. DELETE actions require `doubleConfirmed: true`

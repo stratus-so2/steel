@@ -127,6 +127,15 @@ async function preflight(
     }
     return { kind: 'fail', error: access.error.message }
   }
+  if (!access.value.aiEnabled) {
+    return { kind: 'skip', reason: 'O Steel AI está desligado no workspace.' }
+  }
+  if (!access.value.agentsEnabled) {
+    return {
+      kind: 'skip',
+      reason: 'Os Steel Agents estão desligados no workspace.',
+    }
+  }
 
   const configured = agent.tools
     .map((t) => findTool(t.toolName))

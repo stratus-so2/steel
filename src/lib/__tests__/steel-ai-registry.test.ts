@@ -75,6 +75,9 @@ const access = (overrides: Partial<AiToolAccess> = {}): AiToolAccess => ({
   isPrivileged: false,
   permissions: { leads: ['VIEW'], 'sd-tickets': ['VIEW', 'CREATE'] },
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
   ...overrides,
 })
 
