@@ -10,10 +10,15 @@ import {
   InviteToProjectSchema,
 } from '@/src/schemas/invitation.schema'
 import {
+  ArchiveReadNotificationsSchema,
   MarkNotificationsReadSchema,
   NotificationBulkActionSchema,
+  SnoozeNotificationsSchema,
 } from '@/src/schemas/notification.schema'
-import { UpdateNotificationPreferencesSchema } from '@/src/schemas/notification-preference.schema'
+import {
+  UpdateNotificationDeliverySchema,
+  UpdateNotificationPreferencesSchema,
+} from '@/src/schemas/notification-preference.schema'
 import { UpdateNotificationSettingSchema } from '@/src/schemas/notification-settings.schema'
 import {
   CreateProfileSchema,
@@ -60,12 +65,15 @@ import {
   CouponPreviewDTO,
   DailyPointDTO,
   FeatureMapDTO,
+  InboxAiPendingListDTO,
   InvitationDTO,
   MediaUrlDTO,
+  NotificationDeliveryDTO,
   NotificationListDTO,
   NotificationPreferenceListDTO,
   NotificationRealtimeEventDTO,
   NotificationSettingDTO,
+  NotificationSnoozeResultDTO,
   ProfileDTO,
   ProjectDTO,
   ProjectMemberDTO,
@@ -764,9 +772,15 @@ const workspaces: RouteConfig[] = [
       properties: {
         folder: {
           type: 'string',
-          enum: ['all', 'unread', 'archived'],
+          enum: ['all', 'unread', 'archived', 'snoozed'],
           description:
-            'Pasta. `all` (padrão) esconde as arquivadas; `archived` mostra só elas.',
+            'Pasta. `all` (padrão) esconde as arquivadas e as adiadas; `archived` mostra só as arquivadas; `snoozed`, as adiadas que ainda não voltaram.',
+        },
+        quick: {
+          type: 'string',
+          enum: ['mentions', 'assigned'],
+          description:
+            'Filtro rápido por um conjunto fixo de tipos: `mentions` (menções) ou `assigned` (atribuições a você). Cruza com `module` e `kind`.',
         },
         module: {
           type: 'string',
@@ -805,7 +819,7 @@ const workspaces: RouteConfig[] = [
     tags: ['Configurações do workspace'],
     summary: 'Ações na caixa de entrada',
     description:
-      'Ação de cliente de e-mail em até 100 notificações **do próprio usuário** (ids de outra pessoa são ignorados e não contam em `updated`): `read`, `unread`, `archive`, `unarchive`, `delete` (exclusão lógica) e `restore`, que é o "desfazer" da exclusão e o único que enxerga as já excluídas. A mesma rota serve a ação de uma linha e a ação em lote.',
+      'Ação de cliente de e-mail em até 100 notificações **do próprio usuário** (ids de outra pessoa são ignorados e não contam em `updated`): `read`, `unread`, `archive`, `unarchive`, `delete` (exclusão lógica), `restore`, que é o "desfazer" da exclusão e o único que enxerga as já excluídas, e `unsnooze` (desfaz o adiamento). A mesma rota serve a ação de uma linha e a ação em lote.',
     body: NotificationBulkActionSchema,
     responses: {
       200: {
@@ -841,7 +855,7 @@ const workspaces: RouteConfig[] = [
     tags: ['Configurações do workspace'],
     summary: 'Marcar notificações como lidas',
     description:
-      'Com `ids` (até 100), marca essas; sem `ids`, marca todas do usuário no workspace.',
+      'Com `ids` (até 100), marca essas; sem `ids`, marca todas do usuário no workspace — ou só as do `module`/`kind` informado. As adiadas ficam de fora.',
     body: MarkNotificationsReadSchema,
     responses: {
       200: {
@@ -879,6 +893,78 @@ const workspaces: RouteConfig[] = [
         description: 'Preferências atualizadas.',
         schema: NotificationPreferenceListDTO,
       },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/notifications/preferences/delivery',
+    tags: ['Configurações do workspace'],
+    summary: 'Canais de entrega da caixa de entrada',
+    description:
+      'Canais do próprio usuário no workspace, independentes do tipo: hoje só a notificação do navegador (desligada até o usuário ativar). A permissão do navegador continua sendo do navegador; isto guarda a escolha da pessoa.',
+    responses: {
+      200: { description: 'Canais.', schema: NotificationDeliveryDTO },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'put',
+    path: '/workspaces/{id}/notifications/preferences/delivery',
+    tags: ['Configurações do workspace'],
+    summary: 'Ligar ou desligar notificações do navegador',
+    description:
+      'Liga ou desliga as notificações do navegador para os tipos urgentes (SLA violado/em risco, aprovação solicitada, aprovação de agente, chamado ou conversa atribuída, ação da IA expirando). Só aparecem com a aba em segundo plano.',
+    body: UpdateNotificationDeliverySchema,
+    responses: {
+      200: {
+        description: 'Canais atualizados.',
+        schema: NotificationDeliveryDTO,
+      },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/notifications/archive-read',
+    tags: ['Configurações do workspace'],
+    summary: 'Arquivar todas as lidas',
+    description:
+      'Arquiva todas as notificações lidas do próprio usuário — ou só as do `module`/`kind` informado. As adiadas ficam de fora.',
+    body: ArchiveReadNotificationsSchema,
+    responses: {
+      200: {
+        description: 'Quantidade arquivada.',
+        schema: z.object({ updated: z.number().int() }),
+      },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/notifications/snooze',
+    tags: ['Configurações do workspace'],
+    summary: 'Adiar notificações',
+    description:
+      'Adia até 100 notificações **do próprio usuário**: `1h`, `3h`, `tomorrow` (amanhã às 9h) ou `next-week` (próxima segunda às 9h), no fuso das preferências pessoais. Somem de todas as pastas (menos `snoozed`) e voltam como não lidas. Desfaça com a ação `unsnooze`.',
+    body: SnoozeNotificationsSchema,
+    responses: {
+      200: {
+        description: 'Quantidade adiada e quando voltam.',
+        schema: NotificationSnoozeResultDTO,
+      },
+    },
+    errors: WORKSPACE_MEMBER_ERRORS,
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/notifications/ai-pending',
+    tags: ['Configurações do workspace'],
+    summary: 'Pendências da IA',
+    description:
+      'Pendências da IA na caixa de entrada, a mais perto de expirar primeiro: as ações do Steel AI que **o próprio usuário** pediu no modo Build e ainda esperam confirmação, e as escritas de Steel Agents aguardando aprovação que ele pode decidir (responsável pelo agente ou quem gerencia agentes). Decida pelas rotas `/ai/actions/{actionId}/confirm|cancel` e `/agents/runs/{runId}/actions/{actionId}/approve|reject`, que revalidam tudo.',
+    responses: {
+      200: { description: 'Pendências.', schema: InboxAiPendingListDTO },
     },
     errors: WORKSPACE_MEMBER_ERRORS,
   },

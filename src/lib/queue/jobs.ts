@@ -31,6 +31,7 @@ export const QueueName = {
   CrmTaskReminders: 'crm-task-reminders',
   ServicedeskTaskReminders: 'servicedesk-task-reminders',
   SteelAgents: 'steel-agents',
+  Notifications: 'notifications',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -584,4 +585,20 @@ export type SteelAgentsJob =
 export type SteelAgentsJobPayload = {
   [SteelAgentsJob.Tick]: Record<string, never>
   [SteelAgentsJob.Run]: { runId: string }
+}
+
+/**
+ * Inbox housekeeping: `ai-action-expiry-tick` (every minute) warns the
+ * requester ~5 minutes before a pending Steel AI action expires, once per
+ * action (`dedupeKey`).
+ */
+export const NotificationsJob = {
+  AiActionExpiryTick: 'ai-action-expiry-tick',
+} as const
+
+export type NotificationsJob =
+  (typeof NotificationsJob)[keyof typeof NotificationsJob]
+
+export type NotificationsJobPayload = {
+  [NotificationsJob.AiActionExpiryTick]: Record<string, never>
 }

@@ -57,7 +57,7 @@ function page(items: NotificationDTO[], unread: number): NotificationListDTO {
     items,
     unreadCount: unread,
     nextCursor: null,
-    counts: { all: items.length, unread, archived: 0 },
+    counts: { all: items.length, unread, archived: 0, snoozed: 0 },
   }
 }
 

@@ -17,6 +17,17 @@ export interface NotificationListParams {
   search?: string
   cursor?: string
   limit: number
+  /** Reference instant for snoozes (defaults to now). */
+  now?: Date
+}
+
+/**
+ * Snoozed rows stay out of every folder until `snoozedUntil` passes; then
+ * they are back (still carrying the past `snoozedUntil`, so the UI can tell
+ * they resurfaced).
+ */
+function notSnoozed(now: Date): Prisma.NotificationWhereInput {
+  return { OR: [{ snoozedUntil: null }, { snoozedUntil: { lte: now } }] }
 }
 
 /**
@@ -26,10 +37,16 @@ export interface NotificationListParams {
  */
 function folderWhere(
   folder: NotificationFolder,
+  now: Date,
 ): Prisma.NotificationWhereInput {
+  if (folder === 'snoozed') {
+    return { archivedAt: null, snoozedUntil: { gt: now } }
+  }
   if (folder === 'archived') return { archivedAt: { not: null } }
-  if (folder === 'unread') return { archivedAt: null, readAt: null }
-  return { archivedAt: null }
+  if (folder === 'unread') {
+    return { archivedAt: null, readAt: null, ...notSnoozed(now) }
+  }
+  return { archivedAt: null, ...notSnoozed(now) }
 }
 
 function listWhere(
@@ -39,16 +56,21 @@ function listWhere(
     workspaceId: params.workspaceId,
     userId: params.userId,
     deletedAt: null,
-    ...folderWhere(params.folder),
     ...(params.kinds ? { kind: { in: params.kinds as never } } : {}),
-    ...(params.search
-      ? {
-          OR: [
-            { title: { contains: params.search, mode: 'insensitive' } },
-            { body: { contains: params.search, mode: 'insensitive' } },
-          ],
-        }
-      : {}),
+    // Folder and search both use OR, so they are ANDed explicitly.
+    AND: [
+      folderWhere(params.folder, params.now ?? new Date()),
+      ...(params.search
+        ? [
+            {
+              OR: [
+                { title: { contains: params.search, mode: 'insensitive' } },
+                { body: { contains: params.search, mode: 'insensitive' } },
+              ],
+            } satisfies Prisma.NotificationWhereInput,
+          ]
+        : []),
+    ],
   }
 }
 
@@ -68,6 +90,8 @@ function actionData(
       return { archivedAt: null }
     case 'delete':
       return { deletedAt: now }
+    case 'unsnooze':
+      return { snoozedUntil: null }
     default:
       return { deletedAt: null }
   }
@@ -136,6 +160,7 @@ export const NotificationRepository = {
   async countUnread(
     workspaceId: string,
     userId: string,
+    now: Date = new Date(),
   ): Promise<Result<number>> {
     try {
       const count = await prisma.notification.count({
@@ -145,6 +170,7 @@ export const NotificationRepository = {
           readAt: null,
           deletedAt: null,
           archivedAt: null,
+          ...notSnoozed(now),
         },
       })
       return ok(count)
@@ -157,30 +183,40 @@ export const NotificationRepository = {
   async countFolders(
     workspaceId: string,
     userId: string,
+    now: Date = new Date(),
   ): Promise<Result<NotificationFolderCountsDTO>> {
     const scope = { workspaceId, userId, deletedAt: null }
     try {
-      const [all, unread, archived] = await Promise.all([
-        prisma.notification.count({ where: { ...scope, archivedAt: null } }),
+      const [all, unread, archived, snoozed] = await Promise.all([
         prisma.notification.count({
-          where: { ...scope, archivedAt: null, readAt: null },
+          where: { ...scope, ...folderWhere('all', now) },
         }),
         prisma.notification.count({
-          where: { ...scope, archivedAt: { not: null } },
+          where: { ...scope, ...folderWhere('unread', now) },
+        }),
+        prisma.notification.count({
+          where: { ...scope, ...folderWhere('archived', now) },
+        }),
+        prisma.notification.count({
+          where: { ...scope, ...folderWhere('snoozed', now) },
         }),
       ])
-      return ok({ all, unread, archived })
+      return ok({ all, unread, archived, snoozed })
     } catch (error) {
       return err(dbError('Failed to count notifications', error))
     }
   },
 
   /** Marca como lidas as notificações do próprio usuário (todas, ou só
-   * `ids`). Ids de outro usuário/workspace são ignorados pelo filtro. */
+   * `ids`). Ids de outro usuário/workspace são ignorados pelo filtro. Sem
+   * `ids`, `kinds` restringe o "marcar todas" ao filtro da tela, e as
+   * adiadas ficam de fora (voltam como não lidas). */
   async markRead(
     workspaceId: string,
     userId: string,
     ids?: string[],
+    kinds?: string[],
+    now: Date = new Date(),
   ): Promise<Result<number>> {
     try {
       const result = await prisma.notification.updateMany({
@@ -189,7 +225,13 @@ export const NotificationRepository = {
           userId,
           readAt: null,
           deletedAt: null,
-          ...(ids ? { id: { in: ids } } : { archivedAt: null }),
+          ...(ids
+            ? { id: { in: ids } }
+            : {
+                archivedAt: null,
+                ...notSnoozed(now),
+                ...(kinds ? { kind: { in: kinds as never } } : {}),
+              }),
         },
         data: { readAt: new Date() },
       })
@@ -224,6 +266,62 @@ export const NotificationRepository = {
       return ok(result.count)
     } catch (error) {
       return err(dbError('Failed to update notifications', error))
+    }
+  },
+
+  /**
+   * "Arquivar lidas": every read, visible notification of the user (optionally
+   * only `kinds`) goes to the archive. Snoozed ones are untouched.
+   */
+  async archiveRead(
+    workspaceId: string,
+    userId: string,
+    kinds?: string[],
+    now: Date = new Date(),
+  ): Promise<Result<number>> {
+    try {
+      const result = await prisma.notification.updateMany({
+        where: {
+          workspaceId,
+          userId,
+          deletedAt: null,
+          archivedAt: null,
+          readAt: { not: null },
+          ...notSnoozed(now),
+          ...(kinds ? { kind: { in: kinds as never } } : {}),
+        },
+        data: { archivedAt: now },
+      })
+      return ok(result.count)
+    } catch (error) {
+      return err(dbError('Failed to archive read notifications', error))
+    }
+  },
+
+  /**
+   * Snoozes the user's own notifications until `until`. The snooze clears
+   * `readAt` (they come back as unread) and un-archives them, so they
+   * resurface in "Tudo". Ids of someone else are ignored by the filter.
+   */
+  async snooze(params: {
+    workspaceId: string
+    userId: string
+    ids: string[]
+    until: Date
+  }): Promise<Result<number>> {
+    try {
+      const result = await prisma.notification.updateMany({
+        where: {
+          workspaceId: params.workspaceId,
+          userId: params.userId,
+          id: { in: params.ids },
+          deletedAt: null,
+        },
+        data: { snoozedUntil: params.until, readAt: null, archivedAt: null },
+      })
+      return ok(result.count)
+    } catch (error) {
+      return err(dbError('Failed to snooze notifications', error))
     }
   },
 }

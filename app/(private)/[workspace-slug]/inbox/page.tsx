@@ -1,6 +1,7 @@
 import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import {
   HeaderBreadcrumbCrumb,
   HeaderBreadcrumbList,
@@ -48,7 +49,13 @@ export default async function InboxPage({
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
       <div className='min-h-0 flex-1'>
-        <NotificationInbox workspaceId={membership.value.workspaceId} />
+        <Suspense>
+          <NotificationInbox
+            workspaceId={membership.value.workspaceId}
+            slug={slug}
+            userId={session.value.user.id}
+          />
+        </Suspense>
       </div>
     </div>
   )

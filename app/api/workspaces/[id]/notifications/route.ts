@@ -25,6 +25,7 @@ export const GET = withAxiom(async (request: NextRequest, ctx: Params) => {
     folder: searchParams.get('folder') ?? undefined,
     module: searchParams.get('module') ?? undefined,
     kind: searchParams.get('kind') ?? undefined,
+    quick: searchParams.get('quick') ?? undefined,
     search: searchParams.get('search') ?? undefined,
     cursor: searchParams.get('cursor') ?? undefined,
     limit: searchParams.get('limit') ?? undefined,

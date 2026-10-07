@@ -9,6 +9,7 @@ import {
   CrmWorkflowScheduleJob,
   DatabaseBackupJob,
   DataRetentionJob,
+  NotificationsJob,
   ServicedeskBillingJob,
   ServicedeskDigestJob,
   ServicedeskIntegrationsJob,
@@ -34,6 +35,7 @@ import {
   getCrmWorkflowScheduleQueue,
   getDatabaseBackupQueue,
   getDataRetentionQueue,
+  getNotificationsQueue,
   getServicedeskBillingQueue,
   getServicedeskDigestQueue,
   getServicedeskIntegrationsQueue,
@@ -58,6 +60,7 @@ import {
   CrmTaskRemindersCron,
   CrmWorkflowScheduleCron,
   DatabaseBackupCron,
+  NotificationsAiActionExpiryCron,
   RetentionCron,
   RetentionTimezone,
   ServicedeskBillingCron,
@@ -463,6 +466,21 @@ export async function scheduleSteelAgentsJobs(): Promise<void> {
   logger.info('queue.scheduler.steel_agents_registered', {
     component: 'Worker',
     pattern: SteelAgentsTickCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleNotificationsJobs(): Promise<void> {
+  const queue = getNotificationsQueue()
+  await queue.upsertJobScheduler(
+    NotificationsJob.AiActionExpiryTick,
+    { pattern: NotificationsAiActionExpiryCron, tz: RetentionTimezone },
+    { name: NotificationsJob.AiActionExpiryTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.notifications_registered', {
+    component: 'Worker',
+    pattern: NotificationsAiActionExpiryCron,
     timezone: RetentionTimezone,
   })
 }

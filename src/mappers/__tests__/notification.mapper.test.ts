@@ -15,6 +15,7 @@ function row(overrides: Partial<Notification> = {}): Notification {
     dedupeKey: null,
     archivedAt: null,
     deletedAt: null,
+    snoozedUntil: null,
     createdAt: new Date('2026-09-18T12:00:00.000Z'),
     ...overrides,
   }
@@ -33,6 +34,7 @@ describe('toNotificationDTO', () => {
       readAt: null,
       archived: false,
       archivedAt: null,
+      snoozedUntil: null,
       module: 'SERVICE_DESK',
       moduleLabel: 'ServiceDesk',
       kindLabel: 'SLA em risco',
@@ -64,5 +66,13 @@ describe('toNotificationDTO', () => {
     expect(dto.module).toBe('COMMUNICATION')
     expect(dto.moduleLabel).toBe('Comunicação')
     expect(dto.kindLabel).toBe('Sentimento negativo')
+  })
+
+  it('should expose the snooze stamp as an ISO string', () => {
+    const dto = toNotificationDTO(
+      row({ snoozedUntil: new Date('2026-10-08T12:00:00.000Z') }),
+    )
+
+    expect(dto.snoozedUntil).toBe('2026-10-08T12:00:00.000Z')
   })
 })

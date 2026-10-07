@@ -23,3 +23,12 @@ export const UpdateNotificationPreferencesSchema = z.object({
 export type UpdateNotificationPreferencesDTO = z.infer<
   typeof UpdateNotificationPreferencesSchema
 >
+
+/** Delivery channels of the inbox (kind-agnostic): browser notifications. */
+export const UpdateNotificationDeliverySchema = z.object({
+  browserEnabled: z.boolean(),
+})
+
+export type UpdateNotificationDeliveryDTO = z.infer<
+  typeof UpdateNotificationDeliverySchema
+>

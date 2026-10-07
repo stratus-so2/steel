@@ -431,6 +431,12 @@ const NOTIFICATION_KINDS: Record<string, KindEntry> = {
     icon: 'agent',
     color: 'rose',
   },
+  AI_ACTION_EXPIRING: {
+    module: 'OTHER',
+    label: 'Ação da IA expirando',
+    icon: 'sparkles',
+    color: 'amber',
+  },
 }
 
 const MODULE_BY_PREFIX: [string, NotificationModule][] = [
@@ -531,4 +537,59 @@ export function configurableNotificationKinds(): NotificationKindInfo[] {
   return notificationKindCatalog().filter((info) =>
     isConfigurableNotificationKind(info.kind),
   )
+}
+
+/**
+ * Inbox quick filters that are a fixed set of kinds: mentions and "assigned
+ * to me" (tickets, tasks, leads, opportunities and conversations).
+ */
+export const NOTIFICATION_QUICK_FILTERS = {
+  mentions: ['SD_TICKET_MENTIONED'],
+  assigned: [
+    'SD_TICKET_ASSIGNED',
+    'SD_TASK_ASSIGNED',
+    'CRM_LEAD_ASSIGNED',
+    'CRM_OPPORTUNITY_ASSIGNED',
+    'CRM_TASK_ASSIGNED',
+    'WHATSAPP_CONVERSATION_ASSIGNED',
+  ],
+} as const satisfies Record<string, readonly string[]>
+
+export type NotificationQuickFilter = keyof typeof NOTIFICATION_QUICK_FILTERS
+
+export const NOTIFICATION_QUICK_FILTER_KEYS = Object.keys(
+  NOTIFICATION_QUICK_FILTERS,
+) as [NotificationQuickFilter, ...NotificationQuickFilter[]]
+
+/**
+ * Kinds urgent enough for a desktop (browser) notification while the tab is
+ * hidden: SLA breached/at risk, approvals waiting on someone, assignments
+ * and an assistant action about to expire.
+ */
+export const URGENT_NOTIFICATION_KINDS: readonly string[] = [
+  'SD_SLA_BREACHED',
+  'SD_SLA_AT_RISK',
+  'SD_APPROVAL_REQUESTED',
+  'AGENT_APPROVAL_REQUESTED',
+  'SD_TICKET_ASSIGNED',
+  'WHATSAPP_CONVERSATION_ASSIGNED',
+  'AI_ACTION_EXPIRING',
+]
+
+export function isUrgentNotificationKind(kind: string): boolean {
+  return URGENT_NOTIFICATION_KINDS.includes(kind)
+}
+
+/**
+ * WhatsApp conversation referenced by a notification `href`
+ * (`/<slug>/zap?conversa=<id>`), so the inbox can offer "assign to me"
+ * without knowing the module. `null` when the link is not a conversation.
+ */
+export function notificationConversationRef(
+  href: string | null | undefined,
+): { slug: string; conversationId: string } | null {
+  if (!href) return null
+  const match = /^\/([^/?#]+)\/zap\?(?:[^#]*&)?conversa=([^&#]+)/.exec(href)
+  if (!match) return null
+  return { slug: match[1], conversationId: decodeURIComponent(match[2]) }
 }

@@ -141,6 +141,13 @@ export function NotificationList({
                     <span className='truncate text-muted-foreground text-xs'>
                       {notification.kindLabel}
                     </span>
+                    {notification.snoozedUntil ? (
+                      <span className='shrink-0 rounded bg-muted px-1 text-[10px] text-muted-foreground'>
+                        {Date.parse(notification.snoozedUntil) > Date.now()
+                          ? `Adiada até ${notificationShortTime(notification.snoozedUntil)}`
+                          : 'Voltou'}
+                      </span>
+                    ) : null}
                     {notification.href ? (
                       <SteelIcon
                         icon={ArrowUpRight01Icon}

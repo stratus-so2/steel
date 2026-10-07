@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ArchiveReadNotificationsSchema,
   MarkNotificationsReadSchema,
+  NOTIFICATION_FOLDERS,
   NotificationBulkActionSchema,
   NotificationListQuerySchema,
+  SnoozeNotificationsSchema,
 } from '../notification.schema'
 
 describe('MarkNotificationsReadSchema', () => {
@@ -109,5 +112,84 @@ describe('NotificationBulkActionSchema', () => {
         ids: Array.from({ length: 101 }, (_, i) => `n${i}`),
       }).success,
     ).toBe(false)
+  })
+})
+
+describe('inbox quick actions (schemas)', () => {
+  it('should offer the snoozed folder', () => {
+    expect(NOTIFICATION_FOLDERS).toContain('snoozed')
+    expect(
+      NotificationListQuerySchema.parse({ folder: 'snoozed' }).folder,
+    ).toBe('snoozed')
+  })
+
+  it('should accept the quick filters and reject unknown ones', () => {
+    expect(NotificationListQuerySchema.parse({ quick: 'mentions' }).quick).toBe(
+      'mentions',
+    )
+    expect(NotificationListQuerySchema.parse({ quick: 'assigned' }).quick).toBe(
+      'assigned',
+    )
+    expect(
+      NotificationListQuerySchema.safeParse({ quick: 'vip' }).success,
+    ).toBe(false)
+  })
+
+  it('should scope "mark all as read" by module and kind', () => {
+    expect(
+      MarkNotificationsReadSchema.parse({
+        module: 'CRM',
+        kind: 'CRM_LEAD_ASSIGNED',
+      }),
+    ).toEqual({ module: 'CRM', kind: 'CRM_LEAD_ASSIGNED' })
+    expect(
+      MarkNotificationsReadSchema.safeParse({ module: 'ERP' }).success,
+    ).toBe(false)
+    expect(MarkNotificationsReadSchema.safeParse({ kind: '' }).success).toBe(
+      false,
+    )
+  })
+
+  it('should validate "archive all read"', () => {
+    expect(ArchiveReadNotificationsSchema.parse({})).toEqual({})
+    expect(
+      ArchiveReadNotificationsSchema.parse({ module: 'SERVICE_DESK' }),
+    ).toEqual({ module: 'SERVICE_DESK' })
+    expect(
+      ArchiveReadNotificationsSchema.safeParse({ kind: 'x'.repeat(65) })
+        .success,
+    ).toBe(false)
+  })
+
+  it('should validate the snooze presets and ids', () => {
+    for (const preset of ['1h', '3h', 'tomorrow', 'next-week']) {
+      expect(
+        SnoozeNotificationsSchema.safeParse({ ids: ['n1'], preset }).success,
+      ).toBe(true)
+    }
+    const invalid = SnoozeNotificationsSchema.safeParse({
+      ids: ['n1'],
+      preset: '2d',
+    })
+    expect(invalid.success).toBe(false)
+    expect(invalid.error?.issues[0].message).toBe('Opção de adiamento inválida')
+    expect(
+      SnoozeNotificationsSchema.safeParse({ ids: [], preset: '1h' }).success,
+    ).toBe(false)
+    expect(
+      SnoozeNotificationsSchema.safeParse({
+        ids: Array.from({ length: 101 }, (_, i) => `n${i}`),
+        preset: '1h',
+      }).success,
+    ).toBe(false)
+  })
+
+  it('should accept the unsnooze action', () => {
+    expect(
+      NotificationBulkActionSchema.safeParse({
+        action: 'unsnooze',
+        ids: ['n1'],
+      }).success,
+    ).toBe(true)
   })
 })

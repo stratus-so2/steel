@@ -25,6 +25,8 @@ import {
   type DataExportJobPayload,
   type DataRetentionJob,
   type DataRetentionJobPayload,
+  type NotificationsJob,
+  type NotificationsJobPayload,
   QueueName,
   type ServicedeskAiJob,
   type ServicedeskAiJobPayload,
@@ -107,6 +109,7 @@ let servicedeskRiskQueue: Queue | null = null
 let servicedeskIntegrationsQueue: Queue | null = null
 let servicedeskTaskRemindersQueue: Queue | null = null
 let steelAgentsQueue: Queue | null = null
+let notificationsQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -820,6 +823,25 @@ export function getSteelAgentsQueue(): Queue<
   >
 }
 
+/** Inbox housekeeping ticks (idempotent: deduped notices). */
+export function getNotificationsQueue(): Queue<
+  NotificationsJobPayload[NotificationsJob],
+  unknown,
+  NotificationsJob
+> {
+  if (!notificationsQueue) {
+    notificationsQueue = new Queue(QueueName.Notifications, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return notificationsQueue as Queue<
+    NotificationsJobPayload[NotificationsJob],
+    unknown,
+    NotificationsJob
+  >
+}
+
 // Typed as a full record so a new queue without an entry fails the build.
 const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.DataRetention]: getDataRetentionQueue,
@@ -855,6 +877,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.CrmTaskReminders]: getCrmTaskRemindersQueue,
   [QueueName.ServicedeskTaskReminders]: getServicedeskTaskRemindersQueue,
   [QueueName.SteelAgents]: getSteelAgentsQueue,
+  [QueueName.Notifications]: getNotificationsQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */

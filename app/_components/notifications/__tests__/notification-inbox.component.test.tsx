@@ -27,7 +27,11 @@ const toast = vi.hoisted(() => ({
 vi.mock('sonner', () => ({ toast }))
 
 const push = vi.hoisted(() => vi.fn())
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+const search = vi.hoisted(() => ({ value: '' }))
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push }),
+  useSearchParams: () => new URLSearchParams(search.value),
+}))
 
 const BASE = '/api/workspaces/ws_1/notifications'
 
@@ -73,14 +77,25 @@ function page(items: unknown[], extra: Record<string, unknown> = {}) {
     items,
     unreadCount: 1,
     nextCursor: null,
-    counts: { all: items.length, unread: 1, archived: 2 },
+    counts: { all: items.length, unread: 1, archived: 2, snoozed: 0 },
     ...extra,
   }
+}
+
+const NO_AI_PENDING: FetchRoute = {
+  match: `${BASE}/ai-pending`,
+  data: { items: [], count: 0 },
+}
+const DELIVERY: FetchRoute = {
+  match: `${BASE}/preferences/delivery`,
+  data: { browserEnabled: false },
 }
 
 function routes(extra: FetchRoute[] = []): FetchRoute[] {
   return [
     ...extra,
+    NO_AI_PENDING,
+    DELIVERY,
     { method: 'POST', match: `${BASE}/actions`, data: { updated: 1 } },
     { method: 'POST', match: `${BASE}/read`, data: { updated: 1 } },
     // O resumo do chamado é opcional: aqui ele não existe (degrada).
@@ -94,11 +109,14 @@ function routes(extra: FetchRoute[] = []): FetchRoute[] {
 }
 
 function render() {
-  return renderWithQuery(<NotificationInbox workspaceId='ws_1' />)
+  return renderWithQuery(
+    <NotificationInbox workspaceId='ws_1' slug='acme' userId='u_me' />,
+  )
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  search.value = ''
 })
 
 describe('<NotificationInbox /> — lista', () => {
@@ -317,7 +335,10 @@ describe('<NotificationInbox /> — seleção e lote', () => {
     await screen.findByText('SLA violado: INC-000123')
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Marcar todas como lidas' }),
+      screen.getByRole('button', { name: 'Mais ações da caixa de entrada' }),
+    )
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: /Marcar todas como lidas/ }),
     )
 
     await waitFor(() => expect(fetchBody(spy, `${BASE}/read`)).toEqual({}))

@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { AskSteelAiButton } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -283,6 +284,13 @@ export function WhatsappConversationView({
                 Fechar
               </Button>
             ))}
+          <AskSteelAiButton
+            workspaceId={workspaceId}
+            reference={{
+              kind: 'conversation',
+              label: conversation.contactName ?? conversation.contactWaId,
+            }}
+          />
           <Button
             variant='ghost'
             size='icon-sm'

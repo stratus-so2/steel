@@ -7,6 +7,8 @@ import {
   type GridColumn,
   type WithId,
 } from '@/app/_components/crm/table/grid'
+import { AskSteelAiButton } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
+import type { AskSteelAiRecordKind } from '@/app/_components/steel-ai-ask/ask-steel-ai-prompt'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
@@ -16,6 +18,13 @@ import {
   updateCrmResource,
 } from '@/src/hooks/use-crm-resource-list'
 import type { Lookups } from '@/src/hooks/use-crm-workspace-lookups'
+
+/** CRM resources whose panel offers "Perguntar ao Steel AI". */
+const ASK_KIND_BY_RESOURCE: Record<string, AskSteelAiRecordKind> = {
+  opportunities: 'opportunity',
+  people: 'person',
+  companies: 'company',
+}
 
 /** Painel lateral de detalhes/edição de um registro (estilo Sheet). */
 export function RecordPanel<T extends WithId>({
@@ -58,6 +67,8 @@ export function RecordPanel<T extends WithId>({
   const [saving, setSaving] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
   const [confirmDelete, setConfirmDelete] = React.useState(false)
+  const askKind = ASK_KIND_BY_RESOURCE[resource]
+  const recordName = (record as Record<string, unknown>).name
 
   /** Campos que podem ser alterados (exclui created/updated e datas auto). */
   const editable = React.useMemo(
@@ -141,6 +152,14 @@ export function RecordPanel<T extends WithId>({
             <SteelIcon icon={Cancel01Icon} strokeWidth={2} />
           </Button>
           <SheetTitle className='truncate capitalize'>{title}</SheetTitle>
+          {askKind && typeof recordName === 'string' && recordName ? (
+            <AskSteelAiButton
+              workspaceId={workspaceId}
+              slug={slug}
+              reference={{ kind: askKind, label: recordName }}
+              className='ml-auto'
+            />
+          ) : null}
         </div>
 
         {/* Campos */}

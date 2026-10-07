@@ -2,9 +2,14 @@ import type { NotificationKind } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { configurableNotificationKinds } from '@/src/lib/notification-kind'
 import { ok, type Result } from '@/src/lib/result'
+import { NotificationDeliverySettingRepository } from '@/src/repositories/notification-delivery-setting.repository'
 import { NotificationPreferenceRepository } from '@/src/repositories/notification-preference.repository'
-import type { UpdateNotificationPreferencesDTO } from '@/src/schemas/notification-preference.schema'
 import type {
+  UpdateNotificationDeliveryDTO,
+  UpdateNotificationPreferencesDTO,
+} from '@/src/schemas/notification-preference.schema'
+import type {
+  NotificationDeliveryDTO,
   NotificationKindDTO,
   NotificationPreferenceDTO,
 } from '@/types/notification'
@@ -87,5 +92,59 @@ export const NotificationPreferenceService = {
     })
 
     return NotificationPreferenceService.list(actorId, workspaceId)
+  },
+
+  /** Delivery channels (browser notifications). Off until the user opts in. */
+  async getDelivery(
+    actorId: string,
+    workspaceId: string,
+  ): Promise<Result<NotificationDeliveryDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const row = await NotificationDeliverySettingRepository.find(
+      workspaceId,
+      actorId,
+    )
+    if (!row.ok) return row
+    return ok({ browserEnabled: row.value?.browserEnabled ?? false })
+  },
+
+  async updateDelivery(
+    actorId: string,
+    workspaceId: string,
+    dto: UpdateNotificationDeliveryDTO,
+  ): Promise<Result<NotificationDeliveryDTO>> {
+    const membership = await assertMember(actorId, workspaceId)
+    if (!membership.ok) return membership
+
+    const saved = await NotificationDeliverySettingRepository.upsert(
+      workspaceId,
+      actorId,
+      { browserEnabled: dto.browserEnabled },
+    )
+    if (!saved.ok) {
+      auditMutation({
+        entity: 'notification_preference',
+        action: 'update',
+        actorId,
+        outcome: 'failure',
+        reason: saved.error.code,
+        meta: { workspaceId, channel: 'browser' },
+      })
+      return saved
+    }
+
+    auditMutation({
+      entity: 'notification_preference',
+      action: 'update',
+      actorId,
+      meta: {
+        workspaceId,
+        channel: 'browser',
+        browserEnabled: saved.value.browserEnabled,
+      },
+    })
+    return ok({ browserEnabled: saved.value.browserEnabled })
   },
 }

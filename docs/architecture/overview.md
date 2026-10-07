@@ -140,10 +140,42 @@ OWNER/ADMIN; `WhatsAppSettings`):
 
 `/[slug]/inbox` é a caixa de entrada do usuário no workspace, no formato de
 um **cliente de e-mail**: lista à esquerda, painel de leitura à direita
-(coluna única no celular), pastas **Tudo / Não lidas / Arquivadas**, filtro
-por módulo e por tipo de evento, busca em título e corpo, paginação por
-cursor, seleção múltipla com ações em lote, desfazer e atalhos de teclado
-(`j`/`k`, `Enter`, `u`, `e`, `#`, `x`, `/`, `?`).
+(coluna única no celular), pastas **Tudo / Não lidas / Adiadas /
+Arquivadas**, filtros rápidos (**Pendências da IA**, Não lidas, Menções,
+Atribuídas a mim), filtro por módulo e por tipo de evento, busca em título e
+corpo, paginação por cursor, seleção múltipla com ações em lote (ler, não
+ler, arquivar, adiar, excluir), desfazer e atalhos de teclado (`j`/`k`,
+`Enter`, `u`, `e`, `r`, `s`, `i`, `#`, `x`, `/`, `?`).
+
+- **Pendências da IA** (`?view=ai`): as ações do Steel AI que o próprio
+  usuário pediu no modo Build e ainda esperam confirmação, mais as escritas
+  de Steel Agents que ele pode aprovar (responsável pelo agente ou quem
+  gerencia agentes — mesma regra da ADR 0020). Cada item mostra a prévia
+  (antes → depois), a origem (conversa ou execução), a contagem regressiva
+  e os botões Confirmar/Cancelar ou Aprovar/Rejeitar; exclusão pede
+  confirmação dupla. A decisão usa as rotas já existentes
+  (`/ai/actions/{id}/confirm|cancel`, `/agents/runs/{runId}/actions/{id}/approve|reject`),
+  que revalidam tudo. O contador do cabeçalho soma não lidas e pendências.
+  Cerca de 5 min antes de uma ação do assistente expirar, a fila
+  `notifications` avisa o dono uma vez (`AI_ACTION_EXPIRING`, por
+  `dedupeKey`).
+- **Adiar**: 1 h, 3 h, amanhã às 9h ou próxima segunda às 9h, no fuso das
+  preferências pessoais (`Notification.snoozedUntil`). A adiada some de todas
+  as pastas (menos "Adiadas") e volta como não lida; "desfazer" é a ação
+  `unsnooze`.
+- **Ações rápidas por tipo** (painel de leitura): abrir o registro,
+  **Responder** (histórico do chamado com o editor em foco —
+  `?tab=history&reply=1` — ou a conversa), **Atribuir a mim** quando o
+  chamado/conversa está sem responsável e "Silenciar avisos deste tipo"
+  (preferências da plataforma ou do ServiceDesk). "Marcar todas como lidas"
+  e "Arquivar todas as lidas" respeitam o módulo/tipo filtrado.
+- **Notificações do navegador**: opt-in na caixa de entrada e em Ajustes >
+  Notificações (`NotificationDeliverySetting.browserEnabled`, no servidor;
+  `localStorage` é só cache). Saem do mesmo SSE, só com a aba em segundo
+  plano e só para tipos urgentes (SLA violado/em risco, aprovação
+  solicitada, aprovação de agente, chamado ou conversa atribuída, ação da IA
+  expirando). Sem service worker nem Web Push por enquanto — com o app
+  fechado não há aviso; fica como evolução.
 
 - **Modelo**: `Notification` (workspace, usuário, `kind`, título, corpo,
   `href`, `readAt`, `archivedAt`, `deletedAt`). Arquivar e excluir são
@@ -172,10 +204,14 @@ cursor, seleção múltipla com ações em lote, desfazer e atalhos de teclado
   `moduleLabel`, `kindLabel`, `icon` e `color` no DTO, e a interface nunca
   faz `switch` em `kind`. Tipo novo entra nessa tabela; tipo desconhecido
   tem o módulo inferido pelo prefixo (`SD_`, `WHATSAPP_`, `CRM_`).
-- **Rotas**: `GET /api/workspaces/[id]/notifications` (filtros + cursor),
-  `POST .../notifications/read` (marcar todas) e
+- **Rotas**: `GET /api/workspaces/[id]/notifications` (filtros + cursor,
+  `folder=snoozed`, `quick=mentions|assigned`),
+  `POST .../notifications/read` (marcar todas, opcionalmente por
+  `module`/`kind`), `POST .../notifications/archive-read`,
+  `POST .../notifications/snooze`, `GET .../notifications/ai-pending`,
+  `GET|PUT .../notifications/preferences/delivery` e
   `POST .../notifications/actions`
-  (`read|unread|archive|unarchive|delete|restore`, até 100 ids). Autorização
+  (`read|unread|archive|unarchive|delete|restore|unsnooze`, até 100 ids). Autorização
   no service (`assertMember`): cada pessoa só enxerga e só mexe nas próprias
   notificações.
 - **Tempo real**: canal **genérico** de notificação em Redis pub/sub
@@ -212,6 +248,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `crm-proposal-expiry` | expira propostas com validade vencida e avisa o responsável | cron 00:05 |
 | `crm-task-reminders` | avisa na caixa de entrada o responsável por tarefas do CRM que vencem em até 1 h ou acabaram de atrasar (uma vez cada, por `dedupeKey`) | cron a cada 15 min |
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
+| `notifications` | `ai-action-expiry-tick`: avisa ~5 min antes de uma ação pendente do Steel AI expirar (uma vez por ação, `dedupeKey`) | a cada 1 min |
 | `steel-agents` | Steel Agents: `tick` dispara agentes de agenda (cron + `lastRunAt`) e expira aprovações vencidas; `run` executa ou retoma uma execução, com as permissões do responsável ([ADR 0020](../adr/0020-steel-agents-owner-identity-and-approvals.md), [Steel AI](../steel-ai/README.md#steel-agents)) | a cada 1 min + sob demanda (tentativa única) |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |
 | `changelog` | e-mails de changelog | sob demanda |
