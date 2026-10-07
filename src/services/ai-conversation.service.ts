@@ -1,11 +1,19 @@
+import type { WorkspaceAiSettings } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
-import { aiAgentModeDisabled } from '@/src/errors/app-error'
-import { toolMeta } from '@/src/lib/ai/tools/registry'
+import {
+  aiAgentModeDisabled,
+  aiAutopilotDisabled,
+  aiDisabled,
+  aiModelNotEnabled,
+} from '@/src/errors/app-error'
+import { type SteelAiMode, toolMeta } from '@/src/lib/ai/tools/registry'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
   toAiConversationDTO,
   toAiMessageDTOs,
 } from '@/src/mappers/ai-conversation.mapper'
+import { toEffectiveAiSettings } from '@/src/mappers/ai-settings.mapper'
+import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
 import {
   AiConversationRepository,
   AiMessageRepository,
@@ -17,17 +25,66 @@ import type {
   UpdateAiConversationDTO,
 } from '@/src/schemas/steel-ai.schema'
 import type { AiConversationDTO, AiMessageDTO } from '@/types/steel-ai'
+import { isModelUsable } from './ai-settings.service'
 import { assertMember } from './authz'
 
-/** Rejects the AGENT mode when the workspace switched it off. */
-export async function assertAgentModeEnabled(
+/**
+ * Whether `mode` may run under these switches: AGENT and AUTOPILOT need the
+ * agent mode; AUTOPILOT also needs `autopilotEnabled` (off by default).
+ */
+export function checkSteelAiMode(
+  settings: Pick<
+    WorkspaceAiSettings,
+    'agentModeEnabled' | 'autopilotEnabled'
+  > | null,
+  mode: SteelAiMode,
+): Result<true> {
+  if (mode === 'EXPLORE') return ok(true)
+  if (settings && !settings.agentModeEnabled) return err(aiAgentModeDisabled())
+  if (mode === 'AUTOPILOT' && !settings?.autopilotEnabled) {
+    return err(aiAutopilotDisabled())
+  }
+  return ok(true)
+}
+
+/**
+ * Gate of every Steel AI call: the master switch (`aiEnabled`, on by
+ * default) and, when a mode is given, the switches that mode needs.
+ */
+export async function assertSteelAiEnabled(
   workspaceId: string,
-): Promise<Result<true>> {
+  mode?: SteelAiMode,
+): Promise<Result<WorkspaceAiSettings | null>> {
   const settings =
     await WorkspaceAiSettingsRepository.findByWorkspace(workspaceId)
   if (!settings.ok) return settings
-  if (settings.value && !settings.value.agentModeEnabled) {
-    return err(aiAgentModeDisabled())
+  if (settings.value && !settings.value.aiEnabled) return err(aiDisabled())
+  if (mode) {
+    const allowed = checkSteelAiMode(settings.value, mode)
+    if (!allowed.ok) return allowed
+  }
+  return settings
+}
+
+/** Membership + master switch (+ mode switches), in that order. */
+async function gate(
+  actorId: string,
+  workspaceId: string,
+  mode?: SteelAiMode,
+): Promise<Result<WorkspaceAiSettings | null>> {
+  const membership = await assertMember(actorId, workspaceId)
+  if (!membership.ok) return membership
+  return assertSteelAiEnabled(workspaceId, mode)
+}
+
+/** A model the user may pick: in the catalog, enabled and with a provider key. */
+function checkModelKey(
+  settings: WorkspaceAiSettings | null,
+  modelKey: string | null | undefined,
+): Result<true> {
+  if (!modelKey) return ok(true)
+  if (!isModelUsable(toEffectiveAiSettings(settings), modelKey)) {
+    return err(aiModelNotEnabled())
   }
   return ok(true)
 }
@@ -42,8 +99,8 @@ export const AiConversationService = {
     workspaceId: string,
     q?: string,
   ): Promise<Result<AiConversationDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
+    const allowed = await gate(actorId, workspaceId)
+    if (!allowed.ok) return allowed
 
     const result = await AiConversationRepository.listByUser(
       workspaceId,
@@ -59,19 +116,17 @@ export const AiConversationService = {
     workspaceId: string,
     dto: CreateAiConversationDTO,
   ): Promise<Result<AiConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
-
-    if (dto.mode === 'AGENT') {
-      const agent = await assertAgentModeEnabled(workspaceId)
-      if (!agent.ok) return agent
-    }
+    const allowed = await gate(actorId, workspaceId, dto.mode)
+    if (!allowed.ok) return allowed
+    const model = checkModelKey(allowed.value, dto.modelKey)
+    if (!model.ok) return model
 
     const created = await AiConversationRepository.create({
       workspaceId,
       userId: actorId,
       title: dto.title || null,
       mode: dto.mode,
+      modelKey: dto.modelKey ?? null,
     })
     if (!created.ok) return created
 
@@ -80,7 +135,7 @@ export const AiConversationService = {
       action: 'create',
       actorId,
       targetId: created.value.id,
-      meta: { workspaceId, mode: dto.mode },
+      meta: { workspaceId, mode: dto.mode, modelKey: dto.modelKey ?? null },
     })
 
     return ok(toAiConversationDTO(created.value))
@@ -91,8 +146,8 @@ export const AiConversationService = {
     workspaceId: string,
     conversationId: string,
   ): Promise<Result<AiConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
+    const allowed = await gate(actorId, workspaceId)
+    if (!allowed.ok) return allowed
 
     const conversation = await AiConversationRepository.findById(
       conversationId,
@@ -109,8 +164,8 @@ export const AiConversationService = {
     conversationId: string,
     dto: UpdateAiConversationDTO,
   ): Promise<Result<AiConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
+    const allowed = await gate(actorId, workspaceId, dto.mode)
+    if (!allowed.ok) return allowed
 
     const conversation = await AiConversationRepository.findById(
       conversationId,
@@ -119,14 +174,13 @@ export const AiConversationService = {
     )
     if (!conversation.ok) return conversation
 
-    if (dto.mode === 'AGENT') {
-      const agent = await assertAgentModeEnabled(workspaceId)
-      if (!agent.ok) return agent
-    }
+    const model = checkModelKey(allowed.value, dto.modelKey)
+    if (!model.ok) return model
 
     const updated = await AiConversationRepository.update(conversationId, {
       ...(dto.title !== undefined && { title: dto.title }),
       ...(dto.mode !== undefined && { mode: dto.mode }),
+      ...(dto.modelKey !== undefined && { modelKey: dto.modelKey }),
       ...(dto.pinned !== undefined && {
         pinnedAt: dto.pinned
           ? (conversation.value.pinnedAt ?? new Date())
@@ -152,8 +206,8 @@ export const AiConversationService = {
     workspaceId: string,
     conversationId: string,
   ): Promise<Result<AiConversationDTO>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
+    const allowed = await gate(actorId, workspaceId)
+    if (!allowed.ok) return allowed
 
     const conversation = await AiConversationRepository.findById(
       conversationId,
@@ -182,8 +236,8 @@ export const AiConversationService = {
     workspaceId: string,
     conversationId: string,
   ): Promise<Result<AiMessageDTO[]>> {
-    const membership = await assertMember(actorId, workspaceId)
-    if (!membership.ok) return membership
+    const allowed = await gate(actorId, workspaceId)
+    if (!allowed.ok) return allowed
 
     const conversation = await AiConversationRepository.findById(
       conversationId,
@@ -196,13 +250,20 @@ export const AiConversationService = {
     const expired = await AiPendingActionRepository.expireOverdue(workspaceId)
     if (!expired.ok) return expired
 
-    const [messages, actions] = await Promise.all([
+    const [messages, actions, attachments] = await Promise.all([
       AiMessageRepository.listByConversation(conversationId),
       AiPendingActionRepository.listByConversation(conversationId),
+      AiAttachmentRepository.listSentByConversation(conversationId),
     ])
     if (!messages.ok) return messages
     if (!actions.ok) return actions
+    if (!attachments.ok) return attachments
 
-    return ok(toAiMessageDTOs(messages.value, actions.value, toolMeta))
+    return ok(
+      toAiMessageDTOs(messages.value, actions.value, toolMeta, {
+        workspaceId,
+        attachments: attachments.value,
+      }),
+    )
   },
 }

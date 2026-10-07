@@ -61,6 +61,7 @@ export const AiConversationRepository = {
     userId: string
     title?: string | null
     mode?: AiConversationMode
+    modelKey?: string | null
   }): Promise<Result<AiConversation>> {
     try {
       const conversation = await prisma.aiConversation.create({ data })
