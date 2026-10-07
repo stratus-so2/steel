@@ -56,6 +56,11 @@ export const TAG_GROUPS = [
           'Conexões com Postgres externo por módulo, ajustes de IA, feature flags e notificações in-app.',
       },
       {
+        name: 'Busca global',
+        description:
+          'Busca única (Ctrl+K) em chamados, base de conhecimento, diretório do ServiceDesk, CRM, WhatsApp e membros, com relevância por código exato, prefixo, texto completo e tolerância a erros de digitação. Só retorna o que o usuário pode abrir.',
+      },
+      {
         name: 'Projetos',
         description:
           'Projetos do workspace — criação, edição, arquivamento, favoritos, membros e convites.',
