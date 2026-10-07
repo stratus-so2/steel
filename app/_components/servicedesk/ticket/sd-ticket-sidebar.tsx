@@ -89,7 +89,10 @@ const QUIET_CONTROLS = cn(
   '[&_[data-slot=input]:hover]:border-input [&_[data-slot=input]:focus-visible]:border-ring',
   // Setas dos seletores bem apagadas; voltam no hover/foco.
   '[&_[data-slot=select-trigger]>svg:last-child]:opacity-40 [&_[data-slot=select-trigger]:hover>svg:last-child]:opacity-100 [&_[data-slot=select-trigger]:focus-visible>svg:last-child]:opacity-100',
-  '[&_[aria-haspopup][data-slot=button]>svg:last-child]:opacity-40 [&_[aria-haspopup][data-slot=button]:hover>svg:last-child]:opacity-100',
+  // Pickers assíncronos (cliente, empresa, contato, CI): gatilho de popover.
+  '[&_[data-slot=popover-trigger]]:border-transparent [&_[data-slot=popover-trigger]]:bg-transparent [&_[data-slot=popover-trigger]]:px-1.5 [&_[data-slot=popover-trigger]]:shadow-none dark:[&_[data-slot=popover-trigger]]:bg-transparent',
+  '[&_[data-slot=popover-trigger]:hover]:bg-muted/70 [&_[data-slot=popover-trigger]:focus-visible]:border-ring',
+  '[&_[data-slot=popover-trigger]>svg:last-child]:opacity-40 [&_[data-slot=popover-trigger]:hover>svg:last-child]:opacity-100',
 )
 
 const ROW = 'grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-2'
