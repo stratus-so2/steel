@@ -260,7 +260,7 @@ describe('buildSteelAiSystemPrompt()', () => {
       modules: [],
       mode: 'AGENT',
     })
-    expect(prompt).toContain('Modo atual: AGENTE')
+    expect(prompt).toContain('Modo atual: BUILD')
     expect(prompt).toContain('nunca pergunte "posso prosseguir?"')
     expect(prompt).toContain('Nenhum módulo')
   })

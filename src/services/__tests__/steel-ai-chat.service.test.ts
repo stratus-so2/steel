@@ -53,6 +53,19 @@ vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/repositories/user-preference.repository')
 vi.mock('@/src/repositories/workspace.repository')
 vi.mock('@/src/services/ai-usage.service')
+vi.mock('@/src/services/platform-ai-settings.service', () => ({
+  PlatformAiSettingsService: { getCostMargin: vi.fn(async () => 2) },
+}))
+vi.mock('@/src/services/ai-settings.service', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@/src/services/ai-settings.service')
+  >()),
+  // Provider keys are not set in unit tests: usable = enabled.
+  isModelUsable: vi.fn(
+    (settings: { enabledModels: string[] }, key: string) =>
+      settings.enabledModels.includes(key),
+  ),
+}))
 
 import { resolveToolAccess } from '@/src/lib/ai/tools/registry'
 import {
@@ -410,6 +423,7 @@ describe('SteelAiChatService.sendMessage() — the turn', () => {
       workspaceId: 'ws1',
       userId: 'u1',
       usage: { inputTokens: 20, outputTokens: 10 },
+      scope: { module: null, conversationId: 'conv1' },
     })
     expect(conversations.update).toHaveBeenCalledWith('conv1', {
       modelKey: 'openai:gpt-4o-mini',
@@ -537,7 +551,7 @@ describe('SteelAiChatService.sendMessage() — the turn', () => {
       'text.delta',
       'message.end',
     ])
-    expect(fake.requests[0].system).toContain('AGENTE')
+    expect(fake.requests[0].system).toContain('Modo atual: BUILD')
     expect(fake.requests[0].tools?.map((t) => t.name)).toEqual([
       'sd_list_tickets',
       'sd_create_ticket',
@@ -714,6 +728,8 @@ describe('SteelAiChatService.sendMessage() — the turn', () => {
       workspaceId: 'ws1',
       userId: 'u1',
       usage: { inputTokens: 10, outputTokens: 5 },
+      // The read tool ran before the failure: billed to its module.
+      scope: { module: 'SERVICE_DESK', conversationId: 'conv1' },
     })
     expect(types(events)).not.toContain('message.end')
   })
@@ -822,9 +838,23 @@ describe('SteelAiChatService.capabilities()', () => {
     expect(
       expectOk(await SteelAiChatService.capabilities('u1', 'ws1')),
     ).toEqual({
+      aiEnabled: true,
       agentModeEnabled: true,
+      autopilotEnabled: false,
       modules: ['SERVICE_DESK', 'COMMUNICATION'],
       modelKey: 'openai:gpt-4o-mini',
+      models: [
+        {
+          key: 'openai:gpt-4o-mini',
+          provider: 'openai',
+          providerLabel: 'OpenAI',
+          label: 'GPT-4o mini',
+          // Provider price × platform margin (2).
+          inputUsdPer1M: 0.3,
+          outputUsdPer1M: 1.2,
+        },
+      ],
+      attachments: expect.objectContaining({ maxPerMessage: 5 }),
       quota: { usedUsd: 12.35, quotaUsd: 50 },
     })
     expect(aiUsage.resolveModel).toHaveBeenCalledWith(

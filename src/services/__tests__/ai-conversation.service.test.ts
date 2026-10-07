@@ -87,6 +87,7 @@ describe('AiConversationService', () => {
       userId: 'u1',
       title: null,
       mode: 'EXPLORE',
+      modelKey: null,
     })
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({ entity: 'ai_conversation', action: 'create' }),
