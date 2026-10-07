@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CONFIGURABLE_NOTIFICATION_KINDS,
+  UpdateNotificationDeliverySchema,
   UpdateNotificationPreferencesSchema,
 } from '../notification-preference.schema'
 
@@ -55,5 +56,27 @@ describe('UpdateNotificationPreferencesSchema', () => {
     expect(
       CONFIGURABLE_NOTIFICATION_KINDS.some((kind) => kind.startsWith('SD_')),
     ).toBe(false)
+  })
+})
+
+describe('UpdateNotificationDeliverySchema', () => {
+  it('should accept the browser switch', () => {
+    expect(
+      UpdateNotificationDeliverySchema.parse({ browserEnabled: true }),
+    ).toEqual({ browserEnabled: true })
+  })
+
+  it('should reject a missing or non-boolean switch', () => {
+    expect(UpdateNotificationDeliverySchema.safeParse({}).success).toBe(false)
+    expect(
+      UpdateNotificationDeliverySchema.safeParse({ browserEnabled: 'true' })
+        .success,
+    ).toBe(false)
+  })
+})
+
+describe('CONFIGURABLE_NOTIFICATION_KINDS (Steel AI)', () => {
+  it('should let the user mute the AI expiry notice', () => {
+    expect(CONFIGURABLE_NOTIFICATION_KINDS).toContain('AI_ACTION_EXPIRING')
   })
 })

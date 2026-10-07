@@ -6,10 +6,12 @@ import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/notification-preference.repository')
+vi.mock('@/src/repositories/notification-delivery-setting.repository')
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { NotificationDeliverySettingRepository } from '@/src/repositories/notification-delivery-setting.repository'
 import { NotificationPreferenceRepository } from '@/src/repositories/notification-preference.repository'
 import { NotificationPreferenceService } from '../notification-preference.service'
 
@@ -150,6 +152,115 @@ describe('NotificationPreferenceService.update', () => {
       expect.objectContaining({
         outcome: 'failure',
         reason: 'DATABASE_ERROR',
+      }),
+    )
+  })
+})
+
+const mockedDeliveryRepo = vi.mocked(NotificationDeliverySettingRepository)
+
+function deliveryRow(browserEnabled: boolean) {
+  return {
+    id: 'd1',
+    userId: 'u1',
+    workspaceId: 'ws1',
+    browserEnabled,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+}
+
+describe('NotificationPreferenceService.getDelivery', () => {
+  it('should default to browser notifications off when nothing was saved', async () => {
+    mockedDeliveryRepo.find.mockResolvedValue(ok(null))
+
+    expect(
+      expectOk(await NotificationPreferenceService.getDelivery('u1', 'ws1')),
+    ).toEqual({ browserEnabled: false })
+    expect(mockedDeliveryRepo.find).toHaveBeenCalledWith('ws1', 'u1')
+  })
+
+  it('should return the saved choice', async () => {
+    mockedDeliveryRepo.find.mockResolvedValue(ok(deliveryRow(true)))
+
+    expect(
+      expectOk(await NotificationPreferenceService.getDelivery('u1', 'ws1')),
+    ).toEqual({ browserEnabled: true })
+  })
+
+  it('should forbid non-members', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+
+    expectErr(
+      await NotificationPreferenceService.getDelivery('x', 'ws1'),
+      'FORBIDDEN',
+    )
+    expect(mockedDeliveryRepo.find).not.toHaveBeenCalled()
+  })
+
+  it('should propagate a database error', async () => {
+    mockedDeliveryRepo.find.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await NotificationPreferenceService.getDelivery('u1', 'ws1'),
+      'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('NotificationPreferenceService.updateDelivery', () => {
+  it('should save the own choice and audit it', async () => {
+    mockedDeliveryRepo.upsert.mockResolvedValue(ok(deliveryRow(true)))
+
+    expect(
+      expectOk(
+        await NotificationPreferenceService.updateDelivery('u1', 'ws1', {
+          browserEnabled: true,
+        }),
+      ),
+    ).toEqual({ browserEnabled: true })
+    expect(mockedDeliveryRepo.upsert).toHaveBeenCalledWith('ws1', 'u1', {
+      browserEnabled: true,
+    })
+    expect(mockedAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'notification_preference',
+        action: 'update',
+        actorId: 'u1',
+        meta: expect.objectContaining({
+          channel: 'browser',
+          browserEnabled: true,
+        }),
+      }),
+    )
+  })
+
+  it('should forbid non-members', async () => {
+    mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(ok(null))
+
+    expectErr(
+      await NotificationPreferenceService.updateDelivery('x', 'ws1', {
+        browserEnabled: true,
+      }),
+      'FORBIDDEN',
+    )
+    expect(mockedDeliveryRepo.upsert).not.toHaveBeenCalled()
+  })
+
+  it('should audit and propagate a save failure', async () => {
+    mockedDeliveryRepo.upsert.mockResolvedValue(err(DB_ERROR))
+
+    expectErr(
+      await NotificationPreferenceService.updateDelivery('u1', 'ws1', {
+        browserEnabled: false,
+      }),
+      'DATABASE_ERROR',
+    )
+    expect(mockedAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: 'failure',
+        reason: 'DATABASE_ERROR',
+        meta: expect.objectContaining({ channel: 'browser' }),
       }),
     )
   })

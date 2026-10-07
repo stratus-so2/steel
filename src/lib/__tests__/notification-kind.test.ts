@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   configurableNotificationKinds,
   isConfigurableNotificationKind,
+  isUrgentNotificationKind,
   NOTIFICATION_ICONS,
   NOTIFICATION_MODULE_LABELS,
   NOTIFICATION_MODULES,
+  NOTIFICATION_QUICK_FILTER_KEYS,
+  NOTIFICATION_QUICK_FILTERS,
+  notificationConversationRef,
   notificationKindCatalog,
   notificationKindInfo,
   notificationKindsOfModule,
@@ -153,5 +157,84 @@ describe('configurable notification kinds', () => {
     expect(
       catalog.find((info) => info.kind === 'MEMBER_JOINED')?.moduleLabel,
     ).toBe('Plataforma')
+  })
+})
+
+describe('AI_ACTION_EXPIRING', () => {
+  it('should be a configurable platform kind with its own label', () => {
+    expect(notificationKindInfo('AI_ACTION_EXPIRING')).toEqual(
+      expect.objectContaining({
+        module: 'OTHER',
+        label: 'Ação da IA expirando',
+        icon: 'sparkles',
+        color: 'amber',
+      }),
+    )
+    expect(isConfigurableNotificationKind('AI_ACTION_EXPIRING')).toBe(true)
+  })
+})
+
+describe('NOTIFICATION_QUICK_FILTERS', () => {
+  it('should expose mentions and assigned, both made of known kinds', () => {
+    expect(NOTIFICATION_QUICK_FILTER_KEYS).toEqual(['mentions', 'assigned'])
+    expect(NOTIFICATION_QUICK_FILTERS.mentions).toEqual(['SD_TICKET_MENTIONED'])
+    const known = new Set(notificationKindCatalog().map((info) => info.kind))
+    for (const kind of [
+      ...NOTIFICATION_QUICK_FILTERS.mentions,
+      ...NOTIFICATION_QUICK_FILTERS.assigned,
+    ]) {
+      expect(known.has(kind)).toBe(true)
+    }
+    expect(NOTIFICATION_QUICK_FILTERS.assigned).toContain(
+      'WHATSAPP_CONVERSATION_ASSIGNED',
+    )
+  })
+})
+
+describe('isUrgentNotificationKind', () => {
+  it.each([
+    'SD_SLA_BREACHED',
+    'SD_SLA_AT_RISK',
+    'SD_APPROVAL_REQUESTED',
+    'AGENT_APPROVAL_REQUESTED',
+    'SD_TICKET_ASSIGNED',
+    'WHATSAPP_CONVERSATION_ASSIGNED',
+    'AI_ACTION_EXPIRING',
+  ])('should treat %s as urgent', (kind) => {
+    expect(isUrgentNotificationKind(kind)).toBe(true)
+  })
+
+  it.each(['CRM_DEAL_CLOSED', 'SD_DIGEST', 'UNKNOWN'])(
+    'should not treat %s as urgent',
+    (kind) => {
+      expect(isUrgentNotificationKind(kind)).toBe(false)
+    },
+  )
+})
+
+describe('notificationConversationRef', () => {
+  it('should read the conversation of a WhatsApp link', () => {
+    expect(notificationConversationRef('/acme/zap?conversa=c1')).toEqual({
+      slug: 'acme',
+      conversationId: 'c1',
+    })
+  })
+
+  it('should find the id among other params and decode it', () => {
+    expect(
+      notificationConversationRef('/acme/zap?tab=x&conversa=c%201&y=2#top'),
+    ).toEqual({ slug: 'acme', conversationId: 'c 1' })
+  })
+
+  it.each([
+    null,
+    undefined,
+    '',
+    '/acme/zap',
+    '/acme/zap?outra=c1',
+    '/acme/crm/leads?conversa=c1',
+    'https://evil.test/acme/zap?conversa=c1',
+  ])('should return null for %s', (href) => {
+    expect(notificationConversationRef(href)).toBeNull()
   })
 })

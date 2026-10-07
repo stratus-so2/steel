@@ -229,7 +229,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       expectOk(
         await NotificationRepository.countFolders(workspace.id, user.id),
       ),
-    ).toEqual({ all: 2, unread: 1, archived: 1 })
+    ).toEqual({ all: 2, unread: 1, archived: 1, snoozed: 0 })
     expect(
       expectOk(await NotificationRepository.countUnread(workspace.id, user.id)),
     ).toBe(1)
@@ -271,7 +271,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       expectOk(
         await NotificationRepository.countFolders(workspace.id, user.id),
       ),
-    ).toEqual({ all: 3, unread: 2, archived: 0 })
+    ).toEqual({ all: 3, unread: 2, archived: 0, snoozed: 0 })
   })
 
   it('should mark as unread again', async () => {
@@ -318,7 +318,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       expectOk(
         await NotificationRepository.countFolders(workspace.id, user.id),
       ),
-    ).toEqual({ all: 2, unread: 2, archived: 0 })
+    ).toEqual({ all: 2, unread: 2, archived: 0, snoozed: 0 })
     expect(
       expectOk(
         await NotificationRepository.listByUser(workspace.id, user.id, 10),
@@ -350,7 +350,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       expectOk(
         await NotificationRepository.countFolders(workspace.id, user.id),
       ),
-    ).toEqual({ all: 3, unread: 3, archived: 0 })
+    ).toEqual({ all: 3, unread: 3, archived: 0, snoozed: 0 })
   })
 
   it('should ignore ids that belong to someone else', async () => {
@@ -370,7 +370,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       expectOk(
         await NotificationRepository.countFolders(workspace.id, other.id),
       ),
-    ).toEqual({ all: 1, unread: 1, archived: 0 })
+    ).toEqual({ all: 1, unread: 1, archived: 0, snoozed: 0 })
   })
 
   it('should keep the archived ones out of listByUser and countUnread', async () => {
@@ -400,7 +400,7 @@ describe('NotificationRepository — inbox folders, filters and actions', () => 
       expectOk(
         await NotificationRepository.countFolders(workspace.id, user.id),
       ),
-    ).toEqual({ all: 2, unread: 0, archived: 1 })
+    ).toEqual({ all: 2, unread: 0, archived: 1, snoozed: 0 })
   })
 })
 
@@ -500,5 +500,290 @@ describe('NotificationRepository dedupe key', () => {
     expect(
       await prisma.notification.count({ where: { userId: alice.id } }),
     ).toBe(3)
+  })
+})
+
+describe('NotificationRepository — snooze, scoped bulk actions', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const NOW = new Date('2026-10-07T12:00:00Z')
+  const LATER = new Date('2026-10-07T15:00:00Z')
+  const EARLIER = new Date('2026-10-07T09:00:00Z')
+
+  async function seed() {
+    const [workspace, user, other] = await Promise.all([
+      seedWorkspace(),
+      seedUser(),
+      seedUser(),
+    ])
+    const rows = [
+      notification(workspace.id, user.id, 'Visível', {
+        kind: 'SD_TICKET_MENTIONED',
+        createdAt: new Date('2026-10-07T11:00:00Z'),
+      }),
+      notification(workspace.id, user.id, 'Adiada', {
+        kind: 'CRM_LEAD_ASSIGNED',
+        snoozedUntil: LATER,
+        createdAt: new Date('2026-10-07T10:00:00Z'),
+      }),
+      notification(workspace.id, user.id, 'Voltou', {
+        kind: 'CRM_LEAD_ASSIGNED',
+        snoozedUntil: EARLIER,
+        createdAt: new Date('2026-10-07T08:00:00Z'),
+      }),
+      notification(workspace.id, user.id, 'Lida', {
+        kind: 'CRM_TASK_DUE',
+        readAt: EARLIER,
+        createdAt: new Date('2026-10-07T07:00:00Z'),
+      }),
+      notification(workspace.id, other.id, 'Outra pessoa', {
+        readAt: EARLIER,
+      }),
+    ]
+    await prisma.notification.createMany({ data: rows })
+    const all = await prisma.notification.findMany({
+      where: { workspaceId: workspace.id },
+    })
+    const byTitle = (title: string) =>
+      all.find((row) => row.title === title)?.id as string
+    return { workspace, user, other, byTitle }
+  }
+
+  async function titles(
+    workspaceId: string,
+    userId: string,
+    folder: 'all' | 'unread' | 'archived' | 'snoozed',
+    extra: { kinds?: string[]; search?: string } = {},
+  ) {
+    const page = expectOk(
+      await NotificationRepository.listPage({
+        workspaceId,
+        userId,
+        folder,
+        limit: 25,
+        now: NOW,
+        ...extra,
+      }),
+    )
+    return page.items.map((item) => item.title)
+  }
+
+  it('should hide snoozed rows until due and show them in "snoozed"', async () => {
+    const { workspace, user } = await seed()
+
+    expect(await titles(workspace.id, user.id, 'all')).toEqual([
+      'Visível',
+      'Voltou',
+      'Lida',
+    ])
+    expect(await titles(workspace.id, user.id, 'unread')).toEqual([
+      'Visível',
+      'Voltou',
+    ])
+    expect(await titles(workspace.id, user.id, 'snoozed')).toEqual(['Adiada'])
+    expect(
+      expectOk(
+        await NotificationRepository.countFolders(workspace.id, user.id, NOW),
+      ),
+    ).toEqual({ all: 3, unread: 2, archived: 0, snoozed: 1 })
+    expect(
+      expectOk(
+        await NotificationRepository.countUnread(workspace.id, user.id, NOW),
+      ),
+    ).toBe(2)
+
+    // After the snooze passes, the row is back in "all" and "unread".
+    const tomorrow = new Date('2026-10-08T12:00:00Z')
+    expect(
+      expectOk(
+        await NotificationRepository.countFolders(
+          workspace.id,
+          user.id,
+          tomorrow,
+        ),
+      ),
+    ).toEqual({ all: 4, unread: 3, archived: 0, snoozed: 0 })
+  })
+
+  it('should combine the folder with search and kinds', async () => {
+    const { workspace, user } = await seed()
+
+    expect(
+      await titles(workspace.id, user.id, 'all', { search: 'vol' }),
+    ).toEqual(['Voltou'])
+    expect(
+      await titles(workspace.id, user.id, 'snoozed', { search: 'vol' }),
+    ).toEqual([])
+    expect(
+      await titles(workspace.id, user.id, 'all', {
+        kinds: ['CRM_LEAD_ASSIGNED'],
+      }),
+    ).toEqual(['Voltou'])
+  })
+
+  it('should mark all as read within kinds and skip snoozed rows', async () => {
+    const { workspace, user, byTitle } = await seed()
+
+    expect(
+      expectOk(
+        await NotificationRepository.markRead(
+          workspace.id,
+          user.id,
+          undefined,
+          ['CRM_LEAD_ASSIGNED'],
+          NOW,
+        ),
+      ),
+    ).toBe(1)
+    const read = async (title: string) =>
+      (
+        await prisma.notification.findUniqueOrThrow({
+          where: { id: byTitle(title) },
+        })
+      ).readAt
+    expect(await read('Adiada')).toBeNull()
+    expect(await read('Voltou')).not.toBeNull()
+    expect(await read('Visível')).toBeNull()
+  })
+
+  it('should archive every read row (optionally by kind) of the user only', async () => {
+    const { workspace, user, other, byTitle } = await seed()
+
+    expect(
+      expectOk(
+        await NotificationRepository.archiveRead(
+          workspace.id,
+          user.id,
+          ['SD_TICKET_MENTIONED'],
+          NOW,
+        ),
+      ),
+    ).toBe(0)
+    expect(
+      expectOk(
+        await NotificationRepository.archiveRead(
+          workspace.id,
+          user.id,
+          undefined,
+          NOW,
+        ),
+      ),
+    ).toBe(1)
+    const lida = await prisma.notification.findUniqueOrThrow({
+      where: { id: byTitle('Lida') },
+    })
+    expect(lida.archivedAt).toEqual(NOW)
+    expect(
+      await prisma.notification.count({
+        where: { userId: other.id, archivedAt: { not: null } },
+      }),
+    ).toBe(0)
+  })
+
+  it('should snooze as unread and unarchived, ignoring other users', async () => {
+    const { workspace, user, other, byTitle } = await seed()
+    const lidaId = byTitle('Lida')
+    await prisma.notification.update({
+      where: { id: lidaId },
+      data: { archivedAt: EARLIER },
+    })
+    const otherRow = await prisma.notification.findFirstOrThrow({
+      where: { userId: other.id },
+    })
+
+    expect(
+      expectOk(
+        await NotificationRepository.snooze({
+          workspaceId: workspace.id,
+          userId: user.id,
+          ids: [lidaId, otherRow.id],
+          until: LATER,
+        }),
+      ),
+    ).toBe(1)
+    const lida = await prisma.notification.findUniqueOrThrow({
+      where: { id: lidaId },
+    })
+    expect(lida).toEqual(
+      expect.objectContaining({
+        snoozedUntil: LATER,
+        readAt: null,
+        archivedAt: null,
+      }),
+    )
+    const untouched = await prisma.notification.findUniqueOrThrow({
+      where: { id: otherRow.id },
+    })
+    expect(untouched.snoozedUntil).toBeNull()
+
+    expect(
+      expectOk(
+        await NotificationRepository.applyAction({
+          workspaceId: workspace.id,
+          userId: user.id,
+          ids: [lidaId],
+          action: 'unsnooze',
+        }),
+      ),
+    ).toBe(1)
+    const after = await prisma.notification.findUniqueOrThrow({
+      where: { id: lidaId },
+    })
+    expect(after.snoozedUntil).toBeNull()
+  })
+
+  it('should not snooze a deleted notification', async () => {
+    const { workspace, user, byTitle } = await seed()
+    const id = byTitle('Visível')
+    await prisma.notification.update({
+      where: { id },
+      data: { deletedAt: EARLIER },
+    })
+
+    expect(
+      expectOk(
+        await NotificationRepository.snooze({
+          workspaceId: workspace.id,
+          userId: user.id,
+          ids: [id],
+          until: LATER,
+        }),
+      ),
+    ).toBe(0)
+  })
+
+  it('should default "now" to the current time', async () => {
+    const { workspace, user } = await seed()
+    const counts = expectOk(
+      await NotificationRepository.countFolders(workspace.id, user.id),
+    )
+    // Whatever the real clock says, each row is in exactly one place.
+    expect(counts.all + counts.snoozed).toBe(4)
+    expect(counts.archived).toBe(0)
+    expect(
+      expectOk(await NotificationRepository.archiveRead(workspace.id, user.id)),
+    ).toBe(1)
+  })
+
+  it('should return DATABASE_ERROR when archiveRead or snooze throw', async () => {
+    vi.spyOn(prisma.notification, 'updateMany').mockRejectedValue(
+      new Error('boom'),
+    )
+
+    expectErr(
+      await NotificationRepository.archiveRead('w', 'u'),
+      'DATABASE_ERROR',
+    )
+    expectErr(
+      await NotificationRepository.snooze({
+        workspaceId: 'w',
+        userId: 'u',
+        ids: ['n1'],
+        until: LATER,
+      }),
+      'DATABASE_ERROR',
+    )
   })
 })
