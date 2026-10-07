@@ -150,6 +150,9 @@ describe('<AskSteelAiDialog />', () => {
     expect(takeSteelAiPrompt('c42')).toEqual({
       content: 'Sobre o chamado INC-000123 — Impressora parada: quem atende?',
       mode: 'EXPLORE',
+      // The ai-chat-2 handoff also carries the model and attachments.
+      modelKey: null,
+      attachments: [],
     })
   })
 
