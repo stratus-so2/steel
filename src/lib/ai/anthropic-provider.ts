@@ -23,6 +23,27 @@ const MAX_PAUSE_CONTINUATIONS = 5
 /** Modelos sem suporte à versão com filtragem dinâmica da busca web. */
 const BASIC_WEB_SEARCH_MODELS = new Set(['claude-haiku-4-5'])
 
+const DATA_URL = /^data:(image\/(?:png|jpeg|gif|webp));base64,(.+)$/s
+
+/**
+ * Image block: a `data:` URL (private files sent inline) becomes a base64
+ * source — Anthropic's `url` source only takes http(s) URLs.
+ */
+function imageBlock(url: string): ContentBlockParam {
+  const inline = DATA_URL.exec(url)
+  if (inline) {
+    return {
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: inline[1] as 'image/png',
+        data: inline[2],
+      },
+    }
+  }
+  return { type: 'image', source: { type: 'url', url } }
+}
+
 function toUserContent(
   content: string | AiContentPart[],
 ): string | ContentBlockParam[] {
@@ -31,7 +52,7 @@ function toUserContent(
     (part): ContentBlockParam =>
       part.type === 'text'
         ? { type: 'text', text: part.text || '(vazio)' }
-        : { type: 'image', source: { type: 'url', url: part.url } },
+        : imageBlock(part.url),
   )
 }
 

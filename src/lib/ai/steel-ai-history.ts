@@ -2,7 +2,12 @@ import type { AiMessage as AiMessageRow } from '@prisma/client'
 import type { AiProviderId } from './models'
 import { CHARS_PER_TOKEN } from './tools/selection'
 import { ACTION_RESULT_PREFIX, serializeToolResult } from './tools/tool-result'
-import type { AiAssistantMessage, AiMessage, AiToolCall } from './types'
+import type {
+  AiAssistantMessage,
+  AiContentPart,
+  AiMessage,
+  AiToolCall,
+} from './types'
 
 /**
  * Rebuilds the provider-neutral history of a Steel AI conversation from its
@@ -106,10 +111,13 @@ const INTERRUPTED = serializeToolResult({
  *   prefixed to the next user message.
  * - A tool call without a result row (interrupted turn) gets a synthetic
  *   error result, since both providers reject unanswered calls.
+ * - `attachmentNotes` (by USER row id) are appended to earlier user
+ *   messages that carried files; the new message brings its own parts.
  */
 export function toProviderHistory(
   rows: AiMessageRow[],
-  newUserContent: string,
+  newUserContent: string | AiContentPart[],
+  attachmentNotes: ReadonlyMap<string, string> = new Map(),
 ): AiMessage[] {
   const out: AiMessage[] = []
   let notes: string[] = []
@@ -121,11 +129,21 @@ export function toProviderHistory(
     }
     unanswered = new Map()
   }
-  const userMessage = (content: string): AiMessage => {
-    const text =
-      notes.length > 0 ? `${notes.join('\n')}\n\n${content}` : content
+  const userMessage = (content: string | AiContentPart[]): AiMessage => {
+    const prefix = notes.length > 0 ? `${notes.join('\n')}\n\n` : ''
     notes = []
-    return { role: 'user', content: text }
+    if (typeof content === 'string') {
+      return { role: 'user', content: `${prefix}${content}` }
+    }
+    if (!prefix) return { role: 'user', content }
+    const [first, ...rest] = content
+    return {
+      role: 'user',
+      content:
+        first?.type === 'text'
+          ? [{ type: 'text', text: `${prefix}${first.text}` }, ...rest]
+          : [{ type: 'text', text: prefix.trimEnd() }, ...content],
+    }
   }
 
   for (const row of rows) {
@@ -146,7 +164,8 @@ export function toProviderHistory(
 
     flushUnanswered()
     if (row.role === 'USER') {
-      out.push(userMessage(row.content))
+      const note = attachmentNotes.get(row.id)
+      out.push(userMessage(note ? `${row.content}\n\n${note}` : row.content))
       continue
     }
 
