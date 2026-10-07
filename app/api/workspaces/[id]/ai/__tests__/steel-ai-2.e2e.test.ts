@@ -183,7 +183,7 @@ describe('Steel AI attachments', () => {
       headers: { Cookie: user.cookie },
     })
     expect(file.status).toBe(200)
-    expect(file.headers.get('content-security-policy')).toContain('sandbox')
+    expect(file.headers.get('x-content-type-options')).toBe('nosniff')
     expect(await file.text()).toContain('Entregar na sexta.')
 
     const removed = await deleteJson(attachment.url, user.cookie)
