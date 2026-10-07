@@ -647,6 +647,17 @@ describe('executeSteelAgentRun — kill switches', () => {
     expect(expectOk(await executeSteelAgentRun('run1'))).toBe('skipped')
   })
 
+  it('should skip when the AI or the Steel Agents switch is off', async () => {
+    setup({ rounds: [{ text: 'ok' }] })
+    access.mockResolvedValue(ok({ ...ACCESS, aiEnabled: false }))
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('skipped')
+
+    setup({ rounds: [{ text: 'ok' }] })
+    access.mockResolvedValue(ok({ ...ACCESS, agentsEnabled: false }))
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('skipped')
+    expect(usage.prepare).not.toHaveBeenCalled()
+  })
+
   it('should still run read-only agents when agent mode is off', async () => {
     setup({ rounds: [{ text: 'ok' }] })
     access.mockResolvedValue(ok({ ...ACCESS, agentModeEnabled: false }))
