@@ -43,6 +43,7 @@ const action = (
   preview: { title: 'Excluir a oportunidade “Acme”', summary: 'Remove.' },
   status,
   requiresDoubleConfirm: true,
+  autoExecuted: false,
   resultSummary: null,
   error: null,
   expiresAt: '2026-10-06T12:30:00.000Z',
@@ -148,6 +149,7 @@ describe('applySteelAiStreamEvent', () => {
       content: 'Olá!',
       toolCalls: [call('done')],
       pendingActions: [action('EXECUTED')],
+      attachments: [],
       createdAt: '2026-10-06T12:00:00.000Z',
     }
     const events: SteelAiStreamEvent[] = [
@@ -177,6 +179,15 @@ describe('applySteelAiStreamEvent', () => {
       status: 'done',
       error: null,
     })
+  })
+
+  it('adds autopilot executions to the live actions', () => {
+    const executed = { ...action('EXECUTED'), autoExecuted: true }
+    const state = applySteelAiStreamEvent(emptySteelAiLiveMessage(), {
+      type: 'action.executed',
+      action: executed,
+    })
+    expect(state.pendingActions).toEqual([executed])
   })
 
   it('marks the message as failed on an error event', () => {

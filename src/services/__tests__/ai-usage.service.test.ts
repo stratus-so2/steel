@@ -405,3 +405,61 @@ describe('AiUsageService.record() quota notifications', () => {
     expect(mockedNotifyQuota).not.toHaveBeenCalled()
   })
 })
+
+describe('AiUsageService — Steel AI 2 model pick and usage scope', () => {
+  it('should try the conversation pick before the user preference', async () => {
+    setup({ settings, preference: 'anthropic:claude-sonnet-5' })
+    const call = expectOk(
+      await AiUsageService.prepare('ws1', 'STEEL_ASSISTANT', 'u1', [
+        undefined,
+        'anthropic:claude-haiku-4-5',
+      ]),
+    )
+    expect(call.model.key).toBe('anthropic:claude-haiku-4-5')
+  })
+
+  it('should fall back when the picked model is no longer usable', async () => {
+    setup({ settings, preference: 'anthropic:claude-sonnet-5' })
+    const call = expectOk(
+      await AiUsageService.prepare('ws1', 'STEEL_ASSISTANT', 'u1', [
+        'openai:gpt-5',
+        null,
+      ]),
+    )
+    expect(call.model.key).toBe('anthropic:claude-sonnet-5')
+  })
+
+  it('should record the usage scope when given', async () => {
+    setup({ settings })
+    const call = expectOk(
+      await AiUsageService.prepare('ws1', 'STEEL_ASSISTANT', 'u1'),
+    )
+    await AiUsageService.record(call, {
+      workspaceId: 'ws1',
+      userId: 'u1',
+      usage: { inputTokens: 10, outputTokens: 5 },
+      scope: { module: 'CRM', conversationId: 'conv1' },
+    })
+    expect(mockedUsageRepo.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'CRM',
+        conversationId: 'conv1',
+        agentRunId: null,
+      }),
+    )
+
+    await AiUsageService.record(call, {
+      workspaceId: 'ws1',
+      userId: 'u1',
+      usage: { inputTokens: 10, outputTokens: 5 },
+      scope: {},
+    })
+    expect(mockedUsageRepo.record).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        module: null,
+        conversationId: null,
+        agentRunId: null,
+      }),
+    )
+  })
+})

@@ -91,6 +91,9 @@ const ACCESS = {
   isPrivileged: true,
   permissions: null,
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
 }
 
 const readExecute = vi.fn()
@@ -642,6 +645,17 @@ describe('executeSteelAgentRun — kill switches', () => {
     setup({ tools: [{ toolName: 'crm_create_task', mode: 'AUTO' }] })
     access.mockResolvedValue(ok({ ...ACCESS, agentModeEnabled: false }))
     expect(expectOk(await executeSteelAgentRun('run1'))).toBe('skipped')
+  })
+
+  it('should skip when the AI or the Steel Agents switch is off', async () => {
+    setup({ rounds: [{ text: 'ok' }] })
+    access.mockResolvedValue(ok({ ...ACCESS, aiEnabled: false }))
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('skipped')
+
+    setup({ rounds: [{ text: 'ok' }] })
+    access.mockResolvedValue(ok({ ...ACCESS, agentsEnabled: false }))
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('skipped')
+    expect(usage.prepare).not.toHaveBeenCalled()
   })
 
   it('should still run read-only agents when agent mode is off', async () => {

@@ -32,7 +32,16 @@ import type { AiToolContext, AiToolOutput, AnySteelAiTool } from './types'
  * into AiPendingActions. Shared by the assistant and Steel Agents.
  */
 
-export type SteelAiMode = 'EXPLORE' | 'AGENT'
+/**
+ * EXPLORE ("Ask") = READ only; AGENT ("Build") = writes become pending
+ * actions; AUTOPILOT = writes run at once (still logged and audited).
+ */
+export type SteelAiMode = 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
+
+/** Modes in which the model is offered write tools. */
+export function isWriteMode(mode: SteelAiMode): boolean {
+  return mode === 'AGENT' || mode === 'AUTOPILOT'
+}
 
 /** A pending action stays confirmable for 30 minutes. */
 export const PENDING_ACTION_TTL_MS = 30 * 60_000
@@ -46,6 +55,12 @@ export interface AiToolAccess {
   permissions: PermissionMap | null
   /** Workspace kill switch for write tools. */
   agentModeEnabled: boolean
+  /** Master switch of every Steel AI feature (default on). */
+  aiEnabled: boolean
+  /** Steel Agents may run (default on). */
+  agentsEnabled: boolean
+  /** AUTOPILOT mode allowed (default off). */
+  autopilotEnabled: boolean
 }
 
 const TOOL_NAME = /^[a-z][a-z0-9_]{1,63}$/
@@ -94,7 +109,8 @@ export function isToolAllowed(
   mode: SteelAiMode,
 ): boolean {
   if (tool.kind !== 'READ') {
-    if (mode !== 'AGENT' || !access.agentModeEnabled) return false
+    if (!isWriteMode(mode) || !access.agentModeEnabled) return false
+    if (mode === 'AUTOPILOT' && !access.autopilotEnabled) return false
   }
   if (tool.module && !access.modules.includes(tool.module)) return false
   if (tool.permission && !access.isPrivileged) {
@@ -108,7 +124,7 @@ export function isToolAllowed(
   return true
 }
 
-/** Tools the model is shown: EXPLORE ⇒ READ only; AGENT adds writes. */
+/** Tools the model is shown: EXPLORE ⇒ READ only; AGENT/AUTOPILOT add writes. */
 export function availableTools(
   access: AiToolAccess,
   mode: SteelAiMode,
@@ -149,7 +165,8 @@ export function toToolSpecs(tools: readonly AnySteelAiTool[]): AiToolSpec[] {
 
 /**
  * Resolves the caller's access in one go: membership (403 for strangers and
- * suspended workspaces), enabled modules, RBAC matrix and agent-mode switch.
+ * suspended workspaces), enabled modules, RBAC matrix and the workspace
+ * switches (AI, agent mode, Steel Agents, Autopilot).
  */
 export async function resolveToolAccess(
   actorId: string,
@@ -170,6 +187,9 @@ export async function resolveToolAccess(
     isPrivileged: membership.value.isPrivileged,
     permissions: membership.value.permissions,
     agentModeEnabled: settings.value?.agentModeEnabled ?? true,
+    aiEnabled: settings.value?.aiEnabled ?? true,
+    agentsEnabled: settings.value?.agentsEnabled ?? true,
+    autopilotEnabled: settings.value?.autopilotEnabled ?? false,
   })
 }
 
@@ -261,6 +281,12 @@ export async function proposeWriteTool(
     agentRunId?: string | null
     /** Overrides the 30 min validity (Steel Agents approve via the inbox). */
     ttlMs?: number
+    /**
+     * AUTOPILOT: the row is born claimed (`EXECUTED`, decided by this user,
+     * `autoExecuted`) so the caller executes it right away; it is never
+     * offered for confirmation.
+     */
+    claimedBy?: string
   } = {},
   now: Date = new Date(),
 ): Promise<Result<AiPendingAction>> {
@@ -292,5 +318,11 @@ export async function proposeWriteTool(
     expiresAt: new Date(
       now.getTime() + (origin.ttlMs ?? PENDING_ACTION_TTL_MS),
     ),
+    ...(origin.claimedBy && {
+      status: 'EXECUTED' as const,
+      decidedById: origin.claimedBy,
+      decidedAt: now,
+      autoExecuted: true,
+    }),
   })
 }

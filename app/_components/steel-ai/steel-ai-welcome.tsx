@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Skeleton } from '@/components/ui/skeleton'
+import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import {
   useCreateSteelAiConversation,
@@ -12,10 +13,19 @@ import {
 } from '@/src/hooks/use-steel-ai'
 import { isQuotaExceeded } from '@/src/lib/ai/quota'
 import type { AiConversationModeDTO } from '@/types/steel-ai'
+import {
+  STEEL_AI_DEFAULT_ATTACHMENT_LIMITS,
+  useSteelAiDraftAttachments,
+} from './steel-ai-attachments'
 import { SteelAiComposer } from './steel-ai-composer'
 import { useSteelAiWorkspace } from './steel-ai-context'
 import { stashSteelAiPrompt } from './steel-ai-handoff'
-import { STEEL_AI_QUOTA_MESSAGE, SteelAiNotice } from './steel-ai-notice'
+import { allowedSteelAiMode } from './steel-ai-mode-switch'
+import {
+  STEEL_AI_DISABLED_MESSAGE,
+  STEEL_AI_QUOTA_MESSAGE,
+  SteelAiNotice,
+} from './steel-ai-notice'
 import { STEEL_AI_MODULE_META, steelAiStartersFor } from './steel-ai-starters'
 import { SteelAiTopBar } from './steel-ai-top-bar'
 
@@ -34,12 +44,24 @@ export function SteelAiWelcome() {
   const createConversation = useCreateSteelAiConversation(workspaceId)
   const [draft, setDraft] = useState('')
   const [mode, setMode] = useState<AiConversationModeDTO>('EXPLORE')
+  const [modelKey, setModelKey] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const caps = capabilities.data
+  // No conversation yet: files wait until it is created on submit.
+  const files = useSteelAiDraftAttachments({
+    workspaceId,
+    conversationId: null,
+    limits: caps?.attachments ?? STEEL_AI_DEFAULT_ATTACHMENT_LIMITS,
+    onReject: (message) => notify.error(message),
+  })
 
-  const agentModeEnabled = capabilities.data?.agentModeEnabled ?? false
-  const effectiveMode = agentModeEnabled ? mode : 'EXPLORE'
-  const quota = capabilities.data?.quota
+  const agentModeEnabled = caps?.agentModeEnabled ?? false
+  const autopilotEnabled = caps?.autopilotEnabled ?? false
+  const aiDisabled = caps?.aiEnabled === false
+  const effectiveMode = caps ? allowedSteelAiMode(mode, caps) : 'EXPLORE'
+  const selectedModel = modelKey ?? caps?.modelKey ?? null
+  const quota = caps?.quota
   const quotaExhausted = quota
     ? isQuotaExceeded(quota.usedUsd, quota.quotaUsd)
     : false
@@ -47,16 +69,35 @@ export function SteelAiWelcome() {
     ? steelAiStartersFor(capabilities.data.modules, agentModeEnabled)
     : []
 
-  async function start(content: string, startMode: AiConversationModeDTO) {
+  async function start(
+    content: string,
+    startMode: AiConversationModeDTO,
+    withFiles = false,
+  ) {
     const text = content.trim()
-    if (!text || createConversation.isPending || leaving) return
+    const hasFiles = withFiles && files.items.length > 0
+    if ((!text && !hasFiles) || createConversation.isPending || leaving) return
     setError(null)
     setLeaving(true)
     try {
       const conversation = await createConversation.mutateAsync({
         mode: startMode,
+        ...(selectedModel && { modelKey: selectedModel }),
       })
-      stashSteelAiPrompt(conversation.id, { content: text, mode: startMode })
+      const attachments = hasFiles ? await files.uploadAll(conversation.id) : []
+      if (!attachments) {
+        setLeaving(false)
+        setError(
+          'Não foi possível enviar um dos anexos. Remova-o ou tente de novo.',
+        )
+        return
+      }
+      stashSteelAiPrompt(conversation.id, {
+        content: text,
+        mode: startMode,
+        modelKey: selectedModel,
+        attachments,
+      })
       router.push(`/${slug}/ai/${conversation.id}`)
     } catch (err) {
       setLeaving(false)
@@ -94,7 +135,11 @@ export function SteelAiWelcome() {
             </div>
           </div>
 
-          {quotaExhausted ? (
+          {aiDisabled ? (
+            <SteelAiNotice className='w-full'>
+              {STEEL_AI_DISABLED_MESSAGE}
+            </SteelAiNotice>
+          ) : quotaExhausted ? (
             <SteelAiNotice className='w-full'>
               {STEEL_AI_QUOTA_MESSAGE}
             </SteelAiNotice>
@@ -106,12 +151,29 @@ export function SteelAiWelcome() {
           <SteelAiComposer
             value={draft}
             onChange={setDraft}
-            onSubmit={() => start(draft, effectiveMode)}
+            onSubmit={() => start(draft, effectiveMode, true)}
             mode={effectiveMode}
             onModeChange={setMode}
             agentModeEnabled={agentModeEnabled}
+            autopilotEnabled={autopilotEnabled}
+            attachments={{
+              items: files.items,
+              onAdd: files.add,
+              onRemove: files.discard,
+              accept: (caps?.attachments ?? STEEL_AI_DEFAULT_ATTACHMENT_LIMITS)
+                .accept,
+            }}
+            model={
+              caps
+                ? {
+                    models: caps.models,
+                    value: selectedModel,
+                    onChange: setModelKey,
+                  }
+                : undefined
+            }
             isSubmitting={leaving}
-            disabled={quotaExhausted}
+            disabled={quotaExhausted || aiDisabled}
             autoFocus
           />
 
@@ -144,7 +206,7 @@ export function SteelAiWelcome() {
                     >
                       <button
                         type='button'
-                        disabled={quotaExhausted || leaving}
+                        disabled={quotaExhausted || aiDisabled || leaving}
                         onClick={() => start(starter.prompt, starter.mode)}
                         className='flex h-full w-full items-center gap-2.5 rounded-xl border border-border/70 px-3 py-2 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 sm:items-start sm:py-2.5'
                       >
@@ -159,7 +221,7 @@ export function SteelAiWelcome() {
                           </span>
                           <span className='hidden text-muted-foreground text-xs sm:block'>
                             {meta.label}
-                            {starter.mode === 'AGENT' ? ' · Agente' : ''}
+                            {starter.mode === 'AGENT' ? ' · Build' : ''}
                           </span>
                         </span>
                       </button>

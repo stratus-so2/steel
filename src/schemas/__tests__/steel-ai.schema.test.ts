@@ -38,8 +38,32 @@ describe('steel-ai schemas', () => {
       SendAiMessageSchema.safeParse({ content: 'x'.repeat(8001) }).success,
     ).toBe(false)
     expect(SendAiMessageSchema.parse({ content: 'Oi', mode: 'AGENT' })).toEqual(
-      { content: 'Oi', mode: 'AGENT' },
+      { content: 'Oi', mode: 'AGENT', attachmentIds: [] },
     )
+  })
+
+  it('accepts attachments, a model and the Autopilot mode', () => {
+    expect(
+      SendAiMessageSchema.parse({
+        attachmentIds: ['a1'],
+        modelKey: 'openai:gpt-5',
+        mode: 'AUTOPILOT',
+      }),
+    ).toEqual({
+      content: '',
+      attachmentIds: ['a1'],
+      modelKey: 'openai:gpt-5',
+      mode: 'AUTOPILOT',
+    })
+    expect(
+      SendAiMessageSchema.safeParse({
+        content: 'x',
+        attachmentIds: ['1', '2', '3', '4', '5', '6'],
+      }).success,
+    ).toBe(false)
+    expect(UpdateAiConversationSchema.parse({ modelKey: null })).toEqual({
+      modelKey: null,
+    })
   })
 
   it('accepts an optional double confirmation flag', () => {

@@ -23,9 +23,35 @@ export function capabilities(
   over: Partial<SteelAiCapabilitiesDTO> = {},
 ): SteelAiCapabilitiesDTO {
   return {
+    aiEnabled: true,
     agentModeEnabled: true,
+    autopilotEnabled: false,
     modules: ['SERVICE_DESK', 'CRM', 'COMMUNICATION'],
-    modelKey: 'claude-sonnet',
+    modelKey: 'openai:gpt-4o-mini',
+    models: [
+      {
+        key: 'openai:gpt-4o-mini',
+        provider: 'openai',
+        providerLabel: 'OpenAI',
+        label: 'GPT-4o mini',
+        inputUsdPer1M: 0.15,
+        outputUsdPer1M: 0.6,
+      },
+      {
+        key: 'anthropic:claude-sonnet-5',
+        provider: 'anthropic',
+        providerLabel: 'Anthropic (Claude)',
+        label: 'Claude Sonnet 5',
+        inputUsdPer1M: 2,
+        outputUsdPer1M: 10,
+      },
+    ],
+    attachments: {
+      maxPerMessage: 5,
+      maxImageBytes: 5 * 1024 * 1024,
+      maxDocumentBytes: 10 * 1024 * 1024,
+      accept: ['image/png', 'application/pdf'],
+    },
     quota: { usedUsd: 1, quotaUsd: 50 },
     ...over,
   }
@@ -69,6 +95,7 @@ export function pendingAction(
     },
     status: 'PENDING',
     requiresDoubleConfirm: false,
+    autoExecuted: false,
     resultSummary: null,
     error: null,
     expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),

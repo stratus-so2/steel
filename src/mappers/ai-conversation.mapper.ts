@@ -1,4 +1,5 @@
 import type {
+  AiAttachment,
   AiConversation,
   AiMessage,
   AiPendingAction,
@@ -16,6 +17,7 @@ import type {
   AiMessageDTO,
   AiToolCallDTO,
 } from '@/types/steel-ai'
+import { toAiAttachmentDTO } from './ai-attachment.mapper'
 import { toAiPendingActionDTO } from './ai-pending-action.mapper'
 
 export function toAiConversationDTO(row: AiConversation): AiConversationDTO {
@@ -85,9 +87,20 @@ export function toAiMessageDTOs(
   rows: AiMessage[],
   actions: AiPendingAction[],
   meta: AiToolMetaResolver,
+  files: { workspaceId: string; attachments: AiAttachment[] } = {
+    workspaceId: '',
+    attachments: [],
+  },
 ): AiMessageDTO[] {
   const result: AiMessageDTO[] = []
   const actionById = new Map(actions.map((a) => [a.id, a]))
+  const filesByMessage = new Map<string, AiAttachment[]>()
+  for (const file of files.attachments) {
+    if (!file.messageId) continue
+    const list = filesByMessage.get(file.messageId) ?? []
+    list.push(file)
+    filesByMessage.set(file.messageId, list)
+  }
   let turn: AiMessageDTO | null = null
 
   const openTurn = (row: AiMessage): AiMessageDTO => {
@@ -98,6 +111,7 @@ export function toAiMessageDTOs(
       content: '',
       toolCalls: [],
       pendingActions: [],
+      attachments: [],
       createdAt: row.createdAt.toISOString(),
     }
     result.push(created)
@@ -114,6 +128,9 @@ export function toAiMessageDTOs(
         content: row.content,
         toolCalls: [],
         pendingActions: [],
+        attachments: (filesByMessage.get(row.id) ?? []).map((file) =>
+          toAiAttachmentDTO(file, files.workspaceId),
+        ),
         createdAt: row.createdAt.toISOString(),
       })
       continue

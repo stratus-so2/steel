@@ -67,6 +67,13 @@ export const WORKSPACE_BUCKETS: readonly WorkspaceBucket[] = [
     writtenBy:
       'src/services/sd-kb-media.service.ts, src/services/sd-ticket-attachment.service.ts, src/services/sd-ticket-signature.service.ts',
   },
+  {
+    // Steel AI (private): files and photos sent to the assistant, in
+    // `<ws>/<conversationId>/<id>-<name>`.
+    name: 'steel-ai-attachments',
+    public: false,
+    writtenBy: 'src/services/ai-attachment.service.ts',
+  },
 ] as const
 
 export const WORKSPACE_PREFIXED_BUCKETS = WORKSPACE_BUCKETS.map((b) => b.name)

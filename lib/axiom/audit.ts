@@ -154,6 +154,8 @@ export type AuditEntity =
   // Steel Agents
   | 'steel_agent'
   | 'steel_agent_run'
+  // Steel AI 2 — files and photos sent to the assistant
+  | 'ai_attachment'
 
 export type AuditAction =
   | 'create'
@@ -207,6 +209,8 @@ export type AuditAction =
   | 'confirm'
   | 'approve'
   | 'reject'
+  // Steel AI Autopilot: a write the AI ran without per-action confirmation.
+  | 'auto_execute'
 
 type AuditOutcome = 'success' | 'failure'
 

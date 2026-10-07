@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   createFakeAiActionLog,
+  createFakeAiAttachment,
   createFakeAiConversation,
   createFakeAiMessage,
   createFakeAiPendingAction,
 } from '@/src/__tests__/factories/steel-ai.factory'
 import { toAiActionLogDTO } from '../ai-action-log.mapper'
+import { aiAttachmentUrl, toAiAttachmentDTO } from '../ai-attachment.mapper'
 import {
   toAiConversationDTO,
   toAiMessageDTOs,
@@ -300,5 +302,64 @@ describe('toAiMessageDTOs()', () => {
     )
     expect(turn.toolCalls[0]).not.toHaveProperty('summary')
     expect(turn.toolCalls[0].status).toBe('done')
+  })
+})
+
+describe('toAiAttachmentDTO()', () => {
+  it('should expose the file with its same-origin url', () => {
+    const row = createFakeAiAttachment({
+      id: 'a1',
+      conversationId: 'c1',
+      messageId: 'm1',
+      kind: 'IMAGE',
+      filename: 'foto.png',
+      contentType: 'image/png',
+      sizeBytes: 42,
+    })
+    expect(toAiAttachmentDTO(row, 'ws1')).toEqual({
+      id: 'a1',
+      conversationId: 'c1',
+      messageId: 'm1',
+      kind: 'IMAGE',
+      filename: 'foto.png',
+      contentType: 'image/png',
+      sizeBytes: 42,
+      url: '/api/workspaces/ws1/ai/conversations/c1/attachments/a1',
+      createdAt: '2026-10-07T12:00:00.000Z',
+    })
+    expect(aiAttachmentUrl('w', { id: 'x', conversationId: 'y' })).toBe(
+      '/api/workspaces/w/ai/conversations/y/attachments/x',
+    )
+  })
+})
+
+describe('Steel AI 2 fields', () => {
+  it('should flag autopilot actions', () => {
+    expect(
+      toAiPendingActionDTO(createFakeAiPendingAction({ autoExecuted: true }))
+        .autoExecuted,
+    ).toBe(true)
+  })
+
+  it('should attach files only to their user message and default to none', () => {
+    const user = createFakeAiMessage({
+      id: 'm1',
+      role: 'USER',
+      createdAt: at(1),
+    })
+    const other = createFakeAiMessage({
+      id: 'm2',
+      role: 'USER',
+      createdAt: at(2),
+    })
+    const loose = createFakeAiAttachment({ id: 'a0', messageId: null })
+    const sent = createFakeAiAttachment({ id: 'a1', messageId: 'm1' })
+    const dtos = toAiMessageDTOs([user, other], [], meta, {
+      workspaceId: 'ws1',
+      attachments: [loose, sent],
+    })
+    expect(dtos[0].attachments.map((a) => a.id)).toEqual(['a1'])
+    expect(dtos[1].attachments).toEqual([])
+    expect(toAiMessageDTOs([user], [], meta)[0].attachments).toEqual([])
   })
 })

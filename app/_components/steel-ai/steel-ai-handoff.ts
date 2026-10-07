@@ -1,4 +1,4 @@
-import type { AiConversationModeDTO } from '@/types/steel-ai'
+import type { AiAttachmentDTO, AiConversationModeDTO } from '@/types/steel-ai'
 
 /**
  * Hands the first prompt from the welcome screen to the chat screen. The
@@ -10,6 +10,10 @@ import type { AiConversationModeDTO } from '@/types/steel-ai'
 export interface SteelAiPendingPrompt {
   content: string
   mode: AiConversationModeDTO
+  /** Model picked on the welcome screen (already saved on the chat). */
+  modelKey?: string | null
+  /** Files uploaded right after the conversation was created. */
+  attachments?: AiAttachmentDTO[]
 }
 
 const KEY_PREFIX = 'steel-ai:pending-prompt:'
@@ -50,15 +54,24 @@ export function takeSteelAiPrompt(
   const inMemory = memory.get(conversationId) ?? null
   memory.delete(conversationId)
   const candidate = (stored ?? inMemory) as Partial<SteelAiPendingPrompt> | null
+  const attachments = Array.isArray(candidate?.attachments)
+    ? candidate.attachments
+    : []
   if (
     !candidate ||
     typeof candidate.content !== 'string' ||
-    !candidate.content.trim()
+    (!candidate.content.trim() && attachments.length === 0)
   ) {
     return null
   }
   return {
     content: candidate.content,
-    mode: candidate.mode === 'AGENT' ? 'AGENT' : 'EXPLORE',
+    mode:
+      candidate.mode === 'AGENT' || candidate.mode === 'AUTOPILOT'
+        ? candidate.mode
+        : 'EXPLORE',
+    modelKey:
+      typeof candidate.modelKey === 'string' ? candidate.modelKey : null,
+    attachments,
   }
 }

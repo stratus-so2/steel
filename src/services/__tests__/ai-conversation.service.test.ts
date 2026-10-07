@@ -4,6 +4,7 @@ import { createFakeMembership } from '@/src/__tests__/factories/membership.facto
 import { createFakeProfile } from '@/src/__tests__/factories/profile.factory'
 import {
   createFakeAiActionLog,
+  createFakeAiAttachment,
   createFakeAiConversation,
   createFakeAiMessage,
   createFakeAiPendingAction,
@@ -18,10 +19,21 @@ vi.mock('@/src/repositories/ai-conversation.repository')
 vi.mock('@/src/repositories/ai-pending-action.repository')
 vi.mock('@/src/repositories/ai-action-log.repository')
 vi.mock('@/src/repositories/ai-settings.repository')
+vi.mock('@/src/repositories/ai-attachment.repository')
+vi.mock('@/src/services/ai-settings.service', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('@/src/services/ai-settings.service')
+  >()),
+  // Provider keys are not set in unit tests: usable = enabled.
+  isModelUsable: vi.fn((settings: { enabledModels: string[] }, key: string) =>
+    settings.enabledModels.includes(key),
+  ),
+}))
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 
 import { auditMutation } from '@/lib/axiom/audit'
 import { AiActionLogRepository } from '@/src/repositories/ai-action-log.repository'
+import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
 import {
   AiConversationRepository,
   AiMessageRepository,
@@ -30,7 +42,12 @@ import { AiPendingActionRepository } from '@/src/repositories/ai-pending-action.
 import { WorkspaceAiSettingsRepository } from '@/src/repositories/ai-settings.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { AiActionLogService } from '../ai-action-log.service'
-import { AiConversationService } from '../ai-conversation.service'
+import {
+  AiConversationService,
+  checkSteelAiMode,
+} from '../ai-conversation.service'
+
+const attachments = vi.mocked(AiAttachmentRepository)
 
 const memberships = vi.mocked(MembershipRepository)
 const conversations = vi.mocked(AiConversationRepository)
@@ -52,6 +69,7 @@ function asMember(role: 'OWNER' | 'MEMBER' | null = 'MEMBER') {
   )
   conversations.findById.mockResolvedValue(ok(conversation))
   settings.findByWorkspace.mockResolvedValue(ok(null))
+  attachments.listSentByConversation.mockResolvedValue(ok([]))
 }
 
 describe('AiConversationService', () => {
@@ -87,6 +105,7 @@ describe('AiConversationService', () => {
       userId: 'u1',
       title: null,
       mode: 'EXPLORE',
+      modelKey: null,
     })
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({ entity: 'ai_conversation', action: 'create' }),
@@ -363,5 +382,161 @@ describe('AiActionLogService.list()', () => {
     )
     logs.listByWorkspace.mockResolvedValue(err(databaseError()))
     expectErr(await AiActionLogService.list('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+})
+
+describe('AiConversationService — Steel AI 2 switches and model', () => {
+  it('checkSteelAiMode() should gate AGENT and AUTOPILOT', () => {
+    expectOk(checkSteelAiMode(null, 'EXPLORE'))
+    expectOk(checkSteelAiMode(null, 'AGENT'))
+    expectErr(checkSteelAiMode(null, 'AUTOPILOT'), 'AI_AUTOPILOT_DISABLED')
+    const off = createFakeWorkspaceAiSettings({
+      agentModeEnabled: false,
+      autopilotEnabled: true,
+    })
+    expectErr(checkSteelAiMode(off, 'AGENT'), 'AI_AGENT_MODE_DISABLED')
+    expectErr(checkSteelAiMode(off, 'AUTOPILOT'), 'AI_AGENT_MODE_DISABLED')
+    expectOk(
+      checkSteelAiMode(
+        createFakeWorkspaceAiSettings({ autopilotEnabled: true }),
+        'AUTOPILOT',
+      ),
+    )
+  })
+
+  it('should answer AI_DISABLED on every call when the master switch is off', async () => {
+    asMember()
+    settings.findByWorkspace.mockResolvedValue(
+      ok(createFakeWorkspaceAiSettings({ aiEnabled: false })),
+    )
+    expectErr(await AiConversationService.list('u1', 'ws1'), 'AI_DISABLED')
+    expectErr(
+      await AiConversationService.create('u1', 'ws1', { mode: 'EXPLORE' }),
+      'AI_DISABLED',
+    )
+    expectErr(await AiConversationService.get('u1', 'ws1', 'c'), 'AI_DISABLED')
+    expectErr(
+      await AiConversationService.update('u1', 'ws1', 'c', { pinned: true }),
+      'AI_DISABLED',
+    )
+    expectErr(
+      await AiConversationService.remove('u1', 'ws1', 'c'),
+      'AI_DISABLED',
+    )
+    expectErr(
+      await AiConversationService.listMessages('u1', 'ws1', 'c'),
+      'AI_DISABLED',
+    )
+    expect(conversations.findById).not.toHaveBeenCalled()
+  })
+
+  it('create() should allow AUTOPILOT only when the workspace enabled it', async () => {
+    asMember()
+    expectErr(
+      await AiConversationService.create('u1', 'ws1', { mode: 'AUTOPILOT' }),
+      'AI_AUTOPILOT_DISABLED',
+    )
+    settings.findByWorkspace.mockResolvedValue(
+      ok(createFakeWorkspaceAiSettings({ autopilotEnabled: true })),
+    )
+    conversations.create.mockResolvedValue(
+      ok({ ...conversation, mode: 'AUTOPILOT' }),
+    )
+    expect(
+      expectOk(
+        await AiConversationService.create('u1', 'ws1', { mode: 'AUTOPILOT' }),
+      ).mode,
+    ).toBe('AUTOPILOT')
+  })
+
+  it('create() should keep a usable model pick and refuse others', async () => {
+    asMember()
+    conversations.create.mockResolvedValue(
+      ok({ ...conversation, modelKey: 'openai:gpt-5' }),
+    )
+    expectOk(
+      await AiConversationService.create('u1', 'ws1', {
+        mode: 'EXPLORE',
+        modelKey: 'openai:gpt-5',
+      }),
+    )
+    expect(conversations.create).toHaveBeenCalledWith(
+      expect.objectContaining({ modelKey: 'openai:gpt-5' }),
+    )
+
+    settings.findByWorkspace.mockResolvedValue(
+      ok(
+        createFakeWorkspaceAiSettings({
+          enabledModels: ['openai:gpt-4o-mini'],
+        }),
+      ),
+    )
+    expectErr(
+      await AiConversationService.create('u1', 'ws1', {
+        mode: 'EXPLORE',
+        modelKey: 'openai:gpt-5',
+      }),
+      'AI_MODEL_NOT_ENABLED',
+    )
+  })
+
+  it('update() should switch or reset the model', async () => {
+    asMember()
+    conversations.update.mockResolvedValue(ok(conversation))
+    expectOk(
+      await AiConversationService.update('u1', 'ws1', 'conv1', {
+        modelKey: 'anthropic:claude-opus-5',
+      }),
+    )
+    expect(conversations.update).toHaveBeenCalledWith('conv1', {
+      modelKey: 'anthropic:claude-opus-5',
+    })
+    expectOk(
+      await AiConversationService.update('u1', 'ws1', 'conv1', {
+        modelKey: null,
+      }),
+    )
+    expect(conversations.update).toHaveBeenLastCalledWith('conv1', {
+      modelKey: null,
+    })
+    expectErr(
+      await AiConversationService.update('u1', 'ws1', 'conv1', {
+        modelKey: 'acme:nope',
+      }),
+      'AI_MODEL_NOT_ENABLED',
+    )
+  })
+
+  it('listMessages() should attach the sent files to their user message', async () => {
+    asMember()
+    actions.expireOverdue.mockResolvedValue(ok(0))
+    messages.listByConversation.mockResolvedValue(
+      ok([createFakeAiMessage({ id: 'm1', role: 'USER', content: '' })]),
+    )
+    actions.listByConversation.mockResolvedValue(ok([]))
+    attachments.listSentByConversation.mockResolvedValue(
+      ok([createFakeAiAttachment({ id: 'a1', messageId: 'm1' })]),
+    )
+    const [message] = expectOk(
+      await AiConversationService.listMessages('u1', 'ws1', 'conv1'),
+    )
+    expect(message.attachments).toEqual([
+      expect.objectContaining({
+        id: 'a1',
+        url: '/api/workspaces/ws1/ai/conversations/conv1/attachments/a1',
+      }),
+    ])
+
+    attachments.listSentByConversation.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await AiConversationService.listMessages('u1', 'ws1', 'conv1'),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should propagate a settings lookup failure', async () => {
+    asMember()
+    settings.findByWorkspace.mockResolvedValue(err(databaseError()))
+    expectErr(await AiConversationService.list('u1', 'ws1'), 'DATABASE_ERROR')
   })
 })

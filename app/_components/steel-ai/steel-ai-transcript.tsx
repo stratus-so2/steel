@@ -6,32 +6,43 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { SteelAiLiveMessage } from '@/src/lib/steel-ai-stream'
 import type {
+  AiAttachmentDTO,
   AiMessageDTO,
   AiPendingActionDTO,
   AiToolCallDTO,
 } from '@/types/steel-ai'
+import { SteelAiMessageAttachments } from './steel-ai-attachments'
+import { SteelAiExecutedActionCard } from './steel-ai-executed-action-card'
 import { SteelAiMarkdown } from './steel-ai-markdown'
 import { SteelAiPendingActionCard } from './steel-ai-pending-action-card'
 import { SteelAiToolCall } from './steel-ai-tool-call'
 
 function UserBubble({
   content,
+  attachments = [],
   animate,
 }: {
   content: string
+  attachments?: AiAttachmentDTO[]
   animate?: boolean
 }) {
   return (
     <div
       className={cn(
-        'flex justify-end',
+        'flex flex-col items-end gap-2',
         animate &&
           'motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:animate-in motion-safe:duration-300',
       )}
     >
-      <div className='min-w-0 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-3.5 py-2 text-sm leading-relaxed [overflow-wrap:anywhere] sm:max-w-[75%] sm:px-4 sm:py-2.5'>
-        {content}
-      </div>
+      <SteelAiMessageAttachments
+        attachments={attachments}
+        className='max-w-[85%] sm:max-w-[75%]'
+      />
+      {content ? (
+        <div className='min-w-0 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-3.5 py-2 text-sm leading-relaxed [overflow-wrap:anywhere] sm:max-w-[75%] sm:px-4 sm:py-2.5'>
+          {content}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -94,13 +105,17 @@ function AssistantBlock({
             ) : null}
           </div>
         ) : null}
-        {pendingActions.map((action) => (
-          <SteelAiPendingActionCard
-            key={action.id}
-            workspaceId={workspaceId}
-            action={action}
-          />
-        ))}
+        {pendingActions.map((action) =>
+          action.autoExecuted ? (
+            <SteelAiExecutedActionCard key={action.id} action={action} />
+          ) : (
+            <SteelAiPendingActionCard
+              key={action.id}
+              workspaceId={workspaceId}
+              action={action}
+            />
+          ),
+        )}
         {footer ? (
           <p className='text-muted-foreground text-xs italic'>{footer}</p>
         ) : null}
@@ -132,18 +147,24 @@ export function SteelAiTranscript({
   workspaceId,
   messages,
   pendingUserMessage,
+  pendingAttachments = [],
   live,
 }: {
   workspaceId: string
   messages: AiMessageDTO[]
   pendingUserMessage: string | null
+  pendingAttachments?: AiAttachmentDTO[]
   live: SteelAiLiveMessage | null
 }) {
   return (
     <div className='space-y-6 sm:space-y-8'>
       {messages.map((message) =>
         message.role === 'USER' ? (
-          <UserBubble key={message.id} content={message.content} />
+          <UserBubble
+            key={message.id}
+            content={message.content}
+            attachments={message.attachments}
+          />
         ) : (
           <AssistantBlock
             key={message.id}
@@ -155,7 +176,11 @@ export function SteelAiTranscript({
         ),
       )}
       {pendingUserMessage !== null ? (
-        <UserBubble content={pendingUserMessage} animate />
+        <UserBubble
+          content={pendingUserMessage}
+          attachments={pendingAttachments}
+          animate
+        />
       ) : null}
       {live ? (
         <AssistantBlock

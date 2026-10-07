@@ -85,6 +85,9 @@ const OWNER_ACCESS = {
   isPrivileged: false,
   permissions: SYSTEM_PROFILE_PERMISSIONS.MEMBER,
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
 }
 
 function setup(

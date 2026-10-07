@@ -1,4 +1,4 @@
-import type { AiUsageFeature } from '@prisma/client'
+import type { AiUsageFeature, ModuleKind } from '@prisma/client'
 import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import { aiProviderUnavailable, aiQuotaExceeded } from '@/src/errors'
@@ -130,6 +130,11 @@ export const AiUsageService = {
     workspaceId: string,
     feature: AiUsageFeature,
     userId?: string | null,
+    /**
+     * Tried before everything else, in order — e.g. the model picked for a
+     * Steel AI conversation. Unusable ones are skipped like any candidate.
+     */
+    preferredModelKeys: (string | null | undefined)[] = [],
   ): Promise<
     Result<{
       settings: EffectiveAiSettings
@@ -140,7 +145,9 @@ export const AiUsageService = {
     if (!row.ok) return row
     const settings = toEffectiveAiSettings(row.value)
 
-    const candidates: string[] = []
+    const candidates: string[] = preferredModelKeys.filter(
+      (key): key is string => Boolean(key),
+    )
     if (USER_PREFERENCE_FEATURES.has(feature) && userId) {
       const preference = await UserAiPreferenceRepository.find(
         workspaceId,
@@ -166,11 +173,13 @@ export const AiUsageService = {
     workspaceId: string,
     feature: AiUsageFeature,
     userId?: string | null,
+    preferredModelKeys: (string | null | undefined)[] = [],
   ): Promise<Result<PreparedAiCall>> {
     const resolved = await AiUsageService.resolveModel(
       workspaceId,
       feature,
       userId,
+      preferredModelKeys,
     )
     if (!resolved.ok) return resolved
     const { settings, model } = resolved.value
@@ -232,6 +241,15 @@ export const AiUsageService = {
       workspaceId: string
       userId: string | null
       usage: AiUsageTokens
+      /**
+       * Analytics scope: module whose tools the interaction used (null =
+       * none/platform), and the conversation or agent run it belongs to.
+       */
+      scope?: {
+        module?: ModuleKind | null
+        conversationId?: string | null
+        agentRunId?: string | null
+      }
     },
   ): Promise<void> {
     // Chamada que falhou antes de consumir qualquer token: nada a lançar.
@@ -253,6 +271,11 @@ export const AiUsageService = {
       inputTokens: input.usage.inputTokens,
       outputTokens: input.usage.outputTokens,
       costUsd,
+      ...(input.scope && {
+        module: input.scope.module ?? null,
+        conversationId: input.scope.conversationId ?? null,
+        agentRunId: input.scope.agentRunId ?? null,
+      }),
     })
 
     if (!result.ok) {

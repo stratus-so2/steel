@@ -3,7 +3,20 @@ import type { AiConversation, ModuleKind, Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
-import { aiAgentModeDisabled, aiToolNotAllowed } from '@/src/errors/app-error'
+import { aiDisabled, aiToolNotAllowed } from '@/src/errors/app-error'
+import {
+  AI_ATTACHMENT_ACCEPT,
+  AI_ATTACHMENT_MAX_DOCUMENT_BYTES,
+  AI_ATTACHMENT_MAX_IMAGE_BYTES,
+  AI_ATTACHMENT_MAX_PER_MESSAGE,
+  buildUserContent,
+} from '@/src/lib/ai/attachments'
+import { memoryForPrompt } from '@/src/lib/ai/context/memory'
+import {
+  resolveSkillInvocation,
+  skillsCatalogForPrompt,
+} from '@/src/lib/ai/context/skills'
+import { AI_PROVIDER_LABELS, findAiModel } from '@/src/lib/ai/models'
 import { addAiUsage, currentPeriodStart } from '@/src/lib/ai/quota'
 import {
   capHistory,
@@ -38,6 +51,9 @@ import type {
 import { err, ok, type Result } from '@/src/lib/result'
 import { toAiToolCallDTO } from '@/src/mappers/ai-conversation.mapper'
 import { toAiPendingActionDTO } from '@/src/mappers/ai-pending-action.mapper'
+import type { toEffectiveAiSettings } from '@/src/mappers/ai-settings.mapper'
+import { toAiModelPriceDTOs } from '@/src/mappers/platform-ai-settings.mapper'
+import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
 import {
   AiConversationRepository,
   AiMessageRepository,
@@ -47,16 +63,22 @@ import { AiUsageRepository } from '@/src/repositories/ai-settings.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { UserPreferenceRepository } from '@/src/repositories/user-preference.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
-import type { SendAiMessageDTO } from '@/src/schemas/steel-ai.schema'
+import type { SendAiMessageInput } from '@/src/schemas/steel-ai.schema'
 import type {
   AiCapabilitiesDTO,
+  AiChatModelDTO,
   AiMessageDTO,
   AiModuleDTO,
   AiPendingActionDTO,
   AiToolCallDTO,
   SteelAiStreamEvent,
 } from '@/types/steel-ai'
+import { AiAttachmentService } from './ai-attachment.service'
+import { checkSteelAiMode } from './ai-conversation.service'
+import { executeAutopilotWrite } from './ai-pending-action.service'
+import { isModelUsable } from './ai-settings.service'
 import { AiUsageService, type PreparedAiCall } from './ai-usage.service'
+import { PlatformAiSettingsService } from './platform-ai-settings.service'
 
 /** Tool rounds per user message (the last one is forced to answer in text). */
 export const STEEL_AI_MAX_TOOL_ROUNDS = 8
@@ -80,6 +102,59 @@ const TITLE_PROMPT =
 
 function sortModules(modules: ModuleKind[]): AiModuleDTO[] {
   return MODULE_ORDER.filter((m) => modules.includes(m))
+}
+
+/**
+ * Module an interaction is billed to in `AiUsage.module`: the module of the
+ * tools called in the turn. None (or only platform tools) → null; mixed →
+ * the one with the most calls, ties going to the module used first.
+ */
+export function dominantModule(
+  modules: (ModuleKind | null)[],
+): ModuleKind | null {
+  const counts = new Map<ModuleKind, number>()
+  for (const module of modules) {
+    if (module) counts.set(module, (counts.get(module) ?? 0) + 1)
+  }
+  let best: ModuleKind | null = null
+  for (const [module, count] of counts) {
+    // Map keeps insertion order, so `>` keeps the first module on a tie.
+    if (best === null || count > (counts.get(best) as number)) best = module
+  }
+  return best
+}
+
+/** Picker list: enabled + usable models, charged price (provider × margin). */
+async function chatModels(
+  settings: ReturnType<typeof toEffectiveAiSettings>,
+): Promise<AiChatModelDTO[]> {
+  const margin = await PlatformAiSettingsService.getCostMargin()
+  return toAiModelPriceDTOs(margin)
+    .filter((price) => isModelUsable(settings, price.key))
+    .map((price) => ({
+      key: price.key,
+      provider: price.provider,
+      providerLabel: AI_PROVIDER_LABELS[price.provider],
+      label: price.label,
+      inputUsdPer1M: price.chargedInputUsdPer1M,
+      outputUsdPer1M: price.chargedOutputUsdPer1M,
+    }))
+}
+
+const ATTACHMENT_LIMITS: AiCapabilitiesDTO['attachments'] = {
+  maxPerMessage: AI_ATTACHMENT_MAX_PER_MESSAGE,
+  maxImageBytes: AI_ATTACHMENT_MAX_IMAGE_BYTES,
+  maxDocumentBytes: AI_ATTACHMENT_MAX_DOCUMENT_BYTES,
+  accept: AI_ATTACHMENT_ACCEPT,
+}
+
+/** System block for a skill invoked with "/<slug>". */
+function skillSection(skill: {
+  slug: string
+  name: string
+  instructions: string
+}): string {
+  return `Skill invocada pelo usuário: /${skill.slug} (${skill.name}). Siga estas instruções nesta resposta:\n${skill.instructions}`
 }
 
 /** Thrown inside the turn when a round cannot be persisted. */
@@ -107,7 +182,12 @@ interface TurnInput {
   call: PreparedAiCall
   system: string
   history: AiMessage[]
+  /** User text (tool selection and title); may be empty with attachments. */
   content: string
+  /** What the title is generated from when `content` is empty. */
+  titleSource: string
+  /** Model key kept on the conversation after the turn (null = the used one). */
+  storedModelKey: string | null
   isFirstExchange: boolean
   /** Tools called/activated in the recent history, most recent first. */
   pinnedTools: string[]
@@ -127,7 +207,7 @@ async function generateTitle(
       messages: [
         {
           role: 'user',
-          content: `Usuário: ${input.content.slice(0, 1_000)}\n\nAssistente: ${reply.slice(0, 1_000)}`,
+          content: `Usuário: ${input.titleSource.slice(0, 1_000)}\n\nAssistente: ${reply.slice(0, 1_000)}`,
         },
       ],
       maxTokens: 40,
@@ -146,7 +226,7 @@ async function generateTitle(
       }),
     )
   }
-  return fallbackTitle(input.content)
+  return fallbackTitle(input.titleSource)
 }
 
 async function* runTurn(
@@ -182,7 +262,13 @@ async function* runTurn(
   const texts: string[] = []
   const toolCalls: AiToolCallDTO[] = []
   const pendingActions: AiPendingActionDTO[] = []
+  /** Autopilot writes already executed in this turn. */
+  const executedActions: AiPendingActionDTO[] = []
+  /** Every action of the turn (proposed or executed), in creation order. */
+  const actions: AiPendingActionDTO[] = []
   const toolNames: string[] = []
+  /** Module of every domain tool called (usage scope). */
+  const toolModules: (ModuleKind | null)[] = []
   let firstRow = true
 
   yield { type: 'message.start', conversationId: conversation.id, messageId }
@@ -244,11 +330,42 @@ async function* runTurn(
       })
       summary = error.message
     } else if (tool.kind === 'READ') {
+      toolModules.push(tool.module)
       const run = await runReadTool(tool, ctx, toolCall.arguments)
       content = run.content
       status = run.ok ? 'done' : 'error'
       summary = run.ok ? run.output.summary : run.error.message
+    } else if (input.mode === 'AUTOPILOT') {
+      toolModules.push(tool.module)
+      const executed = await executeAutopilotWrite(
+        tool,
+        ctx,
+        toolCall.arguments,
+        { conversationId: conversation.id, toolCallId: toolCall.id },
+      )
+      if (executed.ok) {
+        const dto = toAiPendingActionDTO(executed.value.action)
+        executedActions.push(dto)
+        actions.push(dto)
+        yield { type: 'action.executed', action: dto }
+        content = executed.value.content
+        status = dto.status === 'EXECUTED' ? 'done' : 'error'
+        summary =
+          dto.status === 'EXECUTED'
+            ? (dto.resultSummary ?? dto.preview.title)
+            : (dto.error ?? dto.preview.title)
+      } else {
+        content = serializeToolResult({
+          status: 'error',
+          error: {
+            code: executed.error.code,
+            message: executed.error.message,
+          },
+        })
+        summary = executed.error.message
+      }
     } else {
+      toolModules.push(tool.module)
       const action = await proposeWriteTool(tool, ctx, toolCall.arguments, {
         conversationId: conversation.id,
         toolCallId: toolCall.id,
@@ -256,6 +373,7 @@ async function* runTurn(
       if (action.ok) {
         const dto = toAiPendingActionDTO(action.value)
         pendingActions.push(dto)
+        actions.push(dto)
         yield { type: 'action.pending', action: dto }
         content = serializeToolResult({
           status: 'pending_confirmation',
@@ -395,6 +513,10 @@ async function* runTurn(
       workspaceId: input.workspaceId,
       userId: input.actorId,
       usage,
+      scope: {
+        module: dominantModule(toolModules),
+        conversationId: conversation.id,
+      },
     })
     yield persistFailure
       ? { type: 'error', code: 'DATABASE_ERROR', message: PERSIST_ERROR }
@@ -421,9 +543,14 @@ async function* runTurn(
     workspaceId: input.workspaceId,
     userId: input.actorId,
     usage,
+    scope: {
+      module: dominantModule(toolModules),
+      conversationId: conversation.id,
+    },
   })
+  // Keeps the user's pick even when this turn fell back to another model.
   const touched = await AiConversationRepository.update(conversation.id, {
-    modelKey: call.model.key,
+    modelKey: input.storedModelKey ?? call.model.key,
   })
   if (!touched.ok) {
     logger.warn(
@@ -449,6 +576,7 @@ async function* runTurn(
         model: call.model.key,
         tools: toolNames,
         pendingActions: pendingActions.length,
+        autopilotActions: executedActions.length,
         inputTokens: usage.inputTokens,
         outputTokens: usage.outputTokens,
         maxToolSpecChars: maxSpecChars,
@@ -462,14 +590,20 @@ async function* runTurn(
     role: 'ASSISTANT',
     content: reply,
     toolCalls,
-    pendingActions,
+    pendingActions: actions,
+    attachments: [],
     createdAt: startedAt.toISOString(),
   }
   yield { type: 'message.end', message, usage: { ...usage } }
 }
 
 export const SteelAiChatService = {
-  /** What the chat screen may offer: agent mode, modules, model and quota. */
+  /**
+   * What the chat screen may offer: the switches (AI, agent mode,
+   * Autopilot), modules, the default and pickable models, attachment limits
+   * and the quota. Answers even with the AI switched off (`aiEnabled: false`)
+   * so the screen can explain why.
+   */
   async capabilities(
     actorId: string,
     workspaceId: string,
@@ -484,10 +618,15 @@ export const SteelAiChatService = {
     if (!resolved.ok) return resolved
     if (!usage.ok) return usage
 
+    const { aiEnabled, agentModeEnabled, autopilotEnabled } = access.value
     return ok({
-      agentModeEnabled: access.value.agentModeEnabled,
+      aiEnabled,
+      agentModeEnabled,
+      autopilotEnabled: agentModeEnabled && autopilotEnabled,
       modules: sortModules(access.value.modules),
-      modelKey: resolved.value.model?.key ?? null,
+      modelKey: aiEnabled ? (resolved.value.model?.key ?? null) : null,
+      models: aiEnabled ? await chatModels(resolved.value.settings) : [],
+      attachments: ATTACHMENT_LIMITS,
       quota: {
         usedUsd: Math.round(usage.value.costUsd * 100) / 100,
         quotaUsd: resolved.value.settings.monthlyQuotaUsd,
@@ -498,18 +637,24 @@ export const SteelAiChatService = {
   /**
    * Sends a user message and returns the turn as a stream of events.
    * Everything that can fail *before* the model is called (membership,
-   * conversation ownership, agent-mode switch, provider/quota) comes back
-   * as a Result error so the route answers with a JSON envelope; once the
-   * stream starts, failures are `error` events.
+   * switches, conversation ownership, mode, attachments, provider/quota)
+   * comes back as a Result error so the route answers with a JSON envelope;
+   * once the stream starts, failures are `error` events.
+   *
+   * Model: the one asked in this message, else the conversation's pick,
+   * else the user preference / workspace default — any of them that is no
+   * longer usable is skipped (the pick stays saved on the conversation).
    */
   async sendMessage(
     actorId: string,
     workspaceId: string,
     conversationId: string,
-    input: SendAiMessageDTO,
+    input: SendAiMessageInput,
   ): Promise<Result<AsyncIterable<SteelAiStreamEvent>>> {
     const access = await resolveToolAccess(actorId, workspaceId)
     if (!access.ok) return access
+    if (!access.value.aiEnabled) return err(aiDisabled())
+    const content = input.content?.trim() ?? ''
 
     const conversation = await AiConversationRepository.findById(
       conversationId,
@@ -518,50 +663,87 @@ export const SteelAiChatService = {
     )
     if (!conversation.ok) return conversation
 
-    // AUTOPILOT exists in the schema ahead of its runtime: until the chat
-    // slice implements it, it behaves like AGENT (every write confirms).
-    const requested = input.mode ?? conversation.value.mode
-    const mode: SteelAiMode = requested === 'AUTOPILOT' ? 'AGENT' : requested
-    if (mode === 'AGENT' && !access.value.agentModeEnabled) {
-      return err(aiAgentModeDisabled())
-    }
+    const mode: SteelAiMode = input.mode ?? conversation.value.mode
+    const allowed = checkSteelAiMode(access.value, mode)
+    if (!allowed.ok) return allowed
+
+    const attachments = await AiAttachmentService.loadForSend(
+      actorId,
+      conversationId,
+      input.attachmentIds ?? [],
+    )
+    if (!attachments.ok) return attachments
 
     const prepared = await AiUsageService.prepare(
       workspaceId,
       'STEEL_ASSISTANT',
       actorId,
+      [input.modelKey, conversation.value.modelKey],
     )
     if (!prepared.ok) return prepared
 
-    const [user, workspace, preference, recent] = await Promise.all([
-      UserRepository.findById(actorId),
-      WorkspaceRepository.findById(workspaceId),
-      UserPreferenceRepository.findByUserId(actorId),
-      AiMessageRepository.listRecent(conversationId, HISTORY_MAX_ROWS),
-    ])
+    const ctx: AiToolContext = { workspaceId, actorId, source: 'assistant' }
+    const [user, workspace, preference, recent, invocation, catalog, memory] =
+      await Promise.all([
+        UserRepository.findById(actorId),
+        WorkspaceRepository.findById(workspaceId),
+        UserPreferenceRepository.findByUserId(actorId),
+        AiMessageRepository.listRecent(conversationId, HISTORY_MAX_ROWS),
+        resolveSkillInvocation(ctx, content),
+        skillsCatalogForPrompt(ctx),
+        memoryForPrompt(ctx),
+      ])
     if (!user.ok) return user
     if (!workspace.ok) return workspace
     if (!recent.ok) return recent
 
-    if (mode !== conversation.value.mode) {
-      const switched = await AiConversationRepository.update(conversationId, {
-        mode,
-      })
+    const changed: { mode?: SteelAiMode; modelKey?: string } = {}
+    if (mode !== conversation.value.mode) changed.mode = mode
+    // Only catalog keys are kept; anything else just falls back.
+    if (
+      input.modelKey &&
+      input.modelKey !== conversation.value.modelKey &&
+      findAiModel(input.modelKey)
+    ) {
+      changed.modelKey = input.modelKey
+    }
+    if (changed.mode || changed.modelKey) {
+      const switched = await AiConversationRepository.update(
+        conversationId,
+        changed,
+      )
       if (!switched.ok) return switched
       auditMutation({
         entity: 'ai_conversation',
         action: 'update',
         actorId,
         targetId: conversationId,
-        meta: { workspaceId, fields: ['mode'], mode },
+        meta: { workspaceId, fields: Object.keys(changed), ...changed },
       })
     }
 
     const saved = await AiMessageRepository.createMany([
-      { conversationId, role: 'USER', content: input.content },
+      { conversationId, role: 'USER', content },
     ])
     if (!saved.ok) return saved
+    if (attachments.value.length > 0) {
+      const bound = await AiAttachmentRepository.attachToMessage(
+        attachments.value.map((a) => a.id),
+        saved.value[0].id,
+      )
+      if (!bound.ok) return bound
+    }
 
+    const capped = capHistory(recent.value)
+    const notes = await AiAttachmentService.historyNotes(
+      capped.filter((row) => row.role === 'USER').map((row) => row.id),
+    )
+
+    const skill = invocation.skill
+    const modelText =
+      skill && !invocation.content.trim()
+        ? `Execute a skill /${skill.slug}.`
+        : invocation.content
     const system = buildSteelAiSystemPrompt({
       userName: user.value.name,
       workspaceName: workspace.value.name,
@@ -569,9 +751,9 @@ export const SteelAiChatService = {
       timezone: preference.ok ? preference.value.timezone : DEFAULT_TIMEZONE,
       modules: access.value.modules,
       mode,
+      sections: [skill ? skillSection(skill) : '', catalog, memory],
     })
 
-    const capped = capHistory(recent.value)
     return ok(
       runTurn({
         actorId,
@@ -581,8 +763,15 @@ export const SteelAiChatService = {
         access: access.value,
         call: prepared.value,
         system,
-        history: toProviderHistory(capped, input.content),
-        content: input.content,
+        history: toProviderHistory(
+          capped,
+          buildUserContent(modelText, attachments.value),
+          notes,
+        ),
+        content: modelText,
+        titleSource:
+          content || attachments.value.map((a) => a.filename).join(', '),
+        storedModelKey: changed.modelKey ?? conversation.value.modelKey ?? null,
         isFirstExchange: !recent.value.some((row) => row.role === 'USER'),
         pinnedTools: pinnedToolsFromHistory(capped),
         previousMessages: capped

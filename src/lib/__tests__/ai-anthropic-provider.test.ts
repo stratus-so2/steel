@@ -241,6 +241,27 @@ describe('toAnthropicMessages()', () => {
     ])
   })
 
+  it('should map data URL images to base64 image blocks', () => {
+    expect(
+      toAnthropicMessages([
+        {
+          role: 'user',
+          content: [{ type: 'image', url: 'data:image/png;base64,AAAA' }],
+        },
+      ]),
+    ).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: 'image/png', data: 'AAAA' },
+          },
+        ],
+      },
+    ])
+  })
+
   it('should rebuild tool_use blocks for assistant turns from another provider', () => {
     expect(
       toAnthropicMessages([

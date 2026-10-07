@@ -1298,7 +1298,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_18"
+            "$ref": "#/components/responses/400_BAD_REQUEST_19"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -4275,7 +4275,7 @@
             "$ref": "#/components/responses/403_MODULE_DISABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -4873,7 +4873,7 @@
             "$ref": "#/components/responses/404_CRM_WORKFLOW_WEBHOOK_INVALID"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_23"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_25"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -9203,7 +9203,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_STEEL_AGENT_INVALID_TOOL_STEEL_AGENT_INVALID_TRIGGER_STEEL_AGENT_INVALID_OWNER"
@@ -9422,7 +9422,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND_STEEL_AGENT_RUN_NOT_FOUND"
@@ -9662,7 +9662,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -9726,7 +9726,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -9789,7 +9789,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -10129,10 +10129,10 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10221,7 +10221,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10297,7 +10297,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -10360,7 +10360,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND"
@@ -10441,7 +10441,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_TOOL_NOT_ALLOWED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_TOOL_NOT_ALLOWED_AI_DISABLED"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND"
@@ -10471,7 +10471,7 @@
         "tags": ["Steel AI"],
         "summary": "Capacidades do Steel AI",
         "operationId": "getWorkspacesByIdAiCapabilities",
-        "description": "O que a tela do Steel AI pode oferecer ao usuário: modo agente ligado, módulos habilitados, modelo resolvido (preferência do usuário → padrão do workspace) e consumo da cota mensal.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "O que a tela do Steel AI pode oferecer ao usuário: interruptores (IA, modo agente, Autopilot), módulos habilitados, modelo padrão (preferência do usuário → padrão do workspace), modelos que o usuário pode escolher com o preço por 1M tokens, limites de anexos e consumo da cota mensal. Responde mesmo com a IA desligada (`aiEnabled: false`).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -10568,7 +10568,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -10587,7 +10587,7 @@
         "tags": ["Steel AI"],
         "summary": "Criar conversa",
         "operationId": "postWorkspacesByIdAiConversations",
-        "description": "Abre uma conversa vazia. `mode`: `EXPLORE` (só leitura, padrão) ou `AGENT` (propõe escritas que o usuário confirma).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Abre uma conversa vazia. `mode`: `EXPLORE` (Ask, só leitura, padrão), `AGENT` (Build: propõe escritas que o usuário confirma) ou `AUTOPILOT` (escritas executam na hora, registradas no histórico de ações da IA). `modelKey` opcional fixa o modelo da conversa.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -10608,6 +10608,18 @@
                     "default": "EXPLORE",
                     "type": "string",
                     "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                  },
+                  "modelKey": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }
@@ -10641,10 +10653,10 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_DISABLED_AI_AUTOPILOT_DISABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10705,7 +10717,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
@@ -10724,7 +10736,7 @@
         "tags": ["Steel AI"],
         "summary": "Atualizar conversa",
         "operationId": "patchWorkspacesByIdAiConversationsByConversationId",
-        "description": "Renomear, trocar o modo ou fixar/desafixar (`pinned`). Informe ao menos um campo. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Renomear, trocar o modo, trocar o modelo (`modelKey`, `null` volta ao padrão) ou fixar/desafixar (`pinned`). Informe ao menos um campo. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -10758,6 +10770,18 @@
                   },
                   "pinned": {
                     "type": "boolean"
+                  },
+                  "modelKey": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 100
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }
@@ -10791,13 +10815,13 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_DISABLED_AI_AUTOPILOT_DISABLED"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10856,10 +10880,257 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/conversations/{conversationId}/attachments": {
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Enviar anexo",
+        "operationId": "postWorkspacesByIdAiConversationsByConversationIdAttachments",
+        "description": "Multipart, campo `file`. Imagens (png, jpeg, webp, gif) até 5 MB; documentos (pdf, docx, txt, csv, md) até 10 MB — o texto do documento é extraído no envio (PDF escaneado sem texto é recusado). Grava no bucket privado `steel-ai-attachments` e fica solto até uma mensagem usá-lo em `attachmentIds` (até 20 soltos por conversa). Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário (limite de upload); ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Anexo enviado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiAttachment"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST_14"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+          },
+          "413": {
+            "$ref": "#/components/responses/413_AI_ATTACHMENT_TOO_LARGE"
+          },
+          "415": {
+            "$ref": "#/components/responses/415_AI_ATTACHMENT_UNSUPPORTED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_9"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/conversations/{conversationId}/attachments/{attachmentId}": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Baixar anexo",
+        "operationId": "getWorkspacesByIdAiConversationsByConversationIdAttachmentsByAttachmentId",
+        "description": "Arquivo como enviado (miniatura no histórico). `?download=1` força `Content-Disposition: attachment`; senão abre inline. Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "description": "ID do anexo.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "download",
+            "in": "query",
+            "required": false,
+            "description": "Força o download.",
+            "schema": {
+              "type": "string",
+              "enum": ["1"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Arquivo.",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND_AI_ATTACHMENT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Steel AI"],
+        "summary": "Remover anexo",
+        "operationId": "deleteWorkspacesByIdAiConversationsByConversationIdAttachmentsByAttachmentId",
+        "description": "Remove um anexo ainda não enviado (o \"x\" no compositor). Conversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "ID da conversa com o Steel AI.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "ckw1aicv0000ab7d3k1e5xyz"
+          },
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "description": "ID do anexo.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND_AI_ATTACHMENT_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_8"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -10923,7 +11194,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
@@ -10942,7 +11213,7 @@
         "tags": ["Steel AI"],
         "summary": "Enviar mensagem (stream)",
         "operationId": "postWorkspacesByIdAiConversationsByConversationIdMessages",
-        "description": "Grava a mensagem e responde em **`text/event-stream`**: um frame por evento, `event: <type>\\ndata: <json>\\n\\n`, no formato `SteelAiStreamEvent` (`types/steel-ai.d.ts`):\n\n- `message.start` → `text.delta`* → (`tool.start` / `tool.end` / `action.pending`)* → `conversation.title`? → `message.end` (mensagem final + uso de tokens);\n- falha do provedor ou ao gravar no meio do stream vira um evento `error` (`code`, `message`).\n\nAté 8 rodadas de ferramentas por mensagem. No modo `AGENT`, toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. `mode` no corpo troca o modo da conversa a partir desta mensagem.\n\nErros detectados **antes** do stream (sessão, consentimento, validação, conversa, modo agente, cota, provedor) voltam no envelope JSON normal. Limite próprio: 20 mensagens por minuto por usuário.\n\nConversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Grava a mensagem e responde em **`text/event-stream`**: um frame por evento, `event: <type>\\ndata: <json>\\n\\n`, no formato `SteelAiStreamEvent` (`types/steel-ai.d.ts`):\n\n- `message.start` → `text.delta`* → (`tool.start` / `tool.end` / `action.pending` / `action.executed`)* → `conversation.title`? → `message.end` (mensagem final + uso de tokens);\n- falha do provedor ou ao gravar no meio do stream vira um evento `error` (`code`, `message`).\n\nAté 8 rodadas de ferramentas por mensagem. No modo `AGENT` (Build), toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. No modo `AUTOPILOT`, a escrita executa na hora — inclusive exclusões e mensagens a clientes — e chega como `action.executed` (`autoExecuted: true`), registrada em `AiActionLog` e na auditoria. `mode` e `modelKey` no corpo trocam o modo e o modelo da conversa a partir desta mensagem (modelo indisponível cai para a preferência do usuário / padrão do workspace).\n\nAnexos: envie antes por `POST .../attachments` e passe os ids em `attachmentIds` (até 5). Imagens vão ao modelo como visão; documentos (PDF, DOCX, TXT, CSV, Markdown) como texto extraído, limitado. Com anexos, `content` pode ser vazio.\n\nErros detectados **antes** do stream (sessão, consentimento, validação, conversa, modo agente, cota, provedor) voltam no envelope JSON normal. Limite próprio: 20 mensagens por minuto por usuário.\n\nConversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -10966,16 +11237,30 @@
                 "type": "object",
                 "properties": {
                   "content": {
+                    "default": "",
                     "type": "string",
-                    "minLength": 1,
                     "maxLength": 8000
                   },
                   "mode": {
                     "type": "string",
                     "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                  },
+                  "modelKey": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 100
+                  },
+                  "attachmentIds": {
+                    "default": [],
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
                   }
-                },
-                "required": ["content"]
+                }
               },
               "example": {
                 "content": "Quantos chamados críticos estão abertos?"
@@ -11002,10 +11287,10 @@
             "$ref": "#/components/responses/402_AI_QUOTA_EXCEEDED_2"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_DISABLED_AI_AUTOPILOT_DISABLED"
           },
           "404": {
-            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND"
+            "$ref": "#/components/responses/404_AI_CONVERSATION_NOT_FOUND_AI_ATTACHMENT_NOT_FOUND"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -11281,7 +11566,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_CONNECTION_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -11351,7 +11636,7 @@
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_31"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_33"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -15032,7 +15317,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_20"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -17136,7 +17421,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_5"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19043,7 +19328,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_9"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_11"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -19197,7 +19482,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_10"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -24171,7 +24456,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_16"
+            "$ref": "#/components/responses/400_BAD_REQUEST_17"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -28689,7 +28974,7 @@
             "$ref": "#/components/responses/409_CRM_PROPOSAL_EXPIRED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28841,7 +29126,7 @@
             "$ref": "#/components/responses/409_CONFLICT_4"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_24"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -30867,7 +31152,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_FEATURE_NOT_ENABLED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -32030,7 +32315,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_26"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_28"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -32217,7 +32502,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_14"
+            "$ref": "#/components/responses/400_BAD_REQUEST_15"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -32439,7 +32724,7 @@
             "$ref": "#/components/responses/409_CRM_SOCIAL_SCOPE_MISSING"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_25"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_27"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -35201,7 +35486,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -35342,7 +35627,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -35408,7 +35693,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -35560,7 +35845,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -36537,7 +36822,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "409": {
             "$ref": "#/components/responses/409_PROFILE_NAME_TAKEN"
@@ -36630,7 +36915,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -36702,7 +36987,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -36938,7 +37223,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_30"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_32"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -37308,7 +37593,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
@@ -37376,7 +37661,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
@@ -42432,7 +42717,7 @@
             "$ref": "#/components/responses/404_SD_CEP_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_8"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_10"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -46414,7 +46699,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_5"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_28"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -48826,7 +49111,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_29"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_31"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -49829,7 +50114,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -54736,7 +55021,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_17"
+            "$ref": "#/components/responses/400_BAD_REQUEST_18"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -59509,7 +59794,7 @@
             "$ref": "#/components/responses/404_SD_PHASE_NOT_FOUND_SD_CONFIG_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_17"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -59824,7 +60109,7 @@
             "$ref": "#/components/responses/404_SD_CONTACT_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_27"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_29"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -59901,7 +60186,7 @@
             "$ref": "#/components/responses/404_SD_CONTACT_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_12"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -65462,7 +65747,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_13"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_24"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_26"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -75171,7 +75456,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_15"
+            "$ref": "#/components/responses/400_BAD_REQUEST_16"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -77326,7 +77611,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_19"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -80118,7 +80403,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_6"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_13"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -80934,6 +81219,28 @@
             },
             "examples": {
               "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Sem o campo `file`",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_15": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
                 "summary": "BAD_REQUEST — Slug de plataforma desconhecido",
                 "value": {
                   "success": false,
@@ -80959,7 +81266,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_15": {
+      "400_BAD_REQUEST_16": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -80982,7 +81289,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_16": {
+      "400_BAD_REQUEST_17": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -81005,7 +81312,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_17": {
+      "400_BAD_REQUEST_18": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -81027,7 +81334,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_18": {
+      "400_BAD_REQUEST_19": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -87885,18 +88192,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -87930,7 +88226,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -88090,8 +88397,8 @@
           }
         }
       },
-      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED": {
-        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_AGENT_MODE_DISABLED`",
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_DISABLED_AI_AUTOPILOT_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_AGENT_MODE_DISABLED`, `AI_DISABLED`, `AI_AUTOPILOT_DISABLED`",
         "content": {
           "application/json": {
             "schema": {
@@ -88131,6 +88438,17 @@
                   }
                 }
               },
+              "AI_DISABLED": {
+                "summary": "AI_DISABLED — Steel AI desligado no workspace (Ajustes > Steel IA)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_DISABLED"
+                  }
+                }
+              },
               "AI_AGENT_MODE_DISABLED": {
                 "summary": "AI_AGENT_MODE_DISABLED — Modo agente pedido com o interruptor do workspace desligado",
                 "value": {
@@ -88139,6 +88457,17 @@
                   "message": "O modo agente do Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
                   "error": {
                     "code": "AI_AGENT_MODE_DISABLED"
+                  }
+                }
+              },
+              "AI_AUTOPILOT_DISABLED": {
+                "summary": "AI_AUTOPILOT_DISABLED — Modo `AUTOPILOT` pedido com o Autopilot desligado no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O modo Autopilot está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_AUTOPILOT_DISABLED"
                   }
                 }
               }
@@ -88206,6 +88535,185 @@
                   "message": "Você não tem permissão para esta ação do Steel AI",
                   "error": {
                     "code": "AI_TOOL_NOT_ALLOWED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_AGENT_MODE_DISABLED_AI_TOOL_NOT_ALLOWED_AI_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_AGENT_MODE_DISABLED`, `AI_TOOL_NOT_ALLOWED`, `AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "AI_DISABLED": {
+                "summary": "AI_DISABLED — Steel AI desligado no workspace (Ajustes > Steel IA)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_DISABLED"
+                  }
+                }
+              },
+              "AI_AGENT_MODE_DISABLED": {
+                "summary": "AI_AGENT_MODE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O modo agente do Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_AGENT_MODE_DISABLED"
+                  }
+                }
+              },
+              "AI_TOOL_NOT_ALLOWED": {
+                "summary": "AI_TOOL_NOT_ALLOWED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem permissão para esta ação do Steel AI",
+                  "error": {
+                    "code": "AI_TOOL_NOT_ALLOWED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "AI_DISABLED": {
+                "summary": "AI_DISABLED — Steel AI desligado no workspace (Ajustes > Steel IA)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_DISABLED_2": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "AI_DISABLED": {
+                "summary": "AI_DISABLED — Steel AI desligado no workspace (Ajustes > Steel IA)",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "O Steel AI está desligado neste workspace. Peça a um administrador para ativá-lo em Ajustes > Steel IA.",
+                  "error": {
+                    "code": "AI_DISABLED"
                   }
                 }
               }
@@ -88466,6 +88974,40 @@
                   "message": "Conversa não encontrada",
                   "error": {
                     "code": "AI_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_AI_CONVERSATION_NOT_FOUND_AI_ATTACHMENT_NOT_FOUND": {
+        "description": "Não encontrado: `AI_CONVERSATION_NOT_FOUND`, `AI_ATTACHMENT_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_CONVERSATION_NOT_FOUND": {
+                "summary": "AI_CONVERSATION_NOT_FOUND — Conversa inexistente, excluída ou de outro usuário",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Conversa não encontrada",
+                  "error": {
+                    "code": "AI_CONVERSATION_NOT_FOUND"
+                  }
+                }
+              },
+              "AI_ATTACHMENT_NOT_FOUND": {
+                "summary": "AI_ATTACHMENT_NOT_FOUND — Anexo inexistente, de outra conversa, de outro usuário ou já enviado",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Anexo não encontrado",
+                  "error": {
+                    "code": "AI_ATTACHMENT_NOT_FOUND"
                   }
                 }
               }
@@ -95573,6 +96115,52 @@
           }
         }
       },
+      "413_AI_ATTACHMENT_TOO_LARGE": {
+        "description": "Erro 413: `AI_ATTACHMENT_TOO_LARGE`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_ATTACHMENT_TOO_LARGE": {
+                "summary": "AI_ATTACHMENT_TOO_LARGE",
+                "value": {
+                  "success": false,
+                  "statusCode": 413,
+                  "message": "Arquivo grande demais para o Steel AI",
+                  "error": {
+                    "code": "AI_ATTACHMENT_TOO_LARGE"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "415_AI_ATTACHMENT_UNSUPPORTED": {
+        "description": "Erro 415: `AI_ATTACHMENT_UNSUPPORTED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_ATTACHMENT_UNSUPPORTED": {
+                "summary": "AI_ATTACHMENT_UNSUPPORTED",
+                "value": {
+                  "success": false,
+                  "statusCode": 415,
+                  "message": "Tipo de arquivo não suportado pelo Steel AI",
+                  "error": {
+                    "code": "AI_ATTACHMENT_UNSUPPORTED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "422_CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS": {
         "description": "Dados inválidos: `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS`",
         "content": {
@@ -95897,7 +96485,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — CEP sem 8 dígitos",
+                "summary": "VALIDATION_ERROR — Anexo já enviado numa mensagem",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -95927,6 +96515,66 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Anexos demais aguardando envio na conversa",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_10": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — CEP sem 8 dígitos",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_11": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
                 "summary": "VALIDATION_ERROR — Content-Type fora da lista aceita",
                 "value": {
                   "success": false,
@@ -95941,7 +96589,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_10": {
+      "422_VALIDATION_ERROR_12": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -95964,7 +96612,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_11": {
+      "422_VALIDATION_ERROR_13": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96005,7 +96653,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_12": {
+      "422_VALIDATION_ERROR_14": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96046,7 +96694,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_13": {
+      "422_VALIDATION_ERROR_15": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96087,7 +96735,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_14": {
+      "422_VALIDATION_ERROR_16": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96128,7 +96776,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_15": {
+      "422_VALIDATION_ERROR_17": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96169,7 +96817,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_16": {
+      "422_VALIDATION_ERROR_18": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96210,7 +96858,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_17": {
+      "422_VALIDATION_ERROR_19": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96251,7 +96899,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_18": {
+      "422_VALIDATION_ERROR_20": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96299,7 +96947,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_19": {
+      "422_VALIDATION_ERROR_21": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96340,7 +96988,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_20": {
+      "422_VALIDATION_ERROR_22": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96381,7 +97029,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_21": {
+      "422_VALIDATION_ERROR_23": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96422,7 +97070,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_22": {
+      "422_VALIDATION_ERROR_24": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96463,7 +97111,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_23": {
+      "422_VALIDATION_ERROR_25": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96493,7 +97141,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_24": {
+      "422_VALIDATION_ERROR_26": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96523,7 +97171,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_25": {
+      "422_VALIDATION_ERROR_27": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96557,7 +97205,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_26": {
+      "422_VALIDATION_ERROR_28": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96591,7 +97239,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_27": {
+      "422_VALIDATION_ERROR_29": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96614,7 +97262,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_28": {
+      "422_VALIDATION_ERROR_30": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96644,7 +97292,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_29": {
+      "422_VALIDATION_ERROR_31": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96667,7 +97315,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_30": {
+      "422_VALIDATION_ERROR_32": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96690,7 +97338,7 @@
           }
         }
       },
-      "422_VALIDATION_ERROR_31": {
+      "422_VALIDATION_ERROR_33": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -96755,6 +97403,47 @@
         }
       },
       "422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `AI_MODEL_NOT_ENABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "AI_MODEL_NOT_ENABLED": {
+                "summary": "AI_MODEL_NOT_ENABLED — `modelKey` fora do catálogo, desabilitado ou sem provedor configurado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Este modelo de IA não está habilitado para o workspace",
+                  "error": {
+                    "code": "AI_MODEL_NOT_ENABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED_2": {
         "description": "Dados inválidos: `VALIDATION_ERROR`, `AI_MODEL_NOT_ENABLED`",
         "content": {
           "application/json": {
@@ -102535,12 +103224,79 @@
         },
         "required": ["id", "name", "slug", "activePlan", "status", "memberCount", "createdAt"]
       },
+      "AiAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "conversationId": {
+            "type": "string"
+          },
+          "messageId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`null` até uma mensagem ser enviada com o anexo."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["IMAGE", "DOCUMENT"]
+          },
+          "filename": {
+            "type": "string",
+            "example": "contrato.pdf"
+          },
+          "contentType": {
+            "type": "string",
+            "example": "application/pdf"
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "url": {
+            "type": "string",
+            "description": "Rota de mesma origem que serve o arquivo ao dono."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "conversationId",
+          "messageId",
+          "kind",
+          "filename",
+          "contentType",
+          "sizeBytes",
+          "url",
+          "createdAt"
+        ],
+        "description": "Arquivo ou foto enviado ao Steel AI."
+      },
       "AiCapabilities": {
         "type": "object",
         "properties": {
+          "aiEnabled": {
+            "type": "boolean",
+            "description": "Interruptor geral do Steel AI. Desligado, as demais rotas respondem `AI_DISABLED`."
+          },
           "agentModeEnabled": {
             "type": "boolean",
             "description": "Interruptor do workspace para o modo agente (ferramentas de escrita)."
+          },
+          "autopilotEnabled": {
+            "type": "boolean",
+            "description": "Modo Autopilot liberado (exige também o modo agente). Padrão: desligado."
           },
           "modules": {
             "type": "array",
@@ -102559,8 +103315,69 @@
                 "type": "null"
               }
             ],
-            "description": "Modelo da próxima resposta (`<provider>:<model>`; preferência do usuário → padrão do workspace). `null` sem modelo utilizável.",
+            "description": "Modelo padrão de uma conversa nova (`<provider>:<model>`; preferência do usuário → padrão do workspace). `null` sem modelo utilizável.",
             "example": "openai:gpt-4o-mini"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "example": "openai:gpt-4o-mini"
+                },
+                "provider": {
+                  "type": "string",
+                  "enum": ["openai", "anthropic"]
+                },
+                "providerLabel": {
+                  "type": "string",
+                  "example": "OpenAI"
+                },
+                "label": {
+                  "type": "string",
+                  "example": "GPT-4o mini"
+                },
+                "inputUsdPer1M": {
+                  "type": "number",
+                  "description": "US$ por 1M tokens de entrada (preço do provedor × margem)."
+                },
+                "outputUsdPer1M": {
+                  "type": "number",
+                  "description": "US$ por 1M tokens de saída (preço do provedor × margem)."
+                }
+              },
+              "required": ["key", "provider", "providerLabel", "label", "inputUsdPer1M", "outputUsdPer1M"]
+            },
+            "description": "Modelos que o usuário pode escolher na conversa (habilitados e com provedor configurado)."
+          },
+          "attachments": {
+            "type": "object",
+            "properties": {
+              "maxPerMessage": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "maxImageBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "maxDocumentBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "accept": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["maxPerMessage", "maxImageBytes", "maxDocumentBytes", "accept"]
           },
           "quota": {
             "type": "object",
@@ -102575,7 +103392,16 @@
             "required": ["usedUsd", "quotaUsd"]
           }
         },
-        "required": ["agentModeEnabled", "modules", "modelKey", "quota"]
+        "required": [
+          "aiEnabled",
+          "agentModeEnabled",
+          "autopilotEnabled",
+          "modules",
+          "modelKey",
+          "models",
+          "attachments",
+          "quota"
+        ]
       },
       "AiConversation": {
         "type": "object",
@@ -102596,7 +103422,8 @@
           },
           "mode": {
             "type": "string",
-            "enum": ["EXPLORE", "AGENT"]
+            "enum": ["EXPLORE", "AGENT", "AUTOPILOT"],
+            "description": "`EXPLORE` = Ask (só leitura), `AGENT` = Build (escritas confirmadas), `AUTOPILOT` = escritas executam na hora."
           },
           "modelKey": {
             "anyOf": [
@@ -102691,6 +103518,12 @@
               "$ref": "#/components/schemas/AiPendingAction"
             }
           },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiAttachment"
+            }
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -102703,6 +103536,7 @@
           "content",
           "toolCalls",
           "pendingActions",
+          "attachments",
           "createdAt"
         ]
       },
@@ -102821,6 +103655,10 @@
             "type": "boolean",
             "description": "Exclusões: confirme com `doubleConfirmed: true`."
           },
+          "autoExecuted": {
+            "type": "boolean",
+            "description": "Executada na hora pelo modo Autopilot (nunca ficou pendente)."
+          },
           "resultSummary": {
             "anyOf": [
               {
@@ -102882,6 +103720,7 @@
           "preview",
           "status",
           "requiresDoubleConfirm",
+          "autoExecuted",
           "resultSummary",
           "error",
           "expiresAt",

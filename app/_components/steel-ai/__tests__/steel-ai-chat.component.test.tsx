@@ -28,6 +28,7 @@ const userMessage: AiMessageDTO = {
   content: 'Qual o valor do pipeline?',
   toolCalls: [],
   pendingActions: [],
+  attachments: [],
   createdAt: '2026-10-06T12:00:00.000Z',
 }
 
@@ -47,6 +48,7 @@ const assistantMessage: AiMessageDTO = {
     },
   ],
   pendingActions: [],
+  attachments: [],
   createdAt: '2026-10-06T12:00:01.000Z',
 }
 
@@ -123,11 +125,12 @@ describe('<SteelAiChat />', () => {
     expect(JSON.parse(String(posts[0][1]?.body))).toEqual({
       content: 'Qual o valor do pipeline?',
       mode: 'AGENT',
+      attachmentIds: [],
     })
     // Agent mode was kept for the next turns.
     expect(
       screen
-        .getByRole('button', { name: /^Agente$/ })
+        .getByRole('button', { name: /^Build$/ })
         .getAttribute('aria-pressed'),
     ).toBe('true')
   })

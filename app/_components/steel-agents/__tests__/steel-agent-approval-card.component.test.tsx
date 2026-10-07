@@ -29,6 +29,7 @@ function action(over: Partial<AiPendingActionDTO> = {}): AiPendingActionDTO {
     },
     status: 'PENDING',
     requiresDoubleConfirm: false,
+    autoExecuted: false,
     resultSummary: null,
     error: null,
     expiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),

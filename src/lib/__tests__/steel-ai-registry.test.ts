@@ -22,6 +22,7 @@ import {
   assertValidToolRegistry,
   availableTools,
   findTool,
+  isWriteMode,
   PENDING_ACTION_TTL_MS,
   proposeWriteTool,
   resolveToolAccess,
@@ -75,6 +76,9 @@ const access = (overrides: Partial<AiToolAccess> = {}): AiToolAccess => ({
   isPrivileged: false,
   permissions: { leads: ['VIEW'], 'sd-tickets': ['VIEW', 'CREATE'] },
   agentModeEnabled: true,
+  aiEnabled: true,
+  agentsEnabled: true,
+  autopilotEnabled: false,
   ...overrides,
 })
 
@@ -375,5 +379,67 @@ describe('proposeWriteTool()', () => {
       'INTERNAL_SERVER_ERROR',
     )
     expect(repo.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('Steel AI 2 — AUTOPILOT and workspace switches', () => {
+  it('should offer writes in AUTOPILOT only when the workspace enabled it', () => {
+    expect(
+      availableTools(access(), 'AUTOPILOT', TOOLS).some(
+        (t) => t.kind !== 'READ',
+      ),
+    ).toBe(false)
+    expect(
+      availableTools(access({ autopilotEnabled: true }), 'AUTOPILOT', TOOLS)
+        .map((t) => t.kind)
+        .some((kind) => kind !== 'READ'),
+    ).toBe(true)
+    expect(
+      availableTools(
+        access({ autopilotEnabled: true, agentModeEnabled: false }),
+        'AUTOPILOT',
+        TOOLS,
+      ).every((t) => t.kind === 'READ'),
+    ).toBe(true)
+  })
+
+  it('isWriteMode() should cover AGENT and AUTOPILOT', () => {
+    expect(isWriteMode('EXPLORE')).toBe(false)
+    expect(isWriteMode('AGENT')).toBe(true)
+    expect(isWriteMode('AUTOPILOT')).toBe(true)
+  })
+
+  it('resolveToolAccess() should expose the switches with their defaults', async () => {
+    const memberships = vi.mocked(MembershipRepository)
+    const settings = vi.mocked(WorkspaceAiSettingsRepository)
+    const modules = vi.mocked(WorkspaceModuleAccessRepository)
+    memberships.findByUserAndWorkspace.mockResolvedValue(
+      ok(createFakeMembership({ role: 'OWNER' })),
+    )
+    modules.listByWorkspace.mockResolvedValue(ok([]))
+    settings.findByWorkspace.mockResolvedValue(ok(null))
+    expect(expectOk(await resolveToolAccess('u1', 'ws1'))).toEqual(
+      expect.objectContaining({
+        aiEnabled: true,
+        agentsEnabled: true,
+        autopilotEnabled: false,
+      }),
+    )
+    settings.findByWorkspace.mockResolvedValue(
+      ok(
+        createFakeWorkspaceAiSettings({
+          aiEnabled: false,
+          agentsEnabled: false,
+          autopilotEnabled: true,
+        }),
+      ),
+    )
+    expect(expectOk(await resolveToolAccess('u1', 'ws1'))).toEqual(
+      expect.objectContaining({
+        aiEnabled: false,
+        agentsEnabled: false,
+        autopilotEnabled: true,
+      }),
+    )
   })
 })

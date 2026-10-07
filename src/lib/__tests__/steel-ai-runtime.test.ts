@@ -228,6 +228,57 @@ describe('toProviderHistory()', () => {
   })
 })
 
+describe('toProviderHistory() — attachments', () => {
+  it('should append attachment notes to earlier user messages', () => {
+    const rows = [
+      createFakeAiMessage({ id: 'u1', role: 'USER', content: 'Leia' }),
+      createFakeAiMessage({ role: 'ASSISTANT', content: 'Li.' }),
+    ]
+    const history = toProviderHistory(
+      rows,
+      'E o prazo?',
+      new Map([['u1', '<anexo nome="a.txt">x</anexo>']]),
+    )
+    expect(history[0]).toEqual({
+      role: 'user',
+      content: 'Leia\n\n<anexo nome="a.txt">x</anexo>',
+    })
+  })
+
+  it('should send content parts and prefix decision notes to the text part', () => {
+    const decision = createFakeAiMessage({
+      role: 'TOOL',
+      toolCallId: 'action:a',
+      toolName: 't',
+      content: '{}',
+    })
+    const parts = [
+      { type: 'text' as const, text: 'Veja' },
+      { type: 'image' as const, url: 'data:image/png;base64,AA' },
+    ]
+    expect(toProviderHistory([], parts)).toEqual([
+      { role: 'user', content: parts },
+    ])
+    const [withNote] = toProviderHistory([decision], parts)
+    const content = withNote.content as typeof parts
+    expect(content[0].type).toBe('text')
+    expect((content[0] as { text: string }).text).toMatch(
+      /^\[Atualização do sistema[\s\S]*\n\nVeja$/,
+    )
+    expect(content[1]).toEqual(parts[1])
+
+    const imageFirst = [{ type: 'image' as const, url: 'https://x/y.png' }]
+    const [note] = toProviderHistory([decision], imageFirst)
+    expect(note.content).toEqual([
+      {
+        type: 'text',
+        text: '[Atualização do sistema sobre a ação proposta "t"] {}',
+      },
+      imageFirst[0],
+    ])
+  })
+})
+
 describe('buildSteelAiSystemPrompt()', () => {
   const base = {
     userName: 'Ana',
@@ -260,9 +311,22 @@ describe('buildSteelAiSystemPrompt()', () => {
       modules: [],
       mode: 'AGENT',
     })
-    expect(prompt).toContain('Modo atual: AGENTE')
+    expect(prompt).toContain('Modo atual: BUILD')
     expect(prompt).toContain('nunca pergunte "posso prosseguir?"')
     expect(prompt).toContain('Nenhum módulo')
+  })
+
+  it('should state the autopilot rules and append extra sections', () => {
+    const prompt = buildSteelAiSystemPrompt({
+      ...base,
+      modules: ['CRM'],
+      mode: 'AUTOPILOT',
+      sections: ['', '  Skills: /my-work ', 'Memória: x'],
+    })
+    expect(prompt).toContain('Modo atual: AUTOPILOT')
+    expect(prompt).toContain('EXECUTA NA HORA')
+    expect(prompt).toContain('<anexo nome="...">')
+    expect(prompt.endsWith('\n\nSkills: /my-work\n\nMemória: x')).toBe(true)
   })
 
   it('should fall back to São Paulo for an invalid timezone', () => {

@@ -49,6 +49,25 @@ export interface AiMessageDTO {
   content: string
   toolCalls: AiToolCallDTO[]
   pendingActions: AiPendingActionDTO[]
+  /** Files/photos sent with a USER message (empty on ASSISTANT turns). */
+  attachments: AiAttachmentDTO[]
+  createdAt: string
+}
+
+export type AiAttachmentKindDTO = 'IMAGE' | 'DOCUMENT'
+
+/** File or photo sent to Steel AI (`.../conversations/:id/attachments`). */
+export interface AiAttachmentDTO {
+  id: string
+  conversationId: string
+  /** Null until a message is sent with it. */
+  messageId: string | null
+  kind: AiAttachmentKindDTO
+  filename: string
+  contentType: string
+  sizeBytes: number
+  /** Same-origin URL that serves the file (thumbnail / download). */
+  url: string
   createdAt: string
 }
 
@@ -71,6 +90,8 @@ export interface AiPendingActionDTO {
   preview: AiToolPreviewDTO
   status: AiPendingActionStatusDTO
   requiresDoubleConfirm: boolean
+  /** Executed straight away in Autopilot (no confirmation was asked). */
+  autoExecuted: boolean
   /** pt-BR outcome after execution (or the failure message). */
   resultSummary: string | null
   error: string | null
@@ -90,6 +111,8 @@ export type SteelAiStreamEvent =
   | { type: 'tool.start'; call: AiToolCallDTO }
   | { type: 'tool.end'; call: AiToolCallDTO }
   | { type: 'action.pending'; action: AiPendingActionDTO }
+  /** Autopilot: a write that already ran (EXECUTED or FAILED). */
+  | { type: 'action.executed'; action: AiPendingActionDTO }
   | { type: 'conversation.title'; title: string }
   | {
       type: 'message.end'
@@ -98,14 +121,43 @@ export type SteelAiStreamEvent =
     }
   | { type: 'error'; code: string; message: string }
 
+/** A model the user may pick for a conversation (enabled + usable). */
+export interface AiChatModelDTO {
+  /** "<provider>:<model>". */
+  key: string
+  provider: 'openai' | 'anthropic'
+  providerLabel: string
+  label: string
+  /** US$ per 1M tokens charged to the workspace (provider price × margin). */
+  inputUsdPer1M: number
+  outputUsdPer1M: number
+}
+
 /** `GET .../ai/capabilities` — what the chat screen may offer this user. */
 export interface AiCapabilitiesDTO {
+  /** Master switch: false = every other Steel AI route answers AI_DISABLED. */
+  aiEnabled: boolean
   /** Workspace kill switch for the agent mode (write tools). */
   agentModeEnabled: boolean
+  /** AUTOPILOT allowed (also needs `agentModeEnabled`). */
+  autopilotEnabled: boolean
   /** Modules enabled in the workspace (the tools the assistant can reach). */
   modules: AiModuleDTO[]
-  /** Model the next turn will use ("<provider>:<model>"), or null if none. */
+  /**
+   * Default model of a new conversation ("<provider>:<model>"): the user
+   * preference, else the workspace default. Null if none is usable.
+   */
   modelKey: string | null
+  /** Models the picker offers, catalog order (OpenAI first). */
+  models: AiChatModelDTO[]
+  /** Attachment limits enforced by the server. */
+  attachments: {
+    maxPerMessage: number
+    maxImageBytes: number
+    maxDocumentBytes: number
+    /** `accept` list for the file input (MIME types). */
+    accept: string[]
+  }
   quota: { usedUsd: number; quotaUsd: number }
 }
 

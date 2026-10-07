@@ -1,5 +1,6 @@
 import type {
   AiUsageFeature,
+  ModuleKind,
   Prisma,
   UserAiPreference,
   WorkspaceAiSettings,
@@ -99,6 +100,10 @@ export const AiUsageRepository = {
     inputTokens: number
     outputTokens: number
     costUsd: number
+    /** Analytics scope (Steel AI 2). */
+    module?: ModuleKind | null
+    conversationId?: string | null
+    agentRunId?: string | null
   }): Promise<Result<void>> {
     try {
       await prisma.aiUsage.create({ data })
