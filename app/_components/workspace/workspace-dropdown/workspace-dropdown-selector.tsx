@@ -33,11 +33,13 @@ export function WorkSpaceDropdown({ currentSlug }: { currentSlug: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant='ghost'>
-            <div className='size-6 flex items-center justify-center rounded-sm bg-blue-400 text-xs font-semibold text-white'>
+          <Button variant='ghost' className='min-w-0 max-w-full max-md:h-10'>
+            <div className='size-6 shrink-0 flex items-center justify-center rounded-sm bg-blue-400 text-xs font-semibold text-white'>
               {initial}
             </div>
-            {current?.name ?? 'Selecionar workspace'}
+            <span className='truncate'>
+              {current?.name ?? 'Selecionar workspace'}
+            </span>
           </Button>
         }
       />
