@@ -23,10 +23,11 @@ const REPLY_KINDS = new Set([
 ])
 
 function withParams(href: string, params: Record<string, string>): string {
-  const [path, hash] = href.split('#')
-  const separator = path.includes('?') ? '&' : '?'
-  const query = new URLSearchParams(params).toString()
-  return `${path}${separator}${query}${hash ? `#${hash}` : ''}`
+  const [beforeHash, hash] = href.split('#')
+  const [path, search = ''] = beforeHash.split('?')
+  const query = new URLSearchParams(search)
+  for (const [key, value] of Object.entries(params)) query.set(key, value)
+  return `${path}?${query.toString()}${hash ? `#${hash}` : ''}`
 }
 
 /**
