@@ -1,63 +1,37 @@
 'use client'
 
-import {
-  AiMagicIcon,
-  Settings02Icon,
-  Ticket01Icon,
-  UserGroupIcon,
-  WhatsappBusinessIcon,
-} from '@hugeicons-pro/core-stroke-rounded'
 import { usePathname } from 'next/navigation'
+import { Fragment } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
+import { globalNavItems, isGlobalNavActive } from './navigation-global-items'
 import { GlobalButtonNavigation } from './navigation-sidebar-global-button'
 
+/**
+ * Global module rail. Hidden below `md` (the mobile drawer carries the same
+ * items there), icon-only between `md` and `lg`, icon + label from `lg` up.
+ */
 export function GlobalSidebarNavigation({ slug }: { slug: string }) {
-  const base = `/${slug}`
   const pathname = usePathname()
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`)
-
   return (
-    <div className=' h-screen px-2 py-3'>
+    <nav
+      aria-label='Módulos'
+      className='hidden h-screen shrink-0 px-1.5 py-3 md:block lg:px-2'
+    >
       <div className='h-fit flex flex-col justify-between gap-3'>
-        <GlobalButtonNavigation
-          linkNavigation={`${base}/servicedesk`}
-          description='ServiceDesk'
-          active={isActive(`${base}/servicedesk`)}
-        >
-          <SteelIcon icon={Ticket01Icon} className='size-5' />
-        </GlobalButtonNavigation>
-        <GlobalButtonNavigation
-          linkNavigation={`${base}/crm`}
-          description='CRM'
-          active={isActive(`${base}/crm`)}
-        >
-          <SteelIcon icon={UserGroupIcon} className='size-5' />
-        </GlobalButtonNavigation>
-        <GlobalButtonNavigation
-          linkNavigation={`${base}/zap`}
-          description='Comunicação'
-          active={isActive(`${base}/zap`)}
-        >
-          <SteelIcon icon={WhatsappBusinessIcon} className='size-5' />
-        </GlobalButtonNavigation>
-        <div className='w-full h-px bg-secondary' />
-        <GlobalButtonNavigation
-          linkNavigation={`${base}/ai`}
-          description='Steel AI'
-          active={isActive(`${base}/ai`)}
-        >
-          <SteelIcon icon={AiMagicIcon} className='size-5' />
-        </GlobalButtonNavigation>
-        <GlobalButtonNavigation
-          linkNavigation={`${base}/settings`}
-          description='Ajustes'
-          active={isActive(`${base}/settings`)}
-        >
-          <SteelIcon icon={Settings02Icon} className='size-5' />
-        </GlobalButtonNavigation>
+        {globalNavItems(slug).map((item) => (
+          <Fragment key={item.href}>
+            {item.separated && <div className='w-full h-px bg-secondary' />}
+            <GlobalButtonNavigation
+              linkNavigation={item.href}
+              description={item.label}
+              active={isGlobalNavActive(pathname, item.href)}
+            >
+              <SteelIcon icon={item.icon} className='size-5' />
+            </GlobalButtonNavigation>
+          </Fragment>
+        ))}
       </div>
-    </div>
+    </nav>
   )
 }
