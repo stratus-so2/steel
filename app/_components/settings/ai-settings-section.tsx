@@ -1,6 +1,7 @@
 'use client'
 
 import { type FormEvent, useEffect, useState } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -71,7 +72,40 @@ interface FormState {
   whatsappSentimentModel: string
   monthlyQuotaUsd: string
   agentModeEnabled: boolean
+  aiEnabled: boolean
+  agentsEnabled: boolean
+  memoryEnabled: boolean
+  autopilotEnabled: boolean
 }
+
+type SwitchField =
+  | 'aiEnabled'
+  | 'agentsEnabled'
+  | 'memoryEnabled'
+  | 'autopilotEnabled'
+
+const SWITCHES: { field: SwitchField; label: string; hint: string }[] = [
+  {
+    field: 'aiEnabled',
+    label: 'Ativar Steel AI',
+    hint: 'Interruptor geral: desligado, o Steel AI fica indisponível para todos neste espaço de trabalho.',
+  },
+  {
+    field: 'agentsEnabled',
+    label: 'Ativar agentes',
+    hint: 'Steel Agents podem executar por agenda, por evento ou pelo botão.',
+  },
+  {
+    field: 'memoryEnabled',
+    label: 'Ativar memória',
+    hint: 'O Steel AI pode guardar e usar memórias do espaço de trabalho e de cada pessoa (sempre revisáveis).',
+  },
+  {
+    field: 'autopilotEnabled',
+    label: 'Permitir Autopilot',
+    hint: 'Libera o modo Autopilot nas conversas. Desligado por padrão.',
+  },
+]
 
 function toForm(settings: WorkspaceAiSettingsDTO): FormState {
   return {
@@ -81,6 +115,10 @@ function toForm(settings: WorkspaceAiSettingsDTO): FormState {
     whatsappSentimentModel: settings.whatsappSentimentModel,
     monthlyQuotaUsd: String(settings.monthlyQuotaUsd),
     agentModeEnabled: settings.agentModeEnabled,
+    aiEnabled: settings.aiEnabled,
+    agentsEnabled: settings.agentsEnabled,
+    memoryEnabled: settings.memoryEnabled,
+    autopilotEnabled: settings.autopilotEnabled,
   }
 }
 
@@ -278,6 +316,10 @@ function AdminForm({
         whatsappSentimentModel: form.whatsappSentimentModel,
         monthlyQuotaUsd: Math.round(quota * 100) / 100,
         agentModeEnabled: form.agentModeEnabled,
+        aiEnabled: form.aiEnabled,
+        agentsEnabled: form.agentsEnabled,
+        memoryEnabled: form.memoryEnabled,
+        autopilotEnabled: form.autopilotEnabled,
       },
       {
         onSuccess: () => notify.success('Ajustes de IA salvos'),
@@ -392,6 +434,55 @@ function AdminForm({
                   </SelectGroup>
                 </SelectContent>
               </Select>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recursos do Steel AI</CardTitle>
+          <CardDescription>
+            Ligue ou desligue o Steel AI e seus recursos para todo o espaço de
+            trabalho. As alterações ficam registradas na auditoria.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='grid gap-4'>
+          {SWITCHES.map((item) => (
+            <div key={item.field} className='space-y-3'>
+              <div className='flex items-center justify-between gap-4'>
+                <div className='min-w-0'>
+                  <Label htmlFor={item.field} className='font-medium'>
+                    {item.label}
+                  </Label>
+                  <p className='text-muted-foreground text-xs'>{item.hint}</p>
+                </div>
+                <Switch
+                  id={item.field}
+                  checked={form[item.field]}
+                  disabled={item.field !== 'aiEnabled' && !form.aiEnabled}
+                  onCheckedChange={(checked) =>
+                    setForm((current) => ({
+                      ...current,
+                      [item.field]: checked === true,
+                    }))
+                  }
+                />
+              </div>
+              {item.field === 'autopilotEnabled' ? (
+                <Alert variant='destructive'>
+                  <AlertTitle>
+                    Autopilot executa sem pedir confirmação
+                  </AlertTitle>
+                  <AlertDescription>
+                    No modo Autopilot o Steel AI faz alterações sozinho —
+                    inclusive exclusões e mensagens para clientes (WhatsApp e
+                    e-mail) — sem a confirmação de ninguém. Tudo fica registrado
+                    no histórico de ações da IA, mas não há como desfazer uma
+                    mensagem enviada. Só ative se a equipe entender esse risco.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
             </div>
           ))}
         </CardContent>
