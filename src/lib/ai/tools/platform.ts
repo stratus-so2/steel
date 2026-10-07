@@ -3,19 +3,18 @@ import { z } from 'zod'
 import { validationError } from '@/src/errors/app-error'
 import { NOTIFICATION_MODULES } from '@/src/lib/notification-kind'
 import { ok, type Result } from '@/src/lib/result'
+import { SEARCH_ENTITY_TYPES } from '@/src/lib/search/search-entities'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { MembershipService } from '@/src/services/membership.service'
 import { NotificationService } from '@/src/services/notification.service'
+import { SearchService } from '@/src/services/search.service'
 import { WorkspaceService } from '@/src/services/workspace.service'
 import type { NotificationDTO } from '@/types/notification'
 import type { AnySteelAiTool, SteelAiTool } from './types'
 
 /**
- * Platform-level Steel AI tools (workspace, members, inbox). All READ.
- *
- * There is no cross-module search service in the codebase today (each
- * module searches its own records), so `ws_search` is intentionally not
- * offered — the module slices expose their own `*_search`/list tools.
+ * Platform-level Steel AI tools (workspace, members, inbox, global
+ * search). All READ.
  */
 
 export const MODULE_LABELS: Record<ModuleKind, string> = {
@@ -235,9 +234,71 @@ export const wsNotificationsTool: SteelAiTool<z.infer<typeof InboxArgs>> = {
   },
 }
 
-/** Steel AI tools for platform-level (workspace, members, inbox). */
+/* ---------------------------------- search --------------------------------- */
+
+const SearchArgs = z.object({
+  query: z.string().trim().min(1).max(120),
+  types: z.array(z.enum(SEARCH_ENTITY_TYPES)).min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(MAX_LIMIT).default(10),
+})
+
+export const wsSearchTool: SteelAiTool<z.infer<typeof SearchArgs>> = {
+  name: 'ws_search',
+  label: 'Buscando no workspace',
+  module: null,
+  kind: 'READ',
+  description:
+    'Busca global no workspace (a mesma do Ctrl+K): chamados (por código como INC-000123 ou número), artigos da base de conhecimento, clientes/contatos/itens de configuração do ServiceDesk, leads, oportunidades, pessoas, empresas, tarefas e propostas do CRM, conversas e contatos do WhatsApp e membros. Ordena por relevância (código exato, prefixo, texto, tolerância a erros de digitação) e só retorna o que o usuário pode abrir. Use para localizar um registro por nome, código, telefone ou e-mail antes de consultá-lo com a ferramenta do módulo.',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Texto, código, telefone ou e-mail a buscar.',
+      },
+      types: {
+        type: 'array',
+        items: { type: 'string', enum: [...SEARCH_ENTITY_TYPES] },
+        description: 'Restringe os tipos (opcional).',
+      },
+      limit: {
+        type: 'integer',
+        minimum: 1,
+        maximum: MAX_LIMIT,
+        description: 'Quantidade máxima de resultados (padrão 10).',
+      },
+    },
+    required: ['query'],
+    additionalProperties: false,
+  },
+  parse: zodParser(SearchArgs),
+  async execute(ctx, args) {
+    const result = await SearchService.search(ctx.actorId, ctx.workspaceId, {
+      q: args.query,
+      types: args.types,
+      limit: args.limit,
+    })
+    if (!result.ok) return result
+    return ok({
+      data: {
+        items: result.value.results.map((r) => ({
+          type: r.type,
+          id: r.id,
+          title: r.title,
+          subtitle: r.subtitle,
+          snippet: r.snippet,
+          href: r.href,
+        })),
+      },
+      summary: `${result.value.results.length} resultado(s) para "${args.query}"`,
+    })
+  },
+}
+
+/** Steel AI tools for platform-level (workspace, members, inbox, search). */
 export const PLATFORM_AI_TOOLS: AnySteelAiTool[] = [
   wsOverviewTool,
   wsMembersTool,
   wsNotificationsTool,
+  wsSearchTool,
 ]
