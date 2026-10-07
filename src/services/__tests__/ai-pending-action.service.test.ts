@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createFakeWorkspaceAiSettings } from '@/src/__tests__/factories/ai-settings.factory'
 import { createFakeMembership } from '@/src/__tests__/factories/membership.factory'
 import {
   createFakeAiActionLog,
@@ -28,6 +29,7 @@ vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/ai-pending-action.repository')
 vi.mock('@/src/repositories/ai-action-log.repository')
 vi.mock('@/src/repositories/ai-conversation.repository')
+vi.mock('@/src/repositories/ai-settings.repository')
 vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 
 import { auditMutation } from '@/lib/axiom/audit'
@@ -35,11 +37,15 @@ import { resolveToolAccess } from '@/src/lib/ai/tools/registry'
 import { AiActionLogRepository } from '@/src/repositories/ai-action-log.repository'
 import { AiMessageRepository } from '@/src/repositories/ai-conversation.repository'
 import { AiPendingActionRepository } from '@/src/repositories/ai-pending-action.repository'
+import { WorkspaceAiSettingsRepository } from '@/src/repositories/ai-settings.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import {
   AiPendingActionService,
+  executeAutopilotWrite,
   executeClaimedAction,
 } from '../ai-pending-action.service'
+
+const aiSettings = vi.mocked(WorkspaceAiSettingsRepository)
 
 const mockedAccess = vi.mocked(resolveToolAccess)
 const repo = vi.mocked(AiPendingActionRepository)
@@ -110,6 +116,7 @@ function setup(action = pending()) {
   repo.listByRequester.mockResolvedValue(ok([action]))
   logs.create.mockResolvedValue(ok(createFakeAiActionLog()))
   messages.createMany.mockResolvedValue(ok([]))
+  aiSettings.findByWorkspace.mockResolvedValue(ok(null))
 }
 
 beforeEach(() => {
@@ -501,5 +508,122 @@ describe('AiPendingActionService.list()', () => {
     setup()
     repo.listByRequester.mockResolvedValue(err(databaseError()))
     expectErr(await AiPendingActionService.list('u1', 'ws1'), 'DATABASE_ERROR')
+  })
+})
+
+describe('Steel AI 2 — master switch and Autopilot', () => {
+  it('should refuse list, confirm and cancel when the AI is off', async () => {
+    setup()
+    aiSettings.findByWorkspace.mockResolvedValue(
+      ok(createFakeWorkspaceAiSettings({ aiEnabled: false })),
+    )
+    expectErr(await AiPendingActionService.list('u1', 'ws1'), 'AI_DISABLED')
+    expectErr(
+      await AiPendingActionService.cancel('u1', 'ws1', 'act1'),
+      'AI_DISABLED',
+    )
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, aiEnabled: false }))
+    expectErr(
+      await AiPendingActionService.confirm('u1', 'ws1', 'act1', {}),
+      'AI_DISABLED',
+    )
+    expect(execute).not.toHaveBeenCalled()
+  })
+
+  it('executeAutopilotWrite() should create a claimed action, run it and log it', async () => {
+    setup()
+    repo.create.mockImplementation(async (data) =>
+      ok(
+        pending({
+          ...data,
+          args: data.args as never,
+          preview: data.preview as never,
+        }),
+      ),
+    )
+    vi.mocked(createTask.preview as ReturnType<typeof vi.fn>).mockResolvedValue(
+      ok({ title: 'Criar tarefa “Ligar”', summary: 'x' }),
+    )
+    const ctx = { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' as const }
+
+    const done = expectOk(
+      await executeAutopilotWrite(
+        createTask,
+        ctx,
+        { title: 'Ligar' },
+        { conversationId: 'conv1', toolCallId: 'call_1' },
+        NOW,
+      ),
+    )
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'EXECUTED',
+        decidedById: 'u1',
+        decidedAt: NOW,
+        autoExecuted: true,
+        requestedById: 'u1',
+      }),
+    )
+    expect(done.action.status).toBe('EXECUTED')
+    expect(JSON.parse(done.content)).toEqual(
+      expect.objectContaining({
+        status: 'executed',
+        summary: 'Tarefa “Ligar” criada',
+      }),
+    )
+    expect(logs.create).toHaveBeenCalledWith(
+      expect.objectContaining({ source: 'ASSISTANT', actorId: 'u1' }),
+    )
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'auto_execute',
+        meta: expect.objectContaining({ mode: 'AUTOPILOT' }),
+      }),
+    )
+    // The turn persists the TOOL row itself: no decision note appended.
+    expect(messages.createMany).not.toHaveBeenCalled()
+  })
+
+  it('executeAutopilotWrite() should report failures to the model', async () => {
+    setup()
+    repo.create.mockImplementation(async (data) =>
+      ok(pending({ ...data, args: data.args as never, preview: data.preview as never })),
+    )
+    vi.mocked(createTask.preview as ReturnType<typeof vi.fn>).mockResolvedValue(
+      ok({ title: 'Criar', summary: 'x' }),
+    )
+    execute.mockResolvedValue(err(forbidden('Sem permissão')))
+    const ctx = { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' as const }
+    const failed = expectOk(
+      await executeAutopilotWrite(createTask, ctx, {}, {
+        conversationId: 'conv1',
+        toolCallId: 'call_1',
+      }),
+    )
+    expect(failed.action.status).toBe('FAILED')
+    expect(JSON.parse(failed.content)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        error: expect.objectContaining({ message: 'Sem permissão' }),
+      }),
+    )
+
+    repo.complete.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await executeAutopilotWrite(createTask, ctx, {}, {
+        conversationId: 'conv1',
+        toolCallId: 'call_1',
+      }),
+      'DATABASE_ERROR',
+    )
+
+    repo.create.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await executeAutopilotWrite(createTask, ctx, {}, {
+        conversationId: 'conv1',
+        toolCallId: 'call_1',
+      }),
+      'DATABASE_ERROR',
+    )
   })
 })
