@@ -53,6 +53,10 @@ function settings(
     whatsappSentimentModel: 'openai:gpt-4o-mini',
     monthlyQuotaUsd: 50,
     agentModeEnabled: true,
+    aiEnabled: true,
+    agentsEnabled: true,
+    memoryEnabled: true,
+    autopilotEnabled: false,
     usage: {
       periodStart: '2026-09-01T00:00:00.000Z',
       inputTokens: 1500,

@@ -23,6 +23,14 @@ export interface EffectiveAiSettings {
   monthlyQuotaUsd: number
   /** Steel AI agent mode (write tools); on by default. */
   agentModeEnabled: boolean
+  /** Master switch of Steel AI; on by default. */
+  aiEnabled: boolean
+  /** Steel Agents may run; on by default. */
+  agentsEnabled: boolean
+  /** Steel AI memory; on by default. */
+  memoryEnabled: boolean
+  /** Autopilot (writes without confirmation); off by default. */
+  autopilotEnabled: boolean
 }
 
 function modelOrDefault(key: string): AiModelKey {
@@ -40,6 +48,10 @@ export function toEffectiveAiSettings(
       whatsappSentimentModel: DEFAULT_AI_MODEL_KEY,
       monthlyQuotaUsd: DEFAULT_MONTHLY_QUOTA_USD,
       agentModeEnabled: true,
+      aiEnabled: true,
+      agentsEnabled: true,
+      memoryEnabled: true,
+      autopilotEnabled: false,
     }
   }
   return {
@@ -50,6 +62,10 @@ export function toEffectiveAiSettings(
     whatsappSentimentModel: modelOrDefault(row.whatsappSentimentModel),
     monthlyQuotaUsd: row.monthlyQuotaUsd.toNumber(),
     agentModeEnabled: row.agentModeEnabled,
+    aiEnabled: row.aiEnabled,
+    agentsEnabled: row.agentsEnabled,
+    memoryEnabled: row.memoryEnabled,
+    autopilotEnabled: row.autopilotEnabled,
   }
 }
 
@@ -93,6 +109,10 @@ export function toWorkspaceAiSettingsDTO(input: {
     whatsappSentimentModel: settings.whatsappSentimentModel,
     monthlyQuotaUsd: settings.monthlyQuotaUsd,
     agentModeEnabled: settings.agentModeEnabled,
+    aiEnabled: settings.aiEnabled,
+    agentsEnabled: settings.agentsEnabled,
+    memoryEnabled: settings.memoryEnabled,
+    autopilotEnabled: settings.autopilotEnabled,
     usage: {
       periodStart: input.periodStart.toISOString(),
       inputTokens: usage.inputTokens,

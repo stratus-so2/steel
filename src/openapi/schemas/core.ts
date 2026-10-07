@@ -253,6 +253,19 @@ export const WorkspaceAiSettingsDTO = dto(
       description:
         'Modo agente do Steel AI (ferramentas de escrita, sempre com confirmação). Desligado = só exploração.',
     }),
+    aiEnabled: z.boolean().meta({
+      description: 'Interruptor geral do Steel AI no workspace.',
+    }),
+    agentsEnabled: z.boolean().meta({
+      description: 'Steel Agents podem executar (agenda, evento e botão).',
+    }),
+    memoryEnabled: z.boolean().meta({
+      description: 'O Steel AI pode salvar e usar memórias.',
+    }),
+    autopilotEnabled: z.boolean().meta({
+      description:
+        'Modo Autopilot permitido: escritas (inclusive exclusões e mensagens a clientes) executam sem confirmação. Desligado por padrão.',
+    }),
     usage: z.object({
       periodStart: dateTime().meta({ description: '1º dia do mês (UTC).' }),
       inputTokens: z.number().int(),
