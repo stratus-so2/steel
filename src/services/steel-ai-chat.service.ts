@@ -667,6 +667,13 @@ export const SteelAiChatService = {
     const allowed = checkSteelAiMode(access.value, mode)
     if (!allowed.ok) return allowed
 
+    const attachments = await AiAttachmentService.loadForSend(
+      actorId,
+      conversationId,
+      input.attachmentIds ?? [],
+    )
+    if (!attachments.ok) return attachments
+
     const prepared = await AiUsageService.prepare(
       workspaceId,
       'STEEL_ASSISTANT',
@@ -674,13 +681,6 @@ export const SteelAiChatService = {
       [input.modelKey, conversation.value.modelKey],
     )
     if (!prepared.ok) return prepared
-
-    const attachments = await AiAttachmentService.loadForSend(
-      actorId,
-      conversationId,
-      input.attachmentIds ?? [],
-    )
-    if (!attachments.ok) return attachments
 
     const ctx: AiToolContext = { workspaceId, actorId, source: 'assistant' }
     const [user, workspace, preference, recent, invocation, catalog, memory] =
