@@ -75,7 +75,7 @@ describe('inbox quick filters, scoped bulk actions and snooze', () => {
       `${base(workspace.id)}?quick=everything`,
       user.cookie,
     )
-    expect(invalid.status).toBe(400)
+    expect(invalid.status).toBe(422)
   })
 
   it('should archive read ones by module and mark read by module', async () => {
@@ -158,7 +158,7 @@ describe('inbox quick filters, scoped bulk actions and snooze', () => {
       { ids: ['x'], preset: 'forever' },
       user.cookie,
     )
-    expect(invalid.status).toBe(400)
+    expect(invalid.status).toBe(422)
 
     const forbidden = await postJson(
       `${base(workspace.id)}/snooze`,
@@ -172,7 +172,7 @@ describe('inbox quick filters, scoped bulk actions and snooze', () => {
       { module: 'NOPE' },
       user.cookie,
     )
-    expect(archive.status).toBe(400)
+    expect(archive.status).toBe(422)
   })
 })
 
@@ -193,7 +193,7 @@ describe('GET/PUT /notifications/preferences/delivery', () => {
     expect((await after.json()).data).toEqual({ browserEnabled: true })
 
     const invalid = await putJson(url, { browserEnabled: 'yes' }, user.cookie)
-    expect(invalid.status).toBe(400)
+    expect(invalid.status).toBe(422)
 
     const { user: outsider } = await authenticatedOwner()
     expect((await getJson(url, outsider.cookie)).status).toBe(403)
