@@ -25,6 +25,33 @@ describe('<SteelAiPendingActionCard />', () => {
     expect(screen.getByText('Aguardando sua confirmação')).toBeTruthy()
   })
 
+  it('names the target record in pt-BR instead of the internal type', () => {
+    renderSteelAi(
+      <SteelAiPendingActionCard workspaceId={WS} action={pendingAction()} />,
+    )
+    expect(screen.getByText('Oportunidade')).toBeTruthy()
+    expect(screen.queryByText(/crm_opportunity/)).toBeNull()
+  })
+
+  it('falls back to a generic label for an unknown target type', () => {
+    const base = pendingAction()
+    renderSteelAi(
+      <SteelAiPendingActionCard
+        workspaceId={WS}
+        action={{
+          ...base,
+          preview: {
+            ...base.preview,
+            target: { type: 'crm_something_new', label: 'Registro X' },
+          },
+        }}
+      />,
+    )
+    expect(screen.getByText('Registro')).toBeTruthy()
+    expect(screen.getByText('Registro X')).toBeTruthy()
+    expect(screen.queryByText(/crm_something_new/)).toBeNull()
+  })
+
   it('confirms with a single click and shows the result', async () => {
     const spy = mockFetch([
       {

@@ -2,14 +2,11 @@
 
 import {
   Alert02Icon,
-  ArrowRight02Icon,
   CancelCircleIcon,
   Clock01Icon,
-  LinkSquare02Icon,
   Loading03Icon,
   Tick02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import Link from 'next/link'
 import { useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import {
@@ -35,6 +32,7 @@ import type {
   AiPendingActionDTO,
   AiPendingActionStatusDTO,
 } from '@/types/steel-ai'
+import { SteelAiActionPreview } from './steel-ai-action-preview'
 import { STEEL_AI_MODULE_META } from './steel-ai-starters'
 
 const KIND_LABEL: Record<AiActionKindDTO, string> = {
@@ -129,98 +127,49 @@ export function SteelAiPendingActionCard({
       aria-label={`Ação proposta: ${preview.title}`}
       data-status={status}
       className={cn(
-        'w-full max-w-xl space-y-3 rounded-xl border bg-card p-4 text-card-foreground shadow-xs',
+        'w-full max-w-xl space-y-3 rounded-xl border bg-card p-3.5 text-card-foreground sm:p-4',
         action.kind === 'DELETE' && status === 'PENDING'
           ? 'border-destructive/40'
-          : 'border-border',
+          : 'border-border/80',
       )}
     >
       <header className='space-y-1.5'>
-        <div className='flex flex-wrap items-center gap-1.5'>
+        <div className='flex flex-wrap items-center gap-x-2 gap-y-1 text-xs'>
           <Badge
             variant={action.kind === 'DELETE' ? 'destructive' : 'secondary'}
           >
             {KIND_LABEL[action.kind]}
           </Badge>
           {moduleMeta ? (
-            <Badge variant='outline'>
-              <SteelIcon icon={moduleMeta.icon} strokeWidth={2} />
+            <span className='inline-flex items-center gap-1 text-muted-foreground'>
+              <SteelIcon
+                icon={moduleMeta.icon}
+                strokeWidth={2}
+                className='size-3.5'
+              />
               {moduleMeta.label}
-            </Badge>
+            </span>
           ) : null}
           {status === 'PENDING' ? (
-            <span className='text-muted-foreground text-xs'>
+            <span className='text-muted-foreground'>
               Aguardando sua confirmação
             </span>
           ) : null}
         </div>
         <h3 className='font-semibold text-sm leading-snug'>{preview.title}</h3>
-        {preview.summary ? (
-          <p className='text-muted-foreground text-sm leading-relaxed'>
-            {preview.summary}
-          </p>
-        ) : null}
       </header>
 
-      {preview.fields && preview.fields.length > 0 ? (
-        <dl className='divide-y divide-border rounded-lg border border-border text-xs'>
-          {preview.fields.map((field) => (
-            <div
-              key={field.label}
-              className='grid gap-1 px-3 py-2 sm:grid-cols-[minmax(0,10rem)_1fr] sm:gap-3'
-            >
-              <dt className='font-medium text-muted-foreground'>
-                {field.label}
-              </dt>
-              <dd className='flex min-w-0 flex-wrap items-center gap-1.5'>
-                {field.before != null && field.before !== '' ? (
-                  <>
-                    <span className='break-words text-muted-foreground line-through'>
-                      {field.before}
-                    </span>
-                    <SteelIcon
-                      icon={ArrowRight02Icon}
-                      strokeWidth={2}
-                      aria-label='passa a ser'
-                      className='size-3 shrink-0 text-muted-foreground'
-                    />
-                  </>
-                ) : null}
-                <span className='break-words font-medium'>
-                  {field.after != null && field.after !== ''
-                    ? field.after
-                    : '—'}
-                </span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-
-      {preview.target ? (
-        <p className='flex items-center gap-1.5 text-xs'>
-          <span className='text-muted-foreground'>{preview.target.type}:</span>
-          {preview.target.href ? (
-            <Link
-              href={preview.target.href}
-              className='inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline'
-            >
-              {preview.target.label}
-              <SteelIcon
-                icon={LinkSquare02Icon}
-                strokeWidth={2}
-                className='size-3'
-              />
-            </Link>
-          ) : (
-            <span className='font-medium'>{preview.target.label}</span>
-          )}
-        </p>
-      ) : null}
+      <SteelAiActionPreview preview={preview} />
 
       {status === 'PENDING' ? (
-        <footer className='flex flex-wrap items-center justify-end gap-2'>
-          <Button variant='outline' size='sm' disabled={busy} onClick={dismiss}>
+        <footer className='flex items-center justify-end gap-2 pt-1'>
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={busy}
+            onClick={dismiss}
+            className='flex-1 sm:flex-none'
+          >
             Cancelar
           </Button>
           <Button
@@ -228,6 +177,7 @@ export function SteelAiPendingActionCard({
             variant={action.kind === 'DELETE' ? 'destructive' : 'default'}
             disabled={busy}
             onClick={() => (needsDouble ? setAskTwice(true) : run(false))}
+            className='flex-1 sm:flex-none'
           >
             {confirm.isPending ? (
               <SteelIcon
