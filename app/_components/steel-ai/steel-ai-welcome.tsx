@@ -19,6 +19,9 @@ import { STEEL_AI_QUOTA_MESSAGE, SteelAiNotice } from './steel-ai-notice'
 import { STEEL_AI_MODULE_META, steelAiStartersFor } from './steel-ai-starters'
 import { SteelAiTopBar } from './steel-ai-top-bar'
 
+/** Starters shown on phones — the rest appear from `sm` up. */
+const MOBILE_STARTERS = 4
+
 /**
  * New chat: greeting, centered composer and prompt starters. Submitting
  * creates the conversation, hands the prompt to the chat screen and
@@ -66,15 +69,15 @@ export function SteelAiWelcome() {
   return (
     <div className='flex h-full w-full min-w-0 flex-col'>
       <SteelAiTopBar />
-      <div className='flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8'>
-        <div className='flex w-full max-w-2xl flex-col items-center gap-6'>
+      <div className='flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-3 py-6 sm:px-6 sm:py-8'>
+        <div className='my-auto flex w-full max-w-2xl flex-col items-center gap-5 sm:gap-6'>
           <div
             className={cn(
               'flex flex-col items-center gap-3 text-center motion-safe:transition-all motion-safe:duration-300',
               leaving && '-translate-y-2 opacity-0',
             )}
           >
-            <span className='flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary'>
+            <span className='hidden size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:flex'>
               <SteelIcon
                 icon={AiMagicIcon}
                 strokeWidth={2}
@@ -82,7 +85,7 @@ export function SteelAiWelcome() {
               />
             </span>
             <div className='space-y-1'>
-              <h1 className='font-semibold text-2xl tracking-tight'>
+              <h1 className='font-semibold text-xl tracking-tight sm:text-2xl'>
                 {firstName ? `Olá, ${firstName}` : 'Olá'}
               </h1>
               <p className='text-muted-foreground text-sm'>
@@ -119,33 +122,42 @@ export function SteelAiWelcome() {
             )}
           >
             {capabilities.isLoading ? (
-              <div className='grid gap-2 sm:grid-cols-2' aria-hidden>
+              <div
+                className='grid grid-cols-1 gap-2 sm:grid-cols-2'
+                aria-hidden
+              >
                 {[0, 1, 2, 3].map((key) => (
-                  <Skeleton key={key} className='h-14 rounded-lg' />
+                  <Skeleton key={key} className='h-10 rounded-xl sm:h-14' />
                 ))}
               </div>
             ) : starters.length > 0 ? (
-              <ul className='grid gap-2 sm:grid-cols-2'>
-                {starters.map((starter) => {
+              <ul className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
+                {starters.map((starter, index) => {
                   const meta = STEEL_AI_MODULE_META[starter.module]
                   return (
-                    <li key={starter.prompt}>
+                    <li
+                      key={starter.prompt}
+                      className={cn(
+                        'min-w-0',
+                        index >= MOBILE_STARTERS && 'hidden sm:block',
+                      )}
+                    >
                       <button
                         type='button'
                         disabled={quotaExhausted || leaving}
                         onClick={() => start(starter.prompt, starter.mode)}
-                        className='flex h-full w-full items-start gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50'
+                        className='flex h-full w-full items-center gap-2.5 rounded-xl border border-border/70 px-3 py-2 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 sm:items-start sm:py-2.5'
                       >
                         <SteelIcon
                           icon={meta.icon}
                           strokeWidth={2}
-                          className='mt-0.5 size-4 shrink-0 text-muted-foreground'
+                          className='size-4 shrink-0 text-muted-foreground sm:mt-0.5'
                         />
                         <span className='min-w-0 space-y-0.5'>
-                          <span className='block font-medium text-sm'>
+                          <span className='block truncate font-medium text-sm sm:whitespace-normal'>
                             {starter.label}
                           </span>
-                          <span className='block text-muted-foreground text-xs'>
+                          <span className='hidden text-muted-foreground text-xs sm:block'>
                             {meta.label}
                             {starter.mode === 'AGENT' ? ' · Agente' : ''}
                           </span>
