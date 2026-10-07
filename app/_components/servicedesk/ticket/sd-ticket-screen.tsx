@@ -467,8 +467,8 @@ function Header({
                   priorityColor ? { backgroundColor: priorityColor } : undefined
                 }
               />
-              <dd className='text-foreground'>
-                Prioridade {ticket.priority.name.toLowerCase()}
+              <dd className='text-foreground' title='Prioridade'>
+                {ticket.priority.name}
               </dd>
             </div>
           ) : null}
@@ -502,17 +502,24 @@ function Header({
               </dd>
             </div>
           ) : null}
-          <SdRiskBadge risk={ticket.risk} />
+          {ticket.risk ? (
+            <div>
+              <dt className='sr-only'>Risco preditivo</dt>
+              <dd>
+                <SdRiskBadge risk={ticket.risk} />
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
-        <div className='flex w-full items-center gap-1 sm:ml-auto sm:w-auto'>
-          <div className='flex min-w-0 items-center gap-1.5'>
+        <div className='flex flex-wrap items-center gap-1 sm:ml-auto'>
+          <div className='flex items-center gap-1.5'>
             <SdOptionSelect
               aria-label='Mudar fase'
               allowClear={false}
               value={ticket.phaseId}
               onChange={(phaseId) => phaseId && onPhaseChange(phaseId)}
-              className='h-8 w-auto max-w-44 border-transparent bg-transparent shadow-none hover:bg-muted dark:bg-transparent'
+              className='h-8 w-auto min-w-24 max-w-44 border-transparent bg-transparent shadow-none hover:bg-muted dark:bg-transparent'
               options={phases.map((p) => ({
                 value: p.id,
                 label: p.name,
@@ -530,7 +537,7 @@ function Header({
             agents={agents}
             me={me}
           />
-          <div className='ml-auto flex items-center gap-1 sm:ml-0'>
+          <div className='flex items-center gap-1'>
             {isDesktop ? null : (
               <Button variant='outline' size='sm' onClick={onDetails}>
                 <SteelIcon icon={SidebarRightIcon} strokeWidth={2} />

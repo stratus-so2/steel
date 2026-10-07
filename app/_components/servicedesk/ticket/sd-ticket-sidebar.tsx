@@ -87,6 +87,9 @@ const QUIET_CONTROLS = cn(
   '[&_[data-slot=button]:hover]:bg-muted/70 [&_[data-slot=button]:focus-visible]:border-ring',
   '[&_[data-slot=input]]:border-transparent [&_[data-slot=input]]:bg-transparent [&_[data-slot=input]]:px-1.5 [&_[data-slot=input]]:shadow-none dark:[&_[data-slot=input]]:bg-transparent',
   '[&_[data-slot=input]:hover]:border-input [&_[data-slot=input]:focus-visible]:border-ring',
+  // Setas dos seletores bem apagadas; voltam no hover/foco.
+  '[&_[data-slot=select-trigger]>svg:last-child]:opacity-40 [&_[data-slot=select-trigger]:hover>svg:last-child]:opacity-100 [&_[data-slot=select-trigger]:focus-visible>svg:last-child]:opacity-100',
+  '[&_[aria-haspopup][data-slot=button]>svg:last-child]:opacity-40 [&_[aria-haspopup][data-slot=button]:hover>svg:last-child]:opacity-100',
 )
 
 const ROW = 'grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-x-2'

@@ -219,7 +219,8 @@ export function SdTicketTabs({
   const { visible, overflow } = sdSplitTicketTabs(tabs, current?.id)
   return (
     <div className='flex min-h-0 flex-1 flex-col'>
-      <div className='sticky top-0 z-20 flex shrink-0 items-center gap-1 border-b bg-background px-2 sm:px-4'>
+      {/* Mesma superfície do painel do workspace (o fundo da tela). */}
+      <div className='sticky top-0 z-20 flex shrink-0 items-center gap-1 border-b bg-primary-foreground px-2 sm:px-4'>
         <div
           role='tablist'
           aria-label='Abas do chamado'

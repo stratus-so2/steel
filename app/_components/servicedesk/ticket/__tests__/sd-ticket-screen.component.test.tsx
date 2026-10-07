@@ -322,7 +322,7 @@ describe('SdTicketScreen', () => {
       screen.getByRole('complementary', { name: 'Detalhes do chamado' }),
     ).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Detalhes' })).toBeNull()
-    expect(screen.getByText('Prioridade alta')).toBeTruthy()
+    expect(screen.getByTitle('Prioridade').textContent).toBe('Alta')
     expect(screen.getByText(/Resolução · .* restantes/)).toBeTruthy()
   })
 
