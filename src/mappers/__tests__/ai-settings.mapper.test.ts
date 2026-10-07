@@ -16,6 +16,10 @@ describe('toEffectiveAiSettings()', () => {
       whatsappSentimentModel: 'openai:gpt-4o-mini',
       monthlyQuotaUsd: 50,
       agentModeEnabled: true,
+      aiEnabled: true,
+      agentsEnabled: true,
+      memoryEnabled: true,
+      autopilotEnabled: false,
     })
   })
 
@@ -25,6 +29,24 @@ describe('toEffectiveAiSettings()', () => {
         createFakeWorkspaceAiSettings({ agentModeEnabled: false }),
       ).agentModeEnabled,
     ).toBe(false)
+  })
+
+  it('should carry the Steel AI switches from the row', () => {
+    expect(
+      toEffectiveAiSettings(
+        createFakeWorkspaceAiSettings({
+          aiEnabled: false,
+          agentsEnabled: false,
+          memoryEnabled: false,
+          autopilotEnabled: true,
+        }),
+      ),
+    ).toMatchObject({
+      aiEnabled: false,
+      agentsEnabled: false,
+      memoryEnabled: false,
+      autopilotEnabled: true,
+    })
   })
 
   it('should convert decimals and drop models no longer in the catalog', () => {
