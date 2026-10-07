@@ -1,8 +1,8 @@
-import { fireEvent, screen, within } from '@testing-library/react'
+import { screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { mockFetch } from '@/src/__tests__/component-utils'
 import { SteelAiTopBar } from '../steel-ai-top-bar'
-import { conversation, renderSteelAi } from './steel-ai-test-utils'
+import { renderSteelAi } from './steel-ai-test-utils'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
@@ -25,31 +25,12 @@ describe('<SteelAiTopBar />', () => {
     ).toBe('/acme/ai')
   })
 
-  it('opens the mobile sheet with new chat, agents and the history', async () => {
-    mockFetch([
-      {
-        match: /\/ai\/conversations(\?|$)/,
-        data: [conversation({ id: 'c1', title: 'Pipeline do trimestre' })],
-      },
-    ])
+  it('leaves the history to the app drawer (no own menu button)', () => {
+    mockFetch([])
     renderSteelAi(<SteelAiTopBar />)
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Histórico de conversas' }),
-    )
-    const sheet = await screen.findByRole('dialog')
     expect(
-      within(sheet)
-        .getByRole('button', { name: /Novo chat/ })
-        .getAttribute('href'),
-    ).toBe('/acme/ai')
-    expect(
-      within(sheet)
-        .getByRole('link', { name: /Agentes/ })
-        .getAttribute('href'),
-    ).toBe('/acme/ai/agents')
-    expect(await within(sheet).findByText('Pipeline do trimestre')).toBeTruthy()
-
-    fireEvent.click(within(sheet).getByRole('link', { name: /Agentes/ }))
-    await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      screen.queryByRole('button', { name: 'Histórico de conversas' }),
+    ).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })
