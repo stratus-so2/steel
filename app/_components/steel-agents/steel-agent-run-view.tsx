@@ -2,6 +2,7 @@
 
 import {
   AiBrain01Icon,
+  ArrowLeft02Icon,
   CheckmarkBadge01Icon,
   Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
@@ -69,22 +70,31 @@ export function SteelAgentRunView({
 
   if (run.isLoading) {
     return (
-      <div className='space-y-3 p-6' aria-hidden>
-        <Skeleton className='h-8 w-64' />
-        <Skeleton className='h-40 rounded-xl' />
+      <div className='flex h-full min-h-0 w-full flex-col'>
+        <SteelAiTopBar />
+        <div
+          className='mx-auto w-full max-w-3xl space-y-3 px-4 pt-2 sm:px-6 sm:pt-4'
+          aria-hidden
+        >
+          <Skeleton className='h-7 w-56 max-w-full' />
+          <Skeleton className='h-40 rounded-xl' />
+        </div>
       </div>
     )
   }
   if (!run.data) {
     return (
-      <div className='p-6 text-muted-foreground text-sm'>
-        Execução não encontrada.{' '}
-        <Link
-          href={`/${slug}/ai/agents/${agentId}`}
-          className='text-primary underline'
-        >
-          Voltar para o agente
-        </Link>
+      <div className='flex h-full min-h-0 w-full flex-col'>
+        <SteelAiTopBar />
+        <div className='mx-auto w-full max-w-3xl px-4 pt-4 text-muted-foreground text-sm sm:px-6'>
+          Execução não encontrada.{' '}
+          <Link
+            href={`/${slug}/ai/agents/${agentId}`}
+            className='text-primary underline'
+          >
+            Voltar para o agente
+          </Link>
+        </div>
       </div>
     )
   }
@@ -95,112 +105,129 @@ export function SteelAgentRunView({
   return (
     <div className='flex h-full min-h-0 w-full flex-col'>
       <SteelAiTopBar title={`${data.agent.name} · execução`} />
-      <div className='mx-auto w-full max-w-3xl flex-1 space-y-6 overflow-y-auto p-4 md:p-6'>
-        <header className='space-y-2'>
-          <Link
-            href={`/${slug}/ai/agents/${agentId}`}
-            className='text-muted-foreground text-xs hover:underline'
-          >
-            ← {data.agent.name}
-          </Link>
-          <div className='flex flex-wrap items-center gap-2'>
-            <Badge variant={RUN_STATUS_VARIANT[data.status]}>
-              {RUN_STATUS_LABEL[data.status]}
-            </Badge>
-            <span className='text-muted-foreground text-xs'>
-              {TRIGGER_LABEL[data.triggerType]} ·{' '}
-              {formatAgentDate(data.createdAt, timezone)}
-              {data.modelKey ? ` · ${data.modelKey}` : null}
-              {` · ${data.inputTokens + data.outputTokens} tokens · US$ ${data.costUsd.toFixed(4)}`}
-            </span>
-          </div>
-          {data.summary ? (
-            <p className='whitespace-pre-wrap text-sm leading-relaxed'>
-              {data.summary}
-            </p>
-          ) : null}
-          {data.error ? (
-            <p className='text-destructive text-sm'>{data.error}</p>
-          ) : null}
-        </header>
-
-        {pending.length > 0 ? (
-          <section className='space-y-2' aria-label='Aguardando aprovação'>
-            <h2 className='font-semibold text-sm'>Aguardando aprovação</h2>
-            {pending.map((action) => (
-              <SteelAgentApprovalCard
-                key={action.id}
-                workspaceId={workspaceId}
-                runId={runId}
-                action={action}
-                canApprove={data.canApprove}
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        <div className='mx-auto w-full max-w-3xl space-y-6 px-4 pt-2 pb-8 sm:px-6 sm:pt-4'>
+          <header className='space-y-2.5'>
+            <Link
+              href={`/${slug}/ai/agents/${agentId}`}
+              className='inline-flex max-w-full items-center gap-1 text-muted-foreground text-xs hover:text-foreground'
+            >
+              <SteelIcon
+                icon={ArrowLeft02Icon}
+                strokeWidth={2}
+                className='size-3.5 shrink-0'
               />
-            ))}
-          </section>
-        ) : null}
+              <span className='truncate'>{data.agent.name}</span>
+            </Link>
+            <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground text-xs'>
+              <Badge variant={RUN_STATUS_VARIANT[data.status]}>
+                {RUN_STATUS_LABEL[data.status]}
+              </Badge>
+              <span>{TRIGGER_LABEL[data.triggerType]}</span>
+              <span className='whitespace-nowrap'>
+                {formatAgentDate(data.createdAt, timezone)}
+              </span>
+              {data.modelKey ? (
+                <span className='break-all'>{data.modelKey}</span>
+              ) : null}
+              <span className='whitespace-nowrap tabular-nums'>
+                {(data.inputTokens + data.outputTokens).toLocaleString('pt-BR')}{' '}
+                tokens
+              </span>
+              <span className='whitespace-nowrap tabular-nums'>
+                US$ {data.costUsd.toFixed(4)}
+              </span>
+            </div>
+            {data.summary ? (
+              <p className='whitespace-pre-wrap break-words text-sm leading-relaxed'>
+                {data.summary}
+              </p>
+            ) : null}
+            {data.error ? (
+              <p className='break-words text-destructive text-sm'>
+                {data.error}
+              </p>
+            ) : null}
+          </header>
 
-        <section className='space-y-2' aria-label='Linha do tempo'>
-          <h2 className='font-semibold text-sm'>Linha do tempo</h2>
-          {data.steps.length === 0 ? (
-            <p className='text-muted-foreground text-sm'>
-              {data.status === 'QUEUED'
-                ? 'A execução está na fila.'
-                : 'Nenhuma etapa registrada.'}
-            </p>
-          ) : (
-            <ol className='relative space-y-3 border-l pl-5'>
-              {data.steps.map((step) => {
-                const detail = stepDetail(step)
-                return (
-                  <li key={step.id} className='relative'>
-                    <span
-                      className={cn(
-                        'absolute top-0.5 -left-[29px] flex size-6 items-center justify-center rounded-full border bg-background',
-                        step.status === 'FAILED' &&
-                          'border-destructive text-destructive',
-                      )}
-                    >
-                      <SteelIcon
-                        icon={STEP_ICON[step.kind]}
-                        strokeWidth={2}
-                        className='size-3.5'
-                      />
-                    </span>
-                    <div className='flex flex-wrap items-center gap-2'>
-                      <span className='font-medium text-sm'>
-                        {stepTitle(step)}
-                      </span>
-                      <span className='text-muted-foreground text-xs'>
-                        {STEP_STATUS_LABEL[step.status]} ·{' '}
-                        {formatAgentDate(step.createdAt, timezone)}
-                      </span>
-                    </div>
-                    {detail ? (
-                      <p className='mt-0.5 line-clamp-4 whitespace-pre-wrap text-muted-foreground text-xs'>
-                        {detail}
-                      </p>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ol>
-          )}
-        </section>
+          {pending.length > 0 ? (
+            <section className='space-y-2' aria-label='Aguardando aprovação'>
+              <h2 className='font-semibold text-sm'>Aguardando aprovação</h2>
+              {pending.map((action) => (
+                <SteelAgentApprovalCard
+                  key={action.id}
+                  workspaceId={workspaceId}
+                  runId={runId}
+                  action={action}
+                  canApprove={data.canApprove}
+                />
+              ))}
+            </section>
+          ) : null}
 
-        {decided.length > 0 ? (
-          <section className='space-y-2' aria-label='Ações decididas'>
-            <h2 className='font-semibold text-sm'>Ações decididas</h2>
-            {decided.map((action) => (
-              <SteelAgentApprovalCard
-                key={action.id}
-                workspaceId={workspaceId}
-                runId={runId}
-                action={action}
-                canApprove={false}
-              />
-            ))}
+          <section className='space-y-2' aria-label='Linha do tempo'>
+            <h2 className='font-semibold text-sm'>Linha do tempo</h2>
+            {data.steps.length === 0 ? (
+              <p className='text-muted-foreground text-sm'>
+                {data.status === 'QUEUED'
+                  ? 'A execução está na fila.'
+                  : 'Nenhuma etapa registrada.'}
+              </p>
+            ) : (
+              <ol className='relative ml-3 space-y-4 border-border/80 border-l pl-5'>
+                {data.steps.map((step) => {
+                  const detail = stepDetail(step)
+                  return (
+                    <li key={step.id} className='relative'>
+                      <span
+                        className={cn(
+                          '-left-[33px] absolute top-0 flex size-6 items-center justify-center rounded-full border border-border/80 bg-primary-foreground text-muted-foreground',
+                          step.status === 'FAILED' &&
+                            'border-destructive text-destructive',
+                        )}
+                      >
+                        <SteelIcon
+                          icon={STEP_ICON[step.kind]}
+                          strokeWidth={2}
+                          className='size-3.5'
+                        />
+                      </span>
+                      <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5'>
+                        <span className='min-w-0 break-words font-medium text-sm'>
+                          {stepTitle(step)}
+                        </span>
+                        <span className='text-muted-foreground text-xs'>
+                          {STEP_STATUS_LABEL[step.status]} ·{' '}
+                          {formatAgentDate(step.createdAt, timezone)}
+                        </span>
+                      </div>
+                      {detail ? (
+                        <p className='mt-0.5 line-clamp-4 whitespace-pre-wrap break-words text-muted-foreground text-xs'>
+                          {detail}
+                        </p>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
           </section>
-        ) : null}
+
+          {decided.length > 0 ? (
+            <section className='space-y-2' aria-label='Ações decididas'>
+              <h2 className='font-semibold text-sm'>Ações decididas</h2>
+              {decided.map((action) => (
+                <SteelAgentApprovalCard
+                  key={action.id}
+                  workspaceId={workspaceId}
+                  runId={runId}
+                  action={action}
+                  canApprove={false}
+                />
+              ))}
+            </section>
+          ) : null}
+        </div>
       </div>
     </div>
   )
