@@ -330,6 +330,7 @@ describe('<NotificationAiPendingCard />', () => {
       preview: { title: 'Enviar e-mail ao lead', summary: '' },
       status: 'PENDING' as const,
       requiresDoubleConfirm: false,
+      autoExecuted: false,
       resultSummary: null,
       error: null,
       expiresAt: new Date(Date.now() + 10 * MIN).toISOString(),

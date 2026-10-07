@@ -45,6 +45,7 @@ function action(overrides: Partial<AiPendingAction> = {}): AiPendingAction {
     preview: { title: 'Alterar prioridade', summary: 's' },
     status: 'PENDING',
     requiresDoubleConfirm: false,
+    autoExecuted: false,
     result: null,
     error: null,
     expiresAt: new Date('2026-10-07T12:20:00Z'),
