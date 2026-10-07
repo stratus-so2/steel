@@ -39,12 +39,13 @@ function row(overrides: Partial<Notification> = {}): Notification {
     dedupeKey: null,
     archivedAt: null,
     deletedAt: null,
+    snoozedUntil: null,
     createdAt: new Date('2026-09-18T12:00:00Z'),
     ...overrides,
   }
 }
 
-const COUNTS = { all: 3, unread: 1, archived: 2 }
+const COUNTS = { all: 3, unread: 1, archived: 2, snoozed: 0 }
 
 function asMember(role: 'OWNER' | 'MEMBER' | 'VIEWER' = 'MEMBER') {
   mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(

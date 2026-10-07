@@ -118,3 +118,6 @@ export const ServicedeskTaskRemindersCron = '*/15 * * * *' as const
 
 /** Steel Agents tick: every minute (cron agents have minute precision). */
 export const SteelAgentsTickCron = '* * * * *' as const
+
+/** Inbox: warning before a pending Steel AI action expires — every minute. */
+export const NotificationsAiActionExpiryCron = '* * * * *' as const

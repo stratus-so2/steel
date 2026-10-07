@@ -15,6 +15,7 @@ function row(overrides: Partial<Notification> = {}): Notification {
     dedupeKey: null,
     archivedAt: null,
     deletedAt: null,
+    snoozedUntil: null,
     createdAt: new Date('2026-09-18T12:00:00.000Z'),
     ...overrides,
   }

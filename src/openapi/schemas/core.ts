@@ -3,6 +3,7 @@ import { FEATURE_KEYS } from '@/src/config/features'
 import { BILLING_INTERVALS } from '@/src/config/plan-prices'
 import { ProfileOutputSchema } from '@/src/schemas/profile.schema'
 import { dto } from '../common'
+import { AiPendingActionDTO } from './steel-ai'
 
 /**
  * Schemas de resposta (DTOs) dos domínios base. Os DTOs só existem como
@@ -365,6 +366,7 @@ export const NotificationListDTO = dto(
           'WHATSAPP_TEMPLATE_REJECTED',
           'AGENT_APPROVAL_REQUESTED',
           'AGENT_RUN_FAILED',
+          'AI_ACTION_EXPIRING',
         ]),
         title: z.string(),
         body: z.string(),
@@ -380,6 +382,10 @@ export const NotificationListDTO = dto(
         archivedAt: dateTime()
           .nullable()
           .meta({ description: 'Quando foi arquivada, ou `null`.' }),
+        snoozedUntil: dateTime().nullable().meta({
+          description:
+            'Adiada até este instante (no futuro = pasta `snoozed`; no passado = já voltou como não lida), ou `null`.',
+        }),
         module: z.enum(['SERVICE_DESK', 'COMMUNICATION', 'CRM', 'OTHER']).meta({
           description: 'Módulo de origem, derivado do `kind`.',
         }),
@@ -411,6 +417,10 @@ export const NotificationListDTO = dto(
         all: z.number().int(),
         unread: z.number().int(),
         archived: z.number().int(),
+        snoozed: z
+          .number()
+          .int()
+          .meta({ description: 'Adiadas que ainda não voltaram.' }),
       })
       .meta({ description: 'Contagem por pasta (marcadores das abas).' }),
   }),
@@ -422,6 +432,61 @@ export const NotificationRealtimeEventDTO = dto(
     type: z.literal('notification.created'),
     kind: z.string().meta({ example: 'SD_SLA_BREACHED' }),
     at: dateTime(),
+    title: z.string().optional().meta({
+      description: 'Título (pt-BR), para a notificação do navegador.',
+    }),
+    body: z.string().optional().meta({ description: 'Corpo (pt-BR).' }),
+    href: z
+      .string()
+      .nullable()
+      .optional()
+      .meta({ description: 'Link interno do app.' }),
+  }),
+)
+
+export const NotificationDeliveryDTO = dto(
+  'NotificationDelivery',
+  z.object({
+    browserEnabled: z.boolean().meta({
+      description:
+        'Notificações do navegador para tipos urgentes enquanto a aba está em segundo plano. Desligado até o usuário ativar.',
+    }),
+  }),
+)
+
+export const NotificationSnoozeResultDTO = dto(
+  'NotificationSnoozeResult',
+  z.object({
+    updated: z.number().int(),
+    snoozedUntil: dateTime().meta({
+      description: 'Quando as notificações voltam (fuso do usuário aplicado).',
+    }),
+  }),
+)
+
+export const InboxAiPendingListDTO = dto(
+  'InboxAiPendingList',
+  z.object({
+    items: z.array(
+      z.object({
+        source: z.enum(['ASSISTANT', 'AGENT']).meta({
+          description:
+            '`ASSISTANT`: ação do próprio usuário no modo Build; `AGENT`: escrita de um Steel Agent aguardando aprovação.',
+        }),
+        action: AiPendingActionDTO,
+        path: z.string().meta({
+          description:
+            'Origem dentro do workspace (prefixe com `/<slug>`): a conversa ou a execução do agente.',
+          example: '/ai/agents/agt_1/runs/run_1',
+        }),
+        conversation: z
+          .object({ id: z.string(), title: z.string().nullable() })
+          .nullable(),
+        agent: z.object({ id: z.string(), name: z.string() }).nullable(),
+        runId: z.string().nullable(),
+      }),
+    ),
+    count: z.number().int(),
   }),
 )
 

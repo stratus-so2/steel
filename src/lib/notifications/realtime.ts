@@ -23,6 +23,13 @@ export interface NotificationRealtimeEvent {
   kind: string
   /** ISO 8601. */
   at: string
+  /**
+   * pt-BR title/body and internal link of the notification, for the
+   * desktop notification. Optional: older publishers only send `kind`.
+   */
+  title?: string
+  body?: string
+  href?: string | null
 }
 
 interface Envelope {

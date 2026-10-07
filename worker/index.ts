@@ -20,6 +20,7 @@ import { processCrmWorkflowSchedule } from '../src/lib/queue/processors/crm-work
 import { processDataExport } from '../src/lib/queue/processors/data-export'
 import { processDataRetention } from '../src/lib/queue/processors/data-retention'
 import { processDatabaseBackup } from '../src/lib/queue/processors/database-backup'
+import { processNotifications } from '../src/lib/queue/processors/notifications'
 import { processServicedeskAi } from '../src/lib/queue/processors/servicedesk-ai'
 import { processServicedeskBilling } from '../src/lib/queue/processors/servicedesk-billing'
 import { processServicedeskDigest } from '../src/lib/queue/processors/servicedesk-digest'
@@ -48,6 +49,7 @@ import {
   scheduleCrmWorkflowScheduleJobs,
   scheduleDatabaseBackupJobs,
   scheduleDataRetentionJobs,
+  scheduleNotificationsJobs,
   scheduleServicedeskBillingJobs,
   scheduleServicedeskDigestJobs,
   scheduleServicedeskIntegrationsJobs,
@@ -206,6 +208,7 @@ async function main(): Promise<void> {
     registerWorker(QueueName.CrmTaskReminders, processCrmTaskReminders),
   )
   workers.push(registerWorker(QueueName.SteelAgents, processSteelAgents))
+  workers.push(registerWorker(QueueName.Notifications, processNotifications))
 
   failureListener = startJobFailureListener(
     workers.map((w) => w.name as QueueName),
@@ -235,6 +238,7 @@ async function main(): Promise<void> {
   await scheduleCrmTaskRemindersJobs()
   await scheduleServicedeskTaskRemindersJobs()
   await scheduleSteelAgentsJobs()
+  await scheduleNotificationsJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

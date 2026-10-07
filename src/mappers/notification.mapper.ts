@@ -20,6 +20,7 @@ export function toNotificationDTO(notification: Notification): NotificationDTO {
     readAt: notification.readAt?.toISOString() ?? null,
     archived: notification.archivedAt !== null,
     archivedAt: notification.archivedAt?.toISOString() ?? null,
+    snoozedUntil: notification.snoozedUntil?.toISOString() ?? null,
     module: info.module,
     moduleLabel: info.moduleLabel,
     kindLabel: info.label,

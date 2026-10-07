@@ -1,3 +1,5 @@
+import type { AiPendingActionDTO } from './steel-ai'
+
 export type NotificationKindDTO =
   | 'WHATSAPP_NEGATIVE_SENTIMENT'
   | 'SD_TICKET_ASSIGNED'
@@ -54,6 +56,7 @@ export type NotificationKindDTO =
   | 'WHATSAPP_TEMPLATE_REJECTED'
   | 'AGENT_APPROVAL_REQUESTED'
   | 'AGENT_RUN_FAILED'
+  | 'AI_ACTION_EXPIRING'
 
 export type NotificationModuleDTO =
   | 'SERVICE_DESK'
@@ -74,6 +77,11 @@ export interface NotificationDTO {
   archived: boolean
   /** ISO 8601, ou `null` quando não arquivada. */
   archivedAt: string | null
+  /**
+   * ISO 8601 do adiamento, ou `null`. No futuro = escondida (pasta
+   * "Adiadas"); no passado = já voltou para a caixa de entrada.
+   */
+  snoozedUntil: string | null
   /** Módulo de origem, derivado do `kind` (`src/lib/notification-kind.ts`). */
   module: NotificationModuleDTO
   /** Nome do módulo em pt-BR — o "remetente" da linha. */
@@ -92,6 +100,8 @@ export interface NotificationFolderCountsDTO {
   all: number
   unread: number
   archived: number
+  /** Adiadas que ainda não voltaram. */
+  snoozed: number
 }
 
 export interface NotificationListDTO {
@@ -107,6 +117,12 @@ export interface NotificationActionResultDTO {
   updated: number
 }
 
+/** Resultado do adiamento: quantas e até quando (ISO 8601). */
+export interface NotificationSnoozeResultDTO {
+  updated: number
+  snoozedUntil: string
+}
+
 /** One row of the notification preferences screen (non-ServiceDesk kinds). */
 export interface NotificationPreferenceDTO {
   kind: NotificationKindDTO
@@ -119,4 +135,30 @@ export interface NotificationPreferenceDTO {
   color: string
   /** In-app delivery on (default) or muted. */
   inApp: boolean
+}
+
+/** Delivery channels of the inbox for the user in the workspace. */
+export interface NotificationDeliveryDTO {
+  /** Desktop notifications for urgent kinds while the tab is hidden. */
+  browserEnabled: boolean
+}
+
+/**
+ * One "Pendências da IA" item of the inbox: an assistant action the user
+ * must confirm (Build mode) or a Steel Agent write waiting for approval.
+ */
+export interface InboxAiPendingItemDTO {
+  source: 'ASSISTANT' | 'AGENT'
+  action: AiPendingActionDTO
+  /** Where it came from, inside the workspace (prefix with `/<slug>`). */
+  path: string
+  conversation: { id: string; title: string | null } | null
+  agent: { id: string; name: string } | null
+  runId: string | null
+}
+
+export interface InboxAiPendingListDTO {
+  /** Most urgent (closest expiry) first. */
+  items: InboxAiPendingItemDTO[]
+  count: number
 }

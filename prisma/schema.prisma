@@ -61,6 +61,7 @@ model User {
   whatsappConversationEventsActed     WhatsAppConversationEvent[]   @relation("WhatsAppConversationEventActor")
   notifications                       Notification[]
   notificationPreferences             NotificationPreference[]
+  notificationDeliverySettings        NotificationDeliverySetting[]
 
   crmCompaniesCreated                CrmCompany[]                  @relation("CrmCompanyCreatedBy")
   crmCompaniesOwned                  CrmCompany[]                  @relation("CrmCompanyAccountOwner")
@@ -395,6 +396,7 @@ model Workspace {
   whatsappConversationEvents   WhatsAppConversationEvent[]
   notifications                Notification[]
   notificationPreferences      NotificationPreference[]
+  notificationDeliverySettings NotificationDeliverySetting[]
   whatsappGroups               WhatsAppGroup[]
   whatsappGroupMessages        WhatsAppGroupMessage[]
   whatsappAiKnowledgeDocuments WhatsAppAiKnowledgeDocument[]
@@ -4067,27 +4069,32 @@ enum NotificationKind {
   AGENT_APPROVAL_REQUESTED
   /// Steel Agents: a run failed.
   AGENT_RUN_FAILED
+  /// Steel AI: a pending assistant action expires in ~5 minutes.
+  AI_ACTION_EXPIRING
 }
 
 /// Notificação no app (caixa de entrada do usuário no workspace).
 model Notification {
-  id          String           @id @default(cuid())
-  workspaceId String           @map("workspace_id")
-  userId      String           @map("user_id")
-  kind        NotificationKind
-  title       String
-  body        String
+  id           String           @id @default(cuid())
+  workspaceId  String           @map("workspace_id")
+  userId       String           @map("user_id")
+  kind         NotificationKind
+  title        String
+  body         String
   /// Caminho interno para onde o clique leva (ex.: a conversa).
-  href        String?
-  readAt      DateTime?        @map("read_at")
+  href         String?
+  readAt       DateTime?        @map("read_at")
   /// Optional idempotency key: a re-run job never duplicates the same
   /// notification for the same user (unique with `userId`).
-  dedupeKey   String?          @map("dedupe_key")
+  dedupeKey    String?          @map("dedupe_key")
   /// Arquivada pelo usuário: sai de "Tudo" e vive na pasta "Arquivadas".
-  archivedAt  DateTime?        @map("archived_at")
+  archivedAt   DateTime?        @map("archived_at")
   /// Exclusão lógica: nunca mais aparece na caixa de entrada.
-  deletedAt   DateTime?        @map("deleted_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
+  deletedAt    DateTime?        @map("deleted_at")
+  /// Snoozed until this instant: hidden from every folder until then, and
+  /// back as unread afterwards (the snooze clears `readAt`).
+  snoozedUntil DateTime?        @map("snoozed_until")
+  createdAt    DateTime         @default(now()) @map("created_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -4116,6 +4123,24 @@ model NotificationPreference {
   @@unique([userId, workspaceId, kind])
   @@index([workspaceId, kind])
   @@map("notification_preferences")
+}
+
+/// Per-user delivery channels of the inbox in a workspace (kind-agnostic).
+/// No row = defaults (browser notifications off until the user opts in).
+model NotificationDeliverySetting {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  workspaceId    String   @map("workspace_id")
+  /// Desktop notifications for urgent kinds while the tab is hidden.
+  browserEnabled Boolean  @default(false) @map("browser_enabled")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@map("notification_delivery_settings")
 }
 
 // ============================================================================

@@ -76,6 +76,7 @@ const ACTION_DONE: Record<NotificationAction, string> = {
   unarchive: 'Desarquivada',
   delete: 'Excluída',
   restore: 'Restaurada',
+  unsnooze: 'Adiamento desfeito',
 }
 
 const ACTION_DONE_MANY: Record<NotificationAction, string> = {
@@ -85,6 +86,7 @@ const ACTION_DONE_MANY: Record<NotificationAction, string> = {
   unarchive: 'Desarquivadas',
   delete: 'Excluídas',
   restore: 'Restauradas',
+  unsnooze: 'Adiamento desfeito',
 }
 
 /** Só dispara atalho quando o foco não está num campo de texto. */

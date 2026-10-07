@@ -1,9 +1,18 @@
 import { z } from 'zod'
-import { NOTIFICATION_MODULES } from '@/src/lib/notification-kind'
+import {
+  NOTIFICATION_MODULES,
+  NOTIFICATION_QUICK_FILTER_KEYS,
+} from '@/src/lib/notification-kind'
+import { NOTIFICATION_SNOOZE_PRESETS } from '@/src/lib/notifications/snooze'
 
-/** Sem `ids`, marca todas as notificações do usuário no workspace. */
+/**
+ * Sem `ids`, marca todas as notificações do usuário no workspace — ou só as
+ * do `module`/`kind` informado (o "marcar todas" respeita o filtro da tela).
+ */
 export const MarkNotificationsReadSchema = z.object({
   ids: z.array(z.string().min(1)).max(100).optional(),
+  module: z.enum(NOTIFICATION_MODULES).optional(),
+  kind: z.string().min(1).max(64).optional(),
 })
 
 export type MarkNotificationsReadDTO = z.infer<
@@ -14,7 +23,12 @@ export type MarkNotificationsReadDTO = z.infer<
  * Pasta da caixa de entrada. `all` esconde as arquivadas (como um cliente de
  * e-mail); excluídas nunca aparecem em pasta alguma.
  */
-export const NOTIFICATION_FOLDERS = ['all', 'unread', 'archived'] as const
+export const NOTIFICATION_FOLDERS = [
+  'all',
+  'unread',
+  'archived',
+  'snoozed',
+] as const
 
 export const NotificationFolderSchema = z.enum(NOTIFICATION_FOLDERS)
 
@@ -29,6 +43,8 @@ export const NotificationListQuerySchema = z.object({
   module: z.enum(NOTIFICATION_MODULES).optional(),
   /** Filtro por tipo de evento (`Notification.kind`). */
   kind: z.string().min(1).max(64).optional(),
+  /** Atalho de filtro por um conjunto fixo de tipos (menções, atribuições). */
+  quick: z.enum(NOTIFICATION_QUICK_FILTER_KEYS).optional(),
   /** Busca em título e corpo (case-insensitive). */
   search: z.string().trim().min(1).max(200).optional(),
   /** Id da última notificação da página anterior. */
@@ -52,6 +68,7 @@ export const NOTIFICATION_ACTIONS = [
   'unarchive',
   'delete',
   'restore',
+  'unsnooze',
 ] as const
 
 export const NotificationActionSchema = z.enum(NOTIFICATION_ACTIONS)
@@ -66,3 +83,26 @@ export const NotificationBulkActionSchema = z.object({
 export type NotificationBulkActionDTO = z.infer<
   typeof NotificationBulkActionSchema
 >
+
+/** "Arquivar lidas": todas as lidas do usuário, opcionalmente por filtro. */
+export const ArchiveReadNotificationsSchema = z.object({
+  module: z.enum(NOTIFICATION_MODULES).optional(),
+  kind: z.string().min(1).max(64).optional(),
+})
+
+export type ArchiveReadNotificationsDTO = z.infer<
+  typeof ArchiveReadNotificationsSchema
+>
+
+/**
+ * Adiar notificações: somem de todas as pastas (menos "Adiadas") até o
+ * horário do preset, calculado no fuso do usuário, e voltam como não lidas.
+ */
+export const SnoozeNotificationsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(100),
+  preset: z.enum(NOTIFICATION_SNOOZE_PRESETS, {
+    error: 'Opção de adiamento inválida',
+  }),
+})
+
+export type SnoozeNotificationsDTO = z.infer<typeof SnoozeNotificationsSchema>
