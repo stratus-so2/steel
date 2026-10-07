@@ -7,12 +7,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { CSSProperties, Ref } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupTextarea,
-} from '@/components/ui/input-group'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { AiConversationModeDTO } from '@/types/steel-ai'
 import { SteelAiModeSwitch } from './steel-ai-mode-switch'
@@ -20,8 +15,8 @@ import { SteelAiModeSwitch } from './steel-ai-mode-switch'
 export const STEEL_AI_MAX_MESSAGE = 8000
 
 /**
- * Prompt box shared by the welcome and the chat screens: auto-growing
- * textarea, Explorar | Agente switch and send/stop. Enter sends,
+ * Prompt box shared by the welcome and the chat screens: a single-border
+ * card with an auto-growing textarea, Explorar | Agente switch and send/stop. Enter sends,
  * Shift+Enter breaks the line.
  */
 export function SteelAiComposer({
@@ -74,8 +69,13 @@ export function SteelAiComposer({
         if (canSend) onSubmit()
       }}
     >
-      <InputGroup className='rounded-xl bg-background shadow-sm dark:bg-input/30'>
-        <InputGroupTextarea
+      <div
+        className={cn(
+          'flex flex-col rounded-2xl border border-border bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-ring/60 focus-within:shadow-sm motion-reduce:transition-none dark:bg-input/30',
+          disabled && 'opacity-60',
+        )}
+      >
+        <textarea
           aria-label='Mensagem para o Steel AI'
           value={value}
           autoFocus={autoFocus}
@@ -94,9 +94,9 @@ export function SteelAiComposer({
               if (canSend) onSubmit()
             }
           }}
-          className='max-h-60 min-h-14 px-3.5 pt-3 text-sm'
+          className='field-sizing-content block max-h-60 min-h-12 w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-base leading-relaxed outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed sm:text-sm'
         />
-        <InputGroupAddon align='block-end' className='gap-2'>
+        <div className='flex items-center gap-2 px-2.5 pt-1 pb-2.5'>
           <SteelAiModeSwitch
             value={mode}
             onChange={onModeChange}
@@ -105,34 +105,32 @@ export function SteelAiComposer({
           />
           <span className='ml-auto' />
           {isStreaming && onStop ? (
-            <InputGroupButton
+            <Button
               type='button'
               size='icon-sm'
-              variant='default'
               aria-label='Parar resposta'
-              className='rounded-full'
+              className='shrink-0 rounded-full'
               onClick={onStop}
             >
               <SteelIcon icon={StopIcon} strokeWidth={2} />
-            </InputGroupButton>
+            </Button>
           ) : (
-            <InputGroupButton
+            <Button
               type='submit'
               size='icon-sm'
-              variant='default'
               aria-label='Enviar mensagem'
-              className='rounded-full'
+              className='shrink-0 rounded-full'
               disabled={!canSend}
             >
               <SteelIcon
                 icon={isSubmitting ? Loading03Icon : ArrowUp02Icon}
                 strokeWidth={2}
-                className={cn(isSubmitting && 'animate-spin')}
+                className={cn(isSubmitting && 'motion-safe:animate-spin')}
               />
-            </InputGroupButton>
+            </Button>
           )}
-        </InputGroupAddon>
-      </InputGroup>
+        </div>
+      </div>
     </form>
   )
 }
