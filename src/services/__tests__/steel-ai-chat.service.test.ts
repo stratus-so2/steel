@@ -53,6 +53,20 @@ vi.mock('@/src/repositories/user.repository')
 vi.mock('@/src/repositories/user-preference.repository')
 vi.mock('@/src/repositories/workspace.repository')
 vi.mock('@/src/services/ai-usage.service')
+vi.mock('@/src/services/ai-attachment.service')
+vi.mock('@/src/repositories/ai-attachment.repository')
+vi.mock('@/src/repositories/ai-action-log.repository')
+vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
+vi.mock('@/src/lib/ai/context/skills', () => ({
+  resolveSkillInvocation: vi.fn(async (_ctx: unknown, content: string) => ({
+    skill: null,
+    content,
+  })),
+  skillsCatalogForPrompt: vi.fn(async () => ''),
+}))
+vi.mock('@/src/lib/ai/context/memory', () => ({
+  memoryForPrompt: vi.fn(async () => ''),
+}))
 vi.mock('@/src/services/platform-ai-settings.service', () => ({
   PlatformAiSettingsService: { getCostMargin: vi.fn(async () => 2) },
 }))
@@ -66,7 +80,16 @@ vi.mock('@/src/services/ai-settings.service', async (importOriginal) => ({
   ),
 }))
 
+import { auditMutation } from '@/lib/axiom/audit'
+import { memoryForPrompt } from '@/src/lib/ai/context/memory'
+import {
+  resolveSkillInvocation,
+  skillsCatalogForPrompt,
+} from '@/src/lib/ai/context/skills'
 import { resolveToolAccess } from '@/src/lib/ai/tools/registry'
+import { AiActionLogRepository } from '@/src/repositories/ai-action-log.repository'
+import { AiAttachmentRepository } from '@/src/repositories/ai-attachment.repository'
+import { AiAttachmentService } from '@/src/services/ai-attachment.service'
 import {
   AiConversationRepository,
   AiMessageRepository,
@@ -81,9 +104,15 @@ import {
   type PreparedAiCall,
 } from '@/src/services/ai-usage.service'
 import {
+  dominantModule,
   STEEL_AI_MAX_TOOL_ROUNDS,
   SteelAiChatService,
 } from '../steel-ai-chat.service'
+
+const attachmentService = vi.mocked(AiAttachmentService)
+const attachmentRepo = vi.mocked(AiAttachmentRepository)
+const actionLogs = vi.mocked(AiActionLogRepository)
+const audit = vi.mocked(auditMutation)
 
 const mockedAccess = vi.mocked(resolveToolAccess)
 const conversations = vi.mocked(AiConversationRepository)
@@ -235,10 +264,33 @@ function setup(
       }),
     ),
   )
+  pendingRepo.complete.mockImplementation(async (id, data) =>
+    ok(
+      createFakeAiPendingAction({
+        id,
+        conversationId: 'conv1',
+        toolCallId: 'c1',
+        status: data.status,
+        result: (data.result ?? null) as never,
+        error: data.error ?? null,
+        autoExecuted: true,
+        preview: { title: 'Criar chamado “Impressora”', summary: 'x' },
+      }),
+    ),
+  )
+  actionLogs.create.mockResolvedValue(ok({} as never))
+  attachmentService.loadForSend.mockResolvedValue(ok([]))
+  attachmentService.historyNotes.mockResolvedValue(new Map())
+  attachmentRepo.attachToMessage.mockResolvedValue(ok(1))
   return fake
 }
 
-async function send(input: { content: string; mode?: 'EXPLORE' | 'AGENT' }) {
+async function send(input: {
+  content: string
+  mode?: 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
+  modelKey?: string
+  attachmentIds?: string[]
+}) {
   const result = await SteelAiChatService.sendMessage(
     'u1',
     'ws1',
@@ -1003,5 +1055,419 @@ describe('SteelAiChatService.sendMessage() — tool selection', () => {
       'crm_list_leads',
       'steel_find_tools',
     ])
+  })
+})
+
+describe('dominantModule()', () => {
+  it('should be null without domain tools', () => {
+    expect(dominantModule([])).toBeNull()
+    expect(dominantModule([null, null])).toBeNull()
+  })
+
+  it('should pick the module with most calls, ties to the first used', () => {
+    expect(dominantModule(['CRM', 'SERVICE_DESK', 'SERVICE_DESK'])).toBe(
+      'SERVICE_DESK',
+    )
+    expect(dominantModule(['CRM', null, 'SERVICE_DESK'])).toBe('CRM')
+  })
+})
+
+describe('SteelAiChatService.sendMessage() — Steel AI 2', () => {
+  const AUTOPILOT_ACCESS = { ...ACCESS, autopilotEnabled: true }
+
+  it('should refuse everything when the AI master switch is off', async () => {
+    setup()
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, aiEnabled: false }))
+    expectErr(
+      await SteelAiChatService.sendMessage('u1', 'ws1', 'conv1', {
+        content: 'Oi',
+      }),
+      'AI_DISABLED',
+    )
+    expect(conversations.findById).not.toHaveBeenCalled()
+  })
+
+  it('should refuse AUTOPILOT when the workspace did not enable it', async () => {
+    setup()
+    expectErr(
+      await SteelAiChatService.sendMessage('u1', 'ws1', 'conv1', {
+        content: 'Oi',
+        mode: 'AUTOPILOT',
+      }),
+      'AI_AUTOPILOT_DISABLED',
+    )
+    mockedAccess.mockResolvedValue(
+      ok({ ...AUTOPILOT_ACCESS, agentModeEnabled: false }),
+    )
+    expectErr(
+      await SteelAiChatService.sendMessage('u1', 'ws1', 'conv1', {
+        content: 'Oi',
+        mode: 'AUTOPILOT',
+      }),
+      'AI_AGENT_MODE_DISABLED',
+    )
+    expect(aiUsage.prepare).not.toHaveBeenCalled()
+  })
+
+  it('should execute writes at once in AUTOPILOT and keep the loop going', async () => {
+    const fake = setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [
+              call('c1', 'sd_create_ticket', { title: 'Impressora' }),
+            ],
+          },
+        },
+        { deltas: ['Chamado criado.'], response: { text: 'Chamado criado.' } },
+      ],
+      conversationOverrides: { mode: 'AUTOPILOT', title: 'x' },
+    })
+    mockedAccess.mockResolvedValue(ok(AUTOPILOT_ACCESS))
+    vi.mocked(writeTool.execute).mockResolvedValue(
+      ok({
+        data: { id: 't1' },
+        summary: 'Chamado #12 criado',
+        target: { type: 'sd_ticket', id: 't1' },
+      }),
+    )
+
+    const events = await send({ content: 'Abra um chamado' })
+
+    expect(types(events)).toEqual([
+      'message.start',
+      'tool.start',
+      'action.executed',
+      'tool.end',
+      'text.delta',
+      'message.end',
+    ])
+    expect(fake.requests[0].system).toContain('Modo atual: AUTOPILOT')
+    // Not forced to text: the model may chain further steps.
+    expect(fake.requests[1].toolChoice).toBe('auto')
+    expect(pendingRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'EXECUTED',
+        decidedById: 'u1',
+        autoExecuted: true,
+      }),
+    )
+    expect(writeTool.execute).toHaveBeenCalled()
+    expect(actionLogs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'ASSISTANT',
+        actorId: 'u1',
+        outcome: 'success',
+        summary: 'Chamado #12 criado',
+      }),
+    )
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'ai_pending_action',
+        action: 'auto_execute',
+        actorId: 'u1',
+      }),
+    )
+    const toolEnd = events[3] as Extract<
+      SteelAiStreamEvent,
+      { type: 'tool.end' }
+    >
+    expect(toolEnd.call.status).toBe('done')
+    expect(toolEnd.call.summary).toBe('Chamado #12 criado')
+    const toolRow = messages.createMany.mock.calls[1][0][1]
+    expect(JSON.parse(toolRow.content)).toEqual(
+      expect.objectContaining({ status: 'executed', actionId: 'act1' }),
+    )
+    // No decision note: the TOOL row already carries the result.
+    expect(
+      messages.createMany.mock.calls.some((c) =>
+        c[0].some((row) => row.toolCallId?.startsWith('action:')),
+      ),
+    ).toBe(false)
+    const end = endOf(events)
+    expect(end.message.pendingActions).toEqual([
+      expect.objectContaining({ status: 'EXECUTED', autoExecuted: true }),
+    ])
+    expect(aiUsage.record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        scope: { module: 'SERVICE_DESK', conversationId: 'conv1' },
+      }),
+    )
+  })
+
+  it('should run deletes in AUTOPILOT too, without a double confirmation', async () => {
+    const deleteExecute = vi.fn(async () =>
+      ok({ data: null, summary: 'Chamado excluído' }),
+    )
+    const deleteTool: AnySteelAiTool = {
+      ...writeTool,
+      name: 'sd_delete_ticket',
+      kind: 'DELETE',
+      execute: deleteExecute,
+    }
+    tools.list = [readTool, deleteTool]
+    setup({
+      rounds: [
+        { response: { toolCalls: [call('c1', 'sd_delete_ticket', {})] } },
+        { response: { text: 'Excluído.' } },
+      ],
+      conversationOverrides: { title: 'x' },
+    })
+    mockedAccess.mockResolvedValue(ok(AUTOPILOT_ACCESS))
+
+    const events = await send({ content: 'Exclua o chamado', mode: 'AUTOPILOT' })
+
+    expect(deleteExecute).toHaveBeenCalled()
+    expect(pendingRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'DELETE', autoExecuted: true }),
+    )
+    expect(types(events)).toContain('action.executed')
+    expect(conversations.update).toHaveBeenCalledWith('conv1', {
+      mode: 'AUTOPILOT',
+    })
+  })
+
+  it('should report a failed autopilot execution as a tool error', async () => {
+    setup({
+      rounds: [
+        { response: { toolCalls: [call('c1', 'sd_create_ticket', {})] } },
+        { response: { text: 'Falhou.' } },
+      ],
+      conversationOverrides: { mode: 'AUTOPILOT', title: 'x' },
+    })
+    mockedAccess.mockResolvedValue(ok(AUTOPILOT_ACCESS))
+    vi.mocked(writeTool.execute).mockResolvedValue(
+      err(forbidden('Sem permissão')),
+    )
+
+    const events = await send({ content: 'Abra' })
+    const toolEnd = events.find((e) => e.type === 'tool.end') as Extract<
+      SteelAiStreamEvent,
+      { type: 'tool.end' }
+    >
+    expect(toolEnd.call.status).toBe('error')
+    expect(toolEnd.call.summary).toBe('Sem permissão')
+    expect(endOf(events).message.pendingActions[0].status).toBe('FAILED')
+  })
+
+  it('should surface an autopilot preview failure without creating anything', async () => {
+    setup({
+      rounds: [
+        { response: { toolCalls: [call('c1', 'sd_create_ticket', {})] } },
+        { response: { text: 'Não deu.' } },
+      ],
+      conversationOverrides: { mode: 'AUTOPILOT', title: 'x' },
+    })
+    mockedAccess.mockResolvedValue(ok(AUTOPILOT_ACCESS))
+    writePreview.mockResolvedValue(err(forbidden('Sem permissão')))
+
+    const events = await send({ content: 'Abra' })
+    expect(pendingRepo.create).not.toHaveBeenCalled()
+    expect(types(events)).not.toContain('action.executed')
+    const toolEnd = events.find((e) => e.type === 'tool.end') as Extract<
+      SteelAiStreamEvent,
+      { type: 'tool.end' }
+    >
+    expect(toolEnd.call.status).toBe('error')
+  })
+
+  it('should use and keep the model picked for the conversation', async () => {
+    setup({
+      rounds: [{ response: { text: 'ok' } }],
+      conversationOverrides: { title: 'x', modelKey: 'openai:gpt-5' },
+    })
+    await send({ content: 'Oi', modelKey: 'anthropic:claude-sonnet-5' })
+    expect(aiUsage.prepare).toHaveBeenCalledWith(
+      'ws1',
+      'STEEL_ASSISTANT',
+      'u1',
+      ['anthropic:claude-sonnet-5', 'openai:gpt-5'],
+    )
+    expect(conversations.update).toHaveBeenCalledWith('conv1', {
+      modelKey: 'anthropic:claude-sonnet-5',
+    })
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'ai_conversation',
+        meta: expect.objectContaining({ fields: ['modelKey'] }),
+      }),
+    )
+    // The prepared call fell back to gpt-4o-mini; the pick is kept.
+    expect(conversations.update).toHaveBeenLastCalledWith('conv1', {
+      modelKey: 'anthropic:claude-sonnet-5',
+    })
+  })
+
+  it('should ignore a model key outside the catalog and keep the stored pick', async () => {
+    setup({
+      rounds: [{ response: { text: 'ok' } }],
+      conversationOverrides: { title: 'x', modelKey: 'openai:gpt-5' },
+    })
+    await send({ content: 'Oi', modelKey: 'acme:nope' })
+    expect(conversations.update).toHaveBeenCalledTimes(1)
+    expect(conversations.update).toHaveBeenCalledWith('conv1', {
+      modelKey: 'openai:gpt-5',
+    })
+  })
+
+  it('should send images as vision parts and documents as text', async () => {
+    const fake = setup({
+      rounds: [{ response: { text: 'Vi a foto.' } }],
+      conversationOverrides: { title: 'x' },
+    })
+    attachmentService.loadForSend.mockResolvedValue(
+      ok([
+        {
+          id: 'a1',
+          kind: 'IMAGE',
+          filename: 'foto.png',
+          contentType: 'image/png',
+          extractedText: null,
+          data: Buffer.from('png'),
+        },
+        {
+          id: 'a2',
+          kind: 'DOCUMENT',
+          filename: 'notas.txt',
+          contentType: 'text/plain',
+          extractedText: 'Prazo: sexta',
+        },
+      ]),
+    )
+
+    await send({ content: '', attachmentIds: ['a1', 'a2'] })
+
+    expect(attachmentService.loadForSend).toHaveBeenCalledWith(
+      'u1',
+      'conv1',
+      ['a1', 'a2'],
+    )
+    expect(attachmentRepo.attachToMessage).toHaveBeenCalledWith(
+      ['a1', 'a2'],
+      expect.any(String),
+    )
+    const last = fake.requests[0].messages.at(-1)
+    expect(last?.role).toBe('user')
+    const parts = last?.content as { type: string; text?: string; url?: string }[]
+    expect(parts[0].text).toContain('notas.txt')
+    expect(parts[0].text).toContain('Prazo: sexta')
+    expect(parts[1]).toEqual({
+      type: 'image',
+      url: `data:image/png;base64,${Buffer.from('png').toString('base64')}`,
+    })
+  })
+
+  it('should refuse unknown attachments before saving the message', async () => {
+    setup()
+    attachmentService.loadForSend.mockResolvedValue(
+      err(aiConversationNotFound()),
+    )
+    expectErr(
+      await SteelAiChatService.sendMessage('u1', 'ws1', 'conv1', {
+        content: 'Oi',
+        attachmentIds: ['x'],
+      }),
+      'AI_CONVERSATION_NOT_FOUND',
+    )
+    expect(messages.createMany).not.toHaveBeenCalled()
+  })
+
+  it('should fail the send when binding attachments fails', async () => {
+    setup()
+    attachmentService.loadForSend.mockResolvedValue(
+      ok([
+        {
+          id: 'a2',
+          kind: 'DOCUMENT',
+          filename: 'n.txt',
+          contentType: 'text/plain',
+          extractedText: 'x',
+        },
+      ]),
+    )
+    attachmentRepo.attachToMessage.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SteelAiChatService.sendMessage('u1', 'ws1', 'conv1', {
+        content: 'Oi',
+        attachmentIds: ['a2'],
+      }),
+      'DATABASE_ERROR',
+    )
+  })
+
+  it('should call the skills and memory extension points every turn', async () => {
+    const fake = setup({
+      rounds: [{ response: { text: 'ok' } }],
+      conversationOverrides: { title: 'x' },
+    })
+    vi.mocked(resolveSkillInvocation).mockResolvedValueOnce({
+      skill: {
+        id: 's1',
+        slug: 'my-work',
+        name: 'Meu trabalho',
+        instructions: 'Liste meus chamados abertos.',
+      },
+      content: '',
+    })
+    vi.mocked(skillsCatalogForPrompt).mockResolvedValueOnce(
+      'Skills: /my-work',
+    )
+    vi.mocked(memoryForPrompt).mockResolvedValueOnce('Memória: prefere tabelas')
+
+    await send({ content: '/my-work' })
+
+    const system = fake.requests[0].system ?? ''
+    expect(system).toContain('Skill invocada pelo usuário: /my-work')
+    expect(system).toContain('Liste meus chamados abertos.')
+    expect(system).toContain('Skills: /my-work')
+    expect(system).toContain('Memória: prefere tabelas')
+    expect(fake.requests[0].messages.at(-1)).toEqual({
+      role: 'user',
+      content: 'Execute a skill /my-work.',
+    })
+    // The transcript keeps what the user typed.
+    expect(messages.createMany.mock.calls[0][0][0].content).toBe('/my-work')
+  })
+})
+
+describe('SteelAiChatService.capabilities() — switches', () => {
+  it('should report the AI off with no models and autopilot only with agent mode', async () => {
+    mockedAccess.mockResolvedValue(
+      ok({ ...ACCESS, aiEnabled: false, autopilotEnabled: true }),
+    )
+    aiUsage.resolveModel.mockResolvedValue(
+      ok({
+        settings: {
+          enabledModels: ['openai:gpt-4o-mini'],
+          crmAssistantModel: 'openai:gpt-4o-mini',
+          whatsappReplyModel: 'openai:gpt-4o-mini',
+          whatsappSentimentModel: 'openai:gpt-4o-mini',
+          monthlyQuotaUsd: 50,
+          agentModeEnabled: true,
+        },
+        model: null,
+      }),
+    )
+    usageRepo.sumSince.mockResolvedValue(
+      ok({ inputTokens: 0, outputTokens: 0, costUsd: 0 }),
+    )
+    const caps = expectOk(await SteelAiChatService.capabilities('u1', 'ws1'))
+    expect(caps).toEqual(
+      expect.objectContaining({
+        aiEnabled: false,
+        autopilotEnabled: true,
+        models: [],
+        modelKey: null,
+      }),
+    )
+
+    mockedAccess.mockResolvedValue(
+      ok({ ...ACCESS, agentModeEnabled: false, autopilotEnabled: true }),
+    )
+    expect(
+      expectOk(await SteelAiChatService.capabilities('u1', 'ws1'))
+        .autopilotEnabled,
+    ).toBe(false)
   })
 })

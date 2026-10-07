@@ -63,7 +63,7 @@ import { AiUsageRepository } from '@/src/repositories/ai-settings.repository'
 import { UserRepository } from '@/src/repositories/user.repository'
 import { UserPreferenceRepository } from '@/src/repositories/user-preference.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
-import type { SendAiMessageDTO } from '@/src/schemas/steel-ai.schema'
+import type { SendAiMessageInput } from '@/src/schemas/steel-ai.schema'
 import type {
   AiCapabilitiesDTO,
   AiChatModelDTO,
@@ -649,11 +649,12 @@ export const SteelAiChatService = {
     actorId: string,
     workspaceId: string,
     conversationId: string,
-    input: SendAiMessageDTO,
+    input: SendAiMessageInput,
   ): Promise<Result<AsyncIterable<SteelAiStreamEvent>>> {
     const access = await resolveToolAccess(actorId, workspaceId)
     if (!access.ok) return access
     if (!access.value.aiEnabled) return err(aiDisabled())
+    const content = input.content?.trim() ?? ''
 
     const conversation = await AiConversationRepository.findById(
       conversationId,
@@ -677,7 +678,7 @@ export const SteelAiChatService = {
     const attachments = await AiAttachmentService.loadForSend(
       actorId,
       conversationId,
-      input.attachmentIds,
+      input.attachmentIds ?? [],
     )
     if (!attachments.ok) return attachments
 
@@ -688,7 +689,7 @@ export const SteelAiChatService = {
         WorkspaceRepository.findById(workspaceId),
         UserPreferenceRepository.findByUserId(actorId),
         AiMessageRepository.listRecent(conversationId, HISTORY_MAX_ROWS),
-        resolveSkillInvocation(ctx, input.content),
+        resolveSkillInvocation(ctx, content),
         skillsCatalogForPrompt(ctx),
         memoryForPrompt(ctx),
       ])
@@ -722,7 +723,7 @@ export const SteelAiChatService = {
     }
 
     const saved = await AiMessageRepository.createMany([
-      { conversationId, role: 'USER', content: input.content },
+      { conversationId, role: 'USER', content },
     ])
     if (!saved.ok) return saved
     if (attachments.value.length > 0) {
@@ -769,7 +770,7 @@ export const SteelAiChatService = {
         ),
         content: modelText,
         titleSource:
-          input.content || attachments.value.map((a) => a.filename).join(', '),
+          content || attachments.value.map((a) => a.filename).join(', '),
         storedModelKey: changed.modelKey ?? conversation.value.modelKey ?? null,
         isFirstExchange: !recent.value.some((row) => row.role === 'USER'),
         pinnedTools: pinnedToolsFromHistory(capped),
