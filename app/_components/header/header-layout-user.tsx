@@ -1,5 +1,6 @@
 'use client'
 
+import { MobileNavDrawer } from '../navigation/mobile-nav/mobile-nav-drawer'
 import { UserDropdownHelper } from '../user/user-dropdown-helper'
 import { UserDropdownProfile } from '../user/user-dropdown-profile'
 import { WorkSpaceDropdown } from '../workspace/workspace-dropdown/workspace-dropdown-selector'
@@ -13,9 +14,13 @@ export function UserHeader({
   workspaceId: string
 }) {
   return (
-    <div className='w-full flex justify-between items-center px-3.5'>
-      <WorkSpaceDropdown currentSlug={slug} />
-      <div className='flex items-center gap-1'>
+    <div className='w-full flex justify-between items-center gap-1 px-1.5 pt-[env(safe-area-inset-top)] md:px-3.5'>
+      <div className='flex min-w-0 items-center gap-0.5'>
+        <MobileNavDrawer slug={slug} />
+        <WorkSpaceDropdown currentSlug={slug} />
+      </div>
+      {/* Touch targets: 40px below `md`, the compact 32-36px from there up. */}
+      <div className='flex shrink-0 items-center gap-1 max-md:[&_[data-slot=button]]:size-10'>
         <HeaderInboxButton slug={slug} workspaceId={workspaceId} />
         <UserDropdownHelper />
         <UserDropdownProfile />

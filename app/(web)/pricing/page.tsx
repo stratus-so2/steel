@@ -89,7 +89,7 @@ export default async function PricingPage() {
           </div>
         </div>
       </div>
-      <div className='flex items-center justify-center gap-4 py-4 border border-border w-full'>
+      <div className='flex flex-wrap items-center justify-center gap-4 px-4 py-4 border border-border w-full'>
         <Link href='#features'>
           <Button size='sm'>Lista completa de recursos</Button>
         </Link>

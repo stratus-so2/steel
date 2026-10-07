@@ -50,10 +50,10 @@ export default async function StatusHistoryPage() {
   const result = await StatusService.listIncidents()
 
   return (
-    <div className='max-w-3xl flex flex-col items-center mx-auto py-4 gap-y-8'>
-      <div className='w-full flex items-center justify-between'>
+    <div className='max-w-3xl flex flex-col items-center mx-auto px-4 py-4 gap-y-8 md:px-0'>
+      <div className='w-full flex flex-wrap items-center justify-between gap-3'>
         <Image src='/brand/logo.svg' width={100} height={30} alt='Steel' />
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2'>
           <Link href='#'>
             <Button variant='outline' size='sm'>
               Relate um problema
