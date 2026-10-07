@@ -294,49 +294,57 @@ function WorkSummary({
   const minutes = hours.data?.summary.totalMinutes ?? 0
   const kbCount = kb.data?.length ?? 0
 
+  /** Enquanto carrega (ou se falhar) não afirma "nenhuma". */
+  const show = (
+    query: { isLoading: boolean; error: unknown },
+    value: () => string,
+  ) => (query.isLoading ? '…' : query.error ? '—' : value())
+
   return (
     <>
       <TabLink
         label='Tarefas'
-        value={
+        value={show(tasks, () =>
           progress && progress.total > 0
             ? `${progress.done} de ${progress.total} concluídas`
-            : 'Nenhuma'
-        }
+            : 'Nenhuma',
+        )}
         onClick={() => onTab('tasks')}
       />
       <TabLink
         label='Aprovação'
-        value={
+        value={show(approvals, () =>
           pendingApprovals > 0
             ? `${pendingApprovals} pendente${pendingApprovals > 1 ? 's' : ''}`
             : latestApproval
               ? SD_APPROVAL_STATUS_LABEL[latestApproval.status]
-              : 'Nenhuma'
-        }
+              : 'Nenhuma',
+        )}
         onClick={() => onTab('approvals')}
       />
       <TabLink
         label='Horas'
-        value={minutes > 0 ? sdFormatDuration(minutes) : 'Nenhuma'}
+        value={show(hours, () =>
+          minutes > 0 ? sdFormatDuration(minutes) : 'Nenhuma',
+        )}
         onClick={() => onTab('hours')}
       />
       <TabLink
         label='Custos'
-        value={
+        value={show(costs, () =>
           costs.data && costs.data.items.length > 0
             ? formatBRL(costs.data.summary.total)
-            : 'Nenhum'
-        }
+            : 'Nenhum',
+        )}
         onClick={() => onTab('costs')}
       />
       <TabLink
         label='Conhecimento'
-        value={
+        value={show(kb, () =>
           kbCount > 0
             ? `${kbCount} artigo${kbCount > 1 ? 's' : ''}`
-            : 'Nenhum artigo'
-        }
+            : 'Nenhum artigo',
+        )}
         onClick={() => onTab('knowledge')}
       />
     </>

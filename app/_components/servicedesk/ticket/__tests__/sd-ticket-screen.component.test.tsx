@@ -105,8 +105,12 @@ function ticket(overrides: Partial<SdTicketDTO> = {}): SdTicketDTO {
   } as Partial<SdTicketDTO>)
 }
 
-function routes(data: SdTicketDTO = ticket()) {
+function routes(
+  data: SdTicketDTO = ticket(),
+  extra: Parameters<typeof mockFetch>[0] = [],
+) {
   return mockFetch([
+    ...extra,
     { match: '/servicedesk/tickets/INC-000001', data },
     { match: `${TAB_URL}/messages?`, data: { items: [], nextBefore: null } },
     {
@@ -307,6 +311,27 @@ describe('SdTicketSidebar', () => {
     expect(onTab).toHaveBeenCalledWith('tasks')
 
     expect(screen.getByLabelText('SLA').textContent).toContain('Cumprido')
+  })
+})
+
+describe('SdTicketSidebar — failures', () => {
+  it('does not claim "Nenhuma" when a summary fails to load', async () => {
+    routes(ticket(), [
+      { match: `${TAB_URL}/tasks`, status: 500, error: 'Falhou' },
+    ])
+    renderWithQuery(
+      <SdTicketSidebar
+        workspaceId={WS}
+        ticket={ticket()}
+        config={CONFIG}
+        agents={AGENTS}
+        onPhaseChange={vi.fn()}
+        onTab={vi.fn()}
+      />,
+    )
+    expect(
+      await screen.findByRole('button', { name: /^Tarefas\s*—/ }),
+    ).toBeTruthy()
   })
 })
 
