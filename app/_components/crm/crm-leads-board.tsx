@@ -7,6 +7,7 @@ import {
   STAGE_LABELS,
   STAGE_STYLES,
 } from '@/app/_components/crm/crm-lead-stage'
+import { AskSteelAiButton } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
@@ -293,6 +294,10 @@ function LeadStagePanel({
           >
             {STAGE_LABELS[lead.stage]}
           </span>
+          <AskSteelAiButton
+            workspaceId={workspaceId}
+            reference={{ kind: 'lead', label: lead.name }}
+          />
         </div>
         <p className='text-muted-foreground text-sm'>
           {NEXT_STEP_HINT[lead.stage]}

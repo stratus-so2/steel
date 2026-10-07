@@ -18,6 +18,8 @@ import {
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
+import { AskSteelAiMenuItem } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
+import { AskSteelAiDialog } from '@/app/_components/steel-ai-ask/ask-steel-ai-dialog'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   AlertDialog,
@@ -343,6 +345,7 @@ function Header({
   const [creatingChild, setCreatingChild] = useState(false)
   const [linkingParent, setLinkingParent] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [asking, setAsking] = useState(false)
   const phases = sdTypePhases(config, ticket.type)
   const boardHref = `/${slug}/servicedesk/${SD_TYPE_ROUTE[ticket.type]}`
   const sla = sdPrimarySla(ticket.sla, now)
@@ -432,6 +435,7 @@ function Header({
                 <SteelIcon icon={Copy01Icon} strokeWidth={2} />
                 Copiar link
               </DropdownMenuItem>
+              <AskSteelAiMenuItem onSelect={() => setAsking(true)} />
               {me.isAdmin ? (
                 <>
                   <DropdownMenuSeparator />
@@ -448,6 +452,16 @@ function Header({
           </DropdownMenu>
         </div>
       </div>
+
+      {asking ? (
+        <AskSteelAiDialog
+          open
+          onOpenChange={setAsking}
+          workspaceId={workspaceId}
+          slug={slug}
+          reference={{ kind: 'ticket', code: ticket.code, label: ticket.title }}
+        />
+      ) : null}
 
       <EditableTitle
         key={ticket.title}
