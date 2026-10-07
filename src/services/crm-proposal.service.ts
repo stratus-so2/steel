@@ -18,6 +18,7 @@ import {
 } from '@/src/lib/crm-proposal-validity'
 import { sendCrmProposalExpiredEmail } from '@/src/lib/mail/crm/send-proposal-expired'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import {
   toCrmProposalDTO,
   toCrmProposalMetricsDTO,
@@ -241,6 +242,7 @@ export const CrmProposalService = {
       targetId: result.value.id,
     })
 
+    void indexSearchDocument('crm-proposal', workspaceId, result.value.id)
     return ok(toCrmProposalDTO(result.value))
   },
 
@@ -342,6 +344,7 @@ export const CrmProposalService = {
       meta: { fields: Object.keys(dto) },
     })
 
+    void indexSearchDocument('crm-proposal', workspaceId, proposalId)
     return ok(toCrmProposalDTO(result.value))
   },
 
@@ -372,6 +375,7 @@ export const CrmProposalService = {
       targetId: proposalId,
     })
 
+    void indexSearchDocument('crm-proposal', workspaceId, proposalId)
     return ok(undefined)
   },
 
@@ -513,6 +517,7 @@ export const CrmProposalService = {
       meta: { status: 'SENT' },
     })
 
+    void indexSearchDocument('crm-proposal', workspaceId, proposalId)
     return ok(toCrmProposalDTO(result.value))
   },
 
@@ -575,6 +580,7 @@ export const CrmProposalService = {
       },
     })
 
+    void indexSearchDocument('crm-proposal', workspaceId, proposalId)
     return ok(toCrmProposalDTO(result.value))
   },
 
@@ -645,6 +651,11 @@ export const CrmProposalService = {
     const updated = await CrmProposalRepository.findByShareToken(shareToken)
     if (!updated.ok) return updated
 
+    void indexSearchDocument(
+      'crm-proposal',
+      updated.value.workspaceId,
+      updated.value.id,
+    )
     return ok(toCrmProposalPublicDTO(updated.value))
   },
 

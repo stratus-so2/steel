@@ -4,6 +4,7 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { sdCustomerDocumentConflict, sdDocumentInvalid } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { mapSdCustomerImportRecord } from '@/src/lib/servicedesk/directory-import'
 import {
   detectPersonType,
@@ -188,6 +189,7 @@ export const SdCustomerService = {
     if (!ctx.ok) return ctx
 
     let created = 0
+    const createdIds: string[] = []
     const rejected: SdImportResultDTO['rejected'] = []
     for (const [index, record] of dto.rows.entries()) {
       const line = index + 2
@@ -200,8 +202,10 @@ export const SdCustomerService = {
         continue
       }
       const result = await insertCustomer(actorId, workspaceId, parsed.data)
-      if (result.ok) created++
-      else rejected.push({ line, message: result.error.message })
+      if (result.ok) {
+        created++
+        createdIds.push(result.value.id)
+      } else rejected.push({ line, message: result.error.message })
     }
 
     auditMutation({
@@ -215,6 +219,7 @@ export const SdCustomerService = {
         rejected: rejected.length,
       },
     })
+    void indexSearchDocument('sd-customer', workspaceId, createdIds)
     return ok({ created, rejected })
   },
 
@@ -321,6 +326,7 @@ export const SdCustomerService = {
       customerId: result.value.id,
       kind: result.value.kind,
     })
+    void indexSearchDocument('sd-customer', workspaceId, result.value.id)
     return ok(toSdCustomerDTO(result.value))
   },
 
@@ -390,6 +396,7 @@ export const SdCustomerService = {
       targetId: customerId,
       meta: { workspaceId, fields: Object.keys(dto) },
     })
+    void indexSearchDocument('sd-customer', workspaceId, customerId)
     return ok(toSdCustomerDTO(result.value))
   },
 
@@ -417,6 +424,7 @@ export const SdCustomerService = {
       targetId: customerId,
       meta: { workspaceId },
     })
+    void indexSearchDocument('sd-customer', workspaceId, customerId)
     return ok(undefined)
   },
 }

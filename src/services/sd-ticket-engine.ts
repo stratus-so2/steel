@@ -26,6 +26,7 @@ import {
 } from '@/src/errors'
 import type { AppError } from '@/src/errors/app-error'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { enqueueSdAiTriage } from '@/src/lib/servicedesk/ai-queue'
 import { evaluateSdConditions } from '@/src/lib/servicedesk/conditions'
 import { sanitizeSdHtml } from '@/src/lib/servicedesk/html'
@@ -875,6 +876,7 @@ export const SdTicketEngine = {
       type: ticket.type,
       channel: ticket.channel,
     })
+    void indexSearchDocument('sd-ticket', workspaceId, ticket.id)
     return ok(ticket)
   },
 
@@ -1175,6 +1177,7 @@ export const SdTicketEngine = {
         actor,
       )
     }
+    void indexSearchDocument('sd-ticket', after.workspaceId, after.id)
     return ok(after)
   },
 
@@ -1385,6 +1388,7 @@ export const SdTicketEngine = {
     await recordSdTicketEvent(events)
     await notifyPhaseChange(ticket, after, target, config, actor, reopened)
     await publish(after, 'ticket.phase_changed', actor)
+    void indexSearchDocument('sd-ticket', after.workspaceId, after.id)
     return ok(after)
   },
 

@@ -10,6 +10,7 @@ import {
   DatabaseBackupJob,
   DataRetentionJob,
   NotificationsJob,
+  SearchReindexJob,
   ServicedeskBillingJob,
   ServicedeskDigestJob,
   ServicedeskIntegrationsJob,
@@ -36,6 +37,7 @@ import {
   getDatabaseBackupQueue,
   getDataRetentionQueue,
   getNotificationsQueue,
+  getSearchReindexQueue,
   getServicedeskBillingQueue,
   getServicedeskDigestQueue,
   getServicedeskIntegrationsQueue,
@@ -63,6 +65,7 @@ import {
   NotificationsAiActionExpiryCron,
   RetentionCron,
   RetentionTimezone,
+  SearchReindexCron,
   ServicedeskBillingCron,
   ServicedeskClusterCron,
   ServicedeskDigestCron,
@@ -481,6 +484,21 @@ export async function scheduleNotificationsJobs(): Promise<void> {
   logger.info('queue.scheduler.notifications_registered', {
     component: 'Worker',
     pattern: NotificationsAiActionExpiryCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleSearchReindexJobs(): Promise<void> {
+  const queue = getSearchReindexQueue()
+  await queue.upsertJobScheduler(
+    SearchReindexJob.ReindexAll,
+    { pattern: SearchReindexCron, tz: RetentionTimezone },
+    { name: SearchReindexJob.ReindexAll, data: {} },
+  )
+
+  logger.info('queue.scheduler.search_reindex_registered', {
+    component: 'Worker',
+    pattern: SearchReindexCron,
     timezone: RetentionTimezone,
   })
 }

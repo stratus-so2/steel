@@ -3,6 +3,7 @@ import { logger } from '@/lib/axiom/logger'
 import { sdCustomerNotFound, validationError } from '@/src/errors'
 import type { PermissionAction } from '@/src/lib/permissions'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { mapSdContactImportRecord } from '@/src/lib/servicedesk/directory-import'
 import {
   formatPhone,
@@ -240,6 +241,7 @@ export const SdContactService = {
     if (!ctx.ok) return ctx
 
     let created = 0
+    const createdIds: string[] = []
     const rejected: SdImportResultDTO['rejected'] = []
     for (const [index, record] of dto.rows.entries()) {
       const line = index + 2
@@ -288,8 +290,10 @@ export const SdContactService = {
         },
         links,
       )
-      if (result.ok) created++
-      else rejected.push({ line, message: result.error.message })
+      if (result.ok) {
+        created++
+        createdIds.push(result.value.id)
+      } else rejected.push({ line, message: result.error.message })
     }
 
     auditMutation({
@@ -298,6 +302,7 @@ export const SdContactService = {
       actorId,
       meta: { workspaceId, import: true, created, rejected: rejected.length },
     })
+    void indexSearchDocument('sd-contact', workspaceId, createdIds)
     return ok({ created, rejected })
   },
 
@@ -357,6 +362,7 @@ export const SdContactService = {
       workspaceId,
       contactId: result.value.id,
     })
+    void indexSearchDocument('sd-contact', workspaceId, result.value.id)
     return ok(toSdContactDTO(result.value))
   },
 
@@ -413,6 +419,7 @@ export const SdContactService = {
       targetId: contactId,
       meta: { workspaceId, fields: Object.keys(dto) },
     })
+    void indexSearchDocument('sd-contact', workspaceId, contactId)
     return ok(toSdContactDTO(result.value))
   },
 
@@ -437,6 +444,7 @@ export const SdContactService = {
       targetId: contactId,
       meta: { workspaceId },
     })
+    void indexSearchDocument('sd-contact', workspaceId, contactId)
     return ok(undefined)
   },
 }

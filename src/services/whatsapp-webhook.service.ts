@@ -18,6 +18,7 @@ import {
   getWhatsappSentimentQueue,
 } from '@/src/lib/queue/queues'
 import { ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import {
   isWhatsAppOptOutKeyword,
   WHATSAPP_OPT_OUT_CONFIRMATION,
@@ -289,6 +290,8 @@ export const WhatsAppWebhookService = {
       contactPayload: input.contactPayload,
     })
     if (!message.ok) return message
+    void indexSearchDocument('zap-conversation', workspaceId, conversationId)
+    void indexSearchDocument('zap-contact', workspaceId, contact.value.id)
 
     if (input.rawMediaUrl) {
       await getWhatsappMediaQueue().add(WhatsappMediaJob.DownloadInboundMedia, {
@@ -446,6 +449,8 @@ export const WhatsAppWebhookService = {
       contactPayload: input.contactPayload,
     })
     if (!message.ok) return message
+    void indexSearchDocument('zap-conversation', workspaceId, conversationId)
+    void indexSearchDocument('zap-contact', workspaceId, contact.value.id)
 
     if (input.rawMediaUrl) {
       await getWhatsappMediaQueue().add(WhatsappMediaJob.DownloadInboundMedia, {

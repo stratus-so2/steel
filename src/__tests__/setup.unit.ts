@@ -23,6 +23,13 @@ vi.mock('@/src/repositories/admin-audit-log.repository', () => ({
   },
 }))
 
+// Search index hooks (`indexSearchDocument`, fire-and-forget after writes):
+// no-op in unit tests; `search-index-hooks.test.ts` un-mocks the module.
+vi.mock('@/src/lib/search/index-hooks', () => ({
+  indexSearchDocument: vi.fn(async () => undefined),
+  removeSearchDocument: vi.fn(async () => undefined),
+}))
+
 afterEach(() => {
   vi.restoreAllMocks()
   vi.clearAllMocks()

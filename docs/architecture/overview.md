@@ -250,6 +250,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `crm-social-posts-tick` | publica posts sociais vencidos | a cada 1 min |
 | `notifications` | `ai-action-expiry-tick`: avisa ~5 min antes de uma ação pendente do Steel AI expirar (uma vez por ação, `dedupeKey`) | a cada 1 min |
 | `steel-agents` | Steel Agents: `tick` dispara agentes de agenda (cron + `lastRunAt`) e expira aprovações vencidas; `run` executa ou retoma uma execução, com as permissões do responsável ([ADR 0020](../adr/0020-steel-agents-owner-identity-and-approvals.md), [Steel AI](../steel-ai/README.md#steel-agents)) | a cada 1 min + sob demanda (tentativa única) |
+| `search-reindex` | busca global (Ctrl+K): `reindex-all` reconstrói o índice `search_documents` de todos os workspaces e remove documentos de registros excluídos; `reindex-workspace` reconstrói um workspace. No dia a dia o índice é atualizado pelos services logo após cada escrita (`indexSearchDocument`, fire-and-forget); `pnpm search:reindex [workspace]` faz o backfill | cron 02:30 + sob demanda |
 | `crm-social-publish` | publicação interativa de mídia grande | sob demanda |
 | `changelog` | e-mails de changelog | sob demanda |
 | `database-backup` | backup FULL (03:15), prune (03:30), backup por workspace, **cópia offsite**, exclusão e restauração de workspace pelo painel admin | cron + sob demanda |

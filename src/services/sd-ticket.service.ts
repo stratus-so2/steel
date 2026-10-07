@@ -7,6 +7,7 @@ import {
   validationError,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import { startOfSdLocalDay } from '@/src/lib/servicedesk/sla'
 import { parseSdTicketCode } from '@/src/lib/servicedesk/ticket-code'
@@ -638,6 +639,7 @@ export const SdTicketService = {
         contactUserId: ticket.contact?.userId ?? null,
       },
     )
+    void indexSearchDocument('sd-ticket', workspaceId, ticket.id)
     return ok(undefined)
   },
 }

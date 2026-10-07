@@ -14,6 +14,7 @@ import {
   findLeadRoutingOwner,
 } from '@/src/lib/crm-lead-rules'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import {
   toCrmLeadContactAttemptDTO,
   toCrmLeadDTO,
@@ -359,6 +360,7 @@ export const CrmLeadService = {
       })
     }
 
+    void indexSearchDocument('crm-lead', workspaceId, lead.id)
     return ok({ lead, created: true })
   },
 
@@ -472,6 +474,7 @@ export const CrmLeadService = {
       })
     }
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok(toCrmLeadDTO(result.value))
   },
 
@@ -507,6 +510,7 @@ export const CrmLeadService = {
       record: toCrmLeadDTO(existing.value),
     })
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok(undefined)
   },
 
@@ -579,6 +583,12 @@ export const CrmLeadService = {
       })
     }
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
+    void indexSearchDocument(
+      'crm-person',
+      workspaceId,
+      resolved.value.person.id,
+    )
     return ok(toCrmPersonDTO(resolved.value.person))
   },
 
@@ -662,6 +672,7 @@ export const CrmLeadService = {
       emitLeadUpdated(workspaceId, actorId, lead.value, updatedLead, ['stage'])
     }
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok({
       lead: toCrmLeadDTO(updatedLead),
       attempt: toCrmLeadContactAttemptDTO(attempt.value),
@@ -783,6 +794,7 @@ export const CrmLeadService = {
       emitLeadUpdated(workspaceId, actorId, lead.value, updatedLead, ['stage'])
     }
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok({
       lead: toCrmLeadDTO(updatedLead),
       qualification: toCrmLeadQualificationDTO(qualification.value),
@@ -854,6 +866,7 @@ export const CrmLeadService = {
       meta: { meeting: true },
     })
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok({
       lead: toCrmLeadDTO(lead.value),
       meeting: toCrmLeadMeetingDTO(meeting.value),
@@ -947,6 +960,8 @@ export const CrmLeadService = {
 
     emitLeadUpdated(workspaceId, actorId, lead.value, advanced.value, ['stage'])
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
+    void indexSearchDocument('crm-proposal', workspaceId, proposal.value.id)
     return ok({
       lead: toCrmLeadDTO(advanced.value),
       proposal: toCrmProposalDTO(proposal.value),
@@ -1009,6 +1024,7 @@ export const CrmLeadService = {
       meta: { proposalPresentation: true, interestLevel: dto.interestLevel },
     })
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok({
       lead: toCrmLeadDTO(lead.value),
       presentation: toCrmLeadProposalPresentationDTO(presentation.value),
@@ -1128,6 +1144,8 @@ export const CrmLeadService = {
       actorId,
     })
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
+    void indexSearchDocument('crm-person', workspaceId, person.id)
     return ok(toCrmPersonDTO(person))
   },
 
@@ -1191,6 +1209,7 @@ export const CrmLeadService = {
       actorId,
     })
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok(toCrmLeadDTO(updated.value))
   },
 
@@ -1276,6 +1295,7 @@ export const CrmLeadService = {
       'lostReason',
     ])
 
+    void indexSearchDocument('crm-lead', workspaceId, leadId)
     return ok(toCrmLeadDTO(reopened.value))
   },
 

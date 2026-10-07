@@ -10,6 +10,7 @@ import {
   validationError,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { extractSdKbPlainText } from '@/src/lib/servicedesk/sd-kb-text'
 import {
   toSdKbArticleDTO,
@@ -184,6 +185,7 @@ export const SdKbArticleService = {
       workspaceId,
       articleId: result.value.id,
     })
+    void indexSearchDocument('sd-kb-article', workspaceId, result.value.id)
     return ok(toSdKbArticleDTO(result.value))
   },
 
@@ -233,6 +235,7 @@ export const SdKbArticleService = {
     if (!result.ok) return result
 
     const myVote = await SdKbEngagementCache.getVote(articleId, actorId)
+    void indexSearchDocument('sd-kb-article', workspaceId, articleId)
     return ok(toSdKbArticleDTO(result.value, myVote))
   },
 
@@ -275,6 +278,7 @@ export const SdKbArticleService = {
     if (!result.ok) return result
 
     const myVote = await SdKbEngagementCache.getVote(articleId, actorId)
+    void indexSearchDocument('sd-kb-article', workspaceId, articleId)
     return ok(toSdKbArticleDTO(result.value, myVote))
   },
 
@@ -324,6 +328,7 @@ export const SdKbArticleService = {
       position: dto.position,
     })
     if (!result.ok) return result
+    void indexSearchDocument('sd-kb-article', workspaceId, articleId)
     return ok(toSdKbArticleDTO(result.value))
   },
 
@@ -344,6 +349,7 @@ export const SdKbArticleService = {
     const result = await SdKbArticleRepository.archive(articleId, actorId)
     audit('archive', actorId, articleId, result)
     if (!result.ok) return result
+    void indexSearchDocument('sd-kb-article', workspaceId, articleId)
     return ok(toSdKbArticleDTO(result.value))
   },
 
@@ -365,6 +371,7 @@ export const SdKbArticleService = {
     const result = await SdKbArticleRepository.restore(articleId, actorId)
     audit('restore', actorId, articleId, result)
     if (!result.ok) return result
+    void indexSearchDocument('sd-kb-article', workspaceId, articleId)
     return ok(toSdKbArticleDTO(result.value))
   },
 
@@ -396,6 +403,7 @@ export const SdKbArticleService = {
       subtree.value.map((id) => SdKbEngagementCache.forgetArticle(id)),
     )
     await SdKbMediaService.purgeArticles(workspaceId, subtree.value)
+    void indexSearchDocument('sd-kb-article', workspaceId, articleId)
     return ok(undefined)
   },
 

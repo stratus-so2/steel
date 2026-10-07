@@ -7,6 +7,7 @@ import {
   whatsappMessageNotFound,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
 import { WhatsAppSend } from '@/src/lib/whatsapp/send'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
@@ -90,6 +91,11 @@ async function finalizeOutboundMessage(input: {
     contactPayload: input.contactPayload,
   })
   if (!message.ok) return message
+  void indexSearchDocument(
+    'zap-conversation',
+    input.workspaceId,
+    input.conversationId,
+  )
 
   await WhatsAppConversationRepository.update(input.conversationId, {
     lastMessageAt: new Date(),

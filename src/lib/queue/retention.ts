@@ -121,3 +121,9 @@ export const SteelAgentsTickCron = '* * * * *' as const
 
 /** Inbox: warning before a pending Steel AI action expires — every minute. */
 export const NotificationsAiActionExpiryCron = '* * * * *' as const
+
+/**
+ * Global search full reindex: 02:30, before the 03:00 retention and the
+ * 03:15 backup, so it never competes with pg_dump.
+ */
+export const SearchReindexCron = '30 2 * * *' as const

@@ -2,6 +2,7 @@ import { createId } from '@paralleldrive/cuid2'
 import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { NEXT_PUBLIC_URL } from '@/lib/env/env'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import type { InvitationDTO, InviteToProjectResult } from '@/types/invitation'
 import { UserCache } from '../cache/user.cache'
 import {
@@ -332,6 +333,7 @@ export const InvitationService = {
       memberEmail: invite.email,
     })
 
+    void indexSearchDocument('member', invite.workspaceId, actorId)
     return ok({
       workspaceId: invite.workspaceId,
       slug: invite.workspace.slug,

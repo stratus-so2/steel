@@ -32,6 +32,7 @@ export const QueueName = {
   ServicedeskTaskReminders: 'servicedesk-task-reminders',
   SteelAgents: 'steel-agents',
   Notifications: 'notifications',
+  SearchReindex: 'search-reindex',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -601,4 +602,23 @@ export type NotificationsJob =
 
 export type NotificationsJobPayload = {
   [NotificationsJob.AiActionExpiryTick]: Record<string, never>
+}
+
+/**
+ * Global search index (`search_documents`): `reindex-all` (nightly) rebuilds
+ * every workspace and drops documents of records deleted behind the
+ * services' backs; `reindex-workspace` rebuilds one workspace on demand.
+ * Idempotent — a retry just rewrites the same rows.
+ */
+export const SearchReindexJob = {
+  ReindexAll: 'reindex-all',
+  ReindexWorkspace: 'reindex-workspace',
+} as const
+
+export type SearchReindexJob =
+  (typeof SearchReindexJob)[keyof typeof SearchReindexJob]
+
+export type SearchReindexJobPayload = {
+  [SearchReindexJob.ReindexAll]: Record<string, never>
+  [SearchReindexJob.ReindexWorkspace]: { workspaceId: string }
 }
