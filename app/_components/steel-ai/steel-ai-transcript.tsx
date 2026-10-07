@@ -29,7 +29,7 @@ function UserBubble({
           'motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:animate-in motion-safe:duration-300',
       )}
     >
-      <div className='max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-4 py-2.5 text-sm leading-relaxed'>
+      <div className='min-w-0 max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-muted px-3.5 py-2 text-sm leading-relaxed [overflow-wrap:anywhere] sm:max-w-[75%] sm:px-4 sm:py-2.5'>
         {content}
       </div>
     </div>
@@ -53,8 +53,11 @@ function AssistantBlock({
 }) {
   const thinking = streaming && !content && toolCalls.length === 0
   return (
-    <div className='flex gap-3'>
-      <span className='mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary'>
+    <div className='flex min-w-0 gap-3'>
+      <span
+        aria-hidden
+        className='mt-0.5 hidden size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary sm:flex'
+      >
         <SteelIcon
           icon={AiMagicIcon}
           strokeWidth={2}
@@ -63,7 +66,10 @@ function AssistantBlock({
       </span>
       <div className='min-w-0 flex-1 space-y-3'>
         {toolCalls.length > 0 ? (
-          <ul className='flex flex-col gap-1.5' aria-label='Ferramentas usadas'>
+          <ul
+            className='flex flex-wrap gap-1.5'
+            aria-label='Ferramentas usadas'
+          >
             {toolCalls.map((call) => (
               <SteelAiToolCall key={call.id} call={call} />
             ))}
@@ -110,7 +116,7 @@ export function SteelAiTranscriptSkeleton() {
         <Skeleton className='h-10 w-2/5 rounded-2xl' />
       </div>
       <div className='flex gap-3'>
-        <Skeleton className='size-7 shrink-0 rounded-full' />
+        <Skeleton className='hidden size-7 shrink-0 rounded-full sm:block' />
         <div className='flex-1 space-y-2'>
           <Skeleton className='h-4 w-11/12' />
           <Skeleton className='h-4 w-9/12' />
@@ -134,7 +140,7 @@ export function SteelAiTranscript({
   live: SteelAiLiveMessage | null
 }) {
   return (
-    <div className='space-y-8'>
+    <div className='space-y-6 sm:space-y-8'>
       {messages.map((message) =>
         message.role === 'USER' ? (
           <UserBubble key={message.id} content={message.content} />

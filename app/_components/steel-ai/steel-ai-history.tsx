@@ -272,7 +272,7 @@ function HistoryItem({
   return (
     <li
       className={cn(
-        'group flex items-center gap-0.5 rounded-md pr-0.5 transition-colors hover:bg-muted',
+        'group/item relative rounded-md transition-colors hover:bg-muted',
         active && 'bg-secondary',
       )}
     >
@@ -280,7 +280,8 @@ function HistoryItem({
         href={href}
         onClick={onNavigate}
         aria-current={active ? 'page' : undefined}
-        className='flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1.5 text-sm'
+        title={label}
+        className='flex min-w-0 items-center gap-1.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50 pointer-fine:pr-2 pointer-fine:group-focus-within/item:pr-8 pointer-fine:group-hover/item:pr-8 pointer-fine:group-has-[[data-popup-open]]/item:pr-8'
       >
         {isPinned ? (
           <SteelIcon
@@ -298,7 +299,7 @@ function HistoryItem({
               variant='ghost'
               size='icon-xs'
               aria-label={`Ações de ${label}`}
-              className='shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:data-popup-open:opacity-100 md:focus-visible:opacity-100'
+              className='-translate-y-1/2 absolute top-1/2 right-1 opacity-100 pointer-fine:opacity-0 pointer-fine:focus-visible:opacity-100 pointer-fine:group-focus-within/item:opacity-100 pointer-fine:group-hover/item:opacity-100 pointer-fine:data-popup-open:opacity-100'
             >
               <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
             </Button>

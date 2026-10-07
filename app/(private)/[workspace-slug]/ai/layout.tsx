@@ -43,7 +43,7 @@ export default async function AiLayout({
     <SteelAiProvider
       value={{ workspaceId: membership.value.workspaceId, slug, firstName }}
     >
-      <div className='hidden h-full md:block'>
+      <div className='hidden h-full shrink-0 md:block'>
         <ContextSidebar>
           <ContextHeader
             title='Steel AI'
@@ -57,7 +57,7 @@ export default async function AiLayout({
               </ContextPrimaryAction>
             }
           />
-          <div className='mb-3'>
+          <div className='-mt-2'>
             <SteelAgentsNavLink slug={slug} />
           </div>
           <SteelAiHistory />

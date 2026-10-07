@@ -210,7 +210,7 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
           onScroll={onScroll}
           className='min-h-0 flex-1 overflow-y-auto'
         >
-          <div className='mx-auto w-full max-w-3xl px-4 pt-6 pb-10'>
+          <div className='mx-auto w-full max-w-3xl px-4 pt-4 pb-8 sm:px-6 sm:pt-6 sm:pb-10'>
             {messages.isLoading && !handoff ? (
               <SteelAiTranscriptSkeleton />
             ) : messages.isError ? (
@@ -232,24 +232,23 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
           </div>
         </div>
 
-        {showJump ? (
-          <Button
-            variant='outline'
-            size='icon-sm'
-            aria-label='Ir para o fim da conversa'
-            className='-translate-x-1/2 absolute bottom-36 left-1/2 rounded-full shadow-md'
-            onClick={() => {
-              stickRef.current = true
-              setShowJump(false)
-              scrollToBottom(true)
-            }}
-          >
-            <SteelIcon icon={ArrowDown01Icon} strokeWidth={2} />
-          </Button>
-        ) : null}
-
-        <div className='shrink-0 px-4 pb-4'>
-          <div className='mx-auto w-full max-w-3xl space-y-2'>
+        <div className='relative shrink-0 px-3 pb-2 sm:px-0 sm:pb-3'>
+          {showJump ? (
+            <Button
+              variant='outline'
+              size='icon-sm'
+              aria-label='Ir para o fim da conversa'
+              className='-translate-x-1/2 absolute bottom-full left-1/2 z-10 mb-3 rounded-full bg-background shadow-sm'
+              onClick={() => {
+                stickRef.current = true
+                setShowJump(false)
+                scrollToBottom(true)
+              }}
+            >
+              <SteelIcon icon={ArrowDown01Icon} strokeWidth={2} />
+            </Button>
+          ) : null}
+          <div className='mx-auto w-full max-w-3xl space-y-2 sm:px-6'>
             {quotaExhausted && stream.error?.code !== 'AI_QUOTA_EXCEEDED' ? (
               <SteelAiNotice>{STEEL_AI_QUOTA_MESSAGE}</SteelAiNotice>
             ) : null}
@@ -295,7 +294,7 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
                   'motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]',
               )}
             />
-            <p className='text-center text-[11px] text-muted-foreground'>
+            <p className='px-2 text-center text-[11px] text-muted-foreground leading-snug'>
               O Steel AI pode errar. Confira as informações importantes
               {effectiveMode === 'AGENT'
                 ? ' — nenhuma alteração é feita sem a sua confirmação.'

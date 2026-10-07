@@ -61,7 +61,7 @@ export function pendingAction(
       summary: 'Move a oportunidade para Negociação.',
       fields: [{ label: 'Estágio', before: 'Proposta', after: 'Negociação' }],
       target: {
-        type: 'Oportunidade',
+        type: 'crm_opportunity',
         id: 'op_1',
         label: 'Contrato Acme',
         href: '/acme/crm/opportunities/op_1',

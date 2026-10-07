@@ -15,7 +15,7 @@ const STATUS: Record<
   running: {
     icon: Loading03Icon,
     label: 'em andamento',
-    className: 'animate-spin text-muted-foreground',
+    className: 'motion-safe:animate-spin text-muted-foreground',
   },
   done: { icon: Tick02Icon, label: 'concluída', className: 'text-primary' },
   error: { icon: Alert02Icon, label: 'falhou', className: 'text-destructive' },
@@ -31,16 +31,16 @@ export function SteelAiToolCall({ call }: { call: AiToolCallDTO }) {
   const status = STATUS[call.status]
   return (
     <li
-      className='flex min-w-0 items-start gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs'
+      className='flex min-w-0 max-w-full items-start gap-1.5 rounded-lg bg-muted/70 px-2.5 py-1 text-xs leading-relaxed'
       data-status={call.status}
     >
       <SteelIcon
         icon={status.icon}
         strokeWidth={2}
         aria-label={status.label}
-        className={cn('mt-px size-3.5 shrink-0', status.className)}
+        className={cn('mt-0.5 size-3.5 shrink-0', status.className)}
       />
-      <span className='min-w-0'>
+      <span className='min-w-0 break-words'>
         <span className='font-medium text-foreground'>{call.label}</span>
         {call.summary ? (
           <span className='text-muted-foreground'> — {call.summary}</span>

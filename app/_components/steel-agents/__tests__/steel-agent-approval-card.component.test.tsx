@@ -25,7 +25,7 @@ function action(over: Partial<AiPendingActionDTO> = {}): AiPendingActionDTO {
       title: 'Alterar a oportunidade “Contrato Acme”',
       summary: 'Move para Negociação.',
       fields: [{ label: 'Estágio', before: 'Proposta', after: 'Negociação' }],
-      target: { type: 'Oportunidade', label: 'Contrato Acme' },
+      target: { type: 'sd_ticket', label: '#123 Link fora do ar' },
     },
     status: 'PENDING',
     requiresDoubleConfirm: false,
@@ -58,7 +58,9 @@ describe('<SteelAgentApprovalCard />', () => {
     ).toBeTruthy()
     expect(screen.getByText('Proposta')).toBeTruthy()
     expect(screen.getByText('Negociação')).toBeTruthy()
-    expect(screen.getByText('Contrato Acme')).toBeTruthy()
+    expect(screen.getByText('Chamado')).toBeTruthy()
+    expect(screen.queryByText(/sd_ticket/)).toBeNull()
+    expect(screen.getByText('#123 Link fora do ar')).toBeTruthy()
     expect(screen.getByText('Aguardando aprovação')).toBeTruthy()
   })
 

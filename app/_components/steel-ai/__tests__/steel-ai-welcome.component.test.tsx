@@ -43,6 +43,18 @@ describe('<SteelAiWelcome />', () => {
     expect(screen.queryByRole('button', { name: /SLA em risco/ })).toBeNull()
   })
 
+  it('keeps only the first four starters on phones', async () => {
+    setup()
+    renderSteelAi(<SteelAiWelcome />)
+    await screen.findByRole('button', { name: /SLA em risco/ })
+    const items = screen.getAllByRole('listitem')
+    expect(items).toHaveLength(6)
+    const hiddenOnPhones = items.map((item) =>
+      item.classList.contains('hidden'),
+    )
+    expect(hiddenOnPhones).toEqual([false, false, false, false, true, true])
+  })
+
   it('creates the conversation, hands the prompt over and navigates', async () => {
     const spy = setup()
     renderSteelAi(<SteelAiWelcome />)

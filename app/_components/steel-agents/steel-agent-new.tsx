@@ -18,19 +18,21 @@ export function SteelAgentNew({
   return (
     <div className='flex h-full min-h-0 w-full flex-col'>
       <SteelAiTopBar title='Novo agente' />
-      <div className='mx-auto w-full max-w-3xl flex-1 space-y-4 overflow-y-auto p-4 md:p-6'>
-        <header className='space-y-1'>
-          <h1 className='font-semibold text-lg'>Novo agente</h1>
-          <p className='text-muted-foreground text-sm'>
-            Defina o que o agente faz, quando roda e quais ferramentas pode
-            usar.
-          </p>
-        </header>
-        <SteelAgentEditor
-          workspaceId={workspaceId}
-          currentUserId={currentUserId}
-          onSaved={(agent) => router.push(`/${slug}/ai/agents/${agent.id}`)}
-        />
+      <div className='min-h-0 flex-1 overflow-y-auto'>
+        <div className='mx-auto w-full max-w-3xl space-y-5 px-4 pt-2 pb-8 sm:px-6 sm:pt-4'>
+          <header className='space-y-1'>
+            <h1 className='font-semibold text-lg'>Novo agente</h1>
+            <p className='text-muted-foreground text-sm'>
+              Defina o que o agente faz, quando roda e quais ferramentas pode
+              usar.
+            </p>
+          </header>
+          <SteelAgentEditor
+            workspaceId={workspaceId}
+            currentUserId={currentUserId}
+            onSaved={(agent) => router.push(`/${slug}/ai/agents/${agent.id}`)}
+          />
+        </div>
       </div>
     </div>
   )
