@@ -10,6 +10,21 @@ export type MembershipWithProfile = Membership & {
   workspace?: Pick<Workspace, 'status'>
 }
 
+/** Membership with the user fields the member directory shows. */
+export type MembershipWithUser = Membership & {
+  user: {
+    id: string
+    name: string
+    username: string
+    email: string
+    image: string | null
+    emailVerified: boolean
+    twoFactorEnabled: boolean
+    deletionScheduledAt: Date | null
+    accounts: { providerId: string }[]
+  }
+}
+
 export const MembershipRepository = {
   async findByUserAndWorkspace(
     userId: string,
@@ -124,6 +139,92 @@ export const MembershipRepository = {
       return ok(memberships)
     } catch (error) {
       return err(dbError('Failed to list workspace members', error))
+    }
+  },
+
+  async listByWorkspaceWithUser(
+    workspaceId: string,
+    filters: { search?: string; roles?: Role[] },
+  ): Promise<Result<MembershipWithUser[]>> {
+    try {
+      const memberships = await prisma.membership.findMany({
+        where: {
+          workspaceId,
+          ...(filters.roles?.length ? { role: { in: filters.roles } } : {}),
+          ...(filters.search
+            ? {
+                user: {
+                  OR: [
+                    { name: { contains: filters.search, mode: 'insensitive' } },
+                    {
+                      username: {
+                        contains: filters.search,
+                        mode: 'insensitive',
+                      },
+                    },
+                    {
+                      email: { contains: filters.search, mode: 'insensitive' },
+                    },
+                  ],
+                },
+              }
+            : {}),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              email: true,
+              image: true,
+              emailVerified: true,
+              twoFactorEnabled: true,
+              deletionScheduledAt: true,
+              accounts: { select: { providerId: true } },
+            },
+          },
+        },
+      })
+      return ok(memberships)
+    } catch (error) {
+      return err(dbError('Failed to list workspace members with user', error))
+    }
+  },
+
+  async updateRole(
+    userId: string,
+    workspaceId: string,
+    role: Role,
+  ): Promise<Result<Membership>> {
+    try {
+      const membership = await prisma.membership.update({
+        where: { userId_workspaceId: { userId, workspaceId } },
+        data: { role },
+      })
+      return ok(membership)
+    } catch (error) {
+      return err(dbError('Failed to update membership role', error))
+    }
+  },
+
+  /**
+   * Removes the user from the workspace and from every project of it, in one
+   * transaction (project membership has no FK to the workspace membership).
+   */
+  async remove(userId: string, workspaceId: string): Promise<Result<void>> {
+    try {
+      await prisma.$transaction([
+        prisma.projectMember.deleteMany({
+          where: { userId, project: { workspaceId } },
+        }),
+        prisma.membership.delete({
+          where: { userId_workspaceId: { userId, workspaceId } },
+        }),
+      ])
+      return ok(undefined)
+    } catch (error) {
+      return err(dbError('Failed to remove membership', error))
     }
   },
 }

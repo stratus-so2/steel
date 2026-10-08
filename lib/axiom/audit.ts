@@ -165,6 +165,8 @@ export type AuditEntity =
   // Steel AI skills (slash instructions) and memory (saved facts)
   | 'ai_skill'
   | 'ai_memory'
+  // Workspace members — role change and removal (Settings > Members)
+  | 'membership'
 
 export type AuditAction =
   | 'create'

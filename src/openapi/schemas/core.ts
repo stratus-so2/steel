@@ -187,6 +187,58 @@ export const InvitationDTO = dto(
   }),
 )
 
+export const MemberDTO = dto(
+  'Member',
+  z.object({
+    membershipId: z.string(),
+    userId: z.string(),
+    name: z.string(),
+    username: z.string(),
+    email: z.email(),
+    image: z.string().nullable(),
+    role: z.enum(ROLES),
+    accountStatus: z.enum(['ACTIVE', 'UNVERIFIED', 'PENDING_DELETION']),
+    authMethods: z.array(z.enum(['EMAIL_PASSWORD', 'GOOGLE', 'GITHUB'])),
+    twoFactorEnabled: z.boolean(),
+    joinedAt: dateTime(),
+  }),
+)
+
+export const MemberDirectoryDTO = dto(
+  'MemberDirectory',
+  z.object({
+    members: z.array(MemberDTO),
+    total: z.number().int(),
+    page: z.number().int(),
+    pageSize: z.number().int(),
+    seats: z.object({
+      used: z.number().int().meta({
+        description: 'Membros + convites pendentes.',
+      }),
+      limit: z.number().int().nullable().meta({
+        description: 'Limite de assentos do plano (`null` = ilimitado).',
+      }),
+    }),
+  }),
+)
+
+export const MemberImportResultDTO = dto(
+  'MemberImportResult',
+  z.object({
+    invited: z.number().int(),
+    skipped: z.number().int(),
+    errors: z.number().int(),
+    rows: z.array(
+      z.object({
+        row: z.number().int(),
+        email: z.string(),
+        status: z.enum(['invited', 'skipped', 'error']),
+        reason: z.string().optional(),
+      }),
+    ),
+  }),
+)
+
 export const ProfileDTO = dto('Profile', ProfileOutputSchema)
 
 export const WorkspaceConnectionDTO = dto(

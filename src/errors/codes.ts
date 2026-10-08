@@ -33,6 +33,9 @@ export const ERROR_CODES = {
   INVITATION_EMAIL_MISMATCH: { code: 'INVITATION_EMAIL_MISMATCH', status: 403 },
   INVITATION_DUPLICATE: { code: 'INVITATION_DUPLICATE', status: 409 },
   INVITATION_ALREADY_MEMBER: { code: 'INVITATION_ALREADY_MEMBER', status: 409 },
+  // Workspace member management (Settings > Members).
+  MEMBER_NOT_FOUND: { code: 'MEMBER_NOT_FOUND', status: 404 },
+  MEMBER_PROTECTED: { code: 'MEMBER_PROTECTED', status: 403 },
   PROJECT_MEMBER_ALREADY_EXISTS: {
     code: 'PROJECT_MEMBER_ALREADY_EXISTS',
     status: 409,

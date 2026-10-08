@@ -2,8 +2,8 @@ import type { NextRequest } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { UpdateInvitationRoleSchema } from '@/src/schemas/invitation.schema'
-import { InvitationService } from '@/src/services/invitation.service'
+import { UpdateMemberRoleSchema } from '@/src/schemas/member.schema'
+import { MemberService } from '@/src/services/member.service'
 import { readJsonBody } from '@/utils/http-request'
 import {
   handleError,
@@ -11,25 +11,7 @@ import {
   successResponse,
 } from '@/utils/http-response'
 
-type Params = { params: Promise<{ id: string; invitationId: string }> }
-
-export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
-  const auth = await getAuthSession()
-  if (!auth.ok) return handleError(auth.error)
-
-  const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
-  if (!limit.ok) return handleError(limit.error)
-
-  const { id, invitationId } = await ctx.params
-  const result = await InvitationService.revoke(
-    auth.value.user.id,
-    id,
-    invitationId,
-  )
-  if (!result.ok) return handleError(result.error)
-
-  return successResponse(result.value)
-})
+type Params = { params: Promise<{ id: string; userId: string }> }
 
 export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
@@ -38,13 +20,13 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
   if (!limit.ok) return handleError(limit.error)
 
-  const [{ id, invitationId }, json] = await Promise.all([
+  const [{ id, userId }, json] = await Promise.all([
     ctx.params,
     readJsonBody(request),
   ])
   if (!json.ok) return handleError(json.error)
 
-  const parsed = UpdateInvitationRoleSchema.safeParse(json.value)
+  const parsed = UpdateMemberRoleSchema.safeParse(json.value)
   if (!parsed.success) {
     return standardError(
       'VALIDATION_ERROR',
@@ -53,12 +35,26 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
     )
   }
 
-  const result = await InvitationService.updateRole(
+  const result = await MemberService.updateRole(
     auth.value.user.id,
     id,
-    invitationId,
-    parsed.data.role,
+    userId,
+    parsed.data,
   )
+  if (!result.ok) return handleError(result.error)
+
+  return successResponse(result.value)
+})
+
+export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
+  const auth = await getAuthSession()
+  if (!auth.ok) return handleError(auth.error)
+
+  const limit = await consume(apiLimiter, `user:${auth.value.user.id}`)
+  if (!limit.ok) return handleError(limit.error)
+
+  const { id, userId } = await ctx.params
+  const result = await MemberService.remove(auth.value.user.id, id, userId)
   if (!result.ok) return handleError(result.error)
 
   return successResponse(result.value)

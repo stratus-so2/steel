@@ -108,6 +108,8 @@ export {
   invitationNotFound,
   invitationNotPending,
   mailError,
+  memberNotFound,
+  memberProtected,
   moduleDisabled,
   notFound,
   paymentError,
