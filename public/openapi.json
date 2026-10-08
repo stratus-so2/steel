@@ -855,7 +855,7 @@
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_2"
           },
           "409": {
-            "$ref": "#/components/responses/409_CONFLICT_3"
+            "$ref": "#/components/responses/409_CONFLICT_4"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -7549,7 +7549,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "409": {
-            "$ref": "#/components/responses/409_CONFLICT_5"
+            "$ref": "#/components/responses/409_CONFLICT_6"
           }
         },
         "security": [
@@ -9208,7 +9208,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_STEEL_AGENT_INVALID_TOOL_STEEL_AGENT_INVALID_TRIGGER_STEEL_AGENT_INVALID_OWNER"
@@ -9427,7 +9427,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND_STEEL_AGENT_RUN_NOT_FOUND"
@@ -9667,7 +9667,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -9731,7 +9731,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -9794,7 +9794,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -10146,7 +10146,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED_2"
@@ -11317,6 +11317,671 @@
           },
           "503": {
             "$ref": "#/components/responses/503_AI_PROVIDER_UNAVAILABLE_2"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/memories": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Listar memória",
+        "operationId": "getWorkspacesByIdAiMemories",
+        "description": "Fatos do workspace e os pessoais do usuário, mais recentes primeiro (`q` busca no texto). Responde mesmo com a memória desligada (`memoryEnabled: false`), para revisão.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Memória.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiMemoryList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Adicionar fato à memória",
+        "operationId": "postWorkspacesByIdAiMemories",
+        "description": "Fato curto (até 500 caracteres), origem `MANUAL`. `WORKSPACE` só para OWNER/ADMIN. Recusa credenciais, documentos e dados pessoais sensíveis, e fatos quase idênticos a um já salvo.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scope": {
+                    "default": "PERSONAL",
+                    "type": "string",
+                    "enum": ["WORKSPACE", "PERSONAL"]
+                  },
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": ["content"]
+              },
+              "example": {
+                "scope": "WORKSPACE",
+                "content": "O time de suporte atende das 8h às 18h."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Fato salvo.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiMemory"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_MEMORY_DISABLED"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_CONFLICT_3"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/memories/{memoryId}": {
+      "patch": {
+        "tags": ["Steel AI"],
+        "summary": "Editar fato da memória",
+        "operationId": "patchWorkspacesByIdAiMemoriesByMemoryId",
+        "description": "Exige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "memoryId",
+            "in": "path",
+            "required": true,
+            "description": "ID do fato na memória.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": ["content"]
+              },
+              "example": {
+                "content": "O time de suporte atende das 8h às 20h."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fato.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiMemory"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_MEMORY_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Steel AI"],
+        "summary": "Apagar fato da memória",
+        "operationId": "deleteWorkspacesByIdAiMemoriesByMemoryId",
+        "description": "Também é o \"Desfazer\" do chip \"Memória salva\" no chat. Funciona com a memória desligada.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "memoryId",
+            "in": "path",
+            "required": true,
+            "description": "ID do fato na memória.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fato apagado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_MEMORY_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/skills": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Listar skills",
+        "operationId": "getWorkspacesByIdAiSkills",
+        "description": "Skills embutidas (com o estado ligado/desligado do workspace), as do workspace e as pessoais do usuário. No chat, `/<comando>` no início da mensagem aplica a skill; o modelo também pode escolher uma pelo catálogo.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skills.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiSkillList"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["Steel AI"],
+        "summary": "Criar skill",
+        "operationId": "postWorkspacesByIdAiSkills",
+        "description": "Pessoal (`PERSONAL`, padrão) para qualquer membro; do workspace (`WORKSPACE`) só para OWNER/ADMIN. O comando é único no escopo e não pode repetir o de uma embutida.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scope": {
+                    "default": "PERSONAL",
+                    "type": "string",
+                    "enum": ["WORKSPACE", "PERSONAL"]
+                  },
+                  "slug": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "mode": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "toolNames": {
+                    "default": [],
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+                    }
+                  },
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": ["slug", "name", "description", "instructions"]
+              },
+              "example": {
+                "scope": "PERSONAL",
+                "slug": "resumo-cliente",
+                "name": "Resumo do cliente",
+                "description": "Resumo de um cliente com chamados e oportunidades.",
+                "instructions": "Busque o cliente citado e resuma os chamados abertos e as oportunidades em andamento.",
+                "toolNames": ["sd_search_customers", "crm_list_opportunities"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Skill criada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiSkill"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_AI_SKILL_SLUG_TAKEN"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/ai/skills/{skillId}": {
+      "patch": {
+        "tags": ["Steel AI"],
+        "summary": "Editar skill",
+        "operationId": "patchWorkspacesByIdAiSkillsBySkillId",
+        "description": "Atualização parcial. Numa embutida (`builtin:<comando>`) só `enabled` é aceito, e só por OWNER/ADMIN.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "skillId",
+            "in": "path",
+            "required": true,
+            "description": "ID da skill, ou `builtin:<comando>` para uma embutida.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "slug": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "mode": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "toolNames": {
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{1,63}$"
+                    }
+                  },
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "example": {
+                "enabled": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Skill.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiSkill"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_SKILL_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_AI_SKILL_SLUG_TAKEN"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Steel AI"],
+        "summary": "Excluir skill",
+        "operationId": "deleteWorkspacesByIdAiSkillsBySkillId",
+        "description": "Exclusão lógica. Embutidas não podem ser excluídas.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "skillId",
+            "in": "path",
+            "required": true,
+            "description": "ID da skill, ou `builtin:<comando>` para uma embutida.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Skill excluída.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id"]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_AI_SKILL_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
           }
         },
         "security": [
@@ -29391,7 +30056,7 @@
             "$ref": "#/components/responses/404_CRM_PROPOSAL_NOT_FOUND"
           },
           "409": {
-            "$ref": "#/components/responses/409_CONFLICT_4"
+            "$ref": "#/components/responses/409_CONFLICT_5"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_24"
@@ -35754,7 +36419,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -35895,7 +36560,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -35961,7 +36626,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -36113,7 +36778,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -37090,7 +37755,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "409": {
             "$ref": "#/components/responses/409_PROFILE_NAME_TAKEN"
@@ -37183,7 +37848,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -37255,7 +37920,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -37861,7 +38526,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
@@ -37929,7 +38594,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
@@ -88543,7 +89208,18 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -88577,18 +89253,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -89106,6 +89771,62 @@
           }
         }
       },
+      "403_FORBIDDEN_WORKSPACE_SUSPENDED_AI_MEMORY_DISABLED": {
+        "description": "Acesso negado: `FORBIDDEN`, `WORKSPACE_SUSPENDED`, `AI_MEMORY_DISABLED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "AI_MEMORY_DISABLED": {
+                "summary": "AI_MEMORY_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "A memória do Steel AI está desligada neste workspace.",
+                  "error": {
+                    "code": "AI_MEMORY_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "403_MODULE_DISABLED": {
         "description": "Acesso negado: `MODULE_DISABLED`",
         "content": {
@@ -89400,6 +90121,29 @@
           }
         }
       },
+      "404_AI_MEMORY_NOT_FOUND": {
+        "description": "Não encontrado: `AI_MEMORY_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_MEMORY_NOT_FOUND": {
+                "summary": "AI_MEMORY_NOT_FOUND — Inexistente, de outro workspace ou pessoal de outro usuário",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Memória não encontrada",
+                  "error": {
+                    "code": "AI_MEMORY_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "404_AI_PENDING_ACTION_NOT_FOUND": {
         "description": "Não encontrado: `AI_PENDING_ACTION_NOT_FOUND`",
         "content": {
@@ -89450,6 +90194,29 @@
                   "message": "Ação não encontrada",
                   "error": {
                     "code": "AI_PENDING_ACTION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_AI_SKILL_NOT_FOUND": {
+        "description": "Não encontrado: `AI_SKILL_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_SKILL_NOT_FOUND": {
+                "summary": "AI_SKILL_NOT_FOUND — Inexistente, de outro workspace ou pessoal de outro usuário",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Skill não encontrada",
+                  "error": {
+                    "code": "AI_SKILL_NOT_FOUND"
                   }
                 }
               }
@@ -94287,6 +95054,29 @@
           }
         }
       },
+      "409_AI_SKILL_SLUG_TAKEN": {
+        "description": "Conflito com o estado atual: `AI_SKILL_SLUG_TAKEN`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "AI_SKILL_SLUG_TAKEN": {
+                "summary": "AI_SKILL_SLUG_TAKEN",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Já existe uma skill com este comando",
+                  "error": {
+                    "code": "AI_SKILL_SLUG_TAKEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_BACKUP_NOT_RESTORABLE_WORKSPACE_STATUS_CONFLICT_WORKSPACE_OPERATION_IN_PROGRESS": {
         "description": "Conflito com o estado atual: `BACKUP_NOT_RESTORABLE`, `WORKSPACE_STATUS_CONFLICT`, `WORKSPACE_OPERATION_IN_PROGRESS`",
         "content": {
@@ -94408,7 +95198,7 @@
             },
             "examples": {
               "CONFLICT": {
-                "summary": "CONFLICT — Já há backup em andamento",
+                "summary": "CONFLICT — Já existe um fato quase idêntico",
                 "value": {
                   "success": false,
                   "statusCode": 409,
@@ -94422,6 +95212,28 @@
         }
       },
       "409_CONFLICT_4": {
+        "description": "Conflito com o estado atual: `CONFLICT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "CONFLICT": {
+                "summary": "CONFLICT — Já há backup em andamento",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "error": {
+                    "code": "CONFLICT"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "409_CONFLICT_5": {
         "description": "Conflito com o estado atual: `CONFLICT`",
         "content": {
           "application/json": {
@@ -94444,7 +95256,7 @@
           }
         }
       },
-      "409_CONFLICT_5": {
+      "409_CONFLICT_6": {
         "description": "Conflito com o estado atual: `CONFLICT`",
         "content": {
           "application/json": {
@@ -103884,6 +104696,95 @@
         "required": ["id", "title", "mode", "modelKey", "pinnedAt", "createdAt", "updatedAt"],
         "description": "Conversa com o Steel AI (privada do usuário)."
       },
+      "AiMemory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": ["WORKSPACE", "PERSONAL"]
+          },
+          "content": {
+            "type": "string",
+            "example": "O time de suporte atende das 8h às 18h."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["AUTO", "MANUAL"]
+          },
+          "sourceConversationId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Conversa de origem — só para quem salvou (conversas são privadas)."
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canEdit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "content",
+          "source",
+          "sourceConversationId",
+          "lastUsedAt",
+          "createdAt",
+          "updatedAt",
+          "canEdit"
+        ]
+      },
+      "AiMemoryList": {
+        "type": "object",
+        "properties": {
+          "memoryEnabled": {
+            "type": "boolean",
+            "description": "Interruptor do workspace: desligado, nada é salvo nem usado (a lista continua visível para revisão)."
+          },
+          "canManageWorkspace": {
+            "type": "boolean"
+          },
+          "workspace": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiMemory"
+            }
+          },
+          "personal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiMemory"
+            }
+          }
+        },
+        "required": ["memoryEnabled", "canManageWorkspace", "workspace", "personal"]
+      },
       "AiMessage": {
         "type": "object",
         "properties": {
@@ -103933,6 +104834,27 @@
                 },
                 "summary": {
                   "type": "string"
+                },
+                "memory": {
+                  "description": "Só nas ferramentas de memória (`memory_save`, `memory_forget`): o fato salvo/esquecido, para o chip \"Memória salva\" com desfazer.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "enum": ["WORKSPACE", "PERSONAL"]
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": ["saved", "duplicate", "forgotten"]
+                    }
+                  },
+                  "required": ["id", "scope", "content", "action"]
                 }
               },
               "required": ["id", "name", "label", "module", "status"]
@@ -104155,6 +105077,109 @@
           "createdAt"
         ],
         "description": "Escrita proposta pelo Steel AI que só executa depois da confirmação humana."
+      },
+      "AiSkill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID da skill, ou `builtin:<comando>` numa skill embutida.",
+            "example": "builtin:my-work"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["BUILT_IN", "WORKSPACE", "PERSONAL"]
+          },
+          "slug": {
+            "type": "string",
+            "description": "Comando sem a barra.",
+            "example": "my-work"
+          },
+          "name": {
+            "type": "string",
+            "example": "Meu trabalho"
+          },
+          "description": {
+            "type": "string"
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Modo sugerido ao usar (null = o da conversa)."
+          },
+          "toolNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ferramentas sugeridas ao modelo (vazio = qualquer uma)."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "canEdit": {
+            "type": "boolean"
+          },
+          "canToggle": {
+            "type": "boolean"
+          },
+          "canDelete": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null numa embutida nunca alterada."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "slug",
+          "name",
+          "description",
+          "instructions",
+          "mode",
+          "toolNames",
+          "enabled",
+          "canEdit",
+          "canToggle",
+          "canDelete",
+          "updatedAt"
+        ]
+      },
+      "AiSkillList": {
+        "type": "object",
+        "properties": {
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiSkill"
+            }
+          },
+          "canManageWorkspace": {
+            "type": "boolean",
+            "description": "OWNER/ADMIN: cria skills do workspace e liga/desliga as embutidas."
+          }
+        },
+        "required": ["skills", "canManageWorkspace"]
       },
       "AiUsageAnalytics": {
         "type": "object",

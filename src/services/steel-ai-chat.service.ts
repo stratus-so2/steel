@@ -242,8 +242,7 @@ async function* runTurn(
   // Everything the caller may run; each round only *shows* a selection.
   const tools = availableTools(input.access, input.mode)
   // Memory tools run in every mode, without confirmation (metadata).
-  const memoryTools =
-    input.access.memoryEnabled === false ? [] : STEEL_AI_MEMORY_TOOLS
+  const memoryTools = input.access.memoryEnabled ? STEEL_AI_MEMORY_TOOLS : []
   const memorySpecs = toToolSpecs(memoryTools)
   const activated: string[] = []
   const roundSpecs = () => [

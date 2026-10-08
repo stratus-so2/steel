@@ -62,7 +62,7 @@ export interface AiToolAccess {
   agentsEnabled: boolean
   /** AUTOPILOT mode allowed (default off). */
   autopilotEnabled: boolean
-  /** Steel AI memory (save tool + prompt injection; default on). */
+  /** Steel AI memory tools offered (`resolveToolAccess` sets it; default on). */
   memoryEnabled?: boolean
 }
 

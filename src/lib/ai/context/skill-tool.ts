@@ -7,8 +7,7 @@ import {
   pickSkillBySlug,
   skillInstructionsForModel,
 } from './skill-catalog'
-import { normalizeSkillSlug } from './skill-command'
-import { GET_SKILL_TOOL_NAME } from './skills'
+import { GET_SKILL_TOOL_NAME, normalizeSkillSlug } from './skill-command'
 
 const Args = z.object({
   slug: z.string().trim().min(1).max(41).transform(normalizeSkillSlug),

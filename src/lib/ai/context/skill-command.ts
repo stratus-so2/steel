@@ -8,6 +8,9 @@ export const AI_SKILL_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/
 
 export const AI_SKILL_SLUG_MAX = 40
 
+/** Name of the platform tool that returns a skill's instructions. */
+export const GET_SKILL_TOOL_NAME = 'steel_get_skill'
+
 /** "/My-Work " → "my-work" (what the user typed into the command field). */
 export function normalizeSkillSlug(value: string): string {
   return value.trim().replace(/^\/+/, '').toLowerCase()

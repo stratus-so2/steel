@@ -7,7 +7,7 @@ import {
   pickSkillBySlug,
   skillInstructionsForModel,
 } from './skill-catalog'
-import { parseSkillCommand } from './skill-command'
+import { GET_SKILL_TOOL_NAME, parseSkillCommand } from './skill-command'
 
 /**
  * Steel AI skills (slash instructions such as `/my-work`) in the chat
@@ -25,9 +25,6 @@ export interface SkillInvocation {
 
 /** Skills shown to the model at most (the catalog is a hint, not a menu). */
 export const SKILLS_CATALOG_MAX = 40
-
-/** Name of the platform tool that returns a skill's instructions. */
-export const GET_SKILL_TOOL_NAME = 'steel_get_skill'
 
 async function loadSkills(ctx: AiToolContext): Promise<AiSkillDTO[]> {
   const skills = await enabledSkillsFor(ctx.workspaceId, ctx.actorId)
