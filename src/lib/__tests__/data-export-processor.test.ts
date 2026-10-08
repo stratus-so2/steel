@@ -46,9 +46,10 @@ vi.mock('@/lib/axiom/audit', () => ({
 vi.mock('@/lib/axiom/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
-vi.mock('@/lib/env/env', () => ({
-  NEXT_PUBLIC_AXIOM_DATASET: 'steel-app-test',
+const envMock = vi.hoisted(() => ({
+  NEXT_PUBLIC_AXIOM_DATASET: 'steel-app-test' as string | undefined,
 }))
+vi.mock('@/lib/env/env', () => envMock)
 vi.mock('@/src/lib/storage/s3', () => ({
   ensureBucket: ensureBucketMock,
   putObject: putObjectMock,
@@ -274,6 +275,24 @@ describe('processDataExport', () => {
     const uploadCall = putObjectMock.mock.calls[0][0]
     const uploaded = JSON.parse(uploadCall.body)
     expect(uploaded.auditLog).toEqual([])
+  })
+
+  it('skips the Axiom query when no dataset is configured', async () => {
+    envMock.NEXT_PUBLIC_AXIOM_DATASET = undefined
+    try {
+      userFindUniqueMock.mockResolvedValue(buildUser())
+
+      const result = await processDataExport(
+        fakeJob('export-user-data', { userId: 'user-1' }),
+      )
+
+      expect(result.exported).toBe(true)
+      expect(axiomQueryMock).not.toHaveBeenCalled()
+      const uploaded = JSON.parse(putObjectMock.mock.calls[0][0].body)
+      expect(uploaded.auditLog).toEqual([])
+    } finally {
+      envMock.NEXT_PUBLIC_AXIOM_DATASET = 'steel-app-test'
+    }
   })
 
   it('does not fail the job when email send throws', async () => {

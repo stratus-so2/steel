@@ -128,6 +128,8 @@ async function gatherPostgresData(userId: string): Promise<{
 }
 
 async function gatherAuditLog(userId: string): Promise<ExportAuditEntry[]> {
+  // No dataset configured (local runs): there is no audit trail to read.
+  if (!NEXT_PUBLIC_AXIOM_DATASET) return []
   const apl =
     `['${NEXT_PUBLIC_AXIOM_DATASET}']` +
     ` | where category == 'audit' and ['actorId'] == '${userId}'` +

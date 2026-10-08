@@ -30,8 +30,10 @@ const blankOptional = <T extends z.ZodType>(schema: T) =>
 
 const publicEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']),
-  NEXT_PUBLIC_AXIOM_TOKEN: z.string().startsWith('xaat-'),
-  NEXT_PUBLIC_AXIOM_DATASET: z.string().min(1).max(128),
+  // Opcionais: sem token/dataset (ex.: máquina local) o logger só escreve no
+  // console e nada é enviado ao Axiom — o dataset fica só com o que é deploy.
+  NEXT_PUBLIC_AXIOM_TOKEN: blankOptional(z.string().startsWith('xaat-')),
+  NEXT_PUBLIC_AXIOM_DATASET: blankOptional(z.string().min(1).max(128)),
   NEXT_PUBLIC_URL: z.url().startsWith('http'),
   NEXT_PUBLIC_GA_ID: z.string().startsWith('G-').optional(),
   // Opcionais de propósito: sem chave, o PostHog nunca carrega e nunca pede
