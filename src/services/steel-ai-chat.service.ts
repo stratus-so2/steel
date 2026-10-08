@@ -12,6 +12,8 @@ import {
   buildUserContent,
 } from '@/src/lib/ai/attachments'
 import { memoryForPrompt } from '@/src/lib/ai/context/memory'
+import { readMemoryRef } from '@/src/lib/ai/context/memory-tool-names'
+import { STEEL_AI_MEMORY_TOOLS } from '@/src/lib/ai/context/memory-tools'
 import {
   resolveSkillInvocation,
   skillsCatalogForPrompt,
@@ -30,8 +32,10 @@ import {
   proposeWriteTool,
   resolveToolAccess,
   runReadTool,
+  runTool,
   type SteelAiMode,
   toolMeta,
+  toToolSpecs,
 } from '@/src/lib/ai/tools/registry'
 import {
   FIND_TOOLS_TOOL_NAME,
@@ -237,9 +241,13 @@ async function* runTurn(
   const startedAt = new Date()
   // Everything the caller may run; each round only *shows* a selection.
   const tools = availableTools(input.access, input.mode)
+  // Memory tools run in every mode, without confirmation (metadata).
+  const memoryTools =
+    input.access.memoryEnabled === false ? [] : STEEL_AI_MEMORY_TOOLS
+  const memorySpecs = toToolSpecs(memoryTools)
   const activated: string[] = []
-  const roundSpecs = () =>
-    selectionSpecs(
+  const roundSpecs = () => [
+    ...selectionSpecs(
       selectSteelAiTools({
         available: tools,
         message: input.content,
@@ -250,12 +258,15 @@ async function* runTurn(
           ...input.pinnedTools,
         ],
       }),
-    )
+    ),
+    ...memorySpecs,
+  ]
   let maxSpecChars = 0
   const ctx: AiToolContext = {
     workspaceId: input.workspaceId,
     actorId: input.actorId,
     source: 'assistant',
+    conversationId: conversation.id,
   }
   const messages: AiMessage[] = [...input.history]
   const usage: AiUsageTokens = { inputTokens: 0, outputTokens: 0 }
@@ -299,10 +310,12 @@ async function* runTurn(
     const tool: AnySteelAiTool | undefined = tools.find(
       (t) => t.name === toolCall.name,
     )
+    const memoryTool = memoryTools.find((t) => t.name === toolCall.name)
     let status: AiToolCallDTO['status'] = 'error'
     let summary: string | undefined
     let content: string
     let proposed = false
+    let memory: AiToolCallDTO['memory']
 
     if (forceText) {
       content = serializeToolResult({
@@ -320,6 +333,12 @@ async function* runTurn(
       })
       status = 'done'
       summary = found.summary
+    } else if (memoryTool) {
+      const run = await runTool(memoryTool, ctx, toolCall.arguments)
+      content = run.content
+      status = run.ok ? 'done' : 'error'
+      summary = run.ok ? run.output.summary : run.error.message
+      if (run.ok) memory = readMemoryRef(run.output.data) ?? undefined
     } else if (!tool) {
       const error = aiToolNotAllowed(
         'Ferramenta indisponível neste modo ou para o seu perfil',
@@ -393,7 +412,12 @@ async function* runTurn(
       }
     }
 
-    const finished: AiToolCallDTO = { ...running, status, summary }
+    const finished: AiToolCallDTO = {
+      ...running,
+      status,
+      summary,
+      ...(memory && { memory }),
+    }
     toolCalls.push(finished)
     yield { type: 'tool.end', call: finished }
     return { content, proposed }
@@ -682,7 +706,12 @@ export const SteelAiChatService = {
     )
     if (!prepared.ok) return prepared
 
-    const ctx: AiToolContext = { workspaceId, actorId, source: 'assistant' }
+    const ctx: AiToolContext = {
+      workspaceId,
+      actorId,
+      source: 'assistant',
+      conversationId,
+    }
     const [user, workspace, preference, recent, invocation, catalog, memory] =
       await Promise.all([
         UserRepository.findById(actorId),

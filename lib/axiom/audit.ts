@@ -158,6 +158,9 @@ export type AuditEntity =
   | 'ai_attachment'
   // Steel AI usage — CSV export of the AI ledger (may carry members' e-mails)
   | 'ai_usage'
+  // Steel AI skills (slash instructions) and memory (saved facts)
+  | 'ai_skill'
+  | 'ai_memory'
 
 export type AuditAction =
   | 'create'

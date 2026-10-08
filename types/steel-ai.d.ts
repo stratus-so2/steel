@@ -3,6 +3,8 @@
  * the backend, the `/ai` chat screen and, later, Steel Agents.
  */
 
+import type { AiMemoryRefDTO } from './ai-memory'
+
 /** UI labels: EXPLORE = Ask, AGENT = Build, AUTOPILOT = Autopilot. */
 export type AiConversationModeDTO = 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
 
@@ -39,6 +41,8 @@ export interface AiToolCallDTO {
   status: 'running' | 'done' | 'error' | 'pending_confirmation'
   /** Short pt-BR summary of the result, when finished. */
   summary?: string
+  /** Memory tools only: the fact saved/forgotten (chip with undo). */
+  memory?: AiMemoryRefDTO
 }
 
 export interface AiMessageDTO {

@@ -1,3 +1,4 @@
+import { SKILL_AI_TOOLS } from '../context/skill-tool'
 import { CRM_AI_TOOLS } from './crm'
 import { PLATFORM_AI_TOOLS } from './platform'
 import { SERVICEDESK_AI_TOOLS } from './servicedesk'
@@ -13,6 +14,7 @@ export const STEEL_AI_TOOLS: readonly AnySteelAiTool[] = [
   ...SERVICEDESK_AI_TOOLS,
   ...CRM_AI_TOOLS,
   ...WHATSAPP_AI_TOOLS,
+  ...SKILL_AI_TOOLS,
 ]
 
 export type * from './types'
