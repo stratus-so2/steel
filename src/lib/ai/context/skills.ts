@@ -63,13 +63,13 @@ export async function resolveSkillInvocation(
 
 /** One skill per command (the one "/<slug>" would run). */
 function uniqueBySlug(skills: AiSkillDTO[]): AiSkillDTO[] {
-  const out: AiSkillDTO[] = []
+  const bySlug = new Map<string, AiSkillDTO>()
   for (const skill of skills) {
-    if (out.some((s) => s.slug === skill.slug)) continue
-    const picked = pickSkillBySlug(skills, skill.slug)
-    if (picked) out.push(picked)
+    if (bySlug.has(skill.slug)) continue
+    // `skill` itself matches, so a pick always exists.
+    bySlug.set(skill.slug, pickSkillBySlug(skills, skill.slug) as AiSkillDTO)
   }
-  return out
+  return [...bySlug.values()]
 }
 
 /**

@@ -82,6 +82,7 @@ describe('memory guard', () => {
     'O time de suporte atende das 8h às 18h.',
     'Ana prefere respostas em tópicos.',
     'Pedido 1234 5678 é do cliente Acme',
+    'Protocolo 1234567890123 aberto ontem',
     'Usamos https://docs.exemplo.com/abcdefghijklmnopqrstuvwxyz0123456789 como base',
     'O CNPJ da Acme é 12.345.678/0001-90',
   ])('accepts ordinary facts: %s', (content) => {

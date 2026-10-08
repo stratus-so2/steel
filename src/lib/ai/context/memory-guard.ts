@@ -97,10 +97,8 @@ function passesLuhn(digits: string): boolean {
 
 function hasCardNumber(text: string): boolean {
   for (const match of text.matchAll(/\b\d(?:[ -]?\d){12,18}\b/g)) {
-    const digits = match[0].replace(/\D/g, '')
-    if (digits.length >= 13 && digits.length <= 19 && passesLuhn(digits)) {
-      return true
-    }
+    // The pattern already bounds it to 13–19 digits.
+    if (passesLuhn(match[0].replace(/\D/g, ''))) return true
   }
   return false
 }
