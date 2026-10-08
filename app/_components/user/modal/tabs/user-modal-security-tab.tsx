@@ -19,6 +19,7 @@ import { authClient } from '@/src/lib/auth-client'
 import { authErrorMessage } from '@/src/lib/auth-error-messages'
 import { rememberTwoFactorMethod } from '@/src/lib/two-factor-method-hint'
 import { useCookieConsent } from '../../cookie-consent/provider'
+import { UserModalAccountSection } from './user-modal-account-section'
 import { UserModalSecurityTotp } from './user-modal-security-totp'
 
 export function UserModalSecurityTab({ tab }: { tab: string }) {
@@ -338,6 +339,9 @@ export function UserModalSecurityTab({ tab }: { tab: string }) {
             />
           </Field>
         </div>
+
+        {/* Legal acceptances + account deletion */}
+        <UserModalAccountSection />
       </div>
     </TabsContent>
   )
