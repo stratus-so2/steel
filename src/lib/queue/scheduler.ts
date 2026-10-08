@@ -1,6 +1,7 @@
 import { logger } from '@/lib/axiom/logger'
 import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
+  AiUsageWeeklyEmailJob,
   CrmCompetitorSyncJob,
   CrmProposalExpiryJob,
   CrmScheduledSendJob,
@@ -28,6 +29,7 @@ import {
   WhatsappConversationLifecycleJob,
 } from './jobs'
 import {
+  getAiUsageWeeklyEmailQueue,
   getCrmCompetitorSyncQueue,
   getCrmProposalExpiryQueue,
   getCrmScheduledSendQueue,
@@ -55,6 +57,7 @@ import {
   getWhatsappConversationLifecycleQueue,
 } from './queues'
 import {
+  AiUsageWeeklyEmailCron,
   CrmCompetitorSyncCron,
   CrmProposalExpiryCron,
   CrmScheduledSendCron,
@@ -499,6 +502,21 @@ export async function scheduleSearchReindexJobs(): Promise<void> {
   logger.info('queue.scheduler.search_reindex_registered', {
     component: 'Worker',
     pattern: SearchReindexCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleAiUsageWeeklyEmailJobs(): Promise<void> {
+  const queue = getAiUsageWeeklyEmailQueue()
+  await queue.upsertJobScheduler(
+    AiUsageWeeklyEmailJob.Tick,
+    { pattern: AiUsageWeeklyEmailCron, tz: RetentionTimezone },
+    { name: AiUsageWeeklyEmailJob.Tick, data: {} },
+  )
+
+  logger.info('queue.scheduler.ai_usage_weekly_email_registered', {
+    component: 'Worker',
+    pattern: AiUsageWeeklyEmailCron,
     timezone: RetentionTimezone,
   })
 }

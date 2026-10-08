@@ -3,6 +3,8 @@ import { getQueueConnection } from './connection'
 import {
   type AccountLifecycleJob,
   type AccountLifecycleJobPayload,
+  type AiUsageWeeklyEmailJob,
+  type AiUsageWeeklyEmailJobPayload,
   type ChangelogJob,
   type ChangelogJobPayload,
   type CrmCompetitorSyncJob,
@@ -113,6 +115,7 @@ let servicedeskTaskRemindersQueue: Queue | null = null
 let steelAgentsQueue: Queue | null = null
 let notificationsQueue: Queue | null = null
 let searchReindexQueue: Queue | null = null
+let aiUsageWeeklyEmailQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -756,6 +759,7 @@ export async function closeQueues(): Promise<void> {
     servicedeskTaskRemindersQueue?.close(),
     steelAgentsQueue?.close(),
     searchReindexQueue?.close(),
+    aiUsageWeeklyEmailQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -789,6 +793,7 @@ export async function closeQueues(): Promise<void> {
   servicedeskTaskRemindersQueue = null
   steelAgentsQueue = null
   searchReindexQueue = null
+  aiUsageWeeklyEmailQueue = null
 }
 
 export function getCrmTaskRemindersQueue(): Queue<
@@ -866,6 +871,25 @@ export function getSearchReindexQueue(): Queue<
   >
 }
 
+/** Weekly Steel AI usage e-mail (tick + one job per workspace). */
+export function getAiUsageWeeklyEmailQueue(): Queue<
+  AiUsageWeeklyEmailJobPayload[AiUsageWeeklyEmailJob],
+  unknown,
+  AiUsageWeeklyEmailJob
+> {
+  if (!aiUsageWeeklyEmailQueue) {
+    aiUsageWeeklyEmailQueue = new Queue(QueueName.AiUsageWeeklyEmail, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return aiUsageWeeklyEmailQueue as Queue<
+    AiUsageWeeklyEmailJobPayload[AiUsageWeeklyEmailJob],
+    unknown,
+    AiUsageWeeklyEmailJob
+  >
+}
+
 // Typed as a full record so a new queue without an entry fails the build.
 const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.DataRetention]: getDataRetentionQueue,
@@ -903,6 +927,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.SteelAgents]: getSteelAgentsQueue,
   [QueueName.Notifications]: getNotificationsQueue,
   [QueueName.SearchReindex]: getSearchReindexQueue,
+  [QueueName.AiUsageWeeklyEmail]: getAiUsageWeeklyEmailQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */

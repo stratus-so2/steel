@@ -9,6 +9,7 @@ import {
 } from '../src/lib/queue/failure-listener'
 import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
+import { processAiUsageWeeklyEmail } from '../src/lib/queue/processors/ai-usage-weekly-email'
 import { processChangelog } from '../src/lib/queue/processors/changelog'
 import { processCrmCompetitorSync } from '../src/lib/queue/processors/crm-competitor-sync'
 import { processCrmProposalExpiry } from '../src/lib/queue/processors/crm-proposal-expiry'
@@ -42,6 +43,7 @@ import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media
 import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-sentiment'
 import '../src/lib/zod-locale'
 import {
+  scheduleAiUsageWeeklyEmailJobs,
   scheduleCrmCompetitorSyncJobs,
   scheduleCrmProposalExpiryJobs,
   scheduleCrmScheduledSendJobs,
@@ -212,6 +214,9 @@ async function main(): Promise<void> {
   workers.push(registerWorker(QueueName.SteelAgents, processSteelAgents))
   workers.push(registerWorker(QueueName.Notifications, processNotifications))
   workers.push(registerWorker(QueueName.SearchReindex, processSearchReindex))
+  workers.push(
+    registerWorker(QueueName.AiUsageWeeklyEmail, processAiUsageWeeklyEmail),
+  )
 
   failureListener = startJobFailureListener(
     workers.map((w) => w.name as QueueName),
@@ -243,6 +248,7 @@ async function main(): Promise<void> {
   await scheduleSteelAgentsJobs()
   await scheduleNotificationsJobs()
   await scheduleSearchReindexJobs()
+  await scheduleAiUsageWeeklyEmailJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',
