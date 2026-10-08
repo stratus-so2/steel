@@ -9,6 +9,9 @@ export const STEEL_AI_DISABLED_MESSAGE =
 export const STEEL_AI_AUTOPILOT_NOTICE =
   'Autopilot ligado: o Steel AI faz as alterações sem pedir confirmação — inclusive exclusões e mensagens a clientes. Tudo fica registrado no histórico de ações da IA.'
 
+export const STEEL_AI_TEST_NOTICE =
+  'Modo Teste: o Steel AI consulta os dados de verdade, mas só simula as alterações — nada é gravado nem enviado.'
+
 export const STEEL_AI_QUOTA_MESSAGE =
   'A cota mensal de IA do workspace foi atingida. Peça a um administrador para ajustá-la em Ajustes > Steel IA ou aguarde o próximo mês.'
 

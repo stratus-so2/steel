@@ -27,6 +27,8 @@ export type SteelAgentRunStepStatusDTO =
   | 'APPROVED'
   | 'REJECTED'
   | 'EXPIRED'
+  /** Test run: the write was simulated, never executed. */
+  | 'SIMULATED'
 
 export interface SteelAgentToolDTO {
   toolName: string
@@ -113,6 +115,8 @@ export interface SteelAgentRunDTO {
   inputTokens: number
   outputTokens: number
   costUsd: number
+  /** "Testar agente": reads real, writes simulated, no approvals. */
+  isTest: boolean
   createdAt: string
 }
 

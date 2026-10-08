@@ -332,6 +332,38 @@ describe('SteelAgentRunRepository', () => {
     ).toBe(1)
   })
 
+  it('should leave test runs out of the cap and of the last run', async () => {
+    const { workspace } = await context()
+    const agent = await seedSteelAgent({ workspaceId: workspace.id })
+    const real = await seedSteelAgentRun({
+      workspaceId: workspace.id,
+      agentId: agent.id,
+      createdAt: new Date('2026-05-01T00:00:00.000Z'),
+    })
+    const test = expectOk(
+      await SteelAgentRunRepository.create({
+        workspaceId: workspace.id,
+        agentId: agent.id,
+        triggerType: 'MANUAL',
+        isTest: true,
+      }),
+    )
+    expect(test.isTest).toBe(true)
+    expect(
+      expectOk(
+        await SteelAgentRunRepository.countSince(
+          agent.id,
+          new Date('2026-01-01T00:00:00.000Z'),
+        ),
+      ),
+    ).toBe(1)
+    const loaded = expectOk(
+      await SteelAgentRepository.findById(agent.id, workspace.id),
+    )
+    expect(loaded.runs.map((run) => run.id)).toEqual([real.id])
+    expect(loaded.lastRunAt).toBeNull()
+  })
+
   it('should return the detail with steps and actions, scoped to the workspace', async () => {
     const { workspace } = await context()
     const other = await seedWorkspace()

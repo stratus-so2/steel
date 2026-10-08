@@ -3,6 +3,7 @@
 import {
   Airplane01Icon,
   Compass01Icon,
+  TestTube01Icon,
   Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
@@ -19,12 +20,16 @@ export const AGENT_MODE_DISABLED_HINT =
 export const AUTOPILOT_DISABLED_HINT =
   'O Autopilot está desligado neste workspace. Um administrador pode ativá-lo em Ajustes > Steel IA.'
 
-/** UI names of the conversation modes (EXPLORE / AGENT / AUTOPILOT). */
+/** UI names of the conversation modes (EXPLORE / AGENT / AUTOPILOT / TEST). */
 export const STEEL_AI_MODE_LABEL: Record<AiConversationModeDTO, string> = {
   EXPLORE: 'Ask',
   AGENT: 'Build',
   AUTOPILOT: 'Autopilot',
+  TEST: 'Teste',
 }
+
+export const TEST_MODE_HINT =
+  'Mostra o que faria sem alterar nada: consulta os dados de verdade, mas criar, alterar, excluir, enviar mensagens e salvar na memória só são simulados. Use para conferir o plano antes de executar no Build.'
 
 const MODES: {
   value: AiConversationModeDTO
@@ -46,12 +51,18 @@ const MODES: {
     hint: 'Executa as alterações sozinho, sem pedir confirmação — inclusive exclusões e mensagens a clientes. Tudo fica registrado.',
     icon: Airplane01Icon,
   },
+  {
+    value: 'TEST',
+    hint: TEST_MODE_HINT,
+    icon: TestTube01Icon,
+  },
 ]
 
 /**
- * Ask | Build | Autopilot. A mode the workspace switched off stays visible
- * but disabled, with the reason in the tooltip. Under `sm` only the labels
- * show (no icons) so the three fit next to the model picker at 390 px.
+ * Ask | Build | Autopilot | Teste. A mode the workspace switched off stays
+ * visible but disabled, with the reason in the tooltip (Teste never is: it
+ * changes nothing). Under `sm` only the labels show (no icons) so the four
+ * fit next to the model picker at 390 px.
  */
 export function SteelAiModeSwitch({
   value,
@@ -78,8 +89,9 @@ export function SteelAiModeSwitch({
     >
       {MODES.map((mode) => {
         const locked =
-          (mode.value !== 'EXPLORE' && !agentModeEnabled) ||
-          (mode.value === 'AUTOPILOT' && !autopilotEnabled)
+          (mode.value === 'AGENT' && !agentModeEnabled) ||
+          (mode.value === 'AUTOPILOT' &&
+            (!agentModeEnabled || !autopilotEnabled))
         const checked = value === mode.value
         const button = (
           <button
@@ -89,9 +101,11 @@ export function SteelAiModeSwitch({
             disabled={disabled || locked}
             onClick={() => onChange(mode.value)}
             className={cn(
-              'inline-flex h-6 items-center gap-1 rounded-[5px] px-1.5 font-medium text-muted-foreground text-xs transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-2',
+              'inline-flex h-6 items-center gap-1 rounded-[5px] px-1 font-medium text-muted-foreground text-xs transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-2',
               checked && 'bg-background text-foreground shadow-xs',
-              checked && mode.value === 'AUTOPILOT' && 'text-primary',
+              checked &&
+                (mode.value === 'AUTOPILOT' || mode.value === 'TEST') &&
+                'text-primary',
             )}
           >
             <SteelIcon
@@ -129,6 +143,7 @@ export function SteelAiModeSwitch({
 /**
  * Effective mode under the workspace switches: a mode that was switched off
  * falls back to the closest one still allowed (Autopilot → Build → Ask).
+ * Teste is always allowed (it never writes).
  */
 export function allowedSteelAiMode(
   mode: AiConversationModeDTO,

@@ -31,6 +31,7 @@ import { assertMember } from './authz'
 /**
  * Whether `mode` may run under these switches: AGENT and AUTOPILOT need the
  * agent mode; AUTOPILOT also needs `autopilotEnabled` (off by default).
+ * TEST never writes, so it only needs the AI itself (like EXPLORE).
  */
 export function checkSteelAiMode(
   settings: Pick<
@@ -39,7 +40,7 @@ export function checkSteelAiMode(
   > | null,
   mode: SteelAiMode,
 ): Result<true> {
-  if (mode === 'EXPLORE') return ok(true)
+  if (mode === 'EXPLORE' || mode === 'TEST') return ok(true)
   if (settings && !settings.agentModeEnabled) return err(aiAgentModeDisabled())
   if (mode === 'AUTOPILOT' && !settings?.autopilotEnabled) {
     return err(aiAutopilotDisabled())

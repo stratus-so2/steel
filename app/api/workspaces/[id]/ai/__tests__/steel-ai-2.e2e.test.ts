@@ -29,7 +29,11 @@ async function upload(
 
 async function setSwitches(
   workspaceId: string,
-  data: { aiEnabled?: boolean; autopilotEnabled?: boolean },
+  data: {
+    aiEnabled?: boolean
+    autopilotEnabled?: boolean
+    agentModeEnabled?: boolean
+  },
 ) {
   await prisma.workspaceAiSettings.upsert({
     where: { workspaceId },
@@ -134,6 +138,27 @@ describe('Steel AI modes and models', () => {
     )
     expect(allowed.status).toBe(201)
     expect((await allowed.json()).data.mode).toBe('AUTOPILOT')
+  })
+
+  it('should allow TEST (Teste) even with the agent mode switched off', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    await setSwitches(workspace.id, { agentModeEnabled: false })
+    const created = await postJson(
+      `${base(workspace.id)}/conversations`,
+      { mode: 'TEST' },
+      user.cookie,
+    )
+    expect(created.status).toBe(201)
+    const conversation = (await created.json()).data
+    expect(conversation.mode).toBe('TEST')
+
+    const build = await patchJson(
+      `${base(workspace.id)}/conversations/${conversation.id}`,
+      { mode: 'AGENT' },
+      user.cookie,
+    )
+    expect(build.status).toBe(403)
+    expect((await build.json()).error.code).toBe('AI_AGENT_MODE_DISABLED')
   })
 
   it('should save a usable model on the conversation and refuse others', async () => {

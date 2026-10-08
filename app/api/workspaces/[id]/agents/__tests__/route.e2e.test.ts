@@ -78,6 +78,7 @@ describe('Steel Agents routes — authentication', () => {
     ['GET', '/catalog'],
     ['GET', '/a1'],
     ['POST', '/a1/run'],
+    ['POST', '/a1/test'],
     ['GET', '/a1/runs'],
     ['POST', '/runs/r1/actions/x/approve'],
     ['POST', '/runs/r1/actions/x/reject'],
@@ -274,6 +275,66 @@ describe('Steel Agents runs', () => {
       user.cookie,
     )
     expect(badQuery.status).toBe(422)
+  })
+})
+
+describe('Steel Agents test runs', () => {
+  it('should queue a test run, also for a paused agent, and keep it out of the last run', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const created = await postJson(
+      base(workspace.id),
+      { ...agentBody(user.id), enabled: false },
+      user.cookie,
+    )
+    const agent = (await created.json()).data
+
+    const run = await postJson(
+      `${base(workspace.id)}/${agent.id}/test`,
+      {},
+      user.cookie,
+    )
+    expect(run.status).toBe(202)
+    const runBody = (await run.json()).data
+    expect(runBody.isTest).toBe(true)
+    expect(runBody.triggerType).toBe('MANUAL')
+
+    // "Executar agora" still refuses the paused agent.
+    const real = await postJson(
+      `${base(workspace.id)}/${agent.id}/run`,
+      {},
+      user.cookie,
+    )
+    expect(real.status).not.toBe(202)
+
+    const list = await getJson(
+      `${base(workspace.id)}/${agent.id}/runs?limit=5`,
+      user.cookie,
+    )
+    const runs = (await list.json()).data as { id: string; isTest: boolean }[]
+    expect(runs.find((r) => r.id === runBody.id)?.isTest).toBe(true)
+
+    const detail = await getJson(
+      `${base(workspace.id)}/${agent.id}`,
+      user.cookie,
+    )
+    expect((await detail.json()).data.lastRun).toBeNull()
+  })
+
+  it('should 404 an agent of another workspace', async () => {
+    const { user } = await authenticatedOwner()
+    const other = await authenticatedOwner()
+    const created = await postJson(
+      base(other.workspace.id),
+      agentBody(other.user.id),
+      other.user.cookie,
+    )
+    const agent = (await created.json()).data
+    const run = await postJson(
+      `${base(other.workspace.id)}/${agent.id}/test`,
+      {},
+      user.cookie,
+    )
+    expect([403, 404]).toContain(run.status)
   })
 })
 

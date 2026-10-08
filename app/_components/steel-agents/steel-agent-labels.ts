@@ -36,7 +36,11 @@ export const STEP_STATUS_LABEL: Record<SteelAgentRunStepStatusDTO, string> = {
   APPROVED: 'Aprovada',
   REJECTED: 'Rejeitada',
   EXPIRED: 'Expirou',
+  SIMULATED: 'Simulada',
 }
+
+/** Badge of a "Testar agente" run (writes simulated, nothing changed). */
+export const TEST_RUN_LABEL = 'Teste'
 
 export const TRIGGER_LABEL: Record<SteelAgentTriggerTypeDTO, string> = {
   SCHEDULE: 'Agenda',

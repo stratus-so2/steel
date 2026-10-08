@@ -171,6 +171,27 @@ const routes: RouteConfig[] = [
     ],
   },
   {
+    method: 'post',
+    path: '/workspaces/{id}/agents/{agentId}/test',
+    tags: [TAG],
+    summary: 'Testar agente',
+    description:
+      'Enfileira uma execução de teste (`isTest: true`): as leituras rodam de verdade e toda escrita é simulada no servidor a partir da prévia — nada é gravado nem enviado, nenhuma aprovação vai para a inbox. Não conta no limite mensal, não mexe no agendamento e não aparece como última execução. Responsável ou admin; funciona com o agente pausado e com o modo agente desligado.',
+    consent: true,
+    params: { agentId: AGENT_PARAM },
+    responses: {
+      202: {
+        description: 'Execução de teste enfileirada.',
+        schema: SteelAgentRunDTO,
+      },
+    },
+    errors: [
+      ...WORKSPACE_MEMBER_ERRORS,
+      { code: 'FORBIDDEN', when: 'Nem responsável nem admin' },
+      AGENT_NOT_FOUND,
+    ],
+  },
+  {
     method: 'get',
     path: '/workspaces/{id}/agents/{agentId}/runs',
     tags: [TAG],

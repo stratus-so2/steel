@@ -484,6 +484,31 @@ describe('SteelAgentService.runNow', () => {
   })
 })
 
+describe('SteelAgentService.testRun', () => {
+  it('should queue a test run, even for a paused agent', async () => {
+    agents.findById.mockResolvedValue(ok({ ...AGENT, enabled: false }))
+    expectOk(await SteelAgentService.testRun('admin1', 'ws1', 'agent1'))
+    expect(runs.create).toHaveBeenCalledWith({
+      workspaceId: 'ws1',
+      agentId: 'agent1',
+      triggerType: 'MANUAL',
+      startedById: 'admin1',
+      isTest: true,
+    })
+    expect(enqueue).toHaveBeenCalledWith('run1')
+  })
+
+  it('should keep the run-now gate: owner or manager only', async () => {
+    member.mockResolvedValue(ok(MEMBER))
+    expectOk(await SteelAgentService.testRun('owner1', 'ws1', 'agent1'))
+    member.mockResolvedValue(ok(VIEWER))
+    expectErr(
+      await SteelAgentService.testRun('v1', 'ws1', 'agent1'),
+      'FORBIDDEN',
+    )
+  })
+})
+
 describe('SteelAgentService runs', () => {
   it('should list runs of an agent of the workspace', async () => {
     runs.listByAgent.mockResolvedValue(

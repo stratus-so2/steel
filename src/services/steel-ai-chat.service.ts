@@ -34,6 +34,7 @@ import {
   runReadTool,
   runTool,
   type SteelAiMode,
+  simulateWriteTool,
   toolMeta,
   toToolSpecs,
 } from '@/src/lib/ai/tools/registry'
@@ -274,6 +275,8 @@ async function* runTurn(
   const pendingActions: AiPendingActionDTO[] = []
   /** Autopilot writes already executed in this turn. */
   const executedActions: AiPendingActionDTO[] = []
+  /** Teste mode: writes simulated in this turn (nothing executed). */
+  let simulatedCount = 0
   /** Every action of the turn (proposed or executed), in creation order. */
   const actions: AiPendingActionDTO[] = []
   const toolNames: string[] = []
@@ -315,6 +318,13 @@ async function* runTurn(
     let content: string
     let proposed = false
     let memory: AiToolCallDTO['memory']
+    let simulation: AiToolCallDTO['simulation']
+    // Teste: every write — memory included — is simulated here, on the
+    // server; `execute` is never reached for it.
+    const simulated =
+      input.mode === 'TEST'
+        ? (memoryTool ?? (tool && tool.kind !== 'READ' ? tool : undefined))
+        : undefined
 
     if (forceText) {
       content = serializeToolResult({
@@ -332,6 +342,20 @@ async function* runTurn(
       })
       status = 'done'
       summary = found.summary
+    } else if (simulated) {
+      if (simulated.module) toolModules.push(simulated.module)
+      const run = await simulateWriteTool(simulated, ctx, toolCall.arguments, {
+        actorId: input.actorId,
+      })
+      content = run.content
+      if (run.ok) {
+        simulatedCount++
+        simulation = run.simulation
+        status = 'simulated'
+        summary = run.simulation.preview.title
+      } else {
+        summary = run.error.message
+      }
     } else if (memoryTool) {
       const run = await runTool(memoryTool, ctx, toolCall.arguments)
       content = run.content
@@ -416,6 +440,7 @@ async function* runTurn(
       status,
       summary,
       ...(memory && { memory }),
+      ...(simulation && { simulation }),
     }
     toolCalls.push(finished)
     yield { type: 'tool.end', call: finished }
@@ -600,6 +625,7 @@ async function* runTurn(
         tools: toolNames,
         pendingActions: pendingActions.length,
         autopilotActions: executedActions.length,
+        simulatedActions: simulatedCount,
         inputTokens: usage.inputTokens,
         outputTokens: usage.outputTokens,
         maxToolSpecChars: maxSpecChars,

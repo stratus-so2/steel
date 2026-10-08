@@ -2,6 +2,7 @@ import {
   Alert02Icon,
   Clock01Icon,
   Loading03Icon,
+  TestTube01Icon,
   Tick02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
@@ -22,6 +23,11 @@ const STATUS: Record<
   pending_confirmation: {
     icon: Clock01Icon,
     label: 'aguardando confirmação',
+    className: 'text-muted-foreground',
+  },
+  simulated: {
+    icon: TestTube01Icon,
+    label: 'simulada',
     className: 'text-muted-foreground',
   },
 }

@@ -5,8 +5,11 @@
 
 import type { AiMemoryRefDTO } from './ai-memory'
 
-/** UI labels: EXPLORE = Ask, AGENT = Build, AUTOPILOT = Autopilot. */
-export type AiConversationModeDTO = 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
+/**
+ * UI labels: EXPLORE = Ask, AGENT = Build, AUTOPILOT = Autopilot,
+ * TEST = Teste (reads run, every write is simulated — nothing changes).
+ */
+export type AiConversationModeDTO = 'EXPLORE' | 'AGENT' | 'AUTOPILOT' | 'TEST'
 
 export type AiMessageRoleDTO = 'USER' | 'ASSISTANT' | 'TOOL'
 
@@ -38,11 +41,19 @@ export interface AiToolCallDTO {
   /** pt-BR label of the tool, e.g. "Consultando chamados". */
   label: string
   module: AiModuleDTO | null
-  status: 'running' | 'done' | 'error' | 'pending_confirmation'
+  status: 'running' | 'done' | 'error' | 'pending_confirmation' | 'simulated'
   /** Short pt-BR summary of the result, when finished. */
   summary?: string
   /** Memory tools only: the fact saved/forgotten (chip with undo). */
   memory?: AiMemoryRefDTO
+  /** Teste mode: the write that would have run (nothing was changed). */
+  simulation?: AiSimulatedActionDTO
+}
+
+/** A write simulated in Teste mode, built from the tool's preview. */
+export interface AiSimulatedActionDTO {
+  kind: AiActionKindDTO
+  preview: AiToolPreviewDTO
 }
 
 export interface AiMessageDTO {
@@ -177,7 +188,8 @@ export interface AiActionLogDTO {
   module: AiModuleDTO | null
   targetType: string | null
   targetId: string | null
-  outcome: 'success' | 'failure'
+  /** `simulated` = Teste mode / agent test run: nothing was executed. */
+  outcome: 'success' | 'failure' | 'simulated'
   /** pt-BR summary of what the tool did (null on failure). */
   summary: string | null
   error: string | null

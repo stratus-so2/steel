@@ -196,6 +196,23 @@ export function useRunSteelAgent(workspaceId: string, agentId: string) {
   })
 }
 
+/** "Testar agente": a run whose writes are only simulated. */
+export function useTestSteelAgent(workspaceId: string, agentId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<SteelAgentRunDTO>(
+        `${base(workspaceId)}/${agentId}/test`,
+        { method: 'POST' },
+        'Erro ao testar o agente',
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: STEEL_AGENTS_KEY(workspaceId),
+      }),
+  })
+}
+
 export function useDecideSteelAgentAction(workspaceId: string, runId: string) {
   const queryClient = useQueryClient()
   const url = (actionId: string, decision: 'approve' | 'reject') =>

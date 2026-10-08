@@ -9974,6 +9974,69 @@
         ]
       }
     },
+    "/workspaces/{id}/agents/{agentId}/test": {
+      "post": {
+        "tags": ["Steel Agents"],
+        "summary": "Testar agente",
+        "operationId": "postWorkspacesByIdAgentsByAgentIdTest",
+        "description": "Enfileira uma execução de teste (`isTest: true`): as leituras rodam de verdade e toda escrita é simulada no servidor a partir da prévia — nada é gravado nem enviado, nenhuma aprovação vai para a inbox. Não conta no limite mensal, não mexe no agendamento e não aparece como última execução. Responsável ou admin; funciona com o agente pausado e com o modo agente desligado.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "description": "ID do agente.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Execução de teste enfileirada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SteelAgentRun"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/ai-settings": {
       "get": {
         "tags": ["Configurações do workspace"],
@@ -10607,7 +10670,7 @@
         "tags": ["Steel AI"],
         "summary": "Criar conversa",
         "operationId": "postWorkspacesByIdAiConversations",
-        "description": "Abre uma conversa vazia. `mode`: `EXPLORE` (Ask, só leitura, padrão), `AGENT` (Build: propõe escritas que o usuário confirma) ou `AUTOPILOT` (escritas executam na hora, registradas no histórico de ações da IA). `modelKey` opcional fixa o modelo da conversa.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Abre uma conversa vazia. `mode`: `EXPLORE` (Ask, só leitura, padrão), `AGENT` (Build: propõe escritas que o usuário confirma) `AUTOPILOT` (escritas executam na hora, registradas no histórico de ações da IA) ou `TEST` (Teste: leituras reais, escritas simuladas — disponível sempre que a IA está ligada). `modelKey` opcional fixa o modelo da conversa.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -10627,7 +10690,7 @@
                   "mode": {
                     "default": "EXPLORE",
                     "type": "string",
-                    "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                    "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
                   },
                   "modelKey": {
                     "anyOf": [
@@ -10786,7 +10849,7 @@
                   },
                   "mode": {
                     "type": "string",
-                    "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                    "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
                   },
                   "pinned": {
                     "type": "boolean"
@@ -11233,7 +11296,7 @@
         "tags": ["Steel AI"],
         "summary": "Enviar mensagem (stream)",
         "operationId": "postWorkspacesByIdAiConversationsByConversationIdMessages",
-        "description": "Grava a mensagem e responde em **`text/event-stream`**: um frame por evento, `event: <type>\\ndata: <json>\\n\\n`, no formato `SteelAiStreamEvent` (`types/steel-ai.d.ts`):\n\n- `message.start` → `text.delta`* → (`tool.start` / `tool.end` / `action.pending` / `action.executed`)* → `conversation.title`? → `message.end` (mensagem final + uso de tokens);\n- falha do provedor ou ao gravar no meio do stream vira um evento `error` (`code`, `message`).\n\nAté 8 rodadas de ferramentas por mensagem. No modo `AGENT` (Build), toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. No modo `AUTOPILOT`, a escrita executa na hora — inclusive exclusões e mensagens a clientes — e chega como `action.executed` (`autoExecuted: true`), registrada em `AiActionLog` e na auditoria. `mode` e `modelKey` no corpo trocam o modo e o modelo da conversa a partir desta mensagem (modelo indisponível cai para a preferência do usuário / padrão do workspace).\n\nAnexos: envie antes por `POST .../attachments` e passe os ids em `attachmentIds` (até 5). Imagens vão ao modelo como visão; documentos (PDF, DOCX, TXT, CSV, Markdown) como texto extraído, limitado. Com anexos, `content` pode ser vazio.\n\nErros detectados **antes** do stream (sessão, consentimento, validação, conversa, modo agente, cota, provedor) voltam no envelope JSON normal. Limite próprio: 20 mensagens por minuto por usuário.\n\nConversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Grava a mensagem e responde em **`text/event-stream`**: um frame por evento, `event: <type>\\ndata: <json>\\n\\n`, no formato `SteelAiStreamEvent` (`types/steel-ai.d.ts`):\n\n- `message.start` → `text.delta`* → (`tool.start` / `tool.end` / `action.pending` / `action.executed`)* → `conversation.title`? → `message.end` (mensagem final + uso de tokens);\n- falha do provedor ou ao gravar no meio do stream vira um evento `error` (`code`, `message`).\n\nAté 8 rodadas de ferramentas por mensagem. No modo `AGENT` (Build), toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. No modo `AUTOPILOT`, a escrita executa na hora — inclusive exclusões e mensagens a clientes — e chega como `action.executed` (`autoExecuted: true`), registrada em `AiActionLog` e na auditoria. No modo `TEST` (Teste), leituras rodam de verdade e toda escrita (inclusive memória e mensagens a clientes) é simulada no servidor a partir da prévia: nada é gravado nem enviado, não há ação pendente, o `tool.end` chega com `status: simulated` e `simulation` (prévia), e o `AiActionLog` registra `outcome = simulated`. `mode` e `modelKey` no corpo trocam o modo e o modelo da conversa a partir desta mensagem (modelo indisponível cai para a preferência do usuário / padrão do workspace).\n\nAnexos: envie antes por `POST .../attachments` e passe os ids em `attachmentIds` (até 5). Imagens vão ao modelo como visão; documentos (PDF, DOCX, TXT, CSV, Markdown) como texto extraído, limitado. Com anexos, `content` pode ser vazio.\n\nErros detectados **antes** do stream (sessão, consentimento, validação, conversa, modo agente, cota, provedor) voltam no envelope JSON normal. Limite próprio: 20 mensagens por minuto por usuário.\n\nConversas e ações são pessoais: outro membro recebe `404`, nunca `403`.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -11263,7 +11326,7 @@
                   },
                   "mode": {
                     "type": "string",
-                    "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                    "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
                   },
                   "modelKey": {
                     "type": "string",
@@ -11723,7 +11786,7 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                        "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
                       },
                       {
                         "type": "null"
@@ -11852,7 +11915,7 @@
                     "anyOf": [
                       {
                         "type": "string",
-                        "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                        "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
                       },
                       {
                         "type": "null"
@@ -104663,8 +104726,8 @@
           },
           "mode": {
             "type": "string",
-            "enum": ["EXPLORE", "AGENT", "AUTOPILOT"],
-            "description": "`EXPLORE` = Ask (só leitura), `AGENT` = Build (escritas confirmadas), `AUTOPILOT` = escritas executam na hora."
+            "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"],
+            "description": "`EXPLORE` = Ask (só leitura), `AGENT` = Build (escritas confirmadas), `AUTOPILOT` = escritas executam na hora, `TEST` = Teste (leituras reais, toda escrita é simulada no servidor — nada é alterado nem enviado)."
           },
           "modelKey": {
             "anyOf": [
@@ -104833,7 +104896,7 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": ["running", "done", "error", "pending_confirmation"]
+                  "enum": ["running", "done", "error", "pending_confirmation", "simulated"]
                 },
                 "summary": {
                   "type": "string"
@@ -104858,6 +104921,79 @@
                     }
                   },
                   "required": ["id", "scope", "content", "action"]
+                },
+                "simulation": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": ["CREATE", "UPDATE", "DELETE", "ACTION"]
+                    },
+                    "preview": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "before": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "after": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": ["label"]
+                          }
+                        },
+                        "target": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string"
+                            },
+                            "id": {
+                              "type": "string"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "href": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["type", "label"]
+                        }
+                      },
+                      "required": ["title", "summary"]
+                    }
+                  },
+                  "required": ["kind", "preview"],
+                  "description": "Modo `TEST`: a escrita que teria rodado, montada a partir da prévia da ferramenta. Nada foi alterado."
                 }
               },
               "required": ["id", "name", "label", "module", "status"]
@@ -105112,7 +105248,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "enum": ["EXPLORE", "AGENT", "AUTOPILOT"]
+                "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
               },
               {
                 "type": "null"
@@ -135310,6 +135446,10 @@
           "costUsd": {
             "type": "number"
           },
+          "isTest": {
+            "type": "boolean",
+            "description": "\"Testar agente\": leituras reais, escritas simuladas, sem aprovações."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -135331,6 +135471,7 @@
           "inputTokens",
           "outputTokens",
           "costUsd",
+          "isTest",
           "createdAt"
         ]
       },
@@ -135432,6 +135573,10 @@
           "costUsd": {
             "type": "number"
           },
+          "isTest": {
+            "type": "boolean",
+            "description": "\"Testar agente\": leituras reais, escritas simuladas, sem aprovações."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -135504,7 +135649,7 @@
                 "output": {},
                 "status": {
                   "type": "string",
-                  "enum": ["OK", "FAILED", "PENDING", "APPROVED", "REJECTED", "EXPIRED"]
+                  "enum": ["OK", "FAILED", "PENDING", "APPROVED", "REJECTED", "EXPIRED", "SIMULATED"]
                 },
                 "error": {
                   "anyOf": [
@@ -135561,6 +135706,7 @@
           "inputTokens",
           "outputTokens",
           "costUsd",
+          "isTest",
           "createdAt",
           "agent",
           "steps",

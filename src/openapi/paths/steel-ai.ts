@@ -97,7 +97,7 @@ const routes: RouteConfig[] = [
     tags: [TAG],
     summary: 'Criar conversa',
     description:
-      'Abre uma conversa vazia. `mode`: `EXPLORE` (Ask, só leitura, padrão), `AGENT` (Build: propõe escritas que o usuário confirma) ou `AUTOPILOT` (escritas executam na hora, registradas no histórico de ações da IA). `modelKey` opcional fixa o modelo da conversa.',
+      'Abre uma conversa vazia. `mode`: `EXPLORE` (Ask, só leitura, padrão), `AGENT` (Build: propõe escritas que o usuário confirma) `AUTOPILOT` (escritas executam na hora, registradas no histórico de ações da IA) ou `TEST` (Teste: leituras reais, escritas simuladas — disponível sempre que a IA está ligada). `modelKey` opcional fixa o modelo da conversa.',
     consent: true,
     body: CreateAiConversationSchema,
     responses: {
@@ -253,7 +253,7 @@ const routes: RouteConfig[] = [
       '- `message.start` → `text.delta`* → (`tool.start` / `tool.end` / `action.pending` / `action.executed`)* → `conversation.title`? → `message.end` (mensagem final + uso de tokens);',
       '- falha do provedor ou ao gravar no meio do stream vira um evento `error` (`code`, `message`).',
       '',
-      'Até 8 rodadas de ferramentas por mensagem. No modo `AGENT` (Build), toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. No modo `AUTOPILOT`, a escrita executa na hora — inclusive exclusões e mensagens a clientes — e chega como `action.executed` (`autoExecuted: true`), registrada em `AiActionLog` e na auditoria. `mode` e `modelKey` no corpo trocam o modo e o modelo da conversa a partir desta mensagem (modelo indisponível cai para a preferência do usuário / padrão do workspace).',
+      'Até 8 rodadas de ferramentas por mensagem. No modo `AGENT` (Build), toda escrita vira uma ação pendente (`action.pending`) que só executa por `POST .../ai/actions/{actionId}/confirm`. No modo `AUTOPILOT`, a escrita executa na hora — inclusive exclusões e mensagens a clientes — e chega como `action.executed` (`autoExecuted: true`), registrada em `AiActionLog` e na auditoria. No modo `TEST` (Teste), leituras rodam de verdade e toda escrita (inclusive memória e mensagens a clientes) é simulada no servidor a partir da prévia: nada é gravado nem enviado, não há ação pendente, o `tool.end` chega com `status: simulated` e `simulation` (prévia), e o `AiActionLog` registra `outcome = simulated`. `mode` e `modelKey` no corpo trocam o modo e o modelo da conversa a partir desta mensagem (modelo indisponível cai para a preferência do usuário / padrão do workspace).',
       '',
       'Anexos: envie antes por `POST .../attachments` e passe os ids em `attachmentIds` (até 5). Imagens vão ao modelo como visão; documentos (PDF, DOCX, TXT, CSV, Markdown) como texto extraído, limitado. Com anexos, `content` pode ser vazio.',
       '',

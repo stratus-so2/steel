@@ -22,6 +22,8 @@ const AGENT_INCLUDE = {
   tools: { orderBy: { toolName: 'asc' } },
   owner: { select: { id: true, name: true, email: true, image: true } },
   runs: {
+    // Test runs ("Testar agente") never show as the agent's last run.
+    where: { isTest: false },
     orderBy: { createdAt: 'desc' },
     take: 1,
     select: {
@@ -223,6 +225,8 @@ export const SteelAgentRunRepository = {
     status?: SteelAgentRunStatus
     summary?: string | null
     finishedAt?: Date | null
+    /** "Testar agente": writes simulated, no approvals. */
+    isTest?: boolean
   }): Promise<Result<SteelAgentRun>> {
     try {
       const run = await prisma.steelAgentRun.create({ data })
@@ -317,7 +321,7 @@ export const SteelAgentRunRepository = {
     }
   },
 
-  /** Runs that count against the monthly cap (SKIPPED ones do not). */
+  /** Runs that count against the monthly cap (SKIPPED and test ones do not). */
   async countSince(agentId: string, since: Date): Promise<Result<number>> {
     try {
       const count = await prisma.steelAgentRun.count({
@@ -325,6 +329,7 @@ export const SteelAgentRunRepository = {
           agentId,
           createdAt: { gte: since },
           status: { not: 'SKIPPED' },
+          isTest: false,
         },
       })
       return ok(count)

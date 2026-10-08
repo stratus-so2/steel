@@ -32,7 +32,7 @@ const fields = {
     .trim()
     .min(1, 'Escreva as instruções')
     .max(8000, 'No máximo 8.000 caracteres'),
-  mode: z.enum(['EXPLORE', 'AGENT', 'AUTOPILOT']).nullable(),
+  mode: z.enum(['EXPLORE', 'AGENT', 'AUTOPILOT', 'TEST']).nullable(),
   toolNames: z
     .array(
       z

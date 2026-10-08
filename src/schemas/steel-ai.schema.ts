@@ -8,6 +8,7 @@ export const AiConversationModeSchema = z.enum([
   'EXPLORE',
   'AGENT',
   'AUTOPILOT',
+  'TEST',
 ])
 
 export const CreateAiConversationSchema = z.object({

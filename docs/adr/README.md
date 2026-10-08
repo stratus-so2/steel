@@ -40,3 +40,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0019 | [Custo real de IA por modelo com margem da plataforma](./0019-real-ai-cost-per-model-with-platform-margin.md) | Aceita | 2026-10-06 |
 | 0020 | [Steel Agents: identidade do responsável, ferramenta automática ou aprovada](./0020-steel-agents-owner-identity-and-approvals.md) | Aceita | 2026-10-06 |
 | 0022 | [Steel AI: memória salva sem confirmação, com guarda e desfazer](./0022-steel-ai-memory-saved-without-confirmation.md) | Aceita | 2026-10-08 |
+| 0023 | [Steel AI: modo Teste simula as escritas no servidor](./0023-steel-ai-test-mode-simulates-writes-server-side.md) | Aceita | 2026-10-08 |

@@ -7,6 +7,7 @@ import type {
 } from '@prisma/client'
 import { readMemoryRef } from '@/src/lib/ai/context/memory-tool-names'
 import { storedToolCalls } from '@/src/lib/ai/steel-ai-history'
+import { readSimulation } from '@/src/lib/ai/tools/simulation'
 import {
   ACTION_RESULT_PREFIX,
   parseToolResult,
@@ -63,6 +64,8 @@ export function toolCallStatusOf(
   switch (payload.status) {
     case 'pending_confirmation':
       return 'pending_confirmation'
+    case 'simulated':
+      return 'simulated'
     case 'error':
     case 'failed':
     case 'canceled':
@@ -165,6 +168,8 @@ export function toAiMessageDTOs(
       if (summary !== undefined) call.summary = summary
       const memory = readMemoryRef(payload.data)
       if (memory) call.memory = memory
+      const simulation = readSimulation(payload)
+      if (simulation) call.simulation = simulation
     }
   }
 

@@ -48,6 +48,7 @@ const MODE_LABEL: Record<AiConversationModeDTO | typeof KEEP_MODE, string> = {
   EXPLORE: 'Ask — só consulta',
   AGENT: 'Build — propõe alterações',
   AUTOPILOT: 'Autopilot — executa sozinho',
+  TEST: 'Teste — simula sem alterar nada',
 }
 
 interface FormState {

@@ -15,6 +15,7 @@ import {
   resolveToolAccess,
   runReadTool,
   runTool,
+  simulateWriteTool,
   toToolSpecs,
 } from '@/src/lib/ai/tools/registry'
 import { serializeToolResult } from '@/src/lib/ai/tools/tool-result'
@@ -51,6 +52,12 @@ import {
  * its transcript in `state`. After the human decisions the same job resumes
  * it. Everything runs with the owner's permissions; the domain services
  * remain the authority. Never throws.
+ *
+ * Test runs (`isTest`, "Testar agente"): reads run for real, every write —
+ * AUTO or APPROVAL — is simulated from its preview (`simulateWriteTool`),
+ * so no AiPendingAction, no inbox approval, no message sent and no failure
+ * notification; the pause switch, the agent-mode switch and the monthly cap
+ * do not apply (nothing is written and the run does not count).
  */
 
 /** Agent approvals happen in the inbox, so they live longer than chat ones. */
@@ -109,7 +116,9 @@ async function preflight(
   starting: boolean,
 ): Promise<Preflight> {
   const { agent } = run
-  if (!agent.enabled) return { kind: 'skip', reason: 'O agente está pausado.' }
+  if (!agent.enabled && !run.isTest) {
+    return { kind: 'skip', reason: 'O agente está pausado.' }
+  }
   if (!agent.ownerId) {
     return { kind: 'skip', reason: 'O agente está sem responsável.' }
   }
@@ -141,7 +150,7 @@ async function preflight(
     .map((t) => findTool(t.toolName))
     .filter((tool): tool is AnySteelAiTool => Boolean(tool))
   const hasWrites = configured.some((tool) => tool.kind !== 'READ')
-  if (hasWrites && !access.value.agentModeEnabled) {
+  if (hasWrites && !access.value.agentModeEnabled && !run.isTest) {
     return {
       kind: 'skip',
       reason:
@@ -149,7 +158,7 @@ async function preflight(
     }
   }
 
-  if (starting && agent.monthlyRunCap) {
+  if (starting && agent.monthlyRunCap && !run.isTest) {
     // This QUEUED run is part of the count.
     const count = await SteelAgentRunRepository.countSince(
       agent.id,
@@ -186,9 +195,10 @@ async function preflight(
   }
 
   const allowedNames = new Set(agent.tools.map((t) => t.toolName))
-  const tools = availableTools(access.value, 'AGENT').filter((tool) =>
-    allowedNames.has(tool.name),
-  )
+  const tools = availableTools(
+    access.value,
+    run.isTest ? 'TEST' : 'AGENT',
+  ).filter((tool) => allowedNames.has(tool.name))
   return { kind: 'go', access: access.value, call: call.value, tools }
 }
 
@@ -214,7 +224,8 @@ async function finish(
       { agentId: run.agentId, runId: run.id, reason: message },
     ),
   )
-  if (status === 'FAILED' && done.value) {
+  // A test run is watched by whoever started it: no failure notification.
+  if (status === 'FAILED' && done.value && !run.isTest) {
     await notifyAgentRunFailed({
       workspaceId: run.workspaceId,
       agentId: run.agentId,
@@ -406,6 +417,26 @@ export async function executeSteelAgentRun(
           : { error: result.error.message }),
       })
       return result.content
+    }
+
+    if (run.isTest) {
+      const simulated = await simulateWriteTool(tool, ctx, toolCall.arguments, {
+        actorId: run.startedById,
+      })
+      await step({
+        ...base,
+        kind: 'TOOL',
+        status: simulated.ok ? 'SIMULATED' : 'FAILED',
+        ...(simulated.ok
+          ? {
+              output: {
+                title: simulated.simulation.preview.title,
+                simulation: simulated.simulation,
+              } as unknown as Prisma.InputJsonValue,
+            }
+          : { error: simulated.error.message }),
+      })
+      return simulated.content
     }
 
     const mode = effectiveToolMode(
@@ -615,15 +646,17 @@ export async function executeSteelAgentRun(
       ...totals(),
     })
     await record()
-    await notifyAgentRunFailed({
-      workspaceId: run.workspaceId,
-      agentId: agent.id,
-      agentName: agent.name,
-      ownerId: agent.ownerId,
-      createdById: agent.createdById,
-      runId: run.id,
-      error: PROVIDER_ERROR,
-    })
+    if (!run.isTest) {
+      await notifyAgentRunFailed({
+        workspaceId: run.workspaceId,
+        agentId: agent.id,
+        agentName: agent.name,
+        ownerId: agent.ownerId,
+        createdById: agent.createdById,
+        runId: run.id,
+        error: PROVIDER_ERROR,
+      })
+    }
     return ok('failed')
   }
 
@@ -644,6 +677,7 @@ export async function executeSteelAgentRun(
       {
         agentId: agent.id,
         runId: run.id,
+        test: run.isTest,
         rounds: state.round,
         inputTokens: usage.inputTokens,
         outputTokens: usage.outputTokens,
