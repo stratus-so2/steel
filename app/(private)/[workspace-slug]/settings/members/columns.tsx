@@ -146,7 +146,7 @@ export function buildMemberColumns(
         <DataTableColumnHeader column={column} title='Autenticação' />
       ),
       cell: ({ row }) => (
-        <div className='flex flex-wrap gap-1'>
+        <div className='flex gap-1'>
           {row.original.authMethods.map((method) => (
             <Badge key={method} variant='outline'>
               {AUTH_METHOD_LABEL[method] ?? method}
@@ -173,6 +173,8 @@ export function buildMemberColumns(
     {
       id: 'actions',
       enableSorting: false,
+      // Pinned right so the menu stays reachable while the table scrolls.
+      meta: { className: 'sticky right-0 w-10 bg-background' },
       header: () => <span className='sr-only'>Ações</span>,
       cell: ({ row }) =>
         canManageMember(row.original, ctx) ? (

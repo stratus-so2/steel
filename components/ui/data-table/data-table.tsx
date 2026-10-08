@@ -37,6 +37,13 @@ interface DataTableProps<TData, TValue> {
   itemLabel?: DataTableItemLabel
 }
 
+/** Optional `meta: { className }` on a column styles its header and cells. */
+function columnClassName<TData, TValue>(
+  column: ColumnDef<TData, TValue>,
+): string | undefined {
+  return (column.meta as { className?: string } | undefined)?.className
+}
+
 /**
  * Server-driven table (sorting and pagination happen in the API): the parent
  * owns `sorting` and `page` and refetches when they change.
@@ -70,11 +77,14 @@ export function DataTable<TData, TValue>({
     <div className='flex flex-col gap-3'>
       <div className='rounded-md border'>
         <Table>
-          <TableHeader className='sticky top-0 z-10 bg-app'>
+          <TableHeader className='sticky top-0 z-10 bg-background'>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={columnClassName(header.column.columnDef)}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -100,7 +110,10 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={columnClassName(cell.column.columnDef)}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
