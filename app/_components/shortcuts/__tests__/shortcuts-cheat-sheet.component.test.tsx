@@ -46,6 +46,10 @@ describe('ShortcutsCheatSheet', () => {
       within(dialog).getByText('Mostrar os atalhos do teclado'),
     ).toBeTruthy()
     expect(within(dialog).queryByText('Ir para o CRM')).toBeNull()
+    // The screen's own group comes first.
+    expect(
+      within(dialog).getAllByRole('heading', { level: 3 })[0].textContent,
+    ).toBe('Chamado')
 
     fireEvent.change(within(dialog).getByLabelText('Buscar atalho'), {
       target: { value: 'nota' },

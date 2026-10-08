@@ -33,8 +33,23 @@ function documentedOnScreen(entry: ShortcutDefinition): boolean {
   return Boolean(document.querySelector('[data-slate-editor], [data-composer]'))
 }
 
-function ShortcutList({ entries }: { entries: ShortcutDefinition[] }) {
-  const groups = groupShortcuts(entries)
+function ShortcutList({
+  entries,
+  screenFirst = false,
+}: {
+  entries: ShortcutDefinition[]
+  /** "Nesta tela": the screen's own groups before the workspace-wide ones. */
+  screenFirst?: boolean
+}) {
+  const grouped = groupShortcuts(entries)
+  const isGlobal = (group: (typeof grouped)[number]) =>
+    group.items.every((item) => item.scope === 'global')
+  const groups = screenFirst
+    ? [
+        ...grouped.filter((group) => !isGlobal(group)),
+        ...grouped.filter(isGlobal),
+      ]
+    : grouped
   if (groups.length === 0) {
     return (
       <p
@@ -124,7 +139,7 @@ function CheatSheetBody({ activeIds }: { activeIds: Set<string> }) {
         </TabsList>
       </Tabs>
       <div className='-mx-1 min-h-0 flex-1 overflow-y-auto px-1'>
-        <ShortcutList entries={entries} />
+        <ShortcutList entries={entries} screenFirst={tab === 'screen'} />
       </div>
     </div>
   )
