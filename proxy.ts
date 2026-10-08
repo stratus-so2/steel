@@ -8,6 +8,7 @@ import { logRequest } from '@/lib/axiom/request-log'
 import {
   NEXT_PUBLIC_GA_ID,
   NEXT_PUBLIC_POSTHOG_KEY,
+  NEXT_PUBLIC_REALTIME_URL,
   NEXT_PUBLIC_SENTRY_DSN,
   NODE_ENV,
 } from '@/lib/env/env'
@@ -92,7 +93,8 @@ function sentryConnectSrc(): string {
  *
  * `connect-src` lista **nominalmente** cada serviço que o navegador pode
  * alcançar: Axiom (log e web vitals), jsdelivr (o Scalar em `/docs`) e o
- * Sentry quando há DSN. `va.vercel-scripts.com` saiu junto com o
+ * Sentry quando há DSN, mais o WebSocket da Wiki (ver `realtimeConnectSrc`).
+ * `va.vercel-scripts.com` saiu junto com o
  * `@vercel/analytics`: os beacons dele postavam em `/_vercel/insights/*` da
  * nossa própria origem, um caminho que só existe na Vercel e aqui respondia
  * 307 para `/sign-in`, então a entrada não protegia nada que fosse coletado.
@@ -110,6 +112,15 @@ function sentryConnectSrc(): string {
  * violates the following Content Security Policy directive"*). Sem
  * `NEXT_PUBLIC_GA_ID` nenhuma dessas origens entra na política.
  */
+/**
+ * WebSocket da Wiki (Hocuspocus). Sem `NEXT_PUBLIC_REALTIME_URL` o editor usa
+ * `/realtime` de mesma origem, coberto por `'self'`; com ela (dev, porta
+ * própria) a origem entra nominalmente.
+ */
+function realtimeConnectSrc(): string {
+  return NEXT_PUBLIC_REALTIME_URL ? ` ${new URL(NEXT_PUBLIC_REALTIME_URL).origin}` : ''
+}
+
 function buildCspHeader(nonce: string): string {
   const ga = googleAnalyticsSrc()
   return `
@@ -117,8 +128,10 @@ function buildCspHeader(nonce: string): string {
     script-src 'self' 'nonce-${nonce}'${ga.script}${NODE_ENV === 'development' ? " 'unsafe-eval'" : ''};
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
+    media-src 'self' blob: https:;
     font-src 'self';
-    connect-src 'self' https://*.axiom.co https://cdn.jsdelivr.net${sentryConnectSrc()}${ga.connect}${NODE_ENV === 'development' ? ' ws://localhost:4444' : ''};
+    connect-src 'self' blob: data: https://*.axiom.co https://cdn.jsdelivr.net${realtimeConnectSrc()}${sentryConnectSrc()}${ga.connect}${NODE_ENV === 'development' ? ' ws://localhost:4444' : ''};
+    frame-src https://www.figma.com https://www.loom.com https://www.youtube.com https://docs.google.com;
     frame-ancestors 'none';
     form-action 'self';
     base-uri 'self';

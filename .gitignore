@@ -60,3 +60,7 @@ storybook-static
 .agents*
 .claude
 # /docs e CLAUDE.md são versionados (documentação do projeto e guia de agentes)
+
+# excalidraw fonts, copied from node_modules by next.config.ts
+/public/static/excalidraw/
+/public/static/excalidraw.tmp-*/

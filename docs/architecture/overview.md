@@ -280,6 +280,7 @@ Avisos de CI/CD vão para outro canal (secret `SLACK_WEBHOOK_URL`). Queda do ser
 | ------- | --------- | ------------ | ---------- |
 | App Next | `nextjs-app` | 3000 | `docker-compose.yml`, atrás do nginx |
 | Worker | `steel-worker` | — | mesma imagem, `node dist/worker.cjs` |
+| Realtime (Wiki) | `steel-realtime` | 127.0.0.1:1235 | mesma imagem, `node dist/realtime.cjs` (Hocuspocus); nginx `/realtime` — ver `docs/runbooks/realtime-wiki.md` |
 | PostgreSQL 17 | `steel-db` | 5433 → 5432 | `docker-compose.infra.yml`, volume `pgdata` |
 | Redis 8 (TLS) | `steel-redis` | 6380 → 6379 | bitnami fixado por digest; certificados em `redis-tls/`; URL `rediss://` |
 | MinIO | `steel-minio` | 127.0.0.1:9002 (API), 127.0.0.1:9003 (console) | imagem `docker.io/pgsty/silo` (fork AGPL mantido do MinIO, cuja distribuição pública saiu do ar); API nunca exposta publicamente |

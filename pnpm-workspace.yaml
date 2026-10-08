@@ -13,6 +13,11 @@ trustPolicyExclude:
   # never re-check it, but Dependabot re-resolves the whole tree for each update
   # and every job died on ERR_PNPM_TRUST_DOWNGRADE until the 55 min timeout.
   - 'eslint-import-resolver-typescript@3.10.1'
+  # Árvore do mermaid puxada pelo @excalidraw/excalidraw (bloco de desenho da
+  # Wiki): perdeu evidência de trusted publisher em deps transitivas. Mesma
+  # exceção aprovada no Nexo; revisitar quando sair versão confiável.
+  - 'cytoscape@3.34.1'
+  - 'langium@3.3.1'
 blockExoticSubdeps: true
 
 overrides:
@@ -58,6 +63,13 @@ overrides:
   # deixa o peer insatisfeito e arrisca duas cópias do ProseMirror no bundle.
   # O override cobre qualquer cópia transitiva que ainda peça a versão velha.
   '@tiptap/core': '>=3.31.3 <4.0.0'
+
+  # @platejs/excalidraw 53.0.0 (bloco de desenho da Wiki) fixa o
+  # @excalidraw/excalidraw 0.18.0 exato, que puxa mermaid 10 / dompurify 3.1.6
+  # (GHSA-39h7-pwv7-rc3x e as XSS do mermaid 10). A 0.18.1 é a release que
+  # corrige isso e é a que o package.json lista direto. Remover quando o
+  # @platejs/excalidraw depender de >=0.18.1.
+  '@platejs/excalidraw>@excalidraw/excalidraw': '0.18.1'
 
   # Overrides por major, porque o repositório carrega duas linhas da mesma
   # biblioteca e juntar as duas num major só quebraria quem pede a antiga.

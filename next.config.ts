@@ -1,10 +1,28 @@
+import { createRequire } from "node:module";
+import path from "node:path";
 import { withSentryConfig } from "@sentry/nextjs/config";
 import type { NextConfig } from "next";
+import { EXCALIDRAW_ASSET_PATH } from "./lib/excalidraw/asset-path";
+import { syncExcalidrawFonts } from "./lib/excalidraw/sync-fonts";
 import {
   POSTHOG_DEFAULT_HOST,
   POSTHOG_PROXY_PATH,
   posthogAssetHost,
 } from "./lib/posthog/constants";
+
+// Fontes do Excalidraw (bloco de desenho da Wiki) servidas desta origem, em
+// vez do esm.sh que o `font-src 'self'` bloqueia. Roda sempre que o Next lê
+// este config (`next dev`, `next build`, o build do Dockerfile), antes de o
+// public/ ser lido, e só recopia quando a versão do pacote muda. O servidor
+// standalone embute o config, então produção não toca no disco por isso.
+syncExcalidrawFonts({
+  packageDir: path.dirname(
+    path.dirname(
+      path.dirname(createRequire(__filename).resolve("@excalidraw/excalidraw")),
+    ),
+  ),
+  targetDir: path.join(__dirname, "public", EXCALIDRAW_ASSET_PATH),
+});
 
 // Headers estáticos aplicados a toda resposta (inclusive rotas fora do matcher
 // do proxy). CSP com nonce continua no proxy.ts; HSTS também é enviado lá, mas
@@ -121,6 +139,27 @@ const nextConfig: NextConfig = {
     ],
   },
   cacheComponents: true,
+  turbopack: {
+    rules: {
+      // Aponta o fallback fixo do esm.sh nas fontes do Excalidraw para a cópia
+      // auto-hospedada acima; ver lib/excalidraw/cdn-fallback-loader.cjs.
+      "*.js": {
+        condition: {
+          all: [
+            "browser",
+            { path: /@excalidraw\/excalidraw\/dist\// },
+            { content: /ASSETS_FALLBACK_URL/ },
+          ],
+        },
+        loaders: [
+          {
+            loader: path.join(__dirname, "lib/excalidraw/cdn-fallback-loader.cjs"),
+            options: { assetPath: EXCALIDRAW_ASSET_PATH },
+          },
+        ],
+      },
+    },
+  },
   experimental: {
     webpackMemoryOptimizations: true,
     // O runner de build self-hosted tem ~3.8GB de RAM total; sem controle o

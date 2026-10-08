@@ -84,7 +84,8 @@ RUN --mount=type=secret,id=sentry_auth_token \
     fi && \
     pnpm prisma:generate && \
     pnpm build && \
-    pnpm worker:build
+    pnpm worker:build && \
+    pnpm realtime:build
 
 FROM base AS runner
 WORKDIR /app
