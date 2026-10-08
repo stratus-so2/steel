@@ -356,8 +356,9 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
     scope: 'global',
     group: 'actions',
     label: 'Salvar',
-    note: 'Nas telas com botão Salvar.',
+    note: 'Nas telas e painéis com botão Salvar.',
     allowInInput: true,
+    allowInDialog: true,
     priority: 'P2',
   },
   {

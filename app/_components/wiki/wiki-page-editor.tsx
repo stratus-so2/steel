@@ -2,6 +2,7 @@
 
 import type { Value } from 'platejs'
 import { useEffect, useRef, useState } from 'react'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { WikiPageRichEditor } from '@/components/editor/wiki-editor'
 import { Input } from '@/components/ui/input'
 import { useUpdateWikiPage } from '@/src/hooks/use-wiki-page'
@@ -34,6 +35,13 @@ export function WikiPageEditor({
   const [title, setTitle] = useState(page.title)
   const contentRef = useRef<Value>(page.content)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // `E`: put the cursor in the page body.
+  useShortcut('wiki.focus-editor', () => {
+    const editor = document.querySelector<HTMLElement>('[data-slate-editor]')
+    if (!editor) return false
+    editor.focus()
+  })
 
   useEffect(() => {
     setTitle(page.title)

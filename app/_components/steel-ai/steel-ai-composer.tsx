@@ -7,6 +7,7 @@ import {
   StopIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type CSSProperties, type Ref, useId, useRef, useState } from 'react'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { useQuickSend } from '@/app/_components/shortcuts/use-quick-send'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
@@ -99,6 +100,23 @@ export function SteelAiComposer({
   const fileRef = useRef<HTMLInputElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
   const quickSend = useQuickSend()
+  // Esc stops the answer in progress; Alt+M flips Explorar ↔ Agente.
+  useShortcut(
+    'ai.stop',
+    () => {
+      if (!isStreaming || !onStop) return false
+      onStop()
+    },
+    { enabled: Boolean(onStop) },
+  )
+  useShortcut(
+    'ai.toggle-mode',
+    () => {
+      if (!agentModeEnabled || disabled) return false
+      onModeChange(mode === 'EXPLORE' ? 'AGENT' : 'EXPLORE')
+    },
+    { enabled: agentModeEnabled },
+  )
   const pickerId = useId()
   const [dragging, setDragging] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)

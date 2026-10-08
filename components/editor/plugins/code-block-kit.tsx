@@ -21,7 +21,8 @@ export const CodeBlockKit = [
     inputRules: [CodeBlockRules.markdown({ on: 'match' })],
     node: { component: CodeBlockElement },
     options: { lowlight },
-    shortcuts: { toggle: { keys: 'mod+alt+8' } },
+    // ⌘⌥8 on macOS, Ctrl+Shift+8 elsewhere (Ctrl+Alt is AltGr on ABNT2).
+    shortcuts: { toggle: { keys: ['meta+alt+8', 'ctrl+shift+8'] } },
   }),
   CodeLinePlugin.withComponent(CodeLineElement),
   CodeSyntaxPlugin.withComponent(CodeSyntaxLeaf),

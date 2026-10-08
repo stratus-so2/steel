@@ -96,7 +96,7 @@ export function RichTextPanel({
         ) : null}
 
         <div className='flex items-center justify-end border-t p-3'>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving} data-shortcut-save>
             {saving ? 'Salvando…' : 'Salvar'}
           </Button>
         </div>

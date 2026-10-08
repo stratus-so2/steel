@@ -76,6 +76,26 @@ function BuiltinShortcuts({
     form.requestSubmit()
   })
 
+  // Ctrl+S: the screen's Save button (`data-shortcut-save`, the open dialog
+  // first), else the focused form. Elsewhere the browser keeps its Ctrl+S.
+  useShortcut('global.save', (event) => {
+    const scope: ParentNode = topOverlay() ?? document
+    const buttons = [
+      ...scope.querySelectorAll<HTMLButtonElement>(
+        '[data-shortcut-save]:not(:disabled)',
+      ),
+    ]
+    const button = buttons.at(-1)
+    if (button) {
+      button.click()
+      return
+    }
+    const form =
+      event.target instanceof Element ? event.target.closest('form') : null
+    if (!form?.querySelector('[type="submit"]:not(:disabled)')) return false
+    form.requestSubmit()
+  })
+
   useShortcut('global.copy-link', () => {
     void navigator.clipboard
       ?.writeText(window.location.href)

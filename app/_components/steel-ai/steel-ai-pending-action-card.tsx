@@ -176,6 +176,7 @@ export function SteelAiPendingActionCard({
             size='sm'
             variant={action.kind === 'DELETE' ? 'destructive' : 'default'}
             disabled={busy}
+            data-ai-approve
             onClick={() => (needsDouble ? setAskTwice(true) : run(false))}
             className='flex-1 sm:flex-none'
           >

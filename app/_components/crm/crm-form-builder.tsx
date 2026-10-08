@@ -396,7 +396,7 @@ function CrmFormBuilderInner({
             </span>
           ) : null}
         </Button>
-        <Button size='sm' onClick={onSave} disabled={saving}>
+        <Button size='sm' onClick={onSave} disabled={saving} data-shortcut-save>
           {saving ? 'Salvando…' : 'Salvar'}
         </Button>
       </header>

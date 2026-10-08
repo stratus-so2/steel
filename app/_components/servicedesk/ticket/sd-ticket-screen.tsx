@@ -194,6 +194,7 @@ function Description({
           <Button
             size='xs'
             disabled={update.isPending}
+            data-shortcut-save
             onClick={() =>
               update.mutate(
                 { description: html || null },
