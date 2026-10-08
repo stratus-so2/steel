@@ -4,6 +4,7 @@ import { registerAdminPaths } from './paths/admin'
 import { registerAuthPaths } from './paths/auth'
 import { registerCorePaths } from './paths/core'
 import { registerCrmPaths } from './paths/crm'
+import { registerIntegrationPaths } from './paths/integrations'
 import { registerPublicPaths } from './paths/public'
 import { registerSearchPaths } from './paths/search'
 import { registerServiceDeskPaths } from './paths/servicedesk'
@@ -40,6 +41,7 @@ export function createRegistry(): OpenApiRegistry {
   registerSearchPaths(registry)
   registerWikiPaths(registry)
   registerSettingsExportsWorklogsPaths(registry)
+  registerIntegrationPaths(registry)
   return registry
 }
 

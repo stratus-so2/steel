@@ -57,7 +57,11 @@ import type {
 import type { CrmPersonDTO } from '@/types/crm-person'
 import type { CrmProposalDTO } from '@/types/crm-proposal'
 import { assertModuleEnabled, assertModuleMember } from './authz'
-import { notifyCrmDealClosed, notifyCrmLeadAssigned } from './crm-notifications'
+import {
+  notifyCrmDealClosed,
+  notifyCrmLeadAssigned,
+  notifyCrmLeadCreated,
+} from './crm-notifications'
 import { resolveProposalValidUntil } from './crm-proposal.service'
 import { CrmSettingsService } from './crm-settings.service'
 import { dispatchCrmWorkflowRecordEvent } from './crm-workflow-dispatcher'
@@ -350,6 +354,7 @@ export const CrmLeadService = {
       leadId: lead.id,
       name: lead.name,
     })
+    void notifyCrmLeadCreated({ workspaceId, lead })
     if (ownerId) {
       void notifyCrmLeadAssigned({
         workspaceId,

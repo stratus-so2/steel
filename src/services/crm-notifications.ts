@@ -1,4 +1,5 @@
 import { emitNotification } from './notification-emitter'
+import { notifyWorkspaceSlack } from './workspace-slack-notifier'
 
 /**
  * In-app notifications of the CRM module. One function per event so the copy
@@ -43,6 +44,20 @@ export function notifyCrmLeadAssigned(input: {
   })
 }
 
+/** New lead (any channel) → the workspace's Slack rule, if any. */
+export function notifyCrmLeadCreated(input: {
+  workspaceId: string
+  lead: { id: string; name: string }
+}): Promise<boolean> {
+  return notifyWorkspaceSlack({
+    workspaceId: input.workspaceId,
+    event: 'crm.lead.created',
+    title: `Novo lead: ${input.lead.name}`,
+    body: 'Um novo lead entrou no CRM.',
+    path: leadPath(input.lead.id),
+  })
+}
+
 export function notifyCrmOpportunityAssigned(input: {
   workspaceId: string
   opportunity: { id: string; name: string }
@@ -67,6 +82,18 @@ export function notifyCrmDealClosed(input: {
   actorId: string
 }): Promise<number> {
   const won = input.result === 'WON'
+  // Slack rule of the workspace (Ajustes > Integrações), fire-and-forget.
+  void notifyWorkspaceSlack({
+    workspaceId: input.workspaceId,
+    event: won ? 'crm.deal.won' : 'crm.deal.lost',
+    title: won
+      ? `Negócio ganho: ${input.lead.name}`
+      : `Negócio perdido: ${input.lead.name}`,
+    body: won
+      ? 'O lead foi fechado como ganho no CRM.'
+      : 'O lead foi fechado como perdido no CRM.',
+    path: leadPath(input.lead.id),
+  })
   return emitNotification({
     workspaceId: input.workspaceId,
     recipients: [input.lead.ownerId],

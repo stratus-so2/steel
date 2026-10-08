@@ -28,6 +28,7 @@ import {
   WhatsappBroadcastJob,
   WhatsappConversationLifecycleJob,
   WorkspaceExportJob,
+  WorkspaceIntegrationsJob,
 } from './jobs'
 import {
   getAiUsageWeeklyEmailQueue,
@@ -57,9 +58,11 @@ import {
   getWhatsappBroadcastQueue,
   getWhatsappConversationLifecycleQueue,
   getWorkspaceExportQueue,
+  getWorkspaceIntegrationsQueue,
 } from './queues'
 import {
   AiUsageWeeklyEmailCron,
+  CommunicationWaitingCron,
   CrmCompetitorSyncCron,
   CrmProposalExpiryCron,
   CrmScheduledSendCron,
@@ -535,6 +538,21 @@ export async function scheduleWorkspaceExportJobs(): Promise<void> {
   logger.info('queue.scheduler.workspace_export_registered', {
     component: 'Worker',
     pattern: WorkspaceExportPruneCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleWorkspaceIntegrationsJobs(): Promise<void> {
+  const queue = getWorkspaceIntegrationsQueue()
+  await queue.upsertJobScheduler(
+    WorkspaceIntegrationsJob.CommunicationWaitingTick,
+    { pattern: CommunicationWaitingCron, tz: RetentionTimezone },
+    { name: WorkspaceIntegrationsJob.CommunicationWaitingTick, data: {} },
+  )
+
+  logger.info('queue.scheduler.workspace_integrations_registered', {
+    component: 'Worker',
+    pattern: CommunicationWaitingCron,
     timezone: RetentionTimezone,
   })
 }

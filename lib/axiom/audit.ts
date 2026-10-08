@@ -158,6 +158,8 @@ export type AuditEntity =
   // Steel Agents
   | 'steel_agent'
   | 'steel_agent_run'
+  // Workspace-level integrations (Slack, GitHub, GitLab — ADR 0024)
+  | 'workspace_integration'
   // Steel AI 2 — files and photos sent to the assistant
   | 'ai_attachment'
   // Steel AI usage — CSV export of the AI ledger (may carry members' e-mails)
@@ -253,6 +255,8 @@ type AuditAuthEvent =
   | 'auth.sign_out'
   // Concessão OAuth do app do Slack para um workspace (ServiceDesk).
   | 'auth.oauth_grant.servicedesk_slack'
+  // Slack app OAuth grant for a workspace (Ajustes > Integrações, ADR 0024).
+  | 'auth.oauth_grant.workspace_slack'
 
 interface AuditMutationInput {
   entity: AuditEntity

@@ -41,6 +41,10 @@ const PUBLIC_ROUTES = [
   // sessão do admin que autorizou.
   '/api/servicedesk/integrations/slack',
   '/api/servicedesk/integrations/github',
+  // Workspace-level repository webhooks (ADR 0024), no session: GitHub is
+  // verified by X-Hub-Signature-256, GitLab by X-Gitlab-Token.
+  '/api/integrations/github/webhook',
+  '/api/integrations/gitlab/webhook',
   // Portal do contato externo do ServiceDesk: link mágico + sessão própria
   // no cookie `sd.portal_session` (sem Better Auth; escopo no service)
   '/suporte', '/api/servicedesk/portal',

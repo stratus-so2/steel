@@ -61,6 +61,10 @@
       "description": "Páginas colaborativas do workspace (árvore, editor Plate com edição em tempo real via Hocuspocus em `/realtime`), comentários, mídia e etiquetas. Desligada por padrão: um OWNER/ADMIN ativa em Ajustes › Wiki; enquanto isso as rotas de página/comentário/mídia respondem `403 WIKI_DISABLED`."
     },
     {
+      "name": "Integrações",
+      "description": "Slack, GitHub e GitLab conectados uma vez por workspace (Ajustes › Integrações, OWNER/ADMIN) e usados por todos os módulos: regras de notificação no Slack, vínculo de chamados com issues/PRs/MRs e os webhooks públicos dos repositórios (ADR 0024)."
+    },
+    {
       "name": "Assinaturas",
       "description": "Planos pagos via AbacatePay, cupons e o webhook de cobrança."
     },
@@ -343,7 +347,8 @@
         "Configurações do workspace",
         "Busca global",
         "Projetos",
-        "Wiki"
+        "Wiki",
+        "Integrações"
       ]
     },
     {
@@ -4892,6 +4897,182 @@
         "security": []
       }
     },
+    "/integrations/github/webhook": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Receber webhook do GitHub (público)",
+        "operationId": "postIntegrationsGithubWebhook",
+        "description": "Espelha nos chamados o estado das issues/PRs vinculadas: `closed`, `reopened` e `merged` atualizam o vínculo, registram o evento e publicam uma mensagem no chamado (fechar/mesclar **sugere** avançar a fase). Sem sessão: `repository.full_name` só acha as conexões candidatas; vale a primeira cujo segredo fecha o HMAC `X-Hub-Signature-256` sobre o corpo bruto (tempo constante). Idempotente por `X-GitHub-Delivery`; `ping` é ignorado. Também carimba o \"último evento\" da conexão.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "X-Hub-Signature-256",
+            "in": "header",
+            "required": true,
+            "description": "`sha256=<hex>` do HMAC com o segredo do webhook.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-GitHub-Event",
+            "in": "header",
+            "required": true,
+            "description": "`issues`, `pull_request` ou `ping`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-GitHub-Delivery",
+            "in": "header",
+            "required": false,
+            "description": "Chave de idempotência.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Payload de `issues` ou `pull_request`.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SdGithubWebhookPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdGithubWebhook"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_INTEGRATION_SIGNATURE_INVALID_2"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_MODULE_DISABLED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED_2"
+          }
+        },
+        "security": []
+      }
+    },
+    "/integrations/gitlab/webhook": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Receber webhook do GitLab (público)",
+        "operationId": "postIntegrationsGitlabWebhook",
+        "description": "Mesmo comportamento do webhook do GitHub, para issues e merge requests (gitlab.com ou self-managed). O GitLab não assina o corpo: o *secret token* do webhook chega em `X-Gitlab-Token` e é comparado em tempo constante com o segredo de cada conexão do projeto (`project.path_with_namespace` só acha as candidatas). Qualquer ação é aceita — estado igual ao anterior não faz nada. Idempotente por `X-Gitlab-Event-UUID` (ou `Idempotency-Key`).\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "X-Gitlab-Token",
+            "in": "header",
+            "required": true,
+            "description": "Secret token cadastrado no webhook do projeto.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Gitlab-Event",
+            "in": "header",
+            "required": false,
+            "description": "`Issue Hook` ou `Merge Request Hook`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Gitlab-Event-UUID",
+            "in": "header",
+            "required": false,
+            "description": "Chave de idempotência.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Payload de issue ou merge request.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SdGitlabWebhookPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdGitlabWebhook"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_SD_INTEGRATION_SIGNATURE_INVALID_2"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_MODULE_DISABLED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED_2"
+          }
+        },
+        "security": []
+      }
+    },
     "/invitations/accept": {
       "post": {
         "tags": ["Membros e convites"],
@@ -5300,9 +5481,9 @@
     "/servicedesk/integrations/github": {
       "post": {
         "tags": ["ServiceDesk · Integrações"],
-        "summary": "Receber webhook do GitHub (público)",
+        "summary": "Receber webhook do GitHub (público, caminho legado)",
         "operationId": "postServicedeskIntegrationsGithub",
-        "description": "Espelha o estado da issue/PR vinculada: `closed`, `reopened` e `merged` atualizam `externalState`, registram o evento na rastreabilidade e publicam uma mensagem no chamado. Com `suggestPhaseOnClose` (padrão), fechar/mesclar **sugere** avançar a fase — quem move a fase é o agente, porque em ITIL o encerramento exige solução, classificação e às vezes aprovação.\n\nSem sessão: `repository.full_name` serve apenas para achar a integração e o segredo; nada é gravado antes do HMAC `X-Hub-Signature-256` fechar sobre o corpo bruto (comparação em tempo constante). Idempotente por `X-GitHub-Delivery`. Evento de item não vinculado responde `unlinked` sem efeito, e `ping` é ignorado.\n\nAlém do webhook, o job `sync-github-state` reconcilia de hora em hora (cron `40 * * * *`) o estado dos vínculos de chamados abertos — a rede de proteção para um webhook perdido.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Espelha o estado da issue/PR vinculada: `closed`, `reopened` e `merged` atualizam `externalState`, registram o evento na rastreabilidade e publicam uma mensagem no chamado. Com `suggestPhaseOnClose` (padrão), fechar/mesclar **sugere** avançar a fase — quem move a fase é o agente, porque em ITIL o encerramento exige solução, classificação e às vezes aprovação.\n\nMesmo tratamento de `POST /integrations/github/webhook` — este caminho fica para os webhooks cadastrados antes da ADR 0024. Sem sessão: `repository.full_name` serve apenas para achar a conexão e o segredo; nada é gravado antes do HMAC `X-Hub-Signature-256` fechar sobre o corpo bruto (comparação em tempo constante). Idempotente por `X-GitHub-Delivery`. Evento de item não vinculado responde `unlinked` sem efeito, e `ping` é ignorado.\n\nAlém do webhook, o job `sync-github-state` reconcilia de hora em hora (cron `40 * * * *`) o estado dos vínculos de chamados abertos — a rede de proteção para um webhook perdido.\n\nRate limit por IP; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "name": "X-Hub-Signature-256",
@@ -5390,7 +5571,7 @@
         "tags": ["ServiceDesk · Integrações"],
         "summary": "Callback OAuth do Slack",
         "operationId": "getServicedeskIntegrationsOauthSlack",
-        "description": "Path **fixo** cadastrado no app do Slack. Exige a sessão do admin que autorizou (o workspace vem do `state`); troca o `code` pelo token do bot, cifra com `CONNECTION_SECRETS` e volta para a aba Integrações com `?slack=connected` (ou `?slack=error&reason=…`). A concessão fica na trilha de auditoria (`auth.oauth_grant.servicedesk_slack`).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Path **fixo** cadastrado no app do Slack (mantém o caminho histórico). Exige a sessão do OWNER/ADMIN que autorizou (o workspace vem do `state`); troca o `code` pelo token do bot, cifra com `CONNECTION_SECRETS` e volta para Ajustes › Integrações com `?slack=connected` (ou `?slack=error&reason=…`). A concessão fica na trilha de auditoria (`auth.oauth_grant.workspace_slack`).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "name": "code",
@@ -5419,7 +5600,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Redirect para `/{slug}/servicedesk/settings?tab=integrations`.",
+            "description": "Redirect para `/{slug}/settings/integrations`.",
             "headers": {
               "Location": {
                 "description": "Destino no Steel.",
@@ -8923,7 +9104,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "409": {
             "$ref": "#/components/responses/409_CONFLICT"
@@ -9239,7 +9420,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_STEEL_AGENT_INVALID_TOOL_STEEL_AGENT_INVALID_TRIGGER_STEEL_AGENT_INVALID_OWNER"
@@ -9458,7 +9639,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_PENDING_ACTION_NOT_FOUND_STEEL_AGENT_RUN_NOT_FOUND"
@@ -9698,7 +9879,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -9762,7 +9943,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -9825,7 +10006,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -10052,7 +10233,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_STEEL_AGENT_NOT_FOUND"
@@ -10243,7 +10424,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_AI_MODEL_NOT_ENABLED_2"
@@ -11636,7 +11817,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_MEMORY_NOT_FOUND"
@@ -11706,7 +11887,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_MEMORY_NOT_FOUND"
@@ -11878,7 +12059,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "409": {
             "$ref": "#/components/responses/409_AI_SKILL_SLUG_TAKEN"
@@ -11999,7 +12180,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_SKILL_NOT_FOUND"
@@ -12072,7 +12253,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_AI_SKILL_NOT_FOUND"
@@ -12711,7 +12892,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_CONNECTION_NOT_FOUND"
@@ -19240,7 +19421,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -30470,7 +30651,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -36712,7 +36893,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -36970,7 +37151,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "409": {
             "$ref": "#/components/responses/409_WORKSPACE_EXPORT_NOT_READY"
@@ -37028,7 +37209,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_WORKSPACE_EXPORT_NOT_FOUND"
@@ -37110,6 +37291,1067 @@
         ]
       }
     },
+    "/workspaces/{id}/integrations": {
+      "get": {
+        "tags": ["Integrações"],
+        "summary": "Integrações do workspace",
+        "operationId": "getWorkspacesByIdIntegrations",
+        "description": "Slack, GitHub e GitLab: disponibilidade no servidor (com o motivo quando indisponível), a conexão e as URLs a cadastrar em cada provedor, e os módulos habilitados (filtram os eventos do Slack). Token e segredo do webhook **só entram**: nenhuma resposta os devolve, nem mascarados (o DTO diz só `hasWebhookSecret`). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Integrações do workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegrationsOverview"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/github": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Conectar o GitHub",
+        "operationId": "postWorkspacesByIdIntegrationsGithub",
+        "description": "Guarda o repositório (`owner/repo` ou a URL), o token (PAT fine-grained) e o segredo do webhook, cifrados com `CONNECTION_SECRETS`. O acesso é validado na API **antes** de guardar; o `externalId` fica com o nome canônico devolvido pelo GitHub. Reconectar outro repositório aposenta o anterior. Token e segredo do webhook **só entram**: nenhuma resposta os devolve, nem mascarados (o DTO diz só `hasWebhookSecret`). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "repo": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 255
+                  },
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 255
+                  },
+                  "webhookSecret": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["repo", "token"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conectado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegration"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["Integrações"],
+        "summary": "Trocar token/segredo do GitHub",
+        "operationId": "patchWorkspacesByIdIntegrationsGithub",
+        "description": "Troca o token (revalidado no GitHub) e/ou o segredo do webhook; o anterior é descartado. Token e segredo do webhook **só entram**: nenhuma resposta os devolve, nem mascarados (o DTO diz só `hasWebhookSecret`). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 255
+                  },
+                  "webhookSecret": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credenciais salvas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegration"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Integrações"],
+        "summary": "Desconectar o GitHub",
+        "operationId": "deleteWorkspacesByIdIntegrationsGithub",
+        "description": "O token é apagado e o webhook deixa de ser aceito, em todos os módulos. Os vínculos já registrados continuam no histórico dos chamados. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desconectado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/github/test": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Testar a conexão com o GitHub",
+        "operationId": "postWorkspacesByIdIntegrationsGithubTest",
+        "description": "Chama a API com o token guardado. Falha do provedor é resposta normal (`ok: false` + motivo) e carimba `status: ERROR`; conexão sem segredo de webhook também falha (o webhook seria recusado). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado do teste.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegrationTest"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/gitlab": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Conectar o GitLab",
+        "operationId": "postWorkspacesByIdIntegrationsGitlab",
+        "description": "Guarda a instância (`baseUrl`, vazio = gitlab.com; só HTTPS e domínio público), o projeto (`grupo/projeto` ou a URL), o token (pessoal, de projeto ou de grupo) e o *secret token* do webhook, cifrados com `CONNECTION_SECRETS`. O acesso é validado na API v4 **antes** de guardar. Token e segredo do webhook **só entram**: nenhuma resposta os devolve, nem mascarados (o DTO diz só `hasWebhookSecret`). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "baseUrl": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "project": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 255
+                  },
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 255
+                  },
+                  "webhookSecret": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": ["project", "token"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conectado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegration"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": ["Integrações"],
+        "summary": "Trocar token/segredo do GitLab",
+        "operationId": "patchWorkspacesByIdIntegrationsGitlab",
+        "description": "Troca o token (revalidado no GitLab) e/ou o segredo do webhook; o anterior é descartado. Token e segredo do webhook **só entram**: nenhuma resposta os devolve, nem mascarados (o DTO diz só `hasWebhookSecret`). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 255
+                  },
+                  "webhookSecret": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 16,
+                        "maxLength": 255
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credenciais salvas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegration"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Integrações"],
+        "summary": "Desconectar o GitLab",
+        "operationId": "deleteWorkspacesByIdIntegrationsGitlab",
+        "description": "O token é apagado e o webhook deixa de ser aceito, em todos os módulos. Os vínculos já registrados continuam no histórico dos chamados. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desconectado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/gitlab/test": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Testar a conexão com o GitLab",
+        "operationId": "postWorkspacesByIdIntegrationsGitlabTest",
+        "description": "Chama a API com o token guardado. Falha do provedor é resposta normal (`ok: false` + motivo) e carimba `status: ERROR`; conexão sem segredo de webhook também falha (o webhook seria recusado). Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado do teste.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegrationTest"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/slack": {
+      "patch": {
+        "tags": ["Integrações"],
+        "summary": "Regras de notificação do Slack",
+        "operationId": "patchWorkspacesByIdIntegrationsSlack",
+        "description": "Substitui as regras \"evento → canal\" (até 120; um evento pode ir a vários canais) e/ou o tempo, em minutos, para uma conversa da Comunicação contar como \"aguardando há muito tempo\". As configurações do ServiceDesk (canal por time…) ficam em `PATCH /workspaces/{id}/servicedesk/integrations/slack`. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "routes": {
+                    "maxItems": 120,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "channelId": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 64,
+                              "pattern": "^[A-Za-z0-9._-]+$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "channelName": {
+                          "default": null,
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "maxLength": 120
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": ["event"]
+                    }
+                  },
+                  "waitingMinutes": {
+                    "type": "integer",
+                    "minimum": 5,
+                    "maximum": 1440
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Regras salvas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegration"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Integrações"],
+        "summary": "Desconectar o Slack",
+        "operationId": "deleteWorkspacesByIdIntegrationsSlack",
+        "description": "O token é apagado, os avisos param e o webhook deixa de ser aceito, em todos os módulos. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Desconectado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "example": {
+                  "success": true,
+                  "statusCode": 200,
+                  "data": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/slack/channels": {
+      "get": {
+        "tags": ["Integrações"],
+        "summary": "Listar canais do Slack",
+        "operationId": "getWorkspacesByIdIntegrationsSlackChannels",
+        "description": "Canais (públicos e privados) que o bot enxerga, em ordem alfabética. Falha do Slack carimba `status: ERROR` na conexão. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canais disponíveis.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SlackChannelOption"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED_2"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/slack/connect": {
+      "get": {
+        "tags": ["Integrações"],
+        "summary": "Conectar o Slack (iniciar OAuth)",
+        "operationId": "getWorkspacesByIdIntegrationsSlackConnect",
+        "description": "Redireciona (`302`) para a autorização do app do Slack. Abra no navegador — não é uma chamada JSON. O workspace viaja num `state` assinado (10 min); o callback é `GET /servicedesk/integrations/oauth/slack`, que volta para Ajustes › Integrações. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect para a autorização do Slack.",
+            "headers": {
+              "Location": {
+                "description": "URL de autorização do Slack.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED_2"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/integrations/slack/test": {
+      "post": {
+        "tags": ["Integrações"],
+        "summary": "Testar a conexão com o Slack",
+        "operationId": "postWorkspacesByIdIntegrationsSlackTest",
+        "description": "`auth.test` com o token do bot guardado. Falha é resposta normal (`ok: false` + motivo) e carimba `status: ERROR`. Acesso: sessão + **OWNER/ADMIN** do workspace.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultado do teste.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceIntegrationTest"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED_2"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/invitations": {
       "get": {
         "tags": ["Membros e convites"],
@@ -37151,7 +38393,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -37309,7 +38551,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -37376,7 +38618,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -37442,7 +38684,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_INVITATION_NOT_FOUND"
@@ -37517,7 +38759,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_36"
@@ -37572,7 +38814,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -37736,7 +38978,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_30"
@@ -37808,7 +39050,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
@@ -38063,7 +39305,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -39040,7 +40282,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "409": {
             "$ref": "#/components/responses/409_PROFILE_NAME_TAKEN"
@@ -39133,7 +40375,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -39205,7 +40447,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "404": {
             "$ref": "#/components/responses/404_PROFILE_NOT_FOUND"
@@ -39811,7 +41053,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
@@ -39879,7 +41121,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
@@ -54418,7 +55660,7 @@
         "tags": ["ServiceDesk · Integrações"],
         "summary": "Estado das integrações",
         "operationId": "getWorkspacesByIdServicedeskIntegrations",
-        "description": "O que está conectado (Slack e GitHub) e as URLs a cadastrar nos painéis do Slack e do repositório. O token do app e o segredo do webhook **nunca** voltam em resposta nenhuma — nem mascarados: o DTO só diz se existe segredo (`hasWebhookSecret`). Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Estado das conexões do workspace (Slack, GitHub, GitLab) vistas pelo ServiceDesk, com as configurações do módulo. A conexão é gerenciada em `/workspaces/{id}/integrations` (OWNER/ADMIN). O token do app e o segredo do webhook **nunca** voltam em resposta nenhuma — nem mascarados: o DTO só diz se existe segredo (`hasWebhookSecret`). Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "name": "id",
@@ -54457,7 +55699,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -54471,115 +55713,11 @@
       }
     },
     "/workspaces/{id}/servicedesk/integrations/github": {
-      "post": {
-        "tags": ["ServiceDesk · Integrações"],
-        "summary": "Conectar um repositório do GitHub",
-        "operationId": "postWorkspacesByIdServicedeskIntegrationsGithub",
-        "description": "Guarda o repositório (`owner/repo` ou a URL), o token do workspace e o segredo do webhook, os dois cifrados com `CONNECTION_SECRETS`. O acesso é validado na API do GitHub **antes** de guardar, e o `externalId` fica com o nome canônico que o GitHub devolve — é com ele que o `repository.full_name` do webhook casa. O token do app e o segredo do webhook **nunca** voltam em resposta nenhuma — nem mascarados: o DTO só diz se existe segredo (`hasWebhookSecret`). Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Id do workspace.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "repo": {
-                    "type": "string",
-                    "minLength": 3,
-                    "maxLength": 255
-                  },
-                  "token": {
-                    "type": "string",
-                    "minLength": 20,
-                    "maxLength": 255
-                  },
-                  "webhookSecret": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "minLength": 16,
-                        "maxLength": 255
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "suggestPhaseOnClose": {
-                    "default": true,
-                    "type": "boolean"
-                  },
-                  "allowIssueFromTicket": {
-                    "default": true,
-                    "type": "boolean"
-                  }
-                },
-                "required": ["repo", "token"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Repositório conectado.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/SdIntegration"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/401_UNAUTHORIZED"
-          },
-          "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
-          },
-          "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR"
-          },
-          "429": {
-            "$ref": "#/components/responses/429_RATE_LIMITED"
-          },
-          "502": {
-            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      },
       "patch": {
         "tags": ["ServiceDesk · Integrações"],
-        "summary": "Configurar o GitHub",
+        "summary": "Configurar o GitHub no ServiceDesk",
         "operationId": "patchWorkspacesByIdServicedeskIntegrationsGithub",
-        "description": "Troca o token (revalidado no GitHub) ou o segredo do webhook e liga/desliga a sugestão de fase e a abertura de issue a partir do chamado. O token do app e o segredo do webhook **nunca** voltam em resposta nenhuma — nem mascarados: o DTO só diz se existe segredo (`hasWebhookSecret`). Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Liga/desliga a sugestão de fase e a abertura de issue a partir do chamado. Token e segredo do webhook são do workspace (`PATCH /workspaces/{id}/integrations/github`). Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "name": "id",
@@ -54598,23 +55736,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "token": {
-                    "type": "string",
-                    "minLength": 20,
-                    "maxLength": 255
-                  },
-                  "webhookSecret": {
-                    "anyOf": [
-                      {
-                        "type": "string",
-                        "minLength": 16,
-                        "maxLength": 255
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
                   "suggestPhaseOnClose": {
                     "type": "boolean"
                   },
@@ -54628,7 +55749,7 @@
         },
         "responses": {
           "200": {
-            "description": "Integração salva.",
+            "description": "Configuração salva.",
             "content": {
               "application/json": {
                 "schema": {
@@ -54656,76 +55777,10 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
           },
           "404": {
-            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND_2"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
-          },
-          "429": {
-            "$ref": "#/components/responses/429_RATE_LIMITED"
-          },
-          "502": {
-            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      },
-      "delete": {
-        "tags": ["ServiceDesk · Integrações"],
-        "summary": "Desconectar o GitHub",
-        "operationId": "deleteWorkspacesByIdServicedeskIntegrationsGithub",
-        "description": "O repositório sai da aba, o token é apagado e o webhook deixa de ser aceito. Os vínculos já registrados continuam no histórico dos chamados. Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Id do workspace.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Desconectado.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "null"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "example": {
-                  "success": true,
-                  "statusCode": 200,
-                  "data": null
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/401_UNAUTHORIZED"
-          },
-          "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
-          },
-          "404": {
-            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -54805,7 +55860,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_INTEGRATION_NOT_FOUND"
@@ -54820,7 +55875,183 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "502": {
-            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED_2"
+          },
+          "503": {
+            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/integrations/gitlab": {
+      "patch": {
+        "tags": ["ServiceDesk · Integrações"],
+        "summary": "Configurar o GitLab no ServiceDesk",
+        "operationId": "patchWorkspacesByIdServicedeskIntegrationsGitlab",
+        "description": "Mesmo contrato do GitHub, para a conexão do GitLab. Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "suggestPhaseOnClose": {
+                    "type": "boolean"
+                  },
+                  "allowIssueFromTicket": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Configuração salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdIntegration"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/servicedesk/integrations/gitlab/issues": {
+      "post": {
+        "tags": ["ServiceDesk · Integrações"],
+        "summary": "Abrir issue no GitLab a partir do chamado",
+        "operationId": "postWorkspacesByIdServicedeskIntegrationsGitlabIssues",
+        "description": "Mesmo contrato de `POST /workspaces/{id}/servicedesk/integrations/github/issues`, no projeto do GitLab conectado. Acesso: sessão + módulo **ServiceDesk** habilitado; só **agentes** (membros de um departamento) e admins do módulo.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ticketId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  }
+                },
+                "required": ["ticketId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Issue aberta e vinculada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SdIntegrationLink"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_INTEGRATION_NOT_FOUND"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_SD_TICKET_CLOSED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED_2"
           },
           "503": {
             "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED"
@@ -54910,9 +56141,9 @@
       },
       "post": {
         "tags": ["ServiceDesk · Integrações"],
-        "summary": "Vincular uma issue/PR ao chamado",
+        "summary": "Vincular uma issue/PR/MR ao chamado",
         "operationId": "postWorkspacesByIdServicedeskIntegrationsLinks",
-        "description": "Aceita `#42`, `42`, `owner/repo#42` ou a URL. O tipo (issue × pull request) e o estado vêm da API do GitHub, não do texto. Item de outro repositório é recusado, e um item já vinculado responde `SD_INTEGRATION_LINK_EXISTS`. Acesso: sessão + módulo **ServiceDesk** habilitado; só **agentes** (membros de um departamento) e admins do módulo.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Aceita `#42`, `42`, `owner/repo#42`, `!42` (merge request do GitLab), `grupo/projeto!42` ou a URL. `provider` (`GITHUB`/`GITLAB`) é opcional: sem ele, vale o que a referência indica (sigilo/URL do GitLab, URL do github.com) ou o único repositório conectado. O tipo e o estado vêm da API do provedor, não do texto. Item de outro repositório é recusado, e um item já vinculado responde `SD_INTEGRATION_LINK_EXISTS`. Acesso: sessão + módulo **ServiceDesk** habilitado; só **agentes** (membros de um departamento) e admins do módulo.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "name": "id",
@@ -54940,6 +56171,10 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255
+                  },
+                  "provider": {
+                    "type": "string",
+                    "enum": ["GITHUB", "GITLAB"]
                   }
                 },
                 "required": ["ticketId", "ref"]
@@ -54974,7 +56209,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND_SD_INTEGRATION_NOT_FOUND"
@@ -54989,7 +56224,7 @@
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "502": {
-            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED_2"
           },
           "503": {
             "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED"
@@ -55060,7 +56295,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_INTEGRATION_LINK_NOT_FOUND"
@@ -55076,12 +56311,88 @@
         ]
       }
     },
+    "/workspaces/{id}/servicedesk/integrations/providers": {
+      "get": {
+        "tags": ["ServiceDesk · Integrações"],
+        "summary": "Repositórios conectados (tela do chamado)",
+        "operationId": "getWorkspacesByIdServicedeskIntegrationsProviders",
+        "description": "GitHub e GitLab conectados ao workspace, com o repositório/projeto e se abrir issue está ligado — é o que o bloco \"Integrações\" do chamado oferece. Acesso: sessão + módulo **ServiceDesk** habilitado; só **agentes** (membros de um departamento) e admins do módulo.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Id do workspace.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ticketId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Provedores disponíveis.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SdRepoProviderOption"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_11"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/servicedesk/integrations/slack": {
       "patch": {
         "tags": ["ServiceDesk · Integrações"],
-        "summary": "Configurar o Slack",
+        "summary": "Configurar o Slack no ServiceDesk",
         "operationId": "patchWorkspacesByIdServicedeskIntegrationsSlack",
-        "description": "Canal por time (um canal por departamento, mais o padrão), eventos enviados (chaves de `SD_NOTIFICATION_EVENTS`), abertura de chamado por mensagem e espelhamento das respostas da thread. Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Canal por time (substitui o canal da regra nos chamados do time), abertura de chamado por mensagem e espelhamento das respostas da thread. Quais eventos vão para o Slack é regra do workspace (`PATCH /workspaces/{id}/integrations/slack`). Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "name": "id",
@@ -55107,17 +56418,9 @@
                       "type": "object",
                       "properties": {
                         "departmentId": {
-                          "default": null,
-                          "anyOf": [
-                            {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 64
-                            },
-                            {
-                              "type": "null"
-                            }
-                          ]
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
                         },
                         "channelId": {
                           "type": "string",
@@ -55138,16 +56441,7 @@
                           ]
                         }
                       },
-                      "required": ["channelId"]
-                    }
-                  },
-                  "events": {
-                    "maxItems": 40,
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 80
+                      "required": ["departmentId", "channelId"]
                     }
                   },
                   "allowTicketFromMessage": {
@@ -55221,69 +56515,6 @@
             "cookieAuth": []
           }
         ]
-      },
-      "delete": {
-        "tags": ["ServiceDesk · Integrações"],
-        "summary": "Desconectar o Slack",
-        "operationId": "deleteWorkspacesByIdServicedeskIntegrationsSlack",
-        "description": "A integração sai da aba, o token é apagado e o webhook deixa de ser aceito. Os vínculos de thread já registrados continuam no histórico dos chamados. Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Id do workspace.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Desconectado.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/SuccessEnvelope"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "type": "null"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "example": {
-                  "success": true,
-                  "statusCode": 200,
-                  "data": null
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/401_UNAUTHORIZED"
-          },
-          "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_3"
-          },
-          "404": {
-            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
-          },
-          "429": {
-            "$ref": "#/components/responses/429_RATE_LIMITED"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
       }
     },
     "/workspaces/{id}/servicedesk/integrations/slack/channels": {
@@ -55333,68 +56564,16 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
           },
           "404": {
-            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
+            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
           },
           "502": {
-            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED"
-          },
-          "503": {
-            "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED"
-          }
-        },
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ]
-      }
-    },
-    "/workspaces/{id}/servicedesk/integrations/slack/connect": {
-      "get": {
-        "tags": ["ServiceDesk · Integrações"],
-        "summary": "Conectar o Slack (iniciar OAuth)",
-        "operationId": "getWorkspacesByIdServicedeskIntegrationsSlackConnect",
-        "description": "Redireciona (`302`) para a tela de autorização do Slack. Abra no navegador — não é uma chamada JSON. O workspace viaja num `state` assinado por HMAC (10 min), porque o Slack exige redirect URL exata e fixa; o callback é `GET /servicedesk/integrations/oauth/slack`. Acesso: sessão + módulo **ServiceDesk** habilitado; só **admins do módulo** (OWNER/ADMIN ou perfil com `sd-settings` × `EDIT`).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Id do workspace.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "302": {
-            "description": "Redirect para a autorização do Slack.",
-            "headers": {
-              "Location": {
-                "description": "URL de autorização do Slack.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/401_UNAUTHORIZED"
-          },
-          "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
-          },
-          "404": {
-            "$ref": "#/components/responses/404_SD_INTEGRATION_NOT_FOUND"
-          },
-          "429": {
-            "$ref": "#/components/responses/429_RATE_LIMITED"
+            "$ref": "#/components/responses/502_SD_INTEGRATION_REQUEST_FAILED_2"
           },
           "503": {
             "$ref": "#/components/responses/503_SD_INTEGRATION_NOT_CONFIGURED"
@@ -58096,7 +59275,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
@@ -58182,7 +59361,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_KB_ARTICLE_NOT_FOUND"
@@ -69513,7 +70692,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -70257,7 +71436,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -72105,7 +73284,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -72957,7 +74136,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5"
           },
           "404": {
             "$ref": "#/components/responses/404_SD_TICKET_NOT_FOUND"
@@ -75538,7 +76717,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
@@ -75982,7 +77161,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -76249,7 +77428,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_BROADCAST_NOT_FOUND"
@@ -76893,7 +78072,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
           },
           "409": {
             "$ref": "#/components/responses/409_CONFLICT_2"
@@ -76974,7 +78153,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -77083,7 +78262,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -77300,7 +78479,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONTACT_NOT_FOUND"
@@ -77528,7 +78707,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -77893,7 +79072,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29"
           },
           "404": {
             "$ref": "#/components/responses/404_WHATSAPP_CONVERSATION_NOT_FOUND"
@@ -78950,7 +80129,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -79017,7 +80196,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -79097,7 +80276,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -79166,7 +80345,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -79232,7 +80411,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -79742,7 +80921,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_21"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_8"
@@ -79970,7 +81149,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
@@ -80048,7 +81227,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "404": {
             "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
@@ -83374,7 +84553,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "409": {
             "$ref": "#/components/responses/409_WIKI_LABEL_CONFLICT"
@@ -83467,7 +84646,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_WIKI_LABEL_NOT_FOUND"
@@ -83545,7 +84724,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "404": {
             "$ref": "#/components/responses/404_WIKI_LABEL_NOT_FOUND"
@@ -83931,7 +85110,7 @@
             "$ref": "#/components/responses/401_UNAUTHORIZED"
           },
           "403": {
-            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -87306,6 +88485,29 @@
           }
         }
       },
+      "401_SD_INTEGRATION_SIGNATURE_INVALID_2": {
+        "description": "Não autenticado: `SD_INTEGRATION_SIGNATURE_INVALID`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INTEGRATION_SIGNATURE_INVALID": {
+                "summary": "SD_INTEGRATION_SIGNATURE_INVALID — Assinatura/token do webhook ausente ou inválido",
+                "value": {
+                  "success": false,
+                  "statusCode": 401,
+                  "message": "Assinatura do webhook inválida",
+                  "error": {
+                    "code": "SD_INTEGRATION_SIGNATURE_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "401_SD_MONITOR_TOKEN_INVALID": {
         "description": "Não autenticado: `SD_MONITOR_TOKEN_INVALID`",
         "content": {
@@ -88893,51 +90095,6 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro ou não é admin do módulo",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Apenas administradores do ServiceDesk podem alterar a configuração",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Consentimento LGPD pendente",
                 "value": {
                   "success": false,
@@ -88985,7 +90142,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89041,7 +90198,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89097,7 +90254,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_24": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89153,7 +90310,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_25": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89198,7 +90355,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_26": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89243,7 +90400,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_27": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89288,7 +90445,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_28": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89333,7 +90490,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_29": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89378,7 +90535,7 @@
           }
         }
       },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_30": {
         "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
         "content": {
           "application/json": {
@@ -89410,6 +90567,51 @@
               },
               "MODULE_DISABLED": {
                 "summary": "MODULE_DISABLED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_31": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro ou não é admin do módulo",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas administradores do ServiceDesk podem alterar a configuração",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -92899,73 +94101,6 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Permissão insuficiente",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "WORKSPACE_SUSPENDED": {
-                "summary": "WORKSPACE_SUSPENDED",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
-                  "error": {
-                    "code": "WORKSPACE_SUSPENDED"
-                  }
-                }
-              },
-              "MODULE_DISABLED": {
-                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Módulo não habilitado para esta workspace",
-                  "error": {
-                    "code": "MODULE_DISABLED"
-                  }
-                }
-              },
-              "SD_TICKET_FORBIDDEN": {
-                "summary": "SD_TICKET_FORBIDDEN — Solicitante sem vínculo com o chamado",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Você não tem acesso a este chamado",
-                  "error": {
-                    "code": "SD_TICKET_FORBIDDEN"
-                  }
-                }
-              },
-              "SD_NOT_AGENT": {
-                "summary": "SD_NOT_AGENT — Solicitante (sem departamento) tentou uma ação de agente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
-                  "error": {
-                    "code": "SD_NOT_AGENT"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5": {
-        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "FORBIDDEN": {
                 "summary": "FORBIDDEN — Consentimento LGPD pendente",
                 "value": {
                   "success": false,
@@ -93028,6 +94163,73 @@
                   "message": "Você não tem acesso a este chamado",
                   "error": {
                     "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_TICKET_FORBIDDEN_SD_NOT_AGENT_5": {
+        "description": "Acesso negado: `FORBIDDEN`, `MODULE_DISABLED`, `WORKSPACE_SUSPENDED`, `SD_TICKET_FORBIDDEN`, `SD_NOT_AGENT`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "FORBIDDEN": {
+                "summary": "FORBIDDEN — Não é membro do workspace ou o perfil não concede a permissão",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Permissão insuficiente",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "WORKSPACE_SUSPENDED": {
+                "summary": "WORKSPACE_SUSPENDED",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Este workspace está suspenso. Fale com o suporte da Stratus Telecom.",
+                  "error": {
+                    "code": "WORKSPACE_SUSPENDED"
+                  }
+                }
+              },
+              "MODULE_DISABLED": {
+                "summary": "MODULE_DISABLED — Módulo ServiceDesk desabilitado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Módulo não habilitado para esta workspace",
+                  "error": {
+                    "code": "MODULE_DISABLED"
+                  }
+                }
+              },
+              "SD_TICKET_FORBIDDEN": {
+                "summary": "SD_TICKET_FORBIDDEN — Solicitante sem vínculo com o chamado",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Você não tem acesso a este chamado",
+                  "error": {
+                    "code": "SD_TICKET_FORBIDDEN"
+                  }
+                }
+              },
+              "SD_NOT_AGENT": {
+                "summary": "SD_NOT_AGENT — Solicitante (sem departamento) tentou uma ação de agente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Apenas agentes (membros de um departamento) podem fazer isso",
+                  "error": {
+                    "code": "SD_NOT_AGENT"
                   }
                 }
               }
@@ -94071,6 +95273,17 @@
             },
             "examples": {
               "FORBIDDEN": {
+                "summary": "FORBIDDEN — Consentimento LGPD pendente",
+                "value": {
+                  "success": false,
+                  "statusCode": 403,
+                  "message": "Consentimento obrigatório",
+                  "error": {
+                    "code": "FORBIDDEN"
+                  }
+                }
+              },
+              "FORBIDDEN_2": {
                 "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
@@ -94105,18 +95318,7 @@
             },
             "examples": {
               "FORBIDDEN": {
-                "summary": "FORBIDDEN — Consentimento LGPD pendente",
-                "value": {
-                  "success": false,
-                  "statusCode": 403,
-                  "message": "Consentimento obrigatório",
-                  "error": {
-                    "code": "FORBIDDEN"
-                  }
-                }
-              },
-              "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Usuário não é membro do workspace",
+                "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -94161,7 +95363,7 @@
                 }
               },
               "FORBIDDEN_2": {
-                "summary": "FORBIDDEN — Usuário não é membro ou não é OWNER/ADMIN",
+                "summary": "FORBIDDEN — Usuário não é membro do workspace",
                 "value": {
                   "success": false,
                   "statusCode": 403,
@@ -98346,6 +99548,29 @@
         }
       },
       "404_SD_INTEGRATION_NOT_FOUND": {
+        "description": "Não encontrado: `SD_INTEGRATION_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INTEGRATION_NOT_FOUND": {
+                "summary": "SD_INTEGRATION_NOT_FOUND — Provedor não conectado neste workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "Integração não encontrada",
+                  "error": {
+                    "code": "SD_INTEGRATION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_SD_INTEGRATION_NOT_FOUND_2": {
         "description": "Não encontrado: `SD_INTEGRATION_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -107349,6 +108574,29 @@
             },
             "examples": {
               "SD_INTEGRATION_REQUEST_FAILED": {
+                "summary": "SD_INTEGRATION_REQUEST_FAILED — O provedor recusou a chamada (token sem acesso, repositório/projeto inexistente, fora do ar)",
+                "value": {
+                  "success": false,
+                  "statusCode": 502,
+                  "message": "O serviço externo não respondeu como esperado",
+                  "error": {
+                    "code": "SD_INTEGRATION_REQUEST_FAILED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "502_SD_INTEGRATION_REQUEST_FAILED_2": {
+        "description": "Falha em serviço externo: `SD_INTEGRATION_REQUEST_FAILED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INTEGRATION_REQUEST_FAILED": {
                 "summary": "SD_INTEGRATION_REQUEST_FAILED — O Slack ou o GitHub recusou a chamada (token sem acesso, repositório inexistente, serviço fora do ar)",
                 "value": {
                   "success": false,
@@ -107626,6 +108874,29 @@
             "examples": {
               "SD_INTEGRATION_NOT_CONFIGURED": {
                 "summary": "SD_INTEGRATION_NOT_CONFIGURED — App do Slack sem credenciais no servidor, ou integração sem token/segredo legível",
+                "value": {
+                  "success": false,
+                  "statusCode": 503,
+                  "message": "Integração não configurada no servidor",
+                  "error": {
+                    "code": "SD_INTEGRATION_NOT_CONFIGURED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "503_SD_INTEGRATION_NOT_CONFIGURED_2": {
+        "description": "Serviço indisponível: `SD_INTEGRATION_NOT_CONFIGURED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "SD_INTEGRATION_NOT_CONFIGURED": {
+                "summary": "SD_INTEGRATION_NOT_CONFIGURED — App do Slack sem credenciais no servidor, ou conexão sem token/segredo legível",
                 "value": {
                   "success": false,
                   "statusCode": 503,
@@ -130474,6 +131745,50 @@
         },
         "description": "Payload de `issues` e `pull_request`. Chaves desconhecidas são ignoradas."
       },
+      "SdGitlabWebhook": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": ["state_updated", "duplicate", "ignored", "unlinked"]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["open", "closed", "merged"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["outcome", "state"]
+      },
+      "SdGitlabWebhookPayload": {
+        "type": "object",
+        "properties": {
+          "object_kind": {
+            "example": "merge_request",
+            "type": "string"
+          },
+          "project": {
+            "description": "Usado só para achar a conexão e o segredo.",
+            "type": "object",
+            "properties": {
+              "path_with_namespace": {
+                "type": "string"
+              }
+            }
+          },
+          "object_attributes": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "description": "Payload de *Issue Hook* e *Merge Request Hook*. Chaves desconhecidas são ignoradas."
+      },
       "SdImportResult": {
         "type": "object",
         "properties": {
@@ -130700,7 +132015,7 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["SLACK", "GITHUB"]
+            "enum": ["SLACK", "GITHUB", "GITLAB"]
           },
           "status": {
             "type": "string",
@@ -130719,7 +132034,7 @@
           },
           "externalId": {
             "type": "string",
-            "description": "Workspace do Slack (`T…`) ou `owner/repo` no GitHub — é por aqui que o webhook acha o workspace.",
+            "description": "Workspace do Slack (`T…`), `owner/repo` no GitHub ou `grupo/projeto` no GitLab.",
             "example": "stratus-so2/steel"
           },
           "externalName": {
@@ -130732,9 +132047,31 @@
               }
             ]
           },
+          "baseUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Instância do GitLab; `null` para Slack e GitHub."
+          },
           "hasWebhookSecret": {
             "type": "boolean",
-            "description": "Existe segredo de assinatura guardado. O valor **nunca** volta, nem mascarado."
+            "description": "Existe segredo de webhook guardado. O valor **nunca** volta, nem mascarado."
+          },
+          "lastEventAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "slack": {
             "anyOf": [
@@ -130755,7 +132092,7 @@
                               "type": "null"
                             }
                           ],
-                          "description": "Departamento do ServiceDesk; `null` é o canal padrão."
+                          "description": "Departamento (time) do ServiceDesk."
                         },
                         "channelId": {
                           "type": "string",
@@ -130775,15 +132112,7 @@
                       },
                       "required": ["departmentId", "channelId", "channelName"]
                     },
-                    "description": "Canal por time. O evento vai ao canal do departamento do chamado; sem canal do time, ao canal padrão."
-                  },
-                  "events": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Chaves do catálogo de notificações (`SD_NOTIFICATION_EVENTS`) enviadas ao canal.",
-                    "example": ["ticket.created_in_department", "sla.breached"]
+                    "description": "Canal por time: substitui o canal da regra de notificação (Ajustes › Integrações) nos chamados daquele time."
                   },
                   "allowTicketFromMessage": {
                     "type": "boolean",
@@ -130810,7 +132139,6 @@
                 },
                 "required": [
                   "channels",
-                  "events",
                   "allowTicketFromMessage",
                   "mirrorThreadReplies",
                   "ticketType",
@@ -130822,7 +132150,7 @@
               }
             ]
           },
-          "github": {
+          "repo": {
             "anyOf": [
               {
                 "type": "object",
@@ -130858,9 +132186,11 @@
           "statusError",
           "externalId",
           "externalName",
+          "baseUrl",
           "hasWebhookSecret",
+          "lastEventAt",
           "slack",
-          "github",
+          "repo",
           "createdAt",
           "updatedAt"
         ]
@@ -130876,14 +132206,20 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["SLACK_THREAD", "GITHUB_ISSUE", "GITHUB_PULL_REQUEST"]
+            "enum": [
+              "SLACK_THREAD",
+              "GITHUB_ISSUE",
+              "GITHUB_PULL_REQUEST",
+              "GITLAB_ISSUE",
+              "GITLAB_MERGE_REQUEST"
+            ]
           },
           "ticketId": {
             "type": "string"
           },
           "externalKey": {
             "type": "string",
-            "description": "`canal:ts` (thread do Slack) ou `owner/repo#numero`.",
+            "description": "`canal:ts` (thread do Slack), `owner/repo#n` (GitHub) ou `grupo/projeto#n` / `grupo/projeto!n` (issue / merge request do GitLab).",
             "example": "stratus-so2/steel#42"
           },
           "externalUrl": {
@@ -130956,9 +132292,9 @@
         "properties": {
           "slackConfigured": {
             "type": "boolean",
-            "description": "O app do Slack tem credenciais neste servidor (`SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`). `false` deixa a integração inerte."
+            "description": "O app do Slack tem credenciais neste servidor. `false` deixa a integração desligada."
           },
-          "slackEventsUrl": {
+          "manageHref": {
             "anyOf": [
               {
                 "type": "string"
@@ -130967,11 +132303,7 @@
                 "type": "null"
               }
             ],
-            "description": "URL a cadastrar em Event Subscriptions e Interactivity & Shortcuts do app do Slack."
-          },
-          "githubWebhookUrl": {
-            "type": "string",
-            "description": "URL a cadastrar no webhook do repositório do GitHub."
+            "description": "Onde a conexão é gerenciada (`/{slug}/settings/integrations`)."
           },
           "slack": {
             "anyOf": [
@@ -130992,9 +132324,19 @@
                 "type": "null"
               }
             ]
+          },
+          "gitlab": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SdIntegration"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
-        "required": ["slackConfigured", "slackEventsUrl", "githubWebhookUrl", "slack", "github"]
+        "required": ["slackConfigured", "manageHref", "slack", "github", "gitlab"]
       },
       "SdKbArticle": {
         "type": "object",
@@ -135783,6 +137125,23 @@
           "reason",
           "createdAt"
         ]
+      },
+      "SdRepoProviderOption": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": ["GITHUB", "GITLAB"]
+          },
+          "project": {
+            "type": "string",
+            "example": "stratus-so2/steel"
+          },
+          "allowIssueFromTicket": {
+            "type": "boolean"
+          }
+        },
+        "required": ["provider", "project", "allowIssueFromTicket"]
       },
       "SdReportRun": {
         "type": "object",
@@ -140986,6 +142345,23 @@
         },
         "required": ["id", "title", "url", "userId", "createdAt", "updatedAt"]
       },
+      "SlackChannelOption": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "C024BE91L"
+          },
+          "name": {
+            "type": "string",
+            "example": "vendas"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "name", "isPrivate"]
+      },
       "StatusDailyPoint": {
         "type": "object",
         "properties": {
@@ -144646,6 +146022,249 @@
         },
         "required": ["crm.aiAssistant", "crm.socialPublishing", "communication.broadcasts"],
         "description": "Mapa efetivo `feature → ligada?` (default do plano + override do admin)."
+      },
+      "WorkspaceIntegration": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["SLACK", "GITHUB", "GITLAB"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ACTIVE", "ERROR", "DISCONNECTED"]
+          },
+          "statusError": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "externalId": {
+            "type": "string",
+            "description": "Workspace do Slack (`T…`), `owner/repo` no GitHub ou `grupo/projeto` no GitLab."
+          },
+          "externalName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "baseUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Instância do GitLab (`https://gitlab.com` ou própria)."
+          },
+          "hasWebhookSecret": {
+            "type": "boolean"
+          },
+          "lastEventAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastEventType": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "github:issues.closed"
+          },
+          "lastCheckedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "slack": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "routes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "event": {
+                          "type": "string",
+                          "description": "Chave do catálogo (`servicedesk.sla.breached`, `crm.deal.won`, `crm.lead.created`, `communication.conversation.waiting`, `agents.approval.pending`…).",
+                          "example": "crm.deal.won"
+                        },
+                        "channelId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "`null` = canal do time do chamado (só eventos do ServiceDesk).",
+                          "example": "C024BE91L"
+                        },
+                        "channelName": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "example": "vendas"
+                        }
+                      },
+                      "required": ["event", "channelId", "channelName"]
+                    }
+                  },
+                  "waitingMinutes": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": ["routes", "waitingMinutes"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "statusError",
+          "externalId",
+          "externalName",
+          "baseUrl",
+          "hasWebhookSecret",
+          "lastEventAt",
+          "lastEventType",
+          "lastCheckedAt",
+          "slack",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "WorkspaceIntegrationTest": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "example": "Acesso confirmado a stratus-so2/steel"
+          },
+          "integration": {
+            "$ref": "#/components/schemas/WorkspaceIntegration"
+          }
+        },
+        "required": ["ok", "message", "integration"]
+      },
+      "WorkspaceIntegrationsOverview": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": ["SLACK", "GITHUB", "GITLAB"]
+                },
+                "available": {
+                  "type": "boolean",
+                  "description": "`false` quando falta configuração no servidor (ex.: app do Slack sem `SLACK_CLIENT_ID`)."
+                },
+                "unavailableReason": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "webhookUrl": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "URL a cadastrar no provedor (Request URL do app do Slack, webhook do repositório/projeto)."
+                },
+                "connection": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/WorkspaceIntegration"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": ["kind", "available", "unavailableReason", "webhookUrl", "connection"]
+            }
+          },
+          "enabledModules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+            }
+          }
+        },
+        "required": ["providers", "enabledModules"]
       },
       "WorkspaceMember": {
         "type": "object",
