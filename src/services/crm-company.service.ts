@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { toCrmCompanyDTO } from '@/src/mappers/crm-company.mapper'
 import { CrmCompanyRepository } from '@/src/repositories/crm-company.repository'
 import type {
@@ -127,6 +128,7 @@ export const CrmCompanyService = {
       record: merged.value,
     })
 
+    void indexSearchDocument('crm-company', workspaceId, merged.value.id)
     return ok(merged.value)
   },
 
@@ -208,6 +210,7 @@ export const CrmCompanyService = {
       record: merged.value,
     })
 
+    void indexSearchDocument('crm-company', workspaceId, companyId)
     return ok(merged.value)
   },
 
@@ -251,6 +254,7 @@ export const CrmCompanyService = {
       record: toCrmCompanyDTO(existing.value),
     })
 
+    void indexSearchDocument('crm-company', workspaceId, companyId)
     return ok(undefined)
   },
 

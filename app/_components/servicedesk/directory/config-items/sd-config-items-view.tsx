@@ -4,7 +4,7 @@ import {
   PlusSignIcon,
   Settings02Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   SD_CI_STATUS_LABEL,
   SD_CI_STATUS_TONE,
@@ -219,6 +219,11 @@ export function SdConfigItemsView({
   }
   const { data, isLoading, error } = useSdConfigItems(workspaceId, query)
   const [detailId, setDetailId] = useState<string | null>(null)
+  // Deep link (`?record=<id>`, e.g. from the global search): opens it.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('record')
+    if (id) setDetailId(id)
+  }, [])
   const [typesOpen, setTypesOpen] = useState(false)
   const [form, setForm] = useState<{
     open: boolean

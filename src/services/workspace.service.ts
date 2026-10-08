@@ -1,5 +1,6 @@
 import type { Plan } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import type { WorkspaceDTO } from '@/types/workspace'
 import { UserCache } from '../cache/user.cache'
 import { WorkspaceCache } from '../cache/workspace.cache'
@@ -69,6 +70,7 @@ export const WorkspaceService = {
       meta: { trialPlan: TRIAL_PLAN },
     })
 
+    void indexSearchDocument('member', result.value.id, actorId)
     return ok(toWorkspaceDTO(result.value))
   },
 

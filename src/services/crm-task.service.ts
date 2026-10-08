@@ -1,5 +1,6 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import { ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { toCrmTaskDTO } from '@/src/mappers/crm-task.mapper'
 import { CrmTaskRepository } from '@/src/repositories/crm-task.repository'
 import type {
@@ -97,6 +98,7 @@ export const CrmTaskService = {
       actorId,
     })
 
+    void indexSearchDocument('crm-task', workspaceId, createdDto.id)
     return ok(createdDto)
   },
 
@@ -165,6 +167,7 @@ export const CrmTaskService = {
       })
     }
 
+    void indexSearchDocument('crm-task', workspaceId, taskId)
     return ok(updatedDto)
   },
 
@@ -208,6 +211,7 @@ export const CrmTaskService = {
       record: toCrmTaskDTO(existing.value),
     })
 
+    void indexSearchDocument('crm-task', workspaceId, taskId)
     return ok(undefined)
   },
 

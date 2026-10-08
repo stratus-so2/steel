@@ -9,16 +9,19 @@ import type { NotificationDTO, NotificationListDTO } from '@/types/notification'
 vi.mock('@/src/services/workspace.service')
 vi.mock('@/src/services/membership.service')
 vi.mock('@/src/services/notification.service')
+vi.mock('@/src/services/search.service')
 
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { MembershipService } from '@/src/services/membership.service'
 import { NotificationService } from '@/src/services/notification.service'
+import { SearchService } from '@/src/services/search.service'
 import { WorkspaceService } from '@/src/services/workspace.service'
 import {
   PLATFORM_AI_TOOLS,
   wsMembersTool,
   wsNotificationsTool,
   wsOverviewTool,
+  wsSearchTool,
 } from '../ai/tools/platform'
 
 const ctx = { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' as const }
@@ -67,6 +70,7 @@ describe('PLATFORM_AI_TOOLS', () => {
       ['ws_overview', 'READ', null],
       ['ws_members', 'READ', null],
       ['ws_notifications', 'READ', null],
+      ['ws_search', 'READ', null],
     ])
   })
 })
@@ -265,6 +269,80 @@ describe('ws_notifications', () => {
         expectOk(wsNotificationsTool.parse({})),
       ),
       'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('ws_search', () => {
+  const search = vi.mocked(SearchService)
+
+  it('should parse the query, cap the limit and validate the types', () => {
+    expect(expectOk(wsSearchTool.parse({ query: ' INC-1 ' }))).toEqual({
+      query: 'INC-1',
+      limit: 10,
+    })
+    expect(
+      expectOk(wsSearchTool.parse({ query: 'agro', types: ['crm-lead'] })),
+    ).toMatchObject({ types: ['crm-lead'] })
+    expectErr(wsSearchTool.parse({ query: '' }), 'VALIDATION_ERROR')
+    expectErr(
+      wsSearchTool.parse({ query: 'x', types: ['nope'] }),
+      'VALIDATION_ERROR',
+    )
+  })
+
+  it('should call the global search with the actor and return compact items', async () => {
+    search.search.mockResolvedValue(
+      ok({
+        query: 'agro',
+        tookMs: 3,
+        results: [
+          {
+            type: 'crm-company',
+            id: 'c1',
+            title: 'Agro Telecom',
+            subtitle: 'agro.com.br',
+            snippet: null,
+            href: '/acme/crm/companies?record=c1',
+            module: 'CRM',
+            group: 'Empresas',
+            score: 400,
+            isMine: false,
+            updatedAt: '2026-10-07T00:00:00.000Z',
+          },
+        ],
+      }),
+    )
+
+    const out = expectOk(
+      await wsSearchTool.execute(ctx, { query: 'agro', limit: 5 }),
+    )
+
+    expect(search.search).toHaveBeenCalledWith('u1', 'ws1', {
+      q: 'agro',
+      types: undefined,
+      limit: 5,
+    })
+    expect(out.summary).toBe('1 resultado(s) para "agro"')
+    expect(out.data).toEqual({
+      items: [
+        {
+          type: 'crm-company',
+          id: 'c1',
+          title: 'Agro Telecom',
+          subtitle: 'agro.com.br',
+          snippet: null,
+          href: '/acme/crm/companies?record=c1',
+        },
+      ],
+    })
+  })
+
+  it('should propagate the search error', async () => {
+    search.search.mockResolvedValue(err(forbidden()))
+    expectErr(
+      await wsSearchTool.execute(ctx, { query: 'x', limit: 10 }),
+      'FORBIDDEN',
     )
   })
 })

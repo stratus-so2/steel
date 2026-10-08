@@ -28,6 +28,8 @@ import {
   type NotificationsJob,
   type NotificationsJobPayload,
   QueueName,
+  type SearchReindexJob,
+  type SearchReindexJobPayload,
   type ServicedeskAiJob,
   type ServicedeskAiJobPayload,
   type ServicedeskBillingJob,
@@ -110,6 +112,7 @@ let servicedeskIntegrationsQueue: Queue | null = null
 let servicedeskTaskRemindersQueue: Queue | null = null
 let steelAgentsQueue: Queue | null = null
 let notificationsQueue: Queue | null = null
+let searchReindexQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -752,6 +755,7 @@ export async function closeQueues(): Promise<void> {
     crmTaskRemindersQueue?.close(),
     servicedeskTaskRemindersQueue?.close(),
     steelAgentsQueue?.close(),
+    searchReindexQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -784,6 +788,7 @@ export async function closeQueues(): Promise<void> {
   servicedeskIntegrationsQueue = null
   servicedeskTaskRemindersQueue = null
   steelAgentsQueue = null
+  searchReindexQueue = null
 }
 
 export function getCrmTaskRemindersQueue(): Queue<
@@ -842,6 +847,25 @@ export function getNotificationsQueue(): Queue<
   >
 }
 
+/** Global search reindex (nightly rebuild + on-demand per workspace). */
+export function getSearchReindexQueue(): Queue<
+  SearchReindexJobPayload[SearchReindexJob],
+  unknown,
+  SearchReindexJob
+> {
+  if (!searchReindexQueue) {
+    searchReindexQueue = new Queue(QueueName.SearchReindex, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return searchReindexQueue as Queue<
+    SearchReindexJobPayload[SearchReindexJob],
+    unknown,
+    SearchReindexJob
+  >
+}
+
 // Typed as a full record so a new queue without an entry fails the build.
 const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.DataRetention]: getDataRetentionQueue,
@@ -878,6 +902,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.ServicedeskTaskReminders]: getServicedeskTaskRemindersQueue,
   [QueueName.SteelAgents]: getSteelAgentsQueue,
   [QueueName.Notifications]: getNotificationsQueue,
+  [QueueName.SearchReindex]: getSearchReindexQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */

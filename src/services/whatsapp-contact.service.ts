@@ -7,6 +7,7 @@ import {
 } from '@/src/errors'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { getZapiContactProfilePicture } from '@/src/lib/whatsapp/zapi-client'
 import { toWhatsAppContactDTO } from '@/src/mappers/whatsapp-contact.mapper'
 import { WhatsAppConnectionRepository } from '@/src/repositories/whatsapp-connection.repository'
@@ -82,6 +83,7 @@ export const WhatsAppContactService = {
       targetId: result.value.id,
     })
 
+    void indexSearchDocument('zap-contact', workspaceId, result.value.id)
     return ok(toWhatsAppContactDTO(result.value))
   },
 
@@ -105,6 +107,7 @@ export const WhatsAppContactService = {
     })
     if (!result.ok) return result
 
+    void indexSearchDocument('zap-contact', workspaceId, result.value.id)
     return ok(toWhatsAppContactDTO(result.value))
   },
 
@@ -209,6 +212,7 @@ export const WhatsAppContactService = {
       meta: { fields: Object.keys(dto) },
     })
 
+    void indexSearchDocument('zap-contact', workspaceId, id)
     return ok(toWhatsAppContactDTO(result.value))
   },
 
@@ -299,6 +303,7 @@ export const WhatsAppContactService = {
       targetId: id,
     })
 
+    void indexSearchDocument('zap-contact', workspaceId, id)
     return ok(undefined)
   },
 }

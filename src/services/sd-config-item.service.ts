@@ -9,6 +9,7 @@ import {
 } from '@/src/errors'
 import type { PermissionAction } from '@/src/lib/permissions'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import {
   parseCiAttributeSchema,
   type SdCiAttributeDefinition,
@@ -294,6 +295,7 @@ export const SdConfigItemService = {
       configItemId: result.value.id,
       typeId: result.value.typeId,
     })
+    void indexSearchDocument('sd-config-item', workspaceId, result.value.id)
     return ok(toSdConfigItemDTO(result.value))
   },
 
@@ -381,6 +383,7 @@ export const SdConfigItemService = {
       targetId: itemId,
       meta: { workspaceId, fields: Object.keys(dto) },
     })
+    void indexSearchDocument('sd-config-item', workspaceId, itemId)
     return ok(toSdConfigItemDTO(result.value))
   },
 
@@ -408,6 +411,7 @@ export const SdConfigItemService = {
       targetId: itemId,
       meta: { workspaceId },
     })
+    void indexSearchDocument('sd-config-item', workspaceId, itemId)
     return ok(undefined)
   },
 }

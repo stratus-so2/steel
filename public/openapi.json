@@ -49,6 +49,10 @@
       "description": "Conexões com Postgres externo por módulo, ajustes de IA, feature flags e notificações in-app."
     },
     {
+      "name": "Busca global",
+      "description": "Busca única (Ctrl+K) em chamados, base de conhecimento, diretório do ServiceDesk, CRM, WhatsApp e membros, com relevância por código exato, prefixo, texto completo e tolerância a erros de digitação. Só retorna o que o usuário pode abrir."
+    },
+    {
       "name": "Projetos",
       "description": "Projetos do workspace — criação, edição, arquivamento, favoritos, membros e convites."
     },
@@ -333,6 +337,7 @@
         "Membros e convites",
         "Perfis de acesso",
         "Configurações do workspace",
+        "Busca global",
         "Projetos"
       ]
     },
@@ -38348,6 +38353,89 @@
           },
           "404": {
             "$ref": "#/components/responses/404_PROJECT_NOT_FOUND"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/search": {
+      "get": {
+        "tags": ["Busca global"],
+        "summary": "Buscar no workspace",
+        "operationId": "getWorkspacesByIdSearch",
+        "description": "Busca por relevância, sem varredura `LIKE`: código/número exato (`INC-000123`, `123`, telefone, e-mail) primeiro, depois prefixo e frase no título, texto completo em português (sem acento, com radical) e, por fim, semelhança por trigramas para erros de digitação. Registros recentes e atribuídos ao usuário sobem um pouco. Só entram tipos de módulos habilitados com permissão `VIEW`; no ServiceDesk, solicitantes veem apenas os próprios chamados e os artigos do portal. `types` (separados por vírgula) restringe os tipos.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resultados em ordem global de relevância.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SearchResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -132600,6 +132688,123 @@
           }
         },
         "required": ["open", "expiresAt", "requiresTemplate"]
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchResult"
+            }
+          },
+          "tookMs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["query", "results", "tookMs"]
+      },
+      "SearchResult": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "sd-ticket",
+              "sd-kb-article",
+              "sd-customer",
+              "sd-contact",
+              "sd-config-item",
+              "crm-lead",
+              "crm-opportunity",
+              "crm-person",
+              "crm-company",
+              "crm-task",
+              "crm-proposal",
+              "zap-conversation",
+              "zap-contact",
+              "member"
+            ],
+            "example": "sd-ticket"
+          },
+          "id": {
+            "type": "string",
+            "example": "ckw1tckt0000ab7d3k1e5xyz"
+          },
+          "title": {
+            "type": "string",
+            "example": "Impressora do financeiro parada"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "INC-000123 · Incidente · Em atendimento"
+          },
+          "snippet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "href": {
+            "type": "string",
+            "example": "/agro/servicedesk/tickets/123"
+          },
+          "module": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "group": {
+            "type": "string",
+            "example": "Chamados"
+          },
+          "score": {
+            "type": "number"
+          },
+          "isMine": {
+            "type": "boolean"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "title",
+          "subtitle",
+          "snippet",
+          "href",
+          "module",
+          "group",
+          "score",
+          "isMine",
+          "updatedAt"
+        ],
+        "description": "Registro encontrado. `href` já vem prefixado com o slug do workspace."
       },
       "ShortLink": {
         "type": "object",

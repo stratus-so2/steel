@@ -1,5 +1,6 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import { ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { toCrmPersonDTO } from '@/src/mappers/crm-person.mapper'
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import type {
@@ -125,6 +126,7 @@ export const CrmPersonService = {
       record: merged.value,
     })
 
+    void indexSearchDocument('crm-person', workspaceId, merged.value.id)
     return ok(merged.value)
   },
 
@@ -205,6 +207,7 @@ export const CrmPersonService = {
       record: merged.value,
     })
 
+    void indexSearchDocument('crm-person', workspaceId, personId)
     return ok(merged.value)
   },
 
@@ -248,6 +251,7 @@ export const CrmPersonService = {
       record: toCrmPersonDTO(existing.value),
     })
 
+    void indexSearchDocument('crm-person', workspaceId, personId)
     return ok(undefined)
   },
 

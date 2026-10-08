@@ -3,7 +3,7 @@
 import { RefreshIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import {
   useCan,
   useIsPrivileged,
@@ -358,6 +358,11 @@ function BroadcastOptOutDialog({
 
 export function WhatsappContactsPage({ workspaceId }: { workspaceId: string }) {
   const [search, setSearch] = useState('')
+  // Deep link from the global search (`?q=<waId>`): pre-fills the filter.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q')
+    if (q) setSearch(q)
+  }, [])
   const [editingContact, setEditingContact] =
     useState<WhatsAppContactDTO | null>(null)
   const [deletingContact, setDeletingContact] =

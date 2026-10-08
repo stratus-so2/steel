@@ -43,6 +43,7 @@
     "seed:crm-pipeline": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-crm-default-pipeline.ts",
     "seed:servicedesk": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-servicedesk-defaults.ts",
     "seed:user-timezone": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/backfill-user-timezone.ts",
+    "search:reindex": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/search-reindex.ts",
     "backup:workspace": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/trigger-workspace-backup.ts",
     "backup:full": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/trigger-full-backup.ts",
     "restore:full": "tsx --tsconfig tsconfig.worker.json --env-file=.env scripts/restore-full-backup.ts",

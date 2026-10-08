@@ -511,6 +511,7 @@ model Workspace {
   sdIncidentClusters        SdIncidentCluster[]
   sdIntegrations            SdIntegration[]
   sdIntegrationLinks        SdIntegrationLink[]
+  searchDocuments           SearchDocument[]
 
   @@index([status])
   @@map("workspaces")
@@ -6697,4 +6698,41 @@ model SteelAgentRunStep {
   @@index([runId, createdAt])
   @@index([pendingActionId])
   @@map("steel_agent_run_steps")
+}
+
+/// Global search index (Ctrl+K): one denormalized row per searchable record,
+/// kept fresh by the services (fire-and-forget) and by the nightly
+/// `search-reindex` job. `title_norm` and `search_vector` are GENERATED
+/// columns (unaccent + Portuguese stemming, weights A/B/C) — written only by
+/// Postgres; the app writes through raw SQL (`SearchDocumentRepository`).
+model SearchDocument {
+  workspaceId  String                   @map("workspace_id")
+  entityType   String                   @map("entity_type")
+  entityId     String                   @map("entity_id")
+  /// ModuleKind of the record, `null` for platform records (members).
+  module       String?
+  /// PUBLIC | AGENTS | PARTIES (see `src/lib/search/search-entities.ts`).
+  audience     String                   @default("PUBLIC")
+  title        String
+  subtitle     String?
+  body         String?
+  keywords     String                   @default("")
+  codes        String[]                 @default([])
+  userIds      String[]                 @default([]) @map("user_ids")
+  path         String
+  updatedAt    DateTime                 @map("updated_at") @db.Timestamptz(6)
+  indexedAt    DateTime                 @default(now()) @map("indexed_at") @db.Timestamptz(6)
+  /// GENERATED ALWAYS (the `dbgenerated` default mirrors the expression so
+  /// `migrate diff` sees no drift).
+  titleNorm    String?                  @default(dbgenerated("lower(f_unaccent(title))")) @map("title_norm")
+  searchVector Unsupported("tsvector")? @default(dbgenerated("(((setweight(to_tsvector('portuguese'::regconfig, f_unaccent(COALESCE(title, ''::text))), 'A'::\"char\") || setweight(to_tsvector('simple'::regconfig, f_unaccent(COALESCE(keywords, ''::text))), 'A'::\"char\")) || setweight(to_tsvector('portuguese'::regconfig, f_unaccent(COALESCE(subtitle, ''::text))), 'B'::\"char\")) || setweight(to_tsvector('portuguese'::regconfig, f_unaccent(COALESCE(body, ''::text))), 'C'::\"char\"))")) @map("search_vector")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, entityType, entityId])
+  @@index([searchVector], type: Gin, map: "search_documents_search_vector_idx")
+  @@index([titleNorm(ops: raw("gin_trgm_ops"))], type: Gin, map: "search_documents_title_norm_trgm_idx")
+  @@index([codes], type: Gin, map: "search_documents_codes_idx")
+  @@index([workspaceId, entityType, indexedAt])
+  @@map("search_documents")
 }

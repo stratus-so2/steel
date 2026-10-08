@@ -324,6 +324,12 @@ export function SdTicketBoard({
   const now = useSdNow(60_000)
   const searchRef = useRef<HTMLInputElement | null>(null)
   const [creating, setCreating] = useState<SdCreateTicketPreset | null>(null)
+  // Quick action from the global search (`?new=1`): opens the create sheet.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      setCreating({ type: fixedType ?? 'INCIDENT' })
+    }
+  }, [fixedType])
   const [hiddenColumns, setHiddenColumns] = useState<string[] | null>(null)
   useSdTicketRealtime(workspaceId)
 

@@ -1,6 +1,7 @@
 import { auditMutation } from '@/lib/axiom/audit'
 import { badRequest, crmPipelineNotFound } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import {
   toCrmOpportunityDTO,
   toCrmOpportunityLineItemDTO,
@@ -242,6 +243,7 @@ export const CrmOpportunityService = {
       record: merged.value,
     })
 
+    void indexSearchDocument('crm-opportunity', workspaceId, merged.value.id)
     return ok(merged.value)
   },
 
@@ -336,6 +338,7 @@ export const CrmOpportunityService = {
       })
     }
 
+    void indexSearchDocument('crm-opportunity', workspaceId, opportunityId)
     return ok(updatedMerged.value)
   },
 
@@ -382,6 +385,7 @@ export const CrmOpportunityService = {
       record: toCrmOpportunityDTO(existing.value),
     })
 
+    void indexSearchDocument('crm-opportunity', workspaceId, opportunityId)
     return ok(undefined)
   },
 

@@ -2,6 +2,7 @@ import { auditMutation } from '@/lib/axiom/audit'
 import { logger } from '@/lib/axiom/logger'
 import { sdTicketForbidden, validationError } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { sdNotifyTicketOf } from '@/src/lib/servicedesk/notify'
 import { publishSdTicketEvent } from '@/src/lib/servicedesk/realtime'
 import {
@@ -116,6 +117,7 @@ export async function addSdTicketParticipant(
     })
   }
   await publishParticipants(fresh.value, actor)
+  void indexSearchDocument('sd-ticket', ticket.workspaceId, ticket.id)
   return ok(fresh.value)
 }
 
@@ -234,6 +236,7 @@ export const SdTicketParticipantService = {
     const fresh = await SdTicketRepository.findById(ticket.id, workspaceId)
     if (!fresh.ok) return fresh
     await publishParticipants(ticket, actor)
+    void indexSearchDocument('sd-ticket', workspaceId, ticket.id)
     return ok(summaries(fresh.value))
   },
 }

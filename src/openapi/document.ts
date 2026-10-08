@@ -5,6 +5,7 @@ import { registerAuthPaths } from './paths/auth'
 import { registerCorePaths } from './paths/core'
 import { registerCrmPaths } from './paths/crm'
 import { registerPublicPaths } from './paths/public'
+import { registerSearchPaths } from './paths/search'
 import { registerServiceDeskPaths } from './paths/servicedesk'
 import { registerServiceDeskKnowledgePaths } from './paths/servicedesk-knowledge'
 import { registerSdTicketPaths } from './paths/servicedesk-tickets'
@@ -28,6 +29,7 @@ export function createRegistry(): OpenApiRegistry {
   registerSdTicketPaths(registry)
   registerSteelAiPaths(registry)
   registerSteelAgentsPaths(registry)
+  registerSearchPaths(registry)
   return registry
 }
 

@@ -5,7 +5,7 @@ import {
   PlusSignIcon,
   StarIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   SdActivePill,
   SdPill,
@@ -145,6 +145,11 @@ export function SdContactsView({
   }
   const { data, isLoading, error } = useSdContacts(workspaceId, query)
   const [detailId, setDetailId] = useState<string | null>(null)
+  // Deep link (`?record=<id>`, e.g. from the global search): opens it.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('record')
+    if (id) setDetailId(id)
+  }, [])
   const [importing, setImporting] = useState(false)
   const importRows = useImportSdContacts(workspaceId)
   const [form, setForm] = useState<{

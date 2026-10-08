@@ -143,6 +143,7 @@ export default defineConfig({
         'src/lib/analytics/**',
         'src/lib/servicedesk/**',
         'src/lib/queue/processors/**',
+        'src/lib/search/**',
       ],
       exclude: [
         'node_modules/**',

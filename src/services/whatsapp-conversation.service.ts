@@ -14,6 +14,7 @@ import {
   whatsappConversationNotFound,
 } from '@/src/errors'
 import { err, ok, type Result } from '@/src/lib/result'
+import { indexSearchDocument } from '@/src/lib/search/index-hooks'
 import { publishWhatsAppEvent } from '@/src/lib/whatsapp/realtime'
 import { toWhatsAppConversationDTO } from '@/src/mappers/whatsapp-conversation.mapper'
 import { toWhatsAppConversationEventDTO } from '@/src/mappers/whatsapp-conversation-event.mapper'
@@ -244,6 +245,11 @@ export const WhatsAppConversationService = {
       conversation: conversationDto,
     })
 
+    void indexSearchDocument(
+      'zap-conversation',
+      workspaceId,
+      conversationDto.id,
+    )
     return ok(conversationDto)
   },
 
@@ -490,6 +496,7 @@ export const WhatsAppConversationService = {
       meta: { archived },
     })
 
+    void indexSearchDocument('zap-conversation', workspaceId, id)
     return ok(dto)
   },
 
@@ -530,6 +537,7 @@ export const WhatsAppConversationService = {
       targetId: id,
     })
 
+    void indexSearchDocument('zap-conversation', workspaceId, id)
     return ok({ id })
   },
 
@@ -577,6 +585,7 @@ export const WhatsAppConversationService = {
       meta: { cleared: true },
     })
 
+    void indexSearchDocument('zap-conversation', workspaceId, id)
     return ok(dto)
   },
 
@@ -680,6 +689,7 @@ export const WhatsAppConversationService = {
       })
     }
 
+    void indexSearchDocument('zap-conversation', workspaceId, id)
     return ok(dto)
   },
   /** Fecha a conversa (atendente/admin), com motivo opcional. */
@@ -716,6 +726,7 @@ export const WhatsAppConversationService = {
     })
     if (!closed.ok) return closed
 
+    void indexSearchDocument('zap-conversation', workspaceId, id)
     return publishConversation(workspaceId, id)
   },
 
@@ -751,6 +762,7 @@ export const WhatsAppConversationService = {
     })
     if (!reopened.ok) return reopened
 
+    void indexSearchDocument('zap-conversation', workspaceId, id)
     return publishConversation(workspaceId, id)
   },
 
