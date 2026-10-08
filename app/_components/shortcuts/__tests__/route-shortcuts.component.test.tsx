@@ -2,10 +2,6 @@ import { act, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 const push = vi.fn()
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push }),
-  usePathname: () => '/agro/servicedesk',
-}))
 
 import { RouteShortcuts } from '../route-shortcuts'
 import { ShortcutsProvider } from '../shortcuts-provider'
@@ -21,7 +17,7 @@ function press(key: string) {
 describe('RouteShortcuts', () => {
   it('maps the module G sequences to its pages', () => {
     render(
-      <ShortcutsProvider>
+      <ShortcutsProvider navigate={push}>
         <RouteShortcuts
           routes={[
             { id: 'sd.go-tickets', href: '/agro/servicedesk/tickets' },

@@ -1,7 +1,6 @@
 'use client'
 
-import { useShortcut } from './shortcuts-provider'
-import { useCommandNavigate } from './workspace-commands'
+import { useShortcut, useShortcuts } from './shortcuts-provider'
 
 export type RouteShortcut = {
   /** Registry id (`sd.go-tickets`, `crm.go-leads`…). */
@@ -10,8 +9,10 @@ export type RouteShortcut = {
 }
 
 function Route({ route }: { route: RouteShortcut }) {
-  const go = useCommandNavigate()
-  useShortcut(route.id, () => go(route.href))
+  // The shell's navigate (app router); no router hook here, so a module
+  // layout renders the same without the workspace shell around it.
+  const navigate = useShortcuts()?.navigate
+  useShortcut(route.id, () => navigate?.(route.href))
   return null
 }
 

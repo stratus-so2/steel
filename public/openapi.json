@@ -8024,6 +8024,9 @@
                   "smoothCursor": {
                     "type": "boolean"
                   },
+                  "singleKeyShortcuts": {
+                    "type": "boolean"
+                  },
                   "quickSendShortcut": {
                     "type": "string",
                     "enum": ["ENTER", "CTRL_ENTER"]
@@ -142187,6 +142190,10 @@
               "maximum": 6
             },
             "example": [0, 6]
+          },
+          "singleKeyShortcuts": {
+            "type": "boolean",
+            "description": "Atalhos de uma tecla (J, K, G → C…) ligados. Desligado, só valem os com Ctrl/Alt/⌘."
           }
         },
         "required": [
@@ -142195,7 +142202,8 @@
           "quickSendShortcut",
           "timezone",
           "weekStartsOn",
-          "weekendDays"
+          "weekendDays",
+          "singleKeyShortcuts"
         ]
       },
       "WhatsAppAiConfig": {
