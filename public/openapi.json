@@ -12062,6 +12062,57 @@
         ]
       }
     },
+    "/workspaces/{id}/ai/templates": {
+      "get": {
+        "tags": ["Steel AI"],
+        "summary": "Listar modelos prontos",
+        "operationId": "getWorkspacesByIdAiTemplates",
+        "description": "Galeria de modelos de Steel Agents e de skills, definidos no código, para OWNER/ADMIN. Cada modelo diz quais módulos exige e, se algum estiver desligado, vem com `available: false` e o motivo. Usar um modelo só preenche o editor: criar continua sendo `POST /workspaces/{id}/agents` ou `POST /workspaces/{id}/ai/skills`, com as mesmas regras. Membros e visualizadores recebem `canUse: false` e listas vazias.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Modelos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AiTemplates"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/ai/usage": {
       "get": {
         "tags": ["Steel AI"],
@@ -107546,6 +107597,142 @@
         },
         "required": ["skills", "canManageWorkspace"]
       },
+      "AiSkillTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "sd-sla-em-risco"
+          },
+          "name": {
+            "type": "string",
+            "example": "SLA em risco"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION", "GOVERNANCE", "MANAGEMENT"]
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+            },
+            "description": "Módulos que precisam estar habilitados (vazio = plataforma, qualquer workspace)."
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "toolName": {
+                  "type": "string",
+                  "example": "sd_assign_ticket"
+                },
+                "label": {
+                  "type": "string",
+                  "example": "Atribuindo chamado"
+                },
+                "module": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["READ", "CREATE", "UPDATE", "DELETE", "ACTION"]
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": ["AUTO", "APPROVAL"],
+                  "description": "Sugestão para agentes: leitura `AUTO`, escrita `APPROVAL` (exclusão sempre `APPROVAL`)."
+                }
+              },
+              "required": ["toolName", "label", "module", "kind", "mode"]
+            },
+            "description": "Ferramentas sugeridas; num modelo disponível, só as dos módulos habilitados."
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "Requer o módulo ServiceDesk habilitado."
+          },
+          "slug": {
+            "type": "string",
+            "example": "consumo-ia"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["EXPLORE", "AGENT", "AUTOPILOT", "TEST"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "category",
+          "modules",
+          "instructions",
+          "tools",
+          "available",
+          "unavailableReason",
+          "slug",
+          "mode"
+        ]
+      },
+      "AiTemplates": {
+        "type": "object",
+        "properties": {
+          "canUse": {
+            "type": "boolean",
+            "description": "OWNER/ADMIN. Para os demais, `false` e listas vazias (a galeria some)."
+          },
+          "agentModeEnabled": {
+            "type": "boolean"
+          },
+          "agents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteelAgentTemplate"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiSkillTemplate"
+            }
+          }
+        },
+        "required": ["canUse", "agentModeEnabled", "agents", "skills"]
+      },
       "AiUsageAnalytics": {
         "type": "object",
         "properties": {
@@ -137946,6 +138133,144 @@
           "steps",
           "pendingActions",
           "canApprove"
+        ]
+      },
+      "SteelAgentTemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "sd-sla-em-risco"
+          },
+          "name": {
+            "type": "string",
+            "example": "SLA em risco"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION", "GOVERNANCE", "MANAGEMENT"]
+          },
+          "modules": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+            },
+            "description": "Módulos que precisam estar habilitados (vazio = plataforma, qualquer workspace)."
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "toolName": {
+                  "type": "string",
+                  "example": "sd_assign_ticket"
+                },
+                "label": {
+                  "type": "string",
+                  "example": "Atribuindo chamado"
+                },
+                "module": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": ["SERVICE_DESK", "CRM", "COMMUNICATION"]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": ["READ", "CREATE", "UPDATE", "DELETE", "ACTION"]
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": ["AUTO", "APPROVAL"],
+                  "description": "Sugestão para agentes: leitura `AUTO`, escrita `APPROVAL` (exclusão sempre `APPROVAL`)."
+                }
+              },
+              "required": ["toolName", "label", "module", "kind", "mode"]
+            },
+            "description": "Ferramentas sugeridas; num modelo disponível, só as dos módulos habilitados."
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "unavailableReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "Requer o módulo ServiceDesk habilitado."
+          },
+          "triggerType": {
+            "type": "string",
+            "enum": ["SCHEDULE", "EVENT", "MANUAL"]
+          },
+          "cron": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "*/30 8-18 * * 1-5"
+          },
+          "scheduleLabel": {
+            "type": "string",
+            "example": "Dias úteis, a cada 30 min (8h às 18h)"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "America/Sao_Paulo"
+          },
+          "eventKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxToolRounds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "category",
+          "modules",
+          "instructions",
+          "tools",
+          "available",
+          "unavailableReason",
+          "triggerType",
+          "cron",
+          "scheduleLabel",
+          "timezone",
+          "eventKey",
+          "maxToolRounds"
         ]
       },
       "StickyNote": {

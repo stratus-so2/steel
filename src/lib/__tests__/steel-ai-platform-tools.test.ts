@@ -71,6 +71,8 @@ describe('PLATFORM_AI_TOOLS', () => {
       ['ws_members', 'READ', null],
       ['ws_notifications', 'READ', null],
       ['ws_search', 'READ', null],
+      ['ws_ai_usage', 'READ', null],
+      ['ws_invitations', 'READ', null],
     ])
   })
 })

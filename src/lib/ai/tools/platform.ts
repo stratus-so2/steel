@@ -5,16 +5,19 @@ import { NOTIFICATION_MODULES } from '@/src/lib/notification-kind'
 import { ok, type Result } from '@/src/lib/result'
 import { SEARCH_ENTITY_TYPES } from '@/src/lib/search/search-entities'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { AiUsageAnalyticsService } from '@/src/services/ai-usage-analytics.service'
+import { InvitationService } from '@/src/services/invitation.service'
 import { MembershipService } from '@/src/services/membership.service'
 import { NotificationService } from '@/src/services/notification.service'
 import { SearchService } from '@/src/services/search.service'
 import { WorkspaceService } from '@/src/services/workspace.service'
+import type { AiUsageBreakdownItemDTO } from '@/types/ai-usage'
 import type { NotificationDTO } from '@/types/notification'
 import type { AnySteelAiTool, SteelAiTool } from './types'
 
 /**
  * Platform-level Steel AI tools (workspace, members, inbox, global
- * search). All READ.
+ * search, AI usage and pending invitations). All READ.
  */
 
 export const MODULE_LABELS: Record<ModuleKind, string> = {
@@ -295,10 +298,155 @@ export const wsSearchTool: SteelAiTool<z.infer<typeof SearchArgs>> = {
   },
 }
 
-/** Steel AI tools for platform-level (workspace, members, inbox, search). */
+/* -------------------------------- AI usage -------------------------------- */
+
+const AI_USAGE_TOOL_PERIODS = [
+  'this_month',
+  'last_month',
+  'last_7_days',
+  'last_30_days',
+] as const
+
+const AiUsageArgs = z
+  .object({ period: z.enum(AI_USAGE_TOOL_PERIODS).default('this_month') })
+  .strict()
+
+const round2 = (value: number) => Math.round(value * 100) / 100
+
+function topItems(items: AiUsageBreakdownItemDTO[] | null, limit = 5) {
+  return (items ?? []).slice(0, limit).map((item) => ({
+    label: item.label,
+    detail: item.detail,
+    costUsd: round2(item.costUsd),
+    share: Math.round(item.share * 100),
+  }))
+}
+
+export const wsAiUsageTool: SteelAiTool<z.infer<typeof AiUsageArgs>> = {
+  name: 'ws_ai_usage',
+  label: 'Consultando o consumo de IA',
+  module: null,
+  kind: 'READ',
+  description:
+    'Consumo de IA do workspace inteiro (só proprietário/administrador), em US$ e dias UTC: gasto do mês e da semana, cota mensal, parcela semanal (cota × 7 ÷ dias do mês), projeção linear para o fim do mês e variação contra o período anterior; e, no `period` pedido (padrão este mês), os modelos, recursos, módulos e pessoas que mais gastaram (`share` em %).',
+  parameters: {
+    type: 'object',
+    properties: {
+      period: {
+        type: 'string',
+        enum: [...AI_USAGE_TOOL_PERIODS],
+        description: 'Período das quebras (padrão this_month).',
+      },
+    },
+    additionalProperties: false,
+  },
+  permission: { resource: 'settings', action: 'VIEW' },
+  parse: zodParser(AiUsageArgs),
+  async execute(ctx, args) {
+    const overview = await AiUsageAnalyticsService.overview(
+      ctx.actorId,
+      ctx.workspaceId,
+    )
+    if (!overview.ok) return overview
+    const analytics = await AiUsageAnalyticsService.analytics(
+      ctx.actorId,
+      ctx.workspaceId,
+      { scope: 'workspace', period: args.period },
+    )
+    if (!analytics.ok) return analytics
+    const { month, week, monthlyQuotaUsd, weeklyShareUsd } = overview.value
+    const quotaPercent =
+      monthlyQuotaUsd > 0
+        ? Math.round((month.projectedWorkspaceUsd / monthlyQuotaUsd) * 100)
+        : null
+    return ok({
+      data: {
+        currency: 'USD',
+        timezone: 'UTC',
+        monthlyQuotaUsd: round2(monthlyQuotaUsd),
+        weeklyShareUsd: round2(weeklyShareUsd),
+        month: {
+          start: month.start,
+          elapsedDays: month.elapsedDays,
+          days: month.days,
+          spentUsd: round2(month.workspaceUsd),
+          projectedUsd: round2(month.projectedWorkspaceUsd),
+          projectedQuotaPercent: quotaPercent,
+          changePercent: month.workspaceChangePercent,
+        },
+        week: {
+          start: week.start,
+          spentUsd: round2(week.workspaceUsd),
+          projectedUsd: round2(week.projectedWorkspaceUsd),
+          changePercent: week.workspaceChangePercent,
+        },
+        period: {
+          preset: analytics.value.period,
+          from: analytics.value.from,
+          to: analytics.value.to,
+          costUsd: round2(analytics.value.totals.costUsd),
+          calls: analytics.value.totals.calls,
+          byModel: topItems(analytics.value.byModel),
+          byFeature: topItems(analytics.value.byFeature),
+          byModule: topItems(analytics.value.byModule),
+          byUser: topItems(analytics.value.byUser),
+        },
+      },
+      summary: `IA: US$ ${round2(month.workspaceUsd)} no mês, projeção US$ ${round2(month.projectedWorkspaceUsd)} de US$ ${round2(monthlyQuotaUsd)}`,
+    })
+  },
+}
+
+/* ------------------------------- invitations ------------------------------ */
+
+const InvitationsArgs = z.object({ limit: limitSchema }).strict()
+
+export const wsInvitationsTool: SteelAiTool<z.infer<typeof InvitationsArgs>> = {
+  name: 'ws_invitations',
+  label: 'Consultando convites pendentes',
+  module: null,
+  kind: 'READ',
+  description:
+    'Convites pendentes para entrar no workspace (só proprietário/administrador): e-mail, papel, quando foi enviado, validade e se já venceu. Mais recentes primeiro.',
+  parameters: {
+    type: 'object',
+    properties: { limit: limitParameter },
+    additionalProperties: false,
+  },
+  permission: { resource: 'members', action: 'VIEW' },
+  parse: zodParser(InvitationsArgs),
+  async execute(ctx, args) {
+    const invitations = await InvitationService.list(
+      ctx.actorId,
+      ctx.workspaceId,
+    )
+    if (!invitations.ok) return invitations
+    const now = Date.now()
+    const pending = invitations.value.filter(
+      (invitation) => invitation.status === 'PENDING',
+    )
+    return ok({
+      data: {
+        total: pending.length,
+        items: pending.slice(0, args.limit).map((invitation) => ({
+          email: invitation.email,
+          role: invitation.role,
+          invitedAt: invitation.createdAt,
+          expiresAt: invitation.expiresAt,
+          expired: Date.parse(invitation.expiresAt) <= now,
+        })),
+      },
+      summary: `${pending.length} convite(s) pendente(s)`,
+    })
+  },
+}
+
+/** Steel AI tools for platform-level (workspace, members, inbox, search, AI usage, invitations). */
 export const PLATFORM_AI_TOOLS: AnySteelAiTool[] = [
   wsOverviewTool,
   wsMembersTool,
   wsNotificationsTool,
   wsSearchTool,
+  wsAiUsageTool,
+  wsInvitationsTool,
 ]

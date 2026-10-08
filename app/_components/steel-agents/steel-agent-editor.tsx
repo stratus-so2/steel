@@ -45,7 +45,9 @@ const CUSTOM = '__custom__'
 function initialState(
   agent: SteelAgentDTO | undefined,
   defaultOwnerId: string,
+  initial: SteelAgentInput | undefined,
 ): SteelAgentInput {
+  if (!agent && initial) return initial
   return {
     name: agent?.name ?? '',
     description: agent?.description ?? null,
@@ -67,11 +69,14 @@ export function SteelAgentEditor({
   workspaceId,
   agent,
   currentUserId,
+  initial,
   onSaved,
 }: {
   workspaceId: string
   agent?: SteelAgentDTO
   currentUserId: string
+  /** New agent only: pre-filled values (e.g. from a template). */
+  initial?: SteelAgentInput
   onSaved: (agent: SteelAgentDTO) => void
 }) {
   const catalog = useSteelAgentCatalog(workspaceId)
@@ -80,7 +85,7 @@ export function SteelAgentEditor({
   const create = useCreateSteelAgent(workspaceId)
   const update = useUpdateSteelAgent(workspaceId, agent?.id ?? '')
   const [form, setForm] = useState<SteelAgentInput>(() =>
-    initialState(agent, currentUserId),
+    initialState(agent, currentUserId, initial),
   )
   const saving = create.isPending || update.isPending
   const set = <K extends keyof SteelAgentInput>(

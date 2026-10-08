@@ -1,12 +1,20 @@
 'use client'
 
-import { AiBrain01Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  AiBrain01Icon,
+  DashboardSquare02Icon,
+  PlusSignIcon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { SteelAiTopBar } from '@/app/_components/steel-ai/steel-ai-top-bar'
+import { SteelAiTemplateGallery } from '@/app/_components/steel-ai-templates/steel-ai-template-gallery'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAiTemplates } from '@/src/hooks/use-ai-templates'
 import {
   useSteelAgentCatalog,
   useSteelAgents,
@@ -28,7 +36,12 @@ export function SteelAgentsList({
 }) {
   const agents = useSteelAgents(workspaceId)
   const catalog = useSteelAgentCatalog(workspaceId)
+  const templates = useAiTemplates(workspaceId)
+  const router = useRouter()
+  const [gallery, setGallery] = useState(false)
   const canManage = catalog.data?.canManage ?? false
+  // Templates are an OWNER/ADMIN gallery; creating still needs `canManage`.
+  const canUseTemplates = canManage && (templates.data?.canUse ?? false)
   const list = agents.data ?? []
 
   return (
@@ -37,16 +50,30 @@ export function SteelAgentsList({
         title='Agentes'
         actions={
           canManage ? (
-            <Button
-              size='sm'
-              aria-label='Novo agente'
-              className='max-sm:size-8 max-sm:px-0'
-              render={<Link href={`/${slug}/ai/agents/new`} />}
-              nativeButton={false}
-            >
-              <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-              <span className='hidden sm:inline'>Novo agente</span>
-            </Button>
+            <div className='flex items-center gap-1'>
+              {canUseTemplates ? (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  aria-label='Modelos'
+                  className='max-sm:size-8 max-sm:px-0'
+                  onClick={() => setGallery(true)}
+                >
+                  <SteelIcon icon={DashboardSquare02Icon} strokeWidth={2} />
+                  <span className='hidden sm:inline'>Modelos</span>
+                </Button>
+              ) : null}
+              <Button
+                size='sm'
+                aria-label='Novo agente'
+                className='max-sm:size-8 max-sm:px-0'
+                render={<Link href={`/${slug}/ai/agents/new`} />}
+                nativeButton={false}
+              >
+                <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+                <span className='hidden sm:inline'>Novo agente</span>
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -84,62 +111,109 @@ export function SteelAgentsList({
                   ? 'Crie um agente para triar chamados, acompanhar leads ou resumir o dia automaticamente.'
                   : 'Peça a um administrador para criar o primeiro agente.'}
               </p>
+              {canUseTemplates ? (
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setGallery(true)}
+                >
+                  <SteelIcon icon={DashboardSquare02Icon} strokeWidth={2} />
+                  Criar a partir de modelo
+                </Button>
+              ) : null}
             </div>
           ) : (
-            <ul className='divide-y divide-border/70 overflow-hidden rounded-xl border border-border/80 bg-card'>
-              {list.map((agent) => (
-                <li key={agent.id}>
-                  <Link
-                    href={`/${slug}/ai/agents/${agent.id}`}
-                    className='flex flex-col gap-1.5 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 sm:flex-row sm:items-center sm:gap-4'
-                  >
-                    <div className='min-w-0 flex-1 space-y-0.5'>
-                      <div className='flex min-w-0 items-center gap-2'>
-                        <span className='truncate font-medium text-sm'>
-                          {agent.name}
-                        </span>
-                        <Badge
-                          variant={agent.enabled ? 'secondary' : 'outline'}
-                          className='shrink-0'
-                        >
-                          {agent.enabled ? 'Ativo' : 'Pausado'}
-                        </Badge>
-                      </div>
-                      <p className='truncate text-muted-foreground text-xs'>
-                        {describeTrigger(agent, catalog.data?.events)}
-                        {agent.owner
-                          ? ` · ${agent.owner.name}`
-                          : ' · Sem responsável'}
-                      </p>
-                    </div>
-                    <div className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:shrink-0 sm:flex-nowrap'>
-                      {agent.lastRun ? (
-                        <>
-                          <Badge
-                            variant={RUN_STATUS_VARIANT[agent.lastRun.status]}
-                          >
-                            {RUN_STATUS_LABEL[agent.lastRun.status]}
-                          </Badge>
-                          <span className='whitespace-nowrap text-muted-foreground'>
-                            {formatAgentDate(
-                              agent.lastRun.createdAt,
-                              agent.timezone,
-                            )}
+            <>
+              {canUseTemplates ? (
+                <button
+                  type='button'
+                  onClick={() => setGallery(true)}
+                  className='flex w-full items-center gap-3 rounded-xl border border-dashed px-4 py-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50'
+                >
+                  <SteelIcon
+                    icon={DashboardSquare02Icon}
+                    strokeWidth={1.5}
+                    className='size-5 shrink-0 text-muted-foreground'
+                  />
+                  <span className='min-w-0 flex-1'>
+                    <span className='block font-medium text-sm'>
+                      Criar a partir de modelo
+                    </span>
+                    <span className='block text-muted-foreground text-xs'>
+                      Agentes prontos para chamados, funil, WhatsApp, consumo de
+                      IA e acessos.
+                    </span>
+                  </span>
+                </button>
+              ) : null}
+              <ul className='divide-y divide-border/70 overflow-hidden rounded-xl border border-border/80 bg-card'>
+                {list.map((agent) => (
+                  <li key={agent.id}>
+                    <Link
+                      href={`/${slug}/ai/agents/${agent.id}`}
+                      className='flex flex-col gap-1.5 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 sm:flex-row sm:items-center sm:gap-4'
+                    >
+                      <div className='min-w-0 flex-1 space-y-0.5'>
+                        <div className='flex min-w-0 items-center gap-2'>
+                          <span className='truncate font-medium text-sm'>
+                            {agent.name}
                           </span>
-                        </>
-                      ) : (
-                        <span className='text-muted-foreground'>
-                          Nunca executado
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                          <Badge
+                            variant={agent.enabled ? 'secondary' : 'outline'}
+                            className='shrink-0'
+                          >
+                            {agent.enabled ? 'Ativo' : 'Pausado'}
+                          </Badge>
+                        </div>
+                        <p className='truncate text-muted-foreground text-xs'>
+                          {describeTrigger(agent, catalog.data?.events)}
+                          {agent.owner
+                            ? ` · ${agent.owner.name}`
+                            : ' · Sem responsável'}
+                        </p>
+                      </div>
+                      <div className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs sm:shrink-0 sm:flex-nowrap'>
+                        {agent.lastRun ? (
+                          <>
+                            <Badge
+                              variant={RUN_STATUS_VARIANT[agent.lastRun.status]}
+                            >
+                              {RUN_STATUS_LABEL[agent.lastRun.status]}
+                            </Badge>
+                            <span className='whitespace-nowrap text-muted-foreground'>
+                              {formatAgentDate(
+                                agent.lastRun.createdAt,
+                                agent.timezone,
+                              )}
+                            </span>
+                          </>
+                        ) : (
+                          <span className='text-muted-foreground'>
+                            Nunca executado
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       </div>
+      {canUseTemplates && templates.data ? (
+        <SteelAiTemplateGallery
+          kind='agents'
+          open={gallery}
+          onOpenChange={setGallery}
+          templates={templates.data.agents}
+          agentModeEnabled={templates.data.agentModeEnabled}
+          onPick={(template) => {
+            setGallery(false)
+            router.push(`/${slug}/ai/agents/new?template=${template.id}`)
+          }}
+        />
+      ) : null}
     </div>
   )
 }
