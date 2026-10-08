@@ -101,6 +101,8 @@ export interface ProductivityDTO {
   calendar: { source: 'workspace' | 'standard'; name: string }
   modules: { serviceDesk: boolean; crm: boolean; communication: boolean }
   canViewTeam: boolean
+  /** Workspace members for the person filter (`null` for non-admins). */
+  members: WorklogPersonDTO[] | null
   /** Whole team (OWNER/ADMIN without a person filter); otherwise `null`. */
   team: (IndicatorComparisonDTO & { people: number }) | null
   /** Alphabetical — never ordered by a number (no ranking). */

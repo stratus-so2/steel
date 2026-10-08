@@ -65,3 +65,42 @@ terceiros.
 - O evento `opt_in` é auditado com quem reinscreveu e a data/origem do
   descadastro anterior. Guarde a evidência do pedido (a própria conversa no
   WhatsApp) — ela é a base legal da reinscrição.
+
+## Registros de trabalho e indicadores de produtividade
+
+Ajustes › Registros de trabalho mostra as horas apontadas nos chamados do
+ServiceDesk (lista com filtros e CSV) e um painel de indicadores de
+produtividade.
+
+- **Finalidade.** Acompanhar a carga e o andamento do trabalho da equipe —
+  planejamento de capacidade, faturamento de contratos e qualidade do
+  atendimento —, não vigiar pessoas.
+- **Quem vê o quê.** Dono (OWNER) e administradores (ADMIN) veem os números
+  de todos e da equipe; qualquer outro membro vê **só os próprios**. A regra
+  está no service (`WorklogService`), não só na tela: a API recusa (`403`) o
+  pedido de um membro pelos dados de outra pessoa.
+- **Sem nota e sem ranking.** Cada indicador aparece separado (esforço,
+  faturamento, volume, eficiência, qualidade, confiabilidade dos dados); não
+  há pontuação combinada, e as pessoas aparecem em ordem alfabética, sem
+  ordenação por número.
+- **Só dados que já existem.** Os indicadores saem do que as pessoas já
+  registram no trabalho: apontamentos de horas, chamados atribuídos e
+  resolvidos, tarefas e negócios do CRM, respostas enviadas no WhatsApp (as da
+  IA não contam). **Não há** monitoramento de tela, teclado, mouse, aplicativos
+  abertos nem tempo ocioso, e nada é coletado fora do Steel.
+- **Só módulos habilitados.** Um módulo desligado no workspace não entra nos
+  indicadores.
+- **Registro.** Os downloads de CSV (apontamentos e indicadores) são auditados
+  (`audit.mutation.worklog.download` / `export_requested`).
+
+## Exportações do workspace
+
+Ajustes › Exportações (só OWNER/ADMIN) gera uma cópia dos **dados completos**
+do workspace ou dos **logs** dele no Axiom, uma vez por dia de cada tipo. O
+arquivo contém dados pessoais (de membros, clientes e contatos): fica 7 dias no
+armazenamento, só é baixado com login de OWNER/ADMIN, e o pedido, a conclusão
+e cada download são auditados (`audit.mutation.workspace_export.*`).
+Credenciais, senhas, segredos e tokens de acesso são removidos do arquivo de
+dados; os logs não trazem IP nem corpo de requisição. Quem baixa passa a ser
+responsável pela guarda da cópia.
+

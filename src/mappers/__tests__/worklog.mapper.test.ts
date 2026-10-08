@@ -123,6 +123,7 @@ function dto(overrides: Partial<ProductivityDTO> = {}): ProductivityDTO {
     calendar: { source: 'standard', name: 'Padrão' },
     modules: { serviceDesk: true, crm: true, communication: true },
     canViewTeam: true,
+    members: null,
     team: { current: set(), previous: set(), people: 1 },
     people: [
       {

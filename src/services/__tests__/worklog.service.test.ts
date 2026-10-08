@@ -478,6 +478,7 @@ describe('WorklogService.productivity', () => {
     expect(dto.people[1].current.serviceDesk?.loggedMinutes).toBe(0)
     expect(dto.trend.length).toBeGreaterThan(0)
     expect(dto.canViewTeam).toBe(true)
+    expect(dto.members).toEqual([ANA, BRUNO])
   })
 
   it('narrows an admin to one person without the team row', async () => {
@@ -506,6 +507,7 @@ describe('WorklogService.productivity', () => {
     )
     expect(dto.team).toBeNull()
     expect(dto.canViewTeam).toBe(false)
+    expect(dto.members).toBeNull()
     expect(dto.people.map((p) => p.user.id)).toEqual([ACTOR])
     expect(facts.timeEntries.mock.calls[0][2]).toBe(ACTOR)
 

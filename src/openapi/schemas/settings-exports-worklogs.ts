@@ -149,6 +149,7 @@ export const ProductivityDTO = z.object({
     communication: z.boolean(),
   }),
   canViewTeam: z.boolean(),
+  members: z.array(Person).nullable(),
   team: z.object({ ...Comparison, people: z.number().int() }).nullable(),
   people: z.array(z.object({ ...Comparison, user: Person })),
   trend: z.array(

@@ -481,6 +481,7 @@ export const WorklogService = {
       },
       modules,
       canViewTeam: scope.value.canViewTeam,
+      members: scope.value.canViewTeam ? members.value : null,
       team,
       people: people.map((user) => ({
         user,

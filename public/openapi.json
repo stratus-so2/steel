@@ -84839,6 +84839,41 @@
                             "canViewTeam": {
                               "type": "boolean"
                             },
+                            "members": {
+                              "anyOf": [
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      },
+                                      "email": {
+                                        "type": "string"
+                                      },
+                                      "image": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "required": ["id", "name", "email", "image"]
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
                             "team": {
                               "anyOf": [
                                 {
@@ -85781,7 +85816,7 @@
                               }
                             }
                           },
-                          "required": ["period", "calendar", "modules", "canViewTeam", "team", "people", "trend"]
+                          "required": ["period", "calendar", "modules", "canViewTeam", "members", "team", "people", "trend"]
                         }
                       }
                     }
