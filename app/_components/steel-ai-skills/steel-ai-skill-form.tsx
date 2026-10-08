@@ -158,14 +158,11 @@ export function SteelAiSkillForm({
               className='grid gap-2 sm:grid-cols-2'
             >
               <FieldLabel className='flex items-center gap-2 rounded-lg border px-3 py-2 font-normal'>
-                <RadioGroupItem value='PERSONAL' aria-label='Só eu' />
+                <RadioGroupItem value='PERSONAL' />
                 Só eu (pessoal)
               </FieldLabel>
               <FieldLabel className='flex items-center gap-2 rounded-lg border px-3 py-2 font-normal'>
-                <RadioGroupItem
-                  value='WORKSPACE'
-                  aria-label='Todo o workspace'
-                />
+                <RadioGroupItem value='WORKSPACE' />
                 Todo o workspace
               </FieldLabel>
             </RadioGroup>
