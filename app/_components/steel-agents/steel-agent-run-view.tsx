@@ -4,9 +4,15 @@ import {
   AiBrain01Icon,
   ArrowLeft02Icon,
   CheckmarkBadge01Icon,
+  TestTube01Icon,
   Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
+import { SteelAiNotice } from '@/app/_components/steel-ai/steel-ai-notice'
+import {
+  SteelAiSimulatedActionCard,
+  simulatedActionsLabel,
+} from '@/app/_components/steel-ai/steel-ai-simulated-action-card'
 import { SteelAiTopBar } from '@/app/_components/steel-ai/steel-ai-top-bar'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
@@ -14,12 +20,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useSteelAgent, useSteelAgentRun } from '@/src/hooks/use-steel-agents'
 import type { SteelAgentRunStepDTO } from '@/types/steel-agent'
+import type { AiSimulatedActionDTO } from '@/types/steel-ai'
 import { SteelAgentApprovalCard } from './steel-agent-approval-card'
 import {
   formatAgentDate,
   RUN_STATUS_LABEL,
   RUN_STATUS_VARIANT,
   STEP_STATUS_LABEL,
+  TEST_RUN_LABEL,
   TRIGGER_LABEL,
 } from './steel-agent-labels'
 
@@ -49,9 +57,23 @@ function stepDetail(step: SteelAgentRunStepDTO): string | null {
   return null
 }
 
+/** The write a test-run step simulated (`output.simulation`), if any. */
+export function stepSimulation(
+  step: SteelAgentRunStepDTO,
+): AiSimulatedActionDTO | null {
+  if (step.status !== 'SIMULATED') return null
+  const output = (step.output ?? {}) as { simulation?: unknown }
+  const simulation = output.simulation as AiSimulatedActionDTO | undefined
+  if (!simulation?.preview || typeof simulation.preview.title !== 'string') {
+    return null
+  }
+  return simulation
+}
+
 /**
  * `/ai/agents/[agentId]/runs/[runId]` — run summary, step timeline and the
- * approval screen (the inbox notification links here).
+ * approval screen (the inbox notification links here). A test run also
+ * lists what the agent would have done.
  */
 export function SteelAgentRunView({
   workspaceId,
@@ -101,6 +123,10 @@ export function SteelAgentRunView({
   const data = run.data
   const pending = data.pendingActions.filter((a) => a.status === 'PENDING')
   const decided = data.pendingActions.filter((a) => a.status !== 'PENDING')
+  const simulated = data.steps.flatMap((step) => {
+    const simulation = stepSimulation(step)
+    return simulation ? [{ step, simulation }] : []
+  })
 
   return (
     <div className='flex h-full min-h-0 w-full flex-col'>
@@ -123,6 +149,16 @@ export function SteelAgentRunView({
               <Badge variant={RUN_STATUS_VARIANT[data.status]}>
                 {RUN_STATUS_LABEL[data.status]}
               </Badge>
+              {data.isTest ? (
+                <Badge variant='outline' className='gap-1'>
+                  <SteelIcon
+                    icon={TestTube01Icon}
+                    strokeWidth={2}
+                    className='size-3'
+                  />
+                  {TEST_RUN_LABEL}
+                </Badge>
+              ) : null}
               <span>{TRIGGER_LABEL[data.triggerType]}</span>
               <span className='whitespace-nowrap'>
                 {formatAgentDate(data.createdAt, timezone)}
@@ -149,6 +185,48 @@ export function SteelAgentRunView({
               </p>
             ) : null}
           </header>
+
+          {data.isTest ? (
+            <SteelAiNotice tone='info' icon={TestTube01Icon}>
+              Execução de teste: as consultas foram reais e as alterações só
+              simuladas — nada foi gravado, enviado ou mandado para aprovação.
+            </SteelAiNotice>
+          ) : null}
+
+          {data.isTest &&
+          (simulated.length > 0 ||
+            data.status === 'SUCCEEDED' ||
+            data.status === 'FAILED') ? (
+            <section className='space-y-2' aria-label='O que o agente faria'>
+              <h2 className='font-semibold text-sm'>
+                O que o agente faria
+                <span className='ml-2 font-normal text-muted-foreground text-xs'>
+                  {simulated.length > 0
+                    ? simulatedActionsLabel(simulated.length)
+                    : 'nenhuma alteração'}
+                </span>
+              </h2>
+              {simulated.length === 0 ? (
+                <p className='text-muted-foreground text-sm'>
+                  Nesta execução o agente só consultou dados.
+                </p>
+              ) : (
+                simulated.map(({ step, simulation }) => (
+                  <SteelAiSimulatedActionCard
+                    key={step.id}
+                    call={{
+                      id: step.id,
+                      name: step.toolName ?? '',
+                      label: step.toolLabel ?? step.toolName ?? '',
+                      module: null,
+                      status: 'simulated',
+                      simulation,
+                    }}
+                  />
+                ))
+              )}
+            </section>
+          ) : null}
 
           {pending.length > 0 ? (
             <section className='space-y-2' aria-label='Aguardando aprovação'>

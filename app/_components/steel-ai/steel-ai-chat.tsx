@@ -3,6 +3,7 @@
 import {
   Airplane01Icon,
   ArrowDown01Icon,
+  TestTube01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -40,11 +41,15 @@ import {
   takeSteelAiPrompt,
 } from './steel-ai-handoff'
 import { STEEL_AI_UNTITLED } from './steel-ai-history'
-import { allowedSteelAiMode } from './steel-ai-mode-switch'
+import {
+  AGENT_MODE_DISABLED_HINT,
+  allowedSteelAiMode,
+} from './steel-ai-mode-switch'
 import {
   STEEL_AI_AUTOPILOT_NOTICE,
   STEEL_AI_DISABLED_MESSAGE,
   STEEL_AI_QUOTA_MESSAGE,
+  STEEL_AI_TEST_NOTICE,
   SteelAiNotice,
 } from './steel-ai-notice'
 import { SteelAiTopBar } from './steel-ai-top-bar'
@@ -167,6 +172,20 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
     },
     [conversationId, updateConversation.mutate],
   )
+
+  /**
+   * "Executar de verdade em Build": the conversation leaves Teste and the
+   * last request is sent again in Build, where every write waits for the
+   * normal confirmation. Attachments stay on the original message.
+   */
+  function runForReal() {
+    const lastRequest = [...(messages.data ?? [])]
+      .reverse()
+      .find((message) => message.role === 'USER' && message.content.trim())
+    if (!lastRequest) return
+    setMode('AGENT')
+    void submit(lastRequest.content, 'AGENT', { modelKey: selectedModel })
+  }
 
   async function sendDraft() {
     const text = draft
@@ -307,6 +326,17 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
                 pendingUserMessage={stream.pendingUserMessage}
                 pendingAttachments={stream.pendingAttachments}
                 live={stream.live}
+                runForReal={
+                  aiDisabled || quotaExhausted
+                    ? undefined
+                    : {
+                        onRun: runForReal,
+                        disabledReason: agentModeEnabled
+                          ? null
+                          : AGENT_MODE_DISABLED_HINT,
+                        busy: stream.isStreaming,
+                      }
+                }
               />
             )}
           </div>
@@ -337,6 +367,11 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
             {effectiveMode === 'AUTOPILOT' && !aiDisabled ? (
               <SteelAiNotice tone='info' icon={Airplane01Icon}>
                 {STEEL_AI_AUTOPILOT_NOTICE}
+              </SteelAiNotice>
+            ) : null}
+            {effectiveMode === 'TEST' && !aiDisabled ? (
+              <SteelAiNotice tone='info' icon={TestTube01Icon}>
+                {STEEL_AI_TEST_NOTICE}
               </SteelAiNotice>
             ) : null}
             {errorMessage ? (
@@ -402,7 +437,9 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
                 ? ' — nenhuma alteração é feita sem a sua confirmação.'
                 : effectiveMode === 'AUTOPILOT'
                   ? ' — no Autopilot as alterações são feitas sem confirmação.'
-                  : '.'}
+                  : effectiveMode === 'TEST'
+                    ? ' — no modo Teste nada é alterado.'
+                    : '.'}
             </p>
           </div>
         </div>

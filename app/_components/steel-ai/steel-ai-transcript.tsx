@@ -16,6 +16,10 @@ import { SteelAiExecutedActionCard } from './steel-ai-executed-action-card'
 import { SteelAiMarkdown } from './steel-ai-markdown'
 import { SteelAiMemoryChip } from './steel-ai-memory-chip'
 import { SteelAiPendingActionCard } from './steel-ai-pending-action-card'
+import {
+  SteelAiSimulatedActionCard,
+  SteelAiSimulationSummary,
+} from './steel-ai-simulated-action-card'
 import { SteelAiToolCall } from './steel-ai-tool-call'
 
 function UserBubble({
@@ -48,6 +52,18 @@ function UserBubble({
   )
 }
 
+/** "Executar de verdade em Build", offered on the last Teste turn. */
+export interface SteelAiRunForReal {
+  onRun: () => void
+  /** Why it is unavailable (agent mode switched off), if it is. */
+  disabledReason: string | null
+  busy: boolean
+}
+
+type SimulatedCall = AiToolCallDTO & {
+  simulation: NonNullable<AiToolCallDTO['simulation']>
+}
+
 function AssistantBlock({
   workspaceId,
   content,
@@ -55,6 +71,7 @@ function AssistantBlock({
   pendingActions,
   streaming,
   footer,
+  runForReal,
 }: {
   workspaceId: string
   content: string
@@ -62,8 +79,15 @@ function AssistantBlock({
   pendingActions: AiPendingActionDTO[]
   streaming?: boolean
   footer?: string | null
+  runForReal?: SteelAiRunForReal
 }) {
   const thinking = streaming && !content && toolCalls.length === 0
+  const simulated = toolCalls.filter(
+    (call): call is SimulatedCall =>
+      call.status === 'simulated' && Boolean(call.simulation),
+  )
+  const simulatedIds = new Set(simulated.map((call) => call.id))
+  const chips = toolCalls.filter((call) => !simulatedIds.has(call.id))
   return (
     <div className='flex min-w-0 gap-3'>
       <span
@@ -77,12 +101,12 @@ function AssistantBlock({
         />
       </span>
       <div className='min-w-0 flex-1 space-y-3'>
-        {toolCalls.length > 0 ? (
+        {chips.length > 0 ? (
           <ul
             className='flex flex-wrap gap-1.5'
             aria-label='Ferramentas usadas'
           >
-            {toolCalls.map((call) =>
+            {chips.map((call) =>
               call.memory ? (
                 <SteelAiMemoryChip
                   key={call.id}
@@ -113,6 +137,17 @@ function AssistantBlock({
               />
             ) : null}
           </div>
+        ) : null}
+        {simulated.map((call) => (
+          <SteelAiSimulatedActionCard key={call.id} call={call} />
+        ))}
+        {simulated.length > 0 && !streaming ? (
+          <SteelAiSimulationSummary
+            count={simulated.length}
+            onRunForReal={runForReal?.onRun}
+            runForRealDisabledReason={runForReal?.disabledReason}
+            busy={runForReal?.busy}
+          />
         ) : null}
         {pendingActions.map((action) =>
           action.autoExecuted ? (
@@ -158,13 +193,17 @@ export function SteelAiTranscript({
   pendingUserMessage,
   pendingAttachments = [],
   live,
+  runForReal,
 }: {
   workspaceId: string
   messages: AiMessageDTO[]
   pendingUserMessage: string | null
   pendingAttachments?: AiAttachmentDTO[]
   live: SteelAiLiveMessage | null
+  /** Offered on the last assistant turn only (when it simulated writes). */
+  runForReal?: SteelAiRunForReal
 }) {
+  const lastId = live ? null : messages.at(-1)?.id
   return (
     <div className='space-y-6 sm:space-y-8'>
       {messages.map((message) =>
@@ -181,6 +220,7 @@ export function SteelAiTranscript({
             content={message.content}
             toolCalls={message.toolCalls}
             pendingActions={message.pendingActions}
+            runForReal={message.id === lastId ? runForReal : undefined}
           />
         ),
       )}
@@ -199,6 +239,7 @@ export function SteelAiTranscript({
           pendingActions={live.pendingActions}
           streaming={live.status === 'streaming'}
           footer={live.status === 'stopped' ? 'Resposta interrompida.' : null}
+          runForReal={live.status === 'streaming' ? undefined : runForReal}
         />
       ) : null}
     </div>

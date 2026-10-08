@@ -1,6 +1,10 @@
 'use client'
 
-import { Delete02Icon, PlayIcon } from '@hugeicons-pro/core-stroke-rounded'
+import {
+  Delete02Icon,
+  PlayIcon,
+  TestTube01Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -19,6 +23,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { notify } from '@/lib/notify'
 import {
   useDeleteSteelAgent,
@@ -26,6 +35,7 @@ import {
   useSteelAgent,
   useSteelAgentCatalog,
   useSteelAgentRuns,
+  useTestSteelAgent,
 } from '@/src/hooks/use-steel-agents'
 import { SteelAgentEditor } from './steel-agent-editor'
 import {
@@ -33,8 +43,12 @@ import {
   formatAgentDate,
   RUN_STATUS_LABEL,
   RUN_STATUS_VARIANT,
+  TEST_RUN_LABEL,
   TRIGGER_LABEL,
 } from './steel-agent-labels'
+
+export const TEST_AGENT_HINT =
+  'Roda o agente uma vez em modo teste: consulta os dados de verdade, mas só simula as alterações — nada é gravado, enviado ou mandado para aprovação.'
 
 /** `/ai/agents/[agentId]` — run history + configuration. */
 export function SteelAgentDetail({
@@ -52,6 +66,7 @@ export function SteelAgentDetail({
   const catalog = useSteelAgentCatalog(workspaceId)
   const runs = useSteelAgentRuns(workspaceId, agentId)
   const runNow = useRunSteelAgent(workspaceId, agentId)
+  const testRun = useTestSteelAgent(workspaceId, agentId)
   const remove = useDeleteSteelAgent(workspaceId)
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
@@ -97,6 +112,16 @@ export function SteelAgentDetail({
     }
   }
 
+  async function test() {
+    try {
+      const created = await testRun.mutateAsync()
+      notify.success('Teste enfileirado. Nada será alterado.')
+      router.push(`/${slug}/ai/agents/${agentId}/runs/${created.id}`)
+    } catch (error) {
+      notify.error(error)
+    }
+  }
+
   async function confirmDelete() {
     try {
       await remove.mutateAsync(agentId)
@@ -113,6 +138,28 @@ export function SteelAgentDetail({
         title={data.name}
         actions={
           <div className='flex items-center gap-1'>
+            {canRun ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      aria-label='Testar agente'
+                      className='max-sm:size-8 max-sm:px-0'
+                      disabled={testRun.isPending}
+                      onClick={test}
+                    />
+                  }
+                >
+                  <SteelIcon icon={TestTube01Icon} strokeWidth={2} />
+                  <span className='hidden sm:inline'>Testar</span>
+                </TooltipTrigger>
+                <TooltipContent side='bottom' className='max-w-64'>
+                  {TEST_AGENT_HINT}
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
             {canRun ? (
               <Button
                 size='sm'
@@ -177,12 +224,21 @@ export function SteelAgentDetail({
                         href={`/${slug}/ai/agents/${agentId}/runs/${item.id}`}
                         className='flex flex-col items-start gap-1 px-4 py-3 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 sm:flex-row sm:items-center sm:gap-3'
                       >
-                        <Badge
-                          variant={RUN_STATUS_VARIANT[item.status]}
-                          className='shrink-0'
-                        >
-                          {RUN_STATUS_LABEL[item.status]}
-                        </Badge>
+                        <span className='flex shrink-0 items-center gap-1.5'>
+                          <Badge variant={RUN_STATUS_VARIANT[item.status]}>
+                            {RUN_STATUS_LABEL[item.status]}
+                          </Badge>
+                          {item.isTest ? (
+                            <Badge variant='outline' className='gap-1'>
+                              <SteelIcon
+                                icon={TestTube01Icon}
+                                strokeWidth={2}
+                                className='size-3'
+                              />
+                              {TEST_RUN_LABEL}
+                            </Badge>
+                          ) : null}
+                        </span>
                         <span className='w-full min-w-0 flex-1 truncate text-sm sm:w-auto'>
                           {item.summary ?? item.error ?? '—'}
                         </span>

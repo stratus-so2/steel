@@ -67,7 +67,9 @@ export function takeSteelAiPrompt(
   return {
     content: candidate.content,
     mode:
-      candidate.mode === 'AGENT' || candidate.mode === 'AUTOPILOT'
+      candidate.mode === 'AGENT' ||
+      candidate.mode === 'AUTOPILOT' ||
+      candidate.mode === 'TEST'
         ? candidate.mode
         : 'EXPLORE',
     modelKey:
