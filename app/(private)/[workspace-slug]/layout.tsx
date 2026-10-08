@@ -131,9 +131,16 @@ export default async function WorkspaceLayout({
             slug={slug}
           />
         )}
-        <UserHeader slug={slug} workspaceId={membership.value.workspaceId} />
+        <UserHeader
+          slug={slug}
+          workspaceId={membership.value.workspaceId}
+          wikiEnabled={workspace.wikiEnabled}
+        />
         <div className='flex gap-x-1.5 flex-1 overflow-hidden min-h-0 px-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] md:pl-0 md:pr-2 md:pb-2'>
-          <GlobalSidebarNavigation slug={slug} />
+          <GlobalSidebarNavigation
+            slug={slug}
+            wikiEnabled={workspace.wikiEnabled}
+          />
           <div className='flex-1 w-full min-h-0 min-w-0 flex items-start bg-primary-foreground rounded-lg border border-border overflow-hidden [&>*]:min-h-0 [&>*]:min-w-0 [&>*:has(>[data-slot=context-sidebar])]:shrink-0'>
             <WorkspacePermissionsProvider value={permissions}>
               {children}

@@ -67,18 +67,20 @@ export function useUpdateStickyNote(stickyNoteId: string) {
   })
 }
 
-export function useDeleteStickyNote(stickyNoteId: string) {
+export function useDeleteStickyNote() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () =>
+    mutationFn: (stickyNoteId: string) =>
       apiSend(
         `${BASE_API_ROUTE}/${stickyNoteId}`,
         { method: 'DELETE' },
-        'Erro ao deletar sticky',
+        'Erro ao excluir sticky',
       ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: STICKY_NOTES_KEY })
+    onSuccess: (_data, stickyNoteId) => {
+      queryClient.setQueryData<StickyNoteDTO[]>(STICKY_NOTES_KEY, (old) =>
+        old?.filter((n) => n.id !== stickyNoteId),
+      )
     },
   })
 }
