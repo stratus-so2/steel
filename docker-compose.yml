@@ -27,6 +27,12 @@ services:
     command: ["node", "dist/worker.cjs"]
     env_file:
       - .env
+    environment:
+      # The status page's "app" probe must reach Next over the Docker network:
+      # from inside the container the public domain resolves to the server's
+      # own external IP, the router does not hairpin it, and every probe timed
+      # out — the page showed a permanent outage. The .env still wins if set.
+      STATUS_APP_PROBE_URL: ${STATUS_APP_PROBE_URL:-http://nextjs-app:3000}
     volumes:
       - ./redis-tls/ca.crt:/etc/redis-tls/ca.crt:ro
     dns:

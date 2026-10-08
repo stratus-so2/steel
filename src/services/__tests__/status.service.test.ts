@@ -22,7 +22,9 @@ vi.mock('@/src/services/status/probes', () => {
   }
   return {
     runProbesForTier: vi.fn(),
-    componentsForTier: (tier: 'core' | 'peripheral') => TIER_KEYS[tier] ?? [],
+    componentsForTier: vi.fn(
+      (tier: 'core' | 'peripheral') => TIER_KEYS[tier] ?? [],
+    ),
   }
 })
 
@@ -32,13 +34,17 @@ import { isBillingEnabled } from '@/src/lib/billing'
 import { prisma } from '@/src/lib/prisma'
 import { IncidentRepository } from '@/src/repositories/incident.repository'
 import { StatusRepository } from '@/src/repositories/status.repository'
-import { runProbesForTier } from '@/src/services/status/probes'
+import {
+  componentsForTier,
+  runProbesForTier,
+} from '@/src/services/status/probes'
 import { StatusService } from '@/src/services/status/status.service'
 
 const mockedCache = vi.mocked(StatusCache)
 const mockedStatusRepo = vi.mocked(StatusRepository)
 const mockedIncidentRepo = vi.mocked(IncidentRepository)
 const mockedRunProbes = vi.mocked(runProbesForTier)
+const mockedComponentsForTier = vi.mocked(componentsForTier)
 const mockedPrismaIncident = vi.mocked(prisma.incident.findMany)
 
 beforeEach(() => {
@@ -450,6 +456,45 @@ describe('StatusService.collect()', () => {
         componentKey: 'database',
         severity: 'MAJOR_OUTAGE',
       }),
+    )
+  })
+
+  it('closes the open incident of a component the tier no longer probes', async () => {
+    mockedComponentsForTier.mockReturnValueOnce(['email', 'storage'])
+    mockedRunProbes.mockResolvedValue({
+      email: { status: 'OPERATIONAL', latencyMs: 5, error: null },
+      storage: { status: 'OPERATIONAL', latencyMs: 5, error: null },
+    })
+    mockedStatusRepo.recordChecks.mockResolvedValue(ok(undefined))
+    mockedStatusRepo.aggregateForDay.mockResolvedValue(ok(null))
+    mockedIncidentRepo.findOpenByComponent.mockImplementation(async (key) =>
+      key === 'payment'
+        ? ok({
+            id: 'stale-i',
+            componentKey: 'payment',
+            severity: 'DEGRADED',
+            title: 'x',
+            startedAt: new Date(),
+            resolvedAt: null,
+          })
+        : ok(null),
+    )
+    mockedIncidentRepo.close.mockResolvedValue(err(databaseError('boom')))
+    mockedStatusRepo.pruneOldChecks.mockResolvedValue(ok(0))
+    mockedCache.invalidate.mockResolvedValue(undefined)
+
+    const result = await StatusService.collect('peripheral')
+
+    expectOk(result)
+    expect(mockedIncidentRepo.close).toHaveBeenCalledTimes(1)
+    expect(mockedIncidentRepo.close).toHaveBeenCalledWith(
+      'stale-i',
+      expect.any(Date),
+      expect.stringContaining('monitoramento'),
+    )
+    expect(logger.error).toHaveBeenCalledWith(
+      'status.retired_incident_close_failed',
+      expect.objectContaining({ componentKey: 'payment' }),
     )
   })
 

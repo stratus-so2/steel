@@ -24,6 +24,7 @@ import type {
 } from '@/types/status'
 import { activeComponents } from './active-components'
 import {
+  COMPONENTS,
   COMPONENTS_BY_KEY,
   type ComponentKey,
   type ComponentTier,
@@ -216,6 +217,41 @@ async function evaluateIncidentFor(
   }
 
   return { transition: transition(open.startedAt), error: null }
+}
+
+/**
+ * Resolves the open incidents of catalog components this tier no longer
+ * probes (e.g. "payment" once billing is turned off). Nothing would ever
+ * report them OPERATIONAL again, so without this they stay open forever and
+ * keep the public status page showing an outage.
+ */
+async function closeRetiredIncidents(
+  tier: ComponentTier,
+  activeKeys: ReadonlyArray<ComponentKey>,
+  now: Date,
+): Promise<void> {
+  const retired = COMPONENTS.filter(
+    (c) => c.tier === tier && !activeKeys.includes(c.key),
+  )
+  await Promise.all(
+    retired.map(async ({ key, name }) => {
+      const openResult = await IncidentRepository.findOpenByComponent(key)
+      if (!openResult.ok || !openResult.value) return
+      const closed = await IncidentRepository.close(
+        openResult.value.id,
+        now,
+        `O monitoramento de ${name} foi desativado. Incidente encerrado.`,
+      )
+      if (!closed.ok) {
+        logger.error('status.retired_incident_close_failed', {
+          component: 'StatusService',
+          componentKey: key,
+          errorCode: closed.error.code,
+          message: closed.error.message,
+        })
+      }
+    }),
+  )
 }
 
 /** Status points per component, oldest first, from the recorded checks. */
@@ -467,6 +503,8 @@ export const StatusService = {
         alert ? [alertComponent(alert.decision, alert.context)] : [],
       ),
     )
+
+    await closeRetiredIncidents(tier, tierKeys, now)
 
     const cutoff = addDays(today, -RAW_RETENTION_DAYS)
     const pruneResult = await StatusRepository.pruneOldChecks(cutoff)
