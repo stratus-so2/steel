@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Cancel01Icon,
   Delete02Icon,
   PlayIcon,
   TestTube01Icon,
@@ -56,11 +57,14 @@ export function SteelAgentDetail({
   slug,
   agentId,
   currentUserId,
+  fromTemplate = false,
 }: {
   workspaceId: string
   slug: string
   agentId: string
   currentUserId: string
+  /** Just created from a template: nudge to "Testar agente" first. */
+  fromTemplate?: boolean
 }) {
   const agent = useSteelAgent(workspaceId, agentId)
   const catalog = useSteelAgentCatalog(workspaceId)
@@ -70,6 +74,7 @@ export function SteelAgentDetail({
   const remove = useDeleteSteelAgent(workspaceId)
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
+  const [nudge, setNudge] = useState(fromTemplate)
   const canManage = catalog.data?.canManage ?? false
 
   if (agent.isLoading) {
@@ -203,6 +208,47 @@ export function SteelAgentDetail({
                 : null}
             </p>
           </header>
+
+          {nudge && canRun ? (
+            <div
+              role='note'
+              aria-label='Teste o agente antes de ativar'
+              className='flex flex-col gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-center'
+            >
+              <SteelIcon
+                icon={TestTube01Icon}
+                strokeWidth={2}
+                className='hidden size-5 shrink-0 text-muted-foreground sm:block'
+              />
+              <div className='min-w-0 flex-1 space-y-0.5'>
+                <p className='font-medium text-sm'>
+                  Agente criado a partir de um modelo. Teste antes de ativar.
+                </p>
+                <p className='text-muted-foreground text-sm'>
+                  {TEST_AGENT_HINT}
+                </p>
+              </div>
+              <div className='flex shrink-0 items-center gap-1'>
+                <Button
+                  size='sm'
+                  disabled={testRun.isPending}
+                  onClick={test}
+                  className='flex-1 sm:flex-none'
+                >
+                  <SteelIcon icon={TestTube01Icon} strokeWidth={2} />
+                  Testar agente
+                </Button>
+                <Button
+                  size='icon-sm'
+                  variant='ghost'
+                  aria-label='Dispensar aviso'
+                  onClick={() => setNudge(false)}
+                >
+                  <SteelIcon icon={Cancel01Icon} strokeWidth={2} />
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           <Tabs defaultValue='runs'>
             <TabsList>

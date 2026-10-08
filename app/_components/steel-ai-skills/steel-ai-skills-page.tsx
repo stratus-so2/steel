@@ -2,6 +2,7 @@
 
 import {
   ArrowUpRight01Icon,
+  DashboardSquare02Icon,
   Delete02Icon,
   MagicWand01Icon,
   MoreHorizontalIcon,
@@ -12,6 +13,8 @@ import {
 import Link from 'next/link'
 import { useState } from 'react'
 import { SteelAiTopBar } from '@/app/_components/steel-ai/steel-ai-top-bar'
+import { SteelAiTemplateGallery } from '@/app/_components/steel-ai-templates/steel-ai-template-gallery'
+import { skillInputFromTemplate } from '@/app/_components/steel-ai-templates/template-prefill'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   AlertDialog,
@@ -47,9 +50,13 @@ import {
   useDeleteAiSkill,
   useUpdateAiSkill,
 } from '@/src/hooks/use-ai-skills'
+import { useAiTemplates } from '@/src/hooks/use-ai-templates'
 import { useSteelAgentCatalog } from '@/src/hooks/use-steel-agents'
 import type { AiSkillDTO, AiSkillKindDTO } from '@/types/ai-skill'
-import { SteelAiSkillForm } from './steel-ai-skill-form'
+import {
+  SteelAiSkillForm,
+  type SteelAiSkillFormInitial,
+} from './steel-ai-skill-form'
 
 const SECTIONS: {
   kind: AiSkillKindDTO
@@ -81,7 +88,7 @@ const MODE_BADGE: Record<NonNullable<AiSkillDTO['mode']>, string> = {
 }
 
 type Editing =
-  | { kind: 'create' }
+  | { kind: 'create'; initial?: SteelAiSkillFormInitial; template?: string }
   | { kind: 'edit'; skill: AiSkillDTO }
   | { kind: 'view'; skill: AiSkillDTO }
   | null
@@ -202,6 +209,8 @@ export function SteelAiSkillsPage({
 }) {
   const skills = useAiSkills(workspaceId)
   const catalog = useSteelAgentCatalog(workspaceId)
+  const templates = useAiTemplates(workspaceId)
+  const [gallery, setGallery] = useState(false)
   const create = useCreateAiSkill(workspaceId)
   const update = useUpdateAiSkill(workspaceId)
   const remove = useDeleteAiSkill(workspaceId)
@@ -210,6 +219,11 @@ export function SteelAiSkillsPage({
   const [formError, setFormError] = useState<string | null>(null)
   const list = skills.data?.skills ?? []
   const canManageWorkspace = skills.data?.canManageWorkspace ?? false
+  const canUseTemplates =
+    canManageWorkspace && (templates.data?.canUse ?? false)
+  const takenSlugs = new Set(
+    list.filter((s) => s.kind !== 'PERSONAL').map((s) => s.slug),
+  )
   const tools = (catalog.data?.tools ?? []).map((tool) => ({
     name: tool.name,
     label: tool.label,
@@ -269,15 +283,29 @@ export function SteelAiSkillsPage({
       <SteelAiTopBar
         title='Skills'
         actions={
-          <Button
-            size='sm'
-            aria-label='Nova skill'
-            className='max-sm:size-8 max-sm:px-0'
-            onClick={() => setEditing({ kind: 'create' })}
-          >
-            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-            <span className='hidden sm:inline'>Nova skill</span>
-          </Button>
+          <div className='flex items-center gap-1'>
+            {canUseTemplates ? (
+              <Button
+                size='sm'
+                variant='outline'
+                aria-label='Modelos'
+                className='max-sm:size-8 max-sm:px-0'
+                onClick={() => setGallery(true)}
+              >
+                <SteelIcon icon={DashboardSquare02Icon} strokeWidth={2} />
+                <span className='hidden sm:inline'>Modelos</span>
+              </Button>
+            ) : null}
+            <Button
+              size='sm'
+              aria-label='Nova skill'
+              className='max-sm:size-8 max-sm:px-0'
+              onClick={() => setEditing({ kind: 'create' })}
+            >
+              <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+              <span className='hidden sm:inline'>Nova skill</span>
+            </Button>
+          </div>
         }
       />
       <div className='min-h-0 flex-1 overflow-y-auto'>
@@ -293,6 +321,29 @@ export function SteelAiSkillsPage({
               skill sozinho quando o pedido combina com a descrição.
             </p>
           </header>
+
+          {canUseTemplates ? (
+            <button
+              type='button'
+              onClick={() => setGallery(true)}
+              className='flex w-full items-center gap-3 rounded-xl border border-dashed px-4 py-3 text-left outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50'
+            >
+              <SteelIcon
+                icon={DashboardSquare02Icon}
+                strokeWidth={1.5}
+                className='size-5 shrink-0 text-muted-foreground'
+              />
+              <span className='min-w-0 flex-1'>
+                <span className='block font-medium text-sm'>
+                  Criar a partir de modelo
+                </span>
+                <span className='block text-muted-foreground text-xs'>
+                  Skills prontas para administradores: saúde do workspace,
+                  membros, consumo de IA, SLA da equipe e mais.
+                </span>
+              </span>
+            </button>
+          ) : null}
 
           {skills.isLoading ? (
             <div className='space-y-2' aria-hidden>
@@ -369,17 +420,24 @@ export function SteelAiSkillsPage({
                     : 'Skill'}
             </DialogTitle>
             <DialogDescription>
-              {editing?.kind === 'view'
-                ? dialogSkill?.kind === 'BUILT_IN'
-                  ? 'Skill embutida do Steel AI: pode ser desativada, mas não editada.'
-                  : 'Só administradores editam as skills do workspace.'
-                : 'Diga ao Steel AI o que fazer quando alguém digitar o comando.'}
+              {editing?.kind === 'create' && editing.template
+                ? `A partir do modelo “${editing.template}”. Revise e ajuste antes de criar.`
+                : editing?.kind === 'view'
+                  ? dialogSkill?.kind === 'BUILT_IN'
+                    ? 'Skill embutida do Steel AI: pode ser desativada, mas não editada.'
+                    : 'Só administradores editam as skills do workspace.'
+                  : 'Diga ao Steel AI o que fazer quando alguém digitar o comando.'}
             </DialogDescription>
           </DialogHeader>
           {editing ? (
             <SteelAiSkillForm
-              key={dialogSkill?.id ?? 'new'}
+              key={
+                dialogSkill?.id ??
+                (editing.kind === 'create' ? editing.template : null) ??
+                'new'
+              }
               skill={dialogSkill}
+              initial={editing.kind === 'create' ? editing.initial : undefined}
               canManageWorkspace={canManageWorkspace}
               tools={tools}
               readOnly={editing.kind === 'view'}
@@ -391,6 +449,25 @@ export function SteelAiSkillsPage({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {canUseTemplates && templates.data ? (
+        <SteelAiTemplateGallery
+          kind='skills'
+          open={gallery}
+          onOpenChange={setGallery}
+          templates={templates.data.skills}
+          takenSlugs={takenSlugs}
+          onPick={(template) => {
+            setGallery(false)
+            setFormError(null)
+            setEditing({
+              kind: 'create',
+              initial: skillInputFromTemplate(template),
+              template: template.name,
+            })
+          }}
+        />
+      ) : null}
 
       <AlertDialog
         open={deleting !== null}

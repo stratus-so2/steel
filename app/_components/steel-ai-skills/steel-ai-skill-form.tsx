@@ -51,6 +51,11 @@ const MODE_LABEL: Record<AiConversationModeDTO | typeof KEEP_MODE, string> = {
   TEST: 'Teste — simula sem alterar nada',
 }
 
+/** Values of a new skill pre-filled from somewhere (e.g. a template). */
+export type SteelAiSkillFormInitial = Omit<FormState, 'scope'> & {
+  scope?: FormState['scope']
+}
+
 interface FormState {
   scope: 'PERSONAL' | 'WORKSPACE'
   name: string
@@ -84,6 +89,7 @@ export function validateSkillForm(state: FormState): Errors {
  */
 export function SteelAiSkillForm({
   skill,
+  initial,
   canManageWorkspace,
   tools,
   readOnly = false,
@@ -93,6 +99,8 @@ export function SteelAiSkillForm({
   onCancel,
 }: {
   skill?: AiSkillDTO
+  /** New skill only: pre-filled values. */
+  initial?: SteelAiSkillFormInitial
   canManageWorkspace: boolean
   tools: SteelAiSkillToolOption[]
   readOnly?: boolean
@@ -101,15 +109,25 @@ export function SteelAiSkillForm({
   onSubmit: (input: AiSkillInput) => void
   onCancel: () => void
 }) {
-  const [state, setState] = useState<FormState>({
-    scope: skill?.kind === 'WORKSPACE' ? 'WORKSPACE' : 'PERSONAL',
-    name: skill?.name ?? '',
-    slug: skill?.slug ?? '',
-    description: skill?.description ?? '',
-    instructions: skill?.instructions ?? '',
-    mode: skill?.mode ?? null,
-    toolNames: skill?.toolNames ?? [],
-  })
+  const [state, setState] = useState<FormState>(() =>
+    !skill && initial
+      ? {
+          ...initial,
+          scope:
+            initial.scope === 'WORKSPACE' && canManageWorkspace
+              ? 'WORKSPACE'
+              : 'PERSONAL',
+        }
+      : {
+          scope: skill?.kind === 'WORKSPACE' ? 'WORKSPACE' : 'PERSONAL',
+          name: skill?.name ?? '',
+          slug: skill?.slug ?? '',
+          description: skill?.description ?? '',
+          instructions: skill?.instructions ?? '',
+          mode: skill?.mode ?? null,
+          toolNames: skill?.toolNames ?? [],
+        },
+  )
   const [errors, setErrors] = useState<Errors>({})
   const [toolQuery, setToolQuery] = useState('')
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>

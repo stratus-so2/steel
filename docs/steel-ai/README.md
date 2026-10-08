@@ -134,3 +134,31 @@ Pedido do product owner (08/10/2026): "Steel AI modo teste > mostra o que faria 
 - **Tela**: aviso "Modo Teste" acima do compositor; cada escrita vira um cartão tracejado "Simulado — Faria: …" com a prévia; no fim do turno, "Em modo teste: N ações simuladas, nada foi alterado" e **Executar de verdade em Build** (troca a conversa para Build e reenvia o último pedido; as escritas passam pela confirmação normal). Com o modo agente desligado, o botão dá lugar à explicação.
 - **Steel Agents — "Testar agente"** (`POST /api/workspaces/[id]/agents/[agentId]/test`, 202 `SteelAgentRunDTO` com `isTest: true`): mesmo gate do "Executar agora" (responsável ou admin), funciona com o agente pausado e com o modo agente desligado. Ferramentas `AUTO` e `APPROVAL` são simuladas (passo `SIMULATED` com `output.simulation`); sem aprovação na inbox, sem aviso de falha. Não conta no limite mensal, não mexe em `lastRunAt`/`nextRunAt` e não aparece como `lastRun`. A tela da execução mostra o selo "Teste" e a seção "O que o agente faria".
 - **Migração** `ai_test_mode_simulated_writes`: `AiConversationMode.TEST`, `SteelAgentRunStepStatus.SIMULATED`, `steel_agent_runs.is_test`.
+
+### ai-admin-templates — modelos prontos para admins
+
+Pedido do product owner (08/10/2026): "Steel AI com modelos prontos com foco nos admins". Galeria de **modelos de Steel Agents** e **modelos de skills** para OWNER/ADMIN.
+
+- **No código, sem seed** (como as skills embutidas): `src/lib/ai/templates/{agent-templates,skill-templates}.ts`. Cada modelo tem id, nome, descrição de uma linha, categoria (ServiceDesk, Vendas, Comunicação, Governança, Gestão), módulos exigidos, instruções e ferramentas sugeridas; agentes trazem agenda (cron + `scheduleLabel` em pt-BR) e máximo de etapas, skills trazem comando e modo (Ask).
+- **Regra das ferramentas**: leitura `AUTO`; toda escrita sugerida — e tudo que chega a cliente — vem `APPROVAL` (exclusão é sempre aprovação, ADR 0020). Os modelos de agente só **propõem** escritas (atribuir chamado, nota interna, tarefa no CRM, atribuir conversa); nenhum envia mensagem a cliente. Um teste unitário garante que toda ferramenta existe no registro, que os módulos são `ModuleKind` reais, que os cron são válidos e que cada modelo passa no schema de criação (`CreateSteelAgentSchema` / `CreateAiSkillSchema`).
+- **Usar um modelo só preenche** o editor do agente (`/ai/agents/new?template=<id>`) ou o formulário "Nova skill" (escopo workspace). Nada é salvo até o admin criar; a criação passa pelas rotas de sempre (`POST .../agents`, `POST .../ai/skills`), que continuam validando RBAC, módulos, ferramentas e gatilho. O agente criado de modelo **começa pausado**, e a tela do agente abre com o aviso "Teste antes de ativar" e o botão **Testar agente** (modo Teste, ADR 0023). A skill criada é uma skill comum do workspace, editável.
+- **Quem vê**: só OWNER/ADMIN (`GET /api/workspaces/[id]/ai/templates` → `AiTemplatesDTO`; os demais recebem `canUse: false` e listas vazias, e a tela esconde o botão "Modelos"). Modelo cujo módulo está desligado aparece desabilitado com o motivo ("Requer o módulo ServiceDesk habilitado."). Em modelo sem módulo exigido (ex.: resumo executivo), as ferramentas de módulos desligados saem da sugestão.
+- **Duas ferramentas novas de plataforma (leitura)**, para os modelos de governança: `ws_ai_usage` (consumo de IA do workspace: mês e semana contra a cota, projeção e os modelos/recursos/módulos/pessoas que mais gastaram; permissão `settings` VIEW e escopo workspace do `AiUsageAnalyticsService`, ou seja, só OWNER/ADMIN) e `ws_invitations` (convites pendentes com validade; permissão `members` VIEW e `InvitationService.list`, só OWNER/ADMIN).
+- **Tela**: botão "Modelos" no topo de **Agentes** e de **Skills**, mais a linha "Criar a partir de modelo" na lista (e no estado vazio dos agentes). A galeria agrupa por categoria, filtra por módulo (Todos, ServiceDesk, CRM, Comunicação, Plataforma) e mostra em cada cartão os módulos, a agenda ou o comando, o que o agente **faz sozinho** e o que **pede aprovação**; skill cujo comando já existe aparece como "Já adicionada".
+
+| Modelos de agente | Módulo | Agenda | Escritas (todas com aprovação) |
+|---|---|---|---|
+| Chamados sem responsável | ServiceDesk | dias úteis, de hora em hora (8h–18h) | atribuir chamado |
+| SLA em risco | ServiceDesk | dias úteis, a cada 30 min (8h–18h) | nota interna |
+| Fila parada por técnico | ServiceDesk | dias úteis às 9h | — |
+| Oportunidades paradas no funil | CRM | segundas às 8h | tarefa no CRM |
+| Propostas vencendo | CRM | dias úteis às 8h | tarefa no CRM |
+| Conversas sem resposta | Comunicação | dias úteis, de hora em hora (8h–18h) | atribuir conversa |
+| Conexões do WhatsApp desconectadas | Comunicação | a cada hora | — |
+| Consumo de IA acima do ritmo | plataforma | todo dia às 9h | — |
+| Auditoria semanal de acessos | plataforma | segundas às 9h | — |
+| Resumo executivo semanal | plataforma (usa os módulos habilitados) | segundas às 7h | — |
+
+Modelos de skill: `/saude-workspace`, `/membros`, `/consumo-ia`, `/auditoria`, `/sla-equipe`, `/fila-equipe`, `/pipeline-time`, `/atendimento-whatsapp` (nenhum colide com as embutidas).
+
+O resultado de um agente de relatório fica no resumo da execução, na tela do agente. Contratos: `types/ai-template.d.ts`, `AiTemplateService` (`src/services/ai-template.service.ts`), mapper `src/mappers/ai-template.mapper.ts`, hook `src/hooks/use-ai-templates.ts`, telas `app/_components/steel-ai-templates/**`.

@@ -11,10 +11,13 @@ export const metadata: Metadata = {
 
 export default async function NewSteelAgentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ 'workspace-slug': string }>
+  searchParams: Promise<{ template?: string | string[] }>
 }) {
   const { 'workspace-slug': slug } = await params
+  const { template } = await searchParams
   const session = await getAuthSession()
   if (!session.ok) redirect('/sign-in')
   const membership = await MembershipService.getByUserAndSlug(
@@ -28,6 +31,7 @@ export default async function NewSteelAgentPage({
       workspaceId={membership.value.workspaceId}
       slug={slug}
       currentUserId={session.value.user.id}
+      templateId={(Array.isArray(template) ? template[0] : template) ?? null}
     />
   )
 }
