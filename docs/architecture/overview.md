@@ -155,6 +155,33 @@ OWNER/ADMIN; `WhatsAppSettings`):
   com o tipo certo na Meta e na Z-API (`src/lib/whatsapp/broadcast-media.ts`).
   Áudio não tem legenda: a mensagem segue como texto logo depois.
 
+## Integrações do workspace (Slack, GitHub, GitLab)
+
+Desde a [ADR 0024](../adr/0024-workspace-level-integrations.md) as conexões
+com Slack, GitHub e GitLab são **do workspace** (tabela
+`workspace_integrations`), configuradas uma vez em **Ajustes > Integrações**
+por OWNER/ADMIN e usadas por todos os módulos:
+
+- **Conexão**: `WorkspaceIntegrationService` (conectar, testar, trocar
+  token/segredo, desconectar; tudo auditado). Token e segredo cifrados com
+  `CONNECTION_SECRETS`, nunca devolvidos. Sem as credenciais do app do Slack
+  no servidor, o card aparece indisponível com o motivo. GitLab aceita
+  gitlab.com ou instância própria (só HTTPS, host público).
+- **Notificações no Slack**: regras "evento → canal" por módulo (catálogo em
+  `src/lib/integrations/catalog.ts`). Os módulos chamam
+  `notifyWorkspaceSlack` (`src/services/workspace-slack-notifier.ts`), que
+  só enfileira (`workspace-integrations`); o ServiceDesk segue no job
+  `deliver-event` da fila dele, com o canal por time substituindo o da regra.
+  Eventos de hoje: chamado novo/urgente, SLA violado e demais eventos de
+  chamado; CRM novo lead e negócio ganho/perdido; Comunicação conversa
+  aguardando; Steel Agents aprovação pendente.
+- **Repositórios**: GitHub e GitLab com o mesmo conjunto de recursos nos
+  chamados (vínculo de issue/PR/MR, abrir issue, estado por webhook,
+  reconciliação horária). Webhooks públicos em
+  `/api/integrations/{github,gitlab}/webhook`, verificados por HMAC/token em
+  tempo constante antes de qualquer gravação; o caminho antigo do GitHub
+  continua aceito.
+
 ## Caixa de entrada (notificações in-app)
 
 `/[slug]/inbox` é a caixa de entrada do usuário no workspace, no formato de
@@ -283,6 +310,7 @@ Registra um `Worker` por fila e agenda os jobs repetíveis no boot
 | `servicedesk-digest` | resumo diário opcional do ServiceDesk: o que ficou pendente com o agente (fila, SLA apertado, aguardando resposta). Só para quem marcou `digest.daily` nas preferências; sem retry (`attempts: 1`) para não reenviar ([ServiceDesk](../servicedesk/README.md)) | a cada hora (envia na hora local do workspace, `SD_DIGEST_HOUR`) |
 | `servicedesk-recurring` | chamados recorrentes / manutenção preventiva: abre o chamado das rotinas com `nextRunAt` vencido (ator de sistema), registra a ocorrência e recalcula o próximo disparo no fuso da regra. Idempotente pelo par `(recurringId, scheduledFor)`; sem retry (`attempts: 1`) ([ServiceDesk](../servicedesk/README.md)) | a cada 5 min |
 | `servicedesk-billing` | contratos de atendimento do ServiceDesk: abre o período do ciclo de cada contrato ativo e fecha o anterior já vencido, consolidando os apontamentos de hora (franquia, excedente, acumulado e valor). Idempotente por `(contractId, periodStart)` ([ServiceDesk](../servicedesk/README.md)) | diário às 00:20 |
+| `workspace-integrations` | integrações do workspace ([ADR 0024](../adr/0024-workspace-level-integrations.md)): `slack-notify` entrega no Slack um evento de qualquer módulo que tenha regra (CRM, Steel Agents, Comunicação); `communication-waiting-tick` avisa conversas do WhatsApp aguardando resposta além do limite do workspace, uma vez por última mensagem | sob demanda (`slack-notify`) e a cada 5 min (tick) |
 
 Dashboard das filas: `/jobs` (Workbench, basic auth `WORKBENCH_USER`/`WORKBENCH_PASS`).
 
