@@ -69,6 +69,18 @@ app/api/**/route.ts  →  Service        →  Repository   →  Prisma
   tokens, modelo...). Log novo nessas áreas não cria chave nova — põe no
   `detail`. O `request` do log de requisição fica na raiz do evento e não é
   afetado.
+- **Lista fixa de campos**: depois do `flattenNestedFields`, o formatter
+  `capFieldKeys` (`lib/axiom/log-fields.ts`) só deixa no topo de `fields` as
+  chaves de `ALLOWED_LOG_FIELD_KEYS` (escopo, auditoria, erro, worker, IA);
+  o resto vai para dentro do `detail`. O dataset fica com um número fixo de
+  colunas, seja qual for o log novo. Chave nova que precise virar coluna
+  (para filtrar no Axiom) entra nessa lista de propósito.
+- **Ruído do worker fora do Axiom**: o `NoiseFilterTransport`
+  (`lib/axiom/transports.ts`) descarta, só no envio ao Axiom, o
+  `*.tick_completed` de um tick que não fez nada e o
+  `queue.status_collect.completed` (o resultado já fica em `HealthCheck`); o
+  worker não loga `queue.job.completed` de job repetível. Aviso e erro nunca
+  são descartados, e o console continua mostrando tudo.
 - **Axiom é opcional**: sem `NEXT_PUBLIC_AXIOM_TOKEN`/`NEXT_PUBLIC_AXIOM_DATASET`
   os loggers do servidor e do navegador escrevem só no console
   (`lib/axiom/transports.ts`) e a exportação LGPD pula a trilha de auditoria.

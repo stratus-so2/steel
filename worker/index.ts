@@ -86,6 +86,9 @@ function registerWorker(name: QueueName, processor: Processor): Worker {
   })
 
   worker.on('completed', (job) => {
+    // Repeatable ticks (every minute or so) already log their own result
+    // when they did work; one more line per run was most of the volume.
+    if (job.repeatJobKey) return
     logger.info('queue.job.completed', {
       component: 'Worker',
       queue: name,

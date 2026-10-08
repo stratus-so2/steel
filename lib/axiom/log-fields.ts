@@ -93,3 +93,85 @@ export function flattenNestedFields<T extends { fields?: unknown }>(
   }
   return changed ? { ...event, fields: next } : event
 }
+
+/**
+ * The only keys a log may carry at the top of `fields` (each is one Axiom
+ * column). Anything else is folded into the single `detail` string by
+ * `capFieldKeys`, so the dataset stays at a fixed size no matter what new
+ * code logs. Keep this list short; it already covers audit
+ * (`category`/`actorId` are read by the LGPD export), the worker and the AI
+ * logs.
+ */
+export const ALLOWED_LOG_FIELD_KEYS: ReadonlySet<string> = new Set([
+  // identity / scope
+  'component',
+  'workspaceId',
+  'userId',
+  'actorId',
+  'targetId',
+  'conversationId',
+  'actionId',
+  'ticketId',
+  // audit trail
+  'category',
+  'auditType',
+  'entity',
+  'action',
+  'event',
+  'outcome',
+  'reason',
+  'timestamp',
+  // errors
+  'message',
+  'error',
+  'errorCode',
+  'code',
+  'cause',
+  'stack',
+  'statusCode',
+  'status',
+  // worker
+  'queue',
+  'jobName',
+  'jobId',
+  'attemptsMade',
+  'durationMs',
+  'count',
+  // ai / modules
+  'module',
+  'provider',
+  'model',
+  'mode',
+  'kind',
+  'scope',
+  'source',
+  'costUsd',
+  'inputTokens',
+  'outputTokens',
+  // the overflow bucket
+  'detail',
+])
+
+/**
+ * Logger formatter (runs after `flattenNestedFields`): keys outside
+ * `ALLOWED_LOG_FIELD_KEYS` move into `detail` as JSON, merged with any
+ * `detail` the caller already set (kept under `detail.detail`).
+ */
+export function capFieldKeys<T extends { fields?: unknown }>(event: T): T {
+  const fields = event.fields
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) {
+    return event
+  }
+  const kept: Record<string, unknown> = {}
+  const extra: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === 'detail') continue
+    if (ALLOWED_LOG_FIELD_KEYS.has(key)) kept[key] = value
+    else extra[key] = value
+  }
+  if (Object.keys(extra).length === 0) return event
+  const previous = (fields as Record<string, unknown>).detail
+  if (previous !== undefined) extra.detail = previous
+  kept.detail = stringifyLogValue(extra)
+  return { ...event, fields: kept }
+}

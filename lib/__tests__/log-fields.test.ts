@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ALLOWED_LOG_FIELD_KEYS,
+  capFieldKeys,
   flattenNestedFields,
   LOG_DETAIL_MAX_CHARS,
   logFields,
@@ -94,5 +96,46 @@ describe('flattenNestedFields()', () => {
     expect(flattenNestedFields(none)).toBe(none)
     const arrayFields = { fields: ['x'] }
     expect(flattenNestedFields(arrayFields)).toBe(arrayFields)
+  })
+})
+
+describe('capFieldKeys()', () => {
+  it('keeps allowlisted keys and folds the rest into detail', () => {
+    const out = capFieldKeys({
+      message: 'x',
+      fields: { component: 'Worker', workspaceId: 'w1', foo: 1, bar: 'b' },
+    })
+    expect(out.fields).toEqual({
+      component: 'Worker',
+      workspaceId: 'w1',
+      detail: JSON.stringify({ foo: 1, bar: 'b' }),
+    })
+  })
+
+  it('keeps a caller detail inside the merged detail', () => {
+    const out = capFieldKeys({
+      fields: { component: 'AI', detail: '{"tool":"t"}', extra: true },
+    })
+    expect(out.fields).toEqual({
+      component: 'AI',
+      detail: JSON.stringify({ extra: true, detail: '{"tool":"t"}' }),
+    })
+  })
+
+  it('returns the same event when every key is allowed', () => {
+    const event = { fields: { component: 'x', detail: 'd' } }
+    expect(capFieldKeys(event)).toBe(event)
+  })
+
+  it('ignores events without an object of fields', () => {
+    const none: { message: string; fields?: unknown } = { message: 'm' }
+    const list = { fields: [1, 2] }
+    expect(capFieldKeys(none)).toBe(none)
+    expect(capFieldKeys(list)).toBe(list)
+  })
+
+  it('allows the audit keys the LGPD export queries', () => {
+    expect(ALLOWED_LOG_FIELD_KEYS.has('category')).toBe(true)
+    expect(ALLOWED_LOG_FIELD_KEYS.has('actorId')).toBe(true)
   })
 })

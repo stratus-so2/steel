@@ -132,7 +132,8 @@ async function gatherAuditLog(userId: string): Promise<ExportAuditEntry[]> {
   if (!NEXT_PUBLIC_AXIOM_DATASET) return []
   const apl =
     `['${NEXT_PUBLIC_AXIOM_DATASET}']` +
-    ` | where category == 'audit' and ['actorId'] == '${userId}'` +
+    // Logger fields land under `fields.*` in the dataset.
+    ` | where ['fields.category'] == 'audit' and ['fields.actorId'] == '${userId}'` +
     ' | sort by _time desc' +
     ` | limit ${AUDIT_LOG_MAX_ENTRIES}`
 

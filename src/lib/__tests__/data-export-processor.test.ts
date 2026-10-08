@@ -366,7 +366,7 @@ describe('processDataExport', () => {
     await processDataExport(fakeJob('export-user-data', { userId: 'user-1' }))
 
     expect(axiomQueryMock).toHaveBeenCalledWith(
-      expect.stringContaining("['actorId'] == 'user-1'"),
+      expect.stringContaining("['fields.actorId'] == 'user-1'"),
     )
     const uploaded = JSON.parse(putObjectMock.mock.calls[0][0].body)
     expect(uploaded.profile.deletionScheduledAt).toBe(scheduled.toISOString())
