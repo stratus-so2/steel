@@ -124,3 +124,21 @@ export async function notifyAiQuota(input: {
     dedupeKey: `ai-quota:${input.workspaceId}:${input.period}:${input.threshold}`,
   })
 }
+
+/** Ajustes › Exportações: the requester's workspace export is ready. */
+export function notifyWorkspaceExportReady(input: {
+  workspaceId: string
+  requestedById: string
+  exportId: string
+  kindLabel: string
+}): Promise<number> {
+  return emitNotification({
+    workspaceId: input.workspaceId,
+    recipients: [input.requestedById],
+    kind: 'DATA_EXPORT_READY',
+    title: `Exportação de ${input.kindLabel} pronta`,
+    body: 'O arquivo fica disponível para download por 7 dias em Ajustes › Exportações.',
+    path: '/settings/exports',
+    dedupeKey: `workspace-export:${input.exportId}`,
+  })
+}

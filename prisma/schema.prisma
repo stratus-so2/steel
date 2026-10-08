@@ -194,6 +194,7 @@ model User {
   sdIncidentClustersClosed  SdIncidentCluster[]        @relation("SdIncidentClusterDismissedBy")
   sdIntegrationsCreated     SdIntegration[]            @relation("SdIntegrationCreatedBy")
   sdIntegrationLinksCreated SdIntegrationLink[]        @relation("SdIntegrationLinkCreatedBy")
+  workspaceExportsRequested WorkspaceExport[]          @relation("WorkspaceExportRequestedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -525,6 +526,7 @@ model Workspace {
   sdIntegrations            SdIntegration[]
   sdIntegrationLinks        SdIntegrationLink[]
   searchDocuments           SearchDocument[]
+  workspaceExports          WorkspaceExport[]
 
   @@index([status])
   @@map("workspaces")
@@ -6852,4 +6854,57 @@ model WikiPageLabel {
   @@id([wikiPageId, labelId])
   @@index([labelId])
   @@map("wiki_page_labels")
+}
+
+// ─── Ajustes › Exportações ──────────────────────────────────────────────────
+
+enum WorkspaceExportKind {
+  /// Dados completos do workspace (ZIP com JSON + CSV por tabela).
+  DATA
+  /// Logs do workspace no Axiom (ZIP com CSV + NDJSON).
+  LOGS
+}
+
+enum WorkspaceExportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+/// Exportação pedida por um OWNER/ADMIN em Ajustes › Exportações. Uma de cada
+/// tipo por workspace por dia (São Paulo): o índice único em
+/// `(workspace_id, kind, day_key)` segura cliques simultâneos, e uma falha
+/// zera `day_key` para liberar a nova tentativa no mesmo dia.
+model WorkspaceExport {
+  id            String                @id @default(cuid())
+  workspaceId   String                @map("workspace_id")
+  kind          WorkspaceExportKind
+  status        WorkspaceExportStatus @default(PENDING)
+  requestedById String?               @map("requested_by_id")
+  /// `YYYY-MM-DD` (São Paulo) do pedido; `null` depois de uma falha.
+  dayKey        String?               @map("day_key")
+  /// LOGS: janela consultada no Axiom.
+  periodFrom    DateTime?             @map("period_from")
+  periodTo      DateTime?             @map("period_to")
+  /// Objeto no bucket `workspace-exports`; `null` depois de expirar.
+  storageKey    String?               @map("storage_key")
+  fileName      String?               @map("file_name")
+  sizeBytes     BigInt?               @map("size_bytes")
+  /// Tabelas (DATA) ou eventos (LOGS) no arquivo.
+  itemCount     Int?                  @map("item_count")
+  errorMessage  String?               @map("error_message")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  startedAt     DateTime?             @map("started_at")
+  completedAt   DateTime?             @map("completed_at")
+  expiresAt     DateTime?             @map("expires_at")
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  requestedBy User?     @relation("WorkspaceExportRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, kind, dayKey])
+  @@index([workspaceId, createdAt])
+  @@index([status, expiresAt])
+  @@map("workspace_exports")
 }

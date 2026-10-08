@@ -133,3 +133,9 @@ export const SearchReindexCron = '30 2 * * *' as const
  * after the UTC week (the quota's clock) closed at 21:00 on Sunday.
  */
 export const AiUsageWeeklyEmailCron = '0 8 * * 1' as const
+
+/**
+ * Ajustes › Exportações: delete the export files past their 7 days — 04:45,
+ * after the 03:15 backup and its 03:30 prune.
+ */
+export const WorkspaceExportPruneCron = '45 4 * * *' as const

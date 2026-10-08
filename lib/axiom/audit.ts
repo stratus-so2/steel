@@ -167,6 +167,9 @@ export type AuditEntity =
   | 'ai_memory'
   // Workspace members — role change and removal (Settings > Members)
   | 'membership'
+  // Ajustes › Exportações (complete data / Axiom logs) and the work-log CSVs
+  | 'workspace_export'
+  | 'worklog'
 
 export type AuditAction =
   | 'create'

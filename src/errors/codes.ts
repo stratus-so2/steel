@@ -683,6 +683,26 @@ export const ERROR_CODES = {
   WIKI_LABEL_NOT_FOUND: { code: 'WIKI_LABEL_NOT_FOUND', status: 404 },
   WIKI_LABEL_CONFLICT: { code: 'WIKI_LABEL_CONFLICT', status: 409 },
 
+  // Ajustes › Exportações: one export of each kind per workspace per day.
+  WORKSPACE_EXPORT_NOT_FOUND: {
+    code: 'WORKSPACE_EXPORT_NOT_FOUND',
+    status: 404,
+  },
+  WORKSPACE_EXPORT_LIMIT_REACHED: {
+    code: 'WORKSPACE_EXPORT_LIMIT_REACHED',
+    status: 429,
+  },
+  // Download of an export that is still running, failed or expired.
+  WORKSPACE_EXPORT_NOT_READY: {
+    code: 'WORKSPACE_EXPORT_NOT_READY',
+    status: 409,
+  },
+  // Logs export without Axiom query configured on this server.
+  WORKSPACE_EXPORT_LOGS_UNAVAILABLE: {
+    code: 'WORKSPACE_EXPORT_LOGS_UNAVAILABLE',
+    status: 503,
+  },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

@@ -9,6 +9,7 @@ import { registerSearchPaths } from './paths/search'
 import { registerServiceDeskPaths } from './paths/servicedesk'
 import { registerServiceDeskKnowledgePaths } from './paths/servicedesk-knowledge'
 import { registerSdTicketPaths } from './paths/servicedesk-tickets'
+import { registerSettingsExportsWorklogsPaths } from './paths/settings-exports-worklogs'
 import { registerSteelAgentsPaths } from './paths/steel-agents'
 import { registerSteelAiPaths } from './paths/steel-ai'
 import { registerSteelAiSkillsPaths } from './paths/steel-ai-skills'
@@ -38,6 +39,7 @@ export function createRegistry(): OpenApiRegistry {
   registerSteelAgentsPaths(registry)
   registerSearchPaths(registry)
   registerWikiPaths(registry)
+  registerSettingsExportsWorklogsPaths(registry)
   return registry
 }
 

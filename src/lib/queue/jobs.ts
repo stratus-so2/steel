@@ -34,6 +34,7 @@ export const QueueName = {
   Notifications: 'notifications',
   SearchReindex: 'search-reindex',
   AiUsageWeeklyEmail: 'ai-usage-weekly-email',
+  WorkspaceExport: 'workspace-export',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -646,4 +647,22 @@ export type AiUsageWeeklyEmailJobPayload = {
     workspaceId: string
     weekStart: string
   }
+}
+
+/**
+ * Ajustes › Exportações: `run` builds one requested export (complete data
+ * or Axiom logs) into a ZIP in MinIO and notifies the requester; the daily
+ * `prune-expired` deletes the files past their 7 days.
+ */
+export const WorkspaceExportJob = {
+  Run: 'run',
+  PruneExpired: 'prune-expired',
+} as const
+
+export type WorkspaceExportJob =
+  (typeof WorkspaceExportJob)[keyof typeof WorkspaceExportJob]
+
+export type WorkspaceExportJobPayload = {
+  [WorkspaceExportJob.Run]: { exportId: string }
+  [WorkspaceExportJob.PruneExpired]: Record<string, never>
 }

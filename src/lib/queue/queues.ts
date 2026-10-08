@@ -72,6 +72,8 @@ import {
   type WhatsappSentimentJobPayload,
   type WhatsappTemplateSyncJob,
   type WhatsappTemplateSyncJobPayload,
+  type WorkspaceExportJob,
+  type WorkspaceExportJobPayload,
 } from './jobs'
 
 const defaultJobOptions = {
@@ -116,6 +118,7 @@ let steelAgentsQueue: Queue | null = null
 let notificationsQueue: Queue | null = null
 let searchReindexQueue: Queue | null = null
 let aiUsageWeeklyEmailQueue: Queue | null = null
+let workspaceExportQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -760,6 +763,7 @@ export async function closeQueues(): Promise<void> {
     steelAgentsQueue?.close(),
     searchReindexQueue?.close(),
     aiUsageWeeklyEmailQueue?.close(),
+    workspaceExportQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -794,6 +798,7 @@ export async function closeQueues(): Promise<void> {
   steelAgentsQueue = null
   searchReindexQueue = null
   aiUsageWeeklyEmailQueue = null
+  workspaceExportQueue = null
 }
 
 export function getCrmTaskRemindersQueue(): Queue<
@@ -890,6 +895,25 @@ export function getAiUsageWeeklyEmailQueue(): Queue<
   >
 }
 
+/** Ajustes › Exportações (run one export + daily prune of expired files). */
+export function getWorkspaceExportQueue(): Queue<
+  WorkspaceExportJobPayload[WorkspaceExportJob],
+  unknown,
+  WorkspaceExportJob
+> {
+  if (!workspaceExportQueue) {
+    workspaceExportQueue = new Queue(QueueName.WorkspaceExport, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return workspaceExportQueue as Queue<
+    WorkspaceExportJobPayload[WorkspaceExportJob],
+    unknown,
+    WorkspaceExportJob
+  >
+}
+
 // Typed as a full record so a new queue without an entry fails the build.
 const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.DataRetention]: getDataRetentionQueue,
@@ -928,6 +952,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.Notifications]: getNotificationsQueue,
   [QueueName.SearchReindex]: getSearchReindexQueue,
   [QueueName.AiUsageWeeklyEmail]: getAiUsageWeeklyEmailQueue,
+  [QueueName.WorkspaceExport]: getWorkspaceExportQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */
