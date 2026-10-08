@@ -27,6 +27,8 @@ export interface AiToolContext {
   actorId: string
   source: 'assistant' | 'agent'
   agentId?: string
+  /** Assistant chat the call belongs to (memory source links). */
+  conversationId?: string
 }
 
 export interface AiToolOutput {

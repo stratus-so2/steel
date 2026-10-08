@@ -1,17 +1,29 @@
 import type { Metadata } from 'next'
-import { SteelAiComingSoon } from '@/app/_components/steel-ai-usage/steel-ai-coming-soon'
+import { notFound, redirect } from 'next/navigation'
+import { SteelAiSkillsPage } from '@/app/_components/steel-ai-skills/steel-ai-skills-page'
+import { getAuthSession } from '@/src/lib/auth-session'
+import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
   title: 'Skills | Steel AI | Steel',
   description: 'Instruções reutilizáveis do Steel AI.',
 }
 
-/** Placeholder until the skills slice ships this page. */
-export default function SteelAiSkillsPage() {
+export default async function SteelAiSkillsRoute({
+  params,
+}: {
+  params: Promise<{ 'workspace-slug': string }>
+}) {
+  const { 'workspace-slug': slug } = await params
+  const session = await getAuthSession()
+  if (!session.ok) redirect('/sign-in')
+  const membership = await MembershipService.getByUserAndSlug(
+    session.value.user.id,
+    slug,
+  )
+  if (!membership.ok || !membership.value) notFound()
+
   return (
-    <SteelAiComingSoon
-      segment='skills'
-      description='Instruções reutilizáveis que você chama com / no Steel AI, como /meu-trabalho. Esta área chega em breve.'
-    />
+    <SteelAiSkillsPage workspaceId={membership.value.workspaceId} slug={slug} />
   )
 }

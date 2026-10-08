@@ -5,6 +5,7 @@ import type {
   AiPendingAction,
   ModuleKind,
 } from '@prisma/client'
+import { readMemoryRef } from '@/src/lib/ai/context/memory-tool-names'
 import { storedToolCalls } from '@/src/lib/ai/steel-ai-history'
 import {
   ACTION_RESULT_PREFIX,
@@ -162,6 +163,8 @@ export function toAiMessageDTOs(
       call.status = toolCallStatusOf(payload)
       const summary = summaryOf(payload)
       if (summary !== undefined) call.summary = summary
+      const memory = readMemoryRef(payload.data)
+      if (memory) call.memory = memory
     }
   }
 

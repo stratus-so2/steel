@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/src/hooks/_fetch'
+import { useEnabledAiSkills } from '@/src/hooks/use-ai-skills'
 import {
   STEEL_AI_CAPABILITIES_KEY,
   useSteelAiCapabilities,
@@ -63,6 +64,7 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   const { workspaceId, slug } = useSteelAiWorkspace()
   const queryClient = useQueryClient()
   const capabilities = useSteelAiCapabilities(workspaceId)
+  const skills = useEnabledAiSkills(workspaceId)
   const conversation = useSteelAiConversation(workspaceId, conversationId)
   const messages = useSteelAiMessages(workspaceId, conversationId)
   const stream = useSteelAiStream(workspaceId, conversationId)
@@ -379,6 +381,7 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
                     }
                   : undefined
               }
+              skills={skills}
               isStreaming={stream.isStreaming}
               disabled={quotaExhausted || aiDisabled}
               placeholder='Responda ao Steel AI…'

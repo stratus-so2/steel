@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SteelAiProvider } from '@/app/_components/steel-ai/steel-ai-context'
 import { mockFetch, renderWithQuery } from '@/src/__tests__/component-utils'
@@ -9,7 +9,6 @@ import {
 import { SteelAiAreaNav } from '../../steel-ai/steel-ai-area-nav'
 import { AiUsageAnalytics } from '../ai-usage-analytics'
 import { AiUsageOverview } from '../ai-usage-overview'
-import { SteelAiComingSoon } from '../steel-ai-coming-soon'
 
 vi.setConfig({ testTimeout: 20_000 })
 
@@ -216,15 +215,5 @@ describe('<SteelAiAreaNav />', () => {
     expect(
       screen.getByRole('link', { name: 'Uso' }).getAttribute('aria-current'),
     ).toBeNull()
-  })
-})
-
-describe('<SteelAiComingSoon />', () => {
-  it('names the area', async () => {
-    wrap(<SteelAiComingSoon segment='memory' description='Em breve aqui.' />)
-    await waitFor(() =>
-      expect(screen.getByText('Memória — em breve')).toBeTruthy(),
-    )
-    expect(screen.getByText('Em breve aqui.')).toBeTruthy()
   })
 })

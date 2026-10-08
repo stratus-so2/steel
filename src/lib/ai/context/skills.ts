@@ -1,9 +1,19 @@
+import { logFields } from '@/lib/axiom/log-fields'
+import { logger } from '@/lib/axiom/logger'
 import type { AiToolContext } from '@/src/lib/ai/tools/types'
+import type { AiSkillDTO } from '@/types/ai-skill'
+import {
+  enabledSkillsFor,
+  pickSkillBySlug,
+  skillInstructionsForModel,
+} from './skill-catalog'
+import { GET_SKILL_TOOL_NAME, parseSkillCommand } from './skill-command'
 
 /**
- * Extension point for Steel AI skills (slash instructions such as
- * `/my-work`). The chat runtime calls these on every turn; the skills slice
- * fills them in. Until then they are inert.
+ * Steel AI skills (slash instructions such as `/my-work`) in the chat
+ * runtime: the explicit "/<slug>" of a message and the short catalog that
+ * lets the model pick a skill by itself (via `steel_get_skill`). Both are
+ * best-effort — a database failure only means "no skill this turn".
  */
 
 export interface SkillInvocation {
@@ -13,12 +23,53 @@ export interface SkillInvocation {
   content: string
 }
 
+/** Skills shown to the model at most (the catalog is a hint, not a menu). */
+export const SKILLS_CATALOG_MAX = 40
+
+async function loadSkills(ctx: AiToolContext): Promise<AiSkillDTO[]> {
+  const skills = await enabledSkillsFor(ctx.workspaceId, ctx.actorId)
+  if (skills.ok) return skills.value
+  logger.warn(
+    'steel_ai.skills_unavailable',
+    logFields({
+      component: 'SteelAiSkills',
+      workspaceId: ctx.workspaceId,
+      message: skills.error.message,
+    }),
+  )
+  return []
+}
+
 /** Resolves an explicit "/<slug>" at the start of the user message. */
 export async function resolveSkillInvocation(
-  _ctx: AiToolContext,
+  ctx: AiToolContext,
   content: string,
 ): Promise<SkillInvocation> {
-  return { skill: null, content }
+  const command = parseSkillCommand(content)
+  if (!command) return { skill: null, content }
+
+  const skill = pickSkillBySlug(await loadSkills(ctx), command.slug)
+  if (!skill) return { skill: null, content }
+  return {
+    skill: {
+      id: skill.id,
+      slug: skill.slug,
+      name: skill.name,
+      instructions: skillInstructionsForModel(skill),
+    },
+    content: command.rest,
+  }
+}
+
+/** One skill per command (the one "/<slug>" would run). */
+function uniqueBySlug(skills: AiSkillDTO[]): AiSkillDTO[] {
+  const bySlug = new Map<string, AiSkillDTO>()
+  for (const skill of skills) {
+    if (bySlug.has(skill.slug)) continue
+    // `skill` itself matches, so a pick always exists.
+    bySlug.set(skill.slug, pickSkillBySlug(skills, skill.slug) as AiSkillDTO)
+  }
+  return [...bySlug.values()]
 }
 
 /**
@@ -26,7 +77,18 @@ export async function resolveSkillInvocation(
  * model can pick a skill when the request matches one. Empty when none.
  */
 export async function skillsCatalogForPrompt(
-  _ctx: AiToolContext,
+  ctx: AiToolContext,
 ): Promise<string> {
-  return ''
+  const skills = uniqueBySlug(await loadSkills(ctx)).slice(
+    0,
+    SKILLS_CATALOG_MAX,
+  )
+  if (skills.length === 0) return ''
+  const lines = skills.map(
+    (skill) => `- /${skill.slug} — ${skill.description.replace(/\s+/g, ' ')}`,
+  )
+  return [
+    `Skills disponíveis (o usuário as chama com /comando). Se o pedido corresponder claramente a uma delas, chame ${GET_SKILL_TOOL_NAME} com o comando e siga as instruções que ela devolver:`,
+    ...lines,
+  ].join('\n')
 }

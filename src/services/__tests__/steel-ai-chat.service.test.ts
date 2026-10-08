@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createFakeAiMemory } from '@/src/__tests__/factories/ai-skill-memory.factory'
 import {
   createFakeAiConversation,
   createFakeAiMessage,
@@ -67,6 +68,7 @@ vi.mock('@/src/lib/ai/context/skills', () => ({
 vi.mock('@/src/lib/ai/context/memory', () => ({
   memoryForPrompt: vi.fn(async () => ''),
 }))
+vi.mock('@/src/services/ai-memory.service')
 vi.mock('@/src/services/platform-ai-settings.service', () => ({
   PlatformAiSettingsService: { getCostMargin: vi.fn(async () => 2) },
 }))
@@ -99,6 +101,7 @@ import { UserRepository } from '@/src/repositories/user.repository'
 import { UserPreferenceRepository } from '@/src/repositories/user-preference.repository'
 import { WorkspaceRepository } from '@/src/repositories/workspace.repository'
 import { AiAttachmentService } from '@/src/services/ai-attachment.service'
+import { AiMemoryService } from '@/src/services/ai-memory.service'
 import {
   AiUsageService,
   type PreparedAiCall,
@@ -509,7 +512,12 @@ describe('SteelAiChatService.sendMessage() — the turn', () => {
     ])
     expect(textOf(events)).toBe('Vou consultar.\n\nSão 3.')
     expect(readExecute).toHaveBeenCalledWith(
-      { workspaceId: 'ws1', actorId: 'u1', source: 'assistant' },
+      {
+        workspaceId: 'ws1',
+        actorId: 'u1',
+        source: 'assistant',
+        conversationId: 'conv1',
+      },
       { limit: 5 },
     )
     const toolEnd = events[3] as Extract<
@@ -1481,5 +1489,130 @@ describe('SteelAiChatService.capabilities() — switches', () => {
       expectOk(await SteelAiChatService.capabilities('u1', 'ws1'))
         .autopilotEnabled,
     ).toBe(false)
+  })
+})
+
+describe('SteelAiChatService.sendMessage() — memory tools', () => {
+  const memoryService = vi.mocked(AiMemoryService)
+
+  it('offers memory tools only when memory is enabled', async () => {
+    const off = setup({ rounds: [{ response: { text: 'Oi' } }] })
+    await send({ content: 'olá' })
+    const offNames = (off.requests[0].tools ?? []).map((t) => t.name)
+    expect(offNames).not.toContain('memory_save')
+
+    const on = setup({ rounds: [{ response: { text: 'Oi' } }] })
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, memoryEnabled: true }))
+    await send({ content: 'olá' })
+    const onNames = (on.requests[0].tools ?? []).map((t) => t.name)
+    expect(onNames).toEqual(
+      expect.arrayContaining(['memory_save', 'memory_forget']),
+    )
+  })
+
+  it('saves a memory in Ask mode without confirmation and shows the chip', async () => {
+    const fake = setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [
+              call('m1', 'memory_save', { content: 'Ana prefere tabelas' }),
+            ],
+          },
+        },
+        { response: { text: 'Anotado.' } },
+      ],
+    })
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, memoryEnabled: true }))
+    const memory = createFakeAiMemory({
+      id: 'mem1',
+      scope: 'PERSONAL',
+      content: 'Ana prefere tabelas',
+    })
+    memoryService.saveFromModel.mockResolvedValue(
+      ok({ memory, action: 'saved', downgraded: false }),
+    )
+
+    const events = await send({ content: 'prefiro tabelas', mode: 'EXPLORE' })
+
+    expect(memoryService.saveFromModel).toHaveBeenCalledWith(
+      {
+        workspaceId: 'ws1',
+        actorId: 'u1',
+        source: 'assistant',
+        conversationId: 'conv1',
+      },
+      { content: 'Ana prefere tabelas', scope: 'PERSONAL' },
+    )
+    const end = events.find((e) => e.type === 'tool.end') as Extract<
+      SteelAiStreamEvent,
+      { type: 'tool.end' }
+    >
+    expect(end.call).toEqual(
+      expect.objectContaining({
+        name: 'memory_save',
+        label: 'Salvando na memória',
+        status: 'done',
+        summary: 'Memória salva',
+        memory: {
+          id: 'mem1',
+          scope: 'PERSONAL',
+          content: 'Ana prefere tabelas',
+          action: 'saved',
+        },
+      }),
+    )
+    expect(pendingRepo.create).not.toHaveBeenCalled()
+    expect(endOf(events).message.toolCalls[0].memory?.id).toBe('mem1')
+    // The result goes back to the model on the next round.
+    expect(fake.requests[1].messages.at(-1)).toEqual(
+      expect.objectContaining({ role: 'tool', name: 'memory_save' }),
+    )
+  })
+
+  it('reports a refused memory as an error without a chip', async () => {
+    setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [call('m1', 'memory_save', { content: 'senha 123' })],
+          },
+        },
+        { response: { text: 'Não posso guardar isso.' } },
+      ],
+    })
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, memoryEnabled: true }))
+    memoryService.saveFromModel.mockResolvedValue(
+      err(validationError('Não guardo senhas')),
+    )
+
+    const events = await send({ content: 'guarde minha senha' })
+    const end = events.find((e) => e.type === 'tool.end') as Extract<
+      SteelAiStreamEvent,
+      { type: 'tool.end' }
+    >
+    expect(end.call.status).toBe('error')
+    expect(end.call.summary).toBe('Não guardo senhas')
+    expect(end.call.memory).toBeUndefined()
+  })
+
+  it('refuses a memory tool when memory is disabled', async () => {
+    setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [call('m1', 'memory_save', { content: 'x' })],
+          },
+        },
+        { response: { text: 'ok' } },
+      ],
+    })
+    const events = await send({ content: 'lembre disso' })
+    const end = events.find((e) => e.type === 'tool.end') as Extract<
+      SteelAiStreamEvent,
+      { type: 'tool.end' }
+    >
+    expect(end.call.status).toBe('error')
+    expect(memoryService.saveFromModel).not.toHaveBeenCalled()
   })
 })

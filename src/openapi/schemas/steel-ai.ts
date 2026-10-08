@@ -83,6 +83,18 @@ const AiToolCallDTO = z.object({
   module: AiModule.nullable(),
   status: z.enum(['running', 'done', 'error', 'pending_confirmation']),
   summary: z.string().optional(),
+  memory: z
+    .object({
+      id: z.string(),
+      scope: z.enum(['WORKSPACE', 'PERSONAL']),
+      content: z.string(),
+      action: z.enum(['saved', 'duplicate', 'forgotten']),
+    })
+    .optional()
+    .meta({
+      description:
+        'Só nas ferramentas de memória (`memory_save`, `memory_forget`): o fato salvo/esquecido, para o chip "Memória salva" com desfazer.',
+    }),
 })
 
 export const AiPendingActionDTO = dto(

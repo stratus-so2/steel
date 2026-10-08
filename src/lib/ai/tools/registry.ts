@@ -12,6 +12,7 @@ import { AiPendingActionRepository } from '@/src/repositories/ai-pending-action.
 import { WorkspaceAiSettingsRepository } from '@/src/repositories/ai-settings.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { assertMember } from '@/src/services/authz'
+import { MEMORY_TOOL_LABELS } from '../context/memory-tool-names'
 import type { AiToolSpec } from '../types'
 import { STEEL_AI_TOOLS } from './index'
 import {
@@ -61,6 +62,8 @@ export interface AiToolAccess {
   agentsEnabled: boolean
   /** AUTOPILOT mode allowed (default off). */
   autopilotEnabled: boolean
+  /** Steel AI memory tools offered (`resolveToolAccess` sets it; default on). */
+  memoryEnabled?: boolean
 }
 
 const TOOL_NAME = /^[a-z][a-z0-9_]{1,63}$/
@@ -148,6 +151,9 @@ export function toolMeta(
   if (name === FIND_TOOLS_TOOL_NAME) {
     return { label: FIND_TOOLS_LABEL, module: null }
   }
+  if (MEMORY_TOOL_LABELS[name]) {
+    return { label: MEMORY_TOOL_LABELS[name], module: null }
+  }
   const tool = findTool(name, tools)
   return tool
     ? { label: tool.label, module: tool.module }
@@ -190,6 +196,7 @@ export async function resolveToolAccess(
     aiEnabled: settings.value?.aiEnabled ?? true,
     agentsEnabled: settings.value?.agentsEnabled ?? true,
     autopilotEnabled: settings.value?.autopilotEnabled ?? false,
+    memoryEnabled: settings.value?.memoryEnabled ?? true,
   })
 }
 

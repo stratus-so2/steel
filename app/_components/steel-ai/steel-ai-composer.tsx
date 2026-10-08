@@ -6,7 +6,7 @@ import {
   Loading03Icon,
   StopIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
-import { type CSSProperties, type Ref, useRef, useState } from 'react'
+import { type CSSProperties, type Ref, useId, useRef, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -22,6 +22,13 @@ import {
 } from './steel-ai-attachments'
 import { SteelAiModeSwitch } from './steel-ai-mode-switch'
 import { SteelAiModelPicker } from './steel-ai-model-picker'
+import {
+  filterSkillOptions,
+  type SteelAiSkillOption,
+  SteelAiSkillPicker,
+  skillOptionId,
+  skillQueryOf,
+} from './steel-ai-skill-picker'
 
 export const STEEL_AI_MAX_MESSAGE = 8000
 
@@ -42,7 +49,8 @@ export interface SteelAiComposerModel {
  * Prompt box shared by the welcome and the chat screens: a single-border
  * card with an auto-growing textarea, attachments (button, paste and
  * drag-and-drop), Ask | Build | Autopilot, the model picker and send/stop.
- * Enter sends, Shift+Enter breaks the line.
+ * Enter sends, Shift+Enter breaks the line. With `skills`, typing "/" opens
+ * the skill picker (↑↓, Enter/Tab, Esc); picking one may switch the mode.
  */
 export function SteelAiComposer({
   value,
@@ -55,6 +63,7 @@ export function SteelAiComposer({
   autopilotEnabled = false,
   attachments,
   model,
+  skills,
   isStreaming = false,
   isSubmitting = false,
   disabled = false,
@@ -74,6 +83,8 @@ export function SteelAiComposer({
   autopilotEnabled?: boolean
   attachments?: SteelAiComposerAttachments
   model?: SteelAiComposerModel
+  /** Enabled skills for the "/" picker. */
+  skills?: SteelAiSkillOption[]
   isStreaming?: boolean
   isSubmitting?: boolean
   disabled?: boolean
@@ -84,7 +95,16 @@ export function SteelAiComposer({
   style?: CSSProperties
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
+  const pickerId = useId()
   const [dragging, setDragging] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [dismissedFor, setDismissedFor] = useState<string | null>(null)
+  const skillQuery = skills && !disabled ? skillQueryOf(value) : null
+  const skillMatches =
+    skillQuery === null ? [] : filterSkillOptions(skills ?? [], skillQuery)
+  const pickerOpen = skillMatches.length > 0 && dismissedFor !== value
+  const active = Math.min(activeIndex, skillMatches.length - 1)
   const items = attachments?.items ?? []
   const uploading = items.some(
     (item) => item.status === 'uploading' || item.status === 'error',
@@ -98,6 +118,21 @@ export function SteelAiComposer({
     (value.trim().length > 0 || hasFiles) &&
     value.length <= STEEL_AI_MAX_MESSAGE
   const busy = isStreaming || isSubmitting
+
+  function modeAllowed(next: AiConversationModeDTO): boolean {
+    if (next === 'EXPLORE') return true
+    if (next === 'AGENT') return agentModeEnabled
+    return agentModeEnabled && autopilotEnabled
+  }
+
+  function pickSkill(option: SteelAiSkillOption) {
+    onChange(`/${option.slug} `)
+    setActiveIndex(0)
+    if (option.mode && option.mode !== mode && modeAllowed(option.mode)) {
+      onModeChange(option.mode)
+    }
+    textRef.current?.focus()
+  }
 
   function addFiles(list: FileList | File[] | null | undefined) {
     if (!attachments || !list) return
@@ -133,11 +168,20 @@ export function SteelAiComposer({
     >
       <div
         className={cn(
-          'flex flex-col rounded-2xl border border-border bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-ring/60 focus-within:shadow-sm motion-reduce:transition-none dark:bg-input/30',
+          'relative flex flex-col rounded-2xl border border-border bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-ring/60 focus-within:shadow-sm motion-reduce:transition-none dark:bg-input/30',
           disabled && 'opacity-60',
           dragging && 'border-primary border-dashed',
         )}
       >
+        {pickerOpen ? (
+          <SteelAiSkillPicker
+            id={pickerId}
+            options={skillMatches}
+            activeIndex={active}
+            onPick={pickSkill}
+            onActiveChange={setActiveIndex}
+          />
+        ) : null}
         {attachments ? (
           <SteelAiAttachmentTray
             items={items}
@@ -146,14 +190,27 @@ export function SteelAiComposer({
           />
         ) : null}
         <textarea
+          ref={textRef}
           aria-label='Mensagem para o Steel AI'
+          {...(skills && {
+            role: 'combobox',
+            'aria-autocomplete': 'list' as const,
+            'aria-expanded': pickerOpen,
+            'aria-controls': pickerOpen ? pickerId : undefined,
+            'aria-activedescendant': pickerOpen
+              ? skillOptionId(pickerId, active)
+              : undefined,
+          })}
           value={value}
           autoFocus={autoFocus}
           disabled={disabled}
           placeholder={dragging ? 'Solte os arquivos para anexar' : placeholder}
           maxLength={STEEL_AI_MAX_MESSAGE}
           rows={1}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            setActiveIndex(0)
+            onChange(event.target.value)
+          }}
           onPaste={(event) => {
             const files = Array.from(event.clipboardData?.files ?? [])
             if (!attachments || files.length === 0) return
@@ -161,6 +218,28 @@ export function SteelAiComposer({
             addFiles(files)
           }}
           onKeyDown={(event) => {
+            if (pickerOpen && !event.nativeEvent.isComposing) {
+              const count = skillMatches.length
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault()
+                const step = event.key === 'ArrowDown' ? 1 : -1
+                setActiveIndex((active + step + count) % count)
+                return
+              }
+              if (
+                (event.key === 'Enter' || event.key === 'Tab') &&
+                !event.shiftKey
+              ) {
+                event.preventDefault()
+                pickSkill(skillMatches[active])
+                return
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setDismissedFor(value)
+                return
+              }
+            }
             if (
               event.key === 'Enter' &&
               !event.shiftKey &&
