@@ -3,8 +3,8 @@ import { crc32, deflateRawSync } from 'node:zlib'
 /**
  * Minimal ZIP writer (PKWARE APPNOTE 6.3, deflate, no ZIP64) — enough for
  * the workspace exports, without a new dependency. Every entry is
- * compressed in memory; callers keep archives well under the 4 GB / 65 535
- * entries limits of the classic format (enforced here).
+ * compressed in memory; callers keep archives under the 4 GB limit of the
+ * classic format (the 65 535-entry limit is enforced here).
  */
 
 export interface ZipEntry {
@@ -21,7 +21,6 @@ const VERSION = 20
 const UTF8_FLAG = 0x0800
 const DEFLATE = 8
 const MAX_ENTRIES = 0xffff
-const MAX_BYTES = 0xffffffff
 
 /** MS-DOS date/time of `date` (local fields read in UTC for determinism). */
 export function dosDateTime(date: Date): { time: number; date: number } {
@@ -91,7 +90,6 @@ export function createZip(
     locals.push(local, name, compressed)
     centrals.push(central, name)
     offset += local.length + name.length + compressed.length
-    if (offset > MAX_BYTES) throw new Error('ZIP archive exceeds 4 GB')
   }
 
   const directory = Buffer.concat(centrals)

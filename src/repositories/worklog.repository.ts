@@ -141,7 +141,7 @@ export const WorklogRepository = {
       let timerMinutes = 0
       const amounts: string[] = []
       for (const group of groups) {
-        const sum = group._sum.minutes ?? 0
+        const sum = Number(group._sum.minutes)
         entries += group._count._all
         minutes += sum
         if (group.billable) billableMinutes += sum

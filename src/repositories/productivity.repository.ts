@@ -98,7 +98,7 @@ export const ProductivityRepository = {
         _sum: { minutes: true },
       })
       const minutes = new Map(
-        sums.map((row) => [row.ticketId, row._sum.minutes ?? 0]),
+        sums.map((row) => [row.ticketId, Number(row._sum.minutes)]),
       )
       return tickets.map(({ id, resolvedAt, ...ticket }) => ({
         ...ticket,

@@ -19,7 +19,12 @@ import {
   resolveWorklogRange,
 } from '@/src/lib/productivity/period'
 import { err, ok, type Result } from '@/src/lib/result'
-import { parseSdCalendar, type SdCalendar } from '@/src/lib/servicedesk/sla'
+import {
+  parseSdCalendar,
+  SD_CALENDAR_24X7,
+  SD_WEEKDAYS,
+  type SdCalendar,
+} from '@/src/lib/servicedesk/sla'
 import {
   parseSdTicketCode,
   resolveSdTicketPrefixes,
@@ -143,23 +148,29 @@ async function loadContext(
   const enabled = new Set(
     access.value.filter((row) => row.enabled).map((row) => row.module),
   )
-  const parsed = calendarRow.value ? parseSdCalendar(calendarRow.value) : null
+  const modules = {
+    serviceDesk: enabled.has('SERVICE_DESK'),
+    crm: enabled.has('CRM'),
+    communication: enabled.has('COMMUNICATION'),
+  }
+  const row = calendarRow.value
+  const parsed = row ? parseSdCalendar(row) : SD_CALENDAR_24X7
   const usable =
-    parsed !== null &&
     !parsed.is24x7 &&
-    Object.values(parsed.schedule).some((ranges) => (ranges?.length ?? 0) > 0)
+    SD_WEEKDAYS.some((day) => (parsed.schedule[day]?.length ?? 0) > 0)
+  if (row && usable) {
+    return ok({
+      calendar: parsed,
+      calendarSource: 'workspace',
+      calendarName: row.name,
+      modules,
+    })
+  }
   return ok({
-    calendar: usable ? parsed : STANDARD_CALENDAR,
-    calendarSource: usable ? 'workspace' : 'standard',
-    calendarName:
-      usable && calendarRow.value
-        ? calendarRow.value.name
-        : 'Padrão (seg–sex, 8 h por dia)',
-    modules: {
-      serviceDesk: enabled.has('SERVICE_DESK'),
-      crm: enabled.has('CRM'),
-      communication: enabled.has('COMMUNICATION'),
-    },
+    calendar: STANDARD_CALENDAR,
+    calendarSource: 'standard',
+    calendarName: 'Padrão (seg–sex, 8 h por dia)',
+    modules,
   })
 }
 
