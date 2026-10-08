@@ -18,6 +18,12 @@ import {
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import {
+  sdNeighbourTicket,
+  sdReadTicketNav,
+} from '@/app/_components/servicedesk/board/sd-ticket-nav'
+import { ShortcutKbd } from '@/app/_components/shortcuts/shortcut-kbd'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { AskSteelAiMenuItem } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
 import { AskSteelAiDialog } from '@/app/_components/steel-ai-ask/ask-steel-ai-dialog'
 import { SteelIcon } from '@/components/icon/icon'
@@ -92,7 +98,7 @@ import {
 import { sdTypePhases } from './sd-ticket-options'
 import { SdTicketPicker } from './sd-ticket-picker'
 import { SdTicketSidebar } from './sd-ticket-sidebar'
-import { SdTicketTabs, sdResolveTab } from './ticket-tabs'
+import { SdTicketTabs, sdResolveTab, sdTicketTabsFor } from './ticket-tabs'
 import { useSdIsDesktop } from './use-sd-is-desktop'
 
 function EditableTitle({
@@ -188,6 +194,7 @@ function Description({
           <Button
             size='xs'
             disabled={update.isPending}
+            data-shortcut-save
             onClick={() =>
               update.mutate(
                 { description: html || null },
@@ -239,11 +246,15 @@ function AssignMenu({
   ticket,
   agents,
   me,
+  open,
+  onOpenChange,
 }: {
   workspaceId: string
   ticket: SdTicketDTO
   agents: SdAgentDTO[]
   me: SdMeDTO
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
   const update = useUpdateSdTicket(workspaceId, ticket.id)
   const options = agents.filter((a) => a.isAgent)
@@ -260,7 +271,7 @@ function AssignMenu({
     )
   const mine = ticket.assignee?.id === me.userId
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         render={
           <Button
@@ -285,7 +296,8 @@ function AssignMenu({
       <DropdownMenuContent align='end' className='max-h-80 w-56'>
         {mine ? null : (
           <DropdownMenuItem onClick={() => assign(me.userId)}>
-            Atribuir a mim
+            <span className='flex-1'>Atribuir a mim</span>
+            <ShortcutKbd id='sd.ticket.assign-me' />
           </DropdownMenuItem>
         )}
         <DropdownMenuGroup>
@@ -346,7 +358,40 @@ function Header({
   const [linkingParent, setLinkingParent] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [asking, setAsking] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const headerRef = useRef<HTMLElement | null>(null)
+  const update = useUpdateSdTicket(workspaceId, ticket.id)
   const phases = sdTypePhases(config, ticket.type)
+
+  // Header shortcuts: they reuse the visible controls, so the keyboard and
+  // the mouse always do the same thing.
+  const clickIn = (selector: string) => {
+    const target = headerRef.current?.querySelector<HTMLElement>(selector)
+    if (!target) return false
+    target.click()
+  }
+  useShortcut('sd.ticket.assign', () => setAssignOpen(true))
+  useShortcut('sd.ticket.assign-me', () => {
+    if (ticket.assignee?.id === me.userId) {
+      notify.success('O chamado já está com você.')
+      return
+    }
+    update.mutate(
+      { assigneeId: me.userId },
+      {
+        onSuccess: () => notify.success('Chamado atribuído a você.'),
+        onError: notify.error,
+      },
+    )
+  })
+  useShortcut('sd.ticket.phase', () => clickIn('[aria-label="Mudar fase"]'))
+  useShortcut('sd.ticket.follow', () =>
+    clickIn('[data-shortcut-follow] button'),
+  )
+  useShortcut('sd.ticket.edit-title', () =>
+    clickIn('button[title="Editar título"]'),
+  )
+  useShortcut('global.ask-ai', () => setAsking(true))
   const boardHref = `/${slug}/servicedesk/${SD_TYPE_ROUTE[ticket.type]}`
   const sla = sdPrimarySla(ticket.sla, now)
   const priorityColor = ticket.priority?.color ?? null
@@ -360,7 +405,10 @@ function Header({
   }
 
   return (
-    <header className='flex shrink-0 flex-col gap-2 border-b px-4 pt-3 pb-3 sm:px-6'>
+    <header
+      ref={headerRef}
+      className='flex shrink-0 flex-col gap-2 border-b px-4 pt-3 pb-3 sm:px-6'
+    >
       <div className='flex min-w-0 items-center gap-2 text-muted-foreground text-xs'>
         <Link
           href={boardHref}
@@ -388,11 +436,13 @@ function Header({
         </span>
 
         <div className='ml-auto flex shrink-0 items-center gap-0.5'>
-          <SdFollowButton
-            workspaceId={workspaceId}
-            ticketRef={ticket.id}
-            compact
-          />
+          <span data-shortcut-follow className='contents'>
+            <SdFollowButton
+              workspaceId={workspaceId}
+              ticketRef={ticket.id}
+              compact
+            />
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -433,7 +483,8 @@ function Header({
               ) : null}
               <DropdownMenuItem onClick={copyLink}>
                 <SteelIcon icon={Copy01Icon} strokeWidth={2} />
-                Copiar link
+                <span className='flex-1'>Copiar link</span>
+                <ShortcutKbd id='global.copy-link' />
               </DropdownMenuItem>
               <AskSteelAiMenuItem onSelect={() => setAsking(true)} />
               {me.isAdmin ? (
@@ -550,6 +601,8 @@ function Header({
             ticket={ticket}
             agents={agents}
             me={me}
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
           />
           <div className='flex items-center gap-1'>
             {isDesktop ? null : (
@@ -560,6 +613,10 @@ function Header({
             )}
             <Button size='sm' onClick={onReply}>
               Responder
+              <ShortcutKbd
+                id='sd.ticket.reply'
+                className='hidden sm:inline-flex [&_kbd]:bg-primary-foreground/20 [&_kbd]:text-primary-foreground'
+              />
             </Button>
           </div>
         </div>
@@ -659,6 +716,7 @@ export function SdTicketScreen({
   const pathname = usePathname()
   const isDesktop = useSdIsDesktop()
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [detailsHidden, setDetailsHidden] = useState(false)
   const ticket = useSdTicket(workspaceId, ticketRef)
   const config = useSdConfig(workspaceId)
   const me = useSdMe(workspaceId)
@@ -680,12 +738,17 @@ export function SdTicketScreen({
     router.replace(`${pathname}?${search.toString()}`, { scroll: false })
   }
 
-  function reply() {
+  function reply(visibility?: 'PUBLIC' | 'INTERNAL') {
     if (tab !== 'history') setTab('history')
     // A aba pode estar montando: tenta de novo no próximo quadro.
     const focus = (tries: number) => {
       const input = document.getElementById(SD_COMPOSER_INPUT_ID)
       if (input) {
+        if (visibility) {
+          document
+            .querySelector<HTMLElement>(`[data-sd-visibility="${visibility}"]`)
+            ?.click()
+        }
         input.scrollIntoView?.({ block: 'center' })
         input.focus()
       } else if (tries > 0) {
@@ -694,6 +757,65 @@ export function SdTicketScreen({
     }
     focus(20)
   }
+
+  // Ticket shortcuts (registry `sd.ticket.*`).
+  const loaded = Boolean(ticket.data && config.data && me.data)
+  const shortcutOptions = { enabled: loaded }
+  useShortcut('sd.ticket.reply', () => reply('PUBLIC'), shortcutOptions)
+  useShortcut('sd.ticket.note', () => reply('INTERNAL'), shortcutOptions)
+  useShortcut(
+    'sd.ticket.edit-description',
+    () => {
+      const edit = document.querySelector<HTMLElement>(
+        '[aria-label="Editar descrição"]',
+      )
+      if (!edit) return false
+      edit.click()
+    },
+    shortcutOptions,
+  )
+  useShortcut(
+    'sd.ticket.tab',
+    (_event, keys) => {
+      if (!ticket.data) return false
+      const tabs = sdTicketTabsFor('agent', ticket.data.type)
+      const target = tabs[Number(keys) - 1]
+      if (!target) return false
+      setTab(target.id)
+    },
+    shortcutOptions,
+  )
+  useShortcut(
+    'sd.ticket.toggle-details',
+    () => {
+      if (isDesktop) setDetailsHidden((hidden) => !hidden)
+      else setDetailsOpen((open) => !open)
+    },
+    shortcutOptions,
+  )
+  const walk = (delta: 1 | -1) => {
+    if (!ticket.data) return false
+    const next = sdNeighbourTicket(
+      sdReadTicketNav(),
+      sdTicketHref(slug, ticket.data),
+      delta,
+    )
+    if (!next) return false
+    router.push(next)
+  }
+  useShortcut('sd.ticket.next', () => walk(1), shortcutOptions)
+  useShortcut('sd.ticket.prev', () => walk(-1), shortcutOptions)
+  useShortcut(
+    'sd.ticket.back',
+    () => {
+      if (!ticket.data) return false
+      router.push(
+        sdReadTicketNav()?.from ??
+          `/${slug}/servicedesk/${SD_TYPE_ROUTE[ticket.data.type]}`,
+      )
+    },
+    shortcutOptions,
+  )
 
   // `?reply=1` (e.g. "Responder" in the inbox): once the ticket is on
   // screen, focus the history composer and drop the flag from the URL.
@@ -779,10 +901,16 @@ export function SdTicketScreen({
         isDesktop={isDesktop}
         onPhaseChange={(phaseId) => mover.move(data, phaseId)}
         onTab={setTab}
-        onReply={reply}
+        onReply={() => reply()}
         onDetails={() => setDetailsOpen(true)}
       />
-      <div className='grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]'>
+      <div
+        className={cn(
+          'grid min-h-0 flex-1 grid-cols-1',
+          !detailsHidden &&
+            'lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]',
+        )}
+      >
         <main className='flex min-h-0 flex-col overflow-y-auto'>
           <Description
             key={data.description ?? ''}
@@ -806,7 +934,7 @@ export function SdTicketScreen({
             }}
           />
         </main>
-        {isDesktop ? (
+        {isDesktop && !detailsHidden ? (
           <aside
             aria-label='Detalhes do chamado'
             className='min-h-0 overflow-y-auto border-l'

@@ -14,6 +14,11 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { ShortcutKbd } from '@/app/_components/shortcuts/shortcut-kbd'
+import {
+  useShortcut,
+  useShortcuts,
+} from '@/app/_components/shortcuts/shortcuts-provider'
 import { SteelIcon } from '@/components/icon/icon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -62,7 +67,6 @@ import { NotificationAiPendingPanel } from './notification-ai-pending-panel'
 import { NotificationBrowserPrompt } from './notification-browser-toggle'
 import { NotificationList } from './notification-list'
 import { NotificationReadingPanel } from './notification-reading-panel'
-import { NotificationShortcutsDialog } from './notification-shortcuts-dialog'
 import { NotificationSnoozeDialog } from './notification-snooze-dialog'
 import { NotificationSnoozeMenu } from './notification-snooze-menu'
 
@@ -119,27 +123,6 @@ const ACTION_DONE_MANY: Record<NotificationAction, string> = {
   unsnooze: 'Adiamento desfeito',
 }
 
-/** Só dispara atalho quando o foco não está num campo de texto. */
-function isTypingTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  const tag = target.tagName
-  return (
-    tag === 'INPUT' ||
-    tag === 'TEXTAREA' ||
-    tag === 'SELECT' ||
-    target.isContentEditable
-  )
-}
-
-/** Some dialog/menu is open: the inbox shortcuts stay quiet. */
-function overlayOpen(): boolean {
-  return Boolean(
-    document.querySelector(
-      '[role="dialog"], [role="alertdialog"], [role="menu"]',
-    ),
-  )
-}
-
 /**
  * Caixa de entrada das notificações do workspace no formato de cliente de
  * e-mail: pastas, filtros rápidos, busca, lista à esquerda, leitura à
@@ -170,7 +153,7 @@ export function NotificationInbox({
   const [search, setSearch] = useState('')
   const [activeId, setActiveId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const shortcuts = useShortcuts()
   const [snoozeIds, setSnoozeIds] = useState<string[] | null>(null)
   const searchRef = useRef<HTMLInputElement | null>(null)
 
@@ -355,129 +338,85 @@ export function NotificationInbox({
     setSelectedIds(new Set())
   }, [])
 
-  // Atalhos de cliente de e-mail. `j`/`k` movem o foco pela lista; as ações
-  // usam a seleção (quando houver), a linha em foco ou a aberta no painel.
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return
+  // Atalhos de cliente de e-mail (registro `inbox.*`). `j`/`k` movem o foco
+  // pela lista; as ações usam a seleção (quando houver), a linha em foco ou a
+  // aberta no painel. A guarda de digitação, os diálogos abertos e o `Esc`
+  // que sai do campo ficam com o provider.
+  const target = () => {
+    const focusedId =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement.dataset.notificationRow
+        : undefined
+    const currentId = focusedId ?? activeId
+    const index = items.findIndex((item) => item.id === currentId)
+    const current = index >= 0 ? items[index] : null
+    const targets =
+      selectedIds.size > 0
+        ? Array.from(selectedIds)
+        : current
+          ? [current.id]
+          : []
+    return { focusedId, index, current, targets }
+  }
+  const inboxReady = view === 'notifications'
 
-      if (isTypingTarget(event.target)) {
-        if (event.key === 'Escape') {
-          ;(event.target as HTMLElement).blur()
-        }
-        return
-      }
-      if (overlayOpen()) return
-
-      const focusedId =
-        document.activeElement instanceof HTMLElement
-          ? document.activeElement.dataset.notificationRow
-          : undefined
-      const currentId = focusedId ?? activeId
-      const index = items.findIndex((item) => item.id === currentId)
-      const current = index >= 0 ? items[index] : null
-      const targets =
-        selectedIds.size > 0
-          ? Array.from(selectedIds)
-          : current
-            ? [current.id]
-            : []
-
-      switch (event.key) {
-        case 'j': {
-          event.preventDefault()
-          const next = items[index + 1] ?? items[0]
-          if (next) focusRow(next.id)
-          break
-        }
-        case 'k': {
-          event.preventDefault()
-          const previous =
-            index > 0 ? items[index - 1] : items[items.length - 1]
-          if (previous) focusRow(previous.id)
-          break
-        }
-        case 'Enter': {
-          if (!current || focusedId) return
-          event.preventDefault()
-          open(current)
-          break
-        }
-        case 'u': {
-          event.preventDefault()
-          setActiveId(null)
-          if (current) focusRow(current.id)
-          break
-        }
-        case 'e': {
-          if (!current) return
-          event.preventDefault()
-          archiveOf(current)
-          break
-        }
-        case 'r': {
-          if (targets.length === 0) return
-          event.preventDefault()
-          if (selectedIds.size > 0) run('read', targets)
-          else if (current) run(current.read ? 'unread' : 'read', targets)
-          break
-        }
-        case 's': {
-          if (targets.length === 0) return
-          event.preventDefault()
-          setSnoozeIds(targets)
-          break
-        }
-        case '#': {
-          if (!current) return
-          event.preventDefault()
-          run('delete', [current.id])
-          break
-        }
-        case 'x': {
-          if (!current) return
-          event.preventDefault()
-          toggleSelect(current.id)
-          break
-        }
-        case 'i': {
-          event.preventDefault()
-          switchView(view === 'ai' ? 'notifications' : 'ai')
-          break
-        }
-        case '/': {
-          event.preventDefault()
-          searchRef.current?.focus()
-          break
-        }
-        case '?': {
-          event.preventDefault()
-          setShortcutsOpen(true)
-          break
-        }
-        case 'Escape': {
-          if (selectedIds.size > 0) setSelectedIds(new Set())
-          break
-        }
-        default:
-          break
-      }
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [
-    items,
-    activeId,
-    selectedIds,
-    view,
-    focusRow,
-    open,
-    archiveOf,
-    run,
-    toggleSelect,
-    switchView,
-  ])
+  useShortcut('inbox.next', () => {
+    const { index } = target()
+    const next = items[index + 1] ?? items[0]
+    if (next) focusRow(next.id)
+  })
+  useShortcut('inbox.prev', () => {
+    const { index } = target()
+    const previous = index > 0 ? items[index - 1] : items[items.length - 1]
+    if (previous) focusRow(previous.id)
+  })
+  useShortcut('inbox.open', () => {
+    const { current, focusedId } = target()
+    // A focused row is a button: its own Enter opens it.
+    if (!current || focusedId) return false
+    open(current)
+  })
+  useShortcut('inbox.back', () => {
+    const { current } = target()
+    setActiveId(null)
+    if (current) focusRow(current.id)
+  })
+  useShortcut('inbox.archive', () => {
+    const { current } = target()
+    if (!current) return false
+    archiveOf(current)
+  })
+  useShortcut('inbox.read', () => {
+    const { current, targets } = target()
+    if (targets.length === 0) return false
+    if (selectedIds.size > 0) run('read', targets)
+    else if (current) run(current.read ? 'unread' : 'read', targets)
+  })
+  useShortcut('inbox.snooze', () => {
+    const { targets } = target()
+    if (targets.length === 0) return false
+    setSnoozeIds(targets)
+  })
+  useShortcut('inbox.delete', () => {
+    const { current } = target()
+    if (!current) return false
+    run('delete', [current.id])
+  })
+  useShortcut('inbox.select', () => {
+    const { current } = target()
+    if (!current) return false
+    toggleSelect(current.id)
+  })
+  useShortcut('inbox.ai', () =>
+    switchView(view === 'ai' ? 'notifications' : 'ai'),
+  )
+  useShortcut('inbox.search', () => searchRef.current?.focus(), {
+    enabled: inboxReady,
+  })
+  useShortcut('inbox.clear', () => {
+    if (selectedIds.size === 0) return false
+    setSelectedIds(new Set())
+  })
 
   const selectedList = Array.from(selectedIds)
   const filtered =
@@ -662,10 +601,15 @@ export function NotificationInbox({
                 Preferências de notificação
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem onClick={() => setShortcutsOpen(true)}>
-              <SteelIcon icon={KeyboardIcon} strokeWidth={2} />
-              Atalhos do teclado
-            </DropdownMenuItem>
+            {shortcuts ? (
+              <DropdownMenuItem
+                onClick={() => shortcuts.setCheatSheetOpen(true)}
+              >
+                <SteelIcon icon={KeyboardIcon} strokeWidth={2} />
+                <span className='flex-1'>Atalhos do teclado</span>
+                <ShortcutKbd id='global.shortcuts' />
+              </DropdownMenuItem>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -859,10 +803,6 @@ export function NotificationInbox({
         </div>
       )}
 
-      <NotificationShortcutsDialog
-        open={shortcutsOpen}
-        onOpenChange={setShortcutsOpen}
-      />
       <NotificationSnoozeDialog
         open={snoozeIds !== null}
         onOpenChange={(next) => {

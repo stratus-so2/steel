@@ -13,14 +13,14 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { Alert02Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
+import { type RefObject, useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 import { useSdNow } from '../ticket/sd-ticket-badges'
-import { SD_TONE, SD_TONE_TEXT } from '../ticket/sd-ticket-meta'
+import { SD_TONE, SD_TONE_TEXT, sdTicketHref } from '../ticket/sd-ticket-meta'
 import { SdTicketCard } from './sd-ticket-card'
 
 export interface SdKanbanColumn {
@@ -48,11 +48,13 @@ function DraggableCard({
   slug,
   now,
   showType,
+  columnId,
 }: {
   ticket: SdTicketDTO
   slug: string
   now: Date
   showType: boolean
+  columnId: string
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: ticket.id,
@@ -62,8 +64,11 @@ function DraggableCard({
       ref={setNodeRef}
       {...attributes}
       {...listeners}
+      data-shortcut-row={ticket.id}
+      data-shortcut-column={columnId}
+      data-shortcut-href={sdTicketHref(slug, ticket)}
       className={cn(
-        'cursor-grab touch-none outline-none active:cursor-grabbing',
+        'cursor-grab touch-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing',
         isDragging && 'opacity-40',
       )}
     >
@@ -94,6 +99,7 @@ function Column({
     <section
       aria-label={column.name}
       data-column-id={column.id}
+      data-shortcut-column-id={column.id}
       className='flex w-72 shrink-0 flex-col rounded-xl border bg-muted/30'
     >
       <header className='flex flex-col gap-1.5 border-b px-3 pt-2.5 pb-2'>
@@ -171,6 +177,7 @@ function Column({
             slug={slug}
             now={now}
             showType={showType}
+            columnId={column.id}
           />
         ))}
         {column.items.length === 0 ? (
@@ -205,6 +212,7 @@ export function SdKanbanView({
   onMove,
   onCreate,
   onShowMore,
+  moveRef,
 }: {
   columns: SdKanbanColumn[]
   slug: string
@@ -215,6 +223,8 @@ export function SdKanbanView({
   onMove: (ticket: SdTicketDTO, columnId: string) => void
   onCreate?: (columnId: string) => void
   onShowMore?: () => void
+  /** Filled with the keyboard move (Shift+←/→) for the board shortcuts. */
+  moveRef?: RefObject<((id: string, columnId: string) => boolean) | null>
 }) {
   const now = useSdNow()
   const [active, setActive] = useState<SdTicketDTO | null>(null)
@@ -230,6 +240,20 @@ export function SdKanbanView({
     }
     return null
   }
+
+  // Shift+←/→ on a focused card: same path as a drop on the next column.
+  useEffect(() => {
+    if (!moveRef) return
+    moveRef.current = (id, columnId) => {
+      const found = findTicket(id)
+      if (!found) return false
+      onMove(found.ticket, columnId)
+      return true
+    }
+    return () => {
+      moveRef.current = null
+    }
+  })
 
   function handleStart(event: DragStartEvent) {
     setActive(findTicket(String(event.active.id))?.ticket ?? null)

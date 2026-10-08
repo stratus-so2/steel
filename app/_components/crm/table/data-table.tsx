@@ -67,8 +67,22 @@ import {
   CrmKanbanView,
 } from '@/app/_components/crm/table/kanban-view'
 import { RecordPanel } from '@/app/_components/crm/table/record-panel'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
+import {
+  focusedRow,
+  useListShortcuts,
+} from '@/app/_components/shortcuts/use-list-shortcuts'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -348,7 +362,9 @@ function DraggableRow<TData extends WithId>({
       ref={setNodeRef}
       data-state={row.getIsSelected() && 'selected'}
       data-dragging={isDragging}
-      className='group/row relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80'
+      data-shortcut-row={row.original.id}
+      tabIndex={-1}
+      className='group/row relative z-0 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset data-[dragging=true]:z-10 data-[dragging=true]:opacity-80'
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       {row.getVisibleCells().map((cell) => {
@@ -618,6 +634,14 @@ const FEMININE_TITLES = new Set([
 ])
 
 /** Rótulo do botão de criação com concordância de gênero ("Nova pessoa"). */
+/** `C → O|P|E|A` creates here when the table is already on screen. */
+const CREATE_SHORTCUT: Record<string, string> = {
+  opportunities: 'create.opportunity',
+  people: 'create.person',
+  companies: 'create.company',
+  tasks: 'create.crm-task',
+}
+
 export function newRecordLabel(title: string): string {
   return `${FEMININE_TITLES.has(title.toLowerCase()) ? 'Nova' : 'Novo'} ${title}`
 }
@@ -686,6 +710,10 @@ export function DataTable<TData extends WithId>({
   // Esconde a exclusão para quem não tem DELETE no recurso (a API negaria).
   const canDelete = useCan(CRM_ROUTE_RESOURCE[resource] ?? resource, 'DELETE')
 
+  const rootRef = React.useRef<HTMLDivElement | null>(null)
+  const searchRef = React.useRef<HTMLInputElement | null>(null)
+  /** `#` with a confirmation: ids waiting for "Excluir". */
+  const [deleteIds, setDeleteIds] = React.useState<string[] | null>(null)
   const [rows, setRows] = React.useState(() => data)
   React.useEffect(() => setRows(data), [data])
 
@@ -888,6 +916,15 @@ export function DataTable<TData extends WithId>({
     )
   }, [columns, workspaceId, resource, viewMode, openRecordById])
 
+  // Quick action from the global search / C → O|P|E|A (`?new=1`).
+  const createdFromParam = React.useRef(false)
+  React.useEffect(() => {
+    if (createdFromParam.current || disableInlineCreate) return
+    if (new URLSearchParams(window.location.search).get('new') !== '1') return
+    createdFromParam.current = true
+    addRow()
+  }, [addRow, disableInlineCreate])
+
   const tableColumns = React.useMemo<ColumnDef<TData>[]>(() => {
     const drag: ColumnDef<TData> = {
       id: 'drag',
@@ -1007,8 +1044,69 @@ export function DataTable<TData extends WithId>({
     ? rows.find((row) => row.id === openRecordId)
     : undefined
 
+  // Keyboard (registry `list.*`, `kanban.*`, `create.*`).
+  const rowById = (id: string) =>
+    table.getRowModel().rows.find((row) => row.original.id === id)
+  useListShortcuts({
+    containerRef: rootRef,
+    onOpen: (id) => openRecordById(id),
+    onEdit: (id) => openRecordById(id),
+    onNew: disableInlineCreate ? undefined : addRow,
+    onSearch: () => searchRef.current?.focus(),
+    onFilters: () => {
+      const trigger = rootRef.current?.querySelector<HTMLElement>(
+        '[data-shortcut-filters]',
+      )
+      if (!trigger) return false
+      trigger.click()
+    },
+    isSelected: (id) => Boolean(rowById(id)?.getIsSelected()),
+    onToggleSelect: (id) => {
+      const row = rowById(id)
+      if (!row) return false
+      row.toggleSelected()
+    },
+    onSelectAll: () => table.toggleAllPageRowsSelected(true),
+    onClearSelection: () => {
+      if (Object.keys(rowSelection).length === 0) return false
+      table.resetRowSelection()
+    },
+    onDelete: canDelete
+      ? (id) => {
+          const selected = Object.keys(rowSelection)
+          const ids = selected.length > 0 ? selected : id ? [id] : []
+          if (ids.length === 0) return false
+          setDeleteIds(ids)
+        }
+      : undefined,
+    onToggleView: kanban
+      ? () => setViewMode((mode) => (mode === 'kanban' ? 'table' : 'kanban'))
+      : undefined,
+    onMove: kanban
+      ? (id, column) => patch(id, { [kanban.groupByKey]: column })
+      : undefined,
+  })
+  // Shift+C on the tasks table: done ↔ to do for the row in focus.
+  useShortcut(
+    'crm.task.toggle-done',
+    () => {
+      const row = focusedRow(rootRef.current)
+      const id = row?.dataset.shortcutRow
+      const task = id ? rowById(id)?.original : undefined
+      if (!id || !task) return false
+      const done = (task as Record<string, unknown>).status === 'DONE'
+      patch(id, { status: done ? 'TODO' : 'DONE' })
+      notify.success(done ? 'Tarefa reaberta' : 'Tarefa concluída')
+    },
+    { enabled: resource === 'tasks' },
+  )
+  const createId = CREATE_SHORTCUT[resource]
+  useShortcut(createId ?? 'create.opportunity', addRow, {
+    enabled: Boolean(createId) && !disableInlineCreate,
+  })
+
   return (
-    <div className='flex h-full min-h-0 flex-col gap-3 p-4'>
+    <div ref={rootRef} className='flex h-full min-h-0 flex-col gap-3 p-4'>
       {/* Toolbar */}
       <div className='flex shrink-0 flex-wrap items-center gap-2'>
         <div className='relative mr-auto'>
@@ -1018,9 +1116,11 @@ export function DataTable<TData extends WithId>({
             className='-translate-y-1/2 absolute top-1/2 left-2.5 size-4 text-muted-foreground'
           />
           <Input
+            ref={searchRef}
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder={searchPlaceholder}
+            aria-label={searchPlaceholder}
             className='h-8 w-56 pl-8'
           />
         </div>
@@ -1029,7 +1129,7 @@ export function DataTable<TData extends WithId>({
         <Popover>
           <PopoverTrigger
             render={
-              <Button variant='outline' size='sm'>
+              <Button variant='outline' size='sm' data-shortcut-filters>
                 <SteelIcon icon={FilterIcon} strokeWidth={2} />
                 Filtrar
                 {columnFilters.length > 0 ? (
@@ -1520,6 +1620,39 @@ export function DataTable<TData extends WithId>({
           </div>
         </div>
       )}
+
+      <AlertDialog
+        open={deleteIds !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteIds(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteIds && deleteIds.length > 1
+                ? `Excluir ${deleteIds.length} registros?`
+                : 'Excluir o registro?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              variant='destructive'
+              onClick={() => {
+                for (const id of deleteIds ?? []) removeRow(id)
+                table.resetRowSelection()
+                setDeleteIds(null)
+              }}
+            >
+              Excluir
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Painel lateral de detalhes/edição do registro */}
       {openRecord ? (

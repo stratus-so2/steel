@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { AskSteelAiButton } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
@@ -54,7 +55,10 @@ import type {
 import type { WhatsAppMessageDTO } from '@/types/whatsapp-message'
 import { WhatsappAiBanner } from './whatsapp-ai-banner'
 import { WhatsappCloseConversationDialog } from './whatsapp-close-conversation-dialog'
-import { WhatsappComposer } from './whatsapp-composer'
+import {
+  WHATSAPP_COMPOSER_INPUT_ID,
+  WhatsappComposer,
+} from './whatsapp-composer'
 import { WhatsappConversationEventChip } from './whatsapp-conversation-event-chip'
 import { WhatsappHandoffBanner } from './whatsapp-handoff-banner'
 import { WhatsappVideoCallDialog } from './whatsapp-video-call-dialog'
@@ -93,13 +97,17 @@ export function WhatsappConversationView({
   workspaceId,
   conversation,
   onSelectConversation,
+  onBack,
 }: {
   workspaceId: string
   conversation: WhatsAppConversationDTO
   onSelectConversation?: (conversation: WhatsAppConversationDTO) => void
+  /** `U`: close the conversation and go back to the list. */
+  onBack?: () => void
 }) {
   const [callOpen, setCallOpen] = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
   const [replyTarget, setReplyTarget] = useState<WhatsAppMessageDTO | null>(
     null,
   )
@@ -112,6 +120,20 @@ export function WhatsappConversationView({
   const reopenConversation = useReopenWhatsAppConversation(workspaceId)
   const canEdit = useCan('conversations', 'EDIT')
   const isClosed = conversation.status === 'CLOSED'
+
+  // Conversation shortcuts (registry `zap.*`).
+  useShortcut('zap.reply', () => {
+    const input = document.getElementById(WHATSAPP_COMPOSER_INPUT_ID)
+    if (!(input instanceof HTMLTextAreaElement) || input.disabled) return false
+    input.focus()
+  })
+  useShortcut('zap.transfer', () => setTransferOpen(true))
+  useShortcut('zap.close', () => setCloseOpen(true), {
+    enabled: canEdit && !isClosed,
+  })
+  useShortcut('zap.back', () => (onBack ? onBack() : false), {
+    enabled: Boolean(onBack),
+  })
   const markRead = useMarkWhatsAppConversationRead(workspaceId)
   const removeFromAi = useRemoveWhatsAppConversationFromAi(workspaceId)
   const resumeAi = useResumeWhatsAppConversationAi(workspaceId)
@@ -299,7 +321,7 @@ export function WhatsappConversationView({
           >
             <SteelIcon icon={ComputerVideoCallIcon} size={18} />
           </Button>
-          <DropdownMenu>
+          <DropdownMenu open={transferOpen} onOpenChange={setTransferOpen}>
             <DropdownMenuTrigger
               render={
                 <Button

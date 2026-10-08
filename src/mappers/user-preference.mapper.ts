@@ -9,5 +9,6 @@ export function toUserPreferenceDTO(p: UserPreference): UserPreferenceDTO {
     timezone: p.timezone,
     weekStartsOn: p.weekStartsOn,
     weekendDays: p.weekendDays,
+    singleKeyShortcuts: p.singleKeyShortcuts,
   }
 }

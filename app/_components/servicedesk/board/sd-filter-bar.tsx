@@ -913,7 +913,7 @@ export function SdFilterBar({
         <Popover>
           <PopoverTrigger
             render={
-              <Button variant='outline' size='sm'>
+              <Button variant='outline' size='sm' data-shortcut-filters>
                 <SteelIcon icon={FilterIcon} strokeWidth={2} />
                 Filtrar
                 {active > 0 ? (

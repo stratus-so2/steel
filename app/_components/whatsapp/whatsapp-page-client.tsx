@@ -39,6 +39,7 @@ export function WhatsappPageClient({
           workspaceId={workspaceId}
           conversation={selected}
           onSelectConversation={setSelected}
+          onBack={() => setSelected(null)}
         />
       ) : (
         <div className='flex flex-1 items-center justify-center text-muted-foreground text-sm'>

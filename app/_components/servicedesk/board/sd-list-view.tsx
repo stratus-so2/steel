@@ -43,7 +43,9 @@ export function SdTicketRow({
   return (
     <Link
       href={sdTicketHref(slug, ticket)}
-      className='group relative flex min-w-0 items-center gap-3 border-b py-2 pr-3 pl-4 text-sm last:border-b-0 hover:bg-muted/50'
+      data-shortcut-row={ticket.id}
+      data-shortcut-href={sdTicketHref(slug, ticket)}
+      className='group relative flex min-w-0 items-center gap-3 border-b py-2 pr-3 pl-4 text-sm outline-none last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset'
     >
       <span
         aria-hidden

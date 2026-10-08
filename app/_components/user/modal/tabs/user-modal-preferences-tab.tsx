@@ -166,9 +166,10 @@ export function UserModalPreferencesTab({ tab }: { tab: string }) {
           </Field>
           <Field orientation='horizontal' className='py-3'>
             <FieldContent>
-              <FieldLabel>Atalho para enviar comentários</FieldLabel>
+              <FieldLabel>Envio rápido de mensagens</FieldLabel>
               <FieldDescription>
-                Escolha o atalho de teclado para enviar comentários.
+                Tecla que envia respostas de chamados, mensagens do WhatsApp e
+                perguntas ao Steel AI. A outra combinação quebra a linha.
               </FieldDescription>
             </FieldContent>
             <Select
@@ -198,6 +199,27 @@ export function UserModalPreferencesTab({ tab }: { tab: string }) {
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </Field>
+          <Field orientation='horizontal' className='py-3'>
+            <FieldContent>
+              <FieldLabel htmlFor='single-key-shortcuts'>
+                Atalhos de uma tecla
+              </FieldLabel>
+              <FieldDescription>
+                Teclas simples como J, K, R e sequências como G → C. Desligue se
+                usa leitor de tela ou digitação por voz; os atalhos com Ctrl,
+                Alt ou ⌘ continuam valendo. Aperte ? para ver todos.
+              </FieldDescription>
+            </FieldContent>
+            <Switch
+              id='single-key-shortcuts'
+              checked={prefs.singleKeyShortcuts}
+              onCheckedChange={(checked) =>
+                save({
+                  singleKeyShortcuts: checked,
+                })
+              }
+            />
           </Field>
         </div>
         <div className='flex flex-col gap-y-1'>

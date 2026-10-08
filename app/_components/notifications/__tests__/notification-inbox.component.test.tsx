@@ -1,5 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ShortcutsCheatSheet } from '@/app/_components/shortcuts/shortcuts-cheat-sheet'
+import { ShortcutsProvider } from '@/app/_components/shortcuts/shortcuts-provider'
 import {
   type FetchRoute,
   fetchBody,
@@ -110,7 +112,10 @@ function routes(extra: FetchRoute[] = []): FetchRoute[] {
 
 function render() {
   return renderWithQuery(
-    <NotificationInbox workspaceId='ws_1' slug='acme' userId='u_me' />,
+    <ShortcutsProvider>
+      <NotificationInbox workspaceId='ws_1' slug='acme' userId='u_me' />
+      <ShortcutsCheatSheet />
+    </ShortcutsProvider>,
   )
 }
 

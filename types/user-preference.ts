@@ -7,5 +7,7 @@ export interface UserPreferenceDTO {
   quickSendShortcut: QuickSendShortcut,
   timezone: string,
   weekStartsOn: number,
-  weekendDays: number[]
+  weekendDays: number[],
+  /** "Atalhos de uma tecla" (WCAG 2.1.4): off keeps only Ctrl/Alt/⌘ ones. */
+  singleKeyShortcuts: boolean
 }

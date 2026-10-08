@@ -1,12 +1,14 @@
 'use client'
 
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   LEAD_STAGES,
   STAGE_LABELS,
   STAGE_STYLES,
 } from '@/app/_components/crm/crm-lead-stage'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
+import { useListShortcuts } from '@/app/_components/shortcuts/use-list-shortcuts'
 import { AskSteelAiButton } from '@/app/_components/steel-ai-ask/ask-steel-ai-button'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
@@ -168,6 +170,12 @@ export function CrmLeadsBoard({
   }, [leads])
 
   const selectedLead = leads.find((l) => l.id === selectedLeadId) ?? null
+  const boardRef = useRef<HTMLDivElement | null>(null)
+  useListShortcuts({
+    containerRef: boardRef,
+    onNew: () => setCreateOpen(true),
+  })
+  useShortcut('create.lead', () => setCreateOpen(true))
   // Deep link from the notification inbox: `?record=<id>` opens the lead.
   const isLeadLoaded = useCallback(
     (id: string) => leads.some((lead) => lead.id === id),
@@ -187,10 +195,14 @@ export function CrmLeadsBoard({
         </Button>
       </div>
 
-      <div className='flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2'>
+      <div
+        ref={boardRef}
+        className='flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2'
+      >
         {LEAD_STAGES.map((stage) => (
           <div
             key={stage}
+            data-shortcut-column-id={stage}
             className='flex w-72 shrink-0 flex-col rounded-lg border bg-muted/30'
           >
             <div className='flex items-center justify-between border-b p-3'>
@@ -214,8 +226,10 @@ export function CrmLeadsBoard({
                 <button
                   key={lead.id}
                   type='button'
+                  data-shortcut-row={lead.id}
+                  data-shortcut-column={stage}
                   onClick={() => setSelectedLeadId(lead.id)}
-                  className='flex flex-col gap-1 rounded-md border bg-background p-3 text-left shadow-sm transition-colors hover:border-primary/50'
+                  className='flex flex-col gap-1 rounded-md border bg-background p-3 text-left shadow-sm outline-none transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-ring/50'
                 >
                   <span className='truncate font-medium text-sm'>
                     {lead.name}
@@ -263,6 +277,9 @@ export function CrmLeadsBoard({
       >
         <SheetContent className='overflow-y-auto'>
           {selectedLead ? (
+            <LeadPanelShortcuts onClose={() => setSelectedLeadId(null)} />
+          ) : null}
+          {selectedLead ? (
             <LeadStagePanel
               workspaceId={workspaceId}
               lead={selectedLead}
@@ -274,6 +291,13 @@ export function CrmLeadsBoard({
       </Sheet>
     </div>
   )
+}
+
+/** `U` inside the lead sheet closes it (the sheet traps other keys). */
+function LeadPanelShortcuts({ onClose }: { onClose: () => void }) {
+  const ref = useRef<HTMLSpanElement | null>(null)
+  useShortcut('crm.record.back', onClose, { ref })
+  return <span ref={ref} hidden />
 }
 
 function LeadStagePanel({

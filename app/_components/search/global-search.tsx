@@ -2,12 +2,14 @@
 
 import {
   AiMagicIcon,
+  ArrowRight02Icon,
   BookOpen01Icon,
   Briefcase01Icon,
   Building03Icon,
   Clock01Icon,
   ContactIcon,
   File01Icon,
+  KeyboardIcon,
   Message01Icon,
   PlusSignIcon,
   SearchIcon,
@@ -28,6 +30,12 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { ShortcutKbd } from '@/app/_components/shortcuts/shortcut-kbd'
+import {
+  useShortcut,
+  useShortcuts,
+} from '@/app/_components/shortcuts/shortcuts-provider'
+import { availableCommands } from '@/app/_components/shortcuts/workspace-commands'
 import { stashSteelAiPrompt } from '@/app/_components/steel-ai/steel-ai-handoff'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
@@ -48,6 +56,7 @@ import {
 } from '@/src/hooks/use-steel-ai'
 import type { SearchEntityType } from '@/src/lib/search/search-entities'
 import { highlightRanges } from '@/src/lib/search/search-query'
+import { matchesQuery } from '@/src/lib/shortcuts/registry'
 import type { SearchResultDTO } from '@/types/search'
 
 type IconType = typeof SearchIcon
@@ -145,14 +154,6 @@ export function groupSearchResults(results: readonly SearchResultDTO[]) {
   return [...groups.entries()].map(([group, items]) => ({ group, items }))
 }
 
-function useIsMac() {
-  const [mac, setMac] = useState(false)
-  useEffect(() => {
-    setMac(/Mac|iPhone|iPad/.test(window.navigator.platform))
-  }, [])
-  return mac
-}
-
 /**
  * Global search (Ctrl+K / ⌘K): header trigger + command palette. The
  * palette body only mounts while open, so closed it costs no request.
@@ -160,27 +161,16 @@ function useIsMac() {
 export function GlobalSearch({
   slug,
   workspaceId,
+  wikiEnabled = false,
 }: {
   slug: string
   workspaceId: string
+  wikiEnabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const isMac = useIsMac()
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (
-        event.key.toLowerCase() === 'k' &&
-        (event.metaKey || event.ctrlKey) &&
-        !event.altKey
-      ) {
-        event.preventDefault()
-        setOpen((value) => !value)
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  // Ctrl+K / ⌘K, also while typing; inside the rich editor it is "link".
+  useShortcut('global.search', () => setOpen((value) => !value))
 
   return (
     <>
@@ -193,7 +183,7 @@ export function GlobalSearch({
       >
         <SteelIcon icon={SearchIcon} strokeWidth={2} />
         <span className='flex-1 text-left font-normal'>Buscar…</span>
-        <Kbd>{isMac ? '⌘K' : 'Ctrl K'}</Kbd>
+        <ShortcutKbd id='global.search' />
       </Button>
       <Button
         variant='ghost'
@@ -215,6 +205,7 @@ export function GlobalSearch({
           <GlobalSearchPalette
             slug={slug}
             workspaceId={workspaceId}
+            wikiEnabled={wikiEnabled}
             onClose={() => setOpen(false)}
           />
         ) : null}
@@ -226,12 +217,15 @@ export function GlobalSearch({
 export function GlobalSearchPalette({
   slug,
   workspaceId,
+  wikiEnabled = false,
   onClose,
 }: {
   slug: string
   workspaceId: string
+  wikiEnabled?: boolean
   onClose: () => void
 }) {
+  const shortcuts = useShortcuts()
   const router = useRouter()
   const pathname = usePathname()
   const [query, setQuery] = useState('')
@@ -290,6 +284,48 @@ export function GlobalSearchPalette({
     }
   }
 
+  // Navigation commands with their keys (`G → S`), filtered by the query.
+  const navigation = useMemo(() => {
+    const commands = availableCommands(slug, modules, wikiEnabled).filter(
+      (command) => command.id.startsWith('nav.'),
+    )
+    return commands.filter((command) => matchesQuery(command.label, trimmed))
+  }, [slug, modules, wikiEnabled, trimmed])
+
+  const showShortcutsItem =
+    Boolean(shortcuts) &&
+    (!trimmed || matchesQuery('atalhos do teclado', trimmed))
+
+  const commandGroup =
+    navigation.length > 0 || showShortcutsItem ? (
+      <CommandGroup heading='Ir para'>
+        {navigation.map((command) => (
+          <CommandItem
+            key={command.id}
+            value={`command:${command.id}`}
+            onSelect={() => go(command.href)}
+          >
+            <SteelIcon icon={ArrowRight02Icon} strokeWidth={2} />
+            <span className='flex-1 truncate'>{command.label}</span>
+            <ShortcutKbd id={command.id} className='max-sm:hidden' />
+          </CommandItem>
+        ))}
+        {showShortcutsItem ? (
+          <CommandItem
+            value='command:shortcuts'
+            onSelect={() => {
+              onClose()
+              shortcuts?.setCheatSheetOpen(true)
+            }}
+          >
+            <SteelIcon icon={KeyboardIcon} strokeWidth={2} />
+            <span className='flex-1 truncate'>Atalhos do teclado</span>
+            <ShortcutKbd id='global.shortcuts' className='max-sm:hidden' />
+          </CommandItem>
+        ) : null}
+      </CommandGroup>
+    ) : null
+
   const quickActions = (
     <CommandGroup heading='Ações rápidas'>
       {trimmed && aiEnabled ? (
@@ -306,7 +342,8 @@ export function GlobalSearchPalette({
           onSelect={() => go(`/${slug}/servicedesk/tickets?new=1`)}
         >
           <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-          Novo chamado
+          <span className='flex-1 truncate'>Novo chamado</span>
+          <ShortcutKbd id='create.ticket' className='max-sm:hidden' />
         </CommandItem>
       ) : null}
       {modules.includes('CRM') ? (
@@ -315,13 +352,15 @@ export function GlobalSearchPalette({
           onSelect={() => go(`/${slug}/crm/leads?new=1`)}
         >
           <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-          Novo lead
+          <span className='flex-1 truncate'>Novo lead</span>
+          <ShortcutKbd id='create.lead' className='max-sm:hidden' />
         </CommandItem>
       ) : null}
       {!trimmed && aiEnabled ? (
         <CommandItem value='action:ai-open' onSelect={() => go(`/${slug}/ai`)}>
           <SteelIcon icon={AiMagicIcon} strokeWidth={2} />
-          Abrir o Steel AI
+          <span className='flex-1 truncate'>Abrir o Steel AI</span>
+          <ShortcutKbd id='nav.ai' className='max-sm:hidden' />
         </CommandItem>
       ) : null}
     </CommandGroup>
@@ -364,6 +403,8 @@ export function GlobalSearchPalette({
             )}
             <CommandSeparator />
             {quickActions}
+            {commandGroup ? <CommandSeparator /> : null}
+            {commandGroup}
           </>
         ) : (
           <>
@@ -427,6 +468,8 @@ export function GlobalSearchPalette({
             ) : null}
             <CommandSeparator />
             {quickActions}
+            {commandGroup ? <CommandSeparator /> : null}
+            {commandGroup}
           </>
         )}
       </CommandList>

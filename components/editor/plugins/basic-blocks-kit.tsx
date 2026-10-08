@@ -29,6 +29,15 @@ import {
 import { HrElement } from '@/components/editor/ui/hr-node';
 import { ParagraphElement } from '@/components/editor/ui/paragraph-node';
 
+/**
+ * ⌘⌥1…6 on macOS; Ctrl+Shift+1…6 on Windows/Linux, where Ctrl+Alt is AltGr
+ * on ABNT2 keyboards (AltGr+1…6 types ¹²³£¢¬). Both are bound everywhere:
+ * the other platform's combo is harmless.
+ */
+export function headingKeys(level: number): string[] {
+  return [`meta+alt+${level}`, `ctrl+shift+${level}`]
+}
+
 export const BasicBlocksKit = [
   ParagraphPlugin.withComponent(ParagraphElement),
   H1Plugin.configure({
@@ -39,7 +48,7 @@ export const BasicBlocksKit = [
     rules: {
       break: { empty: 'reset' },
     },
-    shortcuts: { toggle: { keys: 'mod+alt+1' } },
+    shortcuts: { toggle: { keys: headingKeys(1) } },
   }),
   H2Plugin.configure({
     inputRules: [HeadingRules.markdown()],
@@ -49,7 +58,7 @@ export const BasicBlocksKit = [
     rules: {
       break: { empty: 'reset' },
     },
-    shortcuts: { toggle: { keys: 'mod+alt+2' } },
+    shortcuts: { toggle: { keys: headingKeys(2) } },
   }),
   H3Plugin.configure({
     inputRules: [HeadingRules.markdown()],
@@ -59,7 +68,7 @@ export const BasicBlocksKit = [
     rules: {
       break: { empty: 'reset' },
     },
-    shortcuts: { toggle: { keys: 'mod+alt+3' } },
+    shortcuts: { toggle: { keys: headingKeys(3) } },
   }),
   H4Plugin.configure({
     inputRules: [HeadingRules.markdown()],
@@ -69,7 +78,7 @@ export const BasicBlocksKit = [
     rules: {
       break: { empty: 'reset' },
     },
-    shortcuts: { toggle: { keys: 'mod+alt+4' } },
+    shortcuts: { toggle: { keys: headingKeys(4) } },
   }),
   H5Plugin.configure({
     inputRules: [HeadingRules.markdown()],
@@ -79,7 +88,7 @@ export const BasicBlocksKit = [
     rules: {
       break: { empty: 'reset' },
     },
-    shortcuts: { toggle: { keys: 'mod+alt+5' } },
+    shortcuts: { toggle: { keys: headingKeys(5) } },
   }),
   H6Plugin.configure({
     inputRules: [HeadingRules.markdown()],
@@ -89,7 +98,7 @@ export const BasicBlocksKit = [
     rules: {
       break: { empty: 'reset' },
     },
-    shortcuts: { toggle: { keys: 'mod+alt+6' } },
+    shortcuts: { toggle: { keys: headingKeys(6) } },
   }),
   BlockquotePlugin.configure({
     inputRules: [BlockquoteRules.markdown()],

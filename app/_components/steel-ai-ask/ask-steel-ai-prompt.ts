@@ -11,6 +11,8 @@ export type AskSteelAiRecordKind =
   | 'person'
   | 'company'
   | 'conversation'
+  /** Any screen without a record (Ctrl+I fallback): the label is the page. */
+  | 'page'
 
 export interface AskSteelAiReference {
   kind: AskSteelAiRecordKind
@@ -34,6 +36,7 @@ const NOUN: Record<AskSteelAiRecordKind, string> = {
   person: 'a pessoa',
   company: 'a empresa',
   conversation: 'a conversa com',
+  page: 'a tela',
 }
 
 /** Collapses whitespace and caps the label with an ellipsis. */

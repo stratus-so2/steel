@@ -10,9 +10,18 @@ describe('UpdateUserPreferenceSchema', () => {
       timezone: 'America/Sao_Paulo',
       weekStartsOn: 0,
       weekendDays: [5, 6],
+      singleKeyShortcuts: false,
     })
 
     expect(result.success).toBe(true)
+  })
+
+  it('should reject a non-boolean single-key shortcuts flag', () => {
+    const result = UpdateUserPreferenceSchema.safeParse({
+      singleKeyShortcuts: 'off',
+    })
+
+    expect(result.success).toBe(false)
   })
 
   it('should accept a partial payload', () => {

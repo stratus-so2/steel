@@ -14,6 +14,7 @@ import {
   Video01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type ChangeEvent, useRef, useState } from 'react'
+import { useQuickSend } from '@/app/_components/shortcuts/use-quick-send'
 import { SteelIcon } from '@/components/icon/icon'
 import {
   Attachment,
@@ -55,6 +56,7 @@ import {
 } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
+import { cn } from '@/lib/utils'
 import { useUser } from '@/src/hooks/use-user'
 import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
 import { useUploadWhatsAppMedia } from '@/src/hooks/use-whatsapp-media-upload'
@@ -139,6 +141,15 @@ function useAudioRecorder(onRecorded: (blob: Blob) => void) {
   return { isRecording, start, stop }
 }
 
+/** Id of the message textarea (the `R` shortcut focuses it). */
+export const WHATSAPP_COMPOSER_INPUT_ID = 'whatsapp-composer-input'
+
+/** `/abc` typed at the start of the message → the quick-reply query. */
+export function quickReplyQueryOf(text: string): string | null {
+  const match = /^\/(\S*)$/.exec(text)
+  return match ? match[1].toLowerCase() : null
+}
+
 export function WhatsappComposer({
   workspaceId,
   conversationId,
@@ -155,6 +166,9 @@ export function WhatsappComposer({
   onClearReply?: () => void
 }) {
   const [text, setText] = useState('')
+  const quickSend = useQuickSend()
+  const [slashActive, setSlashActive] = useState(0)
+  const [slashDismissed, setSlashDismissed] = useState<string | null>(null)
   const [attachments, setAttachments] = useState<StagedAttachment[]>([])
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [quickReplyOpen, setQuickReplyOpen] = useState(false)
@@ -195,6 +209,25 @@ export function WhatsappComposer({
       notify.error('Erro ao enviar áudio')
     }
   })
+
+  const slashQuery = quickReplyQueryOf(text)
+  const slashMatches =
+    slashQuery === null || slashDismissed === text
+      ? []
+      : (quickReplies.data ?? [])
+          .filter((qr) => qr.shortcut.toLowerCase().startsWith(slashQuery))
+          .slice(0, 8)
+  const slashIndex = Math.min(slashActive, slashMatches.length - 1)
+
+  function applyQuickReply(body: string) {
+    setText(
+      renderQuickReplyBody(body, {
+        contactName,
+        userName: currentUser.data?.name,
+      }),
+    )
+    setSlashActive(0)
+  }
 
   const isUploading = attachments.some((a) => a.status === 'uploading')
   const isBusy =
@@ -551,20 +584,80 @@ export function WhatsappComposer({
           <SteelIcon icon={Mic01Icon} size={18} />
         </Button>
 
-        <Textarea
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-              event.preventDefault()
-              handleSend()
+        <div className='relative min-w-0 flex-1'>
+          {slashMatches.length > 0 ? (
+            <div
+              id='whatsapp-quick-reply-list'
+              role='listbox'
+              aria-label='Mensagens rápidas'
+              className='absolute bottom-full left-0 z-10 mb-1 max-h-64 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md'
+            >
+              {slashMatches.map((qr, index) => (
+                <button
+                  key={qr.id}
+                  type='button'
+                  role='option'
+                  aria-selected={index === slashIndex}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => applyQuickReply(qr.body)}
+                  className={cn(
+                    'flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted',
+                    index === slashIndex && 'bg-muted',
+                  )}
+                >
+                  <span className='font-medium'>/{qr.shortcut}</span>
+                  <span className='line-clamp-1 text-muted-foreground text-xs'>
+                    {qr.body}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <Textarea
+            id={WHATSAPP_COMPOSER_INPUT_ID}
+            data-composer
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => {
+              // `/` at the start: ↑↓ choose, Enter/Tab apply, Esc closes.
+              if (slashMatches.length > 0 && !event.nativeEvent.isComposing) {
+                const count = slashMatches.length
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                  event.preventDefault()
+                  const step = event.key === 'ArrowDown' ? 1 : -1
+                  setSlashActive((slashIndex + step + count) % count)
+                  return
+                }
+                if (
+                  (event.key === 'Enter' || event.key === 'Tab') &&
+                  !event.shiftKey
+                ) {
+                  event.preventDefault()
+                  applyQuickReply(slashMatches[slashIndex].body)
+                  return
+                }
+                if (event.key === 'Escape') {
+                  event.preventDefault()
+                  setSlashDismissed(text)
+                  return
+                }
+              }
+              if (quickSend.isSend(event)) {
+                event.preventDefault()
+                handleSend()
+              }
+            }}
+            placeholder='Digite uma mensagem'
+            aria-label='Mensagem'
+            aria-controls={
+              slashMatches.length > 0 ? 'whatsapp-quick-reply-list' : undefined
             }
-          }}
-          placeholder='Digite uma mensagem'
-          disabled={isDisabled}
-          className='max-h-32 min-h-9 flex-1 resize-none'
-          rows={1}
-        />
+            title={quickSend.hint}
+            disabled={isDisabled}
+            className='max-h-32 min-h-9 w-full resize-none'
+            rows={1}
+          />
+        </div>
 
         <Button
           type='button'

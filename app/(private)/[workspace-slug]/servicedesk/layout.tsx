@@ -25,6 +25,7 @@ import {
 } from '@/app/_components/navigation/sidebar-context'
 import { loadSdDirectoryContext } from '@/app/_components/servicedesk/directory/sd-directory-context'
 import { SdModuleRail } from '@/app/_components/servicedesk/shell/sd-context-rail'
+import { RouteShortcuts } from '@/app/_components/shortcuts/route-shortcuts'
 import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function ServiceDeskLayout({
@@ -58,6 +59,9 @@ export default async function ServiceDeskLayout({
             </NavGroup>
           </ContextSidebar>
         </SdModuleRail>
+        <RouteShortcuts
+          routes={[{ id: 'sd.go-knowledge', href: `${base}/knowledge` }]}
+        />
         {children}
       </>
     )
@@ -128,6 +132,16 @@ export default async function ServiceDeskLayout({
           </NavGroup>
         </ContextSidebar>
       </SdModuleRail>
+      <RouteShortcuts
+        routes={[
+          { id: 'sd.go-tickets', href: `${base}/tickets` },
+          { id: 'sd.go-incidents', href: `${base}/incidents` },
+          { id: 'sd.go-requests', href: `${base}/requests` },
+          { id: 'sd.go-changes', href: `${base}/changes` },
+          { id: 'sd.go-problems', href: `${base}/problems` },
+          { id: 'sd.go-knowledge', href: `${base}/knowledge` },
+        ]}
+      />
       {children}
     </>
   )

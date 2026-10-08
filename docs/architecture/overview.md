@@ -191,7 +191,8 @@ Arquivadas**, filtros rápidos (**Pendências da IA**, Não lidas, Menções,
 Atribuídas a mim), filtro por módulo e por tipo de evento, busca em título e
 corpo, paginação por cursor, seleção múltipla com ações em lote (ler, não
 ler, arquivar, adiar, excluir), desfazer e atalhos de teclado (`j`/`k`,
-`Enter`, `u`, `e`, `r`, `s`, `i`, `#`, `x`, `/`, `?`).
+`Enter`, `u`, `e`, `r`, `s`, `i`, `#`, `x`, `/`), que fazem parte do registro
+global de atalhos — ver [`docs/shortcuts.md`](../shortcuts.md).
 
 - **Pendências da IA** (`?view=ai`): as ações do Steel AI que o próprio
   usuário pediu no modo Build e ainda esperam confirmação, mais as escritas

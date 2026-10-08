@@ -24,7 +24,11 @@ export function UserHeader({
       </div>
       {/* Touch targets: 40px below `md`, the compact 32-36px from there up. */}
       <div className='flex shrink-0 items-center gap-1 max-md:[&_[data-slot=button]]:size-10'>
-        <GlobalSearch slug={slug} workspaceId={workspaceId} />
+        <GlobalSearch
+          slug={slug}
+          workspaceId={workspaceId}
+          wikiEnabled={wikiEnabled}
+        />
         <HeaderInboxButton slug={slug} workspaceId={workspaceId} />
         <UserDropdownHelper />
         <UserDropdownProfile />

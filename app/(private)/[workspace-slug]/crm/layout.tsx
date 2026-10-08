@@ -42,6 +42,7 @@ import {
   NavItem,
 } from '@/app/_components/navigation/sidebar-context'
 import { NavGroupAccordion } from '@/app/_components/navigation/sidebar-context/navigation-sidebar-context-accordion'
+import { RouteShortcuts } from '@/app/_components/shortcuts/route-shortcuts'
 import { hasModuleAccess } from '@/src/lib/module-access-guard'
 
 export default async function CrmLayout({
@@ -173,6 +174,16 @@ export default async function CrmLayout({
           </NavItem>
         </NavGroup>
       </ContextSidebar>
+      <RouteShortcuts
+        routes={[
+          { id: 'crm.go-leads', href: `${base}/leads` },
+          { id: 'crm.go-opportunities', href: `${base}/opportunities` },
+          { id: 'crm.go-people', href: `${base}/people` },
+          { id: 'crm.go-companies', href: `${base}/companies` },
+          { id: 'crm.go-tasks', href: `${base}/tasks` },
+          { id: 'crm.go-proposals', href: `${base}/proposals` },
+        ]}
+      />
       {children}
     </>
   )

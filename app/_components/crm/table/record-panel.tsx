@@ -18,6 +18,7 @@ import {
   updateCrmResource,
 } from '@/src/hooks/use-crm-resource-list'
 import type { Lookups } from '@/src/hooks/use-crm-workspace-lookups'
+import { RecordPanelShortcuts } from './record-panel-shortcuts'
 
 /** CRM resources whose panel offers "Perguntar ao Steel AI". */
 const ASK_KIND_BY_RESOURCE: Record<string, AskSteelAiRecordKind> = {
@@ -141,6 +142,18 @@ export function RecordPanel<T extends WithId>({
         showCloseButton={false}
         className='flex w-[440px] max-w-[440px] flex-col gap-0 p-0 sm:max-w-[440px]'
       >
+        <RecordPanelShortcuts
+          record={record as WithId & Record<string, unknown>}
+          workspaceId={workspaceId}
+          slug={slug}
+          resource={resource}
+          onClose={() => onOpenChange(false)}
+          onSave={() => void handleSave()}
+          onSaved={(updated) => {
+            onSaved(updated as unknown as T)
+            setValues({ ...(updated as Record<string, unknown>) })
+          }}
+        />
         {/* Cabeçalho: X (cancelar) à esquerda */}
         <div className='flex items-center gap-2 border-b p-3'>
           <Button

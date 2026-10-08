@@ -1,7 +1,9 @@
 'use client'
 
 import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { ShortcutHint } from '@/app/_components/shortcuts/shortcut-kbd'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
@@ -30,6 +32,9 @@ export function AskSteelAiButton({
   className,
 }: AskSteelAiButtonProps) {
   const [open, setOpen] = useState(false)
+  // Ctrl+I asks about this record (also inside the record's sheet).
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+  useShortcut('global.ask-ai', () => setOpen(true), { ref: buttonRef })
 
   return (
     <>
@@ -37,6 +42,7 @@ export function AskSteelAiButton({
         <TooltipTrigger
           render={
             <Button
+              ref={buttonRef}
               type='button'
               variant='ghost'
               size='icon-sm'
@@ -48,7 +54,9 @@ export function AskSteelAiButton({
             </Button>
           }
         />
-        <TooltipContent>{ASK_STEEL_AI_LABEL}</TooltipContent>
+        <TooltipContent>
+          <ShortcutHint id='global.ask-ai' label={ASK_STEEL_AI_LABEL} />
+        </TooltipContent>
       </Tooltip>
       {open ? (
         <AskSteelAiDialog

@@ -14,6 +14,10 @@ import {
   useRef,
   useState,
 } from 'react'
+import {
+  useShortcut,
+  useShortcuts,
+} from '@/app/_components/shortcuts/shortcuts-provider'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { notify } from '@/lib/notify'
@@ -88,6 +92,22 @@ export function SteelAiChat({ conversationId }: { conversationId: string }) {
   const [handoff, setHandoff] = useState<SteelAiPendingPrompt | null>(null)
   const [dockOffset, setDockOffset] = useState(0)
   const [showJump, setShowJump] = useState(false)
+
+  // Ctrl+Shift+O: new chat; Ctrl+Shift+Enter: confirm the newest pending
+  // action (its own double confirmation still applies to deletions).
+  const navigate = useShortcuts()?.navigate
+  useShortcut('ai.new-chat', () => {
+    if (!navigate) return false
+    navigate(`/${slug}/ai`)
+  })
+  useShortcut('ai.approve', () => {
+    const buttons = document.querySelectorAll<HTMLButtonElement>(
+      '[data-ai-approve]:not(:disabled)',
+    )
+    const latest = buttons[buttons.length - 1]
+    if (!latest) return false
+    latest.click()
+  })
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLFormElement>(null)

@@ -84,6 +84,7 @@ export function CrmKanbanView<TData extends { id: string }>({
             <KanbanColumn
               key={col.value}
               value={col.value}
+              data-shortcut-column-id={col.value}
               className='flex h-full min-h-0 w-72 shrink-0 flex-col rounded-xl border bg-card/40'
             >
               <div className='flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5'>
@@ -110,7 +111,9 @@ export function CrmKanbanView<TData extends { id: string }>({
                     className='rounded-lg border bg-card text-sm shadow-xs'
                   >
                     <KanbanItemHandle
-                      className='block cursor-grab p-3 active:cursor-grabbing'
+                      data-shortcut-row={item.id}
+                      data-shortcut-column={col.value}
+                      className='block cursor-grab rounded-lg p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing'
                       onClick={() => onCardClick?.(item.id)}
                     >
                       {renderCard(item)}

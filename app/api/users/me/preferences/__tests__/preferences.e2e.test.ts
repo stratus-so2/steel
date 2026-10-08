@@ -69,6 +69,7 @@ describe('PATCH /api/users/me/preferences', () => {
         timezone: 'America/Sao_Paulo',
         weekStartsOn: 0,
         weekendDays: [5, 6],
+        singleKeyShortcuts: false,
       }),
     })
 
@@ -81,6 +82,7 @@ describe('PATCH /api/users/me/preferences', () => {
     expect(patchBody.data.timezone).toBe('America/Sao_Paulo')
     expect(patchBody.data.weekStartsOn).toBe(0)
     expect(patchBody.data.weekendDays).toEqual([5, 6])
+    expect(patchBody.data.singleKeyShortcuts).toBe(false)
 
     // Persisted across reads
     const getRes = await fetch(`${BASE_URL}/api/users/me/preferences`, {

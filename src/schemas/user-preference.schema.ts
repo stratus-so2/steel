@@ -18,6 +18,7 @@ export const UpdateUserPreferenceSchema = z
   .object({
     theme: z.enum(ThemeValues).optional(),
     smoothCursor: z.boolean().optional(),
+    singleKeyShortcuts: z.boolean().optional(),
     quickSendShortcut: z.enum(QuickSendShortcutValues).optional(),
     timezone: z
       .string()

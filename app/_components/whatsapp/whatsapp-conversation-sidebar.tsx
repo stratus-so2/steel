@@ -10,6 +10,7 @@ import {
   UserSwitchIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type FormEvent, useEffect, useState } from 'react'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
 import { SteelIcon } from '@/components/icon/icon'
 import {
@@ -74,6 +75,13 @@ function NewConversationDialog({
   onCreated: (conversation: WhatsAppConversationDTO) => void
 }) {
   const [open, setOpen] = useState(false)
+  // C → M (or `?new=1` from another screen) opens it.
+  useShortcut('create.conversation', () => setOpen(true))
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') {
+      setOpen(true)
+    }
+  }, [])
   const [contactId, setContactId] = useState<string>()
   const [connectionId, setConnectionId] = useState<string>()
 
@@ -240,6 +248,59 @@ export function WhatsappConversationSidebar({
       conversation.contactWaId.includes(term)
     )
   })
+
+  // Alt+↑/↓ walk the list (also while typing), Alt+Shift+↓ the next unread;
+  // E and P archive/pin the open conversation.
+  const selectedIndex = filtered.findIndex(
+    (conversation) => conversation.id === selectedConversationId,
+  )
+  const selected = selectedIndex >= 0 ? filtered[selectedIndex] : null
+  function walk(delta: 1 | -1, unreadOnly = false) {
+    for (let step = 1; step <= filtered.length; step++) {
+      const index =
+        selectedIndex < 0 && delta < 0
+          ? filtered.length - step
+          : selectedIndex + delta * step
+      const next = filtered[index]
+      if (!next) return false
+      if (!unreadOnly || next.unreadCount > 0) {
+        onSelect(next)
+        return
+      }
+    }
+    return false
+  }
+  useShortcut('zap.next', () => walk(1))
+  useShortcut('zap.prev', () => walk(-1))
+  useShortcut('zap.next-unread', () => walk(1, true))
+  useShortcut(
+    'zap.archive',
+    () => {
+      if (!selected) return false
+      archiveConversation.mutate({
+        conversationId: selected.id,
+        archived: !selected.archived,
+      })
+      notify.success(
+        selected.archived ? 'Conversa desarquivada' : 'Conversa arquivada',
+      )
+    },
+    { enabled: Boolean(selected) },
+  )
+  useShortcut(
+    'zap.pin',
+    () => {
+      if (!selected) return false
+      pinConversation.mutate({
+        conversationId: selected.id,
+        pinned: !selected.pinned,
+      })
+      notify.success(
+        selected.pinned ? 'Conversa desafixada' : 'Conversa fixada',
+      )
+    },
+    { enabled: Boolean(selected) },
+  )
 
   return (
     <div className='flex h-full w-80 shrink-0 flex-col border-r'>

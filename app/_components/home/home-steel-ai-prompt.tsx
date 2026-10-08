@@ -3,6 +3,7 @@
 import { AiMagicIcon, ArrowUp02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
+import { useQuickSend } from '@/app/_components/shortcuts/use-quick-send'
 import { stashSteelAiPrompt } from '@/app/_components/steel-ai/steel-ai-handoff'
 import {
   STEEL_AI_DISABLED_MESSAGE,
@@ -38,6 +39,7 @@ export function HomeSteelAiPrompt({
   const capabilities = useSteelAiCapabilities(workspaceId)
   const createConversation = useCreateSteelAiConversation(workspaceId)
   const [draft, setDraft] = useState('')
+  const quickSend = useQuickSend()
   const [leaving, setLeaving] = useState(false)
 
   const caps = capabilities.data
@@ -71,8 +73,9 @@ export function HomeSteelAiPrompt({
         <InputGroupTextarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          data-composer
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
+            if (quickSend.isSend(event)) {
               event.preventDefault()
               handleSubmit()
             }
