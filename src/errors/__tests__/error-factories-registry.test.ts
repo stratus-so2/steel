@@ -40,6 +40,10 @@ describe('AppError factories — registry contract', () => {
   const numericArgs: Record<string, unknown[]> = {
     rateLimited: [30, 'Mensagem de teste'],
     aiQuotaExceeded: [1, 2],
+    workspaceExportLimitReached: [
+      'Mensagem de teste',
+      new Date('2026-10-09T03:00:00.000Z'),
+    ],
   }
 
   it.each(entries)(

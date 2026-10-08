@@ -165,9 +165,7 @@ describe('data archive', () => {
     const lines = csv.replace(CSV_BOM, '').trim().split('\r\n')
     expect(lines[0]).toBe('a,when,b,big,money,list,none,flag')
     expect(lines[1]).toBe('1,2026-10-01T00:00:00.000Z,,,,,,')
-    expect(lines[2]).toBe(
-      '2,,"{""nested"":true}",5,"""10.5""","[""x""]",,false',
-    )
+    expect(lines[2]).toBe('2,,"{""nested"":true}",5,10.5,"[""x""]",,false')
   })
 
   it('builds read-me, manifest, and JSON + CSV per non-empty table', () => {

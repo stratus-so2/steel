@@ -292,7 +292,7 @@ function Trend({ weeks }: { weeks: ProductivityTrendWeekDTO[] }) {
                 {columns.map((column) => (
                   <td
                     key={column.key}
-                    className='px-3 py-2 text-right tabular-nums'
+                    className='whitespace-nowrap px-3 py-2 text-right tabular-nums'
                   >
                     {column.format(week[column.key] ?? 0)}
                   </td>

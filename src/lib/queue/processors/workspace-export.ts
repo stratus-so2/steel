@@ -115,7 +115,10 @@ async function buildData(
       ? { name: row.requestedBy.name, email: row.requestedBy.email }
       : null,
   })
-  return { entries: archive.entries, itemCount: archive.tables.length }
+  return {
+    entries: archive.entries,
+    itemCount: archive.tables.filter((table) => table.rows > 0).length,
+  }
 }
 
 async function buildLogs(

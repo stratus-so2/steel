@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client'
 import { type CsvValue, csvDocument } from '@/src/lib/csv-writer'
 import type { ZipEntry } from '@/src/lib/zip'
 
@@ -58,7 +59,9 @@ export function redactRow(row: Row, redacted: Set<string>): Row {
 function csvValue(value: unknown): CsvValue {
   if (value === null || value === undefined) return null
   if (value instanceof Date) return value.toISOString()
-  if (typeof value === 'bigint') return value.toString()
+  if (typeof value === 'bigint' || Prisma.Decimal.isDecimal(value)) {
+    return value.toString()
+  }
   if (
     typeof value === 'string' ||
     typeof value === 'number' ||
@@ -66,7 +69,7 @@ function csvValue(value: unknown): CsvValue {
   ) {
     return value
   }
-  // Decimal, JSON columns and arrays: their JSON text.
+  // JSON columns and arrays: their JSON text.
   return JSON.stringify(value, jsonReplacer)
 }
 
