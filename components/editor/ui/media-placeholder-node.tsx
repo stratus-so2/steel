@@ -8,7 +8,7 @@ import { KEYS } from 'platejs'
 import { PlateElement, useEditorPlugin, withHOC } from 'platejs/react'
 import { useFilePicker } from 'use-file-picker'
 import { cn } from '@/lib/utils'
-import { useUploadSdKbMedia } from '@/src/hooks/use-sd-kb-media'
+import { useEditorDocument } from '@/components/editor/editor-document-context'
 import { ReactNode, RefObject, useCallback, useEffect, useRef, useState } from 'react'
 
 const CONTENT: Record<string, { accept: string[]; content: ReactNode; icon: ReactNode }> = {
@@ -23,7 +23,7 @@ export const PlaceholderElement = withHOC(
   function PlaceholderElement(props: PlateElementProps<TPlaceholderElement>) {
     const { editor, element } = props
     const { api } = useEditorPlugin(PlaceholderPlugin)
-    const { isUploading, progress, uploadedFile, uploadFile, uploadingFile } = useUploadSdKbMedia()
+    const { isUploading, progress, uploadedFile, uploadFile, uploadingFile } = useEditorDocument().backend.useUploadMedia()
 
     const loading = isUploading && uploadingFile
     const currentContent = CONTENT[element.mediaType]

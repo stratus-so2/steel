@@ -1,8 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { useEditorDocument } from '@/components/editor/editor-document-context'
 import { notify } from '@/lib/notify'
-import { useKbEditorContext } from './use-sd-kb-editor-context'
 
 /** Upload de mídia do editor da KB (port de `use-wiki-media` do Nexo). */
 
@@ -59,7 +59,7 @@ export function uploadSdKbMediaXhr(
 }
 
 export function useUploadSdKbMedia() {
-  const { workspaceId, articleId } = useKbEditorContext()
+  const { workspaceId, documentId: articleId } = useEditorDocument()
   const [isUploading, setIsUploading] = React.useState(false)
   const [uploadingFile, setUploadingFile] = React.useState<File>()
   const [progress, setProgress] = React.useState(0)

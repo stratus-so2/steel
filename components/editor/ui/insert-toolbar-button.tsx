@@ -17,6 +17,7 @@ import {
   ListOrderedIcon,
   MinusIcon,
   PilcrowIcon,
+  PenToolIcon,
   PlusIcon,
   QuoteIcon,
   RadicalIcon,
@@ -80,6 +81,8 @@ const groups: Group[] = [
       { icon: <Columns3Icon />, label: '3 colunas', value: 'action_three_columns' },
       { icon: <RadicalIcon />, label: 'Equação', value: KEYS.equation },
       { icon: <Code2 />, label: 'Diagrama (mermaid)', value: KEYS.codeDrawing },
+      // Wiki only: the knowledge base editor has no Excalidraw plugin.
+      { icon: <PenToolIcon />, label: 'Excalidraw', value: KEYS.excalidraw },
     ]
   },
   {
@@ -93,6 +96,11 @@ const groups: Group[] = [
     ]
   }
 ]
+
+/** Hides an entry whose plugin this editor does not load (e.g. Excalidraw in the KB). */
+function hasInsertTarget(editor: { plugins: Record<string, unknown> }, value: string) {
+  return value !== KEYS.excalidraw || !!editor.plugins[KEYS.excalidraw]
+}
 
 export function InsertToolbarButton(
   props: React.ComponentProps<typeof DropdownMenu>
@@ -110,7 +118,7 @@ export function InsertToolbarButton(
       <DropdownMenuContent>
         {groups.map(({ group, insert, items }) => (
           <ToolbarMenuGroup key={group} label={group}>
-            {items.map(({ icon, label, value }) => (
+            {items.filter((item) => hasInsertTarget(editor, item.value)).map(({ icon, label, value }) => (
               <DropdownMenuItem
                 key={value}
                 className='min-w-45'

@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { CommentPlugin } from '@platejs/comment/react'
+import { YjsPlugin } from '@platejs/yjs/react'
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow'
 import { ptBR } from 'date-fns/locale/pt-BR'
 import { CheckIcon, MoreHorizontalIcon, PencilIcon, SendIcon, TrashIcon, XIcon } from 'lucide-react'
@@ -14,15 +15,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
-import { useKbEditorContext } from '@/src/hooks/use-sd-kb-editor-context'
 import {
-  useCreateSdKbComment,
-  useDeleteSdKbComment,
-  useResolveSdKbComment,
-  useSdKbComments,
-  useUpdateSdKbComment,
-} from '@/src/hooks/use-sd-knowledge'
-import type { SdKbCommentDTO } from '@/types/sd-kb-comment'
+  type EditorComment,
+  useEditorDocument,
+} from '@/components/editor/editor-document-context'
 
 // The comment body is plain text, wrapped in the Value shape the API
 // expects — the composer isn't a nested Plate editor, it's a deliberate
@@ -43,12 +39,12 @@ function valueToText(value: Value): string {
 
 export function DiscussionThread({ markId }: { markId: string }) {
   const editor = useEditorRef()
-  const { workspaceId, articleId, userId } = useKbEditorContext()
-  const { data: comments = [] } = useSdKbComments(workspaceId, articleId)
-  const createComment = useCreateSdKbComment(workspaceId, articleId)
-  const updateComment = useUpdateSdKbComment(workspaceId, articleId)
-  const resolveComment = useResolveSdKbComment(workspaceId, articleId)
-  const deleteComment = useDeleteSdKbComment(workspaceId, articleId)
+  const { workspaceId, documentId, userId, backend } = useEditorDocument()
+  const { data: comments = [] } = backend.useComments(workspaceId, documentId)
+  const createComment = backend.useCreateComment(workspaceId, documentId)
+  const updateComment = backend.useUpdateComment(workspaceId, documentId)
+  const resolveComment = backend.useResolveComment(workspaceId, documentId)
+  const deleteComment = backend.useDeleteComment(workspaceId, documentId)
 
   const thread = comments
     .filter((c) => c.markId === markId)
@@ -64,6 +60,16 @@ export function DiscussionThread({ markId }: { markId: string }) {
     editor.setOption(discussionPlugin, 'activeId', null)
   }
 
+  // Realtime documents only (the wiki): tell the other collaborators on this
+  // page that the threads changed by bumping this client's awareness state,
+  // over the Hocuspocus connection the document already holds open. See
+  // discussion-overlay.tsx for the listening side.
+  function broadcastCommentsChanged() {
+    if (!backend.commentsQueryKey) return
+    editor
+      .getOption(YjsPlugin, 'awareness')
+      ?.setLocalStateField('commentsRev', Date.now())
+  }
 
   function handleSubmit() {
     const text = reply.trim()
@@ -71,16 +77,20 @@ export function DiscussionThread({ markId }: { markId: string }) {
     createComment.mutate(
       { markId, content: textToValue(text), parentId: root?.id },
       {
-        onSuccess: () => setReply(''),
+        onSuccess: () => {
+          setReply('')
+          broadcastCommentsChanged()
+        },
       },
     )
   }
 
-  function handleDelete(comment: SdKbCommentDTO) {
+  function handleDelete(comment: EditorComment) {
     const isLastInThread = thread.length === 1
     deleteComment.mutate(comment.id, {
       onSuccess: () => {
         if (isLastInThread) removeMark()
+        broadcastCommentsChanged()
       },
     })
   }
@@ -89,15 +99,19 @@ export function DiscussionThread({ markId }: { markId: string }) {
     if (!root) return
     resolveComment.mutate(
       { commentId: root.id, resolved: !root.resolved },
+      { onSuccess: broadcastCommentsChanged },
     )
   }
 
-  function handleSaveEdit(comment: SdKbCommentDTO, text: string) {
+  function handleSaveEdit(comment: EditorComment, text: string) {
     if (!text.trim()) return
     updateComment.mutate(
       { commentId: comment.id, content: textToValue(text.trim()) },
       {
-        onSuccess: () => setEditingId(null),
+        onSuccess: () => {
+          setEditingId(null)
+          broadcastCommentsChanged()
+        },
       },
     )
   }
@@ -190,7 +204,7 @@ function CommentItem({
   onDelete,
   onResolve,
 }: {
-  comment: SdKbCommentDTO
+  comment: EditorComment
   index: number
   isLast: boolean
   isOwn: boolean

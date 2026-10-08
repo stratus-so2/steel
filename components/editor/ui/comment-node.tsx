@@ -6,18 +6,17 @@ import type { TCommentText } from 'platejs'
 import type { PlateLeafProps } from 'platejs/react'
 import { PlateLeaf, useEditorRef, usePluginOption } from 'platejs/react'
 import { discussionPlugin } from '@/components/editor/plugins/discussion-plugin'
-import { useSdKbComments } from '@/src/hooks/use-sd-knowledge'
-import { useKbEditorContext } from '@/src/hooks/use-sd-kb-editor-context'
+import { useEditorDocument } from '@/components/editor/editor-document-context'
 import { cn } from '@/lib/utils'
 
 export function CommentLeaf(props: PlateLeafProps<TCommentText>) {
   const { children, leaf } = props
   const editor = useEditorRef()
-  const { workspaceId, articleId } = useKbEditorContext()
+  const { workspaceId, documentId, backend } = useEditorDocument()
   const id = editor.getApi(CommentPlugin).comment.nodeId(leaf)
   const activeId = usePluginOption(discussionPlugin, 'activeId')
   const isActive = !!id && activeId === id
-  const { data: comments = [] } = useSdKbComments(workspaceId, articleId)
+  const { data: comments = [] } = backend.useComments(workspaceId, documentId)
   const count = id ? comments.filter((c) => c.markId === id).length : 0
 
   return (
