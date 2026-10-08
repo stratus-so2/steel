@@ -1,5 +1,6 @@
 import {
   AiMagicIcon,
+  BookOpen01Icon,
   Settings02Icon,
   Ticket01Icon,
   UserGroupIcon,
@@ -21,17 +22,31 @@ export type GlobalNavItem = {
  * The workspace-wide destinations, shared by the desktop rail and the mobile
  * drawer so both always list the same modules in the same order.
  */
-export function globalNavItems(slug: string): GlobalNavItem[] {
+export function globalNavItems(
+  slug: string,
+  { wikiEnabled = false }: { wikiEnabled?: boolean } = {},
+): GlobalNavItem[] {
   const base = `/${slug}`
   return [
     { href: `${base}/servicedesk`, label: 'ServiceDesk', icon: Ticket01Icon },
     { href: `${base}/crm`, label: 'CRM', icon: UserGroupIcon },
     { href: `${base}/zap`, label: 'Comunicação', icon: WhatsappBusinessIcon },
+    // Only once an OWNER/ADMIN turns it on in Ajustes > Wiki.
+    ...(wikiEnabled
+      ? [
+          {
+            href: `${base}/wiki`,
+            label: 'Wiki',
+            icon: BookOpen01Icon,
+            separated: true,
+          },
+        ]
+      : []),
     {
       href: `${base}/ai`,
       label: 'Steel AI',
       icon: AiMagicIcon,
-      separated: true,
+      separated: !wikiEnabled,
     },
     { href: `${base}/settings`, label: 'Ajustes', icon: Settings02Icon },
   ]

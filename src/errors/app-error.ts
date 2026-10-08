@@ -1198,3 +1198,33 @@ export const totpInvalidCode = (
 export const billingDisabled = (
   message = 'Planos e cobrança indisponíveis no momento — fale com a Stratus Telecom',
 ): AppError => appError('BILLING_DISABLED', message)
+
+/** A Wiki está desligada neste workspace (Ajustes > Wiki). */
+export const wikiDisabled = (
+  message = 'A Wiki não está ativada neste workspace',
+): AppError => appError('WIKI_DISABLED', message)
+
+export const wikiPageNotFound = (): AppError =>
+  appError('WIKI_PAGE_NOT_FOUND', 'Wiki page not found')
+
+export const wikiPageForbidden = (
+  message = 'Sem acesso a esta página da wiki',
+): AppError => appError('WIKI_PAGE_FORBIDDEN', message)
+
+export const wikiCommentNotFound = (): AppError =>
+  appError('WIKI_COMMENT_NOT_FOUND', 'Wiki comment not found')
+
+export const wikiCommentForbidden = (
+  message = 'Você só pode editar ou excluir os seus próprios comentários',
+): AppError => appError('WIKI_COMMENT_FORBIDDEN', message)
+
+export const wikiCommentNestingTooDeep = (
+  message = 'Não é possível responder a uma resposta',
+): AppError => appError('WIKI_COMMENT_NESTING_TOO_DEEP', message)
+
+export const wikiLabelNotFound = (): AppError =>
+  appError('WIKI_LABEL_NOT_FOUND', 'Wiki label not found')
+
+export const wikiLabelConflict = (
+  message = 'Já existe uma etiqueta com esse nome',
+): AppError => appError('WIKI_LABEL_CONFLICT', message)

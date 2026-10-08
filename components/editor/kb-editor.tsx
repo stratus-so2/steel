@@ -7,7 +7,8 @@ import { Editor, EditorContainer } from '@/components/editor/ui/editor'
 import { FixedToolbar } from '@/components/editor/ui/fixed-toolbar'
 import { FixedToolbarButtons } from '@/components/editor/ui/fixed-toolbar-buttons'
 import { cn } from '@/lib/utils'
-import { KbEditorProvider } from '@/src/hooks/use-sd-kb-editor-context'
+import { sdKbEditorBackend } from '@/src/hooks/sd-kb-editor-backend'
+import { EditorDocumentProvider } from './editor-document-context'
 import { KB_EDITOR_PLUGINS } from './kb-plugins'
 
 /**
@@ -56,11 +57,12 @@ export function KbRichEditor({
   })
 
   return (
-    <KbEditorProvider
+    <EditorDocumentProvider
       workspaceId={workspaceId}
-      articleId={articleId}
+      documentId={articleId}
       userId={userId}
       userName={userName}
+      backend={sdKbEditorBackend}
     >
       <Plate
         editor={editor}
@@ -94,6 +96,6 @@ export function KbRichEditor({
           </div>
         </div>
       </Plate>
-    </KbEditorProvider>
+    </EditorDocumentProvider>
   )
 }

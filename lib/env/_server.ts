@@ -9,6 +9,7 @@ const serverEnv = {
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
   REDIS_TLS_ENABLED: process.env.REDIS_TLS_ENABLED,
   REDIS_TLS_CA_PATH: process.env.REDIS_TLS_CA_PATH,
+  REALTIME_PORT: process.env.REALTIME_PORT,
   MINIO_ENDPOINT: process.env.MINIO_ENDPOINT,
   MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL,
   MINIO_USER: process.env.MINIO_USER,
@@ -138,6 +139,15 @@ export const serverEnvSchema = z.object({
     .optional()
     .transform((v) => v === 'true'),
   REDIS_TLS_CA_PATH: z.string().min(1).optional(),
+  // Wiki collaboration server (realtime/index.ts, Hocuspocus). 1235 and not
+  // Hocuspocus' usual 1234, which Nexo's realtime holds on the dev machine.
+  REALTIME_PORT: z
+    .string()
+    .optional()
+    .transform((v) => (v ? Number(v) : 1235))
+    .refine((v) => Number.isFinite(v) && v > 0, {
+      message: 'REALTIME_PORT must be a positive number',
+    }),
   MINIO_ENDPOINT: z.url().startsWith('http'),
   // Publicly reachable base URL for objects in public buckets (browsers and
   // external providers like Z-API fetch media from here). Defaults to
@@ -336,6 +346,7 @@ export const {
   REDIS_PASSWORD,
   REDIS_TLS_ENABLED,
   REDIS_TLS_CA_PATH,
+  REALTIME_PORT,
   MINIO_ENDPOINT,
   MINIO_PUBLIC_URL,
   MINIO_USER,

@@ -668,6 +668,18 @@ export const ERROR_CODES = {
   // porque é prova de posse recusada, não corpo malformado.
   TOTP_INVALID_CODE: { code: 'TOTP_INVALID_CODE', status: 401 },
 
+  WIKI_DISABLED: { code: 'WIKI_DISABLED', status: 403 },
+  WIKI_PAGE_FORBIDDEN: { code: 'WIKI_PAGE_FORBIDDEN', status: 403 },
+  WIKI_PAGE_NOT_FOUND: { code: 'WIKI_PAGE_NOT_FOUND', status: 404 },
+  WIKI_COMMENT_NOT_FOUND: { code: 'WIKI_COMMENT_NOT_FOUND', status: 404 },
+  WIKI_COMMENT_FORBIDDEN: { code: 'WIKI_COMMENT_FORBIDDEN', status: 403 },
+  WIKI_COMMENT_NESTING_TOO_DEEP: {
+    code: 'WIKI_COMMENT_NESTING_TOO_DEEP',
+    status: 422,
+  },
+  WIKI_LABEL_NOT_FOUND: { code: 'WIKI_LABEL_NOT_FOUND', status: 404 },
+  WIKI_LABEL_CONFLICT: { code: 'WIKI_LABEL_CONFLICT', status: 409 },
+
   // Server Errors (500)
   INTERNAL_SERVER_ERROR: { code: 'INTERNAL_SERVER_ERROR', status: 500 },
   DATABASE_ERROR: { code: 'DATABASE_ERROR', status: 500 },

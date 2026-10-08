@@ -5,12 +5,19 @@ import { Fragment } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { globalNavItems, isGlobalNavActive } from './navigation-global-items'
 import { GlobalButtonNavigation } from './navigation-sidebar-global-button'
+import { GlobalStickiesButton } from './navigation-sidebar-global-stickies'
 
 /**
  * Global module rail. Hidden below `md` (the mobile drawer carries the same
  * items there), icon-only between `md` and `lg`, icon + label from `lg` up.
  */
-export function GlobalSidebarNavigation({ slug }: { slug: string }) {
+export function GlobalSidebarNavigation({
+  slug,
+  wikiEnabled = false,
+}: {
+  slug: string
+  wikiEnabled?: boolean
+}) {
   const pathname = usePathname()
 
   return (
@@ -19,7 +26,7 @@ export function GlobalSidebarNavigation({ slug }: { slug: string }) {
       className='hidden h-screen shrink-0 px-1.5 py-3 md:block lg:px-2'
     >
       <div className='h-fit flex flex-col justify-between gap-3'>
-        {globalNavItems(slug).map((item) => (
+        {globalNavItems(slug, { wikiEnabled }).map((item) => (
           <Fragment key={item.href}>
             {item.separated && <div className='w-full h-px bg-secondary' />}
             <GlobalButtonNavigation
@@ -31,6 +38,7 @@ export function GlobalSidebarNavigation({ slug }: { slug: string }) {
             </GlobalButtonNavigation>
           </Fragment>
         ))}
+        <GlobalStickiesButton />
       </div>
     </nav>
   )

@@ -14,6 +14,7 @@ import { registerSteelAiPaths } from './paths/steel-ai'
 import { registerSteelAiSkillsPaths } from './paths/steel-ai-skills'
 import { registerSteelAiUsagePaths } from './paths/steel-ai-usage'
 import { registerWhatsAppPaths } from './paths/whatsapp'
+import { registerWikiPaths } from './paths/wiki'
 import { OpenApiRegistry } from './registry'
 import { TAG_GROUPS } from './tags'
 
@@ -34,6 +35,7 @@ export function createRegistry(): OpenApiRegistry {
   registerSteelAiSkillsPaths(registry)
   registerSteelAgentsPaths(registry)
   registerSearchPaths(registry)
+  registerWikiPaths(registry)
   return registry
 }
 

@@ -18,31 +18,43 @@ import {
   useRef,
   useState,
 } from 'react'
+import { ColorSwatchPicker } from '@/app/_components/ui/color-swatch-picker'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
-import { useUpdateStickyNote } from '@/src/hooks/use-sticky-note'
+import {
+  useDeleteStickyNote,
+  useUpdateStickyNote,
+} from '@/src/hooks/use-sticky-note'
 import type { StickyColorDTO, StickyNoteDTO } from '@/types/sticky-note'
 
+// One class per theme, the same idiom the badges use. The palette was written
+// against the dark theme only — every colour was the 950 shade — so in the
+// light theme a note was a near-black block with dark text on it, unreadable,
+// and the picker offered six squares of almost the same black. The note's text
+// has no colour of its own: it inherits the app foreground, which flips with
+// the theme, so a light shade below it in the light theme reads correctly.
+//
+// 100 for the five hues, 200 for zinc: zinc has no hue to set it apart from
+// the page, and the app background is now near-white, so at 100 the neutral
+// note would disappear into it.
 const STICKY_COLORS: Array<{ value: StickyColorDTO; bg: string }> = [
-  { value: 'RED', bg: 'bg-red-950' },
-  { value: 'YELLOW', bg: 'bg-yellow-950' },
-  { value: 'BLUE', bg: 'bg-blue-950' },
-  { value: 'GREEN', bg: 'bg-green-950' },
-  { value: 'PURPLE', bg: 'bg-purple-950' },
-  { value: 'ZINC', bg: 'bg-zinc-950' },
+  { value: 'RED', bg: 'bg-red-100 dark:bg-red-950' },
+  { value: 'YELLOW', bg: 'bg-yellow-100 dark:bg-yellow-950' },
+  { value: 'BLUE', bg: 'bg-blue-100 dark:bg-blue-950' },
+  { value: 'GREEN', bg: 'bg-green-100 dark:bg-green-950' },
+  { value: 'PURPLE', bg: 'bg-purple-100 dark:bg-purple-950' },
+  { value: 'ZINC', bg: 'bg-zinc-200 dark:bg-zinc-950' },
 ]
 
 const SAVE_DEBOUNCE_MS = 800
 
 function colorToBg(color: StickyColorDTO): string {
-  return STICKY_COLORS.find((c) => c.value === color)?.bg ?? 'bg-zinc-950'
+  return (
+    STICKY_COLORS.find((c) => c.value === color)?.bg ??
+    'bg-zinc-200 dark:bg-zinc-950'
+  )
 }
 
 interface UserStickyProps {
@@ -52,6 +64,7 @@ interface UserStickyProps {
 export function UserStick({ sticky }: UserStickyProps) {
   const [color, setColor] = useState<StickyColorDTO>(sticky.color)
   const update = useUpdateStickyNote(sticky.id)
+  const remove = useDeleteStickyNote()
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingContentRef = useRef<JSONContent | null>(null)
@@ -104,13 +117,8 @@ export function UserStick({ sticky }: UserStickyProps) {
     update.mutate({ color: next }, { onError: notify.error })
   }
 
-  const handleClear = () => {
-    editor?.commands.clearContent()
-    flushContent()
-    update.mutate(
-      { content: { type: 'doc', content: [] } },
-      { onError: notify.error },
-    )
+  const handleDelete = () => {
+    remove.mutate(sticky.id, { onError: notify.error })
   }
 
   return (
@@ -128,22 +136,25 @@ export function UserStick({ sticky }: UserStickyProps) {
             onColorChange={handleColorChange}
           />
           <StickTextPropsButton
+            aria-label='Negrito'
             onClick={() => editor?.chain().focus().toggleBold().run()}
           >
             <SteelIcon icon={TextBoldIcon} strokeWidth={2} />
           </StickTextPropsButton>
           <StickTextPropsButton
+            aria-label='Itálico'
             onClick={() => editor?.chain().focus().toggleItalic().run()}
           >
             <SteelIcon icon={TextItalicIcon} strokeWidth={2} />
           </StickTextPropsButton>
           <StickTextPropsButton
+            aria-label='Lista de tarefas'
             onClick={() => editor?.chain().focus().toggleTaskList().run()}
           >
             <SteelIcon icon={CheckListIcon} strokeWidth={2} />
           </StickTextPropsButton>
         </div>
-        <StickTextPropsButton onClick={handleClear}>
+        <StickTextPropsButton aria-label='Excluir nota' onClick={handleDelete}>
           <SteelIcon icon={Delete02Icon} strokeWidth={2} />
         </StickTextPropsButton>
       </div>
@@ -179,30 +190,16 @@ function StickPickerColor({
   onColorChange: (color: StickyColorDTO) => void
 }) {
   return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <StickTextPropsButton>
-            <SteelIcon icon={PaintBoardIcon} strokeWidth={2} />
-          </StickTextPropsButton>
-        }
-      />
-      <PopoverContent align='start' className='w-48'>
-        <div className='flex flex-wrap gap-2'>
-          {STICKY_COLORS.map((color) => (
-            <button
-              key={color.value}
-              type='button'
-              onClick={() => onColorChange(color.value)}
-              className={cn(
-                'size-6 rounded-sm cursor-pointer',
-                color.bg,
-                currentColor === color.value && 'ring-2 ring-primary',
-              )}
-            />
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <ColorSwatchPicker
+      colors={STICKY_COLORS}
+      value={currentColor}
+      onChange={onColorChange}
+      shape='square'
+      trigger={
+        <StickTextPropsButton aria-label='Cor da nota'>
+          <SteelIcon icon={PaintBoardIcon} strokeWidth={2} />
+        </StickTextPropsButton>
+      }
+    />
   )
 }

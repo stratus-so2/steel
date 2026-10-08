@@ -1,10 +1,30 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { WikiPageEditor } from '@/app/_components/wiki/wiki-page-editor'
+import { getWikiPageContext } from '@/src/lib/wiki-context'
 
 export const metadata: Metadata = {
   title: 'Wiki | Steel',
   description: 'Página da base de conhecimento do workspace.',
 }
 
-export default function WikiDetailPage() {
-  return <h1>Wiki</h1>
+export default async function WikiDetailPage({
+  params,
+}: {
+  params: Promise<{ 'workspace-slug': string; 'wiki-id': string }>
+}) {
+  const { 'workspace-slug': workspaceSlug, 'wiki-id': wikiPageId } =
+    await params
+  const context = await getWikiPageContext(workspaceSlug, wikiPageId)
+  if (!context) notFound()
+
+  return (
+    <WikiPageEditor
+      workspaceId={context.workspaceId}
+      workspaceSlug={workspaceSlug}
+      userId={context.userId}
+      userName={context.userName}
+      page={context.page}
+    />
+  )
 }

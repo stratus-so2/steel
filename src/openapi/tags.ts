@@ -65,6 +65,11 @@ export const TAG_GROUPS = [
         description:
           'Projetos do workspace — criação, edição, arquivamento, favoritos, membros e convites.',
       },
+      {
+        name: 'Wiki',
+        description:
+          'Páginas colaborativas do workspace (árvore, editor Plate com edição em tempo real via Hocuspocus em `/realtime`), comentários, mídia e etiquetas. Desligada por padrão: um OWNER/ADMIN ativa em Ajustes › Wiki; enquanto isso as rotas de página/comentário/mídia respondem `403 WIKI_DISABLED`.',
+      },
     ],
   },
   {

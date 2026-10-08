@@ -1,5 +1,6 @@
 import {
   AlarmClockIcon,
+  BookOpen01Icon,
   Building02Icon,
   BulbChargingIcon,
   ChartRelationshipIcon,
@@ -77,6 +78,9 @@ export default async function SettingsLayout({
           </NavItem>
           <NavItem href={`${base}/templates`} icon={Shapes01Icon}>
             Modelos
+          </NavItem>
+          <NavItem href={`${base}/wiki`} icon={BookOpen01Icon}>
+            Wiki
           </NavItem>
           <NavItem href={`${base}/steel-intelligence`} icon={SparklesIcon}>
             Steel IA

@@ -35,6 +35,28 @@ services:
     networks:
       - app-network
 
+  # Colaboração em tempo real da Wiki (Hocuspocus). Só no loopback: a entrada
+  # pública é o location /realtime do nginx (mesma origem, para o cookie de
+  # sessão chegar aqui) — ver docs/runbooks/realtime-wiki.md.
+  steel-realtime:
+    image: *steel-image
+    container_name: steel-realtime
+    restart: unless-stopped
+    command: ["node", "dist/realtime.cjs"]
+    ports:
+      - "127.0.0.1:1235:1235"
+    env_file:
+      - .env
+    environment:
+      REALTIME_PORT: "1235"
+    volumes:
+      - ./redis-tls/ca.crt:/etc/redis-tls/ca.crt:ro
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    networks:
+      - app-network
+
 networks:
   app-network:
     external: true

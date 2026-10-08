@@ -12,6 +12,7 @@ import {
   Heading3Icon,
   ListIcon,
   ListOrdered,
+  PenToolIcon,
   PilcrowIcon,
   Quote,
   RadicalIcon,
@@ -74,6 +75,8 @@ const groups: Group[] = [
       { icon: <Columns3Icon />, label: '3 colunas', value: 'action_three_columns' },
       { focusEditor: false, icon: <RadicalIcon />, label: 'Equação', value: KEYS.equation },
       { icon: <Code2 />, keywords: ['diagrama', 'mermaid', 'flowchart'], label: 'Diagrama (mermaid)', value: KEYS.codeDrawing },
+      // Wiki only: the knowledge base editor has no Excalidraw plugin.
+      { icon: <PenToolIcon />, keywords: ['desenho'], label: 'Excalidraw', value: KEYS.excalidraw },
     ].map((item) => ({
       ...item,
       onSelect: (editor: PlateEditor, value: string) => {
@@ -111,7 +114,7 @@ export function SlashInputElement(props: PlateElementProps<TComboboxInputElement
             <InlineComboboxGroup key={group}>
               <InlineComboboxGroupLabel>{group}</InlineComboboxGroupLabel>
 
-              {items.map(({ focusEditor, icon, keywords, label, value, onSelect }) => (
+              {items.filter((item) => item.value !== KEYS.excalidraw || !!editor.plugins[KEYS.excalidraw]).map(({ focusEditor, icon, keywords, label, value, onSelect }) => (
                 <InlineComboboxItem
                   key={value}
                   value={value}

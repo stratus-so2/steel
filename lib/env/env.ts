@@ -6,6 +6,7 @@ const publicEnv = {
   NEXT_PUBLIC_AXIOM_TOKEN: process.env.NEXT_PUBLIC_AXIOM_TOKEN,
   NEXT_PUBLIC_AXIOM_DATASET: process.env.NEXT_PUBLIC_AXIOM_DATASET,
   NEXT_PUBLIC_URL: process.env.NEXT_PUBLIC_URL,
+  NEXT_PUBLIC_REALTIME_URL: process.env.NEXT_PUBLIC_REALTIME_URL,
   NEXT_PUBLIC_GA_ID: process.env.NEXT_PUBLIC_GA_ID,
   NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
   // O default existe para o `posthog-js` ter um `ui_host` válido mesmo sem
@@ -35,6 +36,10 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_AXIOM_TOKEN: blankOptional(z.string().startsWith('xaat-')),
   NEXT_PUBLIC_AXIOM_DATASET: blankOptional(z.string().min(1).max(128)),
   NEXT_PUBLIC_URL: z.url().startsWith('http'),
+  // WebSocket of the wiki's realtime server. Unset means same origin
+  // (`/realtime`, which nginx proxies to the Hocuspocus container), so the
+  // production build needs no build-arg; dev points it at the local server.
+  NEXT_PUBLIC_REALTIME_URL: blankOptional(z.url().startsWith('ws')),
   NEXT_PUBLIC_GA_ID: z.string().startsWith('G-').optional(),
   // Opcionais de propósito: sem chave, o PostHog nunca carrega e nunca pede
   // nada à rede — o app sobe igual (mesmo contrato do
@@ -57,6 +62,7 @@ export const {
   NEXT_PUBLIC_AXIOM_TOKEN,
   NEXT_PUBLIC_AXIOM_DATASET,
   NEXT_PUBLIC_URL,
+  NEXT_PUBLIC_REALTIME_URL,
   NEXT_PUBLIC_GA_ID,
   NEXT_PUBLIC_POSTHOG_KEY,
   NEXT_PUBLIC_POSTHOG_HOST,

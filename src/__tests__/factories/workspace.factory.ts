@@ -15,6 +15,7 @@ export function createFakeWorkspace(overrides?: Partial<Workspace>): Workspace {
     suspendedAt: null,
     suspendedReason: null,
     suspendedById: null,
+    wikiEnabled: false,
     createdAt: now,
     updatedAt: now,
     ...overrides,

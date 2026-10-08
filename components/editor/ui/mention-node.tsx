@@ -7,8 +7,7 @@ import { getMentionOnSelectItem } from '@platejs/mention'
 import { IS_APPLE, KEYS } from 'platejs'
 import { PlateElement, useFocused, useReadOnly, useSelected } from 'platejs/react'
 import { useDebounce } from '@/components/editor/hooks/use-debounce'
-import { useSdKbMentionableMembers } from '@/src/hooks/use-sd-knowledge'
-import { useKbEditorContext } from '@/src/hooks/use-sd-kb-editor-context'
+import { useEditorDocument } from '@/components/editor/editor-document-context'
 import { useMounted } from '@/components/editor/hooks/use-mounted'
 import { cn } from '@/lib/utils'
 import {
@@ -66,11 +65,11 @@ const onSelectItem = getMentionOnSelectItem()
 
 export function MentionInputElement(props: PlateElementProps<TComboboxInputElement>) {
   const { editor, element } = props
-  const { workspaceId } = useKbEditorContext()
+  const { workspaceId, backend } = useEditorDocument()
   const [search, setSearch] = React.useState('')
   const debouncedSearch = useDebounce(search, 200)
 
-  const { data } = useSdKbMentionableMembers(workspaceId, debouncedSearch)
+  const { data } = backend.useMentionableMembers(workspaceId, debouncedSearch)
 
   const members = data ?? []
 
