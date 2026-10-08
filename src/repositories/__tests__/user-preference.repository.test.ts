@@ -60,6 +60,7 @@ describe('UserPreferenceRepository', () => {
       expect(preference.timezone).toBe('America/Sao_Paulo')
       expect(preference.weekStartsOn).toBe(1)
       expect(preference.weekendDays).toEqual([0, 6])
+      expect(preference.singleKeyShortcuts).toBe(true)
     })
 
     it('should update existing fields without touching the others', async () => {
@@ -70,10 +71,12 @@ describe('UserPreferenceRepository', () => {
         await UserPreferenceRepository.upsert(user.id, {
           timezone: 'America/Sao_Paulo',
           weekendDays: [5, 6],
+          singleKeyShortcuts: false,
         }),
       )
 
       expect(updated.theme).toBe('DARK')
+      expect(updated.singleKeyShortcuts).toBe(false)
       expect(updated.timezone).toBe('America/Sao_Paulo')
       expect(updated.weekendDays).toEqual([5, 6])
     })

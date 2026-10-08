@@ -3,6 +3,8 @@
 import { AddCircleIcon, AddTeamIcon } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +23,8 @@ import { WorkspaceDropdownCard } from './workspace-dropdown-card'
 export function WorkSpaceDropdown({ currentSlug }: { currentSlug: string }) {
   const { push } = useRouter()
   const { data: user } = useUser()
+  const [open, setOpen] = useState(false)
+  useShortcut('nav.switch-workspace', () => setOpen(true))
 
   const memberships: MembershipDTO[] = user?.memberships ?? []
   const current = memberships.find((m) => m.slug === currentSlug)
@@ -30,7 +34,7 @@ export function WorkSpaceDropdown({ currentSlug }: { currentSlug: string }) {
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger
         render={
           <Button variant='ghost' className='min-w-0 max-w-full max-md:h-10'>

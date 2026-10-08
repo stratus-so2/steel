@@ -1,5 +1,6 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ShortcutsProvider } from '@/app/_components/shortcuts/shortcuts-provider'
 import { mockFetch, renderWithQuery } from '@/src/__tests__/component-utils'
 import type { SearchResultDTO } from '@/types/search'
 
@@ -82,7 +83,11 @@ function routes(results: SearchResultDTO[] = RESULTS) {
 }
 
 function renderPalette() {
-  return renderWithQuery(<GlobalSearch slug='agro' workspaceId='ws1' />)
+  return renderWithQuery(
+    <ShortcutsProvider>
+      <GlobalSearch slug='agro' workspaceId='ws1' />
+    </ShortcutsProvider>,
+  )
 }
 
 async function openWithShortcut() {
@@ -113,14 +118,18 @@ beforeEach(() => {
 })
 
 describe('GlobalSearch', () => {
-  it('should open with Ctrl+K and ⌘K and toggle closed again', async () => {
+  it('should open with Ctrl+K and toggle closed again', async () => {
     routes()
     renderPalette()
     expect(screen.queryByPlaceholderText(/Buscar chamados/)).toBeNull()
 
     await openWithShortcut()
+    // Also while typing in the palette input (allowInInput + allowInDialog).
     await act(async () => {
-      fireEvent.keyDown(window, { key: 'K', metaKey: true })
+      fireEvent.keyDown(screen.getByPlaceholderText(/Buscar chamados/), {
+        key: 'K',
+        ctrlKey: true,
+      })
     })
     await waitFor(() =>
       expect(screen.queryByPlaceholderText(/Buscar chamados/)).toBeNull(),

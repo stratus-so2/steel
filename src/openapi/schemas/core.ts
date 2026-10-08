@@ -101,6 +101,10 @@ export const UserPreferenceDTO = dto(
     weekendDays: z
       .array(z.number().int().min(0).max(6))
       .meta({ example: [0, 6] }),
+    singleKeyShortcuts: z.boolean().meta({
+      description:
+        'Atalhos de uma tecla (J, K, G → C…) ligados. Desligado, só valem os com Ctrl/Alt/⌘.',
+    }),
   }),
 )
 

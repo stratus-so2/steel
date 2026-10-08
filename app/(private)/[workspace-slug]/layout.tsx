@@ -5,6 +5,7 @@ import { UserHeader } from '@/app/_components/header/header-layout-user'
 import { HeaderPromotionBanner } from '@/app/_components/header/header-promotion-banner'
 import { MobileNavProvider } from '@/app/_components/navigation/mobile-nav/mobile-nav-context'
 import { GlobalSidebarNavigation } from '@/app/_components/navigation/sidebar-global'
+import { WorkspaceShortcuts } from '@/app/_components/shortcuts/workspace-shortcuts'
 import { WorkspaceBlockedScreen } from '@/app/_components/workspace/workspace-blocked-screen'
 import { WorkspacePermissionsProvider } from '@/app/_components/workspace/workspace-permissions'
 import { TRIAL_BANNER_DAYS } from '@/src/config/trial'
@@ -123,31 +124,37 @@ export default async function WorkspaceLayout({
   // context rail is exempted so it never shrinks under a wide page.
   return (
     <MobileNavProvider>
-      <div className='flex flex-col h-dvh overflow-hidden gap-y-0.5'>
-        {showTrialBanner && workspace.trialEndsAt && (
-          <HeaderPromotionBanner
-            endDate={workspace.trialEndsAt.toISOString()}
-            plan={workspace.activePlan}
+      <WorkspaceShortcuts
+        slug={slug}
+        workspaceId={membership.value.workspaceId}
+        wikiEnabled={workspace.wikiEnabled}
+      >
+        <div className='flex flex-col h-dvh overflow-hidden gap-y-0.5'>
+          {showTrialBanner && workspace.trialEndsAt && (
+            <HeaderPromotionBanner
+              endDate={workspace.trialEndsAt.toISOString()}
+              plan={workspace.activePlan}
+              slug={slug}
+            />
+          )}
+          <UserHeader
             slug={slug}
-          />
-        )}
-        <UserHeader
-          slug={slug}
-          workspaceId={membership.value.workspaceId}
-          wikiEnabled={workspace.wikiEnabled}
-        />
-        <div className='flex gap-x-1.5 flex-1 overflow-hidden min-h-0 px-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] md:pl-0 md:pr-2 md:pb-2'>
-          <GlobalSidebarNavigation
-            slug={slug}
+            workspaceId={membership.value.workspaceId}
             wikiEnabled={workspace.wikiEnabled}
           />
-          <div className='flex-1 w-full min-h-0 min-w-0 flex items-start bg-primary-foreground rounded-lg border border-border overflow-hidden [&>*]:min-h-0 [&>*]:min-w-0 [&>*:has(>[data-slot=context-sidebar])]:shrink-0'>
-            <WorkspacePermissionsProvider value={permissions}>
-              {children}
-            </WorkspacePermissionsProvider>
+          <div className='flex gap-x-1.5 flex-1 overflow-hidden min-h-0 px-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] md:pl-0 md:pr-2 md:pb-2'>
+            <GlobalSidebarNavigation
+              slug={slug}
+              wikiEnabled={workspace.wikiEnabled}
+            />
+            <div className='flex-1 w-full min-h-0 min-w-0 flex items-start bg-primary-foreground rounded-lg border border-border overflow-hidden [&>*]:min-h-0 [&>*]:min-w-0 [&>*:has(>[data-slot=context-sidebar])]:shrink-0'>
+              <WorkspacePermissionsProvider value={permissions}>
+                {children}
+              </WorkspacePermissionsProvider>
+            </div>
           </div>
         </div>
-      </div>
+      </WorkspaceShortcuts>
     </MobileNavProvider>
   )
 }

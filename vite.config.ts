@@ -146,6 +146,7 @@ export default defineConfig({
         'src/lib/search/**',
         'src/lib/changelog/**',
         'src/lib/seo/**',
+        'src/lib/shortcuts/**',
       ],
       exclude: [
         'node_modules/**',

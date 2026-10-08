@@ -256,6 +256,8 @@ model UserPreference {
   timezone          String            @default("America/Sao_Paulo")
   weekStartsOn      Int               @default(1) @map("week_starts_on")
   weekendDays       Int[]             @default([0, 6]) @map("weekend_days")
+  /// "Atalhos de uma tecla": off disables single-key shortcuts and sequences (WCAG 2.1.4).
+  singleKeyShortcuts Boolean          @default(true) @map("single_key_shortcuts")
   createdAt         DateTime          @default(now()) @map("created_at")
   updatedAt         DateTime          @updatedAt @map("updated_at")
 

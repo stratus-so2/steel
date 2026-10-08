@@ -14,6 +14,7 @@ export function createFakeUserPreference(
     timezone: 'UTC',
     weekStartsOn: 1,
     weekendDays: [0, 6],
+    singleKeyShortcuts: true,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -30,6 +31,7 @@ export function createFakeUserPreferenceDTO(
     timezone: 'UTC',
     weekStartsOn: 1,
     weekendDays: [0, 6],
+    singleKeyShortcuts: true,
     ...overrides,
   }
 }

@@ -1,3 +1,5 @@
+'use client'
+
 import {
   File02Icon,
   HelpCircleIcon,
@@ -5,6 +7,8 @@ import {
   UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
+import { ShortcutKbd } from '@/app/_components/shortcuts/shortcut-kbd'
+import { useShortcuts } from '@/app/_components/shortcuts/shortcuts-provider'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export function UserDropdownHelper() {
+  const shortcuts = useShortcuts()
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -58,9 +63,15 @@ export function UserDropdownHelper() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem className='text-xs'>
-            Atalhos do teclado
-          </DropdownMenuItem>
+          {shortcuts ? (
+            <DropdownMenuItem
+              className='text-xs'
+              onClick={() => shortcuts.setCheatSheetOpen(true)}
+            >
+              <span className='flex-1'>Atalhos do teclado</span>
+              <ShortcutKbd id='global.shortcuts' />
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem className='text-xs'>
             O que há de novo?
           </DropdownMenuItem>

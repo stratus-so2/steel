@@ -35,6 +35,7 @@ describe('UserPreferenceService', () => {
         timezone: 'America/Sao_Paulo',
         weekStartsOn: 0,
         weekendDays: [0, 6],
+        singleKeyShortcuts: false,
       })
 
       const dto = expectOk(await UserPreferenceService.get('user_123'))
