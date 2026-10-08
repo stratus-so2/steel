@@ -267,10 +267,7 @@ export function SteelAiSkillForm({
         </Field>
         <Field>
           <FieldLabel htmlFor='skill-tools-search'>
-            Ferramentas sugeridas{' '}
-            <span className='font-normal text-muted-foreground'>
-              (opcional · {state.toolNames.length} selecionadas)
-            </span>
+            Ferramentas sugeridas
           </FieldLabel>
           {readOnly ? (
             <p className='text-muted-foreground text-sm'>
@@ -322,7 +319,8 @@ export function SteelAiSkillForm({
             </div>
           )}
           <FieldDescription>
-            Só uma dica para o modelo; vazio = qualquer ferramenta disponível.
+            Opcional ({state.toolNames.length} selecionadas). Só uma dica para o
+            modelo; vazio = qualquer ferramenta disponível.
           </FieldDescription>
         </Field>
       </FieldGroup>
