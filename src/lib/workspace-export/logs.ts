@@ -55,6 +55,7 @@ export const LOG_COLUMNS = [
   'actorId',
   'targetId',
   'outcome',
+  'detail',
 ] as const
 
 const opt = (field: string) => `tostring(column_ifexists('${field}', ''))`
@@ -82,7 +83,8 @@ export function workspaceLogsApl(
       `, action = ${opt('fields.action')}` +
       `, actorId = ${opt('fields.actorId')}` +
       `, targetId = ${opt('fields.targetId')}` +
-      `, outcome = ${opt('fields.outcome')}`,
+      `, outcome = ${opt('fields.outcome')}` +
+      `, detail = ${opt('fields.detail')}`,
     '| sort by time desc',
     `| limit ${Math.max(1, Math.floor(limit))}`,
   ].join('\n')
@@ -133,7 +135,9 @@ export function logsReadMe(input: {
     '',
     'Colunas: time (UTC), level, source, message, method, path, status, userId',
     '(requisições); category, entity, action, actorId, targetId, outcome',
-    '(auditoria). Endereços IP e o corpo das requisições não são exportados.',
+    '(auditoria); detail (dados extras do evento). O endereço IP, o país e a',
+    'cidade de quem fez a requisição e o corpo das requisições não são',
+    'exportados.',
     '',
   ].join('\r\n')
 }

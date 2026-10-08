@@ -276,7 +276,7 @@ describe('logs export', () => {
     ]
     const csv = logRowsToCsv(rows).replace(CSV_BOM, '').trim().split('\r\n')
     expect(csv[0]).toBe(LOG_COLUMNS.join(','))
-    expect(csv[1]).toBe('2026-10-08T10:00:00Z,info,,,,/api/x,200,,,,,,,')
+    expect(csv[1]).toBe('2026-10-08T10:00:00Z,info,,,,/api/x,200,,,,,,,,')
     const ndjson = logRowsToNdjson(rows).trim().split('\n')
     expect(JSON.parse(ndjson[0])).toEqual({
       time: '2026-10-08T10:00:00Z',
