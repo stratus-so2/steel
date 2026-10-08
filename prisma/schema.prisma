@@ -195,6 +195,7 @@ model User {
   sdIntegrationsCreated     SdIntegration[]            @relation("SdIntegrationCreatedBy")
   sdIntegrationLinksCreated SdIntegrationLink[]        @relation("SdIntegrationLinkCreatedBy")
   workspaceExportsRequested WorkspaceExport[]          @relation("WorkspaceExportRequestedBy")
+  integrationsCreated       WorkspaceIntegration[]     @relation("WorkspaceIntegrationCreatedBy")
 
   @@index([deletionScheduledAt])
   @@map("users")
@@ -527,6 +528,7 @@ model Workspace {
   sdIntegrationLinks        SdIntegrationLink[]
   searchDocuments           SearchDocument[]
   workspaceExports          WorkspaceExport[]
+  integrations              WorkspaceIntegration[]
 
   @@index([status])
   @@map("workspaces")
@@ -6518,6 +6520,10 @@ enum SdIntegrationStatus {
 
 /// Integração do módulo com Slack ou GitHub. Segredos cifrados com
 /// `CONNECTION_SECRETS`, como as demais conexões do produto.
+///
+/// DEPRECATED (settings-integrations, ADR 0024): the rows were copied to
+/// `workspace_integrations` (same ids) and nothing reads or writes this table
+/// any more. Kept only for rollback; drop it in a later migration.
 model SdIntegration {
   id                     String              @id @default(cuid())
   workspaceId            String              @map("workspace_id")
@@ -6537,9 +6543,8 @@ model SdIntegration {
   updatedAt              DateTime            @updatedAt @map("updated_at")
   deletedAt              DateTime?           @map("deleted_at")
 
-  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User                @relation("SdIntegrationCreatedBy", fields: [createdById], references: [id])
-  links     SdIntegrationLink[]
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("SdIntegrationCreatedBy", fields: [createdById], references: [id])
 
   @@unique([workspaceId, kind, externalId])
   @@index([workspaceId, kind])
@@ -6550,6 +6555,8 @@ enum SdIntegrationLinkKind {
   SLACK_THREAD
   GITHUB_ISSUE
   GITHUB_PULL_REQUEST
+  GITLAB_ISSUE
+  GITLAB_MERGE_REQUEST
 }
 
 /// Vínculo entre um chamado e algo externo: a thread do Slack que o
@@ -6570,14 +6577,71 @@ model SdIntegrationLink {
   createdAt     DateTime              @default(now()) @map("created_at")
   updatedAt     DateTime              @updatedAt @map("updated_at")
 
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  integration SdIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  ticket      SdTicket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  createdBy   User?         @relation("SdIntegrationLinkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  integration WorkspaceIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  ticket      SdTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdBy   User?                @relation("SdIntegrationLinkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@unique([integrationId, kind, externalKey])
   @@index([ticketId])
   @@map("sd_integration_links")
+}
+
+enum WorkspaceIntegrationKind {
+  SLACK
+  GITHUB
+  GITLAB
+
+  @@map("workspace_integration_kind")
+}
+
+enum WorkspaceIntegrationStatus {
+  ACTIVE
+  ERROR
+  DISCONNECTED
+
+  @@map("workspace_integration_status")
+}
+
+/// Workspace-level connection to Slack, GitHub or GitLab (Ajustes >
+/// Integrações), shared by every module. Token and webhook secret are
+/// encrypted with `CONNECTION_SECRETS` and never leave the server. One live
+/// connection per (workspace, kind); a disconnected row keeps `deletedAt` so
+/// the ticket links that point at it stay in the ticket history.
+model WorkspaceIntegration {
+  id                     String                     @id @default(cuid())
+  workspaceId            String                     @map("workspace_id")
+  kind                   WorkspaceIntegrationKind
+  status                 WorkspaceIntegrationStatus @default(ACTIVE)
+  statusError            String?                    @map("status_error")
+  /// Slack team id (`T…`), GitHub `owner/repo` or GitLab `group/project`.
+  externalId             String                     @map("external_id")
+  externalName           String?                    @map("external_name")
+  /// GitLab instance (`https://gitlab.com` or self-managed). Null otherwise.
+  baseUrl                String?                    @map("base_url")
+  encryptedToken         String                     @map("encrypted_token")
+  /// Webhook secret (GitHub HMAC key, GitLab `X-Gitlab-Token`).
+  encryptedSigningSecret String?                    @map("encrypted_signing_secret")
+  /// Notification rules and per-module settings (`src/lib/integrations/config.ts`).
+  config                 Json                       @default("{}")
+  /// Last inbound/outbound event (webhook received, Slack message sent).
+  lastEventAt            DateTime?                  @map("last_event_at")
+  lastEventType          String?                    @map("last_event_type")
+  /// Last "Testar conexão" (success or failure).
+  lastCheckedAt          DateTime?                  @map("last_checked_at")
+  createdById            String                     @map("created_by_id")
+  createdAt              DateTime                   @default(now()) @map("created_at")
+  updatedAt              DateTime                   @updatedAt @map("updated_at")
+  deletedAt              DateTime?                  @map("deleted_at")
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User                @relation("WorkspaceIntegrationCreatedBy", fields: [createdById], references: [id])
+  sdLinks   SdIntegrationLink[]
+
+  @@unique([workspaceId, kind, externalId])
+  @@index([workspaceId, kind])
+  @@index([kind, externalId])
+  @@map("workspace_integrations")
 }
 
 // ─── Steel Agents (autonomous AI agents) ─────────────────────────────────────

@@ -11,6 +11,7 @@ import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
 import { SdIntegrationRepository } from '../sd-integration.repository'
+import { WorkspaceIntegrationRepository } from '../workspace-integration.repository'
 
 async function setup() {
   const [workspace, other, user] = await Promise.all([
@@ -22,153 +23,6 @@ async function setup() {
   const ticket = await seedSdTicket(workspace.id, phase.id)
   return { workspace, other, user, ticket }
 }
-
-describe('SdIntegrationRepository — integrações', () => {
-  it('lista as integrações do workspace sem as excluídas', async () => {
-    const { workspace, other, user } = await setup()
-    await seedSdIntegration(workspace.id, user.id, { kind: 'SLACK' })
-    await seedSdIntegration(workspace.id, user.id, {
-      kind: 'GITHUB',
-      externalId: 'owner/repo',
-    })
-    const gone = await seedSdIntegration(workspace.id, user.id, {
-      kind: 'SLACK',
-      externalId: 'T-removido',
-      deletedAt: new Date(),
-    })
-    await seedSdIntegration(other.id, user.id, { kind: 'SLACK' })
-
-    const rows = expectOk(await SdIntegrationRepository.list(workspace.id))
-    expect(rows.map((r) => r.kind).sort()).toEqual(['GITHUB', 'SLACK'])
-    expect(rows.every((r) => r.id !== gone.id)).toBe(true)
-  })
-
-  it('acha por tipo e devolve null quando não há', async () => {
-    const { workspace, user } = await setup()
-    const slack = await seedSdIntegration(workspace.id, user.id)
-    expect(
-      expectOk(await SdIntegrationRepository.findByKind(workspace.id, 'SLACK'))
-        ?.id,
-    ).toBe(slack.id)
-    expect(
-      expectOk(
-        await SdIntegrationRepository.findByKind(workspace.id, 'GITHUB'),
-      ),
-    ).toBeNull()
-  })
-
-  it('requireByKind devolve SD_INTEGRATION_NOT_FOUND sem integração', async () => {
-    const { workspace, user } = await setup()
-    await seedSdIntegration(workspace.id, user.id)
-    expectOk(await SdIntegrationRepository.requireByKind(workspace.id, 'SLACK'))
-    expectErr(
-      await SdIntegrationRepository.requireByKind(workspace.id, 'GITHUB'),
-      'SD_INTEGRATION_NOT_FOUND',
-    )
-  })
-
-  it('acha por id e pela identificação externa (caminho do webhook)', async () => {
-    const { workspace, user } = await setup()
-    const integration = await seedSdIntegration(workspace.id, user.id, {
-      externalId: 'T-ABC',
-    })
-    expect(
-      expectOk(await SdIntegrationRepository.findById(integration.id))?.id,
-    ).toBe(integration.id)
-    expect(
-      expectOk(await SdIntegrationRepository.findByExternalId('SLACK', 'T-ABC'))
-        ?.workspaceId,
-    ).toBe(workspace.id)
-    expect(
-      expectOk(
-        await SdIntegrationRepository.findByExternalId('SLACK', 'T-OUTRO'),
-      ),
-    ).toBeNull()
-    expect(
-      expectOk(await SdIntegrationRepository.findById('inexistente')),
-    ).toBeNull()
-  })
-
-  it('upsert cria e revive a mesma integração em vez de colidir', async () => {
-    const { workspace, user } = await setup()
-    const created = expectOk(
-      await SdIntegrationRepository.upsert(workspace.id, 'SLACK', 'T-1', {
-        encryptedToken: 'enc:a',
-        createdById: user.id,
-        externalName: 'Stratus',
-        config: { events: ['sla.breached'] },
-      }),
-    )
-    expect(created.externalName).toBe('Stratus')
-
-    expectOk(await SdIntegrationRepository.disconnect(created.id, workspace.id))
-    const revived = expectOk(
-      await SdIntegrationRepository.upsert(workspace.id, 'SLACK', 'T-1', {
-        encryptedToken: 'enc:b',
-        createdById: user.id,
-        externalName: 'Stratus 2',
-      }),
-    )
-    expect(revived.id).toBe(created.id)
-    expect(revived.deletedAt).toBeNull()
-    expect(revived.status).toBe('ACTIVE')
-    expect(revived.encryptedToken).toBe('enc:b')
-  })
-
-  it('desconectar apaga o token e tira do alcance do webhook', async () => {
-    const { workspace, user } = await setup()
-    const integration = await seedSdIntegration(workspace.id, user.id, {
-      externalId: 'T-X',
-      encryptedSigningSecret: 'enc:hook',
-    })
-    expectOk(
-      await SdIntegrationRepository.disconnect(integration.id, workspace.id),
-    )
-    const row = await prisma.sdIntegration.findUnique({
-      where: { id: integration.id },
-    })
-    expect(row?.status).toBe('DISCONNECTED')
-    expect(row?.encryptedToken).toBe('')
-    expect(row?.encryptedSigningSecret).toBeNull()
-    expect(
-      expectOk(await SdIntegrationRepository.findByExternalId('SLACK', 'T-X')),
-    ).toBeNull()
-  })
-
-  it('update e markError carimbam status e motivo', async () => {
-    const { workspace, user } = await setup()
-    const integration = await seedSdIntegration(workspace.id, user.id)
-    expectOk(
-      await SdIntegrationRepository.update(integration.id, workspace.id, {
-        config: { events: ['ticket.escalated'] },
-      }),
-    )
-    expectOk(
-      await SdIntegrationRepository.markError(integration.id, 'x'.repeat(600)),
-    )
-    const row = await prisma.sdIntegration.findUnique({
-      where: { id: integration.id },
-    })
-    expect(row?.status).toBe('ERROR')
-    expect(row?.statusError).toHaveLength(500)
-    expect(row?.config).toEqual({ events: ['ticket.escalated'] })
-  })
-
-  it('não deixa atualizar nem excluir integração de outro workspace', async () => {
-    const { workspace, other, user } = await setup()
-    const integration = await seedSdIntegration(workspace.id, user.id)
-    expectErr(
-      await SdIntegrationRepository.update(integration.id, other.id, {
-        externalName: 'nope',
-      }),
-      'SD_CONFIG_NOT_FOUND',
-    )
-    expectErr(
-      await SdIntegrationRepository.disconnect(integration.id, other.id),
-      'SD_CONFIG_NOT_FOUND',
-    )
-  })
-})
 
 describe('SdIntegrationRepository — vínculos', () => {
   it('lista os vínculos do chamado em ordem de criação', async () => {
@@ -206,7 +60,7 @@ describe('SdIntegrationRepository — vínculos', () => {
     )
   })
 
-  it('acha o vínculo do GitHub pela chave, sem saber se é issue ou PR', async () => {
+  it('finds the repository link by key, whatever the item kind', async () => {
     const { workspace, user, ticket } = await setup()
     const integration = await seedSdIntegration(workspace.id, user.id, {
       kind: 'GITHUB',
@@ -218,17 +72,46 @@ describe('SdIntegrationRepository — vínculos', () => {
     })
     expect(
       expectOk(
-        await SdIntegrationRepository.findGithubLinkByKey(
+        await SdIntegrationRepository.findRepoLinkByKey(
           integration.id,
+          'GITHUB',
           'owner/repo#9',
         ),
       )?.kind,
     ).toBe('GITHUB_PULL_REQUEST')
     expect(
       expectOk(
-        await SdIntegrationRepository.findGithubLinkByKey(
+        await SdIntegrationRepository.findRepoLinkByKey(
           integration.id,
+          'GITHUB',
           'owner/repo#404',
+        ),
+      ),
+    ).toBeNull()
+    // GitLab keys only match GitLab link kinds.
+    const gitlab = await seedSdIntegration(workspace.id, user.id, {
+      kind: 'GITLAB',
+      externalId: 'grupo/projeto',
+    })
+    await seedSdIntegrationLink(workspace.id, gitlab.id, ticket.id, {
+      kind: 'GITLAB_MERGE_REQUEST',
+      externalKey: 'grupo/projeto!7',
+    })
+    expect(
+      expectOk(
+        await SdIntegrationRepository.findRepoLinkByKey(
+          gitlab.id,
+          'GITLAB',
+          'grupo/projeto!7',
+        ),
+      )?.kind,
+    ).toBe('GITLAB_MERGE_REQUEST')
+    expect(
+      expectOk(
+        await SdIntegrationRepository.findRepoLinkByKey(
+          gitlab.id,
+          'GITHUB',
+          'grupo/projeto!7',
         ),
       ),
     ).toBeNull()
@@ -351,7 +234,7 @@ describe('SdIntegrationRepository — vínculos', () => {
   })
 })
 
-describe('SdIntegrationRepository.listGithubLinksToSync', () => {
+describe('SdIntegrationRepository.listRepoLinksToSync', () => {
   it('traz só vínculos abertos de integrações vivas e chamados não fechados', async () => {
     const { workspace, user } = await setup()
     const phases = await Promise.all([
@@ -396,18 +279,39 @@ describe('SdIntegrationRepository.listGithubLinksToSync', () => {
       { externalKey: 'owner/repo#4', externalState: 'open' },
     )
 
-    const rows = expectOk(
-      await SdIntegrationRepository.listGithubLinksToSync(50),
+    const gitlab = await seedSdIntegration(workspace.id, user.id, {
+      kind: 'GITLAB',
+      externalId: 'grupo/projeto',
+    })
+    const gitlabLink = await seedSdIntegrationLink(
+      workspace.id,
+      gitlab.id,
+      openTicket.id,
+      {
+        kind: 'GITLAB_ISSUE',
+        externalKey: 'grupo/projeto#5',
+        externalState: 'closed',
+      },
     )
-    expect(rows.map((r) => r.id)).toEqual([wanted.id])
-    expect(rows[0].integration.kind).toBe('GITHUB')
+
+    const rows = expectOk(await SdIntegrationRepository.listRepoLinksToSync(50))
+    expect(rows.map((r) => r.id).sort()).toEqual(
+      [wanted.id, gitlabLink.id].sort(),
+    )
+    expect(rows.find((r) => r.id === wanted.id)?.integration.kind).toBe(
+      'GITHUB',
+    )
+    await prisma.sdIntegrationLink.delete({ where: { id: gitlabLink.id } })
 
     // Integração desconectada sai da reconciliação.
     expectOk(
-      await SdIntegrationRepository.disconnect(integration.id, workspace.id),
+      await WorkspaceIntegrationRepository.disconnect(
+        integration.id,
+        workspace.id,
+      ),
     )
     expect(
-      expectOk(await SdIntegrationRepository.listGithubLinksToSync(50)),
+      expectOk(await SdIntegrationRepository.listRepoLinksToSync(50)),
     ).toEqual([])
   })
 
@@ -434,14 +338,71 @@ describe('SdIntegrationRepository.listGithubLinksToSync', () => {
 
     expect(
       expectOk(
-        await SdIntegrationRepository.listGithubLinksToSync(1, workspace.id),
+        await SdIntegrationRepository.listRepoLinksToSync(1, workspace.id),
       ),
     ).toHaveLength(1)
     expect(
       expectOk(
-        await SdIntegrationRepository.listGithubLinksToSync(50, another.id),
+        await SdIntegrationRepository.listRepoLinksToSync(50, another.id),
       ),
     ).toEqual([])
+  })
+})
+
+describe('SdIntegrationRepository.isTopPriorityTicket', () => {
+  it('is true only for the highest priority level of the workspace', async () => {
+    const { workspace, ticket } = await setup()
+    // No priority → not urgent.
+    expect(
+      expectOk(
+        await SdIntegrationRepository.isTopPriorityTicket(
+          workspace.id,
+          ticket.id,
+        ),
+      ),
+    ).toBe(false)
+
+    const [low, high] = await Promise.all([
+      prisma.sdPriority.create({
+        data: { workspaceId: workspace.id, name: 'Baixa', level: 1 },
+      }),
+      prisma.sdPriority.create({
+        data: { workspaceId: workspace.id, name: 'Crítica', level: 4 },
+      }),
+    ])
+    await prisma.sdTicket.update({
+      where: { id: ticket.id },
+      data: { priorityId: low.id },
+    })
+    expect(
+      expectOk(
+        await SdIntegrationRepository.isTopPriorityTicket(
+          workspace.id,
+          ticket.id,
+        ),
+      ),
+    ).toBe(false)
+    await prisma.sdTicket.update({
+      where: { id: ticket.id },
+      data: { priorityId: high.id },
+    })
+    expect(
+      expectOk(
+        await SdIntegrationRepository.isTopPriorityTicket(
+          workspace.id,
+          ticket.id,
+        ),
+      ),
+    ).toBe(true)
+    // Another workspace never sees the ticket.
+    expect(
+      expectOk(
+        await SdIntegrationRepository.isTopPriorityTicket(
+          'other-ws',
+          ticket.id,
+        ),
+      ),
+    ).toBe(false)
   })
 })
 
