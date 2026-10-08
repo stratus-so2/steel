@@ -285,6 +285,23 @@ export const SlackClient = {
     return ok(channels.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')))
   },
 
+  /**
+   * `auth.test`: confirms the bot token still works and which team it
+   * belongs to ("Testar conexão" in Ajustes > Integrações).
+   */
+  async authTest(
+    token: string,
+  ): Promise<Result<{ teamId: string | null; teamName: string | null }>> {
+    const result = await call<
+      SlackEnvelope & { team_id?: string; team?: string }
+    >('auth.test', authed(token, {}))
+    if (!result.ok) return result
+    return ok({
+      teamId: result.value.team_id ?? null,
+      teamName: result.value.team ?? null,
+    })
+  },
+
   /** Link permanente da mensagem (vai no corpo do chamado). */
   async permalink(
     token: string,

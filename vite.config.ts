@@ -142,6 +142,7 @@ export default defineConfig({
         'src/lib/ai/**',
         'src/lib/analytics/**',
         'src/lib/servicedesk/**',
+        'src/lib/integrations/**',
         'src/lib/queue/processors/**',
         'src/lib/search/**',
         'src/lib/changelog/**',

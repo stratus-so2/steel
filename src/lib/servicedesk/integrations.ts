@@ -460,21 +460,34 @@ export function sdGithubIssueFromTicket(input: {
   }
 }
 
-/** Mensagem pública que registra a mudança de estado do item do GitHub. */
+/** Item kinds of the repository links (GitHub and GitLab). */
+export type SdRepoRefKind =
+  | SdGithubRefKind
+  | 'GITLAB_ISSUE'
+  | 'GITLAB_MERGE_REQUEST'
+
+/** pt-BR article + noun of the item (`A issue`, `O merge request`…). */
+export function sdRepoItemNoun(kind: SdRepoRefKind): string {
+  if (kind === 'GITHUB_PULL_REQUEST') return 'O pull request'
+  if (kind === 'GITLAB_MERGE_REQUEST') return 'O merge request'
+  return 'A issue'
+}
+
+/** Public message recording the state change of the GitHub/GitLab item. */
 export function sdGithubStateChangeBody(input: {
-  kind: SdGithubRefKind
+  kind: SdRepoRefKind
   key: string
   url: string | null
   state: SdGithubExternalState
   suggestPhase: boolean
 }): string {
-  const what =
-    input.kind === 'GITHUB_PULL_REQUEST' ? 'O pull request' : 'A issue'
+  const what = sdRepoItemNoun(input.kind)
+  const provider = input.kind.startsWith('GITLAB') ? 'GitLab' : 'GitHub'
   const label = SD_GITHUB_STATE_LABEL[input.state].toLowerCase()
   const ref = input.url
     ? `<a href="${escapeHtml(input.url)}">${escapeHtml(input.key)}</a>`
     : escapeHtml(input.key)
-  const lines = [`<p>${what} ${ref} do GitHub agora está ${label}.</p>`]
+  const lines = [`<p>${what} ${ref} do ${provider} agora está ${label}.</p>`]
   if (input.suggestPhase && input.state !== 'open') {
     lines.push(
       '<p><em>Sugestão: o trabalho técnico terminou — revise a solução e avance a fase do chamado se for o caso.</em></p>',
