@@ -1,10 +1,12 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   fetchBody,
   mockFetch,
   renderWithQuery,
 } from '@/src/__tests__/component-utils'
+import type { ListMembersResult, MemberDTO, MemberRole } from '@/types/member'
+import { canManageMember } from '../columns'
 import { MembersManager } from '../members-manager'
 
 const notify = vi.hoisted(() => ({
@@ -16,208 +18,472 @@ const notify = vi.hoisted(() => ({
 vi.mock('@/lib/notify', () => ({ notify }))
 
 const WS = 'ws_1'
-const BASE = `/api/workspaces/${WS}/invitations`
+const DIRECTORY = `/api/workspaces/${WS}/members/directory`
+const INVITATIONS = `/api/workspaces/${WS}/invitations`
 
-function invitation(overrides: Record<string, unknown>) {
+function member(overrides: Partial<MemberDTO>): MemberDTO {
   return {
-    id: 'inv_1',
-    email: 'ana@empresa.com',
+    membershipId: `m_${overrides.userId ?? 'u'}`,
+    userId: 'u_member',
+    name: 'Carla Souza',
+    username: 'carla',
+    email: 'carla@empresa.com',
+    image: null,
     role: 'MEMBER',
-    status: 'PENDING',
-    expiresAt: '2026-10-01T12:00:00.000Z',
+    accountStatus: 'ACTIVE',
+    authMethods: ['EMAIL_PASSWORD'],
+    twoFactorEnabled: false,
+    joinedAt: '2026-09-20T12:00:00.000Z',
     ...overrides,
   }
 }
 
-function buttonsInRow(email: string) {
-  const row = screen.getByText(email).closest('tr') as HTMLElement
-  const [resend, revoke] = Array.from(row.querySelectorAll('button'))
-  return { row, resend, revoke }
+const OWNER = member({
+  userId: 'u_owner',
+  name: 'Ana Castro',
+  username: 'ana',
+  email: 'ana@empresa.com',
+  role: 'OWNER',
+  authMethods: ['EMAIL_PASSWORD', 'GOOGLE'],
+  twoFactorEnabled: true,
+})
+const ADMIN = member({
+  userId: 'u_admin',
+  name: 'Bruno Lima',
+  username: 'bruno',
+  email: 'bruno@empresa.com',
+  role: 'ADMIN',
+  accountStatus: 'UNVERIFIED',
+  authMethods: ['GITHUB'],
+})
+const MEMBER = member({ userId: 'u_member' })
+const VIEWER = member({
+  userId: 'u_viewer',
+  name: 'Diego Ramos',
+  username: 'diego',
+  email: 'diego@empresa.com',
+  role: 'VIEWER',
+  accountStatus: 'PENDING_DELETION',
+})
+
+function directory(overrides: Partial<ListMembersResult> = {}) {
+  const members = overrides.members ?? [OWNER, ADMIN, MEMBER, VIEWER]
+  return {
+    members,
+    total: members.length,
+    page: 1,
+    pageSize: 20,
+    seats: { used: 5, limit: 12 },
+    ...overrides,
+  }
 }
 
+function renderManager(
+  actor: { userId: string; role: MemberRole } = {
+    userId: 'u_owner',
+    role: 'OWNER',
+  },
+) {
+  return renderWithQuery(
+    <MembersManager
+      workspaceId={WS}
+      currentUserId={actor.userId}
+      actorRole={actor.role}
+    />,
+  )
+}
+
+function rowOf(name: string) {
+  return screen.getByText(name).closest('tr') as HTMLElement
+}
+
+function directoryCalls(spy: ReturnType<typeof mockFetch>) {
+  return spy.mock.calls
+    .map(([input]) => String(input))
+    .filter((url) => url.includes(DIRECTORY))
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 describe('<MembersManager />', () => {
-  it('shows the empty state when there are no invitations', async () => {
-    mockFetch([{ match: BASE, data: [] }])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-
-    expect(screen.getByText('Carregando convites...')).toBeTruthy()
-    expect(await screen.findByText('Nenhum convite ainda.')).toBeTruthy()
-  })
-
-  it('lists invitations with pt-BR role and status labels', async () => {
+  it('renders the directory with Nexo columns and pt-BR labels', async () => {
     mockFetch([
-      {
-        match: BASE,
-        data: [
-          invitation({}),
-          invitation({
-            id: 'inv_2',
-            email: 'bia@empresa.com',
-            role: 'ADMIN',
-            status: 'ACCEPTED',
-          }),
-        ],
-      },
+      { match: DIRECTORY, data: directory() },
+      { match: INVITATIONS, data: [] },
     ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
+    renderManager()
 
-    expect(await screen.findByText('ana@empresa.com')).toBeTruthy()
-    expect(buttonsInRow('ana@empresa.com').row.textContent).toContain('Membro')
-    expect(buttonsInRow('ana@empresa.com').row.textContent).toContain(
-      'Pendente',
-    )
-    expect(buttonsInRow('bia@empresa.com').row.textContent).toContain(
-      'Administrador',
-    )
-    expect(buttonsInRow('bia@empresa.com').row.textContent).toContain('Aceito')
+    expect(screen.getByText('Carregando membros...')).toBeTruthy()
+    expect(await screen.findByText('Ana Castro')).toBeTruthy()
+
+    const owner = rowOf('Ana Castro')
+    expect(owner.textContent).toContain('@ana')
+    expect(owner.textContent).toContain('Dono')
+    expect(owner.textContent).toContain('Ativo')
+    expect(owner.textContent).toContain('E-mail e senha')
+    expect(owner.textContent).toContain('Google')
+    expect(owner.textContent).toContain('2FA')
+    expect(owner.textContent).toContain('Você')
+
+    const admin = rowOf('Bruno Lima')
+    expect(admin.textContent).toContain('Administrador')
+    expect(admin.textContent).toContain('Não verificado')
+    expect(admin.textContent).toContain('GitHub')
+
+    expect(rowOf('Carla Souza').textContent).toContain('Membro')
+    const viewer = rowOf('Diego Ramos')
+    expect(viewer.textContent).toContain('Visualizador')
+    expect(viewer.textContent).toContain('Exclusão agendada')
+    expect(viewer.textContent).toContain('20 de set. de 2026')
+
+    expect(screen.getByText('Pessoas')).toBeTruthy()
+    expect(screen.getByText('4 resultados')).toBeTruthy()
+    expect(screen.getByText('5/12 assentos')).toBeTruthy()
+    expect(screen.getByText('Página 1 de 1 · 4 membros')).toBeTruthy()
   })
 
-  it('disables resend/revoke for accepted invitations', async () => {
-    mockFetch([
-      {
-        match: BASE,
-        data: [invitation({ status: 'ACCEPTED' })],
-      },
-    ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('ana@empresa.com')
-
-    const { resend, revoke } = buttonsInRow('ana@empresa.com')
-    expect((resend as HTMLButtonElement).disabled).toBe(true)
-    expect((revoke as HTMLButtonElement).disabled).toBe(true)
-  })
-
-  it('keeps the invite button disabled until an e-mail is typed', async () => {
-    mockFetch([{ match: BASE, data: [] }])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('Nenhum convite ainda.')
-
-    const submit = screen.getByRole('button', {
-      name: 'Convidar',
-    }) as HTMLButtonElement
-    expect(submit.disabled).toBe(true)
-
-    fireEvent.change(screen.getByPlaceholderText('email@exemplo.com'), {
-      target: { value: 'novo@empresa.com' },
-    })
-    expect(submit.disabled).toBe(false)
-  })
-
-  it('sends an invitation with the default MEMBER role and clears the input', async () => {
+  it('asks the API for the newest members first, 20 per page', async () => {
     const spy = mockFetch([
-      { method: 'POST', match: BASE, data: invitation({ id: 'inv_9' }) },
-      { match: BASE, data: [] },
+      { match: DIRECTORY, data: directory() },
+      { match: INVITATIONS, data: [] },
     ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('Nenhum convite ainda.')
+    renderManager()
+    await screen.findByText('Ana Castro')
 
-    const input = screen.getByPlaceholderText(
-      'email@exemplo.com',
-    ) as HTMLInputElement
-    fireEvent.change(input, { target: { value: 'novo@empresa.com' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Convidar' }))
+    expect(directoryCalls(spy)[0]).toContain(
+      'sortBy=joinedAt&sortOrder=desc&page=1&pageSize=20',
+    )
+  })
+
+  it('shows the empty state and singular counters', async () => {
+    mockFetch([
+      {
+        match: DIRECTORY,
+        data: directory({ members: [], seats: { used: 1, limit: null } }),
+      },
+      { match: INVITATIONS, data: [] },
+    ])
+    renderManager()
+
+    expect(await screen.findByText('Nenhum membro encontrado.')).toBeTruthy()
+    expect(screen.getByText('0 resultados')).toBeTruthy()
+    expect(screen.getByText('Nenhum membro')).toBeTruthy()
+    expect(screen.getByText('1 assentos · ilimitado')).toBeTruthy()
+  })
+
+  it('debounces the search before querying the API', async () => {
+    const spy = mockFetch([
+      { match: DIRECTORY, data: directory() },
+      { match: INVITATIONS, data: [] },
+    ])
+    renderManager()
+    await screen.findByText('Ana Castro')
+
+    fireEvent.change(screen.getByLabelText('Pesquisar membros'), {
+      target: { value: 'bru' },
+    })
 
     await waitFor(() =>
-      expect(notify.success).toHaveBeenCalledWith('Convite enviado'),
+      expect(directoryCalls(spy).some((u) => u.includes('search=bru'))).toBe(
+        true,
+      ),
     )
-    expect(fetchBody(spy, BASE)).toEqual({
-      email: 'novo@empresa.com',
-      role: 'MEMBER',
-    })
-    expect(input.value).toBe('')
   })
 
-  it('sends the role picked in the select', async () => {
+  it('filters by role through the Cargos filter', async () => {
     const spy = mockFetch([
-      { method: 'POST', match: BASE, data: invitation({ id: 'inv_9' }) },
-      { match: BASE, data: [] },
+      { match: DIRECTORY, data: directory() },
+      { match: INVITATIONS, data: [] },
     ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('Nenhum convite ainda.')
+    renderManager()
+    await screen.findByText('Ana Castro')
 
-    fireEvent.change(screen.getByPlaceholderText('email@exemplo.com'), {
-      target: { value: 'chefe@empresa.com' },
-    })
+    fireEvent.click(screen.getByRole('button', { name: /Cargos/ }))
     fireEvent.click(
-      document.querySelector('[data-slot=select-trigger]') as HTMLElement,
+      await screen.findByRole('option', { name: /Administrador/ }),
     )
-    const option = await screen.findByRole('option', {
-      name: 'Administrador',
-    })
-    // Base UI only commits a mouse click that started on the item itself.
-    fireEvent.pointerDown(option, { pointerType: 'mouse' })
-    fireEvent.click(option)
-    fireEvent.click(screen.getByRole('button', { name: 'Convidar' }))
 
     await waitFor(() =>
-      expect(fetchBody(spy, BASE)).toEqual({
-        email: 'chefe@empresa.com',
-        role: 'ADMIN',
-      }),
+      expect(directoryCalls(spy).some((u) => u.includes('roles=ADMIN'))).toBe(
+        true,
+      ),
     )
   })
 
-  it('surfaces the API error when the invitation fails', async () => {
-    mockFetch([
-      {
-        method: 'POST',
-        match: BASE,
-        status: 409,
-        error: 'Usuário já é membro',
-      },
-      { match: BASE, data: [] },
+  it('sorts through the column header menu', async () => {
+    const spy = mockFetch([
+      { match: DIRECTORY, data: directory() },
+      { match: INVITATIONS, data: [] },
     ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('Nenhum convite ainda.')
+    renderManager()
+    await screen.findByText('Ana Castro')
 
-    fireEvent.change(screen.getByPlaceholderText('email@exemplo.com'), {
-      target: { value: 'dup@empresa.com' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Convidar' }))
+    fireEvent.click(screen.getByRole('button', { name: /Nome completo/ }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: /A-Z/ }))
 
-    await waitFor(() => expect(notify.error).toHaveBeenCalled())
-    const [error] = notify.error.mock.calls[0]
-    expect((error as Error).message).toBe('Usuário já é membro')
+    await waitFor(() =>
+      expect(
+        directoryCalls(spy).some((u) =>
+          u.includes('sortBy=name&sortOrder=asc'),
+        ),
+      ).toBe(true),
+    )
   })
 
-  it('resends a pending invitation', async () => {
+  it('pages forward and back', async () => {
     const spy = mockFetch([
-      { method: 'POST', match: `${BASE}/inv_1/resend`, data: null },
-      { match: BASE, data: [invitation({})] },
+      { match: DIRECTORY, data: directory({ total: 45 }) },
+      { match: INVITATIONS, data: [] },
     ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('ana@empresa.com')
+    renderManager()
+    await screen.findByText('Página 1 de 3 · 45 membros')
 
-    fireEvent.click(buttonsInRow('ana@empresa.com').resend as HTMLElement)
-
-    await waitFor(() => expect(notify.success).toHaveBeenCalled())
     expect(
-      spy.mock.calls.some(([url]) => String(url).endsWith('/inv_1/resend')),
+      (screen.getByRole('button', { name: 'Anterior' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }))
+
+    await waitFor(() =>
+      expect(directoryCalls(spy).some((u) => u.includes('page=2'))).toBe(true),
+    )
+  })
+
+  it('blocks new invitations when every seat is taken', async () => {
+    mockFetch([
+      {
+        match: DIRECTORY,
+        data: directory({ seats: { used: 12, limit: 12 } }),
+      },
+      { match: INVITATIONS, data: [] },
+    ])
+    renderManager()
+
+    expect(await screen.findByText('12/12 assentos')).toBeTruthy()
+    expect(
+      screen.getByText(/Todos os assentos do plano estão em uso/),
+    ).toBeTruthy()
+    const invite = screen.getByRole('button', { name: 'Adicionar membro' })
+    expect(
+      invite.hasAttribute('disabled') ||
+        invite.getAttribute('aria-disabled') === 'true' ||
+        invite.hasAttribute('data-disabled'),
     ).toBe(true)
   })
 
-  // Regression: "Revogar" used to call the resend mutation, re-sending the
-  // e-mail instead of issuing the DELETE.
-  it('revokes a pending invitation via DELETE', async () => {
-    const spy = mockFetch([
-      { method: 'DELETE', match: `${BASE}/inv_1`, data: null },
-      { method: 'POST', match: `${BASE}/inv_1/resend`, data: null },
-      { match: BASE, data: [invitation({})] },
-    ])
-    renderWithQuery(<MembersManager workspaceId={WS} />)
-    await screen.findByText('ana@empresa.com')
+  describe('row actions (permissions)', () => {
+    it('lets the owner manage admins, members and viewers but not themselves', async () => {
+      mockFetch([
+        { match: DIRECTORY, data: directory() },
+        { match: INVITATIONS, data: [] },
+      ])
+      renderManager({ userId: 'u_owner', role: 'OWNER' })
+      await screen.findByText('Ana Castro')
 
-    fireEvent.click(buttonsInRow('ana@empresa.com').revoke as HTMLElement)
+      expect(screen.queryByLabelText('Ações de Ana Castro')).toBeNull()
+      expect(screen.getByLabelText('Ações de Bruno Lima')).toBeTruthy()
+      expect(screen.getByLabelText('Ações de Carla Souza')).toBeTruthy()
+      expect(screen.getByLabelText('Ações de Diego Ramos')).toBeTruthy()
+    })
 
-    await waitFor(
-      () =>
+    it('hides the actions an admin cannot take (owner, other admins, self)', async () => {
+      mockFetch([
+        {
+          match: DIRECTORY,
+          data: directory({
+            members: [
+              OWNER,
+              ADMIN,
+              member({
+                userId: 'u_admin2',
+                name: 'Elisa Martins',
+                role: 'ADMIN',
+              }),
+              MEMBER,
+            ],
+          }),
+        },
+        { match: INVITATIONS, data: [] },
+      ])
+      renderManager({ userId: 'u_admin', role: 'ADMIN' })
+      await screen.findByText('Ana Castro')
+
+      expect(screen.queryByLabelText('Ações de Ana Castro')).toBeNull()
+      expect(screen.queryByLabelText('Ações de Bruno Lima')).toBeNull()
+      expect(screen.queryByLabelText('Ações de Elisa Martins')).toBeNull()
+      expect(screen.getByLabelText('Ações de Carla Souza')).toBeTruthy()
+    })
+
+    it('changes a member role through the actions menu', async () => {
+      const spy = mockFetch([
+        { match: DIRECTORY, data: directory() },
+        { match: INVITATIONS, data: [] },
+        {
+          method: 'PATCH',
+          match: `/api/workspaces/${WS}/members/u_member`,
+          data: { userId: 'u_member', role: 'VIEWER' },
+        },
+      ])
+      renderManager()
+      await screen.findByText('Carla Souza')
+
+      fireEvent.click(screen.getByLabelText('Ações de Carla Souza'))
+      fireEvent.click(await screen.findByText('Alterar cargo'))
+      fireEvent.click(
+        await screen.findByRole('menuitemradio', { name: 'Visualizador' }),
+      )
+
+      await waitFor(() =>
         expect(
-          spy.mock.calls.some(([, init]) => init?.method === 'DELETE'),
+          fetchBody(spy, `/api/workspaces/${WS}/members/u_member`, 'PATCH'),
+        ).toEqual({ role: 'VIEWER' }),
+      )
+      await waitFor(() =>
+        expect(notify.success).toHaveBeenCalledWith(
+          'Carla Souza agora é visualizador',
+        ),
+      )
+    })
+
+    it('reports a failed role change', async () => {
+      mockFetch([
+        { match: DIRECTORY, data: directory() },
+        { match: INVITATIONS, data: [] },
+        {
+          method: 'PATCH',
+          match: `/api/workspaces/${WS}/members/u_member`,
+          status: 403,
+          error: 'Só o dono do workspace pode alterar administradores',
+        },
+      ])
+      renderManager()
+      await screen.findByText('Carla Souza')
+
+      fireEvent.click(screen.getByLabelText('Ações de Carla Souza'))
+      fireEvent.click(await screen.findByText('Alterar cargo'))
+      fireEvent.click(
+        await screen.findByRole('menuitemradio', { name: 'Administrador' }),
+      )
+
+      await waitFor(() => expect(notify.error).toHaveBeenCalled())
+      expect(notify.error.mock.calls[0][1]).toBe(
+        'Não foi possível alterar o cargo',
+      )
+    })
+
+    it('ignores picking the role the member already has', async () => {
+      const spy = mockFetch([
+        { match: DIRECTORY, data: directory() },
+        { match: INVITATIONS, data: [] },
+      ])
+      renderManager()
+      await screen.findByText('Carla Souza')
+
+      fireEvent.click(screen.getByLabelText('Ações de Carla Souza'))
+      fireEvent.click(await screen.findByText('Alterar cargo'))
+      fireEvent.click(
+        await screen.findByRole('menuitemradio', { name: 'Membro' }),
+      )
+
+      expect(spy.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(
+        false,
+      )
+    })
+
+    it('removes a member after confirmation', async () => {
+      const spy = mockFetch([
+        { match: DIRECTORY, data: directory() },
+        { match: INVITATIONS, data: [] },
+        {
+          method: 'DELETE',
+          match: `/api/workspaces/${WS}/members/u_viewer`,
+          data: { userId: 'u_viewer' },
+        },
+      ])
+      renderManager()
+      await screen.findByText('Diego Ramos')
+
+      fireEvent.click(screen.getByLabelText('Ações de Diego Ramos'))
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: /Remover do workspace/ }),
+      )
+
+      const dialog = await screen.findByRole('alertdialog')
+      expect(within(dialog).getByText('Remover Diego Ramos?')).toBeTruthy()
+      expect(
+        within(dialog).getByText(/diego@empresa.com perde o acesso/),
+      ).toBeTruthy()
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Remover' }))
+
+      await waitFor(() =>
+        expect(
+          spy.mock.calls.some(
+            ([input, init]) =>
+              String(input).endsWith('/members/u_viewer') &&
+              init?.method === 'DELETE',
+          ),
         ).toBe(true),
-      { timeout: 500 },
-    )
+      )
+      await waitFor(() =>
+        expect(notify.success).toHaveBeenCalledWith(
+          'Diego Ramos foi removido do workspace',
+        ),
+      )
+    })
+
+    it('reports a failed removal and keeps the dialog open', async () => {
+      mockFetch([
+        { match: DIRECTORY, data: directory() },
+        { match: INVITATIONS, data: [] },
+        {
+          method: 'DELETE',
+          match: `/api/workspaces/${WS}/members/u_viewer`,
+          status: 500,
+          error: 'boom',
+        },
+      ])
+      renderManager()
+      await screen.findByText('Diego Ramos')
+
+      fireEvent.click(screen.getByLabelText('Ações de Diego Ramos'))
+      fireEvent.click(
+        await screen.findByRole('menuitem', { name: /Remover do workspace/ }),
+      )
+      const dialog = await screen.findByRole('alertdialog')
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Remover' }))
+
+      await waitFor(() => expect(notify.error).toHaveBeenCalled())
+      expect(notify.error.mock.calls[0][1]).toBe(
+        'Não foi possível remover o membro',
+      )
+      expect(screen.getByRole('alertdialog')).toBeTruthy()
+    })
+  })
+})
+
+describe('canManageMember()', () => {
+  const owner = { currentUserId: 'me', actorRole: 'OWNER' as const }
+  const admin = { currentUserId: 'me', actorRole: 'ADMIN' as const }
+
+  it('never lets a non-privileged actor manage anyone', () => {
     expect(
-      spy.mock.calls.some(([url]) => String(url).endsWith('/inv_1/resend')),
+      canManageMember(
+        { userId: 'x', role: 'VIEWER' },
+        { currentUserId: 'me', actorRole: 'MEMBER' },
+      ),
     ).toBe(false)
+  })
+
+  it('protects self and the owner', () => {
+    expect(canManageMember({ userId: 'me', role: 'ADMIN' }, owner)).toBe(false)
+    expect(canManageMember({ userId: 'x', role: 'OWNER' }, owner)).toBe(false)
+  })
+
+  it('lets only the owner manage admins', () => {
+    expect(canManageMember({ userId: 'x', role: 'ADMIN' }, owner)).toBe(true)
+    expect(canManageMember({ userId: 'x', role: 'ADMIN' }, admin)).toBe(false)
+    expect(canManageMember({ userId: 'x', role: 'MEMBER' }, admin)).toBe(true)
   })
 })

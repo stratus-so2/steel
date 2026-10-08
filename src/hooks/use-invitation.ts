@@ -3,6 +3,8 @@ import type { InvitationDTO } from '@/types/invitation'
 import { apiFetch, apiSend } from './_fetch'
 
 const INVITATION_KEY = ['invitations'] as const
+// Seat usage on the member directory counts pending invitations.
+const MEMBER_KEY = ['members'] as const
 
 export function useInvitations(workspaceId: string | null) {
   return useQuery({
@@ -33,6 +35,7 @@ export function useCreateInvitation(workspaceId: string) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [INVITATION_KEY, workspaceId] })
+      queryClient.invalidateQueries({ queryKey: [MEMBER_KEY, workspaceId] })
     },
   })
 }
@@ -46,6 +49,33 @@ export function useRevokeInvitation(workspaceId: string) {
         `/api/workspaces/${workspaceId}/invitations/${invitationId}`,
         { method: 'DELETE' },
         'Erro ao revogar convite',
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [INVITATION_KEY, workspaceId] })
+      queryClient.invalidateQueries({ queryKey: [MEMBER_KEY, workspaceId] })
+    },
+  })
+}
+
+export function useUpdateInvitationRole(workspaceId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      invitationId,
+      role,
+    }: {
+      invitationId: string
+      role: string
+    }) =>
+      apiFetch<InvitationDTO>(
+        `/api/workspaces/${workspaceId}/invitations/${invitationId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role }),
+        },
+        'Erro ao alterar o cargo do convite',
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [INVITATION_KEY, workspaceId] })

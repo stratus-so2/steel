@@ -7,8 +7,14 @@ import { ValidateCouponSchema } from '@/src/schemas/coupon.schema'
 import {
   AcceptInvitationSchema,
   CreateInvitationSchema,
+  InvitableRoleValues as INVITABLE,
   InviteToProjectSchema,
+  UpdateInvitationRoleSchema,
 } from '@/src/schemas/invitation.schema'
+import {
+  ListMembersQuerySchema,
+  UpdateMemberRoleSchema,
+} from '@/src/schemas/member.schema'
 import {
   ArchiveReadNotificationsSchema,
   MarkNotificationsReadSchema,
@@ -68,6 +74,8 @@ import {
   InboxAiPendingListDTO,
   InvitationDTO,
   MediaUrlDTO,
+  MemberDirectoryDTO,
+  MemberImportResultDTO,
   NotificationDeliveryDTO,
   NotificationListDTO,
   NotificationPreferenceListDTO,
@@ -457,6 +465,77 @@ const workspaces: RouteConfig[] = [
     errors: WORKSPACE_MEMBER_ERRORS,
   },
   {
+    method: 'get',
+    path: '/workspaces/{id}/members/directory',
+    tags: ['Membros e convites'],
+    summary: 'Diretório paginado de membros',
+    description:
+      'Tabela de Ajustes > Membros: busca (nome, username, e-mail), filtro por cargo, ordenação e paginação, com o uso de assentos do plano. Só OWNER/ADMIN.',
+    query: ListMembersQuerySchema,
+    responses: {
+      200: { description: 'Página de membros.', schema: MemberDirectoryDTO },
+    },
+    errors: [...WORKSPACE_PRIVILEGED_ERRORS, 'VALIDATION_ERROR'],
+  },
+  {
+    method: 'patch',
+    path: '/workspaces/{id}/members/{userId}',
+    tags: ['Membros e convites'],
+    summary: 'Alterar cargo de um membro',
+    description:
+      'Só OWNER/ADMIN. Ninguém altera a si mesmo nem o dono; administradores só podem ser alterados pelo dono (`MEMBER_PROTECTED`).',
+    params: { userId: 'ID do usuário membro.' },
+    body: UpdateMemberRoleSchema,
+    responses: {
+      200: {
+        description: 'Cargo alterado.',
+        schema: z.object({ userId: z.string(), role: z.enum(INVITABLE) }),
+      },
+    },
+    errors: [
+      ...WORKSPACE_PRIVILEGED_ERRORS,
+      'MEMBER_NOT_FOUND',
+      'MEMBER_PROTECTED',
+    ],
+  },
+  {
+    method: 'delete',
+    path: '/workspaces/{id}/members/{userId}',
+    tags: ['Membros e convites'],
+    summary: 'Remover membro do workspace',
+    description:
+      'Só OWNER/ADMIN; tira o usuário do workspace e dos projetos dele. Mesmas proteções da troca de cargo.',
+    params: { userId: 'ID do usuário membro.' },
+    responses: {
+      200: {
+        description: 'Membro removido.',
+        schema: z.object({ userId: z.string() }),
+      },
+    },
+    errors: [
+      ...WORKSPACE_PRIVILEGED_ERRORS,
+      'MEMBER_NOT_FOUND',
+      'MEMBER_PROTECTED',
+    ],
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/members/import',
+    tags: ['Membros e convites'],
+    summary: 'Importar membros via CSV',
+    description:
+      'Planilha CSV (`,` ou `;`) com a coluna `email` e, opcional, `role` (ADMIN, MEMBER, VIEWER). Cada linha vira um convite com as regras do convite individual (assentos, duplicados). Até 500 linhas e 1 MB. Só OWNER/ADMIN.',
+    consent: true,
+    body: fileUpload('file', 'Arquivo CSV.'),
+    responses: {
+      201: {
+        description: 'Resultado por linha.',
+        schema: MemberImportResultDTO,
+      },
+    },
+    errors: [...WORKSPACE_PRIVILEGED_ERRORS, 'VALIDATION_ERROR'],
+  },
+  {
     method: 'patch',
     path: '/workspaces/{id}/members/{userId}/profile',
     tags: ['Membros e convites', 'Perfis de acesso'],
@@ -512,6 +591,23 @@ const workspaces: RouteConfig[] = [
     params: { invitationId: 'ID do convite.' },
     responses: {
       200: { description: 'Convite revogado.', schema: InvitationDTO },
+    },
+    errors: [
+      ...WORKSPACE_PRIVILEGED_ERRORS,
+      'INVITATION_NOT_FOUND',
+      'INVITATION_NOT_PENDING',
+    ],
+  },
+  {
+    method: 'patch',
+    path: '/workspaces/{id}/invitations/{invitationId}',
+    tags: ['Membros e convites'],
+    summary: 'Alterar cargo de um convite',
+    description: 'Só OWNER/ADMIN; apenas convites pendentes.',
+    params: { invitationId: 'ID do convite.' },
+    body: UpdateInvitationRoleSchema,
+    responses: {
+      200: { description: 'Convite atualizado.', schema: InvitationDTO },
     },
     errors: [
       ...WORKSPACE_PRIVILEGED_ERRORS,

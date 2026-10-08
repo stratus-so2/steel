@@ -95,6 +95,15 @@ export const invitationAlreadyMember = (
   message = 'Este usuário já é membro do workspace',
 ): AppError => appError('INVITATION_ALREADY_MEMBER', message)
 
+export const memberNotFound = (
+  message = 'Membro não encontrado neste workspace',
+): AppError => appError('MEMBER_NOT_FOUND', message)
+
+/** The target member cannot be changed by this actor (owner, self, admin). */
+export const memberProtected = (
+  message = 'Você não pode alterar este membro',
+): AppError => appError('MEMBER_PROTECTED', message)
+
 export const projectMemberAlreadyExists = (
   message = 'Usuário já é membro deste projeto',
 ): AppError => appError('PROJECT_MEMBER_ALREADY_EXISTS', message)

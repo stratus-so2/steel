@@ -28,6 +28,7 @@ import { WorkspaceRepository } from '../repositories/workspace.repository'
 import type {
   CreateInvitationDTO,
   InviteToProjectDTO,
+  UpdateInvitationRoleDTO,
 } from '../schemas/invitation.schema'
 import { assertMember, assertPrivileged } from './authz'
 import { notifyMemberJoined } from './platform-notifications'
@@ -178,6 +179,39 @@ export const InvitationService = {
       actorId,
       targetId: invitationId,
       meta: { workspaceId },
+    })
+
+    return ok(toInvitationDTO(updated.value))
+  },
+
+  async updateRole(
+    actorId: string,
+    workspaceId: string,
+    invitationId: string,
+    role: UpdateInvitationRoleDTO['role'],
+  ): Promise<Result<InvitationDTO>> {
+    const privileged = await assertPrivileged(actorId, workspaceId)
+    if (!privileged.ok) return privileged
+
+    const invitation = await InvitationRepository.findById(invitationId)
+    if (!invitation.ok) return invitation
+    if (!invitation.value || invitation.value.workspaceId !== workspaceId) {
+      return err(invitationNotFound())
+    }
+    if (invitation.value.status !== 'PENDING') {
+      return err(invitationNotPending())
+    }
+
+    const updated = await InvitationRepository.updateRole(invitationId, role)
+    if (!updated.ok) return updated
+
+    auditMutation({
+      entity: 'invitation',
+      action: 'update',
+      actorId,
+      targetId: invitationId,
+      reason: 'role_change',
+      meta: { workspaceId, role },
     })
 
     return ok(toInvitationDTO(updated.value))
