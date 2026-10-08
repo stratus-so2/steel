@@ -53,7 +53,7 @@ describe('<DeleteWorkspaceDialog />', () => {
     mockFetch([])
     renderDialog()
     expect(DELETE_WORKSPACE_COPY).toBe(
-      'Excluir este workspace apaga permanentemente todos os projetos, páginas e dados de todos os membros. Nada pode ser recuperado — nem mesmo por nós. Continue somente se tiver certeza.',
+      'Excluir este workspace apaga permanentemente todos os projetos, páginas e dados de todos os membros. Depois de excluído, você não poderá restaurá-lo. Continue somente se tiver certeza.',
     )
     expect(screen.getByText(DELETE_WORKSPACE_COPY)).toBeTruthy()
     expect(screen.getByText(/roda em segundo plano/)).toBeTruthy()

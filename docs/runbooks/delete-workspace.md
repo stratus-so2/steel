@@ -53,11 +53,11 @@ diálogo. ADMIN e demais papéis não veem o botão (a API responde `403`).
   `/admin/backups` e siga [Se falhar](#se-falhar).
 - API: `DELETE /api/workspaces/{id}` com `{ "confirmation": "<slug>" }`,
   resposta `202` com o `operationId`.
-- O texto da tela diz “Nada pode ser recuperado — nem mesmo por nós”, mas o
-  backup da operação (e os backups FULL diários) seguem existindo pela
-  retenção de 90 dias. Se o dono se arrepender e pedir, o caminho continua
-  sendo [Desfazer](#desfazer-restaurar-o-workspace-excluído) — decisão do
-  produto, não automática.
+- O texto da tela diz “Depois de excluído, você não poderá restaurá-lo”: o
+  dono não tem como desfazer pelo app, mas o backup da operação (e os
+  backups FULL diários) seguem existindo pela retenção de 90 dias. Se o dono
+  se arrepender e pedir, o caminho é [Desfazer](#desfazer-restaurar-o-workspace-excluído)
+  — decisão do produto (08/10/2026), não automática.
 
 ### Se falhar
 

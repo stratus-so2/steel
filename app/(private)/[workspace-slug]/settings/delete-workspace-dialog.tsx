@@ -20,7 +20,7 @@ import type { WorkspaceDTO } from '@/types/workspace'
 
 /** Product copy, verbatim (do not reword without the product owner). */
 export const DELETE_WORKSPACE_COPY =
-  'Excluir este workspace apaga permanentemente todos os projetos, páginas e dados de todos os membros. Nada pode ser recuperado — nem mesmo por nós. Continue somente se tiver certeza.'
+  'Excluir este workspace apaga permanentemente todos os projetos, páginas e dados de todos os membros. Depois de excluído, você não poderá restaurá-lo. Continue somente se tiver certeza.'
 
 /** Leaves the workspace once the deletion is queued (full reload on purpose). */
 export function leaveWorkspace(): void {
