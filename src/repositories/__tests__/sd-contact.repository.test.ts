@@ -205,8 +205,10 @@ describe('SdContactRepository', () => {
       )
       expect(all.map((u) => u.id).sort()).toEqual([bob.id, user.id].sort())
       const filtered = expectOk(
+        // With a space: seeded e-mails carry a random cuid, which once
+        // contained "bob" and matched the other member too.
         await SdContactRepository.listMemberOptions(workspace.id, {
-          q: 'bob',
+          q: 'bob agente',
           limit: 10,
         }),
       )
