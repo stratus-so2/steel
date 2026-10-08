@@ -76,3 +76,15 @@ export async function seedWikiPage(
     },
   })
 }
+
+/** Turns the wiki on for the workspace of an e2e fixture (it starts off). */
+export async function withWiki<T extends { workspace: { id: string } }>(
+  fixture: Promise<T>,
+): Promise<T> {
+  const value = await fixture
+  await prisma.workspace.update({
+    where: { id: value.workspace.id },
+    data: { wikiEnabled: true },
+  })
+  return value
+}

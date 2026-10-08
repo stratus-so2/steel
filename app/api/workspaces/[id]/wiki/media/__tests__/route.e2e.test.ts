@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { withWiki } from '@/src/__tests__/factories/wiki-page.factory'
 import {
   authenticatedOwner,
   createAuthenticatedUser,
@@ -28,7 +29,7 @@ describe('POST /api/workspaces/[id]/wiki/media', () => {
   })
 
   it('should return 403 when the actor is not a workspace member', async () => {
-    const { workspace } = await authenticatedOwner()
+    const { workspace } = await withWiki(authenticatedOwner())
     const stranger = await createAuthenticatedUser()
 
     const res = await fetch(url(workspace.id), {
@@ -41,7 +42,7 @@ describe('POST /api/workspaces/[id]/wiki/media', () => {
   })
 
   it('should reject a missing file with 422', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
 
     const res = await fetch(url(workspace.id), {
       method: 'POST',
@@ -53,7 +54,7 @@ describe('POST /api/workspaces/[id]/wiki/media', () => {
   })
 
   it('should reject an empty file with 422', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const fd = new FormData()
     fd.append('file', new File([], 'empty.png', { type: 'image/png' }))
 
@@ -69,7 +70,7 @@ describe('POST /api/workspaces/[id]/wiki/media', () => {
 
 describe('GET /api/workspaces/[id]/wiki/media', () => {
   it('should return 422 when the key query param is missing', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
 
     const res = await getJson(
       `/api/workspaces/${workspace.id}/wiki/media`,

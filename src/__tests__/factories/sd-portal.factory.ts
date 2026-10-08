@@ -43,7 +43,9 @@ export function createFakeSdPortalAccess(
     tokenHash: hashSdPortalToken('token-fake'),
     email: 'ana@acme.com.br',
     requestedById: 'u1',
-    expiresAt: new Date('2026-10-08T12:00:00.000Z'),
+    // Relative, not fixed: a fixed date turns every fake link "expired" the
+    // moment the calendar passes it (it broke CI on 2026-10-08).
+    expiresAt: new Date(Date.now() + 7 * 86_400_000),
     usedAt: null,
     sessionHash: null,
     sessionExpiresAt: null,

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { seedWikiPage } from '@/src/__tests__/factories/wiki-page.factory'
+import {
+  seedWikiPage,
+  withWiki,
+} from '@/src/__tests__/factories/wiki-page.factory'
 import {
   authenticatedOwner,
   getJson,
@@ -8,7 +11,7 @@ import {
 
 describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/archive', () => {
   it('should archive the page and drop it from the listing', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const res = await patchJson(
@@ -32,7 +35,7 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/archive', () => {
   })
 
   it('should archive the sub-pages along with the page', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
     const child = await seedWikiPage(workspace.id, user.id, {
       parentId: page.id,
@@ -58,8 +61,8 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/archive', () => {
   })
 
   it('should return 403 for a page in another workspace', async () => {
-    const { user, workspace } = await authenticatedOwner()
-    const other = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
+    const other = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(other.workspace.id, other.user.id)
 
     const res = await patchJson(

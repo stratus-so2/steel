@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { seedWikiPage } from '@/src/__tests__/factories/wiki-page.factory'
+import {
+  seedWikiPage,
+  withWiki,
+} from '@/src/__tests__/factories/wiki-page.factory'
 import {
   addMember,
   authenticatedOwner,
@@ -17,7 +20,7 @@ describe('POST /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
   })
 
   it('should return 422 when markId or content is missing', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const res = await postJson(
@@ -30,7 +33,7 @@ describe('POST /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
   })
 
   it('should create a root comment', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const res = await postJson(
@@ -48,7 +51,7 @@ describe('POST /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
   })
 
   it('should create a reply joining the parent markId and reject replying to a reply', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const root = await postJson(
@@ -80,8 +83,8 @@ describe('POST /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
   })
 
   it('should return WIKI_PAGE_FORBIDDEN for a stranger to the workspace', async () => {
-    const { workspace } = await authenticatedOwner()
-    const stranger = await (await authenticatedOwner()).user
+    const { workspace } = await withWiki(authenticatedOwner())
+    const stranger = await (await withWiki(authenticatedOwner())).user
     const page = await seedWikiPage(workspace.id, stranger.id)
 
     const res = await postJson(
@@ -96,7 +99,7 @@ describe('POST /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
 
 describe('GET /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
   it('should list comments with their authors', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     await postJson(
@@ -117,7 +120,7 @@ describe('GET /api/workspaces/[id]/wiki/[wikiPageId]/comments', () => {
   })
 
   it('should be visible to any workspace member, not just the author', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
     const member = await addMember(workspace.id)
 

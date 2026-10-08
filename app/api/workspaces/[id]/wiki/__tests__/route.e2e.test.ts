@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { seedWikiPage } from '@/src/__tests__/factories/wiki-page.factory'
+import {
+  seedWikiPage,
+  withWiki,
+} from '@/src/__tests__/factories/wiki-page.factory'
 import {
   authenticatedOwner,
   getJson,
@@ -14,7 +17,7 @@ describe('POST /api/workspaces/[id]/wiki', () => {
   })
 
   it('should create a root page with an empty title', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
 
     const res = await postJson(
       `/api/workspaces/${workspace.id}/wiki`,
@@ -30,7 +33,7 @@ describe('POST /api/workspaces/[id]/wiki', () => {
   })
 
   it('should return 422 for a title over the length limit', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
 
     const res = await postJson(
       `/api/workspaces/${workspace.id}/wiki`,
@@ -44,7 +47,7 @@ describe('POST /api/workspaces/[id]/wiki', () => {
 
 describe('GET /api/workspaces/[id]/wiki', () => {
   it('should list non-archived pages ordered by position', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     await seedWikiPage(workspace.id, user.id, { title: 'B', position: 1 })
     await seedWikiPage(workspace.id, user.id, { title: 'A', position: 0 })
 

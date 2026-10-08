@@ -5,11 +5,13 @@ import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { databaseError, forbidden } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
+import { WikiLabelRepository } from '@/src/repositories/wiki-label.repository'
 import { WikiPageRepository } from '@/src/repositories/wiki-page.repository'
 import { WikiPageService } from '../wiki-page.service'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/wiki-page.repository')
+vi.mock('@/src/repositories/wiki-label.repository')
 // The wiki is on for every case here; the off switch has its own suite.
 vi.mock('@/src/repositories/wiki-settings.repository', () => ({
   WikiSettingsRepository: {
@@ -20,6 +22,7 @@ vi.mock('@/lib/axiom/audit', () => ({ auditMutation: vi.fn() }))
 
 const mockedMembership = vi.mocked(MembershipRepository)
 const mockedWikiPage = vi.mocked(WikiPageRepository)
+const mockedLabels = vi.mocked(WikiLabelRepository)
 
 const memberMembership = createFakeMembership({
   userId: 'actor',
@@ -417,6 +420,146 @@ describe('WikiPageService', () => {
       const result = await WikiPageService.archive('actor', 'ws1', 'w1')
 
       expectErr(result, 'DATABASE_ERROR')
+    })
+  })
+
+  describe('setLabels()', () => {
+    const page = createFakeWikiPage({ id: 'w1', workspaceId: 'ws1' })
+
+    it('should replace the labels and return the page with them', async () => {
+      mockedWikiPage.findById
+        .mockResolvedValueOnce(ok(page))
+        .mockResolvedValueOnce(
+          ok({ ...page, labels: [{ labelId: 'l1' }, { labelId: 'l2' }] }),
+        )
+      mockedLabels.countInWorkspace.mockResolvedValue(ok(2))
+      mockedLabels.setPageLabels.mockResolvedValue(ok(undefined))
+
+      const result = await WikiPageService.setLabels('actor', 'ws1', 'w1', {
+        labelIds: ['l1', 'l2', 'l1'],
+      })
+
+      expect(expectOk(result).labelIds).toEqual(['l1', 'l2'])
+      expect(mockedLabels.setPageLabels).toHaveBeenCalledWith('w1', [
+        'l1',
+        'l2',
+      ])
+    })
+
+    it('should clear the labels without checking ownership', async () => {
+      mockedWikiPage.findById.mockResolvedValue(ok(page))
+      mockedLabels.setPageLabels.mockResolvedValue(ok(undefined))
+
+      expectOk(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', { labelIds: [] }),
+      )
+      expect(mockedLabels.countInWorkspace).not.toHaveBeenCalled()
+    })
+
+    it('should reject a label of another workspace', async () => {
+      mockedWikiPage.findById.mockResolvedValue(ok(page))
+      mockedLabels.countInWorkspace.mockResolvedValue(ok(0))
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', {
+          labelIds: ['foreign'],
+        }),
+        'WIKI_LABEL_NOT_FOUND',
+      )
+      expect(mockedLabels.setPageLabels).not.toHaveBeenCalled()
+    })
+
+    it('should return WIKI_PAGE_FORBIDDEN for a page of another workspace', async () => {
+      mockedWikiPage.findById.mockResolvedValue(
+        ok(createFakeWikiPage({ id: 'w1', workspaceId: 'other-ws' })),
+      )
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', { labelIds: [] }),
+        'WIKI_PAGE_FORBIDDEN',
+      )
+    })
+
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+        err(forbidden()),
+      )
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', { labelIds: [] }),
+        'FORBIDDEN',
+      )
+    })
+
+    it('should propagate the page lookup error', async () => {
+      mockedWikiPage.findById.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', { labelIds: [] }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should propagate the ownership check error', async () => {
+      mockedWikiPage.findById.mockResolvedValue(ok(page))
+      mockedLabels.countInWorkspace.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', {
+          labelIds: ['l1'],
+        }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should propagate the write error', async () => {
+      mockedWikiPage.findById.mockResolvedValue(ok(page))
+      mockedLabels.setPageLabels.mockResolvedValue(err(databaseError()))
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', { labelIds: [] }),
+        'DATABASE_ERROR',
+      )
+    })
+
+    it('should propagate the reload error', async () => {
+      mockedWikiPage.findById
+        .mockResolvedValueOnce(ok(page))
+        .mockResolvedValueOnce(err(databaseError()))
+      mockedLabels.setPageLabels.mockResolvedValue(ok(undefined))
+
+      expectErr(
+        await WikiPageService.setLabels('actor', 'ws1', 'w1', { labelIds: [] }),
+        'DATABASE_ERROR',
+      )
+    })
+  })
+
+  describe('listMentionableMembers()', () => {
+    it('should search the workspace members', async () => {
+      mockedWikiPage.listMembers.mockResolvedValue(
+        ok([{ userId: 'u1', name: 'Ana', image: null }]),
+      )
+
+      const result = await WikiPageService.listMentionableMembers(
+        'actor',
+        'ws1',
+        'an',
+      )
+
+      expect(expectOk(result)).toHaveLength(1)
+      expect(mockedWikiPage.listMembers).toHaveBeenCalledWith('ws1', 'an')
+    })
+
+    it('should return FORBIDDEN for a non-member', async () => {
+      mockedMembership.findByUserAndWorkspace.mockResolvedValue(
+        err(forbidden()),
+      )
+
+      expectErr(
+        await WikiPageService.listMentionableMembers('actor', 'ws1', ''),
+        'FORBIDDEN',
+      )
     })
   })
 })

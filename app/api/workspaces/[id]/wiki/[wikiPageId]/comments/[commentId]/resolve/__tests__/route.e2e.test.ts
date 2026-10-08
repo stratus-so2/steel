@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { seedWikiComment } from '@/src/__tests__/factories/wiki-comment.factory'
-import { seedWikiPage } from '@/src/__tests__/factories/wiki-page.factory'
+import {
+  seedWikiPage,
+  withWiki,
+} from '@/src/__tests__/factories/wiki-page.factory'
 import {
   addMember,
   authenticatedOwner,
@@ -9,7 +12,7 @@ import {
 
 describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/comments/[commentId]/resolve', () => {
   it('should let any workspace member resolve a root comment, not just its author', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
     const comment = await seedWikiComment(page.id, user.id)
     const member = await addMember(workspace.id)
@@ -27,7 +30,7 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/comments/[commentId]/reso
   })
 
   it('should reject resolving a reply directly', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
     const root = await seedWikiComment(page.id, user.id)
     const reply = await seedWikiComment(page.id, user.id, {
@@ -45,7 +48,7 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/comments/[commentId]/reso
   })
 
   it('should clear resolvedById when unresolving', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
     const comment = await seedWikiComment(page.id, user.id, {
       resolved: true,

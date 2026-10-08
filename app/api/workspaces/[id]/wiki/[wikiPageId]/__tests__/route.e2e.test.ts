@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { seedWikiPage } from '@/src/__tests__/factories/wiki-page.factory'
+import {
+  seedWikiPage,
+  withWiki,
+} from '@/src/__tests__/factories/wiki-page.factory'
 import {
   addMember,
   authenticatedOwner,
@@ -9,7 +12,7 @@ import {
 
 describe('GET /api/workspaces/[id]/wiki/[wikiPageId]', () => {
   it('should return the page for a workspace member', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id, {
       title: 'Onboarding',
     })
@@ -25,8 +28,8 @@ describe('GET /api/workspaces/[id]/wiki/[wikiPageId]', () => {
   })
 
   it('should return 403 for a page in another workspace', async () => {
-    const { user, workspace } = await authenticatedOwner()
-    const other = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
+    const other = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(other.workspace.id, other.user.id)
 
     const res = await getJson(
@@ -40,7 +43,7 @@ describe('GET /api/workspaces/[id]/wiki/[wikiPageId]', () => {
 
 describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]', () => {
   it('should let any workspace member update the page', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
     const member = await addMember(workspace.id)
 
@@ -56,7 +59,7 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]', () => {
   })
 
   it('should return 422 for content over the size limit', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const res = await patchJson(

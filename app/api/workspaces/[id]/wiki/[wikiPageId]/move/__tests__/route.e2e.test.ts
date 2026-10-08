@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { seedWikiPage } from '@/src/__tests__/factories/wiki-page.factory'
+import {
+  seedWikiPage,
+  withWiki,
+} from '@/src/__tests__/factories/wiki-page.factory'
 import { authenticatedOwner, patchJson } from '@/src/__tests__/helpers/e2e'
 
 describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/move', () => {
   it('should move a page under a new parent', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const parent = await seedWikiPage(workspace.id, user.id, {
       title: 'Parent',
     })
@@ -22,7 +25,7 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/move', () => {
   })
 
   it('should reject moving a page under itself', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const res = await patchJson(
@@ -35,7 +38,7 @@ describe('PATCH /api/workspaces/[id]/wiki/[wikiPageId]/move', () => {
   })
 
   it('should return 422 when position is missing', async () => {
-    const { user, workspace } = await authenticatedOwner()
+    const { user, workspace } = await withWiki(authenticatedOwner())
     const page = await seedWikiPage(workspace.id, user.id)
 
     const res = await patchJson(
