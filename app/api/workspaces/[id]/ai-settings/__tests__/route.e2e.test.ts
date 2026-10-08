@@ -55,6 +55,41 @@ describe('Workspace AI settings', () => {
     expect((await updated.json()).data.monthlyQuotaUsd).toBe(120)
   })
 
+  it('should let the owner set the Steel AI switches and forbid a member', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const member = await addMember(workspace.id, 'MEMBER')
+
+    const before = await getJson(
+      `/api/workspaces/${workspace.id}/ai-settings`,
+      member.cookie,
+    )
+    expect((await before.json()).data).toEqual(
+      expect.objectContaining({
+        aiEnabled: true,
+        agentsEnabled: true,
+        memoryEnabled: true,
+        autopilotEnabled: false,
+      }),
+    )
+
+    const forbidden = await patchJson(
+      `/api/workspaces/${workspace.id}/ai-settings`,
+      { autopilotEnabled: true },
+      member.cookie,
+    )
+    expect(forbidden.status).toBe(403)
+
+    const updated = await patchJson(
+      `/api/workspaces/${workspace.id}/ai-settings`,
+      { autopilotEnabled: true, memoryEnabled: false },
+      user.cookie,
+    )
+    expect(updated.status).toBe(200)
+    expect((await updated.json()).data).toEqual(
+      expect.objectContaining({ autopilotEnabled: true, memoryEnabled: false }),
+    )
+  })
+
   it('should reject an invalid payload', async () => {
     const { user, workspace } = await authenticatedOwner()
 

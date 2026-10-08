@@ -29,6 +29,14 @@ export const UpdateWorkspaceAiSettingsSchema = z.object({
     .optional(),
   /** Steel AI agent mode (write tools). Off = explore only. */
   agentModeEnabled: z.boolean().optional(),
+  /** Master switch for every Steel AI feature in the workspace. */
+  aiEnabled: z.boolean().optional(),
+  /** Steel Agents may run (schedule, events, manual). */
+  agentsEnabled: z.boolean().optional(),
+  /** Steel AI may save and use memories. */
+  memoryEnabled: z.boolean().optional(),
+  /** Autopilot mode allowed: writes run without per-action confirmation. */
+  autopilotEnabled: z.boolean().optional(),
 })
 
 export type UpdateWorkspaceAiSettingsDTO = z.infer<

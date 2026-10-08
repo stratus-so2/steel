@@ -38,6 +38,14 @@ export interface WorkspaceAiSettingsDTO {
   monthlyQuotaUsd: number
   /** Steel AI agent mode (write tools, always confirmed). Admin switch. */
   agentModeEnabled: boolean
+  /** Master switch of every Steel AI feature (admin). */
+  aiEnabled: boolean
+  /** Steel Agents may run (admin). */
+  agentsEnabled: boolean
+  /** Steel AI may save and use memories (admin). */
+  memoryEnabled: boolean
+  /** Autopilot allowed: writes run without confirmation (admin, off by default). */
+  autopilotEnabled: boolean
   usage: AiUsageSummaryDTO
   /** Modelo escolhido pelo usuário atual (`null` = segue o padrão). */
   userPreference: string | null

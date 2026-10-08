@@ -137,6 +137,16 @@ export const AiSettingsService = {
       ...(dto.agentModeEnabled !== undefined && {
         agentModeEnabled: dto.agentModeEnabled,
       }),
+      ...(dto.aiEnabled !== undefined && { aiEnabled: dto.aiEnabled }),
+      ...(dto.agentsEnabled !== undefined && {
+        agentsEnabled: dto.agentsEnabled,
+      }),
+      ...(dto.memoryEnabled !== undefined && {
+        memoryEnabled: dto.memoryEnabled,
+      }),
+      ...(dto.autopilotEnabled !== undefined && {
+        autopilotEnabled: dto.autopilotEnabled,
+      }),
     }
 
     // Só barra provedor sem chave no que está sendo alterado agora: um
@@ -180,6 +190,10 @@ export const AiSettingsService = {
       whatsappSentimentModel: next.whatsappSentimentModel,
       monthlyQuotaUsd: next.monthlyQuotaUsd,
       agentModeEnabled: next.agentModeEnabled,
+      aiEnabled: next.aiEnabled,
+      agentsEnabled: next.agentsEnabled,
+      memoryEnabled: next.memoryEnabled,
+      autopilotEnabled: next.autopilotEnabled,
     })
     if (!saved.ok) return saved
 
@@ -192,6 +206,20 @@ export const AiSettingsService = {
         enabledModels: next.enabledModels,
         monthlyQuotaUsd: next.monthlyQuotaUsd,
         agentModeEnabled: next.agentModeEnabled,
+        aiEnabled: next.aiEnabled,
+        agentsEnabled: next.agentsEnabled,
+        memoryEnabled: next.memoryEnabled,
+        autopilotEnabled: next.autopilotEnabled,
+        // Toggles flipped by this request (who turned what on or off).
+        changedSwitches: (
+          [
+            'agentModeEnabled',
+            'aiEnabled',
+            'agentsEnabled',
+            'memoryEnabled',
+            'autopilotEnabled',
+          ] as const
+        ).filter((key) => current.value[key] !== next[key]),
       },
     })
 

@@ -53,6 +53,10 @@ function settings(
     whatsappSentimentModel: 'openai:gpt-4o-mini',
     monthlyQuotaUsd: 50,
     agentModeEnabled: true,
+    aiEnabled: true,
+    agentsEnabled: true,
+    memoryEnabled: true,
+    autopilotEnabled: false,
     usage: {
       periodStart: '2026-09-01T00:00:00.000Z',
       inputTokens: 1500,
@@ -135,7 +139,56 @@ describe('<AiSettingsSection />', () => {
       whatsappSentimentModel: 'openai:gpt-4o-mini',
       monthlyQuotaUsd: 120,
       agentModeEnabled: true,
+      aiEnabled: true,
+      agentsEnabled: true,
+      memoryEnabled: true,
+      autopilotEnabled: false,
     })
+  })
+
+  it('lets an admin allow Autopilot and turn memory off, with the autopilot warning', async () => {
+    const fetchSpy = mockFetch([
+      {
+        method: 'PATCH',
+        match: URL,
+        data: settings({ autopilotEnabled: true, memoryEnabled: false }),
+      },
+      { match: URL, data: settings() },
+    ])
+    renderAs(true)
+
+    expect(
+      await screen.findByText('Autopilot executa sem pedir confirmação'),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('switch', { name: 'Permitir Autopilot' }))
+    fireEvent.click(screen.getByRole('switch', { name: 'Ativar memória' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Salvar ajustes de IA' }),
+    )
+
+    await waitFor(() =>
+      expect(fetchBody(fetchSpy, URL, 'PATCH')).toMatchObject({
+        aiEnabled: true,
+        agentsEnabled: true,
+        memoryEnabled: false,
+        autopilotEnabled: true,
+      }),
+    )
+  })
+
+  it('disables the Steel AI feature switches while Steel AI is off', async () => {
+    mockFetch([{ match: URL, data: settings({ aiEnabled: false }) }])
+    renderAs(true)
+
+    const master = await screen.findByRole('switch', {
+      name: 'Ativar Steel AI',
+    })
+    expect(master.getAttribute('aria-checked')).toBe('false')
+    expect(
+      screen
+        .getByRole('switch', { name: 'Ativar agentes' })
+        .hasAttribute('data-disabled'),
+    ).toBe(true)
   })
 
   it('lets an admin turn the Steel AI agent mode off', async () => {

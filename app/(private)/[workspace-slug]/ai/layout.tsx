@@ -8,7 +8,7 @@ import {
   ContextPrimaryAction,
   ContextSidebar,
 } from '@/app/_components/navigation/sidebar-context'
-import { SteelAgentsNavLink } from '@/app/_components/steel-agents/steel-agents-nav-link'
+import { SteelAiAreaNav } from '@/app/_components/steel-ai/steel-ai-area-nav'
 import { SteelAiProvider } from '@/app/_components/steel-ai/steel-ai-context'
 import { SteelAiHistory } from '@/app/_components/steel-ai/steel-ai-history'
 import { SteelIcon } from '@/components/icon/icon'
@@ -58,7 +58,7 @@ export default async function AiLayout({
             }
           />
           <div className='-mt-2'>
-            <SteelAgentsNavLink slug={slug} />
+            <SteelAiAreaNav slug={slug} />
           </div>
           <SteelAiHistory />
         </ContextSidebar>

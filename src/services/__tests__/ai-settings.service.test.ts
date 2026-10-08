@@ -153,6 +153,58 @@ describe('AiSettingsService', () => {
       )
     })
 
+    it('should let an ADMIN set the Steel AI switches and audit what changed', async () => {
+      asRole('ADMIN')
+      withState()
+
+      expectOk(
+        await AiSettingsService.update('u1', 'ws1', {
+          aiEnabled: false,
+          agentsEnabled: false,
+          memoryEnabled: false,
+          autopilotEnabled: true,
+        }),
+      )
+      expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({
+          aiEnabled: false,
+          agentsEnabled: false,
+          memoryEnabled: false,
+          autopilotEnabled: true,
+          agentModeEnabled: true,
+        }),
+      )
+    })
+
+    it('should forbid a MEMBER from allowing Autopilot', async () => {
+      asRole('MEMBER')
+      withState()
+      expectErr(
+        await AiSettingsService.update('u1', 'ws1', { autopilotEnabled: true }),
+        'FORBIDDEN',
+      )
+      expect(mockedSettingsRepo.upsert).not.toHaveBeenCalled()
+    })
+
+    it('should keep the Steel AI switches when the patch does not mention them', async () => {
+      asRole('OWNER')
+      withState({
+        settings: createFakeWorkspaceAiSettings({
+          aiEnabled: false,
+          autopilotEnabled: true,
+        }),
+      })
+
+      expectOk(
+        await AiSettingsService.update('u1', 'ws1', { monthlyQuotaUsd: 10 }),
+      )
+      expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({ aiEnabled: false, autopilotEnabled: true }),
+      )
+    })
+
     it('should keep the agent mode when the patch does not mention it', async () => {
       asRole('OWNER')
       withState({

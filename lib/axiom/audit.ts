@@ -156,6 +156,8 @@ export type AuditEntity =
   | 'steel_agent_run'
   // Steel AI 2 — files and photos sent to the assistant
   | 'ai_attachment'
+  // Steel AI usage — CSV export of the AI ledger (may carry members' e-mails)
+  | 'ai_usage'
 
 export type AuditAction =
   | 'create'
