@@ -1,0 +1,5 @@
+# False positives: shortcut key combos in the registry (`keys: 'mod+shift+enter'`)
+# read as generic API keys. The source now writes long combos as arrays.
+ddc321be85c8da815bcadeb0caa48020ae746de3:src/lib/shortcuts/registry.ts:generic-api-key:504
+ddc321be85c8da815bcadeb0caa48020ae746de3:src/lib/shortcuts/registry.ts:generic-api-key:909
+ddc321be85c8da815bcadeb0caa48020ae746de3:src/lib/shortcuts/registry.ts:generic-api-key:1014

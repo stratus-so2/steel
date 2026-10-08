@@ -494,7 +494,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'kanban.next-column',
-    keys: 'arrowright',
+    keys: ['arrowright'],
     scope: 'kanban',
     group: 'kanban',
     label: 'Coluna seguinte',
@@ -502,7 +502,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'kanban.move-left',
-    keys: 'shift+arrowleft',
+    keys: ['shift+arrowleft'],
     scope: 'kanban',
     group: 'kanban',
     label: 'Mover o card para a etapa anterior',
@@ -510,7 +510,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'kanban.move-right',
-    keys: 'shift+arrowright',
+    keys: ['shift+arrowright'],
     scope: 'kanban',
     group: 'kanban',
     label: 'Mover o card para a etapa seguinte',
@@ -880,7 +880,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   // ── Comunicação ─────────────────────────────────────────────────────────
   {
     id: 'zap.next',
-    keys: 'alt+arrowdown',
+    keys: ['alt+arrowdown'],
     scope: 'zap',
     group: 'zap',
     label: 'Próxima conversa',
@@ -890,7 +890,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'zap.prev',
-    keys: 'alt+arrowup',
+    keys: ['alt+arrowup'],
     scope: 'zap',
     group: 'zap',
     label: 'Conversa anterior',
@@ -899,7 +899,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'zap.next-unread',
-    keys: 'alt+shift+arrowdown',
+    keys: ['alt+shift+arrowdown'],
     scope: 'zap',
     group: 'zap',
     label: 'Próxima conversa não lida',
@@ -976,7 +976,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   // ── Steel AI ────────────────────────────────────────────────────────────
   {
     id: 'ai.new-chat',
-    keys: 'mod+shift+o',
+    keys: ['mod+shift+o'],
     scope: 'ai',
     group: 'ai',
     label: 'Novo chat',
@@ -1004,7 +1004,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'ai.approve',
-    keys: 'mod+shift+enter',
+    keys: ['mod+shift+enter'],
     scope: 'ai',
     group: 'ai',
     label: 'Aprovar a ação pendente mais recente',
@@ -1024,7 +1024,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'composer.newline',
-    keys: 'shift+enter',
+    keys: ['shift+enter'],
     scope: 'editor',
     group: 'editor',
     label: 'Quebrar a linha na mensagem',
@@ -1064,7 +1064,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'editor.strike',
-    keys: 'mod+shift+x',
+    keys: ['mod+shift+x'],
     scope: 'editor',
     group: 'editor',
     label: 'Tachado',
@@ -1106,7 +1106,7 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
   },
   {
     id: 'editor.redo',
-    keys: 'mod+shift+z',
+    keys: ['mod+shift+z'],
     scope: 'editor',
     group: 'editor',
     label: 'Refazer',
