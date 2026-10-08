@@ -13,9 +13,20 @@ import { UsageRollupJob } from '../jobs'
  */
 export const USAGE_ROLLUP_DAYS = 7
 
-export async function processUsageRollup(
+/**
+ * BullMQ calls a processor as `(job, lockToken)`, so the clock can't be an
+ * optional second parameter of the registered function: it received the
+ * token string and every tick died with `now.getTime is not a function`.
+ */
+export function processUsageRollup(
   job: Job,
-  now: Date = new Date(),
+): Promise<{ days: number; rows: number }> {
+  return runUsageRollup(job, new Date())
+}
+
+export async function runUsageRollup(
+  job: Job,
+  now: Date,
 ): Promise<{ days: number; rows: number }> {
   switch (job.name) {
     case UsageRollupJob.RollupModuleUsage: {

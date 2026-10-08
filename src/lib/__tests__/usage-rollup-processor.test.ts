@@ -13,6 +13,7 @@ vi.mock('@/src/lib/usage/module-usage', async (importOriginal) => {
 import { UsageRollupJob } from '@/src/lib/queue/jobs'
 import {
   processUsageRollup,
+  runUsageRollup,
   USAGE_ROLLUP_DAYS,
 } from '@/src/lib/queue/processors/usage-rollup'
 import { readModuleUsageDay } from '@/src/lib/usage/module-usage'
@@ -30,14 +31,14 @@ const counter = {
   mutations: 1,
 }
 
-describe('processUsageRollup()', () => {
+describe('runUsageRollup()', () => {
   it('writes each recent day that has counters in Redis', async () => {
     mockedRead.mockImplementation(async (day) =>
       day === '2026-09-18' || day === '2026-09-17' ? [counter] : [],
     )
     mockedRepo.upsertDay.mockResolvedValue(ok(1))
 
-    const result = await processUsageRollup(
+    const result = await runUsageRollup(
       job(UsageRollupJob.RollupModuleUsage),
       NOW,
     )
@@ -53,19 +54,46 @@ describe('processUsageRollup()', () => {
     mockedRepo.upsertDay.mockResolvedValue(err(databaseError('boom')))
 
     await expect(
-      processUsageRollup(job(UsageRollupJob.RollupModuleUsage), NOW),
+      runUsageRollup(job(UsageRollupJob.RollupModuleUsage), NOW),
     ).rejects.toThrow(/usage rollup failed/)
   })
 
   it('rejects unknown job names', async () => {
-    await expect(processUsageRollup(job('nope'), NOW)).rejects.toThrow(
+    await expect(runUsageRollup(job('nope'), NOW)).rejects.toThrow(
       /Unknown usage-rollup job/,
     )
   })
 
   it('falls back to an unknown id in the error when the job has none', async () => {
     await expect(
-      processUsageRollup({ name: 'nope', data: {} } as unknown as Job, NOW),
+      runUsageRollup({ name: 'nope', data: {} } as unknown as Job, NOW),
     ).rejects.toThrow('Unknown usage-rollup job: nope (id=unknown)')
+  })
+})
+
+describe('processUsageRollup()', () => {
+  it('runs with the current clock when BullMQ passes the lock token as the second argument', async () => {
+    vi.useFakeTimers({ now: NOW })
+    try {
+      mockedRead.mockImplementation(async (day) =>
+        day === '2026-09-18' ? [counter] : [],
+      )
+      mockedRepo.upsertDay.mockResolvedValue(ok(1))
+      // The worker calls `processor(job, token)`; the token is a string.
+      const asWorkerCalls = processUsageRollup as unknown as (
+        job: Job,
+        token: string,
+      ) => Promise<unknown>
+
+      const result = await asWorkerCalls(
+        job(UsageRollupJob.RollupModuleUsage),
+        'lock-token-123',
+      )
+
+      expect(mockedRepo.upsertDay).toHaveBeenCalledWith('2026-09-18', [counter])
+      expect(result).toEqual({ days: USAGE_ROLLUP_DAYS, rows: 1 })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
