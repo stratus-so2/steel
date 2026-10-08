@@ -290,7 +290,7 @@ function setup(
 
 async function send(input: {
   content: string
-  mode?: 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
+  mode?: 'EXPLORE' | 'AGENT' | 'AUTOPILOT' | 'TEST'
   modelKey?: string
   attachmentIds?: string[]
 }) {
@@ -1614,5 +1614,134 @@ describe('SteelAiChatService.sendMessage() — memory tools', () => {
     >
     expect(end.call.status).toBe('error')
     expect(memoryService.saveFromModel).not.toHaveBeenCalled()
+  })
+})
+
+describe('SteelAiChatService.sendMessage() — TEST (Teste) mode', () => {
+  it('should never call execute on a write, nor propose or send anything', async () => {
+    const fake = setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [
+              call('r1', 'sd_list_tickets', {}),
+              call('c1', 'sd_create_ticket', { title: 'Impressora' }),
+            ],
+          },
+        },
+        {
+          deltas: ['Eu criaria o chamado.'],
+          response: { text: 'Eu criaria o chamado.' },
+        },
+      ],
+      conversationOverrides: { title: 'x' },
+    })
+    // Agent mode off: TEST does not depend on it.
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, agentModeEnabled: false }))
+    writePreview.mockResolvedValue(
+      ok({ title: 'Criar chamado “Impressora”', summary: 'Novo incidente' }),
+    )
+
+    const events = await send({ content: 'Abra um chamado', mode: 'TEST' })
+
+    expect(writeTool.execute).not.toHaveBeenCalled()
+    expect(readExecute).toHaveBeenCalled()
+    expect(pendingRepo.create).not.toHaveBeenCalled()
+    expect(types(events)).not.toContain('action.pending')
+    expect(types(events)).not.toContain('action.executed')
+    expect(fake.requests[0].system).toContain('Modo atual: TESTE')
+    // Not stopped after the write: the model continues its plan.
+    expect(fake.requests[1].toolChoice).toBe('auto')
+    expect(conversations.update).toHaveBeenCalledWith('conv1', {
+      mode: 'TEST',
+    })
+
+    const ends = events.filter(
+      (e): e is Extract<SteelAiStreamEvent, { type: 'tool.end' }> =>
+        e.type === 'tool.end',
+    )
+    expect(ends[1].call).toEqual(
+      expect.objectContaining({
+        status: 'simulated',
+        summary: 'Criar chamado “Impressora”',
+        simulation: {
+          kind: 'CREATE',
+          preview: {
+            title: 'Criar chamado “Impressora”',
+            summary: 'Novo incidente',
+          },
+        },
+      }),
+    )
+    const toolRow = messages.createMany.mock.calls[1][0][2]
+    expect(JSON.parse(toolRow.content)).toEqual(
+      expect.objectContaining({ status: 'simulated' }),
+    )
+    expect(actionLogs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'ASSISTANT',
+        actorId: 'u1',
+        outcome: 'simulated',
+        toolName: 'sd_create_ticket',
+      }),
+    )
+    // Real model usage is still billed.
+    expect(aiUsage.record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        scope: expect.objectContaining({ module: 'SERVICE_DESK' }),
+      }),
+    )
+    expect(endOf(events).message.pendingActions).toEqual([])
+  })
+
+  it('should simulate memory tools instead of saving', async () => {
+    setup({
+      rounds: [
+        {
+          response: {
+            toolCalls: [
+              call('m1', 'memory_save', { content: 'Ana prefere tabelas' }),
+            ],
+          },
+        },
+        { response: { text: 'Salvaria isso na memória.' } },
+      ],
+      conversationOverrides: { mode: 'TEST', title: 'x' },
+    })
+    mockedAccess.mockResolvedValue(ok({ ...ACCESS, memoryEnabled: true }))
+
+    const events = await send({ content: 'Lembre que prefiro tabelas' })
+
+    expect(vi.mocked(AiMemoryService).saveFromModel).not.toHaveBeenCalled()
+    const end = events.find(
+      (e): e is Extract<SteelAiStreamEvent, { type: 'tool.end' }> =>
+        e.type === 'tool.end',
+    )
+    expect(end?.call.status).toBe('simulated')
+    expect(end?.call.memory).toBeUndefined()
+    expect(end?.call.simulation?.preview.title).toBe('Salvar na memória')
+  })
+
+  it('should report a write whose preview fails as an error, still without executing', async () => {
+    setup({
+      rounds: [
+        { response: { toolCalls: [call('c1', 'sd_create_ticket', {})] } },
+        { response: { text: 'Não daria certo.' } },
+      ],
+      conversationOverrides: { mode: 'TEST', title: 'x' },
+    })
+    writePreview.mockResolvedValue(err(validationError('Título obrigatório')))
+
+    const events = await send({ content: 'Abra um chamado' })
+
+    expect(writeTool.execute).not.toHaveBeenCalled()
+    const end = events.find(
+      (e): e is Extract<SteelAiStreamEvent, { type: 'tool.end' }> =>
+        e.type === 'tool.end',
+    )
+    expect(end?.call.status).toBe('error')
+    expect(end?.call.summary).toBe('Título obrigatório')
+    expect(actionLogs.create).not.toHaveBeenCalled()
   })
 })

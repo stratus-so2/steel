@@ -396,6 +396,9 @@ describe('AiConversationService — Steel AI 2 switches and model', () => {
     })
     expectErr(checkSteelAiMode(off, 'AGENT'), 'AI_AGENT_MODE_DISABLED')
     expectErr(checkSteelAiMode(off, 'AUTOPILOT'), 'AI_AGENT_MODE_DISABLED')
+    // Teste never writes: allowed with the agent mode off.
+    expectOk(checkSteelAiMode(off, 'TEST'))
+    expectOk(checkSteelAiMode(null, 'TEST'))
     expectOk(
       checkSteelAiMode(
         createFakeWorkspaceAiSettings({ autopilotEnabled: true }),

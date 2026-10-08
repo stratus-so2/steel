@@ -876,3 +876,122 @@ describe('executeSteelAgentRun — lifecycle', () => {
     )
   })
 })
+
+describe('executeSteelAgentRun — test runs ("Testar agente")', () => {
+  const TOOLS = [
+    { toolName: 'sd_list_tickets', mode: 'APPROVAL' as const },
+    { toolName: 'crm_create_task', mode: 'AUTO' as const },
+    { toolName: 'crm_delete_task', mode: 'APPROVAL' as const },
+  ]
+
+  it('should simulate AUTO and APPROVAL writes and never execute them', async () => {
+    setup({
+      run: { isTest: true, startedById: 'tester1' },
+      tools: TOOLS,
+      rounds: [
+        {
+          toolCalls: [
+            call('sd_list_tickets'),
+            call('crm_create_task', { title: 'Ligar' }),
+            call('crm_delete_task', { id: 'task9' }),
+          ],
+        },
+        { text: 'Eu criaria uma tarefa e excluiria outra.' },
+      ],
+    })
+
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('succeeded')
+
+    expect(readExecute).toHaveBeenCalled()
+    expect(createExecute).not.toHaveBeenCalled()
+    expect(deleteExecute).not.toHaveBeenCalled()
+    expect(pending.create).not.toHaveBeenCalled()
+    expect(notifyAgentApprovalRequested).not.toHaveBeenCalled()
+    expect(steps.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'TOOL',
+        toolName: 'crm_create_task',
+        status: 'SIMULATED',
+        output: {
+          title: 'Criar tarefa “Ligar”',
+          simulation: {
+            kind: 'CREATE',
+            preview: { title: 'Criar tarefa “Ligar”', summary: 'Ligar' },
+          },
+        },
+      }),
+    )
+    expect(steps.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolName: 'crm_delete_task',
+        status: 'SIMULATED',
+      }),
+    )
+    expect(logs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: 'AGENT',
+        agentId: 'agent1',
+        actorId: 'tester1',
+        outcome: 'simulated',
+      }),
+    )
+    expect(lastUpdate()).toEqual(
+      expect.objectContaining({
+        status: 'SUCCEEDED',
+        summary: 'Eu criaria uma tarefa e excluiria outra.',
+      }),
+    )
+    expect(usage.record).toHaveBeenCalled()
+  })
+
+  it('should record a failed simulation as a FAILED step', async () => {
+    setup({
+      run: { isTest: true },
+      tools: TOOLS,
+      rounds: [{ toolCalls: [call('crm_create_task')] }, { text: 'Ok.' }],
+    })
+    const original = createTool.preview
+    createTool.preview = async () => err(validationError('Sem título'))
+    try {
+      expect(expectOk(await executeSteelAgentRun('run1'))).toBe('succeeded')
+    } finally {
+      createTool.preview = original
+    }
+    expect(steps.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolName: 'crm_create_task',
+        status: 'FAILED',
+        error: 'Sem título',
+      }),
+    )
+    expect(createExecute).not.toHaveBeenCalled()
+  })
+
+  it('should run a paused agent, with the agent mode off and over the monthly cap', async () => {
+    setup({
+      run: { isTest: true },
+      agent: { enabled: false, monthlyRunCap: 1 },
+      tools: TOOLS,
+      rounds: [{ text: 'Nada a fazer.' }],
+    })
+    access.mockResolvedValue(ok({ ...ACCESS, agentModeEnabled: false }))
+    runs.countSince.mockResolvedValue(ok(5))
+
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('succeeded')
+    expect(runs.countSince).not.toHaveBeenCalled()
+  })
+
+  it('should not notify anyone when a test run fails', async () => {
+    setup({
+      run: { isTest: true },
+      rounds: [new Error('provider down')],
+    })
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('failed')
+    expect(notifyAgentRunFailed).not.toHaveBeenCalled()
+
+    setup({ run: { isTest: true } })
+    access.mockResolvedValue(err(databaseError('db down')))
+    expect(expectOk(await executeSteelAgentRun('run1'))).toBe('failed')
+    expect(notifyAgentRunFailed).not.toHaveBeenCalled()
+  })
+})

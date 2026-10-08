@@ -180,6 +180,7 @@ export async function seedSteelAgentRun(data: {
   status?: SteelAgentRun['status']
   triggerType?: SteelAgentRun['triggerType']
   createdAt?: Date
+  isTest?: boolean
 }) {
   return prisma.steelAgentRun.create({
     data: { triggerType: 'MANUAL', ...data },
