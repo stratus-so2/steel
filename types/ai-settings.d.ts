@@ -46,6 +46,8 @@ export interface WorkspaceAiSettingsDTO {
   memoryEnabled: boolean
   /** Autopilot allowed: writes run without confirmation (admin, off by default). */
   autopilotEnabled: boolean
+  /** Weekly usage summary e-mailed to the owners (admin, on by default). */
+  usageWeeklyEmailEnabled: boolean
   usage: AiUsageSummaryDTO
   /** Modelo escolhido pelo usuário atual (`null` = segue o padrão). */
   userPreference: string | null

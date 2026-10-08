@@ -3640,6 +3640,8 @@ model WorkspaceAiSettings {
   memoryEnabled          Boolean  @default(true) @map("memory_enabled")
   /// AUTOPILOT mode allowed: writes run without per-action confirmation.
   autopilotEnabled       Boolean  @default(false) @map("autopilot_enabled")
+  /// Weekly Steel AI usage summary e-mailed to the OWNERs (Mondays).
+  usageWeeklyEmailEnabled Boolean @default(true) @map("usage_weekly_email_enabled")
   createdAt              DateTime @default(now()) @map("created_at")
   updatedAt              DateTime @updatedAt @map("updated_at")
 

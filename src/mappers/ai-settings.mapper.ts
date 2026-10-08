@@ -31,6 +31,8 @@ export interface EffectiveAiSettings {
   memoryEnabled: boolean
   /** Autopilot (writes without confirmation); off by default. */
   autopilotEnabled: boolean
+  /** Weekly usage summary e-mailed to the owners; on by default. */
+  usageWeeklyEmailEnabled: boolean
 }
 
 function modelOrDefault(key: string): AiModelKey {
@@ -52,6 +54,7 @@ export function toEffectiveAiSettings(
       agentsEnabled: true,
       memoryEnabled: true,
       autopilotEnabled: false,
+      usageWeeklyEmailEnabled: true,
     }
   }
   return {
@@ -66,6 +69,7 @@ export function toEffectiveAiSettings(
     agentsEnabled: row.agentsEnabled,
     memoryEnabled: row.memoryEnabled,
     autopilotEnabled: row.autopilotEnabled,
+    usageWeeklyEmailEnabled: row.usageWeeklyEmailEnabled,
   }
 }
 
@@ -113,6 +117,7 @@ export function toWorkspaceAiSettingsDTO(input: {
     agentsEnabled: settings.agentsEnabled,
     memoryEnabled: settings.memoryEnabled,
     autopilotEnabled: settings.autopilotEnabled,
+    usageWeeklyEmailEnabled: settings.usageWeeklyEmailEnabled,
     usage: {
       periodStart: input.periodStart.toISOString(),
       inputTokens: usage.inputTokens,

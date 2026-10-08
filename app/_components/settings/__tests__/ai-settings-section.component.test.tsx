@@ -57,6 +57,7 @@ function settings(
     agentsEnabled: true,
     memoryEnabled: true,
     autopilotEnabled: false,
+    usageWeeklyEmailEnabled: true,
     usage: {
       periodStart: '2026-09-01T00:00:00.000Z',
       inputTokens: 1500,
@@ -143,7 +144,52 @@ describe('<AiSettingsSection />', () => {
       agentsEnabled: true,
       memoryEnabled: true,
       autopilotEnabled: false,
+      usageWeeklyEmailEnabled: true,
     })
+  })
+
+  it('lets an admin turn the weekly usage e-mail off', async () => {
+    const fetchSpy = mockFetch([
+      {
+        method: 'PATCH',
+        match: URL,
+        data: settings({ usageWeeklyEmailEnabled: false }),
+      },
+      { match: URL, data: settings() },
+    ])
+    renderAs(true)
+
+    const toggle = await screen.findByRole('switch', {
+      name: 'Resumo semanal de consumo por e-mail',
+    })
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(screen.getByText(/Toda segunda-feira, às 08:00/)).toBeTruthy()
+    fireEvent.click(toggle)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Salvar ajustes de IA' }),
+    )
+
+    await waitFor(() =>
+      expect(fetchBody(fetchSpy, URL, 'PATCH')).toMatchObject({
+        usageWeeklyEmailEnabled: false,
+      }),
+    )
+  })
+
+  it('shows the weekly e-mail switch off and locked while Steel AI is off', async () => {
+    mockFetch([
+      {
+        match: URL,
+        data: settings({ aiEnabled: false, usageWeeklyEmailEnabled: false }),
+      },
+    ])
+    renderAs(true)
+
+    const toggle = await screen.findByRole('switch', {
+      name: 'Resumo semanal de consumo por e-mail',
+    })
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
+    expect(toggle.hasAttribute('data-disabled')).toBe(true)
   })
 
   it('lets an admin allow Autopilot and turn memory off, with the autopilot warning', async () => {

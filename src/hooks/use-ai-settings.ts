@@ -16,6 +16,7 @@ export interface UpdateAiSettingsInput {
   agentsEnabled?: boolean
   memoryEnabled?: boolean
   autopilotEnabled?: boolean
+  usageWeeklyEmailEnabled?: boolean
 }
 
 export function useAiSettings(workspaceId: string) {

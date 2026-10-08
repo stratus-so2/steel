@@ -76,6 +76,7 @@ interface FormState {
   agentsEnabled: boolean
   memoryEnabled: boolean
   autopilotEnabled: boolean
+  usageWeeklyEmailEnabled: boolean
 }
 
 type SwitchField =
@@ -83,6 +84,7 @@ type SwitchField =
   | 'agentsEnabled'
   | 'memoryEnabled'
   | 'autopilotEnabled'
+  | 'usageWeeklyEmailEnabled'
 
 const SWITCHES: { field: SwitchField; label: string; hint: string }[] = [
   {
@@ -105,6 +107,11 @@ const SWITCHES: { field: SwitchField; label: string; hint: string }[] = [
     label: 'Permitir Autopilot',
     hint: 'Libera o modo Autopilot nas conversas. Desligado por padrão.',
   },
+  {
+    field: 'usageWeeklyEmailEnabled',
+    label: 'Resumo semanal de consumo por e-mail',
+    hint: 'Toda segunda-feira, às 08:00 (Brasília), os donos do espaço de trabalho recebem o gasto de IA da semana anterior, o andamento da cota e a projeção do mês.',
+  },
 ]
 
 function toForm(settings: WorkspaceAiSettingsDTO): FormState {
@@ -119,6 +126,7 @@ function toForm(settings: WorkspaceAiSettingsDTO): FormState {
     agentsEnabled: settings.agentsEnabled,
     memoryEnabled: settings.memoryEnabled,
     autopilotEnabled: settings.autopilotEnabled,
+    usageWeeklyEmailEnabled: settings.usageWeeklyEmailEnabled,
   }
 }
 
@@ -320,6 +328,7 @@ function AdminForm({
         agentsEnabled: form.agentsEnabled,
         memoryEnabled: form.memoryEnabled,
         autopilotEnabled: form.autopilotEnabled,
+        usageWeeklyEmailEnabled: form.usageWeeklyEmailEnabled,
       },
       {
         onSuccess: () => notify.success('Ajustes de IA salvos'),
