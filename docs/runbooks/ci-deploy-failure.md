@@ -21,6 +21,7 @@ Abra a execução com ❌ e veja qual job falhou:
 | Job | Significa | O que fazer |
 | --- | --------- | ----------- |
 | Lint & Type Check / Unit / Integration / E2E / Build | problema no código do commit | [passo 2](#2-ci-vermelho-por-código) |
+| Docker Image Build | o código builda no CI mas não dentro da imagem (sem `.env`, `SKIP_ENV_VALIDATION=true`): em geral código de topo de módulo que lê env ou rede na importação. É o mesmo build que o CD faz, então corrigir aqui evita deploy quebrado | [passo 2](#2-ci-vermelho-por-código) |
 | Security (audit, Snyk, Semgrep, Gitleaks) | dependência vulnerável ou segredo no código | [passo 2](#2-ci-vermelho-por-código); segredo vazado = **rotacionar o segredo** além de remover |
 | Qualquer job com erro de rede, timeout, `docker pull` falhando, runner sem espaço | falha de infraestrutura, não de código | **Re-run failed jobs** (botão no canto superior direito). Se repetir, abra incidente |
 | CD → Run Database Migrations | migration não aplicou | [passo 3](#3-cd-falhou) |

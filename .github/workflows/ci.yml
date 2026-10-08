@@ -650,6 +650,48 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # O CD constrói a imagem num ambiente diferente do job `build`: sem `.env`,
+  # sem BETTER_AUTH_URL, com SKIP_ENV_VALIDATION e o Dockerfile inteiro. Um
+  # erro que só aparece ali (ex.: código de topo de módulo lendo env em
+  # 2026.10.06) passava pelo CI verde e só quebrava o deploy. Este job builda
+  # a mesma imagem, sem push e sem upload de source map do Sentry, para que o
+  # gate pegue a falha antes do CD.
+  docker-build:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      # Só leitura do cache de camadas que o CD publica; o CI nunca escreve nele.
+      - name: Log in to Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+        with:
+          context: .
+          push: false
+          tags: steel-ci:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:buildcache
+          build-args: |
+            NODE_BUILD_MEMORY=6144
+          secrets: |
+            hugeicons_token=${{ secrets.HUGEICONS_TOKEN }}
+
   gate:
     name: CI Gate
     needs:
@@ -659,6 +701,7 @@ jobs:
       - e2e-tests
       - coverage-tests
       - build
+      - docker-build
       - audit
       - semgrep
       - gitleaks
