@@ -16,6 +16,7 @@ import {
   type ShortcutBinding,
   ShortcutMatcher,
 } from '@/src/lib/shortcuts/matcher'
+import type { QuickSendMode } from '@/src/lib/shortcuts/quick-send'
 import {
   getShortcut,
   type ShortcutDefinition,
@@ -40,6 +41,8 @@ type Registration = {
 type ShortcutsApi = {
   isMac: boolean
   singleKeyEnabled: boolean
+  /** User preference "Envio rápido" for the composers. */
+  quickSendMode: QuickSendMode
   register: (registration: Omit<Registration, 'key' | 'order'>) => () => void
   /** Ids with an enabled binding mounted now (the "Nesta tela" tab). */
   activeIds: () => Set<string>
@@ -93,11 +96,14 @@ export function topOverlay(doc: Document = document): Element | null {
 export function ShortcutsProvider({
   children,
   singleKeyEnabled = true,
+  quickSendMode = 'ENTER',
   isMac: forcedMac,
 }: {
   children: ReactNode
   /** User preference "Atalhos de uma tecla". */
   singleKeyEnabled?: boolean
+  /** User preference "Envio rápido". */
+  quickSendMode?: QuickSendMode
   /** Tests only: skip the platform detection. */
   isMac?: boolean
 }) {
@@ -179,12 +185,20 @@ export function ShortcutsProvider({
     () => ({
       isMac,
       singleKeyEnabled,
+      quickSendMode,
       register,
       activeIds,
       cheatSheetOpen,
       setCheatSheetOpen,
     }),
-    [isMac, singleKeyEnabled, register, activeIds, cheatSheetOpen],
+    [
+      isMac,
+      singleKeyEnabled,
+      quickSendMode,
+      register,
+      activeIds,
+      cheatSheetOpen,
+    ],
   )
 
   return (

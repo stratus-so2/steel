@@ -16,6 +16,8 @@ export type GlobalNavItem = {
   icon: IconType
   /** Draws a divider before this item (modules vs. workspace tools). */
   separated?: boolean
+  /** Registry id of its "go to" shortcut (`G → S`), shown in the tooltip. */
+  shortcut?: string
 }
 
 /**
@@ -28,9 +30,24 @@ export function globalNavItems(
 ): GlobalNavItem[] {
   const base = `/${slug}`
   return [
-    { href: `${base}/servicedesk`, label: 'ServiceDesk', icon: Ticket01Icon },
-    { href: `${base}/crm`, label: 'CRM', icon: UserGroupIcon },
-    { href: `${base}/zap`, label: 'Comunicação', icon: WhatsappBusinessIcon },
+    {
+      href: `${base}/servicedesk`,
+      label: 'ServiceDesk',
+      icon: Ticket01Icon,
+      shortcut: 'nav.servicedesk',
+    },
+    {
+      href: `${base}/crm`,
+      label: 'CRM',
+      icon: UserGroupIcon,
+      shortcut: 'nav.crm',
+    },
+    {
+      href: `${base}/zap`,
+      label: 'Comunicação',
+      icon: WhatsappBusinessIcon,
+      shortcut: 'nav.zap',
+    },
     // Only once an OWNER/ADMIN turns it on in Ajustes > Wiki.
     ...(wikiEnabled
       ? [
@@ -39,6 +56,7 @@ export function globalNavItems(
             label: 'Wiki',
             icon: BookOpen01Icon,
             separated: true,
+            shortcut: 'nav.wiki',
           },
         ]
       : []),
@@ -47,8 +65,14 @@ export function globalNavItems(
       label: 'Steel AI',
       icon: AiMagicIcon,
       separated: !wikiEnabled,
+      shortcut: 'nav.ai',
     },
-    { href: `${base}/settings`, label: 'Ajustes', icon: Settings02Icon },
+    {
+      href: `${base}/settings`,
+      label: 'Ajustes',
+      icon: Settings02Icon,
+      shortcut: 'nav.settings',
+    },
   ]
 }
 

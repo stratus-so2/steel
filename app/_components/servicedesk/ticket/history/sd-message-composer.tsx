@@ -15,6 +15,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { useQuickSend } from '@/app/_components/shortcuts/use-quick-send'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -115,6 +116,7 @@ export function SdMessageComposer({
   disabledReason?: string
 }) {
   const isAgent = mode === 'agent'
+  const quickSend = useQuickSend()
   const [text, setText] = useState('')
   const [visibility, setVisibility] = useState<SdMessageVisibilityDTO>('PUBLIC')
   const [pending, setPending] = useState<PendingFile[]>([])
@@ -279,6 +281,7 @@ export function SdMessageComposer({
               size='xs'
               role='radio'
               aria-checked={visibility === 'PUBLIC'}
+              data-sd-visibility='PUBLIC'
               onClick={() => setVisibility('PUBLIC')}
               className={cn(
                 'h-6 px-1.5 font-normal text-xs hover:bg-transparent',
@@ -295,6 +298,7 @@ export function SdMessageComposer({
               size='xs'
               role='radio'
               aria-checked={visibility === 'INTERNAL'}
+              data-sd-visibility='INTERNAL'
               onClick={() => setVisibility('INTERNAL')}
               className={cn(
                 'h-6 px-1.5 font-normal text-xs hover:bg-transparent',
@@ -394,13 +398,21 @@ export function SdMessageComposer({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onPaste={onPaste}
+            data-composer
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              // Enter picks the highlighted canned reply in the `/` menu.
+              if (
+                e.key === 'Enter' &&
+                !e.shiftKey &&
+                slashQuery !== null &&
+                slashMatches[0]
+              ) {
                 e.preventDefault()
-                if (slashQuery !== null && slashMatches[0]) {
-                  applyCanned(slashMatches[0])
-                  return
-                }
+                applyCanned(slashMatches[0])
+                return
+              }
+              if (quickSend.isSend(e)) {
+                e.preventDefault()
                 void submit()
               }
             }}
@@ -509,7 +521,7 @@ export function SdMessageComposer({
           ) : null}
 
           <span className='ml-auto hidden text-[11px] text-muted-foreground sm:inline'>
-            Enter envia · Shift+Enter quebra linha
+            {quickSend.hint}
           </span>
           <Button
             type='button'

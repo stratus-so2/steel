@@ -7,6 +7,7 @@ import {
   StopIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { type CSSProperties, type Ref, useId, useRef, useState } from 'react'
+import { useQuickSend } from '@/app/_components/shortcuts/use-quick-send'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -49,7 +50,8 @@ export interface SteelAiComposerModel {
  * Prompt box shared by the welcome and the chat screens: a single-border
  * card with an auto-growing textarea, attachments (button, paste and
  * drag-and-drop), Ask | Build | Autopilot, the model picker and send/stop.
- * Enter sends, Shift+Enter breaks the line. With `skills`, typing "/" opens
+ * Enter (or Ctrl+Enter, per the "Envio rápido" preference) sends; the
+ * other combination breaks the line. With `skills`, typing "/" opens
  * the skill picker (↑↓, Enter/Tab, Esc); picking one may switch the mode.
  */
 export function SteelAiComposer({
@@ -96,6 +98,7 @@ export function SteelAiComposer({
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const quickSend = useQuickSend()
   const pickerId = useId()
   const [dragging, setDragging] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -191,6 +194,7 @@ export function SteelAiComposer({
         ) : null}
         <textarea
           ref={textRef}
+          data-composer
           aria-label='Mensagem para o Steel AI'
           {...(skills && {
             role: 'combobox',
@@ -240,11 +244,7 @@ export function SteelAiComposer({
                 return
               }
             }
-            if (
-              event.key === 'Enter' &&
-              !event.shiftKey &&
-              !event.nativeEvent.isComposing
-            ) {
+            if (quickSend.isSend(event)) {
               event.preventDefault()
               if (canSend) onSubmit()
             }

@@ -137,6 +137,7 @@ export function WorkspaceShortcuts({
   return (
     <ShortcutsProvider
       singleKeyEnabled={preferences.data?.singleKeyShortcuts ?? true}
+      quickSendMode={preferences.data?.quickSendShortcut ?? 'ENTER'}
     >
       <BuiltinShortcuts
         slug={slug}

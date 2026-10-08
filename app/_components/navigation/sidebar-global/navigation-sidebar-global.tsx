@@ -33,6 +33,7 @@ export function GlobalSidebarNavigation({
               linkNavigation={item.href}
               description={item.label}
               active={isGlobalNavActive(pathname, item.href)}
+              shortcut={item.shortcut}
             >
               <SteelIcon icon={item.icon} className='size-5' />
             </GlobalButtonNavigation>
