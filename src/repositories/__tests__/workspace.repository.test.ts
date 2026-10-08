@@ -207,6 +207,28 @@ describe('WorkspaceRepository', () => {
 
       expectErr(result, 'CONFLICT')
     })
+
+    it('should set and clear the company size and the logo', async () => {
+      const seeded = await seedWorkspace()
+
+      const set = expectOk(
+        await WorkspaceRepository.update(seeded.id, {
+          companySize: 'SIZE_51_200',
+          logoUrl: 'http://minio/workspace-logos/ws/logo.png',
+        }),
+      )
+      expect(set.companySize).toBe('SIZE_51_200')
+      expect(set.logoUrl).toBe('http://minio/workspace-logos/ws/logo.png')
+
+      const cleared = expectOk(
+        await WorkspaceRepository.update(seeded.id, {
+          companySize: null,
+          logoUrl: null,
+        }),
+      )
+      expect(cleared.companySize).toBeNull()
+      expect(cleared.logoUrl).toBeNull()
+    })
   })
 
   describe('revertExpiredTrials()', () => {

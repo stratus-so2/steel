@@ -68,6 +68,12 @@ export const WORKSPACE_BUCKETS: readonly WorkspaceBucket[] = [
       'src/services/sd-kb-media.service.ts, src/services/sd-ticket-attachment.service.ts, src/services/sd-ticket-signature.service.ts',
   },
   {
+    // Workspace logo (Ajustes > Geral), public: `<ws>/<uuid>.<ext>`.
+    name: 'workspace-logos',
+    public: true,
+    writtenBy: 'src/services/media/workspace-logo.service.ts',
+  },
+  {
     // Steel AI (private): files and photos sent to the assistant, in
     // `<ws>/<conversationId>/<id>-<name>`.
     name: 'steel-ai-attachments',

@@ -1,16 +1,11 @@
 import type { Workspace } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
-import { WorkspaceCache } from '@/src/cache/workspace.cache'
-import { WorkspaceFeaturesCache } from '@/src/cache/workspace-features.cache'
 import {
   notFound,
   workspaceConfirmationMismatch,
-  workspaceOperationInProgress,
   workspaceStatusConflict,
 } from '@/src/errors'
-import { appError } from '@/src/errors/app-error'
 import { type AdminActor, recordAdminAction } from '@/src/lib/admin-audit'
-import { enqueueAdminOperation } from '@/src/lib/queue/database-backup'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
   toAdminAuditEntryDTO,
@@ -30,6 +25,10 @@ import type {
   AdminWorkspaceDetailDTO,
 } from '@/types/admin-workspace'
 import { assertPlatformAdmin } from './authz'
+import {
+  invalidateWorkspaceCaches,
+  queueWorkspaceDeletion,
+} from './workspace-deletion'
 
 async function loadWorkspace(
   workspaceId: string,
@@ -38,13 +37,6 @@ async function loadWorkspace(
   if (!found.ok) return found
   if (!found.value) return err(notFound('Workspace'))
   return ok(found.value)
-}
-
-async function invalidate(workspaceId: string): Promise<void> {
-  await Promise.all([
-    WorkspaceCache.invalidate(workspaceId),
-    WorkspaceFeaturesCache.invalidate(workspaceId),
-  ]).catch(() => undefined)
 }
 
 const actorOf = (admin: { userId: string; email: string }): AdminActor => ({
@@ -97,7 +89,7 @@ export const AdminWorkspaceLifecycleService = {
       suspendedById: admin.value.userId,
     })
     if (!updated.ok) return updated
-    await invalidate(workspaceId)
+    await invalidateWorkspaceCaches(workspaceId)
 
     await recordAdminAction({
       actor: actorOf(admin.value),
@@ -139,7 +131,7 @@ export const AdminWorkspaceLifecycleService = {
       suspendedById: null,
     })
     if (!updated.ok) return updated
-    await invalidate(workspaceId)
+    await invalidateWorkspaceCaches(workspaceId)
 
     await recordAdminAction({
       actor: actorOf(admin.value),
@@ -184,7 +176,7 @@ export const AdminWorkspaceLifecycleService = {
 
     const updated = await WorkspaceRepository.setPlan(workspaceId, input.plan)
     if (!updated.ok) return updated
-    await invalidate(workspaceId)
+    await invalidateWorkspaceCaches(workspaceId)
 
     await recordAdminAction({
       actor: actorOf(admin.value),
@@ -228,62 +220,14 @@ export const AdminWorkspaceLifecycleService = {
       return err(workspaceConfirmationMismatch())
     }
 
-    const active =
-      await AdminOperationRepository.findActiveByWorkspace(workspaceId)
-    if (!active.ok) return active
-    if (active.value || workspace.value.status === 'DELETING') {
-      return err(workspaceOperationInProgress())
-    }
-
-    const operation = await AdminOperationRepository.create({
-      kind: 'WORKSPACE_DELETE',
-      workspaceId,
-      workspaceSlug: workspace.value.slug,
-      workspaceName: workspace.value.name,
-      requestedById: admin.value.userId,
-      requestedByEmail: admin.value.email,
+    const operation = await queueWorkspaceDeletion({
+      workspace: workspace.value,
+      requester: actorOf(admin.value),
       reason: input.reason,
-      meta: {
-        previousStatus: workspace.value.status,
-        ignoreSubscriptionCancelFailure:
-          input.ignoreSubscriptionCancelFailure === true,
-      },
+      ignoreSubscriptionCancelFailure:
+        input.ignoreSubscriptionCancelFailure === true,
     })
     if (!operation.ok) return operation
-
-    const marked = await WorkspaceRepository.setStatus(workspaceId, {
-      status: 'DELETING',
-    })
-    if (!marked.ok) {
-      await AdminOperationRepository.markFailed(
-        operation.value.id,
-        'Falha ao marcar o workspace para exclusão',
-      )
-      return marked
-    }
-    await invalidate(workspaceId)
-
-    try {
-      await enqueueAdminOperation('delete', operation.value.id)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await AdminOperationRepository.markFailed(operation.value.id, message)
-      await WorkspaceRepository.setStatus(workspaceId, {
-        status: workspace.value.status,
-      })
-      await invalidate(workspaceId)
-      logger.error('admin.workspace.delete_enqueue_failed', {
-        actorId,
-        workspaceId,
-        message,
-      })
-      return err(
-        appError(
-          'INTERNAL_SERVER_ERROR',
-          'Não foi possível enfileirar a exclusão. Nada foi apagado.',
-        ),
-      )
-    }
 
     await recordAdminAction({
       actor: actorOf(admin.value),

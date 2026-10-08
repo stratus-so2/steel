@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { FEATURE_KEYS } from '@/src/config/features'
 import { BILLING_INTERVALS } from '@/src/config/plan-prices'
 import { ProfileOutputSchema } from '@/src/schemas/profile.schema'
+import { WORKSPACE_COMPANY_SIZES } from '@/src/schemas/workspace.schema'
 import { dto } from '../common'
 import { AiPendingActionDTO } from './steel-ai'
 
@@ -29,6 +30,9 @@ export const MembershipDTO = dto(
       slug: z.string().meta({ example: 'acme' }),
       name: z.string().meta({ example: 'ACME' }),
       role: z.enum(ROLES),
+      logoUrl: z.string().nullable().meta({
+        description: 'Logo do workspace; `null` sem logo.',
+      }),
     })
     .meta({ description: 'Vínculo do usuário com um workspace.' }),
 )
@@ -152,8 +156,39 @@ export const WorkspaceDTO = dto(
     slug: z.string().meta({ example: 'acme' }),
     activePlan: z.enum(PLANS),
     trialEndsAt: nullableDateTime(),
+    logoUrl: z.string().nullable().meta({
+      description: 'URL pública do logo (MinIO); `null` sem logo.',
+    }),
+    companySize: z.enum(WORKSPACE_COMPANY_SIZES).nullable().meta({
+      description: 'Faixa de tamanho da empresa; `null` se não informada.',
+    }),
     createdAt: dateTime(),
     updatedAt: dateTime(),
+  }),
+)
+
+export const WorkspaceSlugAvailabilityDTO = dto(
+  'WorkspaceSlugAvailability',
+  z.object({
+    slug: z.string().meta({ example: 'acme-2' }),
+    available: z.boolean(),
+    reason: z
+      .enum(['current', 'invalid', 'reserved', 'taken'])
+      .nullable()
+      .meta({ description: '`current` = slug atual; `null` = livre.' }),
+    message: z
+      .string()
+      .nullable()
+      .meta({ description: 'Mensagem do campo quando indisponível.' }),
+  }),
+)
+
+export const WorkspaceDeletionDTO = dto(
+  'WorkspaceDeletion',
+  z.object({
+    operationId: id('ckv9x2p0h0000op7d3k1e5abc'),
+    status: z.enum(['QUEUED']),
+    requestedAt: dateTime(),
   }),
 )
 

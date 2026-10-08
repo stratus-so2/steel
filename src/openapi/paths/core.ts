@@ -48,7 +48,9 @@ import { UpdateUserSchema } from '@/src/schemas/user.schema'
 import { UpdateUserPreferenceSchema } from '@/src/schemas/user-preference.schema'
 import {
   CreateWorkspaceSchema,
+  DeleteWorkspaceRequestSchema,
   UpdateWorkspaceSchema,
+  WorkspaceSlugAvailabilityQuerySchema,
 } from '@/src/schemas/workspace.schema'
 import {
   SaveWorkspaceConnectionSchema,
@@ -86,8 +88,10 @@ import {
   UserPreferenceDTO,
   WorkspaceAiSettingsDTO,
   WorkspaceConnectionDTO,
+  WorkspaceDeletionDTO,
   WorkspaceDTO,
   WorkspaceMemberDTO,
+  WorkspaceSlugAvailabilityDTO,
 } from '../schemas/core'
 
 /**
@@ -407,7 +411,8 @@ const workspaces: RouteConfig[] = [
     path: '/workspaces/{id}',
     tags: ['Workspaces'],
     summary: 'Atualizar workspace',
-    description: 'Nome e/ou slug. Só OWNER/ADMIN.',
+    description:
+      'Nome, slug (endereço `/<slug>`; palavras reservadas são recusadas e links antigos deixam de funcionar) e/ou tamanho da empresa (`companySize`, `null` limpa). Só OWNER/ADMIN.',
     consent: true,
     body: UpdateWorkspaceSchema,
     responses: {
@@ -428,23 +433,75 @@ const workspaces: RouteConfig[] = [
     tags: ['Workspaces'],
     summary: 'Excluir workspace',
     description:
-      'Exclui o workspace e seus dados. Só o OWNER. Assinaturas ativas são canceladas na AbacatePay antes da exclusão; se o cancelamento falhar nada é apagado (`SUBSCRIPTION_CANCEL_FAILED`).',
+      'Pede a exclusão definitiva. Só o OWNER, digitando o slug em `confirmation`. A exclusão é assíncrona (mesmo pipeline do painel admin): o workspace fica `DELETING` na hora (membros bloqueados) e o worker faz o backup, cancela as assinaturas no AbacatePay e só então apaga dados e arquivos. Se o cancelamento falhar, nada é apagado e o workspace volta ao status anterior.',
     consent: true,
-    responses: { 200: { description: 'Workspace excluído.', schema: null } },
+    body: DeleteWorkspaceRequestSchema,
+    responses: {
+      202: {
+        description: 'Exclusão enfileirada.',
+        schema: WorkspaceDeletionDTO,
+      },
+    },
     errors: [
       {
         code: 'FORBIDDEN',
-        message: 'Apenas o OWNER pode deletar o workspace',
+        message: 'Apenas o OWNER pode excluir o workspace',
         when: 'Usuário não é o OWNER',
       },
-      {
-        code: 'SUBSCRIPTION_CANCEL_FAILED',
-        message:
-          'Não foi possível cancelar a assinatura deste workspace no AbacatePay. Nada foi apagado — tente de novo em alguns minutos ou fale com o suporte.',
-        when: 'A AbacatePay recusou/não respondeu o cancelamento',
-      },
+      'WORKSPACE_CONFIRMATION_MISMATCH',
+      'WORKSPACE_OPERATION_IN_PROGRESS',
       'WORKSPACE_SUSPENDED',
     ],
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/slug-availability',
+    tags: ['Workspaces'],
+    summary: 'Verificar endereço do workspace',
+    description:
+      'Validação ao vivo do campo "URL do espaço de trabalho": formato, palavras reservadas e unicidade. O slug atual conta como disponível (`reason: current`). Só OWNER/ADMIN.',
+    query: WorkspaceSlugAvailabilityQuerySchema,
+    responses: {
+      200: {
+        description: 'Disponibilidade.',
+        schema: WorkspaceSlugAvailabilityDTO,
+      },
+    },
+    errors: WORKSPACE_PRIVILEGED_ERRORS,
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/logo',
+    tags: ['Workspaces'],
+    summary: 'Enviar logo do workspace',
+    description:
+      'Troca o logo (JPEG, PNG ou WebP até 2 MB; SVG não é aceito). Grava no MinIO (`workspace-logos/<id>/...`), apaga o anterior e devolve o workspace. Só OWNER/ADMIN.',
+    consent: true,
+    body: fileUpload('file', 'Imagem do logo.'),
+    responses: {
+      200: { description: 'Workspace atualizado.', schema: WorkspaceDTO },
+    },
+    errors: [
+      ...WORKSPACE_PRIVILEGED_ERRORS,
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Arquivo muito grande. Máximo 2 MB',
+      },
+      'STORAGE_ERROR',
+    ],
+  },
+  {
+    method: 'delete',
+    path: '/workspaces/{id}/logo',
+    tags: ['Workspaces'],
+    summary: 'Remover logo do workspace',
+    description:
+      'Remove o logo (a UI volta a mostrar a inicial). Só OWNER/ADMIN.',
+    consent: true,
+    responses: {
+      200: { description: 'Workspace atualizado.', schema: WorkspaceDTO },
+    },
+    errors: WORKSPACE_PRIVILEGED_ERRORS,
   },
   {
     method: 'get',

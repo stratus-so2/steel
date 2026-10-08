@@ -42,6 +42,8 @@ describe('toUserDTO()', () => {
             suspendedReason: null,
             suspendedById: null,
             wikiEnabled: false,
+            logoUrl: 'https://cdn.test/acme.png',
+            companySize: null,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -72,6 +74,7 @@ describe('toUserDTO()', () => {
           slug: 'acme',
           name: 'Acme',
           role: 'ADMIN',
+          logoUrl: 'https://cdn.test/acme.png',
         },
       ],
     })

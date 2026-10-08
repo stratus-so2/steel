@@ -1,4 +1,9 @@
-import type { Plan, Workspace, WorkspaceStatus } from '@prisma/client'
+import type {
+  Plan,
+  Workspace,
+  WorkspaceCompanySize,
+  WorkspaceStatus,
+} from '@prisma/client'
 import { conflict, notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -96,7 +101,12 @@ export const WorkspaceRepository = {
 
   async update(
     id: string,
-    data: { name?: string; slug?: string },
+    data: {
+      name?: string
+      slug?: string
+      companySize?: WorkspaceCompanySize | null
+      logoUrl?: string | null
+    },
   ): Promise<Result<Workspace>> {
     try {
       const workspace = await prisma.workspace.update({ where: { id }, data })
