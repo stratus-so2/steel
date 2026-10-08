@@ -1,5 +1,6 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ShortcutsProvider } from '@/app/_components/shortcuts/shortcuts-provider'
 import { mockFetch, renderWithQuery } from '@/src/__tests__/component-utils'
 import type { SdConfigBootstrapDTO, SdPhaseDTO } from '@/types/sd-config'
 import type { SdTicketDTO } from '@/types/sd-ticket'
@@ -451,5 +452,108 @@ describe('SdTicketScreen', () => {
       expect(document.activeElement?.id).toBe(SD_COMPOSER_INPUT_ID),
     )
     expect(replace).not.toHaveBeenCalled()
+  })
+})
+
+describe('SdTicketScreen — atalhos de teclado', () => {
+  function press(key: string, init: KeyboardEventInit = {}) {
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key,
+          bubbles: true,
+          cancelable: true,
+          ...init,
+        }),
+      )
+    })
+  }
+
+  async function renderScreen(data?: SdTicketDTO) {
+    setViewport(true)
+    const spy = routes(data)
+    renderWithQuery(
+      <ShortcutsProvider>
+        <SdTicketScreen workspaceId={WS} slug='acme' ticketRef='INC-000001' />
+      </ShortcutsProvider>,
+    )
+    await screen.findByLabelText('Mensagem')
+    return spy
+  }
+
+  it('R answers in public and Shift+R writes an internal note', async () => {
+    await renderScreen()
+    press('R', { shiftKey: true })
+    await waitFor(() =>
+      expect(document.activeElement?.id).toBe(SD_COMPOSER_INPUT_ID),
+    )
+    expect(
+      screen
+        .getByRole('radio', { name: 'Nota interna' })
+        .getAttribute('aria-checked'),
+    ).toBe('true')
+
+    ;(document.activeElement as HTMLElement).blur()
+    press('r')
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('radio', { name: 'Público' })
+          .getAttribute('aria-checked'),
+      ).toBe('true'),
+    )
+    expect(document.activeElement?.id).toBe(SD_COMPOSER_INPUT_ID)
+  })
+
+  it('A opens the assign menu', async () => {
+    await renderScreen(ticket({ assignee: null }))
+    press('a')
+    expect(
+      await screen.findByRole('menuitem', { name: 'Atribuir a mim' }),
+    ).toBeTruthy()
+  })
+
+  it('Shift+A assigns to me', async () => {
+    const spy = await renderScreen(ticket({ assignee: null }))
+    press('A', { shiftKey: true })
+    await waitFor(() =>
+      expect(
+        spy.mock.calls.some(
+          ([url, init]) =>
+            String(url).endsWith('/servicedesk/tickets/t1') &&
+            init?.method === 'PATCH' &&
+            String(init.body).includes('"assigneeId":"u-agent"'),
+        ),
+      ).toBe(true),
+    )
+  })
+
+  it('S opens the phase picker', async () => {
+    await renderScreen()
+    press('s')
+    expect(await screen.findByRole('listbox')).toBeTruthy()
+  })
+
+  it('the digits switch tabs', async () => {
+    await renderScreen()
+    press('2')
+    const tabs = sdTicketTabsFor('agent', 'INCIDENT')
+    expect(replace).toHaveBeenCalledWith(
+      `/acme/servicedesk/tickets/1?tab=${tabs[1].id}`,
+      { scroll: false },
+    )
+  })
+
+  it('] hides the details column and E edits the title', async () => {
+    await renderScreen()
+    expect(
+      screen.getByRole('complementary', { name: 'Detalhes do chamado' }),
+    ).toBeTruthy()
+    press(']')
+    expect(
+      screen.queryByRole('complementary', { name: 'Detalhes do chamado' }),
+    ).toBeNull()
+    press('e')
+    expect(await screen.findByLabelText('Título do chamado')).toBeTruthy()
   })
 })

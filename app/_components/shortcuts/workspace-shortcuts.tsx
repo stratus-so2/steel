@@ -60,7 +60,8 @@ function BuiltinShortcuts({
     const target = event.target
     if (!isTypingTarget(target) || !(target instanceof HTMLElement))
       return false
-    if (target.isContentEditable) return false
+    // Rich editors use Esc for their own menus.
+    if (target.closest('[contenteditable="true"]')) return false
     target.blur()
   })
 

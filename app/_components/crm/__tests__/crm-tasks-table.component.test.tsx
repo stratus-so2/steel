@@ -1,5 +1,6 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ShortcutsProvider } from '@/app/_components/shortcuts/shortcuts-provider'
 import {
   type FetchRoute,
   fetchBody,
@@ -142,5 +143,86 @@ describe('<CrmTasksTable />', { timeout: 15_000 }, () => {
     expect(await screen.findByText('Salvar')).toBeTruthy()
     expect(screen.getByText('Excluir')).toBeTruthy()
     expect(screen.getByText('tarefa')).toBeTruthy()
+  })
+
+  describe('keyboard', () => {
+    function press(key: string, init: KeyboardEventInit = {}) {
+      act(() => {
+        window.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key,
+            bubbles: true,
+            cancelable: true,
+            ...init,
+          }),
+        )
+      })
+    }
+    function focusedText() {
+      return (document.activeElement as HTMLElement | null)?.textContent ?? ''
+    }
+
+    async function renderWithShortcuts(extra: FetchRoute[] = []) {
+      const spy = mockFetch([...extra, ...baseRoutes()])
+      renderWithQuery(
+        <ShortcutsProvider>
+          <CrmTasksTable workspaceId='ws1' slug='acme' />
+        </ShortcutsProvider>,
+      )
+      await screen.findByText('Ligar para o cliente')
+      return spy
+    }
+
+    it('J/K walk the rows and X selects the one in focus', async () => {
+      await renderWithShortcuts()
+      press('j')
+      const first = focusedText()
+      press('j')
+      expect(focusedText()).not.toBe(first)
+      press('k')
+      expect(focusedText()).toBe(first)
+      press('x')
+      const row = document.activeElement as HTMLElement
+      await waitFor(() =>
+        expect(row.getAttribute('data-state')).toBe('selected'),
+      )
+      press('Escape')
+      await waitFor(() =>
+        expect(row.getAttribute('data-state')).not.toBe('selected'),
+      )
+    })
+
+    it('Enter opens the record panel and U closes it', async () => {
+      await renderWithShortcuts()
+      press('j')
+      press('Enter')
+      expect(await screen.findByText('Salvar')).toBeTruthy()
+      press('u')
+      await waitFor(() => expect(screen.queryByText('Salvar')).toBeNull())
+    })
+
+    it('Shift+C marks the task in focus as done', async () => {
+      const spy = await renderWithShortcuts([
+        { method: 'PATCH', match: /\/crm\/tasks\/t\d$/, data: task({}) },
+      ])
+      press('j')
+      press('C', { shiftKey: true })
+      await waitFor(() =>
+        expect(
+          spy.mock.calls.some(
+            ([url, init]) =>
+              /\/crm\/tasks\/t\d$/.test(String(url)) &&
+              init?.method === 'PATCH' &&
+              String(init.body).includes('"status"'),
+          ),
+        ).toBe(true),
+      )
+    })
+
+    it('V switches to kanban', async () => {
+      await renderWithShortcuts()
+      press('v')
+      await waitFor(() => expect(screen.queryByRole('table')).toBeNull())
+    })
   })
 })
