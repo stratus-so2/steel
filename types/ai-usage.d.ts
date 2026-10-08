@@ -110,3 +110,57 @@ export interface AiUsageAnalyticsDTO {
   byUser: AiUsageBreakdownItemDTO[] | null
   canViewWorkspace: boolean
 }
+
+/* Weekly usage e-mail to the workspace owners ------------------------- */
+
+export interface AiUsageWeeklyItemDTO {
+  key: string
+  label: string
+  detail: string | null
+  costUsd: number
+  /** Share of the week's cost, 0..1. */
+  share: number
+}
+
+/** Steel Agents activity in the reported week. */
+export interface AiUsageWeeklyAgentsDTO {
+  /** Runs created in the week. */
+  runs: number
+  /** Writes executed by agents in the week (successful). */
+  actions: number
+  /** Agent approvals still waiting for a decision when the e-mail is built. */
+  pendingApprovals: number
+}
+
+export interface AiUsageWeeklyReportDTO {
+  /** Monday 00:00 UTC (ISO). */
+  weekStart: string
+  /** Next Monday 00:00 UTC (ISO, exclusive). */
+  weekEnd: string
+  weekUsd: number
+  previousWeekUsd: number
+  /** % change vs the previous week; `null` = no base (previous was zero). */
+  changePercent: number | null
+  /** The UTC month of the week's last day, up to that day. */
+  month: {
+    /** First day of the month (ISO). */
+    start: string
+    /** Last day counted (`YYYY-MM-DD`, the week's Sunday). */
+    asOf: string
+    days: number
+    elapsedDays: number
+    usedUsd: number
+    quotaUsd: number
+    /** usedUsd ÷ quotaUsd; `null` without a quota. */
+    usedShare: number | null
+    /** Linear projection to the month end (daily average × days). */
+    projectedUsd: number
+    projectionExceedsQuota: boolean
+  }
+  topModels: AiUsageWeeklyItemDTO[]
+  topFeatures: AiUsageWeeklyItemDTO[]
+  topModules: AiUsageWeeklyItemDTO[]
+  topMembers: AiUsageWeeklyItemDTO[]
+  /** `null` when agents did nothing in the week and nothing is pending. */
+  agents: AiUsageWeeklyAgentsDTO | null
+}
