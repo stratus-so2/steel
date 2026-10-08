@@ -41,6 +41,7 @@ import { processWhatsappBroadcast } from '../src/lib/queue/processors/whatsapp-b
 import { processWhatsappConversationLifecycle } from '../src/lib/queue/processors/whatsapp-conversation-lifecycle'
 import { processWhatsappMedia } from '../src/lib/queue/processors/whatsapp-media'
 import { processWhatsappSentiment } from '../src/lib/queue/processors/whatsapp-sentiment'
+import { processWorkspaceExport } from '../src/lib/queue/processors/workspace-export'
 import '../src/lib/zod-locale'
 import {
   scheduleAiUsageWeeklyEmailJobs,
@@ -69,6 +70,7 @@ import {
   scheduleUsageRollupJobs,
   scheduleWhatsappBroadcastJobs,
   scheduleWhatsappConversationLifecycleJobs,
+  scheduleWorkspaceExportJobs,
 } from '../src/lib/queue/scheduler'
 import { closeWorkerResources } from '../src/lib/queue/worker-shutdown'
 
@@ -220,6 +222,9 @@ async function main(): Promise<void> {
   workers.push(
     registerWorker(QueueName.AiUsageWeeklyEmail, processAiUsageWeeklyEmail),
   )
+  workers.push(
+    registerWorker(QueueName.WorkspaceExport, processWorkspaceExport),
+  )
 
   failureListener = startJobFailureListener(
     workers.map((w) => w.name as QueueName),
@@ -252,6 +257,7 @@ async function main(): Promise<void> {
   await scheduleNotificationsJobs()
   await scheduleSearchReindexJobs()
   await scheduleAiUsageWeeklyEmailJobs()
+  await scheduleWorkspaceExportJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

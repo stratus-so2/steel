@@ -27,6 +27,7 @@ import {
   UsageRollupJob,
   WhatsappBroadcastJob,
   WhatsappConversationLifecycleJob,
+  WorkspaceExportJob,
 } from './jobs'
 import {
   getAiUsageWeeklyEmailQueue,
@@ -55,6 +56,7 @@ import {
   getUsageRollupQueue,
   getWhatsappBroadcastQueue,
   getWhatsappConversationLifecycleQueue,
+  getWorkspaceExportQueue,
 } from './queues'
 import {
   AiUsageWeeklyEmailCron,
@@ -84,6 +86,7 @@ import {
   UsageRollupCron,
   WhatsappBroadcastScheduleCron,
   WhatsappConversationAutoCloseCron,
+  WorkspaceExportPruneCron,
 } from './retention'
 
 export async function scheduleDataRetentionJobs(): Promise<void> {
@@ -517,6 +520,21 @@ export async function scheduleAiUsageWeeklyEmailJobs(): Promise<void> {
   logger.info('queue.scheduler.ai_usage_weekly_email_registered', {
     component: 'Worker',
     pattern: AiUsageWeeklyEmailCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleWorkspaceExportJobs(): Promise<void> {
+  const queue = getWorkspaceExportQueue()
+  await queue.upsertJobScheduler(
+    WorkspaceExportJob.PruneExpired,
+    { pattern: WorkspaceExportPruneCron, tz: RetentionTimezone },
+    { name: WorkspaceExportJob.PruneExpired, data: {} },
+  )
+
+  logger.info('queue.scheduler.workspace_export_registered', {
+    component: 'Worker',
+    pattern: WorkspaceExportPruneCron,
     timezone: RetentionTimezone,
   })
 }

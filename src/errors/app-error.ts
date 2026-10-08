@@ -1228,3 +1228,23 @@ export const wikiLabelNotFound = (): AppError =>
 export const wikiLabelConflict = (
   message = 'Já existe uma etiqueta com esse nome',
 ): AppError => appError('WIKI_LABEL_CONFLICT', message)
+
+export const workspaceExportNotFound = (): AppError =>
+  appError('WORKSPACE_EXPORT_NOT_FOUND', 'Exportação não encontrada')
+
+/** Daily slot used; `details.nextAvailableAt` (ISO) says when it reopens. */
+export const workspaceExportLimitReached = (
+  message: string,
+  nextAvailableAt: Date,
+): AppError =>
+  appError('WORKSPACE_EXPORT_LIMIT_REACHED', message, {
+    nextAvailableAt: nextAvailableAt.toISOString(),
+  })
+
+export const workspaceExportNotReady = (
+  message = 'Esta exportação não está disponível para download',
+): AppError => appError('WORKSPACE_EXPORT_NOT_READY', message)
+
+export const workspaceExportLogsUnavailable = (
+  message = 'A exportação de logs não está configurada neste servidor',
+): AppError => appError('WORKSPACE_EXPORT_LOGS_UNAVAILABLE', message)

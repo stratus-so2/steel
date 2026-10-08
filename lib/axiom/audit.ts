@@ -165,6 +165,9 @@ export type AuditEntity =
   // Steel AI skills (slash instructions) and memory (saved facts)
   | 'ai_skill'
   | 'ai_memory'
+  // Ajustes › Exportações (complete data / Axiom logs) and the work-log CSVs
+  | 'workspace_export'
+  | 'worklog'
 
 export type AuditAction =
   | 'create'
