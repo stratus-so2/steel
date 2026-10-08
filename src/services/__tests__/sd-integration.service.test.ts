@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  createFakeGitlabIntegration,
   createFakeSdGithubIntegration,
   createFakeSdIntegration,
 } from '@/src/__tests__/factories/sd-integration.factory'
@@ -11,7 +12,6 @@ import {
   sdIntegrationRequestFailed,
 } from '@/src/errors'
 import { err, ok } from '@/src/lib/result'
-import { createSdSlackOauthState } from '@/src/lib/servicedesk/slack-oauth-state'
 
 vi.mock('@/lib/axiom/audit', () => ({
   auditMutation: vi.fn(),
@@ -29,109 +29,84 @@ vi.mock('@/src/lib/crypto', () => ({
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/sd-access.repository')
 vi.mock('@/src/repositories/sd-config.repository')
-vi.mock('@/src/repositories/sd-integration.repository')
+vi.mock('@/src/repositories/workspace-integration.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('@/src/lib/servicedesk/slack-client', () => ({
   getSlackAppConfig: vi.fn(),
-  slackAuthorizeUrl: vi.fn(
-    (_config, state: string) => `https://slack.test/oauth?state=${state}`,
-  ),
-  SLACK_EVENTS_PATH: '/api/servicedesk/integrations/slack',
-  SLACK_REDIRECT_PATH: '/api/servicedesk/integrations/oauth/slack',
-  SlackClient: {
-    exchangeCode: vi.fn(),
-    listChannels: vi.fn(),
-    postMessage: vi.fn(),
-    getUser: vi.fn(),
-    permalink: vi.fn(),
-  },
-}))
-vi.mock('@/src/lib/servicedesk/github-client', () => ({
-  GithubClient: {
-    checkRepo: vi.fn(),
-    getItem: vi.fn(),
-    createIssue: vi.fn(),
-  },
+  SlackClient: { listChannels: vi.fn() },
 }))
 
-import { auditAuth, auditMutation } from '@/lib/axiom/audit'
-import { GithubClient } from '@/src/lib/servicedesk/github-client'
+import { auditMutation } from '@/lib/axiom/audit'
 import {
   getSlackAppConfig,
   SlackClient,
 } from '@/src/lib/servicedesk/slack-client'
 import { SdConfigRepository } from '@/src/repositories/sd-config.repository'
-import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
-import {
-  activeSdIntegration,
-  SdIntegrationService,
-} from '../sd-integration.service'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
+import { SdIntegrationService } from '../sd-integration.service'
 
-const repo = vi.mocked(SdIntegrationRepository)
+const repo = vi.mocked(WorkspaceIntegrationRepository)
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const config = vi.mocked(SdConfigRepository)
 const slackApp = vi.mocked(getSlackAppConfig)
 const slack = vi.mocked(SlackClient)
-const github = vi.mocked(GithubClient)
 const audit = vi.mocked(auditMutation)
-const authAudit = vi.mocked(auditAuth)
 
 const WS = 'ws1'
-const TOKEN = 'github_pat_11ABCDEFG0123456789'
-
-const APP = {
-  clientId: 'id',
-  clientSecret: 'secret',
-  signingSecret: 'signing',
-  redirectUri: 'https://steel.test/api/servicedesk/integrations/oauth/slack',
-  eventsUrl: 'https://steel.test/api/servicedesk/integrations/slack',
-}
 
 beforeEach(() => {
+  vi.clearAllMocks()
   actAs('owner')
-  slackApp.mockReturnValue(APP)
+  slackApp.mockReturnValue({} as never)
   ctxRepo.findWorkspace.mockResolvedValue(
     ok({ id: WS, name: 'Acme', slug: 'acme' }),
   )
   config.findExistingRefs.mockResolvedValue(
-    ok({ departmentIds: ['dep-1'] } as never),
+    ok({ departmentIds: ['dep-1', 'dep-2'] } as never),
   )
   repo.list.mockResolvedValue(ok([]))
-  repo.findByKind.mockResolvedValue(ok(null))
   repo.requireByKind.mockResolvedValue(ok(createFakeSdIntegration()))
-  repo.upsert.mockResolvedValue(ok(createFakeSdIntegration()))
-  repo.update.mockResolvedValue(ok(createFakeSdIntegration()))
-  repo.disconnect.mockResolvedValue(ok(undefined))
+  repo.update.mockImplementation(async (id, _ws, data) =>
+    ok(createFakeSdIntegration({ id, config: data.config as never })),
+  )
   repo.markError.mockResolvedValue(ok(undefined))
 })
 
 describe('SdIntegrationService.overview', () => {
-  it('diz que o Slack está configurado e devolve as URLs e as integrações', async () => {
+  it('returns the workspace connections and where to manage them', async () => {
     repo.list.mockResolvedValue(
-      ok([createFakeSdIntegration(), createFakeSdGithubIntegration()]),
+      ok([
+        createFakeSdIntegration(),
+        createFakeSdGithubIntegration(),
+        createFakeGitlabIntegration(),
+      ]),
     )
     const view = expectOk(await SdIntegrationService.overview('u1', WS))
     expect(view.slackConfigured).toBe(true)
-    expect(view.slackEventsUrl).toContain('/api/servicedesk/integrations/slack')
-    expect(view.githubWebhookUrl).toContain(
-      '/api/servicedesk/integrations/github',
-    )
+    expect(view.manageHref).toBe('/acme/settings/integrations')
     expect(view.slack?.kind).toBe('SLACK')
     expect(view.github?.kind).toBe('GITHUB')
+    expect(view.gitlab?.kind).toBe('GITLAB')
     expect(JSON.stringify(view)).not.toContain('xoxb-token')
   })
 
-  it('sem app do Slack no servidor, avisa e não oferece a URL', async () => {
+  it('without a Slack app and without the workspace slug, says so', async () => {
     slackApp.mockReturnValue(null)
+    ctxRepo.findWorkspace.mockResolvedValue(err(databaseError()))
     const view = expectOk(await SdIntegrationService.overview('u1', WS))
     expect(view.slackConfigured).toBe(false)
-    expect(view.slackEventsUrl).toBeNull()
+    expect(view.manageHref).toBeNull()
     expect(view.slack).toBeNull()
     expect(view.github).toBeNull()
+    expect(view.gitlab).toBeNull()
+    ctxRepo.findWorkspace.mockResolvedValue(ok(null))
+    expect(
+      expectOk(await SdIntegrationService.overview('u1', WS)).manageHref,
+    ).toBeNull()
   })
 
-  it('recusa quem não é admin e propaga erro de banco', async () => {
+  it('refuses non-admins and propagates a database error', async () => {
     actAs('agent')
     expectErr(await SdIntegrationService.overview('u1', WS), 'FORBIDDEN')
     actAs('requester')
@@ -146,196 +121,46 @@ describe('SdIntegrationService.overview', () => {
   })
 })
 
-describe('SdIntegrationService.beginSlackConnect', () => {
-  it('monta a URL de autorização com o state do workspace', async () => {
-    const begun = expectOk(
-      await SdIntegrationService.beginSlackConnect('u1', WS),
-    )
-    expect(begun.authorizeUrl).toContain('https://slack.test/oauth?state=')
-  })
-
-  it('sem app configurado responde SD_INTEGRATION_NOT_CONFIGURED', async () => {
-    slackApp.mockReturnValue(null)
-    expectErr(
-      await SdIntegrationService.beginSlackConnect('u1', WS),
-      'SD_INTEGRATION_NOT_CONFIGURED',
-    )
-  })
-
-  it('recusa não-admin, workspace inexistente e erro de banco', async () => {
-    actAs('agent')
-    expectErr(
-      await SdIntegrationService.beginSlackConnect('u1', WS),
-      'FORBIDDEN',
-    )
-    actAs('owner')
-    ctxRepo.findWorkspace.mockResolvedValue(ok(null))
-    expectErr(
-      await SdIntegrationService.beginSlackConnect('u1', WS),
-      'SD_INTEGRATION_NOT_FOUND',
-    )
-    ctxRepo.findWorkspace.mockResolvedValue(err(databaseError()))
-    expectErr(
-      await SdIntegrationService.beginSlackConnect('u1', WS),
-      'DATABASE_ERROR',
-    )
-  })
-})
-
-describe('SdIntegrationService.completeSlackConnect', () => {
-  const state = () => createSdSlackOauthState(WS, 'acme')
-
-  beforeEach(() => {
-    slack.exchangeCode.mockResolvedValue(
-      ok({
-        accessToken: 'xoxb-novo',
-        teamId: 'T0001',
-        teamName: 'Stratus',
-        botUserId: 'B1',
-      }),
-    )
-  })
-
-  it('cifra o token, guarda a integração e audita a concessão', async () => {
-    const done = expectOk(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code-1'),
-    )
-    expect(done.workspaceSlug).toBe('acme')
-    expect(done.teamName).toBe('Stratus')
-    expect(repo.upsert).toHaveBeenCalledWith(
-      WS,
-      'SLACK',
-      'T0001',
-      expect.objectContaining({ encryptedToken: 'enc:xoxb-novo' }),
-    )
-    expect(authAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ event: 'auth.oauth_grant.servicedesk_slack' }),
-    )
-    expect(audit).toHaveBeenCalledWith(
-      expect.objectContaining({ entity: 'sd_integration', action: 'connect' }),
-    )
-    // Nada de token nos metadados auditados.
-    expect(JSON.stringify(audit.mock.calls)).not.toContain('xoxb-novo')
-  })
-
-  it('preserva a configuração ao reconectar o mesmo Slack', async () => {
-    repo.findByKind.mockResolvedValue(
-      ok(
-        createFakeSdIntegration({
-          config: { events: ['sla.breached'], channels: [] },
-        }),
-      ),
-    )
-    expectOk(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code-1'),
-    )
-    expect(repo.upsert).toHaveBeenCalledWith(
-      WS,
-      'SLACK',
-      'T0001',
-      expect.objectContaining({
-        config: expect.objectContaining({ events: ['sla.breached'] }),
-      }),
-    )
-  })
-
-  it('recusa state inválido e audita a falha', async () => {
-    expectErr(
-      await SdIntegrationService.completeSlackConnect('u1', 'lixo', 'code'),
-      'VALIDATION_ERROR',
-    )
-    expect(authAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'failure', reason: 'STATE_INVALID' }),
-    )
-  })
-
-  it('sem app configurado não tenta nada', async () => {
-    slackApp.mockReturnValue(null)
-    expectErr(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code'),
-      'SD_INTEGRATION_NOT_CONFIGURED',
-    )
-    expect(slack.exchangeCode).not.toHaveBeenCalled()
-  })
-
-  it('recusa quem não é admin do workspace do state', async () => {
-    actAs('agent')
-    expectErr(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code'),
-      'FORBIDDEN',
-    )
-  })
-
-  it('propaga a recusa do Slack e o erro de banco', async () => {
-    slack.exchangeCode.mockResolvedValue(err(sdIntegrationRequestFailed()))
-    expectErr(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code'),
-      'SD_INTEGRATION_REQUEST_FAILED',
-    )
-    expect(authAudit).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'failure' }),
-    )
-
-    slack.exchangeCode.mockResolvedValue(
-      ok({
-        accessToken: 'xoxb',
-        teamId: 'T1',
-        teamName: null,
-        botUserId: null,
-      }),
-    )
-    repo.findByKind.mockResolvedValue(err(databaseError()))
-    expectErr(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code'),
-      'DATABASE_ERROR',
-    )
-
-    repo.findByKind.mockResolvedValue(ok(null))
-    repo.upsert.mockResolvedValue(err(databaseError()))
-    expectErr(
-      await SdIntegrationService.completeSlackConnect('u1', state(), 'code'),
-      'DATABASE_ERROR',
-    )
-  })
-})
-
 describe('SdIntegrationService.listSlackChannels', () => {
-  it('lista os canais do bot em ordem', async () => {
+  it('lists the channels the bot sees', async () => {
     slack.listChannels.mockResolvedValue(
-      ok([{ id: 'C1', name: 'geral', isPrivate: false }]),
+      ok([{ id: 'C1', name: 'suporte', isPrivate: false }]),
     )
-    const channels = expectOk(
-      await SdIntegrationService.listSlackChannels('u1', WS),
-    )
-    expect(channels).toEqual([{ id: 'C1', name: 'geral', isPrivate: false }])
+    expect(
+      expectOk(await SdIntegrationService.listSlackChannels('u1', WS)),
+    ).toEqual([{ id: 'C1', name: 'suporte', isPrivate: false }])
     expect(slack.listChannels).toHaveBeenCalledWith('xoxb-token')
   })
 
-  it('carimba ERROR na integração quando o Slack recusa', async () => {
-    slack.listChannels.mockResolvedValue(err(sdIntegrationRequestFailed()))
+  it('stamps the error on the connection when Slack refuses', async () => {
+    slack.listChannels.mockResolvedValue(
+      err(
+        sdIntegrationRequestFailed('O Slack recusou a chamada (invalid_auth)'),
+      ),
+    )
     expectErr(
       await SdIntegrationService.listSlackChannels('u1', WS),
       'SD_INTEGRATION_REQUEST_FAILED',
     )
     expect(repo.markError).toHaveBeenCalledWith(
       'int-slack-1',
-      expect.any(String),
+      'O Slack recusou a chamada (invalid_auth)',
     )
   })
 
-  it('recusa não-admin, integração ausente e token ilegível', async () => {
+  it('refuses non-admins, a missing connection and an unreadable token', async () => {
     actAs('agent')
     expectErr(
       await SdIntegrationService.listSlackChannels('u1', WS),
       'FORBIDDEN',
     )
     actAs('owner')
-    repo.requireByKind.mockResolvedValue(err(sdIntegrationNotFound()))
+    repo.requireByKind.mockResolvedValueOnce(err(sdIntegrationNotFound()))
     expectErr(
       await SdIntegrationService.listSlackChannels('u1', WS),
       'SD_INTEGRATION_NOT_FOUND',
     )
-    repo.requireByKind.mockResolvedValue(
+    repo.requireByKind.mockResolvedValueOnce(
       ok(createFakeSdIntegration({ encryptedToken: '' })),
     )
     expectErr(
@@ -346,361 +171,166 @@ describe('SdIntegrationService.listSlackChannels', () => {
 })
 
 describe('SdIntegrationService.updateSlackConfig', () => {
-  it('salva o canal por time junto do que já havia', async () => {
+  it('merges the module settings and keeps the workspace rules', async () => {
     repo.requireByKind.mockResolvedValue(
       ok(
         createFakeSdIntegration({
-          config: { events: ['sla.breached'], mirrorThreadReplies: false },
+          config: {
+            routes: [
+              {
+                event: 'crm.deal.won',
+                channelId: 'C9',
+                channelName: 'vendas',
+              },
+            ],
+            waitingMinutes: 30,
+            servicedesk: { ticketType: 'PROBLEM' },
+          },
+        }),
+      ),
+    )
+    const dto = expectOk(
+      await SdIntegrationService.updateSlackConfig('u1', WS, {
+        channels: [
+          { departmentId: 'dep-1', channelId: 'C1', channelName: 'n1' },
+        ],
+        mirrorThreadReplies: false,
+        departmentId: 'dep-2',
+      }),
+    )
+    const saved = repo.update.mock.calls[0][2].config as Record<string, unknown>
+    expect(saved.routes).toEqual([
+      { event: 'crm.deal.won', channelId: 'C9', channelName: 'vendas' },
+    ])
+    expect(saved.waitingMinutes).toBe(30)
+    expect(saved.servicedesk).toEqual({
+      channels: [{ departmentId: 'dep-1', channelId: 'C1', channelName: 'n1' }],
+      allowTicketFromMessage: true,
+      mirrorThreadReplies: false,
+      ticketType: 'PROBLEM',
+      departmentId: 'dep-2',
+    })
+    expect(dto.slack?.mirrorThreadReplies).toBe(false)
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: 'sd_integration',
+        action: 'update',
+        meta: expect.objectContaining({ kind: 'SLACK' }),
+      }),
+    )
+  })
+
+  it('maps a legacy config on the way (default channel becomes rules)', async () => {
+    repo.requireByKind.mockResolvedValue(
+      ok(
+        createFakeSdIntegration({
+          config: {
+            events: ['sla.breached'],
+            channels: [{ departmentId: null, channelId: 'C0' }],
+          },
         }),
       ),
     )
     expectOk(
       await SdIntegrationService.updateSlackConfig('u1', WS, {
-        channels: [
-          { departmentId: 'dep-1', channelId: 'C1', channelName: 'n1' },
-        ],
+        allowTicketFromMessage: false,
+        ticketType: 'CHANGE',
       }),
     )
-    expect(repo.update).toHaveBeenCalledWith(
-      'int-slack-1',
-      WS,
-      expect.objectContaining({
-        config: expect.objectContaining({
-          events: ['sla.breached'],
-          mirrorThreadReplies: false,
-          channels: [
-            { departmentId: 'dep-1', channelId: 'C1', channelName: 'n1' },
-          ],
-        }),
-      }),
-    )
+    const saved = repo.update.mock.calls[0][2].config as Record<string, unknown>
+    expect(saved.routes).toEqual([
+      { event: 'servicedesk.sla.breached', channelId: 'C0', channelName: null },
+    ])
+    expect(saved.servicedesk).toMatchObject({
+      channels: [],
+      allowTicketFromMessage: false,
+      ticketType: 'CHANGE',
+    })
   })
 
-  it('aceita trocar eventos, interruptores, tipo e time', async () => {
-    expectOk(
-      await SdIntegrationService.updateSlackConfig('u1', WS, {
-        events: ['ticket.escalated', 'ticket.escalated'],
-        allowTicketFromMessage: false,
-        mirrorThreadReplies: true,
-        ticketType: 'PROBLEM',
-        departmentId: 'dep-1',
-      }),
-    )
-    const [, , data] = repo.update.mock.calls[0]
-    expect(data.config).toEqual(
-      expect.objectContaining({
-        events: ['ticket.escalated'],
-        allowTicketFromMessage: false,
-        ticketType: 'PROBLEM',
-        departmentId: 'dep-1',
-      }),
-    )
-  })
-
-  it('recusa departamento de outra workspace', async () => {
+  it('refuses a team of another workspace, a missing connection and non-admins', async () => {
     config.findExistingRefs.mockResolvedValue(
       ok({ departmentIds: [] } as never),
     )
     expectErr(
       await SdIntegrationService.updateSlackConfig('u1', WS, {
-        departmentId: 'dep-de-outra',
+        departmentId: 'dep-x',
       }),
       'SD_CONFIG_NOT_FOUND',
     )
-  })
-
-  it('recusa não-admin, integração ausente e erro de banco', async () => {
+    repo.requireByKind.mockResolvedValueOnce(err(sdIntegrationNotFound()))
+    expectErr(
+      await SdIntegrationService.updateSlackConfig('u1', WS, {
+        mirrorThreadReplies: true,
+      }),
+      'SD_INTEGRATION_NOT_FOUND',
+    )
     actAs('agent')
     expectErr(
       await SdIntegrationService.updateSlackConfig('u1', WS, {
-        events: ['x'],
+        mirrorThreadReplies: true,
       }),
       'FORBIDDEN',
     )
-    actAs('owner')
-    repo.requireByKind.mockResolvedValue(err(sdIntegrationNotFound()))
+  })
+
+  it('propagates a database error on save', async () => {
+    repo.update.mockResolvedValueOnce(err(databaseError()))
     expectErr(
-      await SdIntegrationService.updateSlackConfig('u1', WS, { events: ['x'] }),
-      'SD_INTEGRATION_NOT_FOUND',
-    )
-    repo.requireByKind.mockResolvedValue(ok(createFakeSdIntegration()))
-    repo.update.mockResolvedValue(err(databaseError()))
-    expectErr(
-      await SdIntegrationService.updateSlackConfig('u1', WS, { events: ['x'] }),
+      await SdIntegrationService.updateSlackConfig('u1', WS, {
+        mirrorThreadReplies: true,
+      }),
       'DATABASE_ERROR',
     )
   })
 })
 
-describe('SdIntegrationService.connectGithub', () => {
-  beforeEach(() => {
-    github.checkRepo.mockResolvedValue(
-      ok({ fullName: 'stratus-so2/steel', private: true }),
+describe('SdIntegrationService.updateRepoConfig', () => {
+  it('updates the switches of GitHub and GitLab', async () => {
+    repo.requireByKind.mockResolvedValueOnce(
+      ok(createFakeSdGithubIntegration()),
     )
-    repo.upsert.mockResolvedValue(ok(createFakeSdGithubIntegration()))
-  })
-
-  it('valida o acesso, cifra token e segredo e usa o nome canônico', async () => {
+    repo.update.mockImplementation(async (id, _ws, data) =>
+      ok(createFakeSdGithubIntegration({ id, config: data.config as never })),
+    )
     const dto = expectOk(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'https://github.com/Stratus-SO2/Steel',
-        token: TOKEN,
-        webhookSecret: 'segredo-de-teste',
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      }),
-    )
-    expect(dto.kind).toBe('GITHUB')
-    expect(github.checkRepo).toHaveBeenCalledWith(TOKEN, {
-      owner: 'Stratus-SO2',
-      repo: 'Steel',
-    })
-    expect(repo.upsert).toHaveBeenCalledWith(
-      WS,
-      'GITHUB',
-      'stratus-so2/steel',
-      expect.objectContaining({
-        encryptedToken: `enc:${TOKEN}`,
-        encryptedSigningSecret: 'enc:segredo-de-teste',
-      }),
-    )
-    expect(JSON.stringify(audit.mock.calls)).not.toContain(TOKEN)
-  })
-
-  it('aceita conexão sem segredo de webhook', async () => {
-    expectOk(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'owner/repo',
-        token: TOKEN,
+      await SdIntegrationService.updateRepoConfig('u1', WS, 'GITHUB', {
         suggestPhaseOnClose: false,
-        allowIssueFromTicket: false,
       }),
     )
-    expect(repo.upsert).toHaveBeenCalledWith(
-      WS,
-      'GITHUB',
-      'stratus-so2/steel',
-      expect.objectContaining({ encryptedSigningSecret: null }),
-    )
-  })
-
-  it('cai no repositório informado se o GitHub devolver um nome estranho', async () => {
-    github.checkRepo.mockResolvedValue(
-      ok({ fullName: 'invalido', private: false }),
-    )
-    expectOk(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'owner/repo',
-        token: TOKEN,
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      }),
-    )
-    expect(repo.upsert).toHaveBeenCalledWith(
-      WS,
-      'GITHUB',
-      'owner/repo',
-      expect.any(Object),
-    )
-  })
-
-  it('recusa repositório irreconhecível, token sem acesso e erro de banco', async () => {
-    expectErr(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'nao-e-um-repo',
-        token: TOKEN,
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      }),
-      'VALIDATION_ERROR',
-    )
-    github.checkRepo.mockResolvedValue(err(sdIntegrationRequestFailed()))
-    expectErr(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'owner/repo',
-        token: TOKEN,
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      }),
-      'SD_INTEGRATION_REQUEST_FAILED',
-    )
-    github.checkRepo.mockResolvedValue(
-      ok({ fullName: 'owner/repo', private: false }),
-    )
-    repo.upsert.mockResolvedValue(err(databaseError()))
-    expectErr(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'owner/repo',
-        token: TOKEN,
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      }),
-      'DATABASE_ERROR',
-    )
-  })
-
-  it('recusa quem não é admin', async () => {
-    actAs('agent')
-    expectErr(
-      await SdIntegrationService.connectGithub('u1', WS, {
-        repo: 'owner/repo',
-        token: TOKEN,
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      }),
-      'FORBIDDEN',
-    )
-  })
-})
-
-describe('SdIntegrationService.updateGithub', () => {
-  beforeEach(() => {
-    repo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
-    repo.update.mockResolvedValue(ok(createFakeSdGithubIntegration()))
-    github.checkRepo.mockResolvedValue(
-      ok({ fullName: 'stratus-so2/steel', private: true }),
-    )
-  })
-
-  it('troca o token depois de revalidar o acesso', async () => {
-    expectOk(
-      await SdIntegrationService.updateGithub('u1', WS, { token: TOKEN }),
-    )
-    expect(github.checkRepo).toHaveBeenCalledWith(TOKEN, {
-      owner: 'stratus-so2',
-      repo: 'steel',
-    })
-    const [, , data] = repo.update.mock.calls[0]
-    expect(data.encryptedToken).toBe(`enc:${TOKEN}`)
-    expect(data.status).toBe('ACTIVE')
-    expect(data.statusError).toBeNull()
-  })
-
-  it('troca e remove o segredo do webhook', async () => {
-    expectOk(
-      await SdIntegrationService.updateGithub('u1', WS, {
-        webhookSecret: 'outro-segredo-de-teste',
-      }),
-    )
-    expect(repo.update.mock.calls[0][2].encryptedSigningSecret).toBe(
-      'enc:outro-segredo-de-teste',
-    )
-    repo.update.mockClear()
-    expectOk(
-      await SdIntegrationService.updateGithub('u1', WS, {
-        webhookSecret: null,
-      }),
-    )
-    expect(repo.update.mock.calls[0][2].encryptedSigningSecret).toBeNull()
-  })
-
-  it('mescla os interruptores com o que já estava salvo', async () => {
-    repo.requireByKind.mockResolvedValue(
-      ok(
-        createFakeSdGithubIntegration({
-          config: { suggestPhaseOnClose: false, allowIssueFromTicket: true },
-        }),
-      ),
-    )
-    expectOk(
-      await SdIntegrationService.updateGithub('u1', WS, {
-        allowIssueFromTicket: false,
-      }),
-    )
-    expect(repo.update.mock.calls[0][2].config).toEqual({
+    expect(dto.repo).toEqual({
       suggestPhaseOnClose: false,
-      allowIssueFromTicket: false,
+      allowIssueFromTicket: true,
+    })
+
+    repo.requireByKind.mockResolvedValueOnce(
+      ok(createFakeGitlabIntegration({ config: {} })),
+    )
+    expectOk(
+      await SdIntegrationService.updateRepoConfig('u1', WS, 'GITLAB', {
+        allowIssueFromTicket: false,
+      }),
+    )
+    expect(repo.requireByKind).toHaveBeenLastCalledWith(WS, 'GITLAB')
+    expect(repo.update.mock.calls[1][2].config).toEqual({
+      servicedesk: { suggestPhaseOnClose: true, allowIssueFromTicket: false },
     })
   })
 
-  it('recusa token sem acesso, repositório corrompido e não-admin', async () => {
-    github.checkRepo.mockResolvedValue(err(sdIntegrationRequestFailed()))
+  it('refuses a missing connection and non-admins', async () => {
+    repo.requireByKind.mockResolvedValueOnce(err(sdIntegrationNotFound()))
     expectErr(
-      await SdIntegrationService.updateGithub('u1', WS, { token: TOKEN }),
-      'SD_INTEGRATION_REQUEST_FAILED',
-    )
-    repo.requireByKind.mockResolvedValue(
-      ok(createFakeSdGithubIntegration({ externalId: 'invalido' })),
-    )
-    expectErr(
-      await SdIntegrationService.updateGithub('u1', WS, { token: TOKEN }),
-      'SD_INTEGRATION_REQUEST_FAILED',
-    )
-    actAs('agent')
-    expectErr(
-      await SdIntegrationService.updateGithub('u1', WS, {
-        suggestPhaseOnClose: false,
-      }),
-      'FORBIDDEN',
-    )
-  })
-
-  it('propaga integração ausente e erro de banco', async () => {
-    repo.requireByKind.mockResolvedValue(err(sdIntegrationNotFound()))
-    expectErr(
-      await SdIntegrationService.updateGithub('u1', WS, {
-        suggestPhaseOnClose: false,
+      await SdIntegrationService.updateRepoConfig('u1', WS, 'GITLAB', {
+        suggestPhaseOnClose: true,
       }),
       'SD_INTEGRATION_NOT_FOUND',
     )
-    repo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
-    repo.update.mockResolvedValue(err(databaseError()))
+    actAs('requester')
     expectErr(
-      await SdIntegrationService.updateGithub('u1', WS, {
-        suggestPhaseOnClose: false,
+      await SdIntegrationService.updateRepoConfig('u1', WS, 'GITHUB', {
+        suggestPhaseOnClose: true,
       }),
-      'DATABASE_ERROR',
-    )
-  })
-})
-
-describe('SdIntegrationService.disconnect', () => {
-  it('desconecta e audita', async () => {
-    expectOk(await SdIntegrationService.disconnect('u1', WS, 'SLACK'))
-    expect(repo.disconnect).toHaveBeenCalledWith('int-slack-1', WS)
-    expect(audit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entity: 'sd_integration',
-        action: 'disconnect',
-      }),
-    )
-  })
-
-  it('recusa não-admin, integração ausente e erro de banco', async () => {
-    actAs('agent')
-    expectErr(
-      await SdIntegrationService.disconnect('u1', WS, 'GITHUB'),
       'FORBIDDEN',
     )
-    actAs('owner')
-    repo.requireByKind.mockResolvedValue(err(sdIntegrationNotFound()))
-    expectErr(
-      await SdIntegrationService.disconnect('u1', WS, 'GITHUB'),
-      'SD_INTEGRATION_NOT_FOUND',
-    )
-    repo.requireByKind.mockResolvedValue(ok(createFakeSdIntegration()))
-    repo.disconnect.mockResolvedValue(err(databaseError()))
-    expectErr(
-      await SdIntegrationService.disconnect('u1', WS, 'SLACK'),
-      'DATABASE_ERROR',
-    )
-  })
-})
-
-describe('activeSdIntegration', () => {
-  it('devolve a integração viva e ignora a desconectada', async () => {
-    repo.findByKind.mockResolvedValue(ok(createFakeSdIntegration()))
-    expect(await activeSdIntegration(WS, 'SLACK')).not.toBeNull()
-
-    repo.findByKind.mockResolvedValue(
-      ok(createFakeSdIntegration({ status: 'DISCONNECTED' })),
-    )
-    expect(await activeSdIntegration(WS, 'SLACK')).toBeNull()
-
-    repo.findByKind.mockResolvedValue(ok(null))
-    expect(await activeSdIntegration(WS, 'SLACK')).toBeNull()
-
-    repo.findByKind.mockResolvedValue(err(databaseError()))
-    expect(await activeSdIntegration(WS, 'SLACK')).toBeNull()
   })
 })

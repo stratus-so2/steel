@@ -1,4 +1,4 @@
-import type { SdIntegration } from '@prisma/client'
+import type { WorkspaceIntegration } from '@prisma/client'
 import { sdIntegrationNotConfigured } from '@/src/errors'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -10,7 +10,10 @@ import { err, ok, type Result } from '@/src/lib/result'
  */
 
 export async function decryptSdIntegrationToken(
-  integration: SdIntegration,
+  integration: Pick<
+    WorkspaceIntegration,
+    'encryptedToken' | 'encryptedSigningSecret'
+  >,
 ): Promise<Result<string>> {
   if (integration.encryptedToken === '') {
     return err(
@@ -36,7 +39,10 @@ export async function decryptSdIntegrationToken(
 
 /** `null` quando a integração não tem segredo de assinatura guardado. */
 export async function decryptSdIntegrationSecret(
-  integration: SdIntegration,
+  integration: Pick<
+    WorkspaceIntegration,
+    'encryptedToken' | 'encryptedSigningSecret'
+  >,
 ): Promise<Result<string | null>> {
   if (!integration.encryptedSigningSecret) return ok(null)
   try {

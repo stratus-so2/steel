@@ -63,7 +63,7 @@ async function setupGithub(
     type: 'PROBLEM',
     title: 'Fila travando',
   })
-  const integration = await prisma.sdIntegration.create({
+  const integration = await prisma.workspaceIntegration.create({
     data: {
       workspaceId: workspace.id,
       createdById: user.id,
@@ -329,7 +329,7 @@ describe('POST /api/servicedesk/integrations/github (público)', () => {
 
   it('integração desconectada deixa de receber webhook', async () => {
     const { integration } = await setupGithub()
-    await prisma.sdIntegration.update({
+    await prisma.workspaceIntegration.update({
       where: { id: integration.id },
       data: { deletedAt: new Date(), status: 'DISCONNECTED' },
     })

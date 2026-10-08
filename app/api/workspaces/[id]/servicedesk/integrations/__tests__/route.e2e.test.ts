@@ -17,15 +17,12 @@ import {
 import { prisma } from '@/src/lib/prisma'
 
 /**
- * Rotas de configuração das integrações. Não há rede nos e2e: conectar o
- * GitHub exige falar com a API (o token é falso de propósito), então esse
- * caminho exercita a falha — o que se verifica aqui é o **contrato**:
- * acesso (admin × agente × solicitante × não-membro), as URLs a cadastrar,
- * o que acontece sem integração conectada e, acima de tudo, que **nenhuma
- * resposta devolve token ou segredo**.
- *
- * O Slack fica inerte porque o servidor de teste não tem `SLACK_CLIENT_ID`
- * & cia. — e é exatamente isso que `slackConfigured: false` precisa dizer.
+ * ServiceDesk side of the integrations. The connections are workspace-level
+ * since ADR 0024 (connect/disconnect live in `/api/workspaces/[id]/
+ * integrations`); here: access (admin × agent × requester × non-member),
+ * the module settings, the ticket links and, above all, that **no response
+ * returns a token or secret**. No network in e2e: GitHub/GitLab calls fail
+ * on purpose with fake tokens.
  */
 
 const api = (ws: string) => `/api/workspaces/${ws}/servicedesk/integrations`
@@ -45,24 +42,24 @@ async function agentOf(workspaceId: string) {
 }
 
 describe('GET /servicedesk/integrations', () => {
-  it('mostra o estado e as URLs a cadastrar, sem vazar segredo', async () => {
+  it('shows the state and where to manage it, without leaking secrets', async () => {
     const { owner, workspace } = await setup()
     const res = await getJson(api(workspace.id), owner.cookie)
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.data.slack).toBeNull()
     expect(body.data.github).toBeNull()
+    expect(body.data.gitlab).toBeNull()
     expect(body.data.slackConfigured).toBe(false)
-    expect(body.data.slackEventsUrl).toBeNull()
-    expect(body.data.githubWebhookUrl).toContain(
-      '/api/servicedesk/integrations/github',
+    expect(body.data.manageHref).toBe(
+      `/${workspace.slug}/settings/integrations`,
     )
     expect(JSON.stringify(body)).not.toContain('encrypted')
   })
 
-  it('devolve a integração conectada sem o token', async () => {
+  it('returns the workspace connection without the token', async () => {
     const { owner, workspace } = await setup()
-    await prisma.sdIntegration.create({
+    await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -71,6 +68,7 @@ describe('GET /servicedesk/integrations', () => {
         externalName: 'owner/repo',
         encryptedToken: 'enc:token-super-secreto',
         encryptedSigningSecret: 'enc:segredo-do-webhook',
+        // Legacy shape (copied by the migration): mapped on read.
         config: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
       },
     })
@@ -78,7 +76,7 @@ describe('GET /servicedesk/integrations', () => {
     const body = await res.json()
     expect(body.data.github.externalId).toBe('owner/repo')
     expect(body.data.github.hasWebhookSecret).toBe(true)
-    expect(body.data.github.github).toEqual({
+    expect(body.data.github.repo).toEqual({
       suggestPhaseOnClose: true,
       allowIssueFromTicket: true,
     })
@@ -87,7 +85,7 @@ describe('GET /servicedesk/integrations', () => {
     expect(raw).not.toContain('segredo-do-webhook')
   })
 
-  it('recusa agente, solicitante, não-membro e sem sessão', async () => {
+  it('refuses agent, requester, non-member and no session', async () => {
     const { workspace } = await setup()
     const { member: agent } = await agentOf(workspace.id)
     expect((await getJson(api(workspace.id), agent.cookie)).status).toBe(403)
@@ -103,7 +101,7 @@ describe('GET /servicedesk/integrations', () => {
     expect((await getJson(api(workspace.id))).status).toBe(401)
   })
 
-  it('recusa quando o módulo ServiceDesk está desabilitado', async () => {
+  it('refuses when the ServiceDesk module is disabled', async () => {
     const { owner, workspace } = await setup()
     await prisma.workspaceModuleAccess.updateMany({
       where: { workspaceId: workspace.id, module: 'SERVICE_DESK' },
@@ -115,42 +113,37 @@ describe('GET /servicedesk/integrations', () => {
   })
 })
 
-describe('Slack', () => {
-  it('conectar responde 503 explicando que o app não está configurado', async () => {
+describe('Slack (ServiceDesk settings)', () => {
+  it('connecting and disconnecting moved to Ajustes > Integrações', async () => {
     const { owner, workspace } = await setup()
-    const res = await getJson(
-      `${api(workspace.id)}/slack/connect`,
-      owner.cookie,
-    )
-    expect(res.status).toBe(503)
-    const body = await res.json()
-    expect(body.error.code).toBe('SD_INTEGRATION_NOT_CONFIGURED')
-    expect(body.message).toContain('SLACK_CLIENT_ID')
-  })
-
-  it('configurar, listar canais e desconectar sem integração dão 404', async () => {
-    const { owner, workspace } = await setup()
-    const patch = await patchJson(
-      `${api(workspace.id)}/slack`,
-      { events: ['sla.breached'] },
-      owner.cookie,
-    )
-    expect(patch.status).toBe(404)
-    expect((await patch.json()).error.code).toBe('SD_INTEGRATION_NOT_FOUND')
-
     expect(
-      (await getJson(`${api(workspace.id)}/slack/channels`, owner.cookie))
+      (await getJson(`${api(workspace.id)}/slack/connect`, owner.cookie))
         .status,
     ).toBe(404)
     expect(
       (await deleteJson(`${api(workspace.id)}/slack`, owner.cookie)).status,
+    ).toBe(405)
+  })
+
+  it('settings and channels without a connection are 404', async () => {
+    const { owner, workspace } = await setup()
+    const patch = await patchJson(
+      `${api(workspace.id)}/slack`,
+      { mirrorThreadReplies: false },
+      owner.cookie,
+    )
+    expect(patch.status).toBe(404)
+    expect((await patch.json()).error.code).toBe('SD_INTEGRATION_NOT_FOUND')
+    expect(
+      (await getJson(`${api(workspace.id)}/slack/channels`, owner.cookie))
+        .status,
     ).toBe(404)
   })
 
-  it('salva canal por time e eventos na integração conectada', async () => {
+  it('saves team channels and switches, keeping the workspace rules', async () => {
     const { owner, workspace } = await setup()
     const department = await seedSdDepartment(workspace.id, { name: 'Redes' })
-    await prisma.sdIntegration.create({
+    const row = await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -158,7 +151,9 @@ describe('Slack', () => {
         externalId: 'T0001',
         externalName: 'Stratus',
         encryptedToken: 'enc:xoxb',
-        config: {},
+        config: {
+          routes: [{ event: 'crm.deal.won', channelId: 'C9' }],
+        },
       },
     })
 
@@ -171,9 +166,7 @@ describe('Slack', () => {
             channelId: 'C1',
             channelName: 'redes',
           },
-          { channelId: 'C0', channelName: 'geral' },
         ],
-        events: ['sla.breached', 'ticket.escalated'],
         mirrorThreadReplies: false,
         ticketType: 'PROBLEM',
       },
@@ -181,47 +174,42 @@ describe('Slack', () => {
     )
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.data.slack.channels).toHaveLength(2)
-    expect(body.data.slack.events).toEqual(['sla.breached', 'ticket.escalated'])
+    expect(body.data.slack.channels).toHaveLength(1)
     expect(body.data.slack.mirrorThreadReplies).toBe(false)
     expect(body.data.slack.ticketType).toBe('PROBLEM')
-
-    // Desconectar apaga o token e a integração sai da aba.
-    expect(
-      (await deleteJson(`${api(workspace.id)}/slack`, owner.cookie)).status,
-    ).toBe(200)
-    const after = await getJson(api(workspace.id), owner.cookie)
-    expect((await after.json()).data.slack).toBeNull()
-    const row = await prisma.sdIntegration.findFirst({
-      where: { workspaceId: workspace.id, kind: 'SLACK' },
+    const saved = await prisma.workspaceIntegration.findUnique({
+      where: { id: row.id },
     })
-    expect(row?.encryptedToken).toBe('')
-    expect(row?.status).toBe('DISCONNECTED')
+    expect(saved?.config).toMatchObject({
+      routes: [{ event: 'crm.deal.won', channelId: 'C9' }],
+    })
   })
 
-  it('recusa canal repetido para o mesmo time e corpo vazio', async () => {
+  it('refuses the old default channel, a repeated team and an empty body', async () => {
     const { owner, workspace } = await setup()
-    const repeated = await patchJson(
-      `${api(workspace.id)}/slack`,
+    for (const body of [
+      { channels: [{ channelId: 'C0' }] },
       {
         channels: [
           { departmentId: 'dep-1', channelId: 'C1' },
           { departmentId: 'dep-1', channelId: 'C2' },
         ],
       },
-      owner.cookie,
-    )
-    expect(repeated.status).toBe(422)
-    expect(
-      (await patchJson(`${api(workspace.id)}/slack`, {}, owner.cookie)).status,
-    ).toBe(422)
+      { events: ['sla.breached'] },
+      {},
+    ]) {
+      expect(
+        (await patchJson(`${api(workspace.id)}/slack`, body, owner.cookie))
+          .status,
+      ).toBe(422)
+    }
   })
 
-  it('recusa departamento de outra workspace no mapa de canais', async () => {
+  it('refuses a team of another workspace', async () => {
     const { owner, workspace } = await setup()
     const { workspace: other } = await setup()
     const foreign = await seedSdDepartment(other.id, { name: 'De outra' })
-    await prisma.sdIntegration.create({
+    await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -241,83 +229,38 @@ describe('Slack', () => {
   })
 })
 
-describe('GitHub', () => {
-  it('recusa repositório irreconhecível antes de qualquer chamada', async () => {
-    const { owner, workspace } = await setup()
-    const res = await postJson(
-      `${api(workspace.id)}/github`,
-      { repo: 'nao-e-um-repo', token: 'github_pat_11ABCDEFG0123456789' },
-      owner.cookie,
-    )
-    expect(res.status).toBe(422)
-    expect((await res.json()).error.code).toBe('VALIDATION_ERROR')
-  })
-
-  it('recusa token curto e segredo de webhook curto na validação Zod', async () => {
+describe('GitHub and GitLab (ServiceDesk settings)', () => {
+  it('connecting moved to Ajustes > Integrações', async () => {
     const { owner, workspace } = await setup()
     expect(
       (
         await postJson(
           `${api(workspace.id)}/github`,
-          { repo: 'owner/repo', token: 'curto' },
+          { repo: 'owner/repo', token: 'github_pat_11ABCDEFG0123456789' },
           owner.cookie,
         )
       ).status,
-    ).toBe(422)
-    expect(
-      (
-        await postJson(
-          `${api(workspace.id)}/github`,
-          {
-            repo: 'owner/repo',
-            token: 'github_pat_11ABCDEFG0123456789',
-            webhookSecret: 'curto',
-          },
-          owner.cookie,
-        )
-      ).status,
-    ).toBe(422)
+    ).toBe(405)
   })
 
-  it('token sem acesso ao repositório vira SD_INTEGRATION_REQUEST_FAILED', async () => {
+  it('settings without a connection are 404', async () => {
     const { owner, workspace } = await setup()
-    const res = await postJson(
-      `${api(workspace.id)}/github`,
-      {
-        repo: 'stratus-so2/repositorio-que-nao-existe-aqui',
-        token: 'github_pat_token_invalido_de_teste_0001',
-        webhookSecret: 'segredo-de-teste',
-      },
-      owner.cookie,
-    )
-    expect(res.status).toBe(502)
-    expect((await res.json()).error.code).toBe('SD_INTEGRATION_REQUEST_FAILED')
-    expect(
-      await prisma.sdIntegration.count({
-        where: { workspaceId: workspace.id, kind: 'GITHUB' },
-      }),
-    ).toBe(0)
+    for (const provider of ['github', 'gitlab']) {
+      expect(
+        (
+          await patchJson(
+            `${api(workspace.id)}/${provider}`,
+            { suggestPhaseOnClose: false },
+            owner.cookie,
+          )
+        ).status,
+      ).toBe(404)
+    }
   })
 
-  it('configurar e desconectar sem repositório conectado dão 404', async () => {
+  it('toggles the phase suggestion of the connected repository and project', async () => {
     const { owner, workspace } = await setup()
-    expect(
-      (
-        await patchJson(
-          `${api(workspace.id)}/github`,
-          { suggestPhaseOnClose: false },
-          owner.cookie,
-        )
-      ).status,
-    ).toBe(404)
-    expect(
-      (await deleteJson(`${api(workspace.id)}/github`, owner.cookie)).status,
-    ).toBe(404)
-  })
-
-  it('liga/desliga a sugestão de fase no repositório conectado', async () => {
-    const { owner, workspace } = await setup()
-    await prisma.sdIntegration.create({
+    await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -327,30 +270,54 @@ describe('GitHub', () => {
         config: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
       },
     })
+    await prisma.workspaceIntegration.create({
+      data: {
+        workspaceId: workspace.id,
+        createdById: owner.id,
+        kind: 'GITLAB',
+        externalId: 'grupo/projeto',
+        baseUrl: 'https://gitlab.com',
+        encryptedToken: 'enc:token',
+        config: {},
+      },
+    })
     const res = await patchJson(
       `${api(workspace.id)}/github`,
       { suggestPhaseOnClose: false, allowIssueFromTicket: false },
       owner.cookie,
     )
     expect(res.status).toBe(200)
-    expect((await res.json()).data.github).toEqual({
+    expect((await res.json()).data.repo).toEqual({
       suggestPhaseOnClose: false,
+      allowIssueFromTicket: false,
+    })
+    const gl = await patchJson(
+      `${api(workspace.id)}/gitlab`,
+      { allowIssueFromTicket: false },
+      owner.cookie,
+    )
+    expect(gl.status).toBe(200)
+    expect((await gl.json()).data.repo).toEqual({
+      suggestPhaseOnClose: true,
       allowIssueFromTicket: false,
     })
   })
 
-  it('recusa agente e solicitante na configuração', async () => {
-    const { workspace } = await setup()
+  it('refuses agents and an empty body', async () => {
+    const { owner, workspace } = await setup()
     const { member: agent } = await agentOf(workspace.id)
     expect(
       (
-        await postJson(
+        await patchJson(
           `${api(workspace.id)}/github`,
-          { repo: 'owner/repo', token: 'github_pat_11ABCDEFG0123456789' },
+          { suggestPhaseOnClose: false },
           agent.cookie,
         )
       ).status,
     ).toBe(403)
+    expect(
+      (await patchJson(`${api(workspace.id)}/gitlab`, {}, owner.cookie)).status,
+    ).toBe(422)
   })
 })
 
@@ -379,7 +346,7 @@ describe('vínculos do chamado', () => {
     const ticket = await seedSdTicket(workspace.id, flow.initial.id, {
       type: 'PROBLEM',
     })
-    const integration = await prisma.sdIntegration.create({
+    const integration = await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -462,7 +429,7 @@ describe('vínculos do chamado', () => {
     const ticket = await seedSdTicket(workspace.id, flow.initial.id, {
       type: 'PROBLEM',
     })
-    await prisma.sdIntegration.create({
+    await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -496,7 +463,7 @@ describe('vínculos do chamado', () => {
     const ticket = await seedSdTicket(workspace.id, flow.initial.id, {
       type: 'PROBLEM',
     })
-    const integration = await prisma.sdIntegration.create({
+    const integration = await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -567,7 +534,7 @@ describe('abrir issue a partir do chamado', () => {
     const ticket = await seedSdTicket(workspace.id, flow.initial.id, {
       type: 'PROBLEM',
     })
-    await prisma.sdIntegration.create({
+    await prisma.workspaceIntegration.create({
       data: {
         workspaceId: workspace.id,
         createdById: owner.id,
@@ -584,5 +551,86 @@ describe('abrir issue a partir do chamado', () => {
     )
     expect(res.status).toBe(422)
     expect((await res.json()).message).toContain('desligado')
+  })
+
+  it('GitLab: without a project is 404, and an incident is refused', async () => {
+    const { owner, workspace, flow } = await setup()
+    const problem = await seedSdTicket(workspace.id, flow.initial.id, {
+      type: 'PROBLEM',
+    })
+    const missing = await postJson(
+      `${api(workspace.id)}/gitlab/issues`,
+      { ticketId: problem.id },
+      owner.cookie,
+    )
+    expect(missing.status).toBe(404)
+    const incidentFlow = await seedSdPhaseFlow(workspace.id, 'INCIDENT')
+    const incident = await seedSdTicket(workspace.id, incidentFlow.initial.id, {
+      type: 'INCIDENT',
+    })
+    expect(
+      (
+        await postJson(
+          `${api(workspace.id)}/gitlab/issues`,
+          { ticketId: incident.id },
+          owner.cookie,
+        )
+      ).status,
+    ).toBe(422)
+  })
+})
+
+describe('GET /servicedesk/integrations/providers', () => {
+  it('lists the connected repositories to the agent', async () => {
+    const { owner, workspace, flow } = await setup()
+    const { member: agent } = await agentOf(workspace.id)
+    const ticket = await seedSdTicket(workspace.id, flow.initial.id, {
+      type: 'PROBLEM',
+    })
+    await prisma.workspaceIntegration.create({
+      data: {
+        workspaceId: workspace.id,
+        createdById: owner.id,
+        kind: 'GITLAB',
+        externalId: 'grupo/projeto',
+        baseUrl: 'https://gitlab.com',
+        encryptedToken: 'enc:token-secreto',
+        config: { servicedesk: { allowIssueFromTicket: false } },
+      },
+    })
+    const res = await getJson(
+      `${api(workspace.id)}/providers?ticketId=${ticket.id}`,
+      agent.cookie,
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.data).toEqual([
+      {
+        provider: 'GITLAB',
+        project: 'grupo/projeto',
+        allowIssueFromTicket: false,
+      },
+    ])
+    expect(JSON.stringify(body)).not.toContain('token-secreto')
+  })
+
+  it('refuses the requester and needs the ticket', async () => {
+    const { workspace, flow } = await setup()
+    const requester = await addMember(workspace.id, 'MEMBER')
+    const ticket = await seedSdTicket(workspace.id, flow.initial.id, {
+      type: 'PROBLEM',
+    })
+    expect(
+      (
+        await getJson(
+          `${api(workspace.id)}/providers?ticketId=${ticket.id}`,
+          requester.cookie,
+        )
+      ).status,
+    ).toBe(403)
+    const { member: agent } = await agentOf(workspace.id)
+    expect(
+      (await getJson(`${api(workspace.id)}/providers`, agent.cookie)).status,
+    ).toBe(422)
   })
 })

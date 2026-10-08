@@ -1,7 +1,9 @@
-import type { SdIntegration, SdIntegrationLink } from '@prisma/client'
+import type { SdIntegrationLink, WorkspaceIntegration } from '@prisma/client'
 import {
-  parseSdGithubConfig,
-  parseSdSlackConfig,
+  parseWorkspaceRepoConfig,
+  parseWorkspaceSlackConfig,
+} from '@/src/lib/integrations/config'
+import {
   SD_GITHUB_STATE_LABEL,
   type SdGithubExternalState,
 } from '@/src/lib/servicedesk/integrations'
@@ -11,13 +13,13 @@ import type {
 } from '@/types/sd-integration'
 
 /**
- * `SdIntegration` / `SdIntegrationLink` → DTO. O token e o segredo de
- * assinatura são deliberadamente omitidos: o DTO só diz **se** existe um
- * segredo (`hasWebhookSecret`).
+ * Workspace connection (ServiceDesk view) / `SdIntegrationLink` → DTO. The
+ * token and the webhook secret are deliberately left out: the DTO only says
+ * **whether** a secret exists (`hasWebhookSecret`).
  */
 
 export function toSdIntegrationDTO(
-  integration: SdIntegration,
+  integration: WorkspaceIntegration,
 ): SdIntegrationDTO {
   return {
     id: integration.id,
@@ -26,15 +28,17 @@ export function toSdIntegrationDTO(
     statusError: integration.statusError,
     externalId: integration.externalId,
     externalName: integration.externalName,
+    baseUrl: integration.baseUrl,
     hasWebhookSecret: integration.encryptedSigningSecret !== null,
+    lastEventAt: integration.lastEventAt?.toISOString() ?? null,
     slack:
       integration.kind === 'SLACK'
-        ? parseSdSlackConfig(integration.config)
+        ? parseWorkspaceSlackConfig(integration.config).servicedesk
         : null,
-    github:
-      integration.kind === 'GITHUB'
-        ? parseSdGithubConfig(integration.config)
-        : null,
+    repo:
+      integration.kind === 'SLACK'
+        ? null
+        : parseWorkspaceRepoConfig(integration.config).servicedesk,
     createdAt: integration.createdAt.toISOString(),
     updatedAt: integration.updatedAt.toISOString(),
   }

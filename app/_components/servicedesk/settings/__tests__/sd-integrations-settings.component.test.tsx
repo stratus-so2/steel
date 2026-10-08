@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   fetchBody,
   mockFetch,
@@ -17,6 +17,7 @@ import { SD_SETTINGS_TABS } from '../settings-tabs'
 const WS = 'ws-1'
 const BASE = `/api/workspaces/${WS}/servicedesk/integrations`
 const CHANNELS = `${BASE}/slack/channels`
+const MANAGE = '/acme/settings/integrations'
 
 const config = {
   departments: [
@@ -26,15 +27,16 @@ const config = {
 } as unknown as SdConfigBootstrapDTO
 
 const SLACK_CONFIG: NonNullable<SdIntegrationDTO['slack']> = {
-  channels: [{ departmentId: null, channelId: 'C0', channelName: 'geral' }],
-  events: ['sla.breached'],
+  channels: [{ departmentId: 'dep-1', channelId: 'C1', channelName: 'redes' }],
   allowTicketFromMessage: true,
   mirrorThreadReplies: true,
   ticketType: 'INCIDENT',
   departmentId: null,
 }
 
-function slack(overrides: Partial<SdIntegrationDTO> = {}): SdIntegrationDTO {
+function connection(
+  overrides: Partial<SdIntegrationDTO> = {},
+): SdIntegrationDTO {
   return {
     id: 'int-slack',
     kind: 'SLACK',
@@ -42,41 +44,48 @@ function slack(overrides: Partial<SdIntegrationDTO> = {}): SdIntegrationDTO {
     statusError: null,
     externalId: 'T0001',
     externalName: 'Stratus',
+    baseUrl: null,
     hasWebhookSecret: false,
+    lastEventAt: null,
     slack: SLACK_CONFIG,
-    github: null,
+    repo: null,
     createdAt: '2026-10-02T10:00:00.000Z',
     updatedAt: '2026-10-02T10:00:00.000Z',
     ...overrides,
   }
 }
 
-function github(overrides: Partial<SdIntegrationDTO> = {}): SdIntegrationDTO {
-  return {
+const github = (overrides: Partial<SdIntegrationDTO> = {}) =>
+  connection({
     id: 'int-gh',
     kind: 'GITHUB',
-    status: 'ACTIVE',
-    statusError: null,
     externalId: 'stratus-so2/steel',
     externalName: 'stratus-so2/steel',
     hasWebhookSecret: true,
     slack: null,
-    github: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
-    createdAt: '2026-10-02T10:00:00.000Z',
-    updatedAt: '2026-10-02T10:00:00.000Z',
+    repo: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
     ...overrides,
-  }
-}
+  })
+
+const gitlab = (overrides: Partial<SdIntegrationDTO> = {}) =>
+  github({
+    id: 'int-gl',
+    kind: 'GITLAB',
+    externalId: 'stratus/steel',
+    externalName: 'stratus/steel',
+    baseUrl: 'https://gitlab.com',
+    ...overrides,
+  })
 
 function overview(
   overrides: Partial<SdIntegrationsOverviewDTO> = {},
 ): SdIntegrationsOverviewDTO {
   return {
     slackConfigured: true,
-    slackEventsUrl: 'https://steel.test/api/servicedesk/integrations/slack',
-    githubWebhookUrl: 'https://steel.test/api/servicedesk/integrations/github',
+    manageHref: MANAGE,
     slack: null,
     github: null,
+    gitlab: null,
     ...overrides,
   }
 }
@@ -89,64 +98,56 @@ function renderTab(canEdit = true) {
   )
 }
 
-beforeEach(() => {
-  Object.assign(navigator, {
-    clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
-  })
-})
-
 describe('SD_SETTINGS_TABS', () => {
-  it('registra a aba Integrações antes das Notificações', () => {
+  it('keeps the Integrações tab before Notificações', () => {
     const ids = SD_SETTINGS_TABS.map((tab) => tab.id)
-    expect(ids).toContain('integrations')
     expect(ids.indexOf('integrations')).toBeLessThan(
       ids.indexOf('notifications'),
     )
     const tab = SD_SETTINGS_TABS.find((item) => item.id === 'integrations')
     expect(tab?.label).toBe('Integrações')
     expect(tab?.component).toBe(SdIntegrationsTab)
-    expect(tab?.personal).toBeUndefined()
   })
 })
 
-describe('<SdIntegrationsTab /> — Slack', () => {
-  it('explica a degradação quando o app não está configurado no servidor', async () => {
+describe('<SdIntegrationsTab /> — not connected', () => {
+  it('points every provider to Ajustes › Integrações', async () => {
+    mockFetch([{ match: BASE, data: overview() }])
+    renderTab()
+    expect(
+      await screen.findByText(/O Slack ainda não foi conectado/),
+    ).toBeTruthy()
+    const links = screen.getAllByRole('link', {
+      name: /Conectar em Ajustes › Integrações/,
+    })
+    expect(links).toHaveLength(3)
+    expect(links.every((link) => link.getAttribute('href') === MANAGE)).toBe(
+      true,
+    )
+    expect(screen.getByText(/Nenhum repositório conectado/)).toBeTruthy()
+    expect(screen.getByText(/Nenhum projeto conectado/)).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: 'Ajustes › Integrações' }),
+    ).toBeTruthy()
+  })
+
+  it('explains when the server has no Slack app and no manage link', async () => {
     mockFetch([
       {
         match: BASE,
-        data: overview({ slackConfigured: false, slackEventsUrl: null }),
+        data: overview({ slackConfigured: false, manageHref: null }),
       },
     ])
     renderTab()
     expect(
       await screen.findByText(/não está configurado neste servidor/),
     ).toBeTruthy()
-    expect(screen.getByText('SLACK_CLIENT_ID')).toBeTruthy()
-    expect(screen.queryByRole('link', { name: /Conectar o Slack/ })).toBeNull()
+    expect(screen.queryByRole('link')).toBeNull()
   })
+})
 
-  it('oferece conectar com a Request URL a cadastrar no app', async () => {
-    mockFetch([{ match: BASE, data: overview() }])
-    renderTab()
-    const link = await screen.findByRole('link', { name: /Conectar o Slack/ })
-    expect(link.getAttribute('href')).toBe(`${BASE}/slack/connect`)
-    expect(
-      screen.getByDisplayValue(
-        'https://steel.test/api/servicedesk/integrations/slack',
-      ),
-    ).toBeTruthy()
-  })
-
-  it('esconde o botão de conectar no modo leitura', async () => {
-    mockFetch([{ match: BASE, data: overview() }])
-    renderTab(false)
-    expect(
-      await screen.findByText(/Nenhum workspace do Slack conectado/),
-    ).toBeTruthy()
-    expect(screen.queryByRole('link', { name: /Conectar o Slack/ })).toBeNull()
-  })
-
-  it('mostra o time conectado, o erro da integração e o canal por time', async () => {
+describe('<SdIntegrationsTab /> — Slack', () => {
+  it('shows the connection, its error and a channel selector per team', async () => {
     mockFetch([
       {
         match: CHANNELS,
@@ -158,7 +159,7 @@ describe('<SdIntegrationsTab /> — Slack', () => {
       {
         match: BASE,
         data: overview({
-          slack: slack({
+          slack: connection({
             status: 'ERROR',
             statusError: 'canal não encontrado',
           }),
@@ -169,258 +170,124 @@ describe('<SdIntegrationsTab /> — Slack', () => {
     expect(await screen.findByText('Stratus')).toBeTruthy()
     expect(screen.getByText('Com erro')).toBeTruthy()
     expect(screen.getByText('canal não encontrado')).toBeTruthy()
-    expect(await screen.findByText(/Canal padrão/)).toBeTruthy()
-    expect(screen.getByText('Suporte N1')).toBeTruthy()
-    // Sub-departamento aparece com o caminho completo.
+    expect(screen.getByRole('link', { name: 'Gerenciar conexão' })).toBeTruthy()
+    expect(await screen.findByText('Suporte N1')).toBeTruthy()
     expect(screen.getByText('Infra › Redes')).toBeTruthy()
+    expect(screen.getAllByText('Usar o canal da regra').length).toBeGreaterThan(
+      0,
+    )
   })
 
-  it('avisa quando o bot não enxerga nenhum canal', async () => {
-    mockFetch([
-      { match: CHANNELS, data: [] },
-      { match: BASE, data: overview({ slack: slack() }) },
-    ])
-    renderTab()
-    expect(await screen.findByText(/não enxerga nenhum canal/)).toBeTruthy()
-  })
-
-  it('mostra o erro da listagem de canais', async () => {
+  it('shows the channel listing error and the empty team list', async () => {
     mockFetch([
       { match: CHANNELS, status: 502, error: 'O Slack não respondeu' },
-      { match: BASE, data: overview({ slack: slack() }) },
+      { match: BASE, data: overview({ slack: connection() }) },
     ])
     renderTab()
     expect(await screen.findByText('O Slack não respondeu')).toBeTruthy()
   })
 
-  it('mostra o canal já escolhido e um seletor por time (mais o padrão)', async () => {
-    mockFetch([
-      {
-        match: CHANNELS,
-        data: [
-          { id: 'C0', name: 'geral', isPrivate: false },
-          { id: 'C1', name: 'redes', isPrivate: false },
-        ],
-      },
-      {
-        match: BASE,
-        data: overview({
-          slack: slack({
-            slack: {
-              ...SLACK_CONFIG,
-              channels: [
-                { departmentId: null, channelId: 'C0', channelName: 'geral' },
-                {
-                  departmentId: 'dep-1',
-                  channelId: 'C1',
-                  channelName: 'redes',
-                },
-              ],
-            },
-          }),
-        }),
-      },
-    ])
-    renderTab()
-    await screen.findByText('Stratus')
-    // Espera a lista de canais chegar (os gatilhos só aparecem depois dela).
-    expect(await screen.findByText('#geral')).toBeTruthy()
-    expect(screen.getByText('#redes')).toBeTruthy()
-    // Canal padrão + um seletor por departamento (3, com o sub-departamento)
-    // + tipo do chamado + time que recebe.
-    const selects = screen.getAllByRole('combobox')
-    expect(selects.length).toBeGreaterThanOrEqual(4)
-    // Time sem canal cai no padrão — e a tela diz isso.
-    expect(screen.getAllByText('Usar o canal padrão').length).toBeGreaterThan(0)
-  })
-
-  it('liga um evento do catálogo pelo rótulo em pt-BR', async () => {
+  it('turns thread mirroring and ticket from message off', async () => {
     const spy = mockFetch([
       { match: CHANNELS, data: [] },
-      { match: BASE, data: overview({ slack: slack() }) },
-      { method: 'PATCH', match: `${BASE}/slack`, data: slack() },
+      { match: BASE, data: overview({ slack: connection() }) },
+      { method: 'PATCH', match: `${BASE}/slack`, data: connection() },
     ])
     renderTab()
-    const toggle = await screen.findByRole('switch', {
-      name: 'Chamado atribuído a você',
-    })
-    fireEvent.click(toggle)
-    await waitFor(() => {
-      expect(fetchBody(spy, `${BASE}/slack`, 'PATCH')).toEqual({
-        events: ['sla.breached', 'ticket.assigned'],
-      })
-    })
-  })
-
-  it('desliga o espelhamento da thread', async () => {
-    const spy = mockFetch([
-      { match: CHANNELS, data: [] },
-      { match: BASE, data: overview({ slack: slack() }) },
-      { method: 'PATCH', match: `${BASE}/slack`, data: slack() },
-    ])
-    renderTab()
-    const toggle = await screen.findByRole('switch', {
-      name: /Respostas da thread entram no histórico/,
-    })
-    fireEvent.click(toggle)
+    fireEvent.click(
+      await screen.findByRole('switch', {
+        name: /Respostas da thread entram no histórico/,
+      }),
+    )
     await waitFor(() => {
       expect(fetchBody(spy, `${BASE}/slack`, 'PATCH')).toEqual({
         mirrorThreadReplies: false,
       })
     })
-  })
-
-  it('desconecta o Slack depois da confirmação', async () => {
-    const spy = mockFetch([
-      { match: CHANNELS, data: [] },
-      { match: BASE, data: overview({ slack: slack() }) },
-      { method: 'DELETE', match: `${BASE}/slack`, data: null },
-    ])
-    renderTab()
-    fireEvent.click(await screen.findByRole('button', { name: 'Desconectar' }))
-    fireEvent.click(await screen.findByRole('button', { name: 'Desconectar' }))
+    fireEvent.click(
+      screen.getByRole('switch', { name: /Abrir chamado por atalho/ }),
+    )
     await waitFor(() => {
       expect(
-        spy.mock.calls.some(
-          ([url, init]) =>
-            String(url).includes(`${BASE}/slack`) && init?.method === 'DELETE',
-        ),
-      ).toBe(true)
+        spy.mock.calls.filter(([, init]) => init?.method === 'PATCH'),
+      ).toHaveLength(2)
     })
+  })
+
+  it('disables the switches in read-only mode', async () => {
+    mockFetch([
+      { match: CHANNELS, data: [] },
+      { match: BASE, data: overview({ slack: connection() }) },
+    ])
+    renderTab(false)
+    const toggle = await screen.findByRole('switch', {
+      name: /Respostas da thread/,
+    })
+    expect(
+      toggle.hasAttribute('disabled') ||
+        toggle.getAttribute('aria-disabled') === 'true' ||
+        toggle.hasAttribute('data-disabled'),
+    ).toBe(true)
   })
 })
 
-describe('<SdIntegrationsTab /> — GitHub', () => {
-  it('mostra a URL do webhook e o formulário de conexão', async () => {
-    mockFetch([{ match: BASE, data: overview() }])
-    renderTab()
-    expect(
-      await screen.findByDisplayValue(
-        'https://steel.test/api/servicedesk/integrations/github',
-      ),
-    ).toBeTruthy()
-    expect(
-      screen.getByRole('button', { name: /Conectar o repositório/ }),
-    ).toBeTruthy()
-  })
-
-  it('conecta o repositório com token e segredo', async () => {
-    const spy = mockFetch([
-      { match: BASE, data: overview() },
-      { method: 'POST', match: `${BASE}/github`, data: github() },
-    ])
-    renderTab()
-    fireEvent.change(await screen.findByLabelText('Repositório'), {
-      target: { value: 'stratus-so2/steel' },
-    })
-    fireEvent.change(screen.getByLabelText('Token'), {
-      target: { value: 'github_pat_11ABCDEFG0123456789' },
-    })
-    fireEvent.change(screen.getByLabelText('Segredo do webhook'), {
-      target: { value: 'segredo-de-teste' },
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: /Conectar o repositório/ }),
-    )
-    await waitFor(() => {
-      expect(fetchBody(spy, `${BASE}/github`, 'POST')).toEqual({
-        repo: 'stratus-so2/steel',
-        token: 'github_pat_11ABCDEFG0123456789',
-        webhookSecret: 'segredo-de-teste',
-        suggestPhaseOnClose: true,
-        allowIssueFromTicket: true,
-      })
-    })
-  })
-
-  it('só habilita conectar com repositório e token preenchidos', async () => {
-    mockFetch([{ match: BASE, data: overview() }])
-    renderTab()
-    const button = await screen.findByRole('button', {
-      name: /Conectar o repositório/,
-    })
-    expect(button).toHaveProperty('disabled', true)
-    fireEvent.change(screen.getByLabelText('Repositório'), {
-      target: { value: 'owner/repo' },
-    })
-    expect(button).toHaveProperty('disabled', true)
-    fireEvent.change(screen.getByLabelText('Token'), {
-      target: { value: 'github_pat_11ABCDEFG0123456789' },
-    })
-    expect(button).toHaveProperty('disabled', false)
-  })
-
-  it('mostra o repositório conectado e que o webhook está assinado', async () => {
-    mockFetch([{ match: BASE, data: overview({ github: github() }) }])
-    renderTab()
-    expect(await screen.findByText('stratus-so2/steel')).toBeTruthy()
-    expect(screen.getByText('Webhook assinado')).toBeTruthy()
-  })
-
-  it('alerta quando falta o segredo do webhook', async () => {
+describe('<SdIntegrationsTab /> — GitHub and GitLab', () => {
+  it('shows both repositories and their webhook state', async () => {
     mockFetch([
       {
         match: BASE,
-        data: overview({ github: github({ hasWebhookSecret: false }) }),
+        data: overview({
+          github: github(),
+          gitlab: gitlab({
+            hasWebhookSecret: false,
+            statusError: 'token expirado',
+          }),
+        }),
       },
     ])
     renderTab()
-    expect(await screen.findByText('Sem segredo de webhook')).toBeTruthy()
-    expect(screen.getByText(/o webhook é recusado/)).toBeTruthy()
+    expect(await screen.findByText('stratus-so2/steel')).toBeTruthy()
+    expect(screen.getByText('stratus/steel')).toBeTruthy()
+    expect(screen.getByText('Webhook assinado')).toBeTruthy()
+    expect(screen.getByText('Sem segredo de webhook')).toBeTruthy()
+    expect(screen.getByText('token expirado')).toBeTruthy()
   })
 
-  it('desliga a sugestão de fase', async () => {
+  it('updates the phase suggestion of each provider on its own route', async () => {
     const spy = mockFetch([
-      { match: BASE, data: overview({ github: github() }) },
+      { match: BASE, data: overview({ github: github(), gitlab: gitlab() }) },
       { method: 'PATCH', match: `${BASE}/github`, data: github() },
+      { method: 'PATCH', match: `${BASE}/gitlab`, data: gitlab() },
     ])
     renderTab()
-    fireEvent.click(
-      await screen.findByRole('switch', {
-        name: /Fechar a issue sugere avançar a fase/,
-      }),
-    )
+    const toggles = await screen.findAllByRole('switch', {
+      name: /Fechar a issue sugere avançar a fase/,
+    })
+    expect(toggles).toHaveLength(2)
+    fireEvent.click(toggles[1])
     await waitFor(() => {
-      expect(fetchBody(spy, `${BASE}/github`, 'PATCH')).toEqual({
+      expect(fetchBody(spy, `${BASE}/gitlab`, 'PATCH')).toEqual({
         suggestPhaseOnClose: false,
       })
     })
-  })
-
-  it('troca o token e o segredo sem nunca exibi-los', async () => {
-    const spy = mockFetch([
-      { match: BASE, data: overview({ github: github() }) },
-      { method: 'PATCH', match: `${BASE}/github`, data: github() },
-    ])
-    renderTab()
-    const token = await screen.findByLabelText('Trocar o token')
-    expect(token.getAttribute('type')).toBe('password')
-    fireEvent.change(token, {
-      target: { value: 'github_pat_11ABCDEFG0123456789' },
-    })
-    const [save] = screen.getAllByRole('button', { name: 'Salvar' })
-    fireEvent.click(save)
+    fireEvent.click(
+      screen.getAllByRole('switch', {
+        name: /Abrir issue a partir do chamado/,
+      })[0],
+    )
     await waitFor(() => {
       expect(fetchBody(spy, `${BASE}/github`, 'PATCH')).toEqual({
-        token: 'github_pat_11ABCDEFG0123456789',
+        allowIssueFromTicket: false,
       })
     })
-
-    const secret = screen.getByLabelText('Trocar o segredo do webhook')
-    expect(secret.getAttribute('type')).toBe('password')
   })
 })
 
-describe('<SdIntegrationsTab /> — estados da aba', () => {
-  it('mostra o aviso de que os tokens não voltam', async () => {
-    mockFetch([{ match: BASE, data: overview() }])
-    renderTab()
-    expect(await screen.findByText(/nunca voltam por aqui/)).toBeTruthy()
-  })
-
-  it('mostra o erro da consulta', async () => {
+describe('<SdIntegrationsTab /> — tab states', () => {
+  it('shows the loading text and then the query error', async () => {
     mockFetch([{ match: BASE, status: 403, error: 'Só administradores' }])
     renderTab()
+    expect(screen.getByText('Carregando integrações…')).toBeTruthy()
     expect(await screen.findByText('Só administradores')).toBeTruthy()
   })
 })

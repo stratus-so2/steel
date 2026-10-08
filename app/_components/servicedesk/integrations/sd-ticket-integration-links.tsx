@@ -3,6 +3,8 @@
 import {
   Delete02Icon,
   GithubIcon,
+  GitlabIcon,
+  GitMergeIcon,
   GitPullRequestIcon,
   Link04Icon,
   PlusSignIcon,
@@ -18,32 +20,45 @@ import { cn } from '@/lib/utils'
 import {
   useSdIntegrationLinkMutations,
   useSdIntegrationLinks,
+  useSdRepoProviders,
 } from '@/src/hooks/use-sd-integrations'
 import type {
   SdIntegrationLinkDTO,
   SdIntegrationLinkKindDTO,
+  SdRepoProviderDTO,
 } from '@/types/sd-integration'
 import type { SdTicketDTO } from '@/types/sd-ticket'
 
 /**
- * Bloco "Integrações" da tela do chamado: a thread do Slack que abriu o
- * chamado e as issues/PRs vinculadas, com o estado espelhado do GitHub.
+ * "Integrações" block of the ticket screen: the Slack thread that opened the
+ * ticket and the linked GitHub issues/PRs and GitLab issues/MRs, with the
+ * state mirrored by webhook.
  *
- * Só agentes (a rota é `agentOnly`), então para o solicitante o bloco
- * simplesmente não renderiza. Vincular e abrir issue aparecem em chamados de
- * **problema e mudança** — é onde o trabalho técnico mora.
+ * Agents only (the route is `agentOnly`), so for the requester the block
+ * does not render. Linking and opening an issue show up on **problem and
+ * change** tickets, for the repository providers connected to the workspace
+ * (Ajustes > Integrações).
  */
 
 const KIND_ICON: Record<SdIntegrationLinkKindDTO, typeof SlackIcon> = {
   SLACK_THREAD: SlackIcon,
   GITHUB_ISSUE: GithubIcon,
   GITHUB_PULL_REQUEST: GitPullRequestIcon,
+  GITLAB_ISSUE: GitlabIcon,
+  GITLAB_MERGE_REQUEST: GitMergeIcon,
 }
 
 const KIND_LABEL: Record<SdIntegrationLinkKindDTO, string> = {
   SLACK_THREAD: 'Thread do Slack',
-  GITHUB_ISSUE: 'Issue',
+  GITHUB_ISSUE: 'Issue do GitHub',
   GITHUB_PULL_REQUEST: 'Pull request',
+  GITLAB_ISSUE: 'Issue do GitLab',
+  GITLAB_MERGE_REQUEST: 'Merge request',
+}
+
+const PROVIDER_LABEL: Record<SdRepoProviderDTO, string> = {
+  GITHUB: 'GitHub',
+  GITLAB: 'GitLab',
 }
 
 function stateVariant(
@@ -56,12 +71,10 @@ function stateVariant(
 
 function LinkRow({
   link,
-  canEdit,
   onUnlink,
   pending,
 }: {
   link: SdIntegrationLinkDTO
-  canEdit: boolean
   onUnlink: () => void
   pending: boolean
 }) {
@@ -99,19 +112,17 @@ function LinkRow({
             {link.externalStateLabel}
           </Badge>
         ) : null}
-        {canEdit ? (
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon-xs'
-            aria-label={`Desvincular ${link.externalKey}`}
-            disabled={pending}
-            className='text-muted-foreground hover:text-destructive'
-            onClick={onUnlink}
-          >
-            <SteelIcon icon={Delete02Icon} strokeWidth={2} />
-          </Button>
-        ) : null}
+        <Button
+          type='button'
+          variant='ghost'
+          size='icon-xs'
+          aria-label={`Desvincular ${link.externalKey}`}
+          disabled={pending}
+          className='text-muted-foreground hover:text-destructive'
+          onClick={onUnlink}
+        >
+          <SteelIcon icon={Delete02Icon} strokeWidth={2} />
+        </Button>
       </span>
     </li>
   )
@@ -126,22 +137,30 @@ export function SdTicketIntegrationLinks({
   workspaceId: string
   ticket: SdTicketDTO
   mode: 'agent' | 'requester'
-  /** Ajuste de moldura (a tela do chamado usa sem borda). */
+  /** Frame tweak (the ticket screen renders it borderless). */
   className?: string
 }) {
   const enabled = mode === 'agent'
+  const technical = ticket.type === 'PROBLEM' || ticket.type === 'CHANGE'
   const { data } = useSdIntegrationLinks(workspaceId, ticket.id, { enabled })
+  const providers = useSdRepoProviders(workspaceId, ticket.id, {
+    enabled: enabled && technical,
+  })
   const { link, createIssue, unlink } = useSdIntegrationLinkMutations(
     workspaceId,
     ticket.id,
   )
   const [ref, setRef] = useState('')
+  const [chosen, setChosen] = useState<SdRepoProviderDTO | null>(null)
 
   if (!enabled) return null
 
   const links = data ?? []
-  const technical = ticket.type === 'PROBLEM' || ticket.type === 'CHANGE'
   if (links.length === 0 && !technical) return null
+
+  const options = providers.data ?? []
+  const selected =
+    options.find((option) => option.provider === chosen) ?? options[0] ?? null
 
   return (
     <section
@@ -158,7 +177,7 @@ export function SdTicketIntegrationLinks({
 
       {links.length === 0 ? (
         <p className='text-muted-foreground text-xs'>
-          Nenhuma issue ou pull request vinculada.
+          Nenhuma issue, pull request ou merge request vinculado.
         </p>
       ) : (
         <ul className='flex flex-col gap-2'>
@@ -166,7 +185,6 @@ export function SdTicketIntegrationLinks({
             <LinkRow
               key={item.id}
               link={item}
-              canEdit
               pending={unlink.isPending}
               onUnlink={() =>
                 unlink.mutate(item.id, {
@@ -179,12 +197,51 @@ export function SdTicketIntegrationLinks({
         </ul>
       )}
 
-      {technical ? (
+      {technical && providers.isSuccess && options.length === 0 ? (
+        <p className='border-border border-t pt-2 text-muted-foreground text-xs'>
+          Nenhum repositório conectado. A conexão com GitHub ou GitLab fica em
+          Ajustes › Integrações.
+        </p>
+      ) : null}
+
+      {technical && selected ? (
         <div className='flex flex-col gap-2 border-border border-t pt-2'>
+          {options.length > 1 ? (
+            <div
+              role='radiogroup'
+              aria-label='Repositório'
+              className='flex flex-wrap gap-1'
+            >
+              {options.map((option) => (
+                <Button
+                  key={option.provider}
+                  type='button'
+                  size='xs'
+                  role='radio'
+                  aria-checked={option.provider === selected.provider}
+                  variant={
+                    option.provider === selected.provider
+                      ? 'secondary'
+                      : 'ghost'
+                  }
+                  onClick={() => setChosen(option.provider)}
+                >
+                  {PROVIDER_LABEL[option.provider]}
+                </Button>
+              ))}
+            </div>
+          ) : null}
+          <p className='truncate text-[11px] text-muted-foreground'>
+            {PROVIDER_LABEL[selected.provider]} · {selected.project}
+          </p>
           <div className='flex items-center gap-2'>
             <Input
-              aria-label='Issue ou pull request'
-              placeholder='#42 ou a URL'
+              aria-label='Issue, pull request ou merge request'
+              placeholder={
+                selected.provider === 'GITLAB'
+                  ? '#42, !42 ou a URL'
+                  : '#42 ou a URL'
+              }
               value={ref}
               onChange={(event) => setRef(event.target.value)}
               className='h-8 text-xs'
@@ -196,7 +253,11 @@ export function SdTicketIntegrationLinks({
               disabled={link.isPending || ref.trim() === ''}
               onClick={() =>
                 link.mutate(
-                  { ticketId: ticket.id, ref: ref.trim() },
+                  {
+                    ticketId: ticket.id,
+                    ref: ref.trim(),
+                    provider: selected.provider,
+                  },
                   {
                     onSuccess: () => {
                       setRef('')
@@ -210,25 +271,30 @@ export function SdTicketIntegrationLinks({
               Vincular
             </Button>
           </div>
-          <Button
-            type='button'
-            variant='ghost'
-            size='sm'
-            disabled={createIssue.isPending}
-            className='self-start'
-            onClick={() =>
-              createIssue.mutate(
-                { ticketId: ticket.id },
-                {
-                  onSuccess: () => notify.success('Issue aberta no GitHub'),
-                  onError: (error) => notify.error(error.message),
-                },
-              )
-            }
-          >
-            <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
-            Abrir issue a partir do chamado
-          </Button>
+          {selected.allowIssueFromTicket ? (
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              disabled={createIssue.isPending}
+              className='self-start'
+              onClick={() =>
+                createIssue.mutate(
+                  { ticketId: ticket.id, provider: selected.provider },
+                  {
+                    onSuccess: () =>
+                      notify.success(
+                        `Issue aberta no ${PROVIDER_LABEL[selected.provider]}`,
+                      ),
+                    onError: (error) => notify.error(error.message),
+                  },
+                )
+              }
+            >
+              <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
+              Abrir issue a partir do chamado
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </section>

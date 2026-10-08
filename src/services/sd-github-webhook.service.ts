@@ -1,4 +1,4 @@
-import type { SdIntegration, SdIntegrationLink } from '@prisma/client'
+import type { SdIntegrationLink, WorkspaceIntegration } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
 import { SdIntegrationEventCache } from '@/src/cache/sd-integration-event.cache'
 import {
@@ -6,21 +6,24 @@ import {
   sdIntegrationSignatureInvalid,
   validationError,
 } from '@/src/errors'
+import { parseWorkspaceRepoConfig } from '@/src/lib/integrations/config'
+import { parseGitlabLinkKey } from '@/src/lib/integrations/gitlab'
+import { RepoProvider, repoTarget } from '@/src/lib/integrations/repo-provider'
 import { err, ok, type Result } from '@/src/lib/result'
-import { GithubClient } from '@/src/lib/servicedesk/github-client'
 import {
-  parseSdGithubConfig,
   parseSdGithubRepo,
   SD_GITHUB_STATE_LABEL,
   type SdGithubExternalState,
-  type SdGithubRefKind,
+  type SdRepoRefKind,
   sdGithubLinkKey,
   sdGithubRepoKey,
   sdGithubState,
   sdGithubStateChangeBody,
+  sdRepoItemNoun,
   verifyGithubSignature,
 } from '@/src/lib/servicedesk/integrations'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import { assertModuleEnabled } from './authz'
 import {
   decryptSdIntegrationSecret,
@@ -30,18 +33,18 @@ import { recordSdTicketEvent } from './sd-ticket-event-recorder'
 import { notifySdTicketReply } from './sd-ticket-reply-notify'
 
 /**
- * Entrada pública do GitHub (`POST /api/servicedesk/integrations/github`):
- * espelha o estado da issue/PR vinculada ao chamado.
+ * Public GitHub entry (`POST /api/integrations/github/webhook`, and the
+ * legacy `/api/servicedesk/integrations/github`): mirrors the state of the
+ * issue/PR linked to a ticket.
  *
- * O repositório (`repository.full_name`) só é lido para **descobrir** a
- * integração e o segredo; nada é gravado antes de o HMAC
- * (`X-Hub-Signature-256`, comparação em tempo constante) fechar sobre o
- * corpo bruto. Idempotente por `X-GitHub-Delivery` — o GitHub reentrega.
+ * The repository (`repository.full_name`) is only read to **find** the
+ * workspace connection(s) and their secrets; nothing is written before the
+ * HMAC (`X-Hub-Signature-256`, constant-time) closes over the raw body. When
+ * several workspaces connected the same repository, the one whose secret
+ * verifies wins. Idempotent by `X-GitHub-Delivery` — GitHub redelivers.
  *
- * Fechar ou mesclar o item **sugere** a mudança de fase: registra o evento e
- * uma mensagem no chamado, mas quem move a fase é o agente. Fase em ITIL
- * carrega solução, classificação e, às vezes, aprovação — nada disso cabe no
- * payload do GitHub.
+ * Closing or merging the item **suggests** the phase change: it records the
+ * event and a message in the ticket, but the agent moves the phase.
  */
 
 const ACTIONS = new Set(['closed', 'reopened', 'merged'])
@@ -95,14 +98,34 @@ function parseBody(rawBody: string): GithubWebhookBody | null {
 }
 
 /**
- * Atualiza o vínculo e registra o espelhamento no chamado. Compartilhado
- * entre o webhook e a reconciliação horária.
+ * Picks, among the live connections of the repository/project, the one whose
+ * webhook secret verifies the request. `null` = none verifies; a connection
+ * without a secret never matches.
+ */
+export async function verifiedIntegration(
+  candidates: WorkspaceIntegration[],
+  verify: (secret: string) => boolean,
+): Promise<{ integration: WorkspaceIntegration | null; withSecret: number }> {
+  let withSecret = 0
+  for (const candidate of candidates) {
+    if (candidate.status === 'DISCONNECTED') continue
+    const secret = await decryptSdIntegrationSecret(candidate)
+    if (!secret.ok || !secret.value) continue
+    withSecret += 1
+    if (verify(secret.value)) return { integration: candidate, withSecret }
+  }
+  return { integration: null, withSecret }
+}
+
+/**
+ * Updates the link and records the mirroring in the ticket. Shared by the
+ * GitHub and GitLab webhooks and the hourly reconciliation.
  */
 export async function applySdGithubState(input: {
-  integration: SdIntegration
+  integration: WorkspaceIntegration
   link: SdIntegrationLink
   state: SdGithubExternalState
-  kind: SdGithubRefKind
+  kind: SdRepoRefKind
   title?: string | null
   url?: string | null
   via: 'webhook' | 'sync'
@@ -117,7 +140,7 @@ export async function applySdGithubState(input: {
   })
   if (!updated.ok) return updated
 
-  const config = parseSdGithubConfig(integration.config)
+  const config = parseWorkspaceRepoConfig(integration.config).servicedesk
   await recordSdTicketEvent({
     workspaceId: integration.workspaceId,
     ticketId: link.ticketId,
@@ -130,6 +153,7 @@ export async function applySdGithubState(input: {
     meta: {
       externalKey: link.externalKey,
       kind: input.kind,
+      provider: integration.kind,
       via: input.via,
       suggestPhase: config.suggestPhaseOnClose && state !== 'open',
     },
@@ -155,12 +179,12 @@ export async function applySdGithubState(input: {
       reason: message.error.code,
     })
   } else {
-    const what = input.kind === 'GITHUB_PULL_REQUEST' ? 'Pull request' : 'Issue'
+    const what = sdRepoItemNoun(input.kind).replace(/^(A|O) /, '')
     await notifySdTicketReply({
       workspaceId: integration.workspaceId,
       ticket: { id: link.ticketId },
-      channel: 'GITHUB',
-      body: `${what} ${link.externalKey}: ${SD_GITHUB_STATE_LABEL[state].toLowerCase()}`,
+      channel: integration.kind === 'GITLAB' ? 'GITLAB' : 'GITHUB',
+      body: `${what[0].toUpperCase()}${what.slice(1)} ${link.externalKey}: ${SD_GITHUB_STATE_LABEL[state].toLowerCase()}`,
     })
   }
 
@@ -190,40 +214,46 @@ export const SdGithubWebhookService = {
     const repo = fullName ? parseSdGithubRepo(fullName) : null
     if (!repo) return err(validationError('Repositório ausente no payload'))
 
-    // Lookup antes da verificação: o nome do repositório só serve para achar
-    // o segredo. Nada é gravado nem consultado do chamado antes do HMAC.
-    const found = await SdIntegrationRepository.findByExternalId(
+    // Lookup before verification: the repository name only finds the
+    // secrets. Nothing about the ticket is read or written before the HMAC.
+    const found = await WorkspaceIntegrationRepository.findManyByExternalId(
       'GITHUB',
       sdGithubRepoKey(repo),
     )
     if (!found.ok) return found
-    const integration = found.value
-    if (!integration || integration.status === 'DISCONNECTED') {
+    const live = found.value.filter((row) => row.status !== 'DISCONNECTED')
+    if (live.length === 0) {
       return err(
         sdIntegrationNotConfigured(
-          'Este repositório não está conectado a nenhum ServiceDesk',
+          'Este repositório não está conectado a nenhum workspace',
         ),
       )
     }
 
-    const secret = await decryptSdIntegrationSecret(integration)
-    if (!secret.ok) return secret
-    if (!secret.value) {
-      return err(
-        sdIntegrationNotConfigured(
-          'A integração do GitHub está sem segredo de webhook configurado',
-        ),
-      )
-    }
-    if (
-      !verifyGithubSignature({
-        secret: secret.value,
-        signature: input.signature,
-        rawBody: input.rawBody,
-      })
-    ) {
+    const { integration, withSecret } = await verifiedIntegration(
+      live,
+      (secret) =>
+        verifyGithubSignature({
+          secret,
+          signature: input.signature,
+          rawBody: input.rawBody,
+        }),
+    )
+    if (!integration) {
+      if (withSecret === 0) {
+        return err(
+          sdIntegrationNotConfigured(
+            'A integração do GitHub está sem segredo de webhook configurado',
+          ),
+        )
+      }
       return err(sdIntegrationSignatureInvalid('Assinatura do GitHub inválida'))
     }
+
+    await WorkspaceIntegrationRepository.markEvent(
+      integration.id,
+      `github:${input.event}${body.action ? `.${body.action}` : ''}`,
+    )
 
     const enabled = await assertModuleEnabled(
       integration.workspaceId,
@@ -244,8 +274,9 @@ export const SdGithubWebhookService = {
     if (!first) return ok({ outcome: 'duplicate' })
 
     const externalKey = sdGithubLinkKey(repo, number)
-    const link = await SdIntegrationRepository.findGithubLinkByKey(
+    const link = await SdIntegrationRepository.findRepoLinkByKey(
       integration.id,
+      'GITHUB',
       externalKey,
     )
     if (!link.ok) {
@@ -282,17 +313,29 @@ export interface SdGithubSyncResult {
   failed: number
 }
 
-/** Quantos vínculos a reconciliação horária olha por rodada. */
+/** How many links the hourly reconciliation looks at per round. */
 const SYNC_BATCH = 200
 
+/** Item number and kind of a link, from its key. */
+function linkRef(
+  link: SdIntegrationLink,
+): { number: number; kind: SdRepoRefKind | null } | null {
+  if (link.kind === 'GITLAB_ISSUE' || link.kind === 'GITLAB_MERGE_REQUEST') {
+    const parsed = parseGitlabLinkKey(link.externalKey)
+    return parsed ? { number: parsed.iid, kind: parsed.kind } : null
+  }
+  const number = Number(link.externalKey.split('#')[1])
+  return Number.isInteger(number) && number > 0 ? { number, kind: null } : null
+}
+
 /**
- * Reconciliação horária (`sync-github-state`): confere na API o estado das
- * issues/PRs vinculadas a chamados ainda abertos. Existe para o caso de um
- * webhook perdido — o resultado é idêntico ao do webhook.
+ * Hourly reconciliation (`sync-github-state`): checks on the API the state
+ * of the GitHub/GitLab items linked to open tickets. It exists for a lost
+ * webhook — the outcome is the same as the webhook's.
  */
 export const SdGithubSyncService = {
   async runTick(workspaceId?: string): Promise<Result<SdGithubSyncResult>> {
-    const links = await SdIntegrationRepository.listGithubLinksToSync(
+    const links = await SdIntegrationRepository.listRepoLinksToSync(
       SYNC_BATCH,
       workspaceId,
     )
@@ -307,8 +350,9 @@ export const SdGithubSyncService = {
 
     for (const link of links.value) {
       const { integration } = link
-      const ref = parseSdGithubRepo(integration.externalId)
-      if (!ref) {
+      const target = repoTarget(integration)
+      const ref = linkRef(link)
+      if (!target || !ref) {
         result.failed += 1
         continue
       }
@@ -323,13 +367,11 @@ export const SdGithubSyncService = {
         continue
       }
 
-      const number = Number(link.externalKey.split('#')[1])
-      if (!Number.isInteger(number) || number <= 0) {
-        result.failed += 1
-        continue
-      }
-
-      const item = await GithubClient.getItem(token, ref, number)
+      const item = await RepoProvider.getItem(target, token, {
+        project: null,
+        number: ref.number,
+        kind: ref.kind,
+      })
       if (!item.ok) {
         result.failed += 1
         continue
@@ -341,7 +383,7 @@ export const SdGithubSyncService = {
         state: item.value.state,
         kind: item.value.kind,
         title: item.value.title,
-        url: item.value.htmlUrl,
+        url: item.value.url,
         via: 'sync',
       })
       if (!applied.ok) result.failed += 1

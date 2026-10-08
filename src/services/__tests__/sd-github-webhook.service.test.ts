@@ -1,6 +1,7 @@
 import { createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  createFakeGitlabIntegration,
   createFakeSdGithubIntegration,
   createFakeSdIntegrationLink,
 } from '@/src/__tests__/factories/sd-integration.factory'
@@ -28,6 +29,14 @@ vi.mock('@/src/lib/servicedesk/github-client', () => ({
   GithubClient: { checkRepo: vi.fn(), getItem: vi.fn(), createIssue: vi.fn() },
 }))
 vi.mock('@/src/repositories/sd-integration.repository')
+vi.mock('@/src/repositories/workspace-integration.repository')
+vi.mock('@/src/lib/integrations/gitlab-client', () => ({
+  GitlabClient: {
+    checkProject: vi.fn(),
+    getItem: vi.fn(),
+    createIssue: vi.fn(),
+  },
+}))
 vi.mock('../authz', () => ({ assertModuleEnabled: vi.fn() }))
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
 vi.mock('../sd-ticket-reply-notify', () => ({
@@ -36,8 +45,10 @@ vi.mock('../sd-ticket-reply-notify', () => ({
 
 import { SdIntegrationEventCache } from '@/src/cache/sd-integration-event.cache'
 import { decryptConnectionSecret } from '@/src/lib/crypto'
+import { GitlabClient } from '@/src/lib/integrations/gitlab-client'
 import { GithubClient } from '@/src/lib/servicedesk/github-client'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import { assertModuleEnabled } from '../authz'
 import {
   SdGithubSyncService,
@@ -47,6 +58,8 @@ import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { notifySdTicketReply } from '../sd-ticket-reply-notify'
 
 const repo = vi.mocked(SdIntegrationRepository)
+const wsRepo = vi.mocked(WorkspaceIntegrationRepository)
+const gitlab = vi.mocked(GitlabClient)
 const cache = vi.mocked(SdIntegrationEventCache)
 const github = vi.mocked(GithubClient)
 const moduleEnabled = vi.mocked(assertModuleEnabled)
@@ -84,8 +97,11 @@ beforeEach(() => {
   cache.claim.mockResolvedValue(true)
   cache.release.mockResolvedValue(undefined)
   moduleEnabled.mockResolvedValue(ok(true as never))
-  repo.findByExternalId.mockResolvedValue(ok(createFakeSdGithubIntegration()))
-  repo.findGithubLinkByKey.mockResolvedValue(
+  wsRepo.findManyByExternalId.mockResolvedValue(
+    ok([createFakeSdGithubIntegration()]),
+  )
+  wsRepo.markEvent.mockResolvedValue(ok(undefined))
+  repo.findRepoLinkByKey.mockResolvedValue(
     ok(createFakeSdIntegrationLink({ externalState: 'open' })),
   )
   repo.updateLink.mockResolvedValue(ok(createFakeSdIntegrationLink()))
@@ -101,7 +117,7 @@ describe('SdGithubWebhookService.handle — eventos aceitos', () => {
     expect(
       expectOk(await SdGithubWebhookService.handle(call({}, 'push'))).outcome,
     ).toBe('ignored')
-    expect(repo.findByExternalId).not.toHaveBeenCalled()
+    expect(wsRepo.findManyByExternalId).not.toHaveBeenCalled()
   })
 
   it('ignora ação que não muda o estado', async () => {
@@ -151,19 +167,19 @@ describe('SdGithubWebhookService.handle — assinatura', () => {
   })
 
   it('recusa repositório não conectado ou desconectado', async () => {
-    repo.findByExternalId.mockResolvedValue(ok(null))
+    wsRepo.findManyByExternalId.mockResolvedValue(ok([]))
     expectErr(
       await SdGithubWebhookService.handle(call(issueClosed)),
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
-    repo.findByExternalId.mockResolvedValue(
-      ok(createFakeSdGithubIntegration({ status: 'DISCONNECTED' })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([createFakeSdGithubIntegration({ status: 'DISCONNECTED' })]),
     )
     expectErr(
       await SdGithubWebhookService.handle(call(issueClosed)),
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
-    repo.findByExternalId.mockResolvedValue(err(databaseError()))
+    wsRepo.findManyByExternalId.mockResolvedValue(err(databaseError()))
     expectErr(
       await SdGithubWebhookService.handle(call(issueClosed)),
       'DATABASE_ERROR',
@@ -176,13 +192,14 @@ describe('SdGithubWebhookService.handle — assinatura', () => {
       await SdGithubWebhookService.handle(call(issueClosed)),
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
-    expect(error.message).toContain('segredo do webhook')
+    // An unreadable secret disqualifies the candidate, like a missing one.
+    expect(error.message).toContain('segredo de webhook')
     expect(repo.updateLink).not.toHaveBeenCalled()
   })
 
   it('recusa integração sem segredo de webhook configurado', async () => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(createFakeSdGithubIntegration({ encryptedSigningSecret: null })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([createFakeSdGithubIntegration({ encryptedSigningSecret: null })]),
     )
     const error = expectErr(
       await SdGithubWebhookService.handle(call(issueClosed)),
@@ -212,6 +229,44 @@ describe('SdGithubWebhookService.handle — assinatura', () => {
     )
     // Nada foi gravado antes do HMAC fechar.
     expect(repo.updateLink).not.toHaveBeenCalled()
+  })
+
+  it('picks, among workspaces sharing the repository, the one whose secret verifies', async () => {
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([
+        createFakeSdGithubIntegration({
+          id: 'int-other',
+          workspaceId: 'ws-other',
+          encryptedSigningSecret: 'enc:another-secret',
+        }),
+        createFakeSdGithubIntegration({
+          id: 'int-off',
+          status: 'DISCONNECTED',
+        }),
+        createFakeSdGithubIntegration(),
+      ]),
+    )
+    expect(
+      expectOk(await SdGithubWebhookService.handle(call(issueClosed))).outcome,
+    ).toBe('state_updated')
+    expect(repo.findRepoLinkByKey).toHaveBeenCalledWith(
+      'int-gh-1',
+      'GITHUB',
+      'stratus-so2/steel#42',
+    )
+    expect(wsRepo.markEvent).toHaveBeenCalledWith(
+      'int-gh-1',
+      'github:issues.closed',
+    )
+  })
+
+  it('stamps the event even without an action', async () => {
+    expectOk(
+      await SdGithubWebhookService.handle(
+        call({ repository: { full_name: 'stratus-so2/steel' } }),
+      ),
+    )
+    expect(wsRepo.markEvent).toHaveBeenCalledWith('int-gh-1', 'github:issues')
   })
 
   it('recusa quando o módulo está desabilitado', async () => {
@@ -292,12 +347,12 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
   })
 
   it('não sugere fase quando o workspace desligou a sugestão', async () => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([
         createFakeSdGithubIntegration({
           config: { suggestPhaseOnClose: false, allowIssueFromTicket: true },
         }),
-      ),
+      ]),
     )
     expectOk(await SdGithubWebhookService.handle(call(issueClosed)))
     const [{ body }] = repo.createTicketMessage.mock.calls[0]
@@ -305,7 +360,7 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
   })
 
   it('reabertura volta para `open`', async () => {
-    repo.findGithubLinkByKey.mockResolvedValue(
+    repo.findRepoLinkByKey.mockResolvedValue(
       ok(createFakeSdIntegrationLink({ externalState: 'closed' })),
     )
     const result = expectOk(
@@ -321,7 +376,7 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
   })
 
   it('ignora quando o estado já era o mesmo (sem mensagem repetida)', async () => {
-    repo.findGithubLinkByKey.mockResolvedValue(
+    repo.findRepoLinkByKey.mockResolvedValue(
       ok(createFakeSdIntegrationLink({ externalState: 'closed' })),
     )
     const result = expectOk(
@@ -333,7 +388,7 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
   })
 
   it('responde `unlinked` para item que nenhum chamado usa', async () => {
-    repo.findGithubLinkByKey.mockResolvedValue(ok(null))
+    repo.findRepoLinkByKey.mockResolvedValue(ok(null))
     expect(
       expectOk(await SdGithubWebhookService.handle(call(issueClosed))).outcome,
     ).toBe('unlinked')
@@ -357,14 +412,14 @@ describe('SdGithubWebhookService.handle — espelhamento', () => {
   })
 
   it('libera a trava quando o banco falha', async () => {
-    repo.findGithubLinkByKey.mockResolvedValue(err(databaseError()))
+    repo.findRepoLinkByKey.mockResolvedValue(err(databaseError()))
     expectErr(
       await SdGithubWebhookService.handle(call(issueClosed)),
       'DATABASE_ERROR',
     )
     expect(cache.release).toHaveBeenCalledWith('github', 'D1')
 
-    repo.findGithubLinkByKey.mockResolvedValue(
+    repo.findRepoLinkByKey.mockResolvedValue(
       ok(createFakeSdIntegrationLink({ externalState: 'open' })),
     )
     repo.updateLink.mockResolvedValue(err(databaseError()))
@@ -389,7 +444,7 @@ describe('SdGithubSyncService.runTick', () => {
   })
 
   beforeEach(() => {
-    repo.listGithubLinksToSync.mockResolvedValue(ok([link()]))
+    repo.listRepoLinksToSync.mockResolvedValue(ok([link()]))
     github.getItem.mockResolvedValue(
       ok({
         number: 42,
@@ -417,7 +472,7 @@ describe('SdGithubSyncService.runTick', () => {
 
   it('aceita o recorte por workspace', async () => {
     expectOk(await SdGithubSyncService.runTick('ws1'))
-    expect(repo.listGithubLinksToSync).toHaveBeenCalledWith(200, 'ws1')
+    expect(repo.listRepoLinksToSync).toHaveBeenCalledWith(200, 'ws1')
   })
 
   it('não conta como atualizado quando o estado já estava igual', async () => {
@@ -438,7 +493,7 @@ describe('SdGithubSyncService.runTick', () => {
   })
 
   it('conta falha para repositório corrompido, token ilegível e número inválido', async () => {
-    repo.listGithubLinksToSync.mockResolvedValue(
+    repo.listRepoLinksToSync.mockResolvedValue(
       ok([
         {
           ...createFakeSdIntegrationLink(),
@@ -496,15 +551,69 @@ describe('SdGithubSyncService.runTick', () => {
   })
 
   it('reaproveita o token entre vínculos da mesma integração', async () => {
-    repo.listGithubLinksToSync.mockResolvedValue(
+    repo.listRepoLinksToSync.mockResolvedValue(
       ok([link(), { ...link({ id: 'link-9' }) }]),
     )
     expectOk(await SdGithubSyncService.runTick())
     expect(github.getItem).toHaveBeenCalledTimes(2)
   })
 
+  it('reconciles GitLab issues and merge requests too', async () => {
+    gitlab.getItem.mockResolvedValue(
+      ok({
+        iid: 7,
+        title: 'Deploy',
+        kind: 'GITLAB_MERGE_REQUEST',
+        state: 'merged',
+        webUrl: 'https://gitlab.com/stratus/steel/-/merge_requests/7',
+      }),
+    )
+    repo.listRepoLinksToSync.mockResolvedValue(
+      ok([
+        {
+          ...createFakeSdIntegrationLink({
+            id: 'gl-1',
+            kind: 'GITLAB_MERGE_REQUEST',
+            externalKey: 'stratus/steel!7',
+            integrationId: 'int-gl-1',
+          }),
+          integration: createFakeGitlabIntegration(),
+        },
+        {
+          ...createFakeSdIntegrationLink({
+            id: 'gl-2',
+            kind: 'GITLAB_ISSUE',
+            externalKey: 'corrompido',
+          }),
+          integration: createFakeGitlabIntegration(),
+        },
+      ]),
+    )
+    expect(expectOk(await SdGithubSyncService.runTick())).toEqual({
+      checked: 2,
+      updated: 1,
+      failed: 1,
+    })
+    expect(gitlab.getItem).toHaveBeenCalledWith(
+      'https://gitlab.com',
+      'gitlab-token',
+      'stratus/steel',
+      7,
+      'GITLAB_MERGE_REQUEST',
+    )
+    const [{ body }] = repo.createTicketMessage.mock.calls[0]
+    expect(body).toContain('O merge request')
+    expect(body).toContain('do GitLab')
+    expect(vi.mocked(notifySdTicketReply)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'GITLAB',
+        body: 'Merge request stratus/steel!7: mesclada',
+      }),
+    )
+  })
+
   it('propaga erro de banco na listagem', async () => {
-    repo.listGithubLinksToSync.mockResolvedValue(err(databaseError()))
+    repo.listRepoLinksToSync.mockResolvedValue(err(databaseError()))
     expectErr(await SdGithubSyncService.runTick(), 'DATABASE_ERROR')
   })
 })
