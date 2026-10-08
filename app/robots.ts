@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
+import { SITE_URL } from '@/src/lib/seo/site'
 
 // No private paths listed here on purpose: a Disallow line is a public map
 // of where the app lives. The session gate (proxy.ts) protects them; this
@@ -32,7 +32,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: DISALLOWED_PATHS,
       })),
     ],
-    sitemap: `${NEXT_PUBLIC_URL}/sitemap.xml`,
-    host: NEXT_PUBLIC_URL,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }

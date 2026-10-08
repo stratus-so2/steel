@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { getAllEntriesMeta } from '@/src/lib/changelog/entries'
+import { SITE_URL } from '@/src/lib/seo/site'
 
 type ChangeFrequency = NonNullable<
   MetadataRoute.Sitemap[number]['changeFrequency']
@@ -51,12 +51,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...STATIC_ROUTES.map(({ path, priority, changeFrequency }) => ({
-      url: `${NEXT_PUBLIC_URL}${path}`,
+      url: `${SITE_URL}${path}`,
       priority,
       changeFrequency,
     })),
     ...entries.map((entry) => ({
-      url: `${NEXT_PUBLIC_URL}/changelog/${entry.slug}`,
+      url: `${SITE_URL}/changelog/${entry.slug}`,
       lastModified: entry.date,
       priority: 0.6,
       changeFrequency: 'yearly' as ChangeFrequency,

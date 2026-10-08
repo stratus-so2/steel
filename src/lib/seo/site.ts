@@ -1,5 +1,13 @@
 import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 
+/**
+ * Absolute origin for canonical urls, sitemaps and structured data. Builds
+ * that skip env validation (CI) have no NEXT_PUBLIC_URL, and
+ * `new URL(undefined)` in the root layout's metadataBase would fail the
+ * build; the image build always passes the real one (Dockerfile build-arg).
+ */
+export const SITE_URL = NEXT_PUBLIC_URL || 'http://localhost:3001'
+
 export const SITE_NAME = 'Steel'
 export const SITE_TITLE = 'Steel — ServiceDesk, CRM e WhatsApp num só workspace'
 export const SITE_DESCRIPTION =
@@ -16,7 +24,7 @@ export const PUBLISHER = {
  * left out until real social profiles exist.
  */
 export function siteJsonLd() {
-  const organizationId = `${NEXT_PUBLIC_URL}/#organization`
+  const organizationId = `${SITE_URL}/#organization`
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -24,8 +32,8 @@ export function siteJsonLd() {
         '@type': 'Organization',
         '@id': organizationId,
         name: SITE_NAME,
-        url: NEXT_PUBLIC_URL,
-        logo: `${NEXT_PUBLIC_URL}/brand/logo.png`,
+        url: SITE_URL,
+        logo: `${SITE_URL}/brand/logo.png`,
         parentOrganization: {
           '@type': 'Organization',
           name: PUBLISHER.name,
@@ -34,16 +42,16 @@ export function siteJsonLd() {
       },
       {
         '@type': 'WebSite',
-        '@id': `${NEXT_PUBLIC_URL}/#website`,
+        '@id': `${SITE_URL}/#website`,
         name: SITE_NAME,
-        url: NEXT_PUBLIC_URL,
+        url: SITE_URL,
         inLanguage: 'pt-BR',
         publisher: { '@id': organizationId },
       },
       {
         '@type': 'SoftwareApplication',
         name: SITE_NAME,
-        url: NEXT_PUBLIC_URL,
+        url: SITE_URL,
         description: SITE_DESCRIPTION,
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',

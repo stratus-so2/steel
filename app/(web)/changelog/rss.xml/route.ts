@@ -1,6 +1,6 @@
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { getAllEntriesMeta } from '@/src/lib/changelog/entries'
 import { CHANGELOG_TAG_LABELS } from '@/src/lib/changelog/labels'
+import { SITE_URL } from '@/src/lib/seo/site'
 import { escapeXml } from '@/src/lib/seo/xml'
 
 export async function GET() {
@@ -8,7 +8,7 @@ export async function GET() {
 
   const items = entries
     .map((entry) => {
-      const url = `${NEXT_PUBLIC_URL}/changelog/${entry.slug}`
+      const url = `${SITE_URL}/changelog/${entry.slug}`
       const categories = entry.tags
         .map(
           (tag) =>
@@ -30,10 +30,10 @@ export async function GET() {
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Changelog do Steel</title>
-    <link>${NEXT_PUBLIC_URL}/changelog</link>
+    <link>${SITE_URL}/changelog</link>
     <description>Novidades do Steel: ServiceDesk, CRM, Comunicação e Steel AI.</description>
     <language>pt-BR</language>
-    <atom:link href="${NEXT_PUBLIC_URL}/changelog/rss.xml" rel="self" type="application/rss+xml" />${items}
+    <atom:link href="${SITE_URL}/changelog/rss.xml" rel="self" type="application/rss+xml" />${items}
   </channel>
 </rss>`
 

@@ -6,12 +6,12 @@ import { Suspense } from 'react'
 import { JsonLd } from '@/components/seo/json-ld'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { cn } from '@/lib/utils'
 import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
+  SITE_URL,
   siteJsonLd,
 } from '@/src/lib/seo/site'
 import { Providers } from './_components/providers'
@@ -21,7 +21,7 @@ import { CookieConsentInit } from './_components/user/cookie-consent/init'
 import '@/src/lib/zod-locale'
 
 export const metadata: Metadata = {
-  metadataBase: new URL(NEXT_PUBLIC_URL),
+  metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'pt_BR',
     siteName: SITE_NAME,
-    url: NEXT_PUBLIC_URL,
+    url: SITE_URL,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: ['/opengraph-image'],

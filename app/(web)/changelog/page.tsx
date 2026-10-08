@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { SteelIcon } from '@/components/icon/icon'
 import { JsonLd } from '@/components/seo/json-ld'
 import { Muted } from '@/components/typography/text/muted'
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { getAllEntriesMeta } from '@/src/lib/changelog/entries'
 import {
   CHANGELOG_TAG_LABELS,
   formatChangelogDate,
 } from '@/src/lib/changelog/labels'
+import { SITE_URL } from '@/src/lib/seo/site'
 import { WebFooter } from '../_components/footer'
 import { SubTitle } from '../_components/text/sub-title'
 import { Title } from '../_components/text/title'
@@ -48,14 +48,14 @@ export default async function ChangelogPage() {
     '@type': 'CollectionPage',
     name: TITLE,
     description: DESCRIPTION,
-    url: `${NEXT_PUBLIC_URL}/changelog`,
+    url: `${SITE_URL}/changelog`,
     inLanguage: 'pt-BR',
     mainEntity: {
       '@type': 'ItemList',
       itemListElement: entries.map((entry, index) => ({
         '@type': 'ListItem',
         position: index + 1,
-        url: `${NEXT_PUBLIC_URL}/changelog/${entry.slug}`,
+        url: `${SITE_URL}/changelog/${entry.slug}`,
         name: entry.title,
       })),
     },

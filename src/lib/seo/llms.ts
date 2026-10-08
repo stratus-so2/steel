@@ -1,12 +1,11 @@
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { CHANGELOG_TAG_LABELS } from '@/src/lib/changelog/labels'
-import { SITE_DESCRIPTION } from '@/src/lib/seo/site'
+import { SITE_DESCRIPTION, SITE_URL } from '@/src/lib/seo/site'
 import type {
   ChangelogEntryDTO,
   ChangelogEntryMetaDTO,
 } from '@/types/changelog-entry'
 
-const url = (path: string) => `${NEXT_PUBLIC_URL}${path}`
+const url = (path: string) => `${SITE_URL}${path}`
 
 const PRODUCT_OVERVIEW = `## O que é o Steel
 

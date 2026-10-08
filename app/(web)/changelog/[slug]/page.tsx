@@ -3,12 +3,12 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { JsonLd } from '@/components/seo/json-ld'
 import { Muted } from '@/components/typography/text/muted'
-import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { getAllEntriesMeta, getEntryBySlug } from '@/src/lib/changelog/entries'
 import {
   CHANGELOG_TAG_LABELS,
   formatChangelogDate,
 } from '@/src/lib/changelog/labels'
+import { SITE_URL } from '@/src/lib/seo/site'
 import { WebFooter } from '../../_components/footer'
 import { ChangelogMdx } from './changelog-mdx'
 import { CopyMarkdownButton } from './copy-markdown-button'
@@ -58,10 +58,10 @@ export default async function ChangelogEntryPage({ params }: Props) {
   const entry = await getEntryBySlug(slug)
   if (!entry) notFound()
 
-  const entryUrl = `${NEXT_PUBLIC_URL}/changelog/${entry.slug}`
+  const entryUrl = `${SITE_URL}/changelog/${entry.slug}`
   const entryImage = entry.cover
-    ? new URL(entry.cover, NEXT_PUBLIC_URL).toString()
-    : `${NEXT_PUBLIC_URL}/opengraph-image`
+    ? new URL(entry.cover, SITE_URL).toString()
+    : `${SITE_URL}/opengraph-image`
 
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -79,7 +79,7 @@ export default async function ChangelogEntryPage({ params }: Props) {
       name: 'Steel',
       logo: {
         '@type': 'ImageObject',
-        url: `${NEXT_PUBLIC_URL}/brand/logo.png`,
+        url: `${SITE_URL}/brand/logo.png`,
       },
     },
     about: { '@type': 'SoftwareApplication', name: 'Steel' },
@@ -94,7 +94,7 @@ export default async function ChangelogEntryPage({ params }: Props) {
         '@type': 'ListItem',
         position: 1,
         name: 'Changelog',
-        item: `${NEXT_PUBLIC_URL}/changelog`,
+        item: `${SITE_URL}/changelog`,
       },
       { '@type': 'ListItem', position: 2, name: entry.title, item: entryUrl },
     ],
