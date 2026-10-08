@@ -1,5 +1,9 @@
 import { auditMutation } from '@/lib/axiom/audit'
-import { badRequest, whatsappConnectionNotFound } from '@/src/errors'
+import {
+  badRequest,
+  whatsappConnectionNotFound,
+  whatsappProviderError,
+} from '@/src/errors'
 import {
   decryptConnectionSecret,
   encryptConnectionSecret,
@@ -243,11 +247,26 @@ export const WhatsAppConnectionService = {
       clientToken,
     })
 
-    const qr = await client.getQrCode()
+    let qr: Awaited<ReturnType<typeof client.getQrCode>>
+    try {
+      qr = await client.getQrCode()
+    } catch (error) {
+      // Surface the provider's reason (e.g. missing Client-Token) instead of
+      // a bare 500, and keep it on the connection for the settings screen.
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Falha ao comunicar com a Z-API'
+      await WhatsAppConnectionRepository.update(id, { statusError: message })
+      return err(whatsappProviderError(message))
+    }
 
     const newStatus = qr.status === 'connected' ? 'CONNECTED' : 'CONNECTING'
-    if (newStatus !== connection.status) {
-      await WhatsAppConnectionRepository.update(id, { status: newStatus })
+    if (newStatus !== connection.status || connection.statusError) {
+      await WhatsAppConnectionRepository.update(id, {
+        status: newStatus,
+        statusError: null,
+      })
     }
 
     return ok(qr)

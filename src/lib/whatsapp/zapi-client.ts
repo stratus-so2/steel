@@ -43,12 +43,32 @@ export async function zapiRequest<T>(
       status: response.status,
       body,
     })
-    throw new Error(
-      body?.message ?? `Falha na requisição Z-API (${response.status})`,
-    )
+    throw new Error(zapiErrorMessage(body, response.status))
   }
 
   return body as T
+}
+
+/**
+ * pt-BR message for a failed Z-API call. Z-API reports the reason in `error`
+ * (not `message`), and the most common one — the account's security token
+ * not sent — gets an actionable explanation.
+ */
+export function zapiErrorMessage(body: unknown, status: number): string {
+  const payload =
+    body && typeof body === 'object' ? (body as Record<string, unknown>) : {}
+  const reason =
+    typeof payload.error === 'string'
+      ? payload.error
+      : typeof payload.message === 'string'
+        ? payload.message
+        : null
+  if (reason && /client-token/i.test(reason)) {
+    return 'A Z-API recusou a chamada: o Client-Token (token de segurança da conta) não foi informado ou está errado. Preencha o Client-Token na conexão.'
+  }
+  return reason
+    ? `A Z-API recusou a chamada (${status}): ${reason}`
+    : `Falha na requisição Z-API (${status})`
 }
 
 const MEDIA_ENDPOINT_BY_TYPE: Record<WhatsAppOutboundMedia['type'], string> = {

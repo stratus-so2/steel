@@ -205,6 +205,62 @@ describe('WhatsAppConnectionService', () => {
       expect(mockedCreateZapiClient).toHaveBeenCalled()
     })
 
+    it('should turn a Z-API failure into a provider error and keep the reason', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      const connection = createFakeWhatsAppConnection({
+        id: 'conn1',
+        provider: 'ZAPI',
+        status: 'CONNECTING',
+      })
+      mockedConnectionRepo.findById.mockResolvedValue(ok(connection))
+      mockedConnectionRepo.update.mockResolvedValue(ok(connection))
+      mockedCreateZapiClient.mockReturnValueOnce({
+        getQrCode: vi.fn(async () => {
+          throw new Error('A Z-API recusou a chamada: Client-Token ausente')
+        }),
+      } as unknown as ReturnType<typeof createZapiClient>)
+
+      const result = await WhatsAppConnectionService.getQrCode(
+        'u1',
+        'ws1',
+        'conn1',
+      )
+
+      const error = expectErr(result, 'WHATSAPP_PROVIDER_ERROR')
+      expect(error.message).toContain('Client-Token')
+      expect(mockedConnectionRepo.update).toHaveBeenCalledWith('conn1', {
+        statusError: 'A Z-API recusou a chamada: Client-Token ausente',
+      })
+    })
+
+    it('should fall back to a generic message when the failure has none', async () => {
+      mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
+        ok(createFakeMembership({ role: 'OWNER' })),
+      )
+      const connection = createFakeWhatsAppConnection({
+        id: 'conn1',
+        provider: 'ZAPI',
+      })
+      mockedConnectionRepo.findById.mockResolvedValue(ok(connection))
+      mockedConnectionRepo.update.mockResolvedValue(ok(connection))
+      mockedCreateZapiClient.mockReturnValueOnce({
+        getQrCode: vi.fn(async () => {
+          throw 'boom'
+        }),
+      } as unknown as ReturnType<typeof createZapiClient>)
+
+      const result = await WhatsAppConnectionService.getQrCode(
+        'u1',
+        'ws1',
+        'conn1',
+      )
+
+      const error = expectErr(result, 'WHATSAPP_PROVIDER_ERROR')
+      expect(error.message).toBe('Falha ao comunicar com a Z-API')
+    })
+
     it('should reject QR code requests for a META connection', async () => {
       mockedMembershipRepo.findByUserAndWorkspace.mockResolvedValue(
         ok(createFakeMembership({ role: 'OWNER' })),

@@ -195,15 +195,24 @@ function CreateConnectionDialog({ workspaceId }: { workspaceId: string }) {
                 />
               </div>
               <div className='space-y-1.5'>
-                <Label htmlFor='zapiClientToken'>Client-Token (opcional)</Label>
+                <Label htmlFor='zapiClientToken'>Client-Token</Label>
                 <Input
                   id='zapiClientToken'
                   type='password'
+                  aria-describedby='zapiClientToken-hint'
                   value={form.zapiClientToken}
                   onChange={(event) =>
                     updateField('zapiClientToken', event.target.value)
                   }
                 />
+                <p
+                  id='zapiClientToken-hint'
+                  className='text-muted-foreground text-xs'
+                >
+                  Token de segurança da conta (no painel da Z-API, em
+                  Segurança). Obrigatório quando a conta exige; sem ele a Z-API
+                  recusa as chamadas e o QR não aparece.
+                </p>
               </div>
             </>
           ) : (

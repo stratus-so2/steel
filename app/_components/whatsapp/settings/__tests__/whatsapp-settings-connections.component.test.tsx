@@ -103,9 +103,7 @@ describe('<WhatsappSettingsConnections />', () => {
       within(dialog).getByLabelText('ID da instância').hasAttribute('required'),
     ).toBe(true)
     expect(
-      within(dialog)
-        .getByLabelText('Client-Token (opcional)')
-        .hasAttribute('required'),
+      within(dialog).getByLabelText('Client-Token').hasAttribute('required'),
     ).toBe(false)
 
     type(dialog, 'Nome', 'Suporte')
