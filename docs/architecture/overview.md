@@ -69,6 +69,13 @@ app/api/**/route.ts  →  Service        →  Repository   →  Prisma
   tokens, modelo...). Log novo nessas áreas não cria chave nova — põe no
   `detail`. O `request` do log de requisição fica na raiz do evento e não é
   afetado.
+- **Axiom é opcional**: sem `NEXT_PUBLIC_AXIOM_TOKEN`/`NEXT_PUBLIC_AXIOM_DATASET`
+  os loggers do servidor e do navegador escrevem só no console
+  (`lib/axiom/transports.ts`) e a exportação LGPD pula a trilha de auditoria.
+  A máquina local e os worktrees de agentes **não** têm essas chaves: antes,
+  builds locais, e2e e testes gravavam no mesmo dataset da homologação e
+  lotaram as colunas. Só o deploy (build-args do `cd.yml` + `.env` do SOPS)
+  envia logs.
 - **Service** (`src/services/*.service.ts`): regras de negócio,
   **autorização** (ownership, papel no workspace, acesso ao módulo) e
   auditoria (`auditMutation`/`auditAuth`, `lib/axiom/audit`).
