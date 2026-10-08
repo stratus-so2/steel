@@ -25,6 +25,7 @@ export function createFakeWorkspaceAiSettings(
     agentsEnabled: true,
     memoryEnabled: true,
     autopilotEnabled: false,
+    usageWeeklyEmailEnabled: true,
     createdAt: now,
     updatedAt: now,
     ...overrides,

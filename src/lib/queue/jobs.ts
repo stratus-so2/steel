@@ -33,6 +33,7 @@ export const QueueName = {
   SteelAgents: 'steel-agents',
   Notifications: 'notifications',
   SearchReindex: 'search-reindex',
+  AiUsageWeeklyEmail: 'ai-usage-weekly-email',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -621,4 +622,28 @@ export type SearchReindexJob =
 export type SearchReindexJobPayload = {
   [SearchReindexJob.ReindexAll]: Record<string, never>
   [SearchReindexJob.ReindexWorkspace]: { workspaceId: string }
+}
+
+/**
+ * Weekly Steel AI usage e-mail to the workspace owners: `tick` (Mondays
+ * 08:00 America/Sao_Paulo) plans the previous UTC week and fans out one
+ * `send-workspace` per eligible workspace, with a deterministic job id
+ * (`ai-usage-weekly-email-<workspaceId>-<weekKey>`); a Redis marker per
+ * owner keeps retries from mailing twice.
+ */
+export const AiUsageWeeklyEmailJob = {
+  Tick: 'tick',
+  SendWorkspace: 'send-workspace',
+} as const
+
+export type AiUsageWeeklyEmailJob =
+  (typeof AiUsageWeeklyEmailJob)[keyof typeof AiUsageWeeklyEmailJob]
+
+export type AiUsageWeeklyEmailJobPayload = {
+  [AiUsageWeeklyEmailJob.Tick]: Record<string, never>
+  /** `weekStart`: Monday of the reported week, `YYYY-MM-DD` (UTC). */
+  [AiUsageWeeklyEmailJob.SendWorkspace]: {
+    workspaceId: string
+    weekStart: string
+  }
 }

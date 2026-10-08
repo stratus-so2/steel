@@ -177,6 +177,36 @@ describe('AiSettingsService', () => {
       )
     })
 
+    it('should let an OWNER turn the weekly usage e-mail off', async () => {
+      asRole('OWNER')
+      withState()
+
+      expectOk(
+        await AiSettingsService.update('u1', 'ws1', {
+          usageWeeklyEmailEnabled: false,
+        }),
+      )
+      expect(mockedSettingsRepo.upsert).toHaveBeenCalledWith(
+        'ws1',
+        expect.objectContaining({
+          usageWeeklyEmailEnabled: false,
+          aiEnabled: true,
+        }),
+      )
+    })
+
+    it('should forbid a MEMBER from changing the weekly usage e-mail', async () => {
+      asRole('MEMBER')
+      withState()
+      expectErr(
+        await AiSettingsService.update('u1', 'ws1', {
+          usageWeeklyEmailEnabled: false,
+        }),
+        'FORBIDDEN',
+      )
+      expect(mockedSettingsRepo.upsert).not.toHaveBeenCalled()
+    })
+
     it('should forbid a MEMBER from allowing Autopilot', async () => {
       asRole('MEMBER')
       withState()

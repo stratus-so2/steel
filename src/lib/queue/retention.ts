@@ -127,3 +127,9 @@ export const NotificationsAiActionExpiryCron = '* * * * *' as const
  * 03:15 backup, so it never competes with pg_dump.
  */
 export const SearchReindexCron = '30 2 * * *' as const
+
+/**
+ * Weekly Steel AI usage e-mail to the owners: Mondays 08:00 (São Paulo),
+ * after the UTC week (the quota's clock) closed at 21:00 on Sunday.
+ */
+export const AiUsageWeeklyEmailCron = '0 8 * * 1' as const

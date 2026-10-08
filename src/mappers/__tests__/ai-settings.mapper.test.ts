@@ -20,6 +20,7 @@ describe('toEffectiveAiSettings()', () => {
       agentsEnabled: true,
       memoryEnabled: true,
       autopilotEnabled: false,
+      usageWeeklyEmailEnabled: true,
     })
   })
 
@@ -39,6 +40,7 @@ describe('toEffectiveAiSettings()', () => {
           agentsEnabled: false,
           memoryEnabled: false,
           autopilotEnabled: true,
+          usageWeeklyEmailEnabled: false,
         }),
       ),
     ).toMatchObject({
@@ -46,6 +48,7 @@ describe('toEffectiveAiSettings()', () => {
       agentsEnabled: false,
       memoryEnabled: false,
       autopilotEnabled: true,
+      usageWeeklyEmailEnabled: false,
     })
   })
 

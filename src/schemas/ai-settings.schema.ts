@@ -37,6 +37,8 @@ export const UpdateWorkspaceAiSettingsSchema = z.object({
   memoryEnabled: z.boolean().optional(),
   /** Autopilot mode allowed: writes run without per-action confirmation. */
   autopilotEnabled: z.boolean().optional(),
+  /** Weekly Steel AI usage summary e-mailed to the owners. */
+  usageWeeklyEmailEnabled: z.boolean().optional(),
 })
 
 export type UpdateWorkspaceAiSettingsDTO = z.infer<

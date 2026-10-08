@@ -882,6 +882,7 @@ describe('SteelAiChatService.capabilities()', () => {
           agentsEnabled: true,
           memoryEnabled: true,
           autopilotEnabled: false,
+          usageWeeklyEmailEnabled: true,
         },
         model: {
           key: 'openai:gpt-4o-mini',
@@ -1465,6 +1466,7 @@ describe('SteelAiChatService.capabilities() — switches', () => {
           agentsEnabled: true,
           memoryEnabled: true,
           autopilotEnabled: false,
+          usageWeeklyEmailEnabled: true,
         },
         model: null,
       }),

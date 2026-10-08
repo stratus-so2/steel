@@ -266,6 +266,10 @@ export const WorkspaceAiSettingsDTO = dto(
       description:
         'Modo Autopilot permitido: escritas (inclusive exclusões e mensagens a clientes) executam sem confirmação. Desligado por padrão.',
     }),
+    usageWeeklyEmailEnabled: z.boolean().meta({
+      description:
+        'Resumo semanal do consumo de IA por e-mail para os donos do workspace (segundas, 08:00 de Brasília). Ligado por padrão.',
+    }),
     usage: z.object({
       periodStart: dateTime().meta({ description: '1º dia do mês (UTC).' }),
       inputTokens: z.number().int(),

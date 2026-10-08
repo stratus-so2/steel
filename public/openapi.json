@@ -10113,6 +10113,9 @@
                   },
                   "autopilotEnabled": {
                     "type": "boolean"
+                  },
+                  "usageWeeklyEmailEnabled": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -137882,6 +137885,10 @@
             "type": "boolean",
             "description": "Modo Autopilot permitido: escritas (inclusive exclusões e mensagens a clientes) executam sem confirmação. Desligado por padrão."
           },
+          "usageWeeklyEmailEnabled": {
+            "type": "boolean",
+            "description": "Resumo semanal do consumo de IA por e-mail para os donos do workspace (segundas, 08:00 de Brasília). Ligado por padrão."
+          },
           "usage": {
             "type": "object",
             "properties": {
@@ -137942,6 +137949,7 @@
           "agentsEnabled",
           "memoryEnabled",
           "autopilotEnabled",
+          "usageWeeklyEmailEnabled",
           "usage",
           "userPreference",
           "canManage"

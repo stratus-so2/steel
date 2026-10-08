@@ -147,6 +147,9 @@ export const AiSettingsService = {
       ...(dto.autopilotEnabled !== undefined && {
         autopilotEnabled: dto.autopilotEnabled,
       }),
+      ...(dto.usageWeeklyEmailEnabled !== undefined && {
+        usageWeeklyEmailEnabled: dto.usageWeeklyEmailEnabled,
+      }),
     }
 
     // Só barra provedor sem chave no que está sendo alterado agora: um
@@ -194,6 +197,7 @@ export const AiSettingsService = {
       agentsEnabled: next.agentsEnabled,
       memoryEnabled: next.memoryEnabled,
       autopilotEnabled: next.autopilotEnabled,
+      usageWeeklyEmailEnabled: next.usageWeeklyEmailEnabled,
     })
     if (!saved.ok) return saved
 
@@ -210,6 +214,7 @@ export const AiSettingsService = {
         agentsEnabled: next.agentsEnabled,
         memoryEnabled: next.memoryEnabled,
         autopilotEnabled: next.autopilotEnabled,
+        usageWeeklyEmailEnabled: next.usageWeeklyEmailEnabled,
         // Toggles flipped by this request (who turned what on or off).
         changedSwitches: (
           [
@@ -218,6 +223,7 @@ export const AiSettingsService = {
             'agentsEnabled',
             'memoryEnabled',
             'autopilotEnabled',
+            'usageWeeklyEmailEnabled',
           ] as const
         ).filter((key) => current.value[key] !== next[key]),
       },
