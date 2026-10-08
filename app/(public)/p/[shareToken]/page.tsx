@@ -3,6 +3,7 @@ import { connection } from 'next/server'
 import { ProposalAcceptPanel } from '@/app/_components/crm/proposal/proposal-accept-panel'
 import { ProposalWebPreview } from '@/app/_components/crm/proposal/proposal-preview-panel'
 import { ProposalTracker } from '@/app/_components/crm/proposal/proposal-tracker'
+import { NO_INDEX } from '@/src/lib/seo/metadata'
 import { CrmProposalService } from '@/src/services/crm-proposal.service'
 
 type PageProps = { params: Promise<{ shareToken: string }> }
@@ -12,7 +13,10 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { shareToken } = await params
   const result = await CrmProposalService.getPublicByShareToken(shareToken)
-  return { title: result.ok ? result.value.name : 'Proposta' }
+  return {
+    title: result.ok ? result.value.name : 'Proposta',
+    robots: NO_INDEX,
+  }
 }
 
 export default async function PublicCrmProposalPage({ params }: PageProps) {

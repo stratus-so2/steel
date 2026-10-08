@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
+import { NO_INDEX } from '@/src/lib/seo/metadata'
 import { ResetPasswordForm } from './reset-password-form'
 
 export const metadata: Metadata = {
   title: 'Nova senha | Steel',
+  robots: NO_INDEX,
   description: 'Defina uma nova senha para sua conta no Steel.',
 }
 

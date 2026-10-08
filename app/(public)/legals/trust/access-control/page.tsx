@@ -3,11 +3,13 @@ import { H1 } from '@/components/typography/heading/h1'
 import { H2 } from '@/components/typography/heading/h2'
 import { Muted } from '@/components/typography/text/muted'
 import { P } from '@/components/typography/text/p'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Controle de Acesso | Steel',
   description: 'Políticas de controle de acesso aos dados do Steel.',
-}
+  path: '/legals/trust/access-control',
+})
 
 export default function AccessControlPage() {
   return (

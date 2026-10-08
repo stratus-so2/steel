@@ -1,0 +1,77 @@
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/lib/env/env', () => ({ NEXT_PUBLIC_URL: 'https://steel.test' }))
+
+import { formatChangelogDate } from '@/src/lib/changelog/labels'
+import { buildLlmsFullTxt, buildLlmsTxt } from '@/src/lib/seo/llms'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
+import { siteJsonLd } from '@/src/lib/seo/site'
+import { escapeXml } from '@/src/lib/seo/xml'
+import type { ChangelogEntryDTO } from '@/types/changelog-entry'
+
+const ENTRY: ChangelogEntryDTO = {
+  slug: 'busca-global',
+  title: 'Busca global',
+  date: '2026-10-08T00:00:00.000Z',
+  summary: 'Uma busca que atravessa os três módulos.',
+  tags: ['PLATAFORMA', 'IA'],
+  version: null,
+  cover: null,
+  source: '## Como usar\n\nCtrl+K.\n\n### Atalho',
+  headings: [],
+}
+
+describe('buildLlmsTxt', () => {
+  it('links the public pages and the recent changelog on the configured domain', () => {
+    const txt = buildLlmsTxt([ENTRY])
+    expect(txt.startsWith('# Steel\n\n> ')).toBe(true)
+    expect(txt).toContain('[Manifesto](https://steel.test/manifesto)')
+    expect(txt).toContain(
+      '- [Busca global](https://steel.test/changelog/busca-global) (2026-10-08): Uma busca',
+    )
+    expect(txt).toContain('https://steel.test/llms-full.txt')
+  })
+})
+
+describe('buildLlmsFullTxt', () => {
+  it('inlines each entry with its headings nested under the title', () => {
+    const txt = buildLlmsFullTxt([ENTRY, { ...ENTRY, slug: 'outra' }])
+    expect(txt).toContain('## Busca global')
+    expect(txt).toContain('Publicado em 2026-10-08 · Plataforma, Steel AI')
+    expect(txt).toContain('### Como usar')
+    expect(txt).toContain('#### Atalho')
+    expect(txt).toContain('\n\n---\n\n')
+  })
+})
+
+describe('seo helpers', () => {
+  it('builds canonical and social metadata for a public page', () => {
+    expect(
+      publicPageMetadata({ title: 'T', description: 'D', path: '/about' }),
+    ).toMatchObject({
+      alternates: { canonical: '/about' },
+      openGraph: { url: '/about', images: ['/opengraph-image'] },
+      twitter: { card: 'summary_large_image', images: ['/twitter-image'] },
+    })
+  })
+
+  it('describes the organization, site and product as one graph', () => {
+    const graph = siteJsonLd()['@graph']
+    expect(graph.map((node) => node['@type'])).toEqual([
+      'Organization',
+      'WebSite',
+      'SoftwareApplication',
+    ])
+    expect(graph[0]['@id']).toBe('https://steel.test/#organization')
+  })
+
+  it('escapes the five xml entities', () => {
+    expect(escapeXml(`<a href="x">Tom & Jerry's</a>`)).toBe(
+      '&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&apos;s&lt;/a&gt;',
+    )
+  })
+
+  it('formats a changelog date as a UTC calendar day', () => {
+    expect(formatChangelogDate('2026-10-08T00:00:00.000Z')).toBe('8 out 2026')
+  })
+})
