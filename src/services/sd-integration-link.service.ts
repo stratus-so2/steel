@@ -1,4 +1,4 @@
-import type { SdIntegration } from '@prisma/client'
+import type { WorkspaceIntegration } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import {
@@ -6,55 +6,84 @@ import {
   sdIntegrationNotFound,
   validationError,
 } from '@/src/errors'
-import { err, ok, type Result } from '@/src/lib/result'
-import { GithubClient } from '@/src/lib/servicedesk/github-client'
-import { sdHtmlToText } from '@/src/lib/servicedesk/html'
+import type { RepoIntegrationKind } from '@/src/lib/integrations/catalog'
+import { parseWorkspaceRepoConfig } from '@/src/lib/integrations/config'
 import {
-  parseSdGithubConfig,
-  parseSdGithubItemRef,
-  parseSdGithubRepo,
-  type SdGithubRepoRef,
-  sdGithubIssueFromTicket,
-  sdGithubLinkKey,
-} from '@/src/lib/servicedesk/integrations'
+  inferRepoProvider,
+  isForeignRef,
+  parseRepoRef,
+  REPO_PROVIDER_LABEL,
+  RepoProvider,
+  type RepoTarget,
+  repoTarget,
+} from '@/src/lib/integrations/repo-provider'
+import { err, ok, type Result } from '@/src/lib/result'
+import { sdHtmlToText } from '@/src/lib/servicedesk/html'
+import { sdGithubIssueFromTicket } from '@/src/lib/servicedesk/integrations'
 import { sdTicketNotificationHref } from '@/src/lib/servicedesk/notify'
 import { toSdIntegrationLinkDTO } from '@/src/mappers/sd-integration.mapper'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import type {
   CreateSdGithubIssueDTO,
   LinkSdGithubItemDTO,
 } from '@/src/schemas/sd-integration.schema'
-import type { SdIntegrationLinkDTO } from '@/types/sd-integration'
+import type {
+  SdIntegrationLinkDTO,
+  SdRepoProviderOptionDTO,
+} from '@/types/sd-integration'
 import { decryptSdIntegrationToken } from './sd-integration-credentials'
 import { recordSdTicketEvent } from './sd-ticket-event-recorder'
 import { loadSdTicketTab, publishSdTicketTab } from './sd-ticket-tab-support'
 
 /**
- * Vínculos chamado ↔ Slack/GitHub vistos da tela do chamado: listar,
- * vincular uma issue/PR que já existe, abrir uma issue a partir do chamado e
- * desvincular.
+ * Ticket ↔ Slack/GitHub/GitLab links seen from the ticket screen: list, link
+ * an existing issue/PR/MR, open an issue from the ticket and unlink. The
+ * GitHub and GitLab connections are workspace-level (ADR 0024) and offer the
+ * same capability set.
  *
- * Autorização pela mesma base das outras abas (`loadSdTicketTab`, recurso
- * `sd-tickets`): só **agentes** mexem nos vínculos; o solicitante não vê o
- * bloco. Toda mutação gera evento de rastreabilidade (`SdTicketEvent`) e
- * `auditMutation`.
+ * Authorization through the same base as the other tabs (`loadSdTicketTab`,
+ * resource `sd-tickets`): only **agents** touch the links; the requester
+ * does not see the block. Every mutation records a traceability event
+ * (`SdTicketEvent`) and `auditMutation`.
  */
 
-/** Tipos ITIL em que abrir/vincular issue faz sentido. */
-const GITHUB_TICKET_TYPES = new Set(['PROBLEM', 'CHANGE'])
+/** ITIL types where opening/linking an issue makes sense. */
+const REPO_TICKET_TYPES = new Set(['PROBLEM', 'CHANGE'])
 
-async function githubIntegration(
+async function repoIntegration(
   workspaceId: string,
-): Promise<Result<{ integration: SdIntegration; ref: SdGithubRepoRef }>> {
-  const found = await SdIntegrationRepository.requireByKind(
+  provider: RepoIntegrationKind,
+): Promise<Result<{ integration: WorkspaceIntegration; target: RepoTarget }>> {
+  const found = await WorkspaceIntegrationRepository.requireByKind(
     workspaceId,
-    'GITHUB',
+    provider,
   )
   if (!found.ok) return found
-  const ref = parseSdGithubRepo(found.value.externalId)
-  if (!ref) return err(sdIntegrationNotFound())
-  return ok({ integration: found.value, ref })
+  const target = repoTarget(found.value)
+  if (!target) return err(sdIntegrationNotFound())
+  return ok({ integration: found.value, target })
+}
+
+/**
+ * Provider of a reference: explicit > inferred from its shape > the only
+ * connected repository provider > GitHub.
+ */
+async function resolveProvider(
+  workspaceId: string,
+  dto: LinkSdGithubItemDTO,
+): Promise<RepoIntegrationKind> {
+  if (dto.provider) return dto.provider
+  const inferred = inferRepoProvider(dto.ref)
+  if (inferred) return inferred
+  const rows = await WorkspaceIntegrationRepository.list(workspaceId)
+  const kinds = rows.ok
+    ? rows.value
+        .map((row) => row.kind)
+        .filter((kind): kind is RepoIntegrationKind => kind !== 'SLACK')
+    : []
+  return kinds.length === 1 ? kinds[0] : 'GITHUB'
 }
 
 function ticketUrl(slug: string | null, number: number): string {
@@ -88,9 +117,44 @@ export const SdIntegrationLinkService = {
   },
 
   /**
-   * Vincula uma issue/PR que já existe: aceita `#42`, `owner/repo#42` ou a
-   * URL. O tipo (issue × pull request) e o estado vêm da API do GitHub, não
-   * do texto informado.
+   * Repository providers connected to the workspace, as seen from a ticket
+   * (the agent picks where to link/open the issue). Same access as `list`.
+   */
+  async providers(
+    actorId: string,
+    workspaceId: string,
+    ticketRef: string,
+  ): Promise<Result<SdRepoProviderOptionDTO[]>> {
+    const scope = await loadSdTicketTab(
+      actorId,
+      workspaceId,
+      ticketRef,
+      'VIEW',
+      { agentOnly: true },
+    )
+    if (!scope.ok) return scope
+
+    const rows = await WorkspaceIntegrationRepository.list(workspaceId)
+    if (!rows.ok) return rows
+    const options: SdRepoProviderOptionDTO[] = []
+    for (const kind of ['GITHUB', 'GITLAB'] as const) {
+      const row = rows.value.find((item) => item.kind === kind)
+      const target = row ? repoTarget(row) : null
+      if (!row || !target || row.status === 'DISCONNECTED') continue
+      options.push({
+        provider: kind,
+        project: target.project,
+        allowIssueFromTicket: parseWorkspaceRepoConfig(row.config).servicedesk
+          .allowIssueFromTicket,
+      })
+    }
+    return ok(options)
+  },
+
+  /**
+   * Links an existing item: `#42`, `!42` (GitLab MR), `owner/repo#42`,
+   * `group/project!42` or the URL. The item kind and state come from the
+   * provider API, not from the text typed.
    */
   async linkGithubItem(
     actorId: string,
@@ -106,30 +170,28 @@ export const SdIntegrationLinkService = {
     )
     if (!scope.ok) return scope
 
-    const parsed = parseSdGithubItemRef(dto.ref)
+    const provider = await resolveProvider(workspaceId, dto)
+    const parsed = parseRepoRef(provider, dto.ref)
     if (!parsed) {
       return err(
         validationError(
-          'Informe o número (#42), `owner/repo#42` ou a URL da issue/pull request',
+          provider === 'GITLAB'
+            ? 'Informe o número (#42 para issue, !42 para merge request), `grupo/projeto#42` ou a URL'
+            : 'Informe o número (#42), `owner/repo#42` ou a URL da issue/pull request',
         ),
       )
     }
 
-    const github = await githubIntegration(workspaceId)
-    if (!github.ok) return github
-    const { integration, ref } = github.value
+    const repo = await repoIntegration(workspaceId, provider)
+    if (!repo.ok) return repo
+    const { integration, target } = repo.value
 
-    // Referência de outro repositório não é aceita: o vínculo vale para o
-    // repositório conectado (é dele que vêm os webhooks).
-    if (
-      parsed.owner &&
-      parsed.repo &&
-      (parsed.owner.toLowerCase() !== ref.owner.toLowerCase() ||
-        parsed.repo.toLowerCase() !== ref.repo.toLowerCase())
-    ) {
+    // A reference of another repository is refused: the link belongs to the
+    // connected repository (its webhooks are the ones that arrive).
+    if (isForeignRef(target, parsed)) {
       return err(
         validationError(
-          `A integração está conectada a ${ref.owner}/${ref.repo} — vincule itens desse repositório`,
+          `A integração do ${REPO_PROVIDER_LABEL[provider]} está conectada a ${target.project} — vincule itens desse repositório`,
         ),
       )
     }
@@ -137,13 +199,13 @@ export const SdIntegrationLinkService = {
     const token = await decryptSdIntegrationToken(integration)
     if (!token.ok) return token
 
-    const item = await GithubClient.getItem(token.value, ref, parsed.number)
+    const item = await RepoProvider.getItem(target, token.value, parsed)
     if (!item.ok) return item
 
-    const externalKey = sdGithubLinkKey(ref, item.value.number)
-    const existing = await SdIntegrationRepository.findGithubLinkByKey(
+    const existing = await SdIntegrationRepository.findRepoLinkByKey(
       integration.id,
-      externalKey,
+      provider,
+      item.value.key,
     )
     if (!existing.ok) return existing
     if (existing.value) {
@@ -161,8 +223,8 @@ export const SdIntegrationLinkService = {
       integrationId: integration.id,
       ticketId: scope.value.ticket.id,
       kind: item.value.kind,
-      externalKey,
-      externalUrl: item.value.htmlUrl,
+      externalKey: item.value.key,
+      externalUrl: item.value.url,
       externalState: item.value.state,
       meta: { title: item.value.title },
       createdById: actorId,
@@ -175,8 +237,8 @@ export const SdIntegrationLinkService = {
       actorKind: 'AGENT',
       actorUserId: actorId,
       action: 'integration.linked',
-      toValue: { id: externalKey, label: item.value.title },
-      meta: { kind: item.value.kind, url: item.value.htmlUrl },
+      toValue: { id: item.value.key, label: item.value.title },
+      meta: { kind: item.value.kind, url: item.value.url },
     })
     auditMutation({
       entity: 'sd_integration_link',
@@ -187,7 +249,7 @@ export const SdIntegrationLinkService = {
         workspaceId,
         ticketId: scope.value.ticket.id,
         kind: item.value.kind,
-        externalKey,
+        externalKey: item.value.key,
       },
     })
     await publishSdTicketTab(scope.value.ticket, 'ticket.updated', actorId)
@@ -196,14 +258,15 @@ export const SdIntegrationLinkService = {
   },
 
   /**
-   * Abre uma issue no repositório conectado a partir do chamado (título,
-   * contexto e link). Só para problema e mudança — o trabalho técnico de um
-   * incidente/requisição vive no próprio chamado.
+   * Opens an issue in the connected repository/project from the ticket
+   * (title, context and link). Problem and change only — the technical work
+   * of an incident/request lives in the ticket itself.
    */
   async createGithubIssue(
     actorId: string,
     workspaceId: string,
     dto: CreateSdGithubIssueDTO,
+    provider: RepoIntegrationKind = 'GITHUB',
   ): Promise<Result<SdIntegrationLinkDTO>> {
     const scope = await loadSdTicketTab(
       actorId,
@@ -215,7 +278,7 @@ export const SdIntegrationLinkService = {
     if (!scope.ok) return scope
 
     const { ticket, code } = scope.value
-    if (!GITHUB_TICKET_TYPES.has(ticket.type)) {
+    if (!REPO_TICKET_TYPES.has(ticket.type)) {
       return err(
         validationError(
           'Abrir issue a partir do chamado vale para problema e mudança',
@@ -223,11 +286,11 @@ export const SdIntegrationLinkService = {
       )
     }
 
-    const github = await githubIntegration(workspaceId)
-    if (!github.ok) return github
-    const { integration, ref } = github.value
+    const repo = await repoIntegration(workspaceId, provider)
+    if (!repo.ok) return repo
+    const { integration, target } = repo.value
 
-    const config = parseSdGithubConfig(integration.config)
+    const config = parseWorkspaceRepoConfig(integration.config).servicedesk
     if (!config.allowIssueFromTicket) {
       return err(
         validationError(
@@ -250,20 +313,19 @@ export const SdIntegrationLinkService = {
       priority: ticket.priority?.name ?? null,
     })
 
-    const created = await GithubClient.createIssue(token.value, ref, {
+    const created = await RepoProvider.createIssue(target, token.value, {
       title: dto.title ?? draft.title,
       body: draft.body,
     })
     if (!created.ok) return created
 
-    const externalKey = sdGithubLinkKey(ref, created.value.number)
     const link = await SdIntegrationRepository.createLink({
       workspaceId,
       integrationId: integration.id,
       ticketId: ticket.id,
       kind: created.value.kind,
-      externalKey,
-      externalUrl: created.value.htmlUrl,
+      externalKey: created.value.key,
+      externalUrl: created.value.url,
       externalState: created.value.state,
       meta: { title: created.value.title, createdFromTicket: true },
       createdById: actorId,
@@ -276,15 +338,20 @@ export const SdIntegrationLinkService = {
       actorKind: 'AGENT',
       actorUserId: actorId,
       action: 'integration.issue_created',
-      toValue: { id: externalKey, label: created.value.title },
-      meta: { url: created.value.htmlUrl },
+      toValue: { id: created.value.key, label: created.value.title },
+      meta: { url: created.value.url, provider },
     })
     auditMutation({
       entity: 'sd_integration_link',
       action: 'create',
       actorId,
       targetId: link.value.id,
-      meta: { workspaceId, ticketId: ticket.id, externalKey },
+      meta: {
+        workspaceId,
+        ticketId: ticket.id,
+        externalKey: created.value.key,
+        provider,
+      },
     })
     await publishSdTicketTab(ticket, 'ticket.updated', actorId)
 

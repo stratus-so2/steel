@@ -1,34 +1,20 @@
 import type {
   Prisma,
-  SdIntegration,
-  SdIntegrationKind,
   SdIntegrationLink,
   SdIntegrationLinkKind,
-  SdIntegrationStatus,
   SdMessageAuthorKind,
+  WorkspaceIntegration,
 } from '@prisma/client'
-import { sdIntegrationLinkNotFound, sdIntegrationNotFound } from '@/src/errors'
+import { sdIntegrationLinkNotFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import type { Result } from '@/src/lib/result'
 import { sdDb, sdDbFind } from './sd-config-db'
 
 /**
- * Integrações do ServiceDesk e os vínculos chamado ↔ thread/issue/PR.
- *
- * A exclusão da integração é lógica (`deletedAt`) para os vínculos já
- * registrados continuarem no histórico do chamado. O webhook só encontra
- * integrações **não excluídas** — desconectar corta a entrada na hora.
+ * ServiceDesk side of the integrations: the ticket ↔ Slack thread /
+ * GitHub issue-PR / GitLab issue-MR links. The connections themselves are
+ * workspace-level (`WorkspaceIntegrationRepository`, ADR 0024).
  */
-
-export interface SdIntegrationData {
-  status?: SdIntegrationStatus
-  statusError?: string | null
-  externalId?: string
-  externalName?: string | null
-  encryptedToken?: string
-  encryptedSigningSecret?: string | null
-  config?: Prisma.InputJsonValue
-}
 
 export interface SdIntegrationLinkData {
   externalUrl?: string | null
@@ -36,131 +22,20 @@ export interface SdIntegrationLinkData {
   meta?: Prisma.InputJsonValue
 }
 
-/** Vínculo com o recorte do chamado que o webhook precisa. */
+/** Link with the connection it belongs to (reconciliation tick). */
 export type SdIntegrationLinkWithTicket = SdIntegrationLink & {
-  integration: SdIntegration
+  integration: WorkspaceIntegration
 }
 
+/** Link kinds of each repository provider. */
+export const SD_REPO_LINK_KINDS = {
+  GITHUB: ['GITHUB_ISSUE', 'GITHUB_PULL_REQUEST'],
+  GITLAB: ['GITLAB_ISSUE', 'GITLAB_MERGE_REQUEST'],
+} as const satisfies Record<string, readonly SdIntegrationLinkKind[]>
+
+export type SdRepoProvider = keyof typeof SD_REPO_LINK_KINDS
+
 export const SdIntegrationRepository = {
-  /** Integrações ativas (não excluídas) do workspace. */
-  async list(workspaceId: string): Promise<Result<SdIntegration[]>> {
-    return sdDb('Failed to list ServiceDesk integrations', () =>
-      prisma.sdIntegration.findMany({
-        where: { workspaceId, deletedAt: null },
-        orderBy: { kind: 'asc' },
-      }),
-    )
-  },
-
-  async findByKind(
-    workspaceId: string,
-    kind: SdIntegrationKind,
-  ): Promise<Result<SdIntegration | null>> {
-    return sdDb('Failed to find ServiceDesk integration', () =>
-      prisma.sdIntegration.findFirst({
-        where: { workspaceId, kind, deletedAt: null },
-      }),
-    )
-  },
-
-  async requireByKind(
-    workspaceId: string,
-    kind: SdIntegrationKind,
-  ): Promise<Result<SdIntegration>> {
-    return sdDbFind(
-      'Failed to find ServiceDesk integration',
-      () =>
-        prisma.sdIntegration.findFirst({
-          where: { workspaceId, kind, deletedAt: null },
-        }),
-      sdIntegrationNotFound(),
-    )
-  },
-
-  async findById(id: string): Promise<Result<SdIntegration | null>> {
-    return sdDb('Failed to find ServiceDesk integration by id', () =>
-      prisma.sdIntegration.findFirst({ where: { id, deletedAt: null } }),
-    )
-  },
-
-  /**
-   * Integração pela identificação externa — é por aqui que o webhook público
-   * descobre o workspace (team do Slack, `owner/repo` do GitHub).
-   */
-  async findByExternalId(
-    kind: SdIntegrationKind,
-    externalId: string,
-  ): Promise<Result<SdIntegration | null>> {
-    return sdDb('Failed to find ServiceDesk integration by external id', () =>
-      prisma.sdIntegration.findFirst({
-        where: { kind, externalId, deletedAt: null },
-      }),
-    )
-  },
-
-  /**
-   * Cria ou revive a integração do par `(workspace, kind, externalId)`: o
-   * mesmo Slack reconectado volta a valer em vez de colidir na unicidade.
-   */
-  async upsert(
-    workspaceId: string,
-    kind: SdIntegrationKind,
-    externalId: string,
-    data: SdIntegrationData & { encryptedToken: string; createdById: string },
-  ): Promise<Result<SdIntegration>> {
-    return sdDb('Failed to save ServiceDesk integration', () =>
-      prisma.sdIntegration.upsert({
-        where: {
-          workspaceId_kind_externalId: { workspaceId, kind, externalId },
-        },
-        create: { ...data, workspaceId, kind, externalId },
-        update: {
-          ...data,
-          status: data.status ?? 'ACTIVE',
-          statusError: data.statusError ?? null,
-          deletedAt: null,
-        },
-      }),
-    )
-  },
-
-  async update(
-    id: string,
-    workspaceId: string,
-    data: SdIntegrationData,
-  ): Promise<Result<SdIntegration>> {
-    return sdDb('Failed to update ServiceDesk integration', () =>
-      prisma.sdIntegration.update({ where: { id, workspaceId }, data }),
-    )
-  },
-
-  /** Carimba o erro vindo do serviço externo (fluxo do worker, sem usuário). */
-  async markError(id: string, statusError: string): Promise<Result<void>> {
-    return sdDb('Failed to mark ServiceDesk integration error', async () => {
-      await prisma.sdIntegration.update({
-        where: { id },
-        data: { status: 'ERROR', statusError: statusError.slice(0, 500) },
-      })
-    })
-  },
-
-  /** Desconecta: sai das listas, para de receber webhook e perde o token. */
-  async disconnect(id: string, workspaceId: string): Promise<Result<void>> {
-    return sdDb('Failed to disconnect ServiceDesk integration', async () => {
-      await prisma.sdIntegration.update({
-        where: { id, workspaceId },
-        data: {
-          deletedAt: new Date(),
-          status: 'DISCONNECTED',
-          encryptedToken: '',
-          encryptedSigningSecret: null,
-        },
-      })
-    })
-  },
-
-  /* --------------------------------- vínculos --------------------------------- */
-
   async listLinks(
     workspaceId: string,
     ticketId: string,
@@ -197,25 +72,27 @@ export const SdIntegrationRepository = {
   },
 
   /**
-   * Vínculo do GitHub por número da issue/PR, sem saber se é issue ou PR: a
-   * `externalKey` (`owner/repo#n`) é a mesma nos dois casos.
+   * Repository link by key, whatever the item kind: GitHub issues and PRs
+   * share the number (`owner/repo#n`); GitLab keys carry the sigil
+   * (`group/project#n` × `group/project!n`).
    */
-  async findGithubLinkByKey(
+  async findRepoLinkByKey(
     integrationId: string,
+    provider: SdRepoProvider,
     externalKey: string,
   ): Promise<Result<SdIntegrationLink | null>> {
-    return sdDb('Failed to find ServiceDesk GitHub link', () =>
+    return sdDb('Failed to find ServiceDesk repository link', () =>
       prisma.sdIntegrationLink.findFirst({
         where: {
           integrationId,
           externalKey,
-          kind: { in: ['GITHUB_ISSUE', 'GITHUB_PULL_REQUEST'] },
+          kind: { in: [...SD_REPO_LINK_KINDS[provider]] },
         },
       }),
     )
   },
 
-  /** Thread do Slack: qual chamado a resposta deve alimentar. */
+  /** Slack thread: which ticket the reply feeds. */
   async findSlackThread(
     integrationId: string,
     externalKey: string,
@@ -261,20 +138,22 @@ export const SdIntegrationRepository = {
   },
 
   /**
-   * Vínculos de GitHub ainda abertos, para a reconciliação horária (webhook
-   * perdido). Só os de integrações vivas, dos chamados ainda não fechados.
+   * GitHub/GitLab links not merged yet, for the hourly reconciliation (lost
+   * webhook). Only links of live connections, of tickets not closed.
    */
-  async listGithubLinksToSync(
+  async listRepoLinksToSync(
     limit: number,
     workspaceId?: string,
   ): Promise<Result<SdIntegrationLinkWithTicket[]>> {
-    return sdDb('Failed to list ServiceDesk GitHub links to sync', () =>
+    return sdDb('Failed to list ServiceDesk repository links to sync', () =>
       prisma.sdIntegrationLink.findMany({
         where: {
-          kind: { in: ['GITHUB_ISSUE', 'GITHUB_PULL_REQUEST'] },
+          kind: {
+            in: [...SD_REPO_LINK_KINDS.GITHUB, ...SD_REPO_LINK_KINDS.GITLAB],
+          },
           externalState: { not: 'merged' },
           integration: {
-            kind: 'GITHUB',
+            kind: { in: ['GITHUB', 'GITLAB'] },
             deletedAt: null,
             ...(workspaceId ? { workspaceId } : {}),
           },
@@ -287,9 +166,31 @@ export const SdIntegrationRepository = {
     )
   },
 
-  /* ------------------------------ apoio do fluxo ------------------------------ */
+  /**
+   * Whether the ticket has the workspace's highest priority level (the
+   * "urgent ticket" Slack event). No priority = not urgent.
+   */
+  async isTopPriorityTicket(
+    workspaceId: string,
+    ticketId: string,
+  ): Promise<Result<boolean>> {
+    return sdDb('Failed to check ServiceDesk ticket priority', async () => {
+      const ticket = await prisma.sdTicket.findFirst({
+        where: { id: ticketId, workspaceId },
+        select: { priority: { select: { level: true } } },
+      })
+      if (!ticket?.priority) return false
+      const top = await prisma.sdPriority.aggregate({
+        where: { workspaceId },
+        _max: { level: true },
+      })
+      return ticket.priority.level === top._max.level
+    })
+  },
 
-  /** Usuário da plataforma pelo e-mail (casa o autor do Slack com a conta). */
+  /* ------------------------------ flow support ------------------------------ */
+
+  /** Platform user by e-mail (matches the Slack author with the account). */
   async findWorkspaceUserByEmail(
     workspaceId: string,
     email: string,
@@ -306,7 +207,7 @@ export const SdIntegrationRepository = {
     })
   },
 
-  /** Mensagem no histórico do chamado (resposta vinda do Slack). */
+  /** Message in the ticket history (reply that came from Slack). */
   async createTicketMessage(data: {
     workspaceId: string
     ticketId: string

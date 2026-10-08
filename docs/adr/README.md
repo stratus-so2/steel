@@ -42,3 +42,4 @@ decidido** e **quais as consequências** (inclusive as ruins).
 | 0021 | [Steel AI: modo Autopilot executa escritas sem confirmação](./0021-steel-ai-autopilot-mode.md) | Aceita | 2026-10-07 |
 | 0022 | [Steel AI: memória salva sem confirmação, com guarda e desfazer](./0022-steel-ai-memory-saved-without-confirmation.md) | Aceita | 2026-10-08 |
 | 0023 | [Steel AI: modo Teste simula as escritas no servidor](./0023-steel-ai-test-mode-simulates-writes-server-side.md) | Aceita | 2026-10-08 |
+| 0024 | [Integrações (Slack, GitHub, GitLab) no nível do workspace](./0024-workspace-level-integrations.md) | Aceita | 2026-10-08 |

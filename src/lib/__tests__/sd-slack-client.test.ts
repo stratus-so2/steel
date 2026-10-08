@@ -297,3 +297,35 @@ describe('SlackClient.permalink', () => {
     ).toBeNull()
   })
 })
+
+describe('SlackClient.authTest', () => {
+  it('confirms the bot token and returns the team', async () => {
+    fetchMock.mockResolvedValue(
+      reply({ ok: true, team_id: 'T1', team: 'Stratus' }),
+    )
+    expect(expectOk(await SlackClient.authTest('xoxb-token'))).toEqual({
+      teamId: 'T1',
+      teamName: 'Stratus',
+    })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://slack.com/api/auth.test')
+    expect(init.headers.Authorization).toBe('Bearer xoxb-token')
+  })
+
+  it('tolerates a reply without the team and reports a revoked token', async () => {
+    fetchMock.mockResolvedValueOnce(reply({ ok: true }))
+    expect(expectOk(await SlackClient.authTest('xoxb'))).toEqual({
+      teamId: null,
+      teamName: null,
+    })
+    fetchMock.mockResolvedValueOnce(
+      reply({ ok: false, error: 'token_revoked' }),
+    )
+    expect(
+      expectErr(
+        await SlackClient.authTest('xoxb'),
+        'SD_INTEGRATION_REQUEST_FAILED',
+      ).message,
+    ).toContain('token_revoked')
+  })
+})

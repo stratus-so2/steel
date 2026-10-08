@@ -1,27 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
-  ConnectSdGithubDTO,
   CreateSdGithubIssueDTO,
   LinkSdGithubItemDTO,
-  UpdateSdGithubConfigDTO,
+  UpdateSdRepoConfigDTO,
   UpdateSdSlackConfigDTO,
 } from '@/src/schemas/sd-integration.schema'
 import type {
   SdIntegrationDTO,
   SdIntegrationLinkDTO,
   SdIntegrationsOverviewDTO,
+  SdRepoProviderDTO,
+  SdRepoProviderOptionDTO,
   SdSlackChannelOptionDTO,
 } from '@/types/sd-integration'
 import { apiFetch, apiSend } from './_fetch'
 
 /**
- * Integrações do ServiceDesk (Slack e GitHub). Tudo sob
- * `['sd-integrations', workspaceId]`, então qualquer mutação atualiza a aba
- * inteira; os vínculos do chamado ficam numa chave própria por chamado.
- *
- * O token e o segredo do webhook **só entram** — nenhuma resposta os traz de
- * volta. A conexão do Slack não é mutação: é um redirect do navegador para
- * `…/integrations/slack/connect`.
+ * ServiceDesk side of the integrations (Slack, GitHub, GitLab). Everything
+ * under `['sd-integrations', workspaceId]`, so any mutation refreshes the
+ * whole tab; the ticket links have their own key per ticket. Connecting and
+ * disconnecting are workspace-level (`use-workspace-integrations`, ADR 0024).
  */
 
 export const sdIntegrationKeys = {
@@ -46,19 +44,6 @@ function json(method: string, body: unknown): RequestInit {
   }
 }
 
-function useInvalidate(workspaceId: string) {
-  const queryClient = useQueryClient()
-  return () =>
-    queryClient.invalidateQueries({
-      queryKey: sdIntegrationKeys.all(workspaceId),
-    })
-}
-
-/** URL para onde o botão "Conectar" do Slack manda o navegador. */
-export function sdSlackConnectUrl(workspaceId: string): string {
-  return `${base(workspaceId)}/slack/connect`
-}
-
 export function useSdIntegrations(workspaceId: string) {
   return useQuery({
     queryKey: sdIntegrationKeys.overview(workspaceId),
@@ -72,7 +57,7 @@ export function useSdIntegrations(workspaceId: string) {
   })
 }
 
-/** Canais do Slack — só busca quando o Slack está conectado. */
+/** Slack channels — only fetched when Slack is connected. */
 export function useSdSlackChannels(
   workspaceId: string,
   options: { enabled?: boolean } = {},
@@ -91,7 +76,11 @@ export function useSdSlackChannels(
 }
 
 export function useSdIntegrationMutations(workspaceId: string) {
-  const invalidate = useInvalidate(workspaceId)
+  const queryClient = useQueryClient()
+  const invalidate = () =>
+    queryClient.invalidateQueries({
+      queryKey: sdIntegrationKeys.all(workspaceId),
+    })
   const url = base(workspaceId)
 
   const updateSlack = useMutation({
@@ -103,53 +92,23 @@ export function useSdIntegrationMutations(workspaceId: string) {
       ),
     onSuccess: invalidate,
   })
-  const disconnectSlack = useMutation({
-    mutationFn: () =>
-      apiSend(
-        `${url}/slack`,
-        { method: 'DELETE' },
-        'Erro ao desconectar o Slack',
-      ),
-    onSuccess: invalidate,
-  })
-  const connectGithub = useMutation({
-    mutationFn: (data: ConnectSdGithubDTO) =>
+  const updateRepo = useMutation({
+    mutationFn: ({
+      provider,
+      ...data
+    }: UpdateSdRepoConfigDTO & { provider: SdRepoProviderDTO }) =>
       apiFetch<SdIntegrationDTO>(
-        `${url}/github`,
-        json('POST', data),
-        'Erro ao conectar o repositório',
-      ),
-    onSuccess: invalidate,
-  })
-  const updateGithub = useMutation({
-    mutationFn: (data: UpdateSdGithubConfigDTO) =>
-      apiFetch<SdIntegrationDTO>(
-        `${url}/github`,
+        `${url}/${provider.toLowerCase()}`,
         json('PATCH', data),
-        'Erro ao salvar a configuração do GitHub',
-      ),
-    onSuccess: invalidate,
-  })
-  const disconnectGithub = useMutation({
-    mutationFn: () =>
-      apiSend(
-        `${url}/github`,
-        { method: 'DELETE' },
-        'Erro ao desconectar o GitHub',
+        'Erro ao salvar a configuração do repositório',
       ),
     onSuccess: invalidate,
   })
 
-  return {
-    updateSlack,
-    disconnectSlack,
-    connectGithub,
-    updateGithub,
-    disconnectGithub,
-  }
+  return { updateSlack, updateRepo }
 }
 
-/** Vínculos do chamado (thread do Slack, issues e PRs). */
+/** Ticket links (Slack thread, issues, PRs and MRs). */
 export function useSdIntegrationLinks(
   workspaceId: string,
   ticketId: string,
@@ -164,6 +123,25 @@ export function useSdIntegrationLinks(
         'Erro ao carregar os vínculos do chamado',
       ),
     enabled: !!workspaceId && !!ticketId && (options.enabled ?? true),
+  })
+}
+
+/** GitHub/GitLab connected to the workspace, as offered on the ticket. */
+export function useSdRepoProviders(
+  workspaceId: string,
+  ticketId: string,
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: [...sdIntegrationKeys.all(workspaceId), 'providers', ticketId],
+    queryFn: () =>
+      apiFetch<SdRepoProviderOptionDTO[]>(
+        `${base(workspaceId)}/providers?ticketId=${encodeURIComponent(ticketId)}`,
+        undefined,
+        'Erro ao carregar os repositórios conectados',
+      ),
+    enabled: !!workspaceId && !!ticketId && (options.enabled ?? true),
+    staleTime: 60 * 1000,
   })
 }
 
@@ -183,14 +161,17 @@ export function useSdIntegrationLinkMutations(
       apiFetch<SdIntegrationLinkDTO>(
         `${url}/links`,
         json('POST', data),
-        'Erro ao vincular a issue',
+        'Erro ao vincular o item',
       ),
     onSuccess: invalidate,
   })
   const createIssue = useMutation({
-    mutationFn: (data: CreateSdGithubIssueDTO) =>
+    mutationFn: ({
+      provider = 'GITHUB',
+      ...data
+    }: CreateSdGithubIssueDTO & { provider?: SdRepoProviderDTO }) =>
       apiFetch<SdIntegrationLinkDTO>(
-        `${url}/github/issues`,
+        `${url}/${provider.toLowerCase()}/issues`,
         json('POST', data),
         'Erro ao abrir a issue',
       ),

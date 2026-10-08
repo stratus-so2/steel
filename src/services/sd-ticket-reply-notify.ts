@@ -18,7 +18,12 @@ import { SdTicketEngine, sdTicketCode } from './sd-ticket-engine'
  * ticket so the customer never gets an echo of their own message.
  */
 
-export type SdTicketReplyChannel = 'EMAIL' | 'WHATSAPP' | 'SLACK' | 'GITHUB'
+export type SdTicketReplyChannel =
+  | 'EMAIL'
+  | 'WHATSAPP'
+  | 'SLACK'
+  | 'GITHUB'
+  | 'GITLAB'
 
 const PREVIEW_LENGTH = 140
 
@@ -27,6 +32,7 @@ const TITLES: Record<SdTicketReplyChannel, (code: string) => string> = {
   WHATSAPP: (code) => `Cliente respondeu ${code} pelo WhatsApp`,
   SLACK: (code) => `Nova resposta no Slack em ${code}`,
   GITHUB: (code) => `Atualização do GitHub em ${code}`,
+  GITLAB: (code) => `Atualização do GitLab em ${code}`,
 }
 
 export function sdReplyPreview(body: string, attachments = 0): string {

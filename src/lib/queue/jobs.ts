@@ -35,6 +35,7 @@ export const QueueName = {
   SearchReindex: 'search-reindex',
   AiUsageWeeklyEmail: 'ai-usage-weekly-email',
   WorkspaceExport: 'workspace-export',
+  WorkspaceIntegrations: 'workspace-integrations',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -665,4 +666,33 @@ export type WorkspaceExportJob =
 export type WorkspaceExportJobPayload = {
   [WorkspaceExportJob.Run]: { exportId: string }
   [WorkspaceExportJob.PruneExpired]: Record<string, never>
+}
+
+/**
+ * Workspace-level integrations (Ajustes > Integrações, ADR 0024):
+ * `slack-notify` delivers one routed event of any module to its Slack
+ * channel(s), off the request path; `communication-waiting-tick` (every 5
+ * min) announces WhatsApp conversations waiting longer than the workspace's
+ * threshold.
+ */
+export const WorkspaceIntegrationsJob = {
+  SlackNotify: 'slack-notify',
+  CommunicationWaitingTick: 'communication-waiting-tick',
+} as const
+
+export type WorkspaceIntegrationsJob =
+  (typeof WorkspaceIntegrationsJob)[keyof typeof WorkspaceIntegrationsJob]
+
+export type WorkspaceIntegrationsJobPayload = {
+  [WorkspaceIntegrationsJob.SlackNotify]: {
+    workspaceId: string
+    integrationId: string
+    /** Catalog key (`crm.deal.won`, `agents.approval.pending`…). */
+    event: string
+    title: string
+    body: string
+    /** Absolute link to the record in Steel. */
+    url: string | null
+  }
+  [WorkspaceIntegrationsJob.CommunicationWaitingTick]: Record<string, never>
 }

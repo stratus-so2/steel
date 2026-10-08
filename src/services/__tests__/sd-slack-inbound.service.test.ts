@@ -36,6 +36,7 @@ vi.mock('@/src/lib/servicedesk/slack-client', () => ({
   },
 }))
 vi.mock('@/src/repositories/sd-integration.repository')
+vi.mock('@/src/repositories/workspace-integration.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('../authz', () => ({ assertModuleEnabled: vi.fn() }))
 vi.mock('../sd-automation-engine', () => ({
@@ -61,6 +62,7 @@ import {
 } from '@/src/lib/servicedesk/slack-client'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import { assertModuleEnabled } from '../authz'
 import { fireSdAutomations } from '../sd-automation-engine'
 import { SdSlackInboundService } from '../sd-slack-inbound.service'
@@ -69,6 +71,7 @@ import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { notifySdTicketReply } from '../sd-ticket-reply-notify'
 
 const repo = vi.mocked(SdIntegrationRepository)
+const wsRepo = vi.mocked(WorkspaceIntegrationRepository)
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const cache = vi.mocked(SdIntegrationEventCache)
 const slack = vi.mocked(SlackClient)
@@ -131,7 +134,8 @@ beforeEach(() => {
   cache.claim.mockResolvedValue(true)
   cache.release.mockResolvedValue(undefined)
   moduleEnabled.mockResolvedValue(ok(true as never))
-  repo.findByExternalId.mockResolvedValue(ok(slackIntegration()))
+  wsRepo.findManyByExternalId.mockResolvedValue(ok([slackIntegration()]))
+  wsRepo.markEvent.mockResolvedValue(ok(undefined))
   repo.findSlackThread.mockResolvedValue(ok(null))
   repo.createLink.mockResolvedValue(ok(createFakeSdIntegrationLink()))
   repo.createTicketMessage.mockResolvedValue(ok({ id: 'msg-1' }))
@@ -247,8 +251,8 @@ describe('resposta na thread → histórico do chamado', () => {
     })
 
   beforeEach(() => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(slackIntegration({ mirrorThreadReplies: true })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([slackIntegration({ mirrorThreadReplies: true })]),
     )
     repo.findSlackThread.mockResolvedValue(
       ok(
@@ -401,8 +405,8 @@ describe('resposta na thread → histórico do chamado', () => {
   })
 
   it('ignora quando o espelhamento está desligado', async () => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(slackIntegration({ mirrorThreadReplies: false })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([slackIntegration({ mirrorThreadReplies: false })]),
     )
     expect(expectOk(await SdSlackInboundService.handle(reply())).outcome).toBe(
       'ignored',
@@ -416,13 +420,13 @@ describe('resposta na thread → histórico do chamado', () => {
     repo.findSlackThread.mockResolvedValue(
       ok(createFakeSdIntegrationLink({ kind: 'SLACK_THREAD' })),
     )
-    repo.findByExternalId.mockResolvedValue(
-      ok(
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([
         createFakeSdIntegration({
           encryptedToken: '',
           config: { mirrorThreadReplies: true },
         }),
-      ),
+      ]),
     )
     expectErr(
       await SdSlackInboundService.handle(reply()),
@@ -500,13 +504,13 @@ describe('integração do time do Slack', () => {
     })
 
   it('recusa workspace do Slack não conectado ou desconectado', async () => {
-    repo.findByExternalId.mockResolvedValue(ok(null))
+    wsRepo.findManyByExternalId.mockResolvedValue(ok([]))
     expectErr(
       await SdSlackInboundService.handle(call()),
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
-    repo.findByExternalId.mockResolvedValue(
-      ok(createFakeSdIntegration({ status: 'DISCONNECTED' })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([createFakeSdIntegration({ status: 'DISCONNECTED' })]),
     )
     expectErr(
       await SdSlackInboundService.handle(call()),
@@ -518,7 +522,7 @@ describe('integração do time do Slack', () => {
     moduleEnabled.mockResolvedValue(err(moduleDisabled('SERVICE_DESK')))
     expectErr(await SdSlackInboundService.handle(call()), 'MODULE_DISABLED')
     moduleEnabled.mockResolvedValue(ok(true as never))
-    repo.findByExternalId.mockResolvedValue(err(databaseError()))
+    wsRepo.findManyByExternalId.mockResolvedValue(err(databaseError()))
     expectErr(await SdSlackInboundService.handle(call()), 'DATABASE_ERROR')
   })
 })
@@ -543,14 +547,14 @@ describe('abrir chamado pelo atalho de mensagem', () => {
     })
 
   beforeEach(() => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([
         slackIntegration({
           allowTicketFromMessage: true,
           ticketType: 'INCIDENT',
           departmentId: 'dep-1',
         }),
-      ),
+      ]),
     )
   })
 
@@ -589,15 +593,15 @@ describe('abrir chamado pelo atalho de mensagem', () => {
   })
 
   it('abre sem departamento quando a integração não define um', async () => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(slackIntegration({ allowTicketFromMessage: true })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([slackIntegration({ allowTicketFromMessage: true })]),
     )
     expectOk(await SdSlackInboundService.handle(shortcut()))
     expect(engine.create.mock.calls[0][1]).not.toHaveProperty('departmentId')
   })
 
   it('recusa atalho de um workspace do Slack não conectado', async () => {
-    repo.findByExternalId.mockResolvedValue(ok(null))
+    wsRepo.findManyByExternalId.mockResolvedValue(ok([]))
     expectErr(
       await SdSlackInboundService.handle(shortcut()),
       'SD_INTEGRATION_NOT_CONFIGURED',
@@ -606,8 +610,8 @@ describe('abrir chamado pelo atalho de mensagem', () => {
   })
 
   it('ignora quando a abertura por mensagem está desligada', async () => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(slackIntegration({ allowTicketFromMessage: false })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([slackIntegration({ allowTicketFromMessage: false })]),
     )
     expect(
       expectOk(await SdSlackInboundService.handle(shortcut())).outcome,
@@ -637,13 +641,13 @@ describe('abrir chamado pelo atalho de mensagem', () => {
     expectErr(await SdSlackInboundService.handle(shortcut()), 'DATABASE_ERROR')
 
     engine.loadConfig.mockResolvedValue(ok(CONFIG))
-    repo.findByExternalId.mockResolvedValue(
-      ok(
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([
         createFakeSdIntegration({
           encryptedToken: '',
           config: { allowTicketFromMessage: true },
         }),
-      ),
+      ]),
     )
     expectErr(
       await SdSlackInboundService.handle(shortcut()),
@@ -722,8 +726,8 @@ describe('abrir chamado pelo slash command', () => {
     })
 
   beforeEach(() => {
-    repo.findByExternalId.mockResolvedValue(
-      ok(slackIntegration({ allowTicketFromMessage: true })),
+    wsRepo.findManyByExternalId.mockResolvedValue(
+      ok([slackIntegration({ allowTicketFromMessage: true })]),
     )
   })
 
@@ -741,7 +745,7 @@ describe('abrir chamado pelo slash command', () => {
   })
 
   it('recusa comando de um workspace do Slack não conectado', async () => {
-    repo.findByExternalId.mockResolvedValue(ok(null))
+    wsRepo.findManyByExternalId.mockResolvedValue(ok([]))
     expectErr(
       await SdSlackInboundService.handle(command()),
       'SD_INTEGRATION_NOT_CONFIGURED',

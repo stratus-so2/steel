@@ -9,14 +9,20 @@ import { dto } from '../../common'
 
 const dateTime = () => z.iso.datetime()
 
-const Kind = z.enum(['SLACK', 'GITHUB'])
+const Kind = z.enum(['SLACK', 'GITHUB', 'GITLAB'])
 const Status = z.enum(['ACTIVE', 'ERROR', 'DISCONNECTED'])
-const LinkKind = z.enum(['SLACK_THREAD', 'GITHUB_ISSUE', 'GITHUB_PULL_REQUEST'])
+const LinkKind = z.enum([
+  'SLACK_THREAD',
+  'GITHUB_ISSUE',
+  'GITHUB_PULL_REQUEST',
+  'GITLAB_ISSUE',
+  'GITLAB_MERGE_REQUEST',
+])
 const TicketType = z.enum(['INCIDENT', 'SERVICE_REQUEST', 'CHANGE', 'PROBLEM'])
 
 const SlackChannelMap = z.object({
   departmentId: z.string().nullable().meta({
-    description: 'Departamento do ServiceDesk; `null` é o canal padrão.',
+    description: 'Departamento (time) do ServiceDesk.',
   }),
   channelId: z.string().meta({ example: 'C024BE91L' }),
   channelName: z.string().nullable().meta({ example: 'suporte-n1' }),
@@ -25,12 +31,7 @@ const SlackChannelMap = z.object({
 const SlackConfig = z.object({
   channels: z.array(SlackChannelMap).meta({
     description:
-      'Canal por time. O evento vai ao canal do departamento do chamado; sem canal do time, ao canal padrão.',
-  }),
-  events: z.array(z.string()).meta({
-    description:
-      'Chaves do catálogo de notificações (`SD_NOTIFICATION_EVENTS`) enviadas ao canal.',
-    example: ['ticket.created_in_department', 'sla.breached'],
+      'Canal por time: substitui o canal da regra de notificação (Ajustes › Integrações) nos chamados daquele time.',
   }),
   allowTicketFromMessage: z.boolean().meta({
     description: 'Atalho de mensagem / slash command abrem chamado.',
@@ -43,7 +44,7 @@ const SlackConfig = z.object({
   departmentId: z.string().nullable(),
 })
 
-const GithubConfig = z.object({
+const RepoConfig = z.object({
   suggestPhaseOnClose: z.boolean().meta({
     description:
       'Fechar/mesclar o item **sugere** a mudança de fase (registra evento e mensagem); quem move a fase é o agente.',
@@ -62,16 +63,20 @@ export const SdIntegrationDTO = dto(
     }),
     externalId: z.string().meta({
       description:
-        'Workspace do Slack (`T…`) ou `owner/repo` no GitHub — é por aqui que o webhook acha o workspace.',
+        'Workspace do Slack (`T…`), `owner/repo` no GitHub ou `grupo/projeto` no GitLab.',
       example: 'stratus-so2/steel',
     }),
     externalName: z.string().nullable(),
+    baseUrl: z.string().nullable().meta({
+      description: 'Instância do GitLab; `null` para Slack e GitHub.',
+    }),
     hasWebhookSecret: z.boolean().meta({
       description:
-        'Existe segredo de assinatura guardado. O valor **nunca** volta, nem mascarado.',
+        'Existe segredo de webhook guardado. O valor **nunca** volta, nem mascarado.',
     }),
+    lastEventAt: dateTime().nullable(),
     slack: SlackConfig.nullable(),
-    github: GithubConfig.nullable(),
+    repo: RepoConfig.nullable(),
     createdAt: dateTime(),
     updatedAt: dateTime(),
   }),
@@ -82,17 +87,24 @@ export const SdIntegrationsOverviewDTO = dto(
   z.object({
     slackConfigured: z.boolean().meta({
       description:
-        'O app do Slack tem credenciais neste servidor (`SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_SIGNING_SECRET`). `false` deixa a integração inerte.',
+        'O app do Slack tem credenciais neste servidor. `false` deixa a integração desligada.',
     }),
-    slackEventsUrl: z.string().nullable().meta({
+    manageHref: z.string().nullable().meta({
       description:
-        'URL a cadastrar em Event Subscriptions e Interactivity & Shortcuts do app do Slack.',
-    }),
-    githubWebhookUrl: z.string().meta({
-      description: 'URL a cadastrar no webhook do repositório do GitHub.',
+        'Onde a conexão é gerenciada (`/{slug}/settings/integrations`).',
     }),
     slack: SdIntegrationDTO.nullable(),
     github: SdIntegrationDTO.nullable(),
+    gitlab: SdIntegrationDTO.nullable(),
+  }),
+)
+
+export const SdRepoProviderOptionDTO = dto(
+  'SdRepoProviderOption',
+  z.object({
+    provider: z.enum(['GITHUB', 'GITLAB']),
+    project: z.string().meta({ example: 'stratus-so2/steel' }),
+    allowIssueFromTicket: z.boolean(),
   }),
 )
 
@@ -104,7 +116,8 @@ export const SdIntegrationLinkDTO = dto(
     kind: LinkKind,
     ticketId: z.string(),
     externalKey: z.string().meta({
-      description: '`canal:ts` (thread do Slack) ou `owner/repo#numero`.',
+      description:
+        '`canal:ts` (thread do Slack), `owner/repo#n` (GitHub) ou `grupo/projeto#n` / `grupo/projeto!n` (issue / merge request do GitLab).',
       example: 'stratus-so2/steel#42',
     }),
     externalUrl: z.string().nullable(),
@@ -162,6 +175,30 @@ export const SdSlackWebhookPayload = z
     id: 'SdSlackWebhookPayload',
     description:
       'Envelope de eventos do Slack. Atalho de mensagem e slash command chegam como `application/x-www-form-urlencoded` (`payload=<json>` ou os campos do comando) no mesmo endereço.',
+  })
+
+export const SdGitlabWebhookDTO = dto(
+  'SdGitlabWebhook',
+  z.object({
+    outcome: z.enum(['state_updated', 'duplicate', 'ignored', 'unlinked']),
+    state: z.enum(['open', 'closed', 'merged']).nullable(),
+  }),
+)
+
+/** Corpo do webhook do GitLab (recorte usado). */
+export const SdGitlabWebhookPayload = z
+  .object({
+    object_kind: z.string().optional().meta({ example: 'merge_request' }),
+    project: z
+      .object({ path_with_namespace: z.string().optional() })
+      .optional()
+      .meta({ description: 'Usado só para achar a conexão e o segredo.' }),
+    object_attributes: z.record(z.string(), z.unknown()).optional(),
+  })
+  .meta({
+    id: 'SdGitlabWebhookPayload',
+    description:
+      'Payload de *Issue Hook* e *Merge Request Hook*. Chaves desconhecidas são ignoradas.',
   })
 
 /** Corpo do webhook do GitHub (recorte usado). */

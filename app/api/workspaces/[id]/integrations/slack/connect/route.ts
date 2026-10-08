@@ -2,15 +2,15 @@ import type { NextRequest } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { SdIntegrationService } from '@/src/services/sd-integration.service'
+import { WorkspaceIntegrationService } from '@/src/services/workspace-integration.service'
 import { handleError } from '@/utils/http-response'
 
 type Params = { params: Promise<{ id: string }> }
 
 /**
- * Início do OAuth do Slack: redireciona (`302`) para a tela de autorização.
- * Abra no navegador — não é uma chamada JSON. O workspace viaja no `state`
- * assinado, porque o callback é um path fixo.
+ * Start of the Slack OAuth: redirects (`302`) to the authorization screen.
+ * Opened by the browser — not a JSON call. The workspace travels in the
+ * signed `state` because the callback path is fixed.
  */
 export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
@@ -20,7 +20,7 @@ export const GET = withAxiom(async (_request: NextRequest, ctx: Params) => {
   if (!limit.ok) return handleError(limit.error)
 
   const { id } = await ctx.params
-  const result = await SdIntegrationService.beginSlackConnect(
+  const result = await WorkspaceIntegrationService.beginSlackConnect(
     auth.value.user.id,
     id,
   )

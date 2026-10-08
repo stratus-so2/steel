@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  createFakeGitlabIntegration,
   createFakeSdGithubIntegration,
+  createFakeSdIntegration,
   createFakeSdIntegrationLink,
 } from '@/src/__tests__/factories/sd-integration.factory'
 import { createFakeSdTicket } from '@/src/__tests__/factories/sd-ticket.factory'
@@ -33,6 +35,14 @@ vi.mock('@/src/lib/servicedesk/github-client', () => ({
   GithubClient: { checkRepo: vi.fn(), getItem: vi.fn(), createIssue: vi.fn() },
 }))
 vi.mock('@/src/repositories/sd-integration.repository')
+vi.mock('@/src/repositories/workspace-integration.repository')
+vi.mock('@/src/lib/integrations/gitlab-client', () => ({
+  GitlabClient: {
+    checkProject: vi.fn(),
+    getItem: vi.fn(),
+    createIssue: vi.fn(),
+  },
+}))
 vi.mock('@/src/repositories/sd-ticket-context.repository')
 vi.mock('../sd-ticket-event-recorder', () => ({ recordSdTicketEvent: vi.fn() }))
 vi.mock('../sd-ticket-tab-support', async (importOriginal) => ({
@@ -42,14 +52,18 @@ vi.mock('../sd-ticket-tab-support', async (importOriginal) => ({
 }))
 
 import { auditMutation } from '@/lib/axiom/audit'
+import { GitlabClient } from '@/src/lib/integrations/gitlab-client'
 import { GithubClient } from '@/src/lib/servicedesk/github-client'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import { SdIntegrationLinkService } from '../sd-integration-link.service'
 import { recordSdTicketEvent } from '../sd-ticket-event-recorder'
 import { loadSdTicketTab, publishSdTicketTab } from '../sd-ticket-tab-support'
 
 const repo = vi.mocked(SdIntegrationRepository)
+const wsRepo = vi.mocked(WorkspaceIntegrationRepository)
+const gitlab = vi.mocked(GitlabClient)
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const github = vi.mocked(GithubClient)
 const load = vi.mocked(loadSdTicketTab)
@@ -98,8 +112,33 @@ beforeEach(() => {
   publish.mockResolvedValue(undefined)
   record.mockResolvedValue(ok(1))
   repo.listLinks.mockResolvedValue(ok([createFakeSdIntegrationLink()]))
-  repo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
-  repo.findGithubLinkByKey.mockResolvedValue(ok(null))
+  wsRepo.requireByKind.mockImplementation(async (_ws, kind) =>
+    ok(
+      kind === 'GITLAB'
+        ? createFakeGitlabIntegration()
+        : createFakeSdGithubIntegration(),
+    ),
+  )
+  wsRepo.list.mockResolvedValue(ok([createFakeSdGithubIntegration()]))
+  gitlab.getItem.mockResolvedValue(
+    ok({
+      iid: 7,
+      title: 'Deploy travado',
+      kind: 'GITLAB_MERGE_REQUEST',
+      state: 'open',
+      webUrl: 'https://gitlab.com/stratus/steel/-/merge_requests/7',
+    }),
+  )
+  gitlab.createIssue.mockResolvedValue(
+    ok({
+      iid: 12,
+      title: '[PRB-000007] Fila travando',
+      kind: 'GITLAB_ISSUE',
+      state: 'open',
+      webUrl: 'https://gitlab.com/stratus/steel/-/issues/12',
+    }),
+  )
+  repo.findRepoLinkByKey.mockResolvedValue(ok(null))
   repo.createLink.mockResolvedValue(ok(createFakeSdIntegrationLink()))
   repo.findLink.mockResolvedValue(ok(createFakeSdIntegrationLink()))
   repo.removeLink.mockResolvedValue(ok(undefined))
@@ -203,7 +242,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
   })
 
   it('recusa item já vinculado a este e a outro chamado', async () => {
-    repo.findGithubLinkByKey.mockResolvedValue(
+    repo.findRepoLinkByKey.mockResolvedValue(
       ok(createFakeSdIntegrationLink({ ticketId: 't1' })),
     )
     expect(
@@ -216,7 +255,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
       ).message,
     ).toContain('a este chamado')
 
-    repo.findGithubLinkByKey.mockResolvedValue(
+    repo.findRepoLinkByKey.mockResolvedValue(
       ok(createFakeSdIntegrationLink({ ticketId: 't9' })),
     )
     expect(
@@ -240,7 +279,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
       'SD_TICKET_CLOSED',
     )
     load.mockResolvedValue(scope() as never)
-    repo.requireByKind.mockResolvedValue(err(sdIntegrationNotFound()))
+    wsRepo.requireByKind.mockResolvedValue(err(sdIntegrationNotFound()))
     expectErr(
       await SdIntegrationLinkService.linkGithubItem('u1', WS, {
         ticketId: 't1',
@@ -251,7 +290,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
   })
 
   it('recusa integração com `externalId` corrompido', async () => {
-    repo.requireByKind.mockResolvedValue(
+    wsRepo.requireByKind.mockResolvedValue(
       ok(createFakeSdGithubIntegration({ externalId: 'invalido' })),
     )
     expectErr(
@@ -264,7 +303,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
   })
 
   it('propaga token ilegível, recusa do GitHub e erros de banco', async () => {
-    repo.requireByKind.mockResolvedValue(
+    wsRepo.requireByKind.mockResolvedValue(
       ok(createFakeSdGithubIntegration({ encryptedToken: '' })),
     )
     expectErr(
@@ -275,7 +314,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
 
-    repo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
+    wsRepo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
     github.getItem.mockResolvedValue(err(sdIntegrationRequestFailed()))
     expectErr(
       await SdIntegrationLinkService.linkGithubItem('u1', WS, {
@@ -286,7 +325,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
     )
 
     github.getItem.mockResolvedValue(ok(item))
-    repo.findGithubLinkByKey.mockResolvedValue(err(databaseError()))
+    repo.findRepoLinkByKey.mockResolvedValue(err(databaseError()))
     expectErr(
       await SdIntegrationLinkService.linkGithubItem('u1', WS, {
         ticketId: 't1',
@@ -295,7 +334,7 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
       'DATABASE_ERROR',
     )
 
-    repo.findGithubLinkByKey.mockResolvedValue(ok(null))
+    repo.findRepoLinkByKey.mockResolvedValue(ok(null))
     repo.createLink.mockResolvedValue(err(databaseError()))
     expectErr(
       await SdIntegrationLinkService.linkGithubItem('u1', WS, {
@@ -303,6 +342,243 @@ describe('SdIntegrationLinkService.linkGithubItem', () => {
         ref: '#42',
       }),
       'DATABASE_ERROR',
+    )
+  })
+})
+
+describe('SdIntegrationLinkService.linkGithubItem — GitLab', () => {
+  it('links a merge request by its sigil, inferring the provider', async () => {
+    expectOk(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: '!7',
+      }),
+    )
+    expect(gitlab.getItem).toHaveBeenCalledWith(
+      'https://gitlab.com',
+      'gitlab-token',
+      'stratus/steel',
+      7,
+      'GITLAB_MERGE_REQUEST',
+    )
+    expect(repo.findRepoLinkByKey).toHaveBeenCalledWith(
+      'int-gl-1',
+      'GITLAB',
+      'stratus/steel!7',
+    )
+    expect(repo.createLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        integrationId: 'int-gl-1',
+        kind: 'GITLAB_MERGE_REQUEST',
+        externalKey: 'stratus/steel!7',
+        externalUrl: 'https://gitlab.com/stratus/steel/-/merge_requests/7',
+      }),
+    )
+  })
+
+  it('uses the explicit provider, or the only connected repository', async () => {
+    expectOk(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: '#3',
+        provider: 'GITLAB',
+      }),
+    )
+    expect(gitlab.getItem).toHaveBeenLastCalledWith(
+      'https://gitlab.com',
+      'gitlab-token',
+      'stratus/steel',
+      3,
+      'GITLAB_ISSUE',
+    )
+
+    wsRepo.list.mockResolvedValue(
+      ok([createFakeSdIntegration(), createFakeGitlabIntegration()]),
+    )
+    expectOk(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: '#4',
+      }),
+    )
+    expect(wsRepo.requireByKind).toHaveBeenLastCalledWith(WS, 'GITLAB')
+
+    // Both connected (or the list fails): GitHub by default.
+    wsRepo.list.mockResolvedValue(
+      ok([createFakeSdGithubIntegration(), createFakeGitlabIntegration()]),
+    )
+    expectOk(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: '#4',
+      }),
+    )
+    expect(wsRepo.requireByKind).toHaveBeenLastCalledWith(WS, 'GITHUB')
+    wsRepo.list.mockResolvedValue(err(databaseError()))
+    expectOk(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: '#4',
+      }),
+    )
+    expect(wsRepo.requireByKind).toHaveBeenLastCalledWith(WS, 'GITHUB')
+  })
+
+  it('refuses an unreadable GitLab reference and another project', async () => {
+    const bad = expectErr(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: 'qualquer coisa',
+        provider: 'GITLAB',
+      }),
+      'VALIDATION_ERROR',
+    )
+    expect(bad.message).toContain('!42')
+    const foreign = expectErr(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: 'outro/grupo!2',
+      }),
+      'VALIDATION_ERROR',
+    )
+    expect(foreign.message).toContain('GitLab')
+    expect(foreign.message).toContain('stratus/steel')
+  })
+
+  it('refuses a GitLab connection without a project path', async () => {
+    wsRepo.requireByKind.mockResolvedValue(
+      ok(createFakeGitlabIntegration({ externalId: 'sem-barra' })),
+    )
+    expectErr(
+      await SdIntegrationLinkService.linkGithubItem('u1', WS, {
+        ticketId: 't1',
+        ref: '!1',
+      }),
+      'SD_INTEGRATION_NOT_FOUND',
+    )
+  })
+})
+
+describe('SdIntegrationLinkService.providers', () => {
+  it('offers the live repository connections with their switch', async () => {
+    wsRepo.list.mockResolvedValue(
+      ok([
+        createFakeSdIntegration(),
+        createFakeSdGithubIntegration(),
+        createFakeGitlabIntegration({
+          config: {
+            servicedesk: {
+              suggestPhaseOnClose: true,
+              allowIssueFromTicket: false,
+            },
+          },
+        }),
+      ]),
+    )
+    expect(
+      expectOk(await SdIntegrationLinkService.providers('u1', WS, 't1')),
+    ).toEqual([
+      {
+        provider: 'GITHUB',
+        project: 'stratus-so2/steel',
+        allowIssueFromTicket: true,
+      },
+      {
+        provider: 'GITLAB',
+        project: 'stratus/steel',
+        allowIssueFromTicket: false,
+      },
+    ])
+    expect(load).toHaveBeenCalledWith('u1', WS, 't1', 'VIEW', {
+      agentOnly: true,
+    })
+  })
+
+  it('skips disconnected/corrupt rows and propagates scope and db errors', async () => {
+    wsRepo.list.mockResolvedValue(
+      ok([
+        createFakeSdGithubIntegration({ status: 'DISCONNECTED' }),
+        createFakeGitlabIntegration({ externalId: 'x' }),
+      ]),
+    )
+    expect(
+      expectOk(await SdIntegrationLinkService.providers('u1', WS, 't1')),
+    ).toEqual([])
+    wsRepo.list.mockResolvedValue(err(databaseError()))
+    expectErr(
+      await SdIntegrationLinkService.providers('u1', WS, 't1'),
+      'DATABASE_ERROR',
+    )
+    load.mockResolvedValue(err(sdNotAgent()))
+    expectErr(
+      await SdIntegrationLinkService.providers('u1', WS, 't1'),
+      'SD_NOT_AGENT',
+    )
+  })
+})
+
+describe('SdIntegrationLinkService.createGithubIssue — GitLab', () => {
+  it('opens the issue in the GitLab project and links it', async () => {
+    const link = expectOk(
+      await SdIntegrationLinkService.createGithubIssue(
+        'u1',
+        WS,
+        { ticketId: 't1' },
+        'GITLAB',
+      ),
+    )
+    expect(link).toBeDefined()
+    expect(gitlab.createIssue).toHaveBeenCalledWith(
+      'https://gitlab.com',
+      'gitlab-token',
+      'stratus/steel',
+      expect.objectContaining({
+        title: '[PRB-000007] Fila travando',
+        description: expect.stringContaining('PRB-000007'),
+      }),
+    )
+    expect(repo.createLink).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'GITLAB_ISSUE',
+        externalKey: 'stratus/steel#12',
+      }),
+    )
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'create',
+        meta: expect.objectContaining({ provider: 'GITLAB' }),
+      }),
+    )
+  })
+
+  it('refuses when GitLab does not return the issue number', async () => {
+    gitlab.createIssue.mockResolvedValue(
+      ok({
+        iid: 0,
+        title: 'x',
+        kind: 'GITLAB_ISSUE',
+        state: 'open',
+        webUrl: 'https://gitlab.com/x',
+      }),
+    )
+    expectErr(
+      await SdIntegrationLinkService.createGithubIssue(
+        'u1',
+        WS,
+        { ticketId: 't1' },
+        'GITLAB',
+      ),
+      'VALIDATION_ERROR',
+    )
+    gitlab.createIssue.mockResolvedValue(err(sdIntegrationRequestFailed()))
+    expectErr(
+      await SdIntegrationLinkService.createGithubIssue(
+        'u1',
+        WS,
+        { ticketId: 't1' },
+        'GITLAB',
+      ),
+      'SD_INTEGRATION_REQUEST_FAILED',
     )
   })
 })
@@ -379,7 +655,7 @@ describe('SdIntegrationLinkService.createGithubIssue', () => {
   })
 
   it('recusa quando o workspace desligou a abertura de issue', async () => {
-    repo.requireByKind.mockResolvedValue(
+    wsRepo.requireByKind.mockResolvedValue(
       ok(
         createFakeSdGithubIntegration({
           config: { suggestPhaseOnClose: true, allowIssueFromTicket: false },
@@ -404,7 +680,7 @@ describe('SdIntegrationLinkService.createGithubIssue', () => {
     )
     load.mockResolvedValue(scope() as never)
 
-    repo.requireByKind.mockResolvedValue(
+    wsRepo.requireByKind.mockResolvedValue(
       ok(createFakeSdGithubIntegration({ externalId: 'invalido' })),
     )
     expectErr(
@@ -414,7 +690,7 @@ describe('SdIntegrationLinkService.createGithubIssue', () => {
       'SD_INTEGRATION_NOT_FOUND',
     )
 
-    repo.requireByKind.mockResolvedValue(
+    wsRepo.requireByKind.mockResolvedValue(
       ok(createFakeSdGithubIntegration({ encryptedToken: '' })),
     )
     expectErr(
@@ -424,7 +700,7 @@ describe('SdIntegrationLinkService.createGithubIssue', () => {
       'SD_INTEGRATION_NOT_CONFIGURED',
     )
 
-    repo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
+    wsRepo.requireByKind.mockResolvedValue(ok(createFakeSdGithubIntegration()))
     github.createIssue.mockResolvedValue(err(sdIntegrationRequestFailed()))
     expectErr(
       await SdIntegrationLinkService.createGithubIssue('u1', WS, {

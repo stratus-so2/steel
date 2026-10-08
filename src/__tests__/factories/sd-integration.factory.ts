@@ -1,18 +1,23 @@
 import { createId } from '@paralleldrive/cuid2'
-import type { Prisma, SdIntegration, SdIntegrationLink } from '@prisma/client'
+import type {
+  Prisma,
+  SdIntegrationLink,
+  WorkspaceIntegration,
+} from '@prisma/client'
 import { prisma } from '@/src/lib/prisma'
 
 /**
- * Fábricas das integrações do ServiceDesk (Slack e GitHub). O
- * `encryptedToken` nasce como um texto qualquer: quem testa a decifragem
- * dubla `@/src/lib/crypto`, então o envelope não precisa ser real.
+ * Factories of the integrations: the workspace-level connections (Slack,
+ * GitHub, GitLab — ADR 0024) and the ServiceDesk ticket links. The
+ * `encryptedToken` is any text: tests that decrypt double `@/src/lib/crypto`,
+ * so the envelope does not need to be real.
  */
 
 const fixed = () => new Date('2026-10-02T12:00:00.000Z')
 
-export function createFakeSdIntegration(
-  overrides?: Partial<SdIntegration>,
-): SdIntegration {
+export function createFakeWorkspaceIntegration(
+  overrides?: Partial<WorkspaceIntegration>,
+): WorkspaceIntegration {
   return {
     id: 'int-slack-1',
     workspaceId: 'ws1',
@@ -21,9 +26,13 @@ export function createFakeSdIntegration(
     statusError: null,
     externalId: 'T0001',
     externalName: 'Stratus',
+    baseUrl: null,
     encryptedToken: 'enc:xoxb-token',
     encryptedSigningSecret: null,
     config: {},
+    lastEventAt: null,
+    lastEventType: null,
+    lastCheckedAt: null,
     createdById: 'u1',
     createdAt: fixed(),
     updatedAt: fixed(),
@@ -32,17 +41,40 @@ export function createFakeSdIntegration(
   }
 }
 
+/** Slack connection (kept under the historical name). */
+export const createFakeSdIntegration = createFakeWorkspaceIntegration
+
 export function createFakeSdGithubIntegration(
-  overrides?: Partial<SdIntegration>,
-): SdIntegration {
-  return createFakeSdIntegration({
+  overrides?: Partial<WorkspaceIntegration>,
+): WorkspaceIntegration {
+  return createFakeWorkspaceIntegration({
     id: 'int-gh-1',
     kind: 'GITHUB',
     externalId: 'stratus-so2/steel',
     externalName: 'stratus-so2/steel',
     encryptedToken: 'enc:github_pat',
     encryptedSigningSecret: 'enc:hook-secret',
-    config: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
+    config: {
+      servicedesk: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
+    },
+    ...overrides,
+  })
+}
+
+export function createFakeGitlabIntegration(
+  overrides?: Partial<WorkspaceIntegration>,
+): WorkspaceIntegration {
+  return createFakeWorkspaceIntegration({
+    id: 'int-gl-1',
+    kind: 'GITLAB',
+    externalId: 'stratus/steel',
+    externalName: 'stratus/steel',
+    baseUrl: 'https://gitlab.com',
+    encryptedToken: 'enc:gitlab-token',
+    encryptedSigningSecret: 'enc:gl-hook-secret',
+    config: {
+      servicedesk: { suggestPhaseOnClose: true, allowIssueFromTicket: true },
+    },
     ...overrides,
   })
 }
@@ -67,12 +99,12 @@ export function createFakeSdIntegrationLink(
   }
 }
 
-export async function seedSdIntegration(
+export async function seedWorkspaceIntegration(
   workspaceId: string,
   createdById: string,
-  overrides?: Partial<Prisma.SdIntegrationUncheckedCreateInput>,
+  overrides?: Partial<Prisma.WorkspaceIntegrationUncheckedCreateInput>,
 ) {
-  return prisma.sdIntegration.create({
+  return prisma.workspaceIntegration.create({
     data: {
       workspaceId,
       createdById,
@@ -85,6 +117,9 @@ export async function seedSdIntegration(
     },
   })
 }
+
+/** Historical name used by the ServiceDesk tests. */
+export const seedSdIntegration = seedWorkspaceIntegration
 
 export async function seedSdIntegrationLink(
   workspaceId: string,

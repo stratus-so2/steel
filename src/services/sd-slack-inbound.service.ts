@@ -1,4 +1,4 @@
-import type { SdIntegration } from '@prisma/client'
+import type { WorkspaceIntegration } from '@prisma/client'
 import { logger } from '@/lib/axiom/logger'
 import { NEXT_PUBLIC_URL } from '@/lib/env/env'
 import { SdIntegrationEventCache } from '@/src/cache/sd-integration-event.cache'
@@ -7,10 +7,12 @@ import {
   sdIntegrationSignatureInvalid,
   validationError,
 } from '@/src/errors'
+import {
+  parseWorkspaceSlackConfig,
+  type SdSlackModuleConfig,
+} from '@/src/lib/integrations/config'
 import { err, ok, type Result } from '@/src/lib/result'
 import {
-  parseSdSlackConfig,
-  type SdSlackConfig,
   sdSlackReplyBody,
   sdSlackThreadKey,
   sdSlackTicketBody,
@@ -26,6 +28,7 @@ import {
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import type { SdTicketWithRelations } from '@/src/repositories/sd-ticket.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import { assertModuleEnabled } from './authz'
 import { fireSdAutomations } from './sd-automation-engine'
 import { decryptSdIntegrationToken } from './sd-integration-credentials'
@@ -208,24 +211,34 @@ function parseSlackRequest(input: SdSlackInboundInput): SlackRequest | null {
 
 async function resolveIntegration(
   teamId: string,
-): Promise<Result<{ integration: SdIntegration; config: SdSlackConfig }>> {
-  const found = await SdIntegrationRepository.findByExternalId('SLACK', teamId)
+): Promise<
+  Result<{ integration: WorkspaceIntegration; config: SdSlackModuleConfig }>
+> {
+  const found = await WorkspaceIntegrationRepository.findManyByExternalId(
+    'SLACK',
+    teamId,
+  )
   if (!found.ok) return found
-  if (!found.value || found.value.status === 'DISCONNECTED') {
+  const integration = found.value.find((row) => row.status !== 'DISCONNECTED')
+  if (!integration) {
     return err(
       sdIntegrationNotConfigured(
-        'Este workspace do Slack não está conectado a nenhum ServiceDesk',
+        'Este workspace do Slack não está conectado a nenhum workspace do Steel',
       ),
     )
   }
+  await WorkspaceIntegrationRepository.markEvent(
+    integration.id,
+    'slack:inbound',
+  )
   const enabled = await assertModuleEnabled(
-    found.value.workspaceId,
+    integration.workspaceId,
     'SERVICE_DESK',
   )
   if (!enabled.ok) return enabled
   return ok({
-    integration: found.value,
-    config: parseSdSlackConfig(found.value.config),
+    integration,
+    config: parseWorkspaceSlackConfig(integration.config).servicedesk,
   })
 }
 
@@ -242,8 +255,8 @@ async function ticketHref(
 
 /** Abre o chamado com os padrões da integração e ator de sistema. */
 async function openTicket(
-  integration: SdIntegration,
-  config: SdSlackConfig,
+  integration: WorkspaceIntegration,
+  config: SdSlackModuleConfig,
   engine: SdEngineConfig,
   input: { title: string; body: string },
 ): Promise<Result<SdTicketWithRelations>> {
@@ -267,8 +280,8 @@ async function openTicket(
  * `SLACK_THREAD` — é ele que faz as respostas da thread voltarem ao chamado.
  */
 async function createTicketFromSlack(
-  integration: SdIntegration,
-  config: SdSlackConfig,
+  integration: WorkspaceIntegration,
+  config: SdSlackModuleConfig,
   input: {
     channelId: string
     channelName: string | null
@@ -365,8 +378,8 @@ async function createTicketFromSlack(
 
 /** Resposta na thread → mensagem pública no histórico do chamado. */
 async function mirrorThreadReply(
-  integration: SdIntegration,
-  config: SdSlackConfig,
+  integration: WorkspaceIntegration,
+  config: SdSlackModuleConfig,
   event: NonNullable<SlackEventEnvelope['event']>,
 ): Promise<Result<SdSlackInboundResult>> {
   if (!config.mirrorThreadReplies) return ok({ outcome: 'ignored' })

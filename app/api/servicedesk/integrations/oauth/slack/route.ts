@@ -2,14 +2,17 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { withAxiom } from '@/lib/axiom/server'
 import { BETTER_AUTH_URL } from '@/lib/env/server'
 import { getAuthSession } from '@/src/lib/auth-session'
-import { SdIntegrationService } from '@/src/services/sd-integration.service'
+import { WorkspaceIntegrationService } from '@/src/services/workspace-integration.service'
 
 /**
- * Callback OAuth do Slack. É um path **fixo** (o Slack exige redirect URL
- * exata), então o workspace viaja no `state` assinado; a sessão continua
- * obrigatória, porque quem autoriza é o admin logado no Steel.
+ * Slack OAuth callback. The path is **fixed** (Slack requires the exact
+ * redirect URL registered in the app, so it keeps its historical
+ * `/servicedesk/` path); the workspace travels in the signed `state`, and the
+ * session is still required because the admin logged in Steel authorizes.
+ * Since ADR 0024 the connection is workspace-level, so the callback lands on
+ * Ajustes > Integrações.
  *
- * Sem slug conhecido (state inválido), volta para a home autenticada.
+ * Without a known slug (invalid state), goes back to the authenticated home.
  */
 function back(
   slug: string | null,
@@ -17,9 +20,8 @@ function back(
   reason?: string,
 ): NextResponse {
   const url = slug
-    ? new URL(`/${slug}/servicedesk/settings`, BETTER_AUTH_URL)
+    ? new URL(`/${slug}/settings/integrations`, BETTER_AUTH_URL)
     : new URL('/', BETTER_AUTH_URL)
-  if (slug) url.searchParams.set('tab', 'integrations')
   url.searchParams.set('slack', status)
   if (reason) url.searchParams.set('reason', reason)
   return NextResponse.redirect(url, 302)
@@ -40,7 +42,7 @@ export const GET = withAxiom(async (request: NextRequest) => {
     return back(null, 'error', oauthError ?? 'missing_params')
   }
 
-  const result = await SdIntegrationService.completeSlackConnect(
+  const result = await WorkspaceIntegrationService.completeSlackConnect(
     auth.value.user.id,
     state,
     code,

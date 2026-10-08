@@ -12,6 +12,15 @@ import { SdTicketIntegrationLinks } from '../sd-ticket-integration-links'
 const WS = 'ws-1'
 const LINKS = `/api/workspaces/${WS}/servicedesk/integrations/links`
 const ISSUES = `/api/workspaces/${WS}/servicedesk/integrations/github/issues`
+const GL_ISSUES = `/api/workspaces/${WS}/servicedesk/integrations/gitlab/issues`
+const PROVIDERS = `/api/workspaces/${WS}/servicedesk/integrations/providers`
+const GITHUB_ONLY = [
+  { provider: 'GITHUB', project: 'owner/repo', allowIssueFromTicket: true },
+]
+const BOTH = [
+  ...GITHUB_ONLY,
+  { provider: 'GITLAB', project: 'grupo/projeto', allowIssueFromTicket: false },
+]
 
 function ticket(type: SdTicketDTO['type'] = 'PROBLEM'): SdTicketDTO {
   return {
@@ -57,14 +66,20 @@ function render(
 
 describe('<SdTicketIntegrationLinks />', () => {
   it('não renderiza nada para o solicitante (a rota é só de agente)', () => {
-    const spy = mockFetch([{ match: LINKS, data: [] }])
+    const spy = mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
+      { match: LINKS, data: [] },
+    ])
     const { container } = render('PROBLEM', 'requester')
     expect(container.textContent).toBe('')
     expect(spy).not.toHaveBeenCalled()
   })
 
   it('não renderiza em incidente sem nenhum vínculo', async () => {
-    mockFetch([{ match: LINKS, data: [] }])
+    mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
+      { match: LINKS, data: [] },
+    ])
     const { container } = render('INCIDENT')
     await waitFor(() => {
       expect(container.querySelector('section')).toBeNull()
@@ -81,17 +96,21 @@ describe('<SdTicketIntegrationLinks />', () => {
   })
 
   it('convida a vincular quando o problema não tem nada', async () => {
-    mockFetch([{ match: LINKS, data: [] }])
+    mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
+      { match: LINKS, data: [] },
+    ])
     render()
     expect(
-      await screen.findByText(/Nenhuma issue ou pull request vinculada/),
+      await screen.findByText(/Nenhuma issue, pull request ou merge request/),
     ).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Vincular' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Vincular' })).toBeTruthy()
     expect(screen.getByRole('button', { name: /Abrir issue/ })).toBeTruthy()
   })
 
   it('lista issue, PR e thread do Slack com o estado traduzido', async () => {
     mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
       {
         match: LINKS,
         data: [
@@ -120,7 +139,7 @@ describe('<SdTicketIntegrationLinks />', () => {
     expect(await screen.findByText('Aberta')).toBeTruthy()
     expect(screen.getByText('Mesclada')).toBeTruthy()
     // O rótulo do tipo divide o mesmo parágrafo com a chave externa.
-    expect(screen.getByText(/^Issue/)).toBeTruthy()
+    expect(screen.getByText(/^Issue do GitHub/)).toBeTruthy()
     expect(screen.getByText(/^Pull request/)).toBeTruthy()
     expect(screen.getByText(/^Thread do Slack/)).toBeTruthy()
 
@@ -131,22 +150,26 @@ describe('<SdTicketIntegrationLinks />', () => {
     )
     expect(screen.getByText('C1:1700000000.000100')).toBeTruthy()
     // A chave do GitHub aparece como contexto da linha.
-    expect(screen.getByText(/Issue · owner\/repo#42/)).toBeTruthy()
+    expect(screen.getByText(/Issue do GitHub · owner\/repo#42/)).toBeTruthy()
   })
 
   it('vincula a referência digitada e limpa o campo', async () => {
     const spy = mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
       { match: LINKS, data: [] },
       { method: 'POST', match: LINKS, data: link() },
     ])
     render()
-    const input = await screen.findByLabelText('Issue ou pull request')
+    const input = await screen.findByLabelText(
+      'Issue, pull request ou merge request',
+    )
     fireEvent.change(input, { target: { value: ' #42 ' } })
     fireEvent.click(screen.getByRole('button', { name: 'Vincular' }))
     await waitFor(() => {
       expect(fetchBody(spy, LINKS, 'POST')).toEqual({
         ticketId: 't1',
         ref: '#42',
+        provider: 'GITHUB',
       })
     })
     await waitFor(() => {
@@ -155,18 +178,25 @@ describe('<SdTicketIntegrationLinks />', () => {
   })
 
   it('só habilita vincular com algo digitado', async () => {
-    mockFetch([{ match: LINKS, data: [] }])
+    mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
+      { match: LINKS, data: [] },
+    ])
     render()
     const button = await screen.findByRole('button', { name: 'Vincular' })
     expect(button).toHaveProperty('disabled', true)
-    fireEvent.change(screen.getByLabelText('Issue ou pull request'), {
-      target: { value: '#42' },
-    })
+    fireEvent.change(
+      screen.getByLabelText('Issue, pull request ou merge request'),
+      {
+        target: { value: '#42' },
+      },
+    )
     expect(button).toHaveProperty('disabled', false)
   })
 
   it('abre a issue a partir do chamado', async () => {
     const spy = mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
       { match: LINKS, data: [] },
       { method: 'POST', match: ISSUES, data: link() },
     ])
@@ -179,6 +209,7 @@ describe('<SdTicketIntegrationLinks />', () => {
 
   it('desvincula pelo botão da linha', async () => {
     const spy = mockFetch([
+      { match: PROVIDERS, data: GITHUB_ONLY },
       { match: LINKS, data: [link()] },
       { method: 'DELETE', match: `${LINKS}/link-1`, data: null },
     ])
@@ -197,5 +228,79 @@ describe('<SdTicketIntegrationLinks />', () => {
         ),
       ).toBe(true)
     })
+  })
+
+  it('lets the agent pick GitLab, hiding "open issue" when it is off there', async () => {
+    const spy = mockFetch([
+      { match: PROVIDERS, data: BOTH },
+      { match: LINKS, data: [] },
+      { method: 'POST', match: LINKS, data: link() },
+    ])
+    render()
+    expect(await screen.findByText('GitHub · owner/repo')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Abrir issue/ })).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: 'GitLab' }))
+    expect(screen.getByText('GitLab · grupo/projeto')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /Abrir issue/ })).toBeNull()
+    const input = screen.getByLabelText('Issue, pull request ou merge request')
+    expect(input.getAttribute('placeholder')).toBe('#42, !42 ou a URL')
+    fireEvent.change(input, { target: { value: '!7' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Vincular' }))
+    await waitFor(() => {
+      expect(fetchBody(spy, LINKS, 'POST')).toEqual({
+        ticketId: 't1',
+        ref: '!7',
+        provider: 'GITLAB',
+      })
+    })
+  })
+
+  it('opens the issue on GitLab when it is the only repository', async () => {
+    const spy = mockFetch([
+      {
+        match: PROVIDERS,
+        data: [
+          {
+            provider: 'GITLAB',
+            project: 'grupo/projeto',
+            allowIssueFromTicket: true,
+          },
+        ],
+      },
+      { match: LINKS, data: [] },
+      {
+        method: 'POST',
+        match: GL_ISSUES,
+        data: link({ kind: 'GITLAB_ISSUE', externalKey: 'grupo/projeto#3' }),
+      },
+    ])
+    render()
+    expect(screen.queryByRole('radiogroup')).toBeNull()
+    fireEvent.click(await screen.findByRole('button', { name: /Abrir issue/ }))
+    await waitFor(() => {
+      expect(fetchBody(spy, GL_ISSUES, 'POST')).toEqual({ ticketId: 't1' })
+    })
+  })
+
+  it('says where to connect when no repository is connected', async () => {
+    mockFetch([
+      { match: PROVIDERS, data: [] },
+      {
+        match: LINKS,
+        data: [
+          link({
+            kind: 'GITLAB_MERGE_REQUEST',
+            externalKey: 'grupo/projeto!7',
+            externalState: 'closed',
+            externalStateLabel: 'Fechada',
+          }),
+        ],
+      },
+    ])
+    render()
+    expect(await screen.findByText(/Nenhum repositório conectado/)).toBeTruthy()
+    expect(screen.getByText(/^Merge request · grupo\/projeto!7/)).toBeTruthy()
+    expect(screen.getByText('Fechada')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Vincular' })).toBeNull()
   })
 })

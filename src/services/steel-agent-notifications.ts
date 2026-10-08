@@ -1,4 +1,5 @@
 import { emitNotification, workspaceAdminIds } from './notification-emitter'
+import { notifyWorkspaceSlack } from './workspace-slack-notifier'
 
 /**
  * Inbox notices of Steel Agents. Fire-and-forget like every emitter: they
@@ -20,6 +21,17 @@ export async function notifyAgentApprovalRequested(input: {
   round: number
   count: number
 }): Promise<number> {
+  // Slack rule of the workspace (Ajustes > Integrações), fire-and-forget.
+  void notifyWorkspaceSlack({
+    workspaceId: input.workspaceId,
+    event: 'agents.approval.pending',
+    title: `${input.agentName} aguarda aprovação`,
+    body:
+      input.count === 1
+        ? 'O agente propôs uma ação que precisa de aprovação.'
+        : `O agente propôs ${input.count} ações que precisam de aprovação.`,
+    path: steelAgentRunPath(input.agentId, input.runId),
+  })
   return emitNotification({
     workspaceId: input.workspaceId,
     recipients: [

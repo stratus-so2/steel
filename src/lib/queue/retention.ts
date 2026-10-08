@@ -139,3 +139,5 @@ export const AiUsageWeeklyEmailCron = '0 8 * * 1' as const
  * after the 03:15 backup and its 03:30 prune.
  */
 export const WorkspaceExportPruneCron = '45 4 * * *' as const
+/** Comunicação "conversation waiting" Slack alert: every 5 minutes. */
+export const CommunicationWaitingCron = '*/5 * * * *' as const

@@ -23,21 +23,25 @@ vi.mock('@/src/lib/servicedesk/slack-client', () => ({
 }))
 vi.mock('@/src/repositories/sd-integration.repository')
 vi.mock('@/src/repositories/sd-ticket-context.repository')
+vi.mock('@/src/repositories/workspace-integration.repository')
 
 import { logger } from '@/lib/axiom/logger'
 import { enqueueSdIntegrationEvent } from '@/src/lib/servicedesk/integrations-queue'
 import { SlackClient } from '@/src/lib/servicedesk/slack-client'
 import { SdIntegrationRepository } from '@/src/repositories/sd-integration.repository'
 import { SdTicketContextRepository } from '@/src/repositories/sd-ticket-context.repository'
+import { WorkspaceIntegrationRepository } from '@/src/repositories/workspace-integration.repository'
 import { SdIntegrationDispatcher } from '../sd-integration-dispatcher'
 
-const repo = vi.mocked(SdIntegrationRepository)
+const sdRepo = vi.mocked(SdIntegrationRepository)
+const repo = vi.mocked(WorkspaceIntegrationRepository)
 const ctxRepo = vi.mocked(SdTicketContextRepository)
 const enqueue = vi.mocked(enqueueSdIntegrationEvent)
 const slack = vi.mocked(SlackClient)
 
 const WS = 'ws1'
 
+/** Legacy ServiceDesk shape: mapped on read (ADR 0024). */
 const CONFIGURED = {
   channels: [
     { departmentId: 'dep-1', channelId: 'C-time' },
@@ -64,6 +68,8 @@ beforeEach(() => {
     ok(createFakeSdIntegration({ config: CONFIGURED })),
   )
   repo.markError.mockResolvedValue(ok(undefined))
+  repo.markEvent.mockResolvedValue(ok(undefined))
+  sdRepo.isTopPriorityTicket.mockResolvedValue(ok(false))
   ctxRepo.findWorkspace.mockResolvedValue(
     ok({ id: WS, name: 'Acme', slug: 'acme' }),
   )
@@ -195,6 +201,95 @@ describe('SdIntegrationDispatcher.dispatch', () => {
   })
 })
 
+describe('SdIntegrationDispatcher.dispatch — workspace rules', () => {
+  const RULES = {
+    routes: [
+      {
+        event: 'servicedesk.ticket.created_in_department',
+        channelId: 'C-fila',
+        channelName: 'fila',
+      },
+      {
+        event: 'servicedesk.ticket.urgent',
+        channelId: 'C-urgente',
+        channelName: 'urgente',
+      },
+    ],
+    servicedesk: { channels: [] },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    repo.findByKind.mockResolvedValue(
+      ok(createFakeSdIntegration({ config: RULES })),
+    )
+  })
+
+  it('also enqueues the derived urgent event for a top-priority new ticket', async () => {
+    sdRepo.isTopPriorityTicket.mockResolvedValue(ok(true))
+    await SdIntegrationDispatcher.dispatch({
+      workspaceId: WS,
+      event: 'ticket.created_in_department',
+      ticket,
+      payload: { title: 'Novo na fila: INC-000042', body: 'E-mail fora' },
+    })
+    expect(enqueue).toHaveBeenCalledTimes(2)
+    expect(enqueue.mock.calls[1][0]).toMatchObject({
+      event: 'ticket.urgent',
+      payload: { title: 'Chamado urgente: INC-000042', body: 'E-mail fora' },
+    })
+    expect(sdRepo.isTopPriorityTicket).toHaveBeenCalledWith(WS, 't1')
+  })
+
+  it('skips the urgent event for other priorities, lookup errors and other events', async () => {
+    sdRepo.isTopPriorityTicket.mockResolvedValueOnce(ok(false))
+    await SdIntegrationDispatcher.dispatch({
+      workspaceId: WS,
+      event: 'ticket.created_in_department',
+      ticket,
+      payload,
+    })
+    sdRepo.isTopPriorityTicket.mockResolvedValueOnce(err(databaseError()))
+    await SdIntegrationDispatcher.dispatch({
+      workspaceId: WS,
+      event: 'ticket.created_in_department',
+      ticket,
+      payload,
+    })
+    expect(enqueue).toHaveBeenCalledTimes(2)
+    expect(
+      enqueue.mock.calls.every(([job]) => job.event !== 'ticket.urgent'),
+    ).toBe(true)
+
+    // Not a creation: the urgent rule is never looked at.
+    await SdIntegrationDispatcher.dispatch({
+      workspaceId: WS,
+      event: 'sla.breached',
+      ticket,
+      payload,
+    })
+    expect(sdRepo.isTopPriorityTicket).toHaveBeenCalledTimes(2)
+  })
+
+  it('without an urgent rule, never checks the priority', async () => {
+    repo.findByKind.mockResolvedValue(
+      ok(
+        createFakeSdIntegration({
+          config: { routes: [RULES.routes[0]] },
+        }),
+      ),
+    )
+    await SdIntegrationDispatcher.dispatch({
+      workspaceId: WS,
+      event: 'ticket.created_in_department',
+      ticket,
+      payload,
+    })
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(sdRepo.isTopPriorityTicket).not.toHaveBeenCalled()
+  })
+})
+
 describe('SdIntegrationDispatcher.deliver', () => {
   const job = {
     workspaceId: WS,
@@ -261,7 +356,10 @@ describe('SdIntegrationDispatcher.deliver', () => {
     repo.findById.mockResolvedValue(
       ok(
         createFakeSdIntegration({
-          config: { channels: [{ channelId: 'C-padrao' }], events: ['x'] },
+          config: {
+            channels: [{ channelId: 'C-padrao' }],
+            events: ['ticket.escalated'],
+          },
         }),
       ),
     )
@@ -270,7 +368,7 @@ describe('SdIntegrationDispatcher.deliver', () => {
         await SdIntegrationDispatcher.deliver({
           workspaceId: WS,
           integrationId: 'int-slack-1',
-          event: 'x',
+          event: 'ticket.escalated',
         }),
       ),
     ).toBe('sent')
@@ -337,6 +435,39 @@ describe('SdIntegrationDispatcher.deliver', () => {
     expectErr(
       await SdIntegrationDispatcher.deliver(job),
       'SD_INTEGRATION_NOT_CONFIGURED',
+    )
+  })
+
+  it('posts to every rule channel and stamps the last event', async () => {
+    repo.findById.mockResolvedValue(
+      ok(
+        createFakeSdIntegration({
+          config: {
+            routes: [
+              {
+                event: 'servicedesk.sla.breached',
+                channelId: 'C-a',
+                channelName: 'a',
+              },
+              {
+                event: 'servicedesk.sla.breached',
+                channelId: 'C-b',
+                channelName: 'b',
+              },
+            ],
+          },
+        }),
+      ),
+    )
+    slack.postMessage.mockClear()
+    expectOk(await SdIntegrationDispatcher.deliver(job))
+    expect(slack.postMessage.mock.calls.map(([, m]) => m.channel)).toEqual([
+      'C-a',
+      'C-b',
+    ])
+    expect(repo.markEvent).toHaveBeenCalledWith(
+      'int-slack-1',
+      'slack:servicedesk.sla.breached',
     )
   })
 

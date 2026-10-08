@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  createFakeGitlabIntegration,
   createFakeSdGithubIntegration,
   createFakeSdIntegration,
   createFakeSdIntegrationLink,
@@ -24,45 +25,59 @@ describe('toSdIntegrationDTO', () => {
     expect(dto).not.toHaveProperty('encryptedSigningSecret')
   })
 
-  it('traz a configuração do Slack e deixa a do GitHub nula', () => {
+  it('maps the legacy Slack config to the ServiceDesk module settings', () => {
     const dto = toSdIntegrationDTO(
       createFakeSdIntegration({
         config: {
-          channels: [{ departmentId: null, channelId: 'C1' }],
+          channels: [
+            { departmentId: null, channelId: 'C1' },
+            { departmentId: 'd1', channelId: 'C2' },
+          ],
           events: ['sla.breached'],
           ticketType: 'PROBLEM',
         },
       }),
     )
     expect(dto.kind).toBe('SLACK')
-    expect(dto.github).toBeNull()
+    expect(dto.repo).toBeNull()
+    // The default channel (`null`) moved to the workspace rules.
     expect(dto.slack).toEqual({
-      channels: [{ departmentId: null, channelId: 'C1', channelName: null }],
-      events: ['sla.breached'],
+      channels: [{ departmentId: 'd1', channelId: 'C2', channelName: null }],
       allowTicketFromMessage: true,
       mirrorThreadReplies: true,
       ticketType: 'PROBLEM',
       departmentId: null,
     })
     expect(dto.hasWebhookSecret).toBe(false)
+    expect(dto.lastEventAt).toBeNull()
   })
 
-  it('traz a configuração do GitHub e deixa a do Slack nula', () => {
+  it('reads the module settings of a GitHub/GitLab connection', () => {
     const dto = toSdIntegrationDTO(
       createFakeSdGithubIntegration({
         status: 'ERROR',
         statusError: 'token sem acesso',
         config: { suggestPhaseOnClose: false, allowIssueFromTicket: false },
+        lastEventAt: new Date('2026-10-08T09:00:00.000Z'),
       }),
     )
     expect(dto.slack).toBeNull()
-    expect(dto.github).toEqual({
+    expect(dto.repo).toEqual({
       suggestPhaseOnClose: false,
       allowIssueFromTicket: false,
     })
     expect(dto.status).toBe('ERROR')
     expect(dto.statusError).toBe('token sem acesso')
     expect(dto.externalId).toBe('stratus-so2/steel')
+    expect(dto.lastEventAt).toBe('2026-10-08T09:00:00.000Z')
+
+    const gitlab = toSdIntegrationDTO(createFakeGitlabIntegration())
+    expect(gitlab.kind).toBe('GITLAB')
+    expect(gitlab.baseUrl).toBe('https://gitlab.com')
+    expect(gitlab.repo).toEqual({
+      suggestPhaseOnClose: true,
+      allowIssueFromTicket: true,
+    })
   })
 
   it('serializa as datas em ISO', () => {

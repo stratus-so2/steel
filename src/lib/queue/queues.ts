@@ -74,6 +74,8 @@ import {
   type WhatsappTemplateSyncJobPayload,
   type WorkspaceExportJob,
   type WorkspaceExportJobPayload,
+  type WorkspaceIntegrationsJob,
+  type WorkspaceIntegrationsJobPayload,
 } from './jobs'
 
 const defaultJobOptions = {
@@ -119,6 +121,7 @@ let notificationsQueue: Queue | null = null
 let searchReindexQueue: Queue | null = null
 let aiUsageWeeklyEmailQueue: Queue | null = null
 let workspaceExportQueue: Queue | null = null
+let workspaceIntegrationsQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -764,6 +767,7 @@ export async function closeQueues(): Promise<void> {
     searchReindexQueue?.close(),
     aiUsageWeeklyEmailQueue?.close(),
     workspaceExportQueue?.close(),
+    workspaceIntegrationsQueue?.close(),
   ])
   dataRetentionQueue = null
   accountLifecycleQueue = null
@@ -799,6 +803,7 @@ export async function closeQueues(): Promise<void> {
   searchReindexQueue = null
   aiUsageWeeklyEmailQueue = null
   workspaceExportQueue = null
+  workspaceIntegrationsQueue = null
 }
 
 export function getCrmTaskRemindersQueue(): Queue<
@@ -914,6 +919,25 @@ export function getWorkspaceExportQueue(): Queue<
   >
 }
 
+/** Workspace-level integrations (Slack notifications, waiting tick). */
+export function getWorkspaceIntegrationsQueue(): Queue<
+  WorkspaceIntegrationsJobPayload[WorkspaceIntegrationsJob],
+  unknown,
+  WorkspaceIntegrationsJob
+> {
+  if (!workspaceIntegrationsQueue) {
+    workspaceIntegrationsQueue = new Queue(QueueName.WorkspaceIntegrations, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return workspaceIntegrationsQueue as Queue<
+    WorkspaceIntegrationsJobPayload[WorkspaceIntegrationsJob],
+    unknown,
+    WorkspaceIntegrationsJob
+  >
+}
+
 // Typed as a full record so a new queue without an entry fails the build.
 const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.DataRetention]: getDataRetentionQueue,
@@ -953,6 +977,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.SearchReindex]: getSearchReindexQueue,
   [QueueName.AiUsageWeeklyEmail]: getAiUsageWeeklyEmailQueue,
   [QueueName.WorkspaceExport]: getWorkspaceExportQueue,
+  [QueueName.WorkspaceIntegrations]: getWorkspaceIntegrationsQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */

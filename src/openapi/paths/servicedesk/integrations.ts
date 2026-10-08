@@ -1,10 +1,9 @@
 import { z } from 'zod'
 import {
-  ConnectSdGithubSchema,
   CreateSdGithubIssueSchema,
   LinkSdGithubItemSchema,
   ListSdIntegrationLinksSchema,
-  UpdateSdGithubConfigSchema,
+  UpdateSdRepoConfigSchema,
   UpdateSdSlackConfigSchema,
 } from '@/src/schemas/sd-integration.schema'
 import type { ErrorEntry, RouteConfig } from '../../registry'
@@ -14,16 +13,18 @@ import {
   SdIntegrationDTO,
   SdIntegrationLinkDTO,
   SdIntegrationsOverviewDTO,
+  SdRepoProviderOptionDTO,
   SdSlackChannelOptionDTO,
   SdSlackInboundDTO,
   SdSlackWebhookPayload,
 } from '../../schemas/servicedesk/integrations'
 
 /**
- * ServiceDesk · integrações — configuração (`app/api/workspaces/[id]/
- * servicedesk/integrations/**`, só admin), o callback OAuth do Slack e os
- * dois webhooks públicos (`app/api/servicedesk/integrations/{slack,github}`),
- * verificados por assinatura.
+ * ServiceDesk · integrações — configurações do módulo sobre as conexões do
+ * workspace (`app/api/workspaces/[id]/servicedesk/integrations/**`), os
+ * vínculos do chamado, o callback OAuth do Slack e os webhooks públicos do
+ * Slack e do GitHub (caminho legado). Conectar, trocar token e desconectar
+ * ficam em `/workspaces/{id}/integrations/**` (ADR 0024).
  */
 
 const TAG = 'ServiceDesk · Integrações' as const
@@ -80,7 +81,7 @@ export const sdIntegrationRoutes: RouteConfig[] = [
     path: BASE,
     tags: [TAG],
     summary: 'Estado das integrações',
-    description: `O que está conectado (Slack e GitHub) e as URLs a cadastrar nos painéis do Slack e do repositório. ${SECRECY} ${ADMIN}`,
+    description: `Estado das conexões do workspace (Slack, GitHub, GitLab) vistas pelo ServiceDesk, com as configurações do módulo. A conexão é gerenciada em \`/workspaces/{id}/integrations\` (OWNER/ADMIN). ${SECRECY} ${ADMIN}`,
     params: { id: 'Id do workspace.' },
     responses: {
       200: {
@@ -95,29 +96,11 @@ export const sdIntegrationRoutes: RouteConfig[] = [
 
   {
     method: 'get',
-    path: `${BASE}/slack/connect`,
-    tags: [TAG],
-    summary: 'Conectar o Slack (iniciar OAuth)',
-    description: `Redireciona (\`302\`) para a tela de autorização do Slack. Abra no navegador — não é uma chamada JSON. O workspace viaja num \`state\` assinado por HMAC (10 min), porque o Slack exige redirect URL exata e fixa; o callback é \`GET /servicedesk/integrations/oauth/slack\`. ${ADMIN}`,
-    params: { id: 'Id do workspace.' },
-    responses: {
-      302: {
-        description: 'Redirect para a autorização do Slack.',
-        envelope: false,
-        headers: {
-          Location: { description: 'URL de autorização do Slack.' },
-        },
-      },
-    },
-    errors: [...ADMIN_ERRORS, NOT_CONFIGURED, NOT_CONNECTED],
-  },
-  {
-    method: 'get',
     path: '/servicedesk/integrations/oauth/slack',
     tags: [TAG],
     summary: 'Callback OAuth do Slack',
     description:
-      'Path **fixo** cadastrado no app do Slack. Exige a sessão do admin que autorizou (o workspace vem do `state`); troca o `code` pelo token do bot, cifra com `CONNECTION_SECRETS` e volta para a aba Integrações com `?slack=connected` (ou `?slack=error&reason=…`). A concessão fica na trilha de auditoria (`auth.oauth_grant.servicedesk_slack`).',
+      'Path **fixo** cadastrado no app do Slack (mantém o caminho histórico). Exige a sessão do OWNER/ADMIN que autorizou (o workspace vem do `state`); troca o `code` pelo token do bot, cifra com `CONNECTION_SECRETS` e volta para Ajustes › Integrações com `?slack=connected` (ou `?slack=error&reason=…`). A concessão fica na trilha de auditoria (`auth.oauth_grant.workspace_slack`).',
     query: z.object({
       code: z.string().optional(),
       state: z.string().optional(),
@@ -126,8 +109,7 @@ export const sdIntegrationRoutes: RouteConfig[] = [
     queryValidationError: false,
     responses: {
       302: {
-        description:
-          'Redirect para `/{slug}/servicedesk/settings?tab=integrations`.',
+        description: 'Redirect para `/{slug}/settings/integrations`.',
         envelope: false,
         headers: { Location: { description: 'Destino no Steel.' } },
       },
@@ -153,8 +135,8 @@ export const sdIntegrationRoutes: RouteConfig[] = [
     method: 'patch',
     path: `${BASE}/slack`,
     tags: [TAG],
-    summary: 'Configurar o Slack',
-    description: `Canal por time (um canal por departamento, mais o padrão), eventos enviados (chaves de \`SD_NOTIFICATION_EVENTS\`), abertura de chamado por mensagem e espelhamento das respostas da thread. ${ADMIN}`,
+    summary: 'Configurar o Slack no ServiceDesk',
+    description: `Canal por time (substitui o canal da regra nos chamados do time), abertura de chamado por mensagem e espelhamento das respostas da thread. Quais eventos vão para o Slack é regra do workspace (\`PATCH /workspaces/{id}/integrations/slack\`). ${ADMIN}`,
     consent: true,
     params: { id: 'Id do workspace.' },
     body: UpdateSdSlackConfigSchema,
@@ -171,56 +153,31 @@ export const sdIntegrationRoutes: RouteConfig[] = [
     ],
   },
   {
-    method: 'delete',
-    path: `${BASE}/slack`,
-    tags: [TAG],
-    summary: 'Desconectar o Slack',
-    description: `A integração sai da aba, o token é apagado e o webhook deixa de ser aceito. Os vínculos de thread já registrados continuam no histórico dos chamados. ${ADMIN}`,
-    consent: true,
-    params: { id: 'Id do workspace.' },
-    responses: { 200: { description: 'Desconectado.', schema: null } },
-    errors: [...ADMIN_ERRORS, NOT_CONNECTED],
-  },
-
-  /* ----------------------------------- GitHub ----------------------------------- */
-
-  {
-    method: 'post',
-    path: `${BASE}/github`,
-    tags: [TAG],
-    summary: 'Conectar um repositório do GitHub',
-    description: `Guarda o repositório (\`owner/repo\` ou a URL), o token do workspace e o segredo do webhook, os dois cifrados com \`CONNECTION_SECRETS\`. O acesso é validado na API do GitHub **antes** de guardar, e o \`externalId\` fica com o nome canônico que o GitHub devolve — é com ele que o \`repository.full_name\` do webhook casa. ${SECRECY} ${ADMIN}`,
-    consent: true,
-    params: { id: 'Id do workspace.' },
-    body: ConnectSdGithubSchema,
-    responses: {
-      201: { description: 'Repositório conectado.', schema: SdIntegrationDTO },
-    },
-    errors: [...ADMIN_ERRORS, REQUEST_FAILED],
-  },
-  {
     method: 'patch',
     path: `${BASE}/github`,
     tags: [TAG],
-    summary: 'Configurar o GitHub',
-    description: `Troca o token (revalidado no GitHub) ou o segredo do webhook e liga/desliga a sugestão de fase e a abertura de issue a partir do chamado. ${SECRECY} ${ADMIN}`,
+    summary: 'Configurar o GitHub no ServiceDesk',
+    description: `Liga/desliga a sugestão de fase e a abertura de issue a partir do chamado. Token e segredo do webhook são do workspace (\`PATCH /workspaces/{id}/integrations/github\`). ${ADMIN}`,
     consent: true,
     params: { id: 'Id do workspace.' },
-    body: UpdateSdGithubConfigSchema,
+    body: UpdateSdRepoConfigSchema,
     responses: {
-      200: { description: 'Integração salva.', schema: SdIntegrationDTO },
+      200: { description: 'Configuração salva.', schema: SdIntegrationDTO },
     },
-    errors: [...ADMIN_ERRORS, NOT_CONNECTED, REQUEST_FAILED],
+    errors: [...ADMIN_ERRORS, NOT_CONNECTED],
   },
   {
-    method: 'delete',
-    path: `${BASE}/github`,
+    method: 'patch',
+    path: `${BASE}/gitlab`,
     tags: [TAG],
-    summary: 'Desconectar o GitHub',
-    description: `O repositório sai da aba, o token é apagado e o webhook deixa de ser aceito. Os vínculos já registrados continuam no histórico dos chamados. ${ADMIN}`,
+    summary: 'Configurar o GitLab no ServiceDesk',
+    description: `Mesmo contrato do GitHub, para a conexão do GitLab. ${ADMIN}`,
     consent: true,
     params: { id: 'Id do workspace.' },
-    responses: { 200: { description: 'Desconectado.', schema: null } },
+    body: UpdateSdRepoConfigSchema,
+    responses: {
+      200: { description: 'Configuração salva.', schema: SdIntegrationDTO },
+    },
     errors: [...ADMIN_ERRORS, NOT_CONNECTED],
   },
   {
@@ -253,6 +210,56 @@ export const sdIntegrationRoutes: RouteConfig[] = [
     ],
   },
 
+  {
+    method: 'post',
+    path: `${BASE}/gitlab/issues`,
+    tags: [TAG],
+    summary: 'Abrir issue no GitLab a partir do chamado',
+    description: `Mesmo contrato de \`POST ${BASE}/github/issues\`, no projeto do GitLab conectado. ${AGENT}`,
+    consent: true,
+    params: { id: 'Id do workspace.' },
+    body: CreateSdGithubIssueSchema,
+    responses: {
+      201: {
+        description: 'Issue aberta e vinculada.',
+        schema: SdIntegrationLinkDTO,
+      },
+    },
+    errors: [
+      ...AGENT_ERRORS,
+      NOT_CONNECTED,
+      NOT_CONFIGURED,
+      REQUEST_FAILED,
+      'SD_TICKET_NOT_FOUND',
+      { code: 'SD_TICKET_FORBIDDEN', when: 'Chamado fora do seu alcance' },
+      { code: 'SD_TICKET_CLOSED', when: 'Chamado fechado ou cancelado' },
+      {
+        code: 'VALIDATION_ERROR',
+        when: 'Chamado que não é problema nem mudança, ou abertura desligada na configuração',
+      },
+    ],
+  },
+  {
+    method: 'get',
+    path: `${BASE}/providers`,
+    tags: [TAG],
+    summary: 'Repositórios conectados (tela do chamado)',
+    description: `GitHub e GitLab conectados ao workspace, com o repositório/projeto e se abrir issue está ligado — é o que o bloco "Integrações" do chamado oferece. ${AGENT}`,
+    params: { id: 'Id do workspace.' },
+    query: ListSdIntegrationLinksSchema,
+    responses: {
+      200: {
+        description: 'Provedores disponíveis.',
+        schema: z.array(SdRepoProviderOptionDTO),
+      },
+    },
+    errors: [
+      ...AGENT_ERRORS,
+      'SD_TICKET_NOT_FOUND',
+      { code: 'SD_TICKET_FORBIDDEN', when: 'Chamado fora do seu alcance' },
+    ],
+  },
+
   /* ----------------------------------- vínculos ----------------------------------- */
 
   {
@@ -279,8 +286,8 @@ export const sdIntegrationRoutes: RouteConfig[] = [
     method: 'post',
     path: `${BASE}/links`,
     tags: [TAG],
-    summary: 'Vincular uma issue/PR ao chamado',
-    description: `Aceita \`#42\`, \`42\`, \`owner/repo#42\` ou a URL. O tipo (issue × pull request) e o estado vêm da API do GitHub, não do texto. Item de outro repositório é recusado, e um item já vinculado responde \`SD_INTEGRATION_LINK_EXISTS\`. ${AGENT}`,
+    summary: 'Vincular uma issue/PR/MR ao chamado',
+    description: `Aceita \`#42\`, \`42\`, \`owner/repo#42\`, \`!42\` (merge request do GitLab), \`grupo/projeto!42\` ou a URL. \`provider\` (\`GITHUB\`/\`GITLAB\`) é opcional: sem ele, vale o que a referência indica (sigilo/URL do GitLab, URL do github.com) ou o único repositório conectado. O tipo e o estado vêm da API do provedor, não do texto. Item de outro repositório é recusado, e um item já vinculado responde \`SD_INTEGRATION_LINK_EXISTS\`. ${AGENT}`,
     consent: true,
     params: { id: 'Id do workspace.' },
     body: LinkSdGithubItemSchema,
@@ -371,10 +378,10 @@ Sem sessão: o acesso é a assinatura \`X-Slack-Signature\` + \`X-Slack-Request-
     tags: [TAG],
     auth: 'public',
     rateLimit: 'ip',
-    summary: 'Receber webhook do GitHub (público)',
+    summary: 'Receber webhook do GitHub (público, caminho legado)',
     description: `Espelha o estado da issue/PR vinculada: \`closed\`, \`reopened\` e \`merged\` atualizam \`externalState\`, registram o evento na rastreabilidade e publicam uma mensagem no chamado. Com \`suggestPhaseOnClose\` (padrão), fechar/mesclar **sugere** avançar a fase — quem move a fase é o agente, porque em ITIL o encerramento exige solução, classificação e às vezes aprovação.
 
-Sem sessão: \`repository.full_name\` serve apenas para achar a integração e o segredo; nada é gravado antes do HMAC \`X-Hub-Signature-256\` fechar sobre o corpo bruto (comparação em tempo constante). Idempotente por \`X-GitHub-Delivery\`. Evento de item não vinculado responde \`unlinked\` sem efeito, e \`ping\` é ignorado.
+Mesmo tratamento de \`POST /integrations/github/webhook\` — este caminho fica para os webhooks cadastrados antes da ADR 0024. Sem sessão: \`repository.full_name\` serve apenas para achar a conexão e o segredo; nada é gravado antes do HMAC \`X-Hub-Signature-256\` fechar sobre o corpo bruto (comparação em tempo constante). Idempotente por \`X-GitHub-Delivery\`. Evento de item não vinculado responde \`unlinked\` sem efeito, e \`ping\` é ignorado.
 
 Além do webhook, o job \`sync-github-state\` reconcilia de hora em hora (cron \`40 * * * *\`) o estado dos vínculos de chamados abertos — a rede de proteção para um webhook perdido.`,
     headers: {
