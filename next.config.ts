@@ -98,6 +98,12 @@ const nextConfig: NextConfig = {
   // ficam legíveis no Sentry e ilegíveis no navegador.
   productionBrowserSourceMaps: canUploadSourcemaps,
   serverExternalPackages: ['@prisma/client'],
+  // The public changelog reads `content/changelog/*.mdx` at runtime and the
+  // standalone trace does not follow a `readdir`, so the files are added to
+  // the image here (changelog pages, sitemap, RSS and llms*.txt need them).
+  outputFileTracingIncludes: {
+    '/**': ['./content/changelog/**/*'],
+  },
   images: {
     remotePatterns: [
       {
