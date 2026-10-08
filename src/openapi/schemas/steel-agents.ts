@@ -116,6 +116,10 @@ export const SteelAgentRunDTO = dto(
     inputTokens: z.number().int(),
     outputTokens: z.number().int(),
     costUsd: z.number(),
+    isTest: z.boolean().meta({
+      description:
+        '"Testar agente": leituras reais, escritas simuladas, sem aprovações.',
+    }),
     createdAt: dateTime(),
   }),
 )
@@ -144,6 +148,7 @@ export const SteelAgentRunDetailDTO = dto(
           'APPROVED',
           'REJECTED',
           'EXPIRED',
+          'SIMULATED',
         ]),
         error: z.string().nullable(),
         createdAt: dateTime(),

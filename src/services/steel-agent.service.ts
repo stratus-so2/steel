@@ -110,6 +110,63 @@ async function validateOwner(
   return ok(true)
 }
 
+/** Creates a QUEUED MANUAL run (real or test) and enqueues it. */
+async function startRun(
+  actorId: string,
+  workspaceId: string,
+  agentId: string,
+  test: boolean,
+): Promise<Result<SteelAgentRunDTO>> {
+  const membership = await assertMember(actorId, workspaceId, {
+    resource: RESOURCE,
+    action: 'VIEW',
+  })
+  if (!membership.ok) return membership
+  const agent = await SteelAgentRepository.findById(agentId, workspaceId)
+  if (!agent.ok) return agent
+  if (
+    agent.value.ownerId !== actorId &&
+    !canManageSteelAgents(membership.value)
+  ) {
+    return err(forbidden())
+  }
+  if (!test && !agent.value.enabled) return err(steelAgentDisabled())
+
+  const run = await SteelAgentRunRepository.create({
+    workspaceId,
+    agentId,
+    triggerType: 'MANUAL',
+    startedById: actorId,
+    ...(test && { isTest: true }),
+  })
+  if (!run.ok) return run
+  const queued = await enqueueSteelAgentRun(run.value.id)
+  if (!queued.ok) {
+    await SteelAgentRunRepository.update(run.value.id, {
+      status: 'FAILED',
+      error: queued.error.message,
+      finishedAt: new Date(),
+    })
+    return queued
+  }
+
+  auditMutation({
+    entity: 'steel_agent_run',
+    action: 'start',
+    actorId,
+    targetId: run.value.id,
+    meta: { workspaceId, agentId, ...(test && { mode: 'TEST' }) },
+  })
+  logger.info(
+    'steel_agents.run_requested',
+    logFields(
+      { component: 'SteelAgentService', workspaceId },
+      { agentId, runId: run.value.id, test },
+    ),
+  )
+  return ok(toSteelAgentRunDTO(run.value))
+}
+
 export const SteelAgentService = {
   async list(
     actorId: string,
@@ -313,53 +370,22 @@ export const SteelAgentService = {
     workspaceId: string,
     agentId: string,
   ): Promise<Result<SteelAgentRunDTO>> {
-    const membership = await assertMember(actorId, workspaceId, {
-      resource: RESOURCE,
-      action: 'VIEW',
-    })
-    if (!membership.ok) return membership
-    const agent = await SteelAgentRepository.findById(agentId, workspaceId)
-    if (!agent.ok) return agent
-    if (
-      agent.value.ownerId !== actorId &&
-      !canManageSteelAgents(membership.value)
-    ) {
-      return err(forbidden())
-    }
-    if (!agent.value.enabled) return err(steelAgentDisabled())
+    return startRun(actorId, workspaceId, agentId, false)
+  },
 
-    const run = await SteelAgentRunRepository.create({
-      workspaceId,
-      agentId,
-      triggerType: 'MANUAL',
-      startedById: actorId,
-    })
-    if (!run.ok) return run
-    const queued = await enqueueSteelAgentRun(run.value.id)
-    if (!queued.ok) {
-      await SteelAgentRunRepository.update(run.value.id, {
-        status: 'FAILED',
-        error: queued.error.message,
-        finishedAt: new Date(),
-      })
-      return queued
-    }
-
-    auditMutation({
-      entity: 'steel_agent_run',
-      action: 'start',
-      actorId,
-      targetId: run.value.id,
-      meta: { workspaceId, agentId },
-    })
-    logger.info(
-      'steel_agents.run_requested',
-      logFields(
-        { component: 'SteelAgentService', workspaceId },
-        { agentId, runId: run.value.id },
-      ),
-    )
-    return ok(toSteelAgentRunDTO(run.value))
+  /**
+   * "Testar agente": same gate as "Executar agora", but the run is a test —
+   * reads run for real, every write is simulated (no approvals, nothing
+   * sent), and it never touches the schedule (`lastRunAt`/`nextRunAt`) nor
+   * the monthly cap. A paused agent may be tested (that is the point of
+   * trying it before switching it on).
+   */
+  async testRun(
+    actorId: string,
+    workspaceId: string,
+    agentId: string,
+  ): Promise<Result<SteelAgentRunDTO>> {
+    return startRun(actorId, workspaceId, agentId, true)
   },
 
   async listRuns(

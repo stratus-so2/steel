@@ -85,6 +85,7 @@ export function toSteelAgentRunDTO(run: SteelAgentRun): SteelAgentRunDTO {
     inputTokens: run.inputTokens,
     outputTokens: run.outputTokens,
     costUsd: Number(run.costUsd),
+    isTest: run.isTest,
     createdAt: run.createdAt.toISOString(),
   }
 }
