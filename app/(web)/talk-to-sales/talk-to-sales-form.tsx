@@ -15,6 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useLogger } from '@/lib/axiom/client'
 import { notify } from '@/lib/notify'
+import { captureEvent } from '@/lib/posthog/client'
 import { TEAM_SIZES } from '@/src/schemas/talk-to-sales.schema'
 
 const EMPTY = { name: '', email: '', message: '' }
@@ -58,6 +59,7 @@ export function TalkToSalesForm() {
         body: JSON.stringify(payload),
       })
       if (res.ok) {
+        captureEvent('talk_to_sales_submit', { team_size: teamSize })
         setFields(EMPTY)
         setTeamSize('')
         setStatus('sent')
@@ -89,7 +91,7 @@ export function TalkToSalesForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className='w-full h-full flex flex-col gap-7 items-center justify-center py-20 px-10'
+      className='w-full h-full flex flex-col gap-7 items-center justify-center py-6 sm:py-20 sm:px-10'
     >
       <Field>
         <FieldLabel htmlFor='name'>
@@ -155,13 +157,18 @@ export function TalkToSalesForm() {
           rows={4}
           value={fields.message}
           onChange={update('message')}
-          placeholder='Detalhes sobre seu caso de uso, recursos da lista de desejos, se você prefere o Steel self-hosted, qualquer coisa vale'
+          placeholder='Detalhes sobre seu caso de uso, recursos da lista de desejos, se você quer usar o seu próprio banco de dados, qualquer coisa vale'
           required
           disabled={sending}
         />
       </Field>
       {error && <FieldError>{error}</FieldError>}
-      <Button className='w-full' type='submit' disabled={status === 'sending'}>
+      <Button
+        size='lg'
+        className='w-full'
+        type='submit'
+        disabled={status === 'sending'}
+      >
         {status === 'sending' ? 'Enviando...' : 'Falar com vendas'}
       </Button>
     </form>

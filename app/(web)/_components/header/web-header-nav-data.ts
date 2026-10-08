@@ -1,19 +1,18 @@
 import type { IconSvgElement } from '@hugeicons/react'
 import {
+  ActivityIcon,
+  Agreement02Icon,
   Airplane01Icon,
   Book02Icon,
   Building03Icon,
-  BulbIcon,
   ChartUpIcon,
-  CircleArrowDown02Icon,
+  CustomerSupportIcon,
+  DatabaseIcon,
   Factory01Icon,
-  KeyframesMultipleAddIcon,
+  InformationCircleIcon,
+  Mail02Icon,
   Megaphone01Icon,
-  News01Icon,
-  Orbit01Icon,
-  PaintBrush02Icon,
   PresentationLineChart02Icon,
-  RepeatIcon,
   Rocket01Icon,
   SecurityCheckIcon,
   ServerStack03Icon,
@@ -21,13 +20,11 @@ import {
   SourceCodeIcon,
   SparklesIcon,
   Stethoscope02Icon,
-  StickyNote03Icon,
   Store01Icon,
   Target01Icon,
   UserGroupIcon,
-  UserStar01Icon,
+  WhatsappIcon,
   WorkflowSquare01Icon,
-  WorkIcon,
 } from '@hugeicons-pro/core-solid-rounded'
 
 export interface NavItemData {
@@ -40,20 +37,26 @@ export interface NavItemData {
 // Produto
 export const products: NavItemData[] = [
   {
-    title: 'Gerenciamento de Projetos',
-    description: 'Planeje, acompanhe e entregue trabalho',
+    title: 'ServiceDesk',
+    description: 'Chamados ITIL 4 com SLA, CMDB e portal',
     href: '#',
-    icon: WorkIcon,
+    icon: CustomerSupportIcon,
   },
   {
-    title: 'Wiki',
-    description: 'Documentos vinculados ao seu trabalho',
+    title: 'CRM',
+    description: 'Leads, pipelines, propostas e forecast',
     href: '#',
-    icon: StickyNote03Icon,
+    icon: Agreement02Icon,
+  },
+  {
+    title: 'Comunicação',
+    description: 'WhatsApp Business com inbox e disparos',
+    href: '#',
+    icon: WhatsappIcon,
   },
   {
     title: 'Steel AI',
-    description: 'Agentes de IA para o seu workspace',
+    description: 'Assistente de IA que age com sua confirmação',
     href: '#',
     icon: SparklesIcon,
   },
@@ -61,44 +64,44 @@ export const products: NavItemData[] = [
 
 export const featureCapabilities: NavItemData[] = [
   {
-    title: 'Intake',
-    description: 'Triagem e roteamento de trabalho recebido',
-    href: '#',
-    icon: CircleArrowDown02Icon,
-  },
-  {
-    title: 'Itens de Trabalho',
-    description: 'Tarefas estruturadas com rastreabilidade',
-    href: '#',
-    icon: KeyframesMultipleAddIcon,
-  },
-  {
-    title: 'Épicos e Iniciativas',
-    description: 'Metas de grande escala, progresso consolidado',
-    href: '#',
-    icon: BulbIcon,
-  },
-  {
-    title: 'Ciclos',
-    description: 'Sprints com prazo definido e gráficos de burn-down',
-    href: '#',
-    icon: Orbit01Icon,
-  },
-  {
-    title: 'Dashboards',
-    description: 'Velocidade, carga de trabalho e gargalos',
-    href: '#',
-    icon: PresentationLineChart02Icon,
-  },
-  {
-    title: 'Teamspaces',
-    description: 'Espaços isolados, governança compartilhada',
+    title: 'Portal do solicitante',
+    description: 'Abertura e acompanhamento de chamados pelo cliente',
     href: '#',
     icon: UserGroupIcon,
   },
   {
+    title: 'SLA e OLA',
+    description: 'Prazos sobre calendários úteis, com escalonamento',
+    href: '#',
+    icon: Target01Icon,
+  },
+  {
+    title: 'Base de conhecimento',
+    description: 'Artigos com KCS, revisão e métrica de reuso',
+    href: '#',
+    icon: Book02Icon,
+  },
+  {
+    title: 'CMDB',
+    description: 'Itens de configuração ligados aos chamados',
+    href: '#',
+    icon: DatabaseIcon,
+  },
+  {
+    title: 'Dashboards e modo TV',
+    description: 'Filas, SLA e resultados visíveis para o time',
+    href: '#',
+    icon: PresentationLineChart02Icon,
+  },
+  {
+    title: 'Campanhas e landing pages',
+    description: 'E-mail, formulários e páginas de captura',
+    href: '#',
+    icon: Mail02Icon,
+  },
+  {
     title: 'Workflows e Aprovações',
-    description: 'Fluxos de trabalho baseados em regras com aprovações',
+    description: 'Automações por regra e aprovações por e-mail',
     href: '#',
     icon: WorkflowSquare01Icon,
   },
@@ -107,10 +110,10 @@ export const featureCapabilities: NavItemData[] = [
 // Soluções
 export const useCases: NavItemData[] = [
   {
-    title: 'Produto',
-    description: 'Leve funcionalidades da ideia até o lançamento',
+    title: 'Suporte de TI',
+    description: 'Incidentes, requisições, mudanças e problemas',
     href: '#',
-    icon: Target01Icon,
+    icon: CustomerSupportIcon,
   },
   {
     title: 'Operação',
@@ -120,40 +123,40 @@ export const useCases: NavItemData[] = [
   },
   {
     title: 'Marketing',
-    description: 'Campanhas, lançamentos e conteúdo',
+    description: 'Campanhas, landing pages e redes sociais',
     href: '#',
     icon: Megaphone01Icon,
   },
   {
-    title: 'Agile',
-    description: 'Ciclos, backlog e gráficos de burn-down integrados',
+    title: 'Vendas',
+    description: 'Do lead à proposta aceita, com previsibilidade',
     href: '#',
-    icon: RepeatIcon,
+    icon: Agreement02Icon,
   },
   {
-    title: 'Design',
-    description: 'Gerencie revisões, feedbacks e entregas',
+    title: 'Atendimento',
+    description: 'Conversas no WhatsApp com contexto do cliente',
     href: '#',
-    icon: PaintBrush02Icon,
+    icon: WhatsappIcon,
   },
 ]
 
 export const industries: NavItemData[] = [
   {
     title: 'Aeroespacial',
-    description: 'Controle de projetos de missão crítica',
+    description: 'Controle de operações de missão crítica',
     href: '#',
     icon: Airplane01Icon,
   },
   {
     title: 'Saúde',
-    description: 'Coordenação em conformidade com a HIPAA',
+    description: 'Atendimento com trilha de auditoria e LGPD',
     href: '#',
     icon: Stethoscope02Icon,
   },
   {
     title: 'Governo',
-    description: 'Ambientes isolados e soberania total dos dados',
+    description: 'Dados em banco próprio, sob seu controle',
     href: '#',
     icon: Building03Icon,
   },
@@ -186,7 +189,7 @@ export const scale: NavItemData[] = [
   },
   {
     title: 'Empresa',
-    description: 'Controle total e infraestrutura privada',
+    description: 'Módulos apontados para o seu próprio PostgreSQL',
     href: '#',
     icon: ServerStack03Icon,
   },
@@ -195,48 +198,48 @@ export const scale: NavItemData[] = [
 // Recursos
 export const discover: NavItemData[] = [
   {
-    title: 'Blog',
-    description: 'Atualizações, insights e análises aprofundadas',
-    href: '#',
-    icon: News01Icon,
-  },
-  {
     title: 'Novidades',
     description: 'Histórico completo de mudanças e lançamentos',
-    href: '#',
+    href: '/changelog',
     icon: Megaphone01Icon,
   },
   {
-    title: 'Comunidade',
-    description: 'Participe das discussões no fórum',
-    href: '#',
-    icon: UserGroupIcon,
+    title: 'Manifesto',
+    description: 'Os princípios que guiam como construímos o Steel',
+    href: '/manifesto',
+    icon: Target01Icon,
   },
   {
-    title: 'Clientes',
-    description: 'Histórias de equipes que usam o Steel',
-    href: '#',
-    icon: UserStar01Icon,
+    title: 'Sobre',
+    description: 'Por que a Stratus Telecom construiu o Steel',
+    href: '/about',
+    icon: InformationCircleIcon,
+  },
+  {
+    title: 'Contato',
+    description: 'Vendas, suporte e outros canais',
+    href: '/contact',
+    icon: UserGroupIcon,
   },
 ]
 
 export const learn: NavItemData[] = [
   {
-    title: 'Documentação',
-    description: 'Guias e referências do produto',
-    href: '#',
-    icon: Book02Icon,
-  },
-  {
     title: 'Referência de API',
-    description: 'API REST, webhooks e SDKs',
-    href: '#',
+    description: 'Endpoints REST e integrações',
+    href: '/docs',
     icon: SourceCodeIcon,
   },
   {
+    title: 'Status',
+    description: 'Disponibilidade e histórico de incidentes',
+    href: '/status',
+    icon: ActivityIcon,
+  },
+  {
     title: 'Segurança',
-    description: 'Conformidade, certificações e confiança',
-    href: '#',
+    description: 'Conformidade, LGPD e confiança',
+    href: '/legals/security',
     icon: SecurityCheckIcon,
   },
 ]
