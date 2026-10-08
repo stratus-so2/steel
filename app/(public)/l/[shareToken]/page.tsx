@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { connection } from 'next/server'
 import { LandingPageTracker } from '@/app/_components/crm/landing-page/landing-page-tracker'
 import { LandingPageWebPreview } from '@/app/_components/crm/landing-page/landing-page-web-preview'
+import { NO_INDEX } from '@/src/lib/seo/metadata'
 import { CrmLandingPageService } from '@/src/services/crm-landing-page.service'
 
 type PageProps = { params: Promise<{ shareToken: string }> }
@@ -11,7 +12,10 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { shareToken } = await params
   const result = await CrmLandingPageService.getPublicByShareToken(shareToken)
-  return { title: result.ok ? result.value.title : 'Página indisponível' }
+  return {
+    title: result.ok ? result.value.title : 'Página indisponível',
+    robots: NO_INDEX,
+  }
 }
 
 export default async function PublicCrmLandingPage({ params }: PageProps) {

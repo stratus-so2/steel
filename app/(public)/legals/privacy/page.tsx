@@ -4,11 +4,13 @@ import { H2 } from '@/components/typography/heading/h2'
 import { Muted } from '@/components/typography/text/muted'
 import { P } from '@/components/typography/text/p'
 import { PRIVACY_VERSION } from '@/lib/legal/versions'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Política de Privacidade | Steel',
   description: 'Como o Steel coleta, usa e protege seus dados.',
-}
+  path: '/legals/privacy',
+})
 
 export default function PrivacyPolicyPage() {
   return (

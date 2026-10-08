@@ -16,6 +16,15 @@ Siga na ordem; pare quando achar o problema e vá para o runbook indicado.
 3. Veja o horário da última atualização. O worker coleta os core **a cada 1
    min** e os periféricos **a cada 5 min**. Se nada mudou há mais de ~10 min,
    o **worker está parado** — vá ao passo 3 e reinicie o `steel-worker`.
+4. **Aplicação em "Interrupção total" com o site no ar** é a sonda, não a
+   app: o worker precisa falar com o Next pela rede Docker
+   (`STATUS_APP_PROBE_URL=http://nextjs-app:3000`, padrão no
+   `docker-compose.yml`). Pelo domínio público a requisição sai do container,
+   volta pelo IP externo do próprio servidor e o roteador não faz o retorno
+   (*hairpin*) — toda coleta estoura o timeout de 5 s. Foi o que deixou o
+   `/status` de homologação em interrupção de 18/09 a 08/10/2026.
+   Conferir de dentro do worker:
+   `docker exec steel-worker node -e 'fetch(process.env.STATUS_APP_PROBE_URL+"/api/status").then(r=>console.log(r.status))'`
 
 Pela linha de comando:
 

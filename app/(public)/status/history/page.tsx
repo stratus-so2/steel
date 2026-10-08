@@ -5,15 +5,17 @@ import { connection } from 'next/server'
 import { Muted } from '@/components/typography/text/muted'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 import { StatusService } from '@/src/services/status/status.service'
 import { STATUS_META } from '@/src/services/status/status-map'
 import type { IncidentSummaryDTO } from '@/types/status'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Histórico de incidentes | Steel',
   description:
     'Histórico de incidentes e disponibilidade dos serviços do Steel.',
-}
+  path: '/status/history',
+})
 
 const MONTH_FORMAT: Intl.DateTimeFormatOptions = {
   month: 'long',

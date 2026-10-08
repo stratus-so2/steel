@@ -17,14 +17,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 import { StatusService } from '@/src/services/status/status.service'
 import { STATUS_META } from '@/src/services/status/status-map'
 import { HistoryBars } from './_components/history-bars'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Status | Steel',
   description: 'Status em tempo real dos serviços do Steel.',
-}
+  path: '/status',
+})
 
 export default async function StatusPage() {
   const result = await StatusService.getCurrentSnapshot()

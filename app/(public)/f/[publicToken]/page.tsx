@@ -2,10 +2,12 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
 import { CrmPublicFormRenderer } from '@/app/_components/crm/crm-public-form-renderer'
+import { NO_INDEX } from '@/src/lib/seo/metadata'
 import { CrmFormService } from '@/src/services/crm-form.service'
 
 export const metadata: Metadata = {
   title: 'Formulário',
+  robots: NO_INDEX,
 }
 
 export default async function PublicCrmFormPage({

@@ -3,13 +3,15 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from '@/src/lib/auth'
 import { safeRedirectPath } from '@/src/lib/safe-redirect'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 import { SignUpForm } from './sign-up-form'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Criar conta | Steel',
   description:
     'Crie sua conta no Steel e comece a trabalhar em todas as dimensões.',
-}
+  path: '/sign-up',
+})
 
 export default async function SignUpPage({
   searchParams,

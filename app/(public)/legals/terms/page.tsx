@@ -4,11 +4,13 @@ import { H2 } from '@/components/typography/heading/h2'
 import { Muted } from '@/components/typography/text/muted'
 import { P } from '@/components/typography/text/p'
 import { TERMS_VERSION } from '@/lib/legal/versions'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Termos de Serviço | Steel',
   description: 'Os termos que regem o uso do Steel.',
-}
+  path: '/legals/terms',
+})
 
 export default function ServiceTermPage() {
   return (

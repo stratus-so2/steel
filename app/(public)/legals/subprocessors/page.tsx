@@ -13,11 +13,13 @@ import {
 } from '@/components/ui/table'
 import { PRIVACY_VERSION } from '@/lib/legal/versions'
 import { isBillingEnabled } from '@/src/lib/billing'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Subprocessadores | Steel',
   description: 'Terceiros que processam dados em nome do Steel.',
-}
+  path: '/legals/subprocessors',
+})
 
 const SUBPROCESSORS = [
   {

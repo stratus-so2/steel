@@ -21,6 +21,11 @@ const PUBLIC_ROUTES = [
   '/api/payment/webhook', '/docs', '/legals',
   '/status', '/pricing', '/talk-to-sales',
   '/marketplace', '/invite', '/api/talk-to-sales',
+  // Institutional pages and the crawler/answer-engine files (SEO/AEO/GEO)
+  '/about', '/contact', '/manifesto', '/changelog',
+  '/robots.txt', '/sitemap.xml', '/llms.txt', '/llms-full.txt',
+  '/manifest.webmanifest', '/opengraph-image', '/twitter-image', '/icon',
+  '/apple-icon',
   '/api/whatsapp/webhook', '/api/crm/proposals', '/api/crm/forms',
   '/api/crm/integrations', '/api/crm/workflows', '/api/crm/landing-pages',
   '/f', '/p', '/l', '/api/social/blob',
@@ -189,7 +194,7 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
 
   if (
     NODE_ENV === 'development' &&
-    (pathname === '/reference' || pathname === '/openapi.json' || pathname === '/contact' || pathname === '/testes')
+    (pathname === '/reference' || pathname === '/openapi.json' || pathname === '/testes')
   ) {
     return NextResponse.next({ request: { headers: requestHeaders } })
   }

@@ -3,12 +3,14 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from '@/src/lib/auth'
 import { safeRedirectPath } from '@/src/lib/safe-redirect'
+import { publicPageMetadata } from '@/src/lib/seo/metadata'
 import { SignInForm } from './sign-in-form'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title: 'Entrar | Steel',
   description: 'Acesse sua conta no Steel.',
-}
+  path: '/sign-in',
+})
 
 export default async function SignInPage({
   searchParams,

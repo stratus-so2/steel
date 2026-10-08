@@ -2,23 +2,16 @@ import type { IconSvgElement } from '@hugeicons/react'
 import {
   ArrowRight02Icon,
   Github01Icon,
-  GitlabIcon,
   ServerStack03Icon,
   SlackIcon,
+  WhatsappIcon,
 } from '@hugeicons-pro/core-solid-rounded'
-import { ArrowUpRightIcon } from '@hugeicons-pro/core-stroke-rounded'
-import {
-  SiAsana,
-  SiClickup,
-  SiJira,
-  SiLinear,
-} from '@icons-pack/react-simple-icons'
 import Image from 'next/image'
 import Link from 'next/link'
 import { SteelIcon } from '@/components/icon/icon'
 import { Muted } from '@/components/typography/text/muted'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -34,6 +27,8 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
+import { getAllEntriesMeta } from '@/src/lib/changelog/entries'
+import { formatChangelogDate } from '@/src/lib/changelog/labels'
 import {
   discover,
   featureCapabilities,
@@ -44,11 +39,19 @@ import {
   useCases,
 } from './web-header-nav-data'
 
-export function WebHeader() {
+export async function WebHeader() {
+  const [latest] = await getAllEntriesMeta()
+
   return (
     <header className='mx-auto grid w-full grid-cols-[auto_1fr] items-center gap-2 px-4 lg:grid-cols-[1fr_auto_1fr] lg:gap-0 py-3 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384'>
       <Link href='/' className='justify-self-start'>
-        <Image src='/brand/logo.svg' alt='steel-logo' width={100} height={45} />
+        <Image
+          src='/brand/logo.svg'
+          alt='Steel'
+          width={100}
+          height={45}
+          className='invert dark:invert-0'
+        />
       </Link>
       <NavigationMenu className='hidden flex-1 lg:flex'>
         <NavigationMenuList>
@@ -91,10 +94,10 @@ export function WebHeader() {
                     <Card className='bg-muted border border-brand-500'>
                       <CardContent className='space-y-1.5'>
                         <SteelIcon icon={ServerStack03Icon} size={20} />
-                        <CardTitle>Auto-hospede o Steel</CardTitle>
+                        <CardTitle>Seu banco, suas regras</CardTitle>
                         <CardDescription>
-                          Tudo o que existe na nuvem, implantado na sua própria
-                          infraestrutura.
+                          Aponte um módulo para o seu próprio PostgreSQL, com as
+                          credenciais criptografadas.
                         </CardDescription>
                       </CardContent>
                     </Card>
@@ -102,37 +105,19 @@ export function WebHeader() {
                       <CardContent className='space-y-2.5'>
                         <CardTitle>Funciona com sua stack</CardTitle>
                         <CardDescription>
-                          <div className='flex gap-2'>
-                            <Badge
-                              className='py-3'
-                              render={
-                                <Link href='#'>
-                                  <SteelIcon icon={SlackIcon} />
-                                  Slack
-                                  <SteelIcon icon={ArrowUpRightIcon} />
-                                </Link>
-                              }
-                            />
-                            <Badge
-                              className='py-3'
-                              render={
-                                <Link href='#'>
-                                  <SteelIcon icon={Github01Icon} />
-                                  GitHub
-                                  <SteelIcon icon={ArrowUpRightIcon} />
-                                </Link>
-                              }
-                            />
-                            <Badge
-                              className='py-3'
-                              render={
-                                <Link href='#'>
-                                  <SteelIcon icon={GitlabIcon} />
-                                  GitLab
-                                  <SteelIcon icon={ArrowUpRightIcon} />
-                                </Link>
-                              }
-                            />
+                          <div className='flex flex-wrap gap-2'>
+                            <Badge className='py-3'>
+                              <SteelIcon icon={SlackIcon} />
+                              Slack
+                            </Badge>
+                            <Badge className='py-3'>
+                              <SteelIcon icon={Github01Icon} />
+                              GitHub
+                            </Badge>
+                            <Badge className='py-3'>
+                              <SteelIcon icon={WhatsappIcon} />
+                              WhatsApp
+                            </Badge>
                           </div>
                           <Link href='/marketplace'>
                             <Button variant='link' size='sm' className='p-0'>
@@ -145,20 +130,35 @@ export function WebHeader() {
                     </Card>
                   </div>
                 </div>
-                <div className='flex items-center justify-between bg-muted/75 rounded-md p-2.5'>
-                  <div className='flex items-center gap-2'>
-                    <p className='text-sm'>
-                      Novidade: Suporte ao GovSlack, correção do endpoint de
-                      notificações, otimizações de monitoramento | Versão v2.6.3
-                    </p>
-                    <Button variant='link' size='sm'>
-                      Saiba mais <SteelIcon icon={ArrowRight02Icon} size={20} />
-                    </Button>
+                {latest && (
+                  <div className='flex items-center justify-between bg-muted/75 rounded-md p-2.5'>
+                    <div className='flex items-center gap-2'>
+                      <p className='text-sm'>
+                        Novidade: {latest.title} |{' '}
+                        {formatChangelogDate(latest.date)}
+                      </p>
+                      <Link
+                        href={`/changelog/${latest.slug}`}
+                        className={buttonVariants({
+                          variant: 'link',
+                          size: 'sm',
+                        })}
+                      >
+                        Saiba mais{' '}
+                        <SteelIcon icon={ArrowRight02Icon} size={20} />
+                      </Link>
+                    </div>
+                    <Link
+                      href='/changelog'
+                      className={buttonVariants({
+                        variant: 'link',
+                        size: 'sm',
+                      })}
+                    >
+                      Ver o changelog
+                    </Link>
                   </div>
-                  <Button variant='link' size='sm'>
-                    Baixe o app do Steel
-                  </Button>
-                </div>
+                )}
               </div>
             </NavigationMenuContent>
           </NavigationMenuItem>
@@ -218,53 +218,24 @@ export function WebHeader() {
                     <Card className='bg-muted border border-brand-500 h-full'>
                       <CardContent className='flex flex-1 flex-col'>
                         <CardTitle>
-                          Descubra por que as equipes migram para o Steel
+                          Veja o Steel com os seus processos
                         </CardTitle>
                         <CardDescription className='mt-1.5'>
-                          Veja como o Steel se compara às ferramentas que você
-                          já conhece
+                          Mostramos o ServiceDesk, o CRM e o WhatsApp rodando
+                          com as filas, os funis e os SLAs do seu time.
                         </CardDescription>
-                        <div className='mt-auto flex flex-wrap gap-2 pt-4'>
-                          <Badge
-                            className='py-3'
-                            render={
-                              <Link href='#'>
-                                <SiLinear size={16} />
-                                Linear
-                                <SteelIcon icon={ArrowUpRightIcon} />
-                              </Link>
-                            }
-                          />
-                          <Badge
-                            className='py-3'
-                            render={
-                              <Link href='#'>
-                                <SiJira size={16} />
-                                Jira
-                                <SteelIcon icon={ArrowUpRightIcon} />
-                              </Link>
-                            }
-                          />
-                          <Badge
-                            className='py-3'
-                            render={
-                              <Link href='#'>
-                                <SiAsana size={16} />
-                                Asana
-                                <SteelIcon icon={ArrowUpRightIcon} />
-                              </Link>
-                            }
-                          />
-                          <Badge
-                            className='py-3'
-                            render={
-                              <Link href='#'>
-                                <SiClickup size={16} />
-                                ClickUp
-                                <SteelIcon icon={ArrowUpRightIcon} />
-                              </Link>
-                            }
-                          />
+                        <div className='mt-auto pt-4'>
+                          <Link
+                            href='/talk-to-sales'
+                            className={buttonVariants({
+                              variant: 'link',
+                              size: 'sm',
+                              className: 'p-0',
+                            })}
+                          >
+                            Agendar uma demonstração
+                            <SteelIcon icon={ArrowRight02Icon} size={20} />
+                          </Link>
                         </div>
                       </CardContent>
                     </Card>
@@ -311,17 +282,26 @@ export function WebHeader() {
                   <div className='col-span-2 flex gap-4 h-full'>
                     <div className='flex-1 flex flex-col gap-1.5'>
                       <Muted>Última atualização</Muted>
-                      <Link href='#' className='h-full'>
+                      <Link
+                        href={
+                          latest ? `/changelog/${latest.slug}` : '/changelog'
+                        }
+                        className='h-full'
+                      >
                         <Card className='bg-muted border border-brand-500 h-full'>
                           <CardContent className='space-y-1.5 flex flex-col justify-between h-full'>
-                            <Badge>Versão 2.6.3</Badge>
+                            <Badge>
+                              {latest
+                                ? formatChangelogDate(latest.date)
+                                : 'Changelog'}
+                            </Badge>
                             <div>
                               <CardTitle className='text-branding-400'>
-                                Self-Hosted
+                                {latest?.title ?? 'Novidades do Steel'}
                               </CardTitle>
                               <CardDescription className='line-clamp-2'>
-                                Suporte ao GovSlack, correção do endpoint de
-                                notificações e otimizações no monitoramento
+                                {latest?.summary ??
+                                  'Tudo o que entrou no Steel, release a release.'}
                               </CardDescription>
                             </div>
                           </CardContent>
@@ -329,25 +309,16 @@ export function WebHeader() {
                       </Link>
                     </div>
                     <div className='flex-1 flex flex-col gap-1.5'>
-                      <Muted>Download</Muted>
-                      <Link href='#' className='h-full'>
-                        <Card className='relative overflow-hidden bg-muted border border-brand-500 h-full'>
-                          <div className='pointer-events-none absolute inset-0'>
-                            <img
-                              src='/static/app-mobile.avif'
-                              alt='steel-mobile'
-                              className='h-full w-full object-center object-cover brightness-75'
-                            />
-                            <div className='absolute inset-0 bg-linear-to-t from-black to-transparent' />
-                          </div>
-                          <CardContent className='relative z-10 space-y-2.5 flex flex-col justify-between h-full'>
-                            <Badge>Em breve</Badge>
+                      <Muted>Manifesto</Muted>
+                      <Link href='/manifesto' className='h-full'>
+                        <Card className='bg-muted border border-brand-500 h-full'>
+                          <CardContent className='space-y-2.5 flex flex-col justify-between h-full'>
+                            <Badge>Leitura</Badge>
                             <div>
-                              <CardTitle className='flex gap-2'>
-                                Steel em todos os dispositivos
-                              </CardTitle>
+                              <CardTitle>Os princípios do Steel</CardTitle>
                               <CardDescription>
-                                Disponível para Mac, Windows, iOS e Android
+                                Como pensamos atendimento, vendas e IA num
+                                sistema de registro só.
                               </CardDescription>
                             </div>
                           </CardContent>
@@ -365,7 +336,7 @@ export function WebHeader() {
           />
           <NavigationMenuLink
             className={navigationMenuTriggerStyle()}
-            render={<Link href='/self-hosted'>Self-host Steel</Link>}
+            render={<Link href='/changelog'>Changelog</Link>}
           />
         </NavigationMenuList>
       </NavigationMenu>
