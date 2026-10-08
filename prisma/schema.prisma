@@ -40,6 +40,10 @@ model User {
   twoFactors               TwoFactor[]
   shortLinks               ShortLink[]
   stickyNotes              StickyNote[]
+  createdWikiPages         WikiPage[]                  @relation("WikiPageAuthor")
+  updatedWikiPages         WikiPage[]                  @relation("WikiPageEditor")
+  wikiComments             WikiComment[]               @relation("WikiCommentAuthor")
+  resolvedWikiComments     WikiComment[]               @relation("WikiCommentResolver")
   consentEvents            ConsentEvent[]
   projectsLed              Project[]                   @relation("ProjectLead")
   projectMemberships       ProjectMember[]
@@ -372,11 +376,15 @@ model Workspace {
   suspendedAt     DateTime?       @map("suspended_at")
   suspendedReason String?         @map("suspended_reason")
   suspendedById   String?         @map("suspended_by_id")
+  /// Wiki do workspace: desligada até um OWNER/ADMIN ativar em Ajustes > Wiki.
+  wikiEnabled     Boolean         @default(false) @map("wiki_enabled")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   memberships     Membership[]
   subscriptions   Subscription[]
   projects        Project[]
+  wikiPages       WikiPage[]
+  wikiLabels      WikiLabel[]
 
   invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
@@ -6735,4 +6743,88 @@ model SearchDocument {
   @@index([codes], type: Gin, map: "search_documents_codes_idx")
   @@index([workspaceId, entityType, indexedAt])
   @@map("search_documents")
+}
+
+model WikiPage {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  parentId    String?   @map("parent_id")
+  title       String
+  icon        String?
+  coverImage  String?   @map("cover_image")
+  content     Json
+  yjsState    Bytes?    @map("yjs_state")
+  position    Int       @default(0)
+  createdById String?   @map("created_by_id")
+  updatedById String?   @map("updated_by_id")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent    WikiPage?       @relation("WikiPageTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  WikiPage[]      @relation("WikiPageTree")
+  createdBy User?           @relation("WikiPageAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?           @relation("WikiPageEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  comments  WikiComment[]
+  labels    WikiPageLabel[]
+
+  @@index([workspaceId, archivedAt])
+  @@map("wiki_pages")
+}
+
+model WikiComment {
+  id           String    @id @default(cuid())
+  wikiPageId   String    @map("wiki_page_id")
+  authorId     String?   @map("author_id")
+  parentId     String?   @map("parent_id")
+  // Discussion id shared by the root comment and all its replies — matches
+  // the Plate `comment_<markId>` mark applied to the referenced text range.
+  markId       String    @map("mark_id")
+  content      Json
+  // Only meaningful on the root comment (parentId null); replies inherit the
+  // thread's resolved state instead of carrying their own.
+  resolved     Boolean   @default(false)
+  resolvedAt   DateTime? @map("resolved_at")
+  resolvedById String?   @map("resolved_by_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  wikiPage   WikiPage      @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+  author     User?         @relation("WikiCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  resolvedBy User?         @relation("WikiCommentResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  parent     WikiComment?  @relation("WikiCommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    WikiComment[] @relation("WikiCommentThread")
+
+  @@index([wikiPageId, markId])
+  @@map("wiki_comments")
+}
+
+/// Etiqueta da Wiki, gerida em Ajustes > Wiki e aplicada às páginas.
+model WikiLabel {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  name        String
+  color       String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pages     WikiPageLabel[]
+
+  @@unique([workspaceId, name])
+  @@map("wiki_labels")
+}
+
+model WikiPageLabel {
+  wikiPageId String   @map("wiki_page_id")
+  labelId    String   @map("label_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  wikiPage WikiPage  @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+  label    WikiLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([wikiPageId, labelId])
+  @@index([labelId])
+  @@map("wiki_page_labels")
 }

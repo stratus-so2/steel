@@ -41,6 +41,7 @@ describe('toUserDTO()', () => {
             suspendedAt: null,
             suspendedReason: null,
             suspendedById: null,
+            wikiEnabled: false,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
