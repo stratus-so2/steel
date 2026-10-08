@@ -25,9 +25,10 @@ export default async function SettingsMembersPage({
 }: {
   params: Promise<{ 'workspace-slug': string }>
 }) {
-  const { 'workspace-slug': slug } = await params
-
-  const session = await getAuthSession()
+  const [{ 'workspace-slug': slug }, session] = await Promise.all([
+    params,
+    getAuthSession(),
+  ])
   if (!session.ok) redirect('/sign-in')
 
   const membership = await MembershipService.getByUserAndSlug(
@@ -51,19 +52,21 @@ export default async function SettingsMembersPage({
           </HeaderBreadcrumbCrumb>
         </HeaderBreadcrumbList>
       </HeaderInternalNavigation>
-      <div className='w-full p-6 space-y-6'>
+      <div className='w-full p-4 sm:p-6 flex flex-col gap-6'>
         <div>
           <H3>Membros</H3>
-          <Muted>
-            Convide pessoas para o workspace e acompanhe os convites pendentes.
-          </Muted>
+          <Muted>Gerencie o acesso a este workspace.</Muted>
         </div>
         {canManage ? (
-          <MembersManager workspaceId={membership.value.workspaceId} />
+          <MembersManager
+            workspaceId={membership.value.workspaceId}
+            currentUserId={session.value.user.id}
+            actorRole={membership.value.role}
+          />
         ) : (
           <Muted>
-            Apenas o dono e os administradores do workspace podem gerenciar
-            convites.
+            Apenas o dono e os administradores do workspace podem gerenciar os
+            membros e os convites.
           </Muted>
         )}
       </div>
