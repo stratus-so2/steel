@@ -1,17 +1,29 @@
 import type { Metadata } from 'next'
-import { SteelAiComingSoon } from '@/app/_components/steel-ai-usage/steel-ai-coming-soon'
+import { notFound, redirect } from 'next/navigation'
+import { SteelAiMemoryPage } from '@/app/_components/steel-ai-memory/steel-ai-memory-page'
+import { getAuthSession } from '@/src/lib/auth-session'
+import { MembershipService } from '@/src/services/membership.service'
 
 export const metadata: Metadata = {
   title: 'Memória | Steel AI | Steel',
   description: 'O que o Steel AI lembra sobre você e o espaço de trabalho.',
 }
 
-/** Placeholder until the memory slice ships this page. */
-export default function SteelAiMemoryPage() {
+export default async function SteelAiMemoryRoute({
+  params,
+}: {
+  params: Promise<{ 'workspace-slug': string }>
+}) {
+  const { 'workspace-slug': slug } = await params
+  const session = await getAuthSession()
+  if (!session.ok) redirect('/sign-in')
+  const membership = await MembershipService.getByUserAndSlug(
+    session.value.user.id,
+    slug,
+  )
+  if (!membership.ok || !membership.value) notFound()
+
   return (
-    <SteelAiComingSoon
-      segment='memory'
-      description='O que o Steel AI lembra sobre você e sobre o espaço de trabalho, para revisar e apagar. Esta área chega em breve.'
-    />
+    <SteelAiMemoryPage workspaceId={membership.value.workspaceId} slug={slug} />
   )
 }

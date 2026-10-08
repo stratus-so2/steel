@@ -14,6 +14,7 @@ import type {
 import { SteelAiMessageAttachments } from './steel-ai-attachments'
 import { SteelAiExecutedActionCard } from './steel-ai-executed-action-card'
 import { SteelAiMarkdown } from './steel-ai-markdown'
+import { SteelAiMemoryChip } from './steel-ai-memory-chip'
 import { SteelAiPendingActionCard } from './steel-ai-pending-action-card'
 import { SteelAiToolCall } from './steel-ai-tool-call'
 
@@ -81,9 +82,17 @@ function AssistantBlock({
             className='flex flex-wrap gap-1.5'
             aria-label='Ferramentas usadas'
           >
-            {toolCalls.map((call) => (
-              <SteelAiToolCall key={call.id} call={call} />
-            ))}
+            {toolCalls.map((call) =>
+              call.memory ? (
+                <SteelAiMemoryChip
+                  key={call.id}
+                  workspaceId={workspaceId}
+                  memory={call.memory}
+                />
+              ) : (
+                <SteelAiToolCall key={call.id} call={call} />
+              ),
+            )}
           </ul>
         ) : null}
         {thinking ? (

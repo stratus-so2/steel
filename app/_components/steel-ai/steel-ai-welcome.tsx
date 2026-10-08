@@ -2,15 +2,17 @@
 
 import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { useEnabledAiSkills } from '@/src/hooks/use-ai-skills'
 import {
   useCreateSteelAiConversation,
   useSteelAiCapabilities,
 } from '@/src/hooks/use-steel-ai'
+import { AI_SKILL_SLUG_PATTERN } from '@/src/lib/ai/context/skill-command'
 import { isQuotaExceeded } from '@/src/lib/ai/quota'
 import type { AiConversationModeDTO } from '@/types/steel-ai'
 import {
@@ -29,6 +31,12 @@ import {
 import { STEEL_AI_MODULE_META, steelAiStartersFor } from './steel-ai-starters'
 import { SteelAiTopBar } from './steel-ai-top-bar'
 
+/** `?skill=my-work` → "my-work" (only a valid command). */
+export function skillFromSearch(search: string): string | null {
+  const slug = new URLSearchParams(search).get('skill')?.toLowerCase() ?? ''
+  return AI_SKILL_SLUG_PATTERN.test(slug) ? slug : null
+}
+
 /** Starters shown on phones — the rest appear from `sm` up. */
 const MOBILE_STARTERS = 4
 
@@ -41,6 +49,7 @@ export function SteelAiWelcome() {
   const { workspaceId, slug, firstName } = useSteelAiWorkspace()
   const router = useRouter()
   const capabilities = useSteelAiCapabilities(workspaceId)
+  const skills = useEnabledAiSkills(workspaceId)
   const createConversation = useCreateSteelAiConversation(workspaceId)
   const [draft, setDraft] = useState('')
   const [mode, setMode] = useState<AiConversationModeDTO>('EXPLORE')
@@ -48,6 +57,11 @@ export function SteelAiWelcome() {
   const [leaving, setLeaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const caps = capabilities.data
+  // "Usar no chat" on the Skills page links here with ?skill=<slug>.
+  useEffect(() => {
+    const slug = skillFromSearch(window.location.search)
+    if (slug) setDraft(`/${slug} `)
+  }, [])
   // No conversation yet: files wait until it is created on submit.
   const files = useSteelAiDraftAttachments({
     workspaceId,
@@ -172,6 +186,7 @@ export function SteelAiWelcome() {
                   }
                 : undefined
             }
+            skills={skills}
             isSubmitting={leaving}
             disabled={quotaExhausted || aiDisabled}
             autoFocus

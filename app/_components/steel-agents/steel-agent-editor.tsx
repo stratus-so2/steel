@@ -2,6 +2,10 @@
 
 import { Alert02Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { useState } from 'react'
+import {
+  appendSkillInstructions,
+  SteelAiSkillInsertMenu,
+} from '@/app/_components/steel-ai-skills/steel-ai-skill-insert-menu'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -161,7 +165,19 @@ export function SteelAgentEditor({
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor='agent-instructions'>Instruções</FieldLabel>
+          <div className='flex items-center justify-between gap-2'>
+            <FieldLabel htmlFor='agent-instructions'>Instruções</FieldLabel>
+            <SteelAiSkillInsertMenu
+              workspaceId={workspaceId}
+              disabled={disabled}
+              onInsert={(skill) =>
+                set(
+                  'instructions',
+                  appendSkillInstructions(form.instructions, skill),
+                )
+              }
+            />
+          </div>
           <Textarea
             id='agent-instructions'
             value={form.instructions}
