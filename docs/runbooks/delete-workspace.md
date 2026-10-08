@@ -34,6 +34,31 @@
    - Se aparecer **“Arquivos não apagados por completo”**, veja
      [limpeza manual de arquivos](#limpeza-manual-de-arquivos).
 
+## Pelo próprio dono (Ajustes > Geral)
+
+O **OWNER** do workspace também pode pedir a exclusão, sem passar pelo time:
+`/<slug>/settings` → **Excluir este workspace** → digita o **slug** no
+diálogo. ADMIN e demais papéis não veem o botão (a API responde `403`).
+
+- É o **mesmo pipeline** do painel (`queueWorkspaceDeletion` em
+  `src/services/workspace-deletion.ts`): cria a operação `WORKSPACE_DELETE`,
+  marca o workspace `DELETING` (membros bloqueados na hora) e o worker faz
+  backup → cancela assinaturas → apaga dados → apaga arquivos. A operação
+  aparece em `/admin/backups` e na linha do tempo do workspace no admin
+  (`workspace.delete_requested`, motivo “Exclusão solicitada pelo dono do
+  workspace em Ajustes > Geral”).
+- O dono **nunca força** o cancelamento de assinatura: se o AbacatePay
+  recusar, a operação falha, nada é apagado e o workspace volta a `ACTIVE`.
+  O dono só percebe porque o workspace volta a abrir — confira a operação em
+  `/admin/backups` e siga [Se falhar](#se-falhar).
+- API: `DELETE /api/workspaces/{id}` com `{ "confirmation": "<slug>" }`,
+  resposta `202` com o `operationId`.
+- O texto da tela diz “Nada pode ser recuperado — nem mesmo por nós”, mas o
+  backup da operação (e os backups FULL diários) seguem existindo pela
+  retenção de 90 dias. Se o dono se arrepender e pedir, o caminho continua
+  sendo [Desfazer](#desfazer-restaurar-o-workspace-excluído) — decisão do
+  produto, não automática.
+
 ### Se falhar
 
 | Passo onde parou | O que aconteceu | O que fazer |
@@ -52,7 +77,8 @@ estava (backup já concluído é reaproveitado).
 Os arquivos de um workspace ficam no MinIO sob o prefixo `<workspaceId>/`
 nos buckets `projects-covers`, `crm-landing-page-images`,
 `crm-landing-page-videos`, `crm-proposal-images`, `crm-scheduled-posts`,
-`crm-social-publish-tmp`, `whatsapp-media` e `whatsapp-ai-knowledge` (lista
+`crm-social-publish-tmp`, `whatsapp-media`, `whatsapp-ai-knowledge`,
+`servicedesk`, `steel-ai-attachments` e `workspace-logos` (lista
 em `src/lib/storage/workspace-files.ts`). Pelo console do MinIO
 (`http://127.0.0.1:9003`, via túnel SSH) ou com o `mc` (imagem
 `pgsty/mc`, o cliente do fork Silo — a `minio/mc` saiu do ar junto com a
@@ -61,7 +87,7 @@ distribuição pública do MinIO):
 ```bash
 docker run --rm --network steel_default --entrypoint sh pgsty/mc -c \
   'mc alias set s http://steel-minio:9000 "$MINIO_USER" "$MINIO_PASSWORD" && \
-   for b in projects-covers crm-landing-page-images crm-landing-page-videos crm-proposal-images crm-scheduled-posts crm-social-publish-tmp whatsapp-media whatsapp-ai-knowledge; do \
+   for b in projects-covers crm-landing-page-images crm-landing-page-videos crm-proposal-images crm-scheduled-posts crm-social-publish-tmp whatsapp-media whatsapp-ai-knowledge servicedesk steel-ai-attachments workspace-logos; do \
      mc rm --recursive --force "s/$b/<workspaceId>/"; done'
 ```
 

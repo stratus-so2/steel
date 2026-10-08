@@ -11,8 +11,20 @@ const userHook = vi.hoisted(() => ({ useUser: vi.fn() }))
 vi.mock('@/src/hooks/use-user', () => userHook)
 
 const MEMBERSHIPS = [
-  { workspaceId: 'w1', slug: 'acme', name: 'acme corp', role: 'OWNER' },
-  { workspaceId: 'w2', slug: 'beta', name: 'Beta Ltda', role: 'MEMBER' },
+  {
+    workspaceId: 'w1',
+    slug: 'acme',
+    name: 'acme corp',
+    role: 'OWNER',
+    logoUrl: null,
+  },
+  {
+    workspaceId: 'w2',
+    slug: 'beta',
+    name: 'Beta Ltda',
+    role: 'MEMBER',
+    logoUrl: null as string | null,
+  },
 ]
 
 function renderDropdown(currentSlug: string, memberships = MEMBERSHIPS) {
@@ -32,6 +44,15 @@ describe('<WorkSpaceDropdown />', () => {
     const trigger = screen.getByRole('button')
     expect(trigger.textContent).toContain('A')
     expect(trigger.textContent).toContain('acme corp')
+  })
+
+  it('shows the workspace logo when there is one', () => {
+    renderDropdown('beta', [
+      MEMBERSHIPS[0],
+      { ...MEMBERSHIPS[1], logoUrl: 'https://cdn.test/beta.png' },
+    ])
+    const logo = screen.getByAltText('Logo de Beta Ltda') as HTMLImageElement
+    expect(logo.src).toBe('https://cdn.test/beta.png')
   })
 
   it('falls back to a placeholder while the user is loading', () => {
