@@ -828,14 +828,6 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
     priority: 'P2',
   },
   {
-    id: 'crm.lead.convert',
-    keys: 'shift+o',
-    scope: 'crm.record',
-    group: 'crm',
-    label: 'Converter o lead em oportunidade',
-    priority: 'P2',
-  },
-  {
     id: 'crm.opportunity.won',
     keys: 'shift+g',
     scope: 'crm.record',

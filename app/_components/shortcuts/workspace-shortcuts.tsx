@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { type ReactNode, useState } from 'react'
 import { AskSteelAiDialog } from '@/app/_components/steel-ai-ask/ask-steel-ai-dialog'
 import { notify } from '@/lib/notify'
@@ -134,8 +135,10 @@ export function WorkspaceShortcuts({
   children: ReactNode
 }) {
   const preferences = useUserPreferences()
+  const router = useRouter()
   return (
     <ShortcutsProvider
+      navigate={router.push}
       singleKeyEnabled={preferences.data?.singleKeyShortcuts ?? true}
       quickSendMode={preferences.data?.quickSendShortcut ?? 'ENTER'}
     >

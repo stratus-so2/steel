@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import type { RefObject } from 'react'
 import { useShortcut, useShortcuts } from './shortcuts-provider'
 
@@ -90,7 +89,6 @@ function columnsOf(container: HTMLElement | null, rows: HTMLElement[]) {
  */
 export function useListShortcuts(options: ListShortcutOptions) {
   const ctx = useShortcuts()
-  const router = useRouter()
   const {
     containerRef,
     enabled = true,
@@ -138,7 +136,7 @@ export function useListShortcuts(options: ListShortcutOptions) {
         return false
       if (onOpen) return onOpen(rowId(row), row)
       const href = row.dataset.shortcutHref
-      if (href) router.push(href)
+      if (href) ctx?.navigate(href)
       else row.click()
     },
     { enabled },

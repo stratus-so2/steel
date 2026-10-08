@@ -50,6 +50,8 @@ type ShortcutsApi = {
   setCheatSheetOpen: (open: boolean) => void
   /** Runs the newest enabled binding of `id` (e.g. open the search). */
   trigger: (id: string) => boolean
+  /** Client-side navigation (the app router), for list rows with an href. */
+  navigate: (href: string) => void
 }
 
 const ShortcutsContext = createContext<ShortcutsApi | null>(null)
@@ -95,10 +97,15 @@ export function topOverlay(doc: Document = document): Element | null {
   return open.at(-1) ?? null
 }
 
+function defaultNavigate(href: string) {
+  window.location.assign(href)
+}
+
 export function ShortcutsProvider({
   children,
   singleKeyEnabled = true,
   quickSendMode = 'ENTER',
+  navigate = defaultNavigate,
   isMac: forcedMac,
 }: {
   children: ReactNode
@@ -106,6 +113,8 @@ export function ShortcutsProvider({
   singleKeyEnabled?: boolean
   /** User preference "Envio rápido". */
   quickSendMode?: QuickSendMode
+  /** The shell passes the app router; default is a full navigation. */
+  navigate?: (href: string) => void
   /** Tests only: skip the platform detection. */
   isMac?: boolean
 }) {
@@ -207,6 +216,7 @@ export function ShortcutsProvider({
       cheatSheetOpen,
       setCheatSheetOpen,
       trigger,
+      navigate,
     }),
     [
       isMac,
@@ -216,6 +226,7 @@ export function ShortcutsProvider({
       activeIds,
       cheatSheetOpen,
       trigger,
+      navigate,
     ],
   )
 
