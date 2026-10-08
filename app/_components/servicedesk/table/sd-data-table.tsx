@@ -103,6 +103,8 @@ export interface SdDataTableProps<T extends { id: string }> {
   /** Colunas ocultas controladas por quem usa (sem localStorage). */
   hiddenColumns?: string[]
   rowClassName?: (row: T) => string | undefined
+  /** Page of the row, for J/K + Enter/O and the ticket's J/K (shortcuts). */
+  rowHref?: (row: T) => string
 }
 
 const PAGE_SIZES = [10, 25, 50, 100]
@@ -145,6 +147,7 @@ export function SdDataTable<T extends { id: string }>({
   hideToolbar,
   hiddenColumns,
   rowClassName,
+  rowHref,
 }: SdDataTableProps<T>) {
   const defaultHidden = useMemo(
     () => columns.filter((c) => c.defaultHidden).map((c) => c.id),
@@ -363,9 +366,26 @@ export function SdDataTable<T extends { id: string }>({
               rows.map((row) => (
                 <TableRow
                   key={row.id}
+                  data-shortcut-row={row.id}
+                  data-shortcut-href={rowHref?.(row)}
+                  tabIndex={onRowClick ? 0 : undefined}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => {
+                          if (
+                            event.key === 'Enter' &&
+                            event.target === event.currentTarget
+                          ) {
+                            event.preventDefault()
+                            onRowClick(row)
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
-                    onRowClick && 'cursor-pointer',
+                    onRowClick &&
+                      'cursor-pointer outline-none focus-visible:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset',
                     rowClassName?.(row),
                   )}
                 >

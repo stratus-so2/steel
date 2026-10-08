@@ -48,6 +48,8 @@ type ShortcutsApi = {
   activeIds: () => Set<string>
   cheatSheetOpen: boolean
   setCheatSheetOpen: (open: boolean) => void
+  /** Runs the newest enabled binding of `id` (e.g. open the search). */
+  trigger: (id: string) => boolean
 }
 
 const ShortcutsContext = createContext<ShortcutsApi | null>(null)
@@ -138,6 +140,20 @@ export function ShortcutsProvider({
     return ids
   }, [])
 
+  const trigger = useCallback((id: string) => {
+    const regs = [...registrations.current.values()]
+      .filter((reg) => reg.definition.id === id && reg.enabled.current)
+      .sort((a, b) => b.order - a.order)
+    for (const reg of regs) {
+      const handled = reg.handler.current?.(
+        new KeyboardEvent('keydown'),
+        reg.definition.keys[0],
+      )
+      if (handled !== false) return true
+    }
+    return false
+  }, [])
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       // A component already handled this key (editor, combobox, composer).
@@ -190,6 +206,7 @@ export function ShortcutsProvider({
       activeIds,
       cheatSheetOpen,
       setCheatSheetOpen,
+      trigger,
     }),
     [
       isMac,
@@ -198,6 +215,7 @@ export function ShortcutsProvider({
       register,
       activeIds,
       cheatSheetOpen,
+      trigger,
     ],
   )
 

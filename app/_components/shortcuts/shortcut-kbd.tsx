@@ -59,9 +59,15 @@ export function ShortcutKbd({
   className,
   all = false,
   always = false,
+  announce = false,
 }: {
   id: string
   className?: string
+  /**
+   * Read the keys to screen readers (cheat sheet). Elsewhere the keys are
+   * decorative, so they never change a button's or menu item's name.
+   */
+  announce?: boolean
   /** Show every alternative (`J` ou `↓`); default shows the first one. */
   all?: boolean
   /** Show even when the user turned single-key shortcuts off. */
@@ -78,7 +84,10 @@ export function ShortcutKbd({
   const shown = all || range ? keys : keys.slice(0, 1)
   if (shown.length === 0) return null
   return (
-    <span className={cn('inline-flex items-center gap-1', className)}>
+    <span
+      className={cn('inline-flex items-center gap-1', className)}
+      aria-hidden={announce ? undefined : true}
+    >
       {shown.map((k, index) => (
         <Fragment key={k}>
           {index > 0 ? (

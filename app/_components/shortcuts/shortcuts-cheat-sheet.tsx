@@ -74,6 +74,7 @@ function ShortcutList({ entries }: { entries: ShortcutDefinition[] }) {
                   id={entry.id}
                   all
                   always
+                  announce
                   className='shrink-0 flex-wrap justify-end'
                 />
               </li>

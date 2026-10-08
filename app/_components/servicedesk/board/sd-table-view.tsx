@@ -2,7 +2,7 @@
 
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { type RefObject, useEffect, useState } from 'react'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -352,6 +352,15 @@ function BulkBar({
 }
 
 /** Tabela paginada no servidor com seleção múltipla e ações em massa. */
+/** Selection of the table, driven by the board shortcuts (X, Shift+J/K…). */
+export type SdTableSelectionApi = {
+  isSelected: (id: string) => boolean
+  toggle: (id: string) => void
+  selectAll: () => void
+  /** `false` when nothing was selected. */
+  clear: () => boolean
+}
+
 export function SdTableView({
   workspaceId,
   slug,
@@ -369,6 +378,7 @@ export function SdTableView({
   onPageChange,
   onPageSizeChange,
   onSortChange,
+  selectionRef,
 }: {
   workspaceId: string
   slug: string
@@ -386,11 +396,35 @@ export function SdTableView({
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   onSortChange: (sort: SdSortField, order: 'asc' | 'desc') => void
+  selectionRef?: RefObject<SdTableSelectionApi | null>
 }) {
   const router = useRouter()
   const now = useSdNow()
   const [selected, setSelected] = useState<string[]>([])
   const pageIds = tickets.map((t) => t.id)
+
+  useEffect(() => {
+    if (!selectionRef) return
+    selectionRef.current = {
+      isSelected: (id) => selected.includes(id),
+      toggle: (id) =>
+        setSelected((current) =>
+          current.includes(id)
+            ? current.filter((x) => x !== id)
+            : [...current, id],
+        ),
+      selectAll: () =>
+        setSelected((current) => [...new Set([...current, ...pageIds])]),
+      clear: () => {
+        if (selected.length === 0) return false
+        setSelected([])
+        return true
+      },
+    }
+    return () => {
+      selectionRef.current = null
+    }
+  })
   const allSelected =
     pageIds.length > 0 && pageIds.every((id) => selected.includes(id))
 
@@ -463,6 +497,7 @@ export function SdTableView({
           isLoading={loading}
           error={error}
           onRowClick={(t) => router.push(sdTicketHref(slug, t))}
+          rowHref={(t) => sdTicketHref(slug, t)}
           rowClassName={(t) =>
             selected.includes(t.id) ? 'bg-primary/5' : undefined
           }

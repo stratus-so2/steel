@@ -9,7 +9,13 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded'
 import { useQueries } from '@tanstack/react-query'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
+import { ShortcutKbd } from '@/app/_components/shortcuts/shortcut-kbd'
+import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
+import {
+  focusedRow,
+  useListShortcuts,
+} from '@/app/_components/shortcuts/use-list-shortcuts'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,15 +27,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Kbd } from '@/components/ui/kbd'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import { apiFetch } from '@/src/hooks/_fetch'
-import { useSdAgents, useSdConfig } from '@/src/hooks/use-sd-config'
+import { useSdAgents, useSdConfig, useSdMe } from '@/src/hooks/use-sd-config'
 import {
   type SdTicketFilters,
   sdTicketKeys,
   sdTicketQueryString,
+  useBulkUpdateSdTickets,
   useInfiniteSdTickets,
   useSdTicketKanban,
   useSdTicketRealtime,
@@ -77,7 +83,12 @@ import {
   sdDefaultViewKey,
   sdReadDefaultView,
 } from './sd-saved-views-menu'
-import { SdTableView, sdTicketColumns } from './sd-table-view'
+import {
+  type SdTableSelectionApi,
+  SdTableView,
+  sdTicketColumns,
+} from './sd-table-view'
+import { sdRememberTicketList } from './sd-ticket-nav'
 
 const MODES: { id: SdBoardMode; label: string; icon: IconSvgElement }[] = [
   { id: 'kanban', label: 'Kanban', icon: KanbanIcon },
@@ -142,6 +153,10 @@ interface ModeProps {
   onMove: (ticket: SdTicketDTO, phaseId: string) => void
   onCreate: (preset: SdCreateTicketPreset) => void
   onShowMore: () => void
+  /** Keyboard move of the focused kanban card (Shift+←/→). */
+  moveRef: RefObject<((id: string, columnId: string) => boolean) | null>
+  /** Table selection driven by X, Shift+J/K, Ctrl+A and Esc. */
+  selectionRef: RefObject<SdTableSelectionApi | null>
 }
 
 function TypeKanban({
@@ -154,6 +169,7 @@ function TypeKanban({
   onShowMore,
   workspaceId,
   isAdmin,
+  moveRef,
 }: ModeProps & { type: SdTicketTypeDTO }) {
   const board = useSdTicketKanban(workspaceId, {
     ...filters,
@@ -177,6 +193,7 @@ function TypeKanban({
       onMove={(ticket, phaseId) => onMove(ticket, phaseId)}
       onCreate={(phaseId) => onCreate({ type, phaseId })}
       onShowMore={onShowMore}
+      moveRef={moveRef}
     />
   )
 }
@@ -190,6 +207,7 @@ function AllKanban({
   onMove,
   onShowMore,
   isAdmin,
+  moveRef,
 }: ModeProps) {
   const types = filters.types?.length ? filters.types : SD_TICKET_TYPES
   const boards = useQueries({
@@ -233,6 +251,7 @@ function AllKanban({
         onMove(ticket, phase.id)
       }}
       onShowMore={onShowMore}
+      moveRef={moveRef}
     />
   )
 }
@@ -264,6 +283,7 @@ function TableMode({
   agents,
   hiddenColumns,
   onState,
+  selectionRef,
 }: ModeProps & {
   hiddenColumns: string[]
   onState: (next: Partial<SdBoardState>) => void
@@ -291,6 +311,7 @@ function TableMode({
       onPageChange={(p) => onState({ page: p })}
       onPageSizeChange={(size) => onState({ pageSize: size, page: 1 })}
       onSortChange={(sort, order) => onState({ sort, order, page: 1 })}
+      selectionRef={selectionRef}
     />
   )
 }
@@ -303,7 +324,8 @@ function TableMode({
  * Quadro de chamados reutilizável: `/tickets` (todos, com seletor de tipo)
  * e `/incidents|requests|changes|problems` (tipo fixo). Três modos —
  * Kanban, Lista e Tabela — sobre o mesmo estado de filtros na URL, visões
- * salvas, tempo real e atalhos (`n` novo, `/` busca).
+ * salvas, tempo real e atalhos do registro (`list.*`, `kanban.*`: J/K,
+ * Enter/O, N, /, F, V, X, Shift+A, ←/→ e Shift+←/→ no kanban).
  */
 export function SdTicketBoard({
   workspaceId,
@@ -386,25 +408,60 @@ export function SdTicketBoard({
     writeHiddenColumns(boardKey, next)
   }
 
-  // Atalhos: `n` abre um chamado, `/` vai para a busca.
+  // Atalhos (registro `list.*`, `kanban.*`, `sd.board.*`).
+  const listRef = useRef<HTMLDivElement | null>(null)
+  const moveRef = useRef<((id: string, columnId: string) => boolean) | null>(
+    null,
+  )
+  const selectionRef = useRef<SdTableSelectionApi | null>(null)
+  const me = useSdMe(workspaceId)
+  const bulk = useBulkUpdateSdTickets(workspaceId)
+  const openCreate = () => setCreating({ type: effectiveType ?? 'INCIDENT' })
+  useListShortcuts({
+    containerRef: listRef,
+    onNew: openCreate,
+    onSearch: () => searchRef.current?.focus(),
+    onFilters: () => {
+      const trigger = document.querySelector<HTMLElement>(
+        '[data-shortcut-filters]',
+      )
+      if (!trigger) return false
+      trigger.click()
+    },
+    onToggleView: () => {
+      const index = MODES.findIndex((mode) => mode.id === state.mode)
+      update({ mode: MODES[(index + 1) % MODES.length].id, page: 1 })
+    },
+    isSelected: (id) => selectionRef.current?.isSelected(id) ?? false,
+    onToggleSelect: (id) =>
+      selectionRef.current ? selectionRef.current.toggle(id) : false,
+    onSelectAll: () =>
+      selectionRef.current ? selectionRef.current.selectAll() : false,
+    onClearSelection: () => selectionRef.current?.clear() ?? false,
+    onMove: (id, columnId) => moveRef.current?.(id, columnId) ?? false,
+  })
+  // C → T on the board opens the sheet here instead of navigating.
+  useShortcut('create.ticket', openCreate)
+  useShortcut(
+    'sd.board.assign-me',
+    () => {
+      const row = focusedRow(listRef.current)
+      const userId = me.data?.userId
+      if (!row || !userId) return false
+      bulk.mutate(
+        { ids: [row.dataset.shortcutRow ?? ''], assigneeId: userId },
+        {
+          onSuccess: () => notify.success('Chamado atribuído a você.'),
+          onError: notify.error,
+        },
+      )
+    },
+    { enabled: Boolean(me.data?.isAgent) },
+  )
+  // J/K inside a ticket walk this list (see `sdRememberTicketList`).
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const target = e.target as HTMLElement | null
-      const typing =
-        target?.closest('input, textarea, select, [contenteditable="true"]') ||
-        target?.isContentEditable
-      if (typing || e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === 'n') {
-        e.preventDefault()
-        setCreating({ type: effectiveType ?? 'INCIDENT' })
-      } else if (e.key === '/') {
-        e.preventDefault()
-        searchRef.current?.focus()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [effectiveType])
+    sdRememberTicketList(listRef.current)
+  })
 
   const modeProps: ModeProps = {
     workspaceId,
@@ -417,6 +474,8 @@ export function SdTicketBoard({
     onMove: mover.move,
     onCreate: setCreating,
     onShowMore: () => update({ mode: 'list' }),
+    moveRef,
+    selectionRef,
   }
 
   return (
@@ -512,9 +571,10 @@ export function SdTicketBoard({
         >
           <SteelIcon icon={PlusSignIcon} strokeWidth={2} />
           Novo chamado
-          <Kbd className='ml-1 hidden bg-primary-foreground/20 text-primary-foreground sm:inline-flex'>
-            N
-          </Kbd>
+          <ShortcutKbd
+            id='list.new'
+            className='ml-1 hidden sm:inline-flex [&_kbd]:bg-primary-foreground/20 [&_kbd]:text-primary-foreground'
+          />
         </Button>
       </SdFilterBar>
 
@@ -544,7 +604,7 @@ export function SdTicketBoard({
         </div>
       )}
 
-      <div className='min-h-0 flex-1 overflow-auto'>
+      <div ref={listRef} className='min-h-0 flex-1 overflow-auto'>
         {state.mode === 'kanban' ? (
           effectiveType ? (
             <TypeKanban
