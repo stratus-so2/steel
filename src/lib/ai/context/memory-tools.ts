@@ -65,6 +65,19 @@ export const memorySaveTool: SteelAiTool<MemorySaveArgs> = {
     additionalProperties: false,
   },
   parse: parser(MemorySaveArgsSchema),
+  // Only used by Teste mode, which simulates every write (memory included).
+  async preview(_ctx, args) {
+    return ok({
+      title: 'Salvar na memória',
+      summary: args.content,
+      fields: [
+        {
+          label: 'Escopo',
+          after: args.scope === 'WORKSPACE' ? 'Workspace' : 'Pessoal',
+        },
+      ],
+    })
+  },
   async execute(ctx, args) {
     const saved = await AiMemoryService.saveFromModel(ctx, args)
     if (!saved.ok) return saved
@@ -98,6 +111,13 @@ export const memoryForgetTool: SteelAiTool<MemoryForgetArgs> = {
     additionalProperties: false,
   },
   parse: parser(MemoryForgetArgsSchema),
+  // Only used by Teste mode, which simulates every write (memory included).
+  async preview(_ctx, args) {
+    return ok({
+      title: 'Esquecer um fato da memória',
+      summary: `Fato ${args.id}`,
+    })
+  },
   async execute(ctx, args) {
     const forgotten = await AiMemoryService.forgetFromModel(ctx, args.id)
     if (!forgotten.ok) return forgotten

@@ -5,9 +5,9 @@ import { dto } from '../common'
 
 const dateTime = () => z.iso.datetime()
 const AiModule = z.enum(['SERVICE_DESK', 'CRM', 'COMMUNICATION'])
-const AiMode = z.enum(['EXPLORE', 'AGENT', 'AUTOPILOT']).meta({
+const AiMode = z.enum(['EXPLORE', 'AGENT', 'AUTOPILOT', 'TEST']).meta({
   description:
-    '`EXPLORE` = Ask (só leitura), `AGENT` = Build (escritas confirmadas), `AUTOPILOT` = escritas executam na hora.',
+    '`EXPLORE` = Ask (só leitura), `AGENT` = Build (escritas confirmadas), `AUTOPILOT` = escritas executam na hora, `TEST` = Teste (leituras reais, toda escrita é simulada no servidor — nada é alterado nem enviado).',
 })
 
 const AiChatModel = z.object({
@@ -76,12 +76,48 @@ export const AiConversationDTO = dto(
     .meta({ description: 'Conversa com o Steel AI (privada do usuário).' }),
 )
 
+const AiSimulatedAction = z
+  .object({
+    kind: z.enum(['CREATE', 'UPDATE', 'DELETE', 'ACTION']),
+    preview: z.object({
+      title: z.string(),
+      summary: z.string(),
+      fields: z
+        .array(
+          z.object({
+            label: z.string(),
+            before: z.string().nullable().optional(),
+            after: z.string().nullable().optional(),
+          }),
+        )
+        .optional(),
+      target: z
+        .object({
+          type: z.string(),
+          id: z.string().optional(),
+          label: z.string(),
+          href: z.string().optional(),
+        })
+        .optional(),
+    }),
+  })
+  .meta({
+    description:
+      'Modo `TEST`: a escrita que teria rodado, montada a partir da prévia da ferramenta. Nada foi alterado.',
+  })
+
 const AiToolCallDTO = z.object({
   id: z.string(),
   name: z.string().meta({ example: 'ws_overview' }),
   label: z.string().meta({ example: 'Consultando o workspace' }),
   module: AiModule.nullable(),
-  status: z.enum(['running', 'done', 'error', 'pending_confirmation']),
+  status: z.enum([
+    'running',
+    'done',
+    'error',
+    'pending_confirmation',
+    'simulated',
+  ]),
   summary: z.string().optional(),
   memory: z
     .object({
@@ -95,6 +131,7 @@ const AiToolCallDTO = z.object({
       description:
         'Só nas ferramentas de memória (`memory_save`, `memory_forget`): o fato salvo/esquecido, para o chip "Memória salva" com desfazer.',
     }),
+  simulation: AiSimulatedAction.optional(),
 })
 
 export const AiPendingActionDTO = dto(

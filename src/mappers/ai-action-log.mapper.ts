@@ -16,7 +16,9 @@ export function toAiActionLogDTO(row: AiActionLog): AiActionLogDTO {
     // Rows written before the outcome fix were backfilled by the migration;
     // anything else unexpected is classified by the presence of an error.
     outcome:
-      row.outcome === 'success' || row.outcome === 'failure'
+      row.outcome === 'success' ||
+      row.outcome === 'failure' ||
+      row.outcome === 'simulated'
         ? row.outcome
         : row.error
           ? 'failure'

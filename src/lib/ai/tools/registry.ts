@@ -8,10 +8,12 @@ import {
 } from '@/src/errors/app-error'
 import { can, type PermissionMap } from '@/src/lib/permissions'
 import { err, ok, type Result } from '@/src/lib/result'
+import { AiActionLogRepository } from '@/src/repositories/ai-action-log.repository'
 import { AiPendingActionRepository } from '@/src/repositories/ai-pending-action.repository'
 import { WorkspaceAiSettingsRepository } from '@/src/repositories/ai-settings.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
 import { assertMember } from '@/src/services/authz'
+import type { AiSimulatedActionDTO } from '@/types/steel-ai'
 import { MEMORY_TOOL_LABELS } from '../context/memory-tool-names'
 import type { AiToolSpec } from '../types'
 import { STEEL_AI_TOOLS } from './index'
@@ -20,6 +22,7 @@ import {
   FIND_TOOLS_LABEL,
   FIND_TOOLS_TOOL_NAME,
 } from './selection'
+import { simulatedToolResult } from './simulation'
 import {
   serializeToolResult,
   TOOL_OUTPUT_MAX_BYTES,
@@ -35,13 +38,14 @@ import type { AiToolContext, AiToolOutput, AnySteelAiTool } from './types'
 
 /**
  * EXPLORE ("Ask") = READ only; AGENT ("Build") = writes become pending
- * actions; AUTOPILOT = writes run at once (still logged and audited).
+ * actions; AUTOPILOT = writes run at once (still logged and audited);
+ * TEST ("Teste") = writes are only simulated from their preview.
  */
-export type SteelAiMode = 'EXPLORE' | 'AGENT' | 'AUTOPILOT'
+export type SteelAiMode = 'EXPLORE' | 'AGENT' | 'AUTOPILOT' | 'TEST'
 
 /** Modes in which the model is offered write tools. */
 export function isWriteMode(mode: SteelAiMode): boolean {
-  return mode === 'AGENT' || mode === 'AUTOPILOT'
+  return mode === 'AGENT' || mode === 'AUTOPILOT' || mode === 'TEST'
 }
 
 /** A pending action stays confirmable for 30 minutes. */
@@ -112,7 +116,9 @@ export function isToolAllowed(
   mode: SteelAiMode,
 ): boolean {
   if (tool.kind !== 'READ') {
-    if (!isWriteMode(mode) || !access.agentModeEnabled) return false
+    if (!isWriteMode(mode)) return false
+    // TEST never writes, so the agent-mode kill switch does not apply.
+    if (mode !== 'TEST' && !access.agentModeEnabled) return false
     if (mode === 'AUTOPILOT' && !access.autopilotEnabled) return false
   }
   if (tool.module && !access.modules.includes(tool.module)) return false
@@ -127,7 +133,7 @@ export function isToolAllowed(
   return true
 }
 
-/** Tools the model is shown: EXPLORE ⇒ READ only; AGENT/AUTOPILOT add writes. */
+/** Tools the model is shown: EXPLORE ⇒ READ only; the other modes add writes. */
 export function availableTools(
   access: AiToolAccess,
   mode: SteelAiMode,
@@ -204,7 +210,7 @@ export type AiToolRunResult =
   | { ok: true; output: AiToolOutput; content: string }
   | { ok: false; error: AppError; content: string }
 
-function failure(error: AppError): AiToolRunResult {
+function failure(error: AppError): Extract<AiToolRunResult, { ok: false }> {
   return {
     ok: false,
     error,
@@ -332,4 +338,82 @@ export async function proposeWriteTool(
       autoExecuted: true,
     }),
   })
+}
+
+export type AiToolSimulationResult =
+  | {
+      ok: true
+      simulation: AiSimulatedActionDTO
+      /** Simulated success returned to the model (`status: simulated`). */
+      content: string
+    }
+  | { ok: false; error: AppError; content: string }
+
+/**
+ * Teste mode / agent test run: `parse` → `preview` and stop. `execute` is
+ * never called, no AiPendingAction is created and nothing is sent; the
+ * model gets a simulated success built from the preview. The attempt goes
+ * to AiActionLog with `outcome = simulated` (audit trail of what the AI
+ * would have done). A failed parse/preview is returned as a tool error —
+ * the real run would have failed too.
+ */
+export async function simulateWriteTool(
+  tool: AnySteelAiTool,
+  ctx: AiToolContext,
+  rawArgs: Record<string, unknown>,
+  log: { actorId: string | null },
+): Promise<AiToolSimulationResult> {
+  if (tool.kind === 'READ' || !tool.preview) return failure(aiToolNotAllowed())
+
+  const parsed = tool.parse(rawArgs)
+  if (!parsed.ok) return failure(parsed.error)
+
+  let preview: Awaited<ReturnType<NonNullable<AnySteelAiTool['preview']>>>
+  try {
+    preview = await tool.preview(ctx, parsed.value)
+  } catch (cause) {
+    return failure(unexpected(tool, cause))
+  }
+  if (!preview.ok) return failure(preview.error)
+
+  const simulation: AiSimulatedActionDTO = {
+    kind: tool.kind,
+    preview: preview.value,
+  }
+  const logged = await AiActionLogRepository.create({
+    workspaceId: ctx.workspaceId,
+    source: ctx.source === 'agent' ? 'AGENT' : 'ASSISTANT',
+    actorId: log.actorId,
+    agentId: ctx.agentId ?? null,
+    toolName: tool.name,
+    kind: tool.kind,
+    module: tool.module,
+    targetType: preview.value.target?.type ?? null,
+    targetId: preview.value.target?.id ?? null,
+    args: parsed.value as Prisma.InputJsonValue,
+    outcome: 'simulated',
+    summary: preview.value.title,
+  })
+  if (!logged.ok) {
+    logger.error(
+      'steel_ai.simulation_log_failed',
+      logFields(
+        {
+          component: 'SteelAiToolRegistry',
+          workspaceId: ctx.workspaceId,
+          message: logged.error.message,
+        },
+        { toolName: tool.name },
+      ),
+    )
+  }
+
+  return {
+    ok: true,
+    simulation,
+    content: serializeToolResult(
+      simulatedToolResult(tool.kind, preview.value),
+      TOOL_OUTPUT_MAX_BYTES,
+    ),
+  }
 }

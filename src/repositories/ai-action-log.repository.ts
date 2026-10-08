@@ -9,8 +9,11 @@ import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
 import { dbError } from './db-error'
 
-/** Result of an AI-executed write; the readable text goes in `summary`. */
-export type AiActionOutcome = 'success' | 'failure'
+/**
+ * Result of an AI write; the readable text goes in `summary`. `simulated`
+ * = Teste mode / agent test run: previewed only, never executed.
+ */
+export type AiActionOutcome = 'success' | 'failure' | 'simulated'
 
 export interface CreateAiActionLogInput {
   workspaceId: string

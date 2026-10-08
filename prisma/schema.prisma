@@ -3718,6 +3718,9 @@ enum AiConversationMode {
   /// Writes run without per-action confirmation (still logged); requires
   /// WorkspaceAiSettings.autopilotEnabled.
   AUTOPILOT
+  /// "Teste" in the UI: reads run for real, every write (memory included) is
+  /// simulated server-side from its preview — nothing is written or sent.
+  TEST
 }
 
 enum AiMessageRole {
@@ -3857,7 +3860,7 @@ model AiActionLog {
   targetType      String?        @map("target_type")
   targetId        String?        @map("target_id")
   args            Json
-  /// `success` | `failure`.
+  /// `success` | `failure` | `simulated` (Teste mode: nothing was executed).
   outcome         String
   /// pt-BR summary of what the tool did (null on failure).
   summary         String?
@@ -6590,6 +6593,8 @@ enum SteelAgentRunStepStatus {
   APPROVED
   REJECTED
   EXPIRED
+  /// Test run: the write was simulated from its preview, never executed.
+  SIMULATED
 }
 
 /// Autonomous agent configured by a workspace admin. It runs with the
@@ -6664,6 +6669,9 @@ model SteelAgentRun {
   outputTokens   Int                   @default(0) @map("output_tokens")
   costUsd        Decimal               @default(0) @map("cost_usd") @db.Decimal(14, 6)
   state          Json?
+  /// "Testar agente": reads real, writes simulated, no approvals, never
+  /// counts against the monthly cap nor shows as the agent's last run.
+  isTest         Boolean               @default(false) @map("is_test")
   createdAt      DateTime              @default(now()) @map("created_at")
   updatedAt      DateTime              @updatedAt @map("updated_at")
 

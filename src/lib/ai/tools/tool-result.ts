@@ -7,7 +7,9 @@
  * - `error`: parsing/permission/execution failed (`error.message` in pt-BR);
  * - `pending_confirmation`: a write became an AiPendingAction;
  * - `executed` / `failed` / `canceled`: the human decision on that action,
- *   appended later under the tool call id `action:<actionId>`.
+ *   appended later under the tool call id `action:<actionId>`;
+ * - `simulated`: Teste mode — the write was only previewed, nothing ran
+ *   (`data` carries `{ simulated: true, kind, preview }`).
  */
 export type ToolResultStatus =
   | 'done'
@@ -16,6 +18,7 @@ export type ToolResultStatus =
   | 'executed'
   | 'failed'
   | 'canceled'
+  | 'simulated'
 
 export interface ToolResultPayload {
   status: ToolResultStatus

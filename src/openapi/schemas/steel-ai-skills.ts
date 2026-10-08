@@ -21,7 +21,7 @@ export const AiSkillDTO = dto(
     description: z.string(),
     instructions: z.string(),
     mode: z
-      .enum(['EXPLORE', 'AGENT', 'AUTOPILOT'])
+      .enum(['EXPLORE', 'AGENT', 'AUTOPILOT', 'TEST'])
       .nullable()
       .meta({ description: 'Modo sugerido ao usar (null = o da conversa).' }),
     toolNames: z.array(z.string()).meta({

@@ -77,6 +77,7 @@ const MODE_BADGE: Record<NonNullable<AiSkillDTO['mode']>, string> = {
   EXPLORE: 'Ask',
   AGENT: 'Build',
   AUTOPILOT: 'Autopilot',
+  TEST: 'Teste',
 }
 
 type Editing =
