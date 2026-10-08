@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useUser } from '@/src/hooks/use-user'
 import type { MembershipDTO } from '@/types/user'
+import { WorkspaceAvatar } from '../workspace-avatar'
 import { WorkspaceDropdownCard } from './workspace-dropdown-card'
 
 export function WorkSpaceDropdown({ currentSlug }: { currentSlug: string }) {
@@ -23,7 +24,6 @@ export function WorkSpaceDropdown({ currentSlug }: { currentSlug: string }) {
 
   const memberships: MembershipDTO[] = user?.memberships ?? []
   const current = memberships.find((m) => m.slug === currentSlug)
-  const initial = (current?.name ?? '?').charAt(0).toUpperCase()
 
   function handleSelect(slug: string) {
     if (slug !== currentSlug) push(`/${slug}`)
@@ -34,9 +34,12 @@ export function WorkSpaceDropdown({ currentSlug }: { currentSlug: string }) {
       <DropdownMenuTrigger
         render={
           <Button variant='ghost' className='min-w-0 max-w-full max-md:h-10'>
-            <div className='size-6 shrink-0 flex items-center justify-center rounded-sm bg-blue-400 text-xs font-semibold text-white'>
-              {initial}
-            </div>
+            <WorkspaceAvatar
+              name={current?.name ?? '?'}
+              logoUrl={current?.logoUrl}
+              className='size-6 rounded-sm text-xs'
+              fallbackClassName='bg-blue-400 text-white'
+            />
             <span className='truncate'>
               {current?.name ?? 'Selecionar workspace'}
             </span>

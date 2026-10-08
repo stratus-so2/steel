@@ -3,7 +3,10 @@ import { withAxiom } from '@/lib/axiom/server'
 import { getAuthSession } from '@/src/lib/auth-session'
 import { requireConsent } from '@/src/lib/consent'
 import { apiLimiter, consume } from '@/src/lib/rate-limit'
-import { UpdateWorkspaceSchema } from '@/src/schemas/workspace.schema'
+import {
+  DeleteWorkspaceRequestSchema,
+  UpdateWorkspaceSchema,
+} from '@/src/schemas/workspace.schema'
 import { WorkspaceService } from '@/src/services/workspace.service'
 import { readJsonBody } from '@/utils/http-request'
 import {
@@ -67,7 +70,12 @@ export const PATCH = withAxiom(async (request: NextRequest, ctx: Params) => {
   return successResponse(result.value)
 })
 
-export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
+/**
+ * Owner-only permanent deletion, confirmed by typing the slug. Queued: the
+ * workspace is blocked right away and the worker backs it up, cancels the
+ * subscriptions and purges rows and files (same pipeline as the admin panel).
+ */
+export const DELETE = withAxiom(async (request: NextRequest, ctx: Params) => {
   const auth = await getAuthSession()
   if (!auth.ok) return handleError(auth.error)
 
@@ -80,11 +88,24 @@ export const DELETE = withAxiom(async (_request: NextRequest, ctx: Params) => {
   )
   if (!consent.ok) return handleError(consent.error)
 
-  const { id } = await ctx.params
+  const [{ id }, json] = await Promise.all([ctx.params, readJsonBody(request)])
+  if (!json.ok) return handleError(json.error)
+  const parsed = DeleteWorkspaceRequestSchema.safeParse(json.value)
+  if (!parsed.success) {
+    return standardError(
+      'VALIDATION_ERROR',
+      'Dados inválidos',
+      parsed.error.issues,
+    )
+  }
 
-  const result = await WorkspaceService.delete(auth.value.user.id, id)
+  const result = await WorkspaceService.requestDeletion(
+    auth.value.user.id,
+    id,
+    parsed.data,
+  )
 
   if (!result.ok) return handleError(result.error)
 
-  return successResponse(null, 200)
+  return successResponse(result.value, 202)
 })

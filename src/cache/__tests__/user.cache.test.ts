@@ -60,6 +60,7 @@ describe('UserCache', () => {
             slug: 'workspace',
             name: 'Workspace',
             role: 'ADMIN',
+            logoUrl: null,
           },
         ],
       })

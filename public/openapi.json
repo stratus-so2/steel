@@ -8856,7 +8856,7 @@
         "tags": ["Workspaces"],
         "summary": "Atualizar workspace",
         "operationId": "patchWorkspacesById",
-        "description": "Nome e/ou slug. Só OWNER/ADMIN.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Nome, slug (endereço `/<slug>`; palavras reservadas são recusadas e links antigos deixam de funcionar) e/ou tamanho da empresa (`companySize`, `null` limpa). Só OWNER/ADMIN.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
@@ -8879,6 +8879,17 @@
                     "minLength": 2,
                     "maxLength": 50,
                     "pattern": "^[a-z0-9-]+$"
+                  },
+                  "companySize": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["SIZE_1_10", "SIZE_11_50", "SIZE_51_200", "SIZE_201_1000", "SIZE_1000_PLUS"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
                 }
               }
@@ -8934,15 +8945,32 @@
         "tags": ["Workspaces"],
         "summary": "Excluir workspace",
         "operationId": "deleteWorkspacesById",
-        "description": "Exclui o workspace e seus dados. Só o OWNER. Assinaturas ativas são canceladas na AbacatePay antes da exclusão; se o cancelamento falhar nada é apagado (`SUBSCRIPTION_CANCEL_FAILED`).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "description": "Pede a exclusão definitiva. Só o OWNER, digitando o slug em `confirmation`. A exclusão é assíncrona (mesmo pipeline do painel admin): o workspace fica `DELETING` na hora (membros bloqueados) e o worker faz o backup, cancela as assinaturas no AbacatePay e só então apaga dados e arquivos. Se o cancelamento falhar, nada é apagado e o workspace volta ao status anterior.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
         "parameters": [
           {
             "$ref": "#/components/parameters/WorkspaceId"
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirmation": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": ["confirmation"]
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Workspace excluído.",
+          "202": {
+            "description": "Exclusão enfileirada.",
             "content": {
               "application/json": {
                 "schema": {
@@ -8954,16 +8982,11 @@
                       "type": "object",
                       "properties": {
                         "data": {
-                          "type": "null"
+                          "$ref": "#/components/schemas/WorkspaceDeletion"
                         }
                       }
                     }
                   ]
-                },
-                "example": {
-                  "success": true,
-                  "statusCode": 200,
-                  "data": null
                 }
               }
             }
@@ -8974,11 +8997,14 @@
           "403": {
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_7"
           },
+          "409": {
+            "$ref": "#/components/responses/409_WORKSPACE_OPERATION_IN_PROGRESS"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_WORKSPACE_CONFIRMATION_MISMATCH"
+          },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
-          },
-          "502": {
-            "$ref": "#/components/responses/502_SUBSCRIPTION_CANCEL_FAILED"
           }
         },
         "security": [
@@ -36839,6 +36865,130 @@
           },
           "409": {
             "$ref": "#/components/responses/409_INVITATION_NOT_PENDING"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/logo": {
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Enviar logo do workspace",
+        "operationId": "postWorkspacesByIdLogo",
+        "description": "Troca o logo (JPEG, PNG ou WebP até 2 MB; SVG não é aceito). Grava no MinIO (`workspace-logos/<id>/...`), apaga o anterior e devolve o workspace. Só OWNER/ADMIN.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Imagem do logo."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workspace atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Workspace"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_33"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["Workspaces"],
+        "summary": "Remover logo do workspace",
+        "operationId": "deleteWorkspacesByIdLogo",
+        "description": "Remove o logo (a UI volta a mostrar a inicial). Só OWNER/ADMIN.\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace atualizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/Workspace"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_4"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -74756,6 +74906,70 @@
         ]
       }
     },
+    "/workspaces/{id}/slug-availability": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "Verificar endereço do workspace",
+        "operationId": "getWorkspacesByIdSlugAvailability",
+        "description": "Validação ao vivo do campo \"URL do espaço de trabalho\": formato, palavras reservadas e unicidade. O slug atual conta como disponível (`reason: current`). Só OWNER/ADMIN.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disponibilidade.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/WorkspaceSlugAvailability"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_3"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/whatsapp/ai-config": {
       "get": {
         "tags": ["Comunicação · IA"],
@@ -91718,7 +91932,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 403,
-                  "message": "Apenas o OWNER pode deletar o workspace",
+                  "message": "Apenas o OWNER pode excluir o workspace",
                   "error": {
                     "code": "FORBIDDEN"
                   }
@@ -99931,6 +100145,29 @@
           }
         }
       },
+      "409_WORKSPACE_OPERATION_IN_PROGRESS": {
+        "description": "Conflito com o estado atual: `WORKSPACE_OPERATION_IN_PROGRESS`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "WORKSPACE_OPERATION_IN_PROGRESS": {
+                "summary": "WORKSPACE_OPERATION_IN_PROGRESS",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Já existe uma exclusão ou restauração em andamento para este workspace",
+                  "error": {
+                    "code": "WORKSPACE_OPERATION_IN_PROGRESS"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_WORKSPACE_STATUS_CONFLICT": {
         "description": "Conflito com o estado atual: `WORKSPACE_STATUS_CONFLICT`",
         "content": {
@@ -101394,6 +101631,29 @@
         }
       },
       "422_VALIDATION_ERROR_34": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Arquivo muito grande. Máximo 2 MB",
+                  "error": {
+                    "code": "VALIDATION_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_35": {
         "description": "Dados inválidos: `VALIDATION_ERROR`",
         "content": {
           "application/json": {
@@ -104487,29 +104747,6 @@
                   "message": "O serviço externo não respondeu como esperado",
                   "error": {
                     "code": "SD_INTEGRATION_REQUEST_FAILED"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "502_SUBSCRIPTION_CANCEL_FAILED": {
-        "description": "Falha em serviço externo: `SUBSCRIPTION_CANCEL_FAILED`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "SUBSCRIPTION_CANCEL_FAILED": {
-                "summary": "SUBSCRIPTION_CANCEL_FAILED — A AbacatePay recusou/não respondeu o cancelamento",
-                "value": {
-                  "success": false,
-                  "statusCode": 502,
-                  "message": "Não foi possível cancelar a assinatura deste workspace no AbacatePay. Nada foi apagado — tente de novo em alguns minutos ou fale com o suporte.",
-                  "error": {
-                    "code": "SUBSCRIPTION_CANCEL_FAILED"
                   }
                 }
               }
@@ -121269,9 +121506,20 @@
           "role": {
             "type": "string",
             "enum": ["OWNER", "ADMIN", "MEMBER", "VIEWER"]
+          },
+          "logoUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Logo do workspace; `null` sem logo."
           }
         },
-        "required": ["workspaceId", "slug", "name", "role"],
+        "required": ["workspaceId", "slug", "name", "role", "logoUrl"],
         "description": "Vínculo do usuário com um workspace."
       },
       "NotificationDelivery": {
@@ -141447,6 +141695,29 @@
               }
             ]
           },
+          "logoUrl": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL pública do logo (MinIO); `null` sem logo."
+          },
+          "companySize": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["SIZE_1_10", "SIZE_11_50", "SIZE_51_200", "SIZE_201_1000", "SIZE_1000_PLUS"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Faixa de tamanho da empresa; `null` se não informada."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -141456,7 +141727,17 @@
             "format": "date-time"
           }
         },
-        "required": ["id", "name", "slug", "activePlan", "trialEndsAt", "createdAt", "updatedAt"]
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "activePlan",
+          "trialEndsAt",
+          "logoUrl",
+          "companySize",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "WorkspaceAiSettings": {
         "type": "object",
@@ -141696,6 +141977,24 @@
         ],
         "description": "Conexão de um módulo com um Postgres externo. A senha nunca é devolvida (fica cifrada com `CONNECTION_SECRETS`)."
       },
+      "WorkspaceDeletion": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "example": "ckv9x2p0h0000op7d3k1e5abc"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["QUEUED"]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["operationId", "status", "requestedAt"]
+      },
       "WorkspaceFeatureMap": {
         "type": "object",
         "properties": {
@@ -141816,6 +142115,42 @@
           }
         },
         "required": ["module", "enabled", "grantedById", "updatedAt"]
+      },
+      "WorkspaceSlugAvailability": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "acme-2"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["current", "invalid", "reserved", "taken"]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`current` = slug atual; `null` = livre."
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mensagem do campo quando indisponível."
+          }
+        },
+        "required": ["slug", "available", "reason", "message"]
       },
       "getServicedeskPortalOptions200___schema0": {
         "type": "object",

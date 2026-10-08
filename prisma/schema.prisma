@@ -378,6 +378,11 @@ model Workspace {
   suspendedById   String?         @map("suspended_by_id")
   /// Wiki do workspace: desligada até um OWNER/ADMIN ativar em Ajustes > Wiki.
   wikiEnabled     Boolean         @default(false) @map("wiki_enabled")
+  /// Logo público (bucket `workspace-logos`, chave `<id>/logo-<uuid>.<ext>`),
+  /// editado em Ajustes > Geral. `null` = sem logo (a UI mostra a inicial).
+  logoUrl         String?         @map("logo_url")
+  /// Faixa de tamanho da empresa, informada em Ajustes > Geral.
+  companySize     WorkspaceCompanySize? @map("company_size")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
   memberships     Membership[]
@@ -531,6 +536,16 @@ enum WorkspaceStatus {
   DELETING
 
   @@map("workspace_status")
+}
+
+enum WorkspaceCompanySize {
+  SIZE_1_10
+  SIZE_11_50
+  SIZE_51_200
+  SIZE_201_1000
+  SIZE_1000_PLUS
+
+  @@map("workspace_company_size")
 }
 
 model Membership {

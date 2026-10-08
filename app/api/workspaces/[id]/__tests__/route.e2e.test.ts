@@ -4,10 +4,12 @@ import {
   addMember,
   authenticatedOwner,
   createAuthenticatedUser,
+  defaultHeaders,
   deleteJson,
   getJson,
   patchJson,
 } from '@/src/__tests__/helpers/e2e'
+import { BASE_URL } from '@/src/__tests__/setup.e2e'
 import { prisma } from '@/src/lib/prisma'
 
 describe('GET /api/workspaces/[id]', () => {
@@ -130,6 +132,35 @@ describe('PATCH /api/workspaces/[id]', () => {
     expect(res.status).toBe(422)
   })
 
+  it('should reject a reserved slug with 422', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const res = await patchJson(
+      `/api/workspaces/${workspace.id}`,
+      { slug: 'admin' },
+      user.cookie,
+    )
+    expect(res.status).toBe(422)
+  })
+
+  it('should save the company size and a new slug', async () => {
+    const { user, workspace } = await authenticatedOwner()
+    const slug = `novo-${createId().slice(0, 8)}`
+
+    const res = await patchJson(
+      `/api/workspaces/${workspace.id}`,
+      { companySize: 'SIZE_51_200', slug },
+      user.cookie,
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.data).toMatchObject({
+      slug,
+      companySize: 'SIZE_51_200',
+      logoUrl: null,
+    })
+  })
+
   it('should return 409 when updating to a taken slug', async () => {
     const taken = `taken-${createId().slice(0, 6)}`
     const ownerA = await createAuthenticatedUser()
@@ -155,6 +186,15 @@ describe('PATCH /api/workspaces/[id]', () => {
   })
 })
 
+function deleteWorkspace(id: string, cookie: string, body: unknown) {
+  return fetch(`${BASE_URL}/api/workspaces/${id}`, {
+    method: 'DELETE',
+    headers: { ...defaultHeaders, Cookie: cookie },
+    body: JSON.stringify(body),
+    redirect: 'manual',
+  })
+}
+
 describe('DELETE /api/workspaces/[id]', () => {
   it('should return 401 via middleware when unauthenticated', async () => {
     const res = await deleteJson('/api/workspaces/some-id')
@@ -167,10 +207,9 @@ describe('DELETE /api/workspaces/[id]', () => {
       createAuthenticatedUser(),
     ])
 
-    const res = await deleteJson(
-      `/api/workspaces/${workspace.id}`,
-      stranger.cookie,
-    )
+    const res = await deleteWorkspace(workspace.id, stranger.cookie, {
+      confirmation: workspace.slug,
+    })
     expect(res.status).toBe(403)
   })
 
@@ -178,22 +217,60 @@ describe('DELETE /api/workspaces/[id]', () => {
     const { workspace } = await authenticatedOwner()
     const admin = await addMember(workspace.id, 'ADMIN')
 
-    const res = await deleteJson(
-      `/api/workspaces/${workspace.id}`,
-      admin.cookie,
-    )
+    const res = await deleteWorkspace(workspace.id, admin.cookie, {
+      confirmation: workspace.slug,
+    })
     expect(res.status).toBe(403)
   })
 
-  it('should allow OWNER to delete', async () => {
+  it('should require the typed confirmation', async () => {
     const { user, workspace } = await authenticatedOwner()
 
-    const res = await deleteJson(`/api/workspaces/${workspace.id}`, user.cookie)
-    expect(res.status).toBe(200)
+    const missing = await deleteJson(
+      `/api/workspaces/${workspace.id}`,
+      user.cookie,
+    )
+    expect(missing.status).toBe(422)
+
+    const wrong = await deleteWorkspace(workspace.id, user.cookie, {
+      confirmation: 'outro-slug',
+    })
+    expect(wrong.status).toBe(422)
+    expect((await wrong.json()).error.code).toBe(
+      'WORKSPACE_CONFIRMATION_MISMATCH',
+    )
 
     const ws = await prisma.workspace.findUnique({
       where: { id: workspace.id },
     })
-    expect(ws).toBeNull()
+    expect(ws?.status).toBe('ACTIVE')
+  })
+
+  it('should queue the deletion for the OWNER and block the workspace', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const res = await deleteWorkspace(workspace.id, user.cookie, {
+      confirmation: workspace.slug,
+    })
+    expect(res.status).toBe(202)
+    const body = await res.json()
+    expect(body.data.status).toBe('QUEUED')
+
+    const [ws, operation] = await Promise.all([
+      prisma.workspace.findUnique({ where: { id: workspace.id } }),
+      prisma.adminOperation.findUnique({
+        where: { id: body.data.operationId },
+      }),
+    ])
+    expect(ws?.status).toBe('DELETING')
+    expect(operation).toMatchObject({
+      kind: 'WORKSPACE_DELETE',
+      workspaceId: workspace.id,
+      requestedById: user.id,
+    })
+
+    // Members are blocked right away.
+    const again = await getJson(`/api/workspaces/${workspace.id}`, user.cookie)
+    expect(again.status).toBe(403)
   })
 })

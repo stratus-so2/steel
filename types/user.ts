@@ -3,6 +3,8 @@ export interface MembershipDTO {
   slug: string
   name: string
   role: string
+  /** Workspace logo (Ajustes > Geral), `null` without one. */
+  logoUrl: string | null
 }
 
 export type UserRole =

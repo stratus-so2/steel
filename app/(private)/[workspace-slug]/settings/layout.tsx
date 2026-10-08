@@ -4,16 +4,10 @@ import {
   Building02Icon,
   BulbChargingIcon,
   ChartRelationshipIcon,
-  CreditCardIcon,
-  DashboardSquareAddIcon,
-  Download01Icon,
   Notification01Icon,
-  PackageIcon,
-  Shapes01Icon,
   SparklesIcon,
   Upload01Icon,
   UserMultipleIcon,
-  WorkIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { ReactNode } from 'react'
 import {
@@ -44,14 +38,8 @@ export default async function SettingsLayout({
           <NavItem href={`${base}/members`} icon={UserMultipleIcon}>
             Membros
           </NavItem>
-          <NavItem href={`${base}/billing`} icon={CreditCardIcon}>
-            Assinatura e Planos
-          </NavItem>
           <NavItem href={`${base}/notifications`} icon={Notification01Icon}>
             Notificações
-          </NavItem>
-          <NavItem href={`${base}/imports`} icon={Download01Icon}>
-            Importações
           </NavItem>
           <NavItem href={`${base}/exports`} icon={Upload01Icon}>
             Exportações
@@ -61,23 +49,11 @@ export default async function SettingsLayout({
           </NavItem>
         </NavGroup>
         <NavGroup>
-          <NavItem href={`${base}/project-configuration`} icon={WorkIcon}>
-            Projetos
-          </NavItem>
           <NavItem href={`${base}/integrations`} icon={ChartRelationshipIcon}>
             Integrações
           </NavItem>
-          <NavItem href={`${base}/connections`} icon={DashboardSquareAddIcon}>
-            Conexões
-          </NavItem>
-          <NavItem href={`${base}/teamspaces`} icon={PackageIcon}>
-            Espaços de equipe
-          </NavItem>
           <NavItem href={`${base}/initiatives`} icon={BulbChargingIcon}>
             Iniciativas
-          </NavItem>
-          <NavItem href={`${base}/templates`} icon={Shapes01Icon}>
-            Modelos
           </NavItem>
           <NavItem href={`${base}/wiki`} icon={BookOpen01Icon}>
             Wiki
@@ -87,7 +63,15 @@ export default async function SettingsLayout({
           </NavItem>
         </NavGroup>
       </ContextSidebar>
-      {children}
+      {/* The workspace shell clips its content area (`overflow-hidden`, children
+          aligned to the top), so every settings page scrolls here — a page
+          taller than the viewport would otherwise be cut off. */}
+      <div
+        data-slot='settings-scroll'
+        className='h-full min-h-0 w-full min-w-0 flex-1 self-stretch overflow-y-auto overscroll-contain'
+      >
+        {children}
+      </div>
     </>
   )
 }
