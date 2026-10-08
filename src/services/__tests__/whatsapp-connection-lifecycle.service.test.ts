@@ -323,6 +323,7 @@ describe('WhatsAppConnectionService.getQrCode()', () => {
     })
     expect(mockedConnectionRepo.update).toHaveBeenCalledWith('conn1', {
       status: 'CONNECTED',
+      statusError: null,
     })
   })
 
