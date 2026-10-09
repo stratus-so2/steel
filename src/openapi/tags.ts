@@ -127,6 +127,11 @@ export const TAG_GROUPS = [
           'Campanhas, templates, listas, descadastros e contas de e-mail sincronizadas.',
       },
       {
+        name: 'CRM · Campanhas',
+        description:
+          'Campanhas multicanal: destino (landing page ou formulário) com links rastreados, e-mail, WhatsApp opcional, público e resultados.',
+      },
+      {
         name: 'CRM · Formulários e landing pages',
         description: 'Formulários e landing pages (gestão interna).',
       },
@@ -346,6 +351,11 @@ export const TAG_GROUPS = [
         name: 'CRM público · Descadastro',
         description:
           'Descadastro LGPD de campanhas de e-mail, incluindo o one-click do RFC 8058.',
+      },
+      {
+        name: 'CRM público · Campanhas',
+        description:
+          'Link rastreado, pixel de abertura e webhook do Resend das campanhas multicanal.',
       },
     ],
   },

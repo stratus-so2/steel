@@ -28,6 +28,7 @@ import type {
   CrmFormSubmissionDTO,
 } from '@/types/crm-form'
 import { assertModuleEnabled, assertModuleMember } from './authz'
+import { CrmCampaignTrackingService } from './crm-campaign-tracking.service'
 import { CrmLeadService } from './crm-lead.service'
 import { notifyCrmFormSubmitted } from './crm-notifications'
 
@@ -412,6 +413,22 @@ export const CrmFormService = {
       referrer,
     })
     if (!result.ok) return result
+
+    // Multichannel campaign attribution (best-effort, never fails the submit).
+    if (dto.campaign) {
+      await CrmCampaignTrackingService.attribute(
+        {
+          workspaceId: form.value.workspaceId,
+          kind: 'FORM_SUBMISSION',
+          sourceRef: result.value.id,
+          formId: form.value.id,
+          leadId: createdLeadId,
+          personId: createdPersonId,
+          ref: dto.campaign,
+        },
+        new Date(),
+      )
+    }
 
     if (!ownerNotifiedByLead) {
       void notifyCrmFormSubmitted({

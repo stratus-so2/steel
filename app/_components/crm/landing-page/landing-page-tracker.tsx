@@ -1,6 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import {
+  hasCampaignRef,
+  readCampaignRefParams,
+} from '@/src/lib/crm-campaign/campaign-url'
 
 /** id de sessão estável por visita (mesma aba ⇒ mesmo upsert no servidor). */
 function getViewId(token: string): string {
@@ -25,6 +29,9 @@ export function LandingPageTracker({ token }: { token: string }) {
   React.useEffect(() => {
     const viewId = getViewId(token)
     const url = `/api/crm/landing-pages/${token}/view`
+    // Multichannel campaign link (utm_* + stc): attributes the visit.
+    const campaignRef = readCampaignRefParams(window.location.search)
+    const campaign = hasCampaignRef(campaignRef) ? campaignRef : undefined
 
     let activeMs = 0
     let lastTick = Date.now()
@@ -44,6 +51,7 @@ export function LandingPageTracker({ token }: { token: string }) {
         viewId,
         durationMs: Math.round(activeMs),
         ctaClicks,
+        campaign,
       })
       try {
         if (navigator.sendBeacon) {

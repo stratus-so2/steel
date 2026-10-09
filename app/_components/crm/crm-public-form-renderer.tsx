@@ -24,8 +24,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  hasCampaignRef,
+  readCampaignRefParams,
+} from '@/src/lib/crm-campaign/campaign-url'
 import { groupFieldsByPhase } from '@/src/schemas/crm-form.schema'
 import type { CrmFormFieldDefinition, CrmFormPublicDTO } from '@/types/crm-form'
+
+/** Multichannel campaign link (utm_* + stc) of the page, when present. */
+function campaignRefOfPage() {
+  if (typeof window === 'undefined') return undefined
+  const ref = readCampaignRefParams(window.location.search)
+  return hasCampaignRef(ref) ? ref : undefined
+}
 
 type Values = Record<string, unknown>
 
@@ -187,7 +198,7 @@ export function CrmPublicFormRenderer({
       const res = await fetch(`/api/crm/forms/${publicToken}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ values }),
+        body: JSON.stringify({ values, campaign: campaignRefOfPage() }),
       })
       const json = await res.json()
       if (!res.ok || !json.success) {

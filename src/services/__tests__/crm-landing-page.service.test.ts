@@ -8,6 +8,7 @@ import { err, ok } from '@/src/lib/result'
 
 vi.mock('@/src/repositories/membership.repository')
 vi.mock('@/src/repositories/crm-landing-page.repository')
+vi.mock('@/src/services/crm-campaign-tracking.service')
 
 import {
   CrmLandingPageRepository,
@@ -15,6 +16,7 @@ import {
 } from '@/src/repositories/crm-landing-page.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { CrmCampaignTrackingService } from '../crm-campaign-tracking.service'
 import { CrmLandingPageService } from '../crm-landing-page.service'
 
 const mockedModuleAccess = vi.mocked(WorkspaceModuleAccessRepository)
@@ -524,6 +526,31 @@ describe('CrmLandingPageService — public routes', () => {
         ctaClicks: 1,
         referrer: undefined,
       })
+    })
+
+    it('attributes campaign visits only when the page carries campaign params', async () => {
+      mockedPageRepo.findByShareToken.mockResolvedValue(ok(published()))
+      mockedViewRepo.record.mockResolvedValue(ok(fakeView('v1')))
+      const attribute = vi.mocked(CrmCampaignTrackingService.attribute)
+
+      expectOk(await CrmLandingPageService.recordView('tok', '10.0.0.1', view))
+      expect(attribute).not.toHaveBeenCalled()
+
+      expectOk(
+        await CrmLandingPageService.recordView('tok', '10.0.0.1', {
+          ...view,
+          campaign: { utmCampaign: 'bf', utmSource: 'email' },
+        }),
+      )
+      expect(attribute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'LANDING_VIEW',
+          sourceRef: 'view1',
+          landingPageId: 'p1',
+          ref: { utmCampaign: 'bf', utmSource: 'email' },
+        }),
+        expect.any(Date),
+      )
     })
 
     it('returns not found for an unknown token', async () => {

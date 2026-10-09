@@ -1,4 +1,5 @@
 import z from 'zod'
+import { CrmCampaignRefSchema } from './crm-campaign.schema'
 
 export const FORM_ACTIONS = ['COMPANY', 'PERSON', 'LEAD'] as const
 export type CrmFormActionType = (typeof FORM_ACTIONS)[number]
@@ -220,6 +221,8 @@ export type ReorderCrmFormsDTO = z.infer<typeof ReorderCrmFormsSchema>
  * (checkbox → boolean, os demais → string). */
 export const SubmitCrmFormSchema = z.object({
   values: z.record(z.string(), z.union([z.string(), z.boolean()])),
+  /** Campaign parameters of the page URL (multichannel campaigns). */
+  campaign: CrmCampaignRefSchema.optional(),
 })
 
 export type SubmitCrmFormDTO = z.infer<typeof SubmitCrmFormSchema>

@@ -310,6 +310,11 @@ export const ERROR_CODES = {
     status: 422,
   },
   CRM_CAMPAIGN_LINK_INVALID: { code: 'CRM_CAMPAIGN_LINK_INVALID', status: 404 },
+  // Resend webhook called while RESEND_WEBHOOK_SECRET is not set.
+  CRM_CAMPAIGN_WEBHOOK_NOT_CONFIGURED: {
+    code: 'CRM_CAMPAIGN_WEBHOOK_NOT_CONFIGURED',
+    status: 503,
+  },
   CRM_MAILING_LIST_NOT_FOUND: {
     code: 'CRM_MAILING_LIST_NOT_FOUND',
     status: 404,

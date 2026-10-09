@@ -196,6 +196,7 @@ export const CRM_ROUTE_RESOURCE: Record<string, PermissionResource> = {
   forms: 'forms',
   'landing-pages': 'landing-pages',
   'email-campaigns': 'email',
+  campaigns: 'email',
   'email-templates': 'email',
   'mailing-lists': 'email',
   dashboards: 'dashboards',
