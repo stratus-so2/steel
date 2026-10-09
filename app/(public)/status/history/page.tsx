@@ -1,14 +1,16 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { connection } from 'next/server'
 import { Muted } from '@/components/typography/text/muted'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { publicPageMetadata } from '@/src/lib/seo/metadata'
 import { StatusService } from '@/src/services/status/status.service'
 import { STATUS_META } from '@/src/services/status/status-map'
 import type { IncidentSummaryDTO } from '@/types/status'
+import { StatusPageHeader } from '../_components/status-page-header'
+
+// Incidents are shown in Steel's operating time zone, never the server's.
+const STATUS_TIME_ZONE = 'America/Sao_Paulo'
 
 export const metadata: Metadata = publicPageMetadata({
   title: 'Histórico de incidentes | Steel',
@@ -18,6 +20,7 @@ export const metadata: Metadata = publicPageMetadata({
 })
 
 const MONTH_FORMAT: Intl.DateTimeFormatOptions = {
+  timeZone: STATUS_TIME_ZONE,
   month: 'long',
   year: 'numeric',
 }
@@ -28,6 +31,7 @@ function formatMonthLabel(date: Date): string {
 
 function formatTime(date: Date): string {
   return date.toLocaleTimeString('pt-BR', {
+    timeZone: STATUS_TIME_ZONE,
     hour: '2-digit',
     minute: '2-digit',
   })
@@ -53,21 +57,7 @@ export default async function StatusHistoryPage() {
 
   return (
     <div className='max-w-3xl flex flex-col items-center mx-auto px-4 py-4 gap-y-8 md:px-0'>
-      <div className='w-full flex flex-wrap items-center justify-between gap-3'>
-        <Image src='/brand/logo.svg' width={100} height={30} alt='Steel' />
-        <div className='flex flex-wrap items-center gap-2'>
-          <Link href='#'>
-            <Button variant='outline' size='sm'>
-              Relate um problema
-            </Button>
-          </Link>
-          <Link href='#'>
-            <Button variant='default' size='sm'>
-              Receba atualizações
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <StatusPageHeader />
       <div className='w-full space-y-6'>
         <h2 className='font-semibold py-4 mb:py-3'>
           <Link href='/status' className='text-muted-foreground'>
@@ -90,9 +80,11 @@ export default async function StatusHistoryPage() {
                     const meta = STATUS_META[inc.severity]
                     const startedAt = new Date(inc.startedAt)
                     const dayNum = startedAt.toLocaleDateString('pt-BR', {
+                      timeZone: STATUS_TIME_ZONE,
                       day: '2-digit',
                     })
                     const weekday = startedAt.toLocaleDateString('pt-BR', {
+                      timeZone: STATUS_TIME_ZONE,
                       weekday: 'short',
                     })
                     return (

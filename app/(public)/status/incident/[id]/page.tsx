@@ -1,16 +1,18 @@
 import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SteelIcon } from '@/components/icon/icon'
 import { Muted } from '@/components/typography/text/muted'
 import { P } from '@/components/typography/text/p'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { StatusService } from '@/src/services/status/status.service'
 import { STATUS_META } from '@/src/services/status/status-map'
 import type { IncidentUpdateDTO } from '@/types/status'
+import { StatusPageHeader } from '../../_components/status-page-header'
+
+// Incidents are shown in Steel's operating time zone, never the server's.
+const STATUS_TIME_ZONE = 'America/Sao_Paulo'
 
 export const metadata: Metadata = {
   title: 'Incidente | Steel',
@@ -33,6 +35,7 @@ const EVENT_COLOR: Record<IncidentUpdateDTO['event'], string> = {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', {
+    timeZone: STATUS_TIME_ZONE,
     weekday: 'short',
     day: '2-digit',
     month: 'short',
@@ -74,21 +77,7 @@ export default async function IncidentPage({ params }: IncidentPageProps) {
 
   return (
     <div className='max-w-3xl flex flex-col items-center mx-auto px-4 py-4 gap-y-8 md:px-0'>
-      <div className='w-full flex flex-wrap items-center justify-between gap-3'>
-        <Image src='/brand/logo.svg' width={100} height={30} alt='Steel' />
-        <div className='flex flex-wrap items-center gap-2'>
-          <Link href='#'>
-            <Button variant='outline' size='sm'>
-              Relate um problema
-            </Button>
-          </Link>
-          <Link href='#'>
-            <Button variant='default' size='sm'>
-              Receba atualizações
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <StatusPageHeader />
       <div
         className={cn(
           'w-full h-fit overflow-hidden flex flex-col rounded-lg border',
@@ -101,7 +90,7 @@ export default async function IncidentPage({ params }: IncidentPageProps) {
             meta.banner,
           )}
         >
-          <Link href='/status'>
+          <Link href='/status' aria-label='Voltar ao status'>
             <SteelIcon icon={ArrowLeft01Icon} size={20} />
           </Link>
           {incident.title}
