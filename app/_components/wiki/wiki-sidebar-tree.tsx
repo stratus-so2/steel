@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useArchiveWikiPage, useWikiPages } from '@/src/hooks/use-wiki-page'
 import type { WikiPageDTO } from '@/types/wiki-page'
 
@@ -42,21 +43,36 @@ function buildTree(pages: WikiPageDTO[]): WikiPageNode[] {
 export function WikiSidebarTree({
   workspaceId,
   workspaceSlug,
+  initialPages,
 }: {
   workspaceId: string
   workspaceSlug: string
+  /** Server-rendered list, so the tree is there on the first paint. */
+  initialPages?: WikiPageDTO[] | null
 }) {
-  const { data: pages, isLoading } = useWikiPages(workspaceId)
+  const { data: pages, isLoading } = useWikiPages(workspaceId, initialPages)
   const tree = useMemo(() => buildTree(pages ?? []), [pages])
 
-  if (isLoading) return null
+  if (isLoading) {
+    return (
+      <div
+        role='status'
+        aria-label='Carregando páginas'
+        className='space-y-1.5 px-1'
+      >
+        {[0, 1, 2].map((row) => (
+          <Skeleton key={row} className='h-7 w-full' />
+        ))}
+      </div>
+    )
+  }
 
   if (!tree.length) {
     return <Muted className='px-2.5'>Nenhuma página ainda.</Muted>
   }
 
   return (
-    <div className='space-y-0.5'>
+    <nav aria-label='Páginas da wiki' className='space-y-0.5'>
       {tree.map((node) => (
         <WikiSidebarTreeItem
           key={node.id}
@@ -66,7 +82,7 @@ export function WikiSidebarTree({
           workspaceSlug={workspaceSlug}
         />
       ))}
-    </div>
+    </nav>
   )
 }
 
@@ -106,7 +122,8 @@ function WikiSidebarTreeItem({
               <Button
                 variant='ghost'
                 size='icon-sm'
-                className='opacity-0 group-hover:opacity-100 shrink-0'
+                aria-label={`Ações de ${node.title || 'Sem título'}`}
+                className='shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-popup-open:opacity-100 max-md:opacity-100'
               >
                 <SteelIcon icon={MoreHorizontalIcon} strokeWidth={2} />
               </Button>

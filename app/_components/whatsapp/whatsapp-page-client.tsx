@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 import { useWhatsAppConnections } from '@/src/hooks/use-whatsapp-connections'
 import { useWhatsAppRealtimeEvents } from '@/src/hooks/use-whatsapp-events'
 import type { WhatsAppConversationDTO } from '@/types/whatsapp-conversation'
@@ -25,15 +26,25 @@ export function WhatsappPageClient({
   useWhatsAppRealtimeEvents(workspaceId)
 
   return (
+    // Below `lg` the module rail, the conversation list (w-80) and the chat
+    // do not fit side by side — the chat was squeezed to a sliver with an
+    // unusable composer — so the list and the chat take turns there.
     <div className='flex h-full w-full'>
-      <WhatsappConversationSidebar
-        workspaceId={workspaceId}
-        connections={connections.data ?? []}
-        connectionId={connectionId}
-        onConnectionChange={setConnectionId}
-        selectedConversationId={selected?.id ?? null}
-        onSelect={setSelected}
-      />
+      <div
+        className={cn(
+          'flex h-full min-w-0 max-lg:[&>div]:w-full',
+          selected ? 'max-lg:hidden' : 'max-lg:flex-1',
+        )}
+      >
+        <WhatsappConversationSidebar
+          workspaceId={workspaceId}
+          connections={connections.data ?? []}
+          connectionId={connectionId}
+          onConnectionChange={setConnectionId}
+          selectedConversationId={selected?.id ?? null}
+          onSelect={setSelected}
+        />
+      </div>
       {selected ? (
         <WhatsappConversationView
           workspaceId={workspaceId}
@@ -42,7 +53,7 @@ export function WhatsappPageClient({
           onBack={() => setSelected(null)}
         />
       ) : (
-        <div className='flex flex-1 items-center justify-center text-muted-foreground text-sm'>
+        <div className='flex flex-1 items-center justify-center text-muted-foreground text-sm max-lg:hidden'>
           Selecione uma conversa para começar
         </div>
       )}

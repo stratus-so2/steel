@@ -18,9 +18,17 @@ function baseRoute(workspaceId: string) {
   return `/api/workspaces/${workspaceId}/wiki`
 }
 
-export function useWikiPages(workspaceId: string) {
+/**
+ * `initialPages` (from the server render) paints the tree at once instead of
+ * an empty sidebar while the first request is in flight.
+ */
+export function useWikiPages(
+  workspaceId: string,
+  initialPages?: WikiPageDTO[] | null,
+) {
   return useQuery({
     queryKey: wikiPagesKey(workspaceId),
+    initialData: initialPages ?? undefined,
     queryFn: () =>
       apiFetch<WikiPageDTO[]>(
         baseRoute(workspaceId),

@@ -409,3 +409,233 @@ describe('<WhatsappComposer /> attachments and contacts', () => {
     )
   })
 })
+
+describe('<WhatsappComposer /> slash quick replies', () => {
+  const SLASH_REPLIES = [
+    {
+      id: 'qr_1',
+      shortcut: 'saudacao-tarde',
+      title: 'Boa tarde',
+      body: 'Boa tarde, {nome_cliente}!',
+      mediaUrl: null,
+    },
+    {
+      // Saved with the slash and an accent: `/saudacao` must still find it.
+      id: 'qr_2',
+      shortcut: '/Saudação',
+      title: 'Saudação',
+      body: 'Olá {nome_cliente}, tudo bem?',
+      mediaUrl: null,
+    },
+    {
+      id: 'qr_3',
+      shortcut: 'tabela',
+      title: 'Tabela de preços',
+      body: 'Segue a tabela, {nome_cliente}.',
+      mediaUrl: 'https://cdn.test/media/ws_1/tabela.pdf',
+    },
+    {
+      id: 'qr_4',
+      shortcut: 'logo',
+      title: 'Logo',
+      body: 'Nossa marca',
+      mediaUrl: 'https://cdn.test/media/ws_1/logo.png',
+    },
+  ]
+
+  type Spy = ReturnType<typeof setup>
+  const bodiesOf = (spy: Spy, suffix: string) =>
+    spy.mock.calls
+      .filter(
+        ([url, init]) =>
+          String(url).endsWith(suffix) && init?.method === 'POST',
+      )
+      .map(([, init]) => JSON.parse(String(init?.body)))
+  const textCalls = (spy: Spy) => bodiesOf(spy, MESSAGES)
+  const mediaCalls = (spy: Spy) => bodiesOf(spy, `${MESSAGES}/media`)
+
+  function setupSlash(extra: FetchRoute[] = []) {
+    return setup(
+      [
+        ...extra,
+        { method: 'POST', match: `${MESSAGES}/media`, data: {} },
+        { method: 'POST', match: MESSAGES, data: {} },
+      ],
+      { quickReplies: SLASH_REPLIES },
+    )
+  }
+
+  it('lists the exact shortcut first and expands it on Enter', async () => {
+    const spy = setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/saudacao' } })
+    const list = await screen.findByRole('listbox', {
+      name: 'Mensagens rápidas',
+    })
+    const options = within(list).getAllByRole('option')
+    expect(options[0].textContent).toContain('/Saudação')
+    expect(options[0].getAttribute('aria-selected')).toBe('true')
+    expect(textarea().getAttribute('aria-controls')).toBe(
+      'whatsapp-quick-reply-list',
+    )
+
+    fireEvent.keyDown(textarea(), { key: 'Enter' })
+    expect(textarea().value).toBe('Olá Ana, tudo bem?')
+    expect(screen.queryByRole('listbox')).toBeNull()
+    // Expanding is not sending: the agent reviews, then Enter sends.
+    expect(textCalls(spy)).toEqual([])
+
+    fireEvent.keyDown(textarea(), { key: 'Enter' })
+    await waitFor(() =>
+      expect(textCalls(spy)).toEqual([{ text: 'Olá Ana, tudo bem?' }]),
+    )
+  })
+
+  it('moves through the matches with the arrows and applies with Tab', async () => {
+    setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/sauda' } })
+    await screen.findByRole('listbox')
+    fireEvent.keyDown(textarea(), { key: 'ArrowDown' })
+    fireEvent.keyDown(textarea(), { key: 'ArrowDown' })
+    fireEvent.keyDown(textarea(), { key: 'ArrowUp' })
+    const selected = screen
+      .getAllByRole('option')
+      .find((o) => o.getAttribute('aria-selected') === 'true')
+    expect(selected?.textContent).toContain('/Saudação')
+
+    fireEvent.keyDown(textarea(), { key: 'Tab' })
+    expect(textarea().value).toBe('Olá Ana, tudo bem?')
+  })
+
+  it('closes the picker on Escape and then sends the literal text', async () => {
+    const spy = setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/sauda' } })
+    await screen.findByRole('listbox')
+    fireEvent.keyDown(textarea(), { key: 'Escape' })
+    expect(screen.queryByRole('listbox')).toBeNull()
+
+    fireEvent.keyDown(textarea(), { key: 'Enter' })
+    await waitFor(() => expect(textCalls(spy)).toEqual([{ text: '/sauda' }]))
+  })
+
+  it('applies an entry picked with the mouse', async () => {
+    setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/' } })
+    const list = await screen.findByRole('listbox')
+    expect(within(list).getAllByRole('option')).toHaveLength(4)
+    fireEvent.mouseDown(within(list).getByText('/saudacao-tarde'))
+    fireEvent.click(within(list).getByText('/saudacao-tarde'))
+    expect(textarea().value).toBe('Boa tarde, Ana!')
+  })
+
+  it('sends the expanded reply when the send button gets an exact shortcut', async () => {
+    const spy = setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/saudacao' } })
+    await screen.findByRole('listbox')
+    fireEvent.click(sendButton())
+
+    await waitFor(() =>
+      expect(textCalls(spy)).toEqual([{ text: 'Olá Ana, tudo bem?' }]),
+    )
+    await waitFor(() => expect(textarea().value).toBe(''))
+  })
+
+  it('stages the media of a quick reply and sends it with the text as caption', async () => {
+    const spy = setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/tabela' } })
+    await screen.findByRole('listbox')
+    fireEvent.keyDown(textarea(), { key: 'Enter' })
+
+    expect(textarea().value).toBe('Segue a tabela, Ana.')
+    expect(screen.getByText('tabela.pdf')).toBeTruthy()
+    expect(screen.getByText('Anexo da mensagem rápida')).toBeTruthy()
+
+    fireEvent.click(sendButton())
+    await waitFor(() =>
+      expect(mediaCalls(spy)).toEqual([
+        {
+          mediaUrl: 'https://cdn.test/media/ws_1/tabela.pdf',
+          type: 'DOCUMENT',
+          fileName: 'tabela.pdf',
+          caption: 'Segue a tabela, Ana.',
+        },
+      ]),
+    )
+    await waitFor(() => expect(screen.queryByText('tabela.pdf')).toBeNull())
+    expect(textCalls(spy)).toEqual([])
+  })
+
+  it('sends the media of an exact shortcut straight from the send button', async () => {
+    const spy = setupSlash()
+    renderComposer()
+
+    fireEvent.change(textarea(), { target: { value: '/logo' } })
+    await screen.findByRole('listbox')
+    fireEvent.click(sendButton())
+
+    await waitFor(() =>
+      expect(mediaCalls(spy)).toEqual([
+        {
+          mediaUrl: 'https://cdn.test/media/ws_1/logo.png',
+          type: 'IMAGE',
+          fileName: 'logo.png',
+          caption: 'Nossa marca',
+        },
+      ]),
+    )
+    await waitFor(() => expect(textarea().value).toBe(''))
+  })
+
+  it('stages the media once when the same reply is picked twice', async () => {
+    setupSlash()
+    renderComposer()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mensagem rápida' }))
+    fireEvent.click(await screen.findByText('/logo'))
+    fireEvent.click(screen.getByRole('button', { name: 'Mensagem rápida' }))
+    fireEvent.click(await screen.findByText('/logo'))
+
+    expect(screen.getAllByText('logo.png')).toHaveLength(1)
+    expect(textarea().value).toBe('Nossa marcaNossa marca')
+  })
+
+  it('sends a caption over the WhatsApp limit as a separate text', async () => {
+    const spy = setupSlash([
+      {
+        method: 'POST',
+        match: `${API}/media/upload`,
+        data: { url: 'https://cdn/x.pdf' },
+      },
+    ])
+    const { container } = renderComposer()
+    const input = container.querySelectorAll(
+      'input[type="file"]',
+    )[2] as HTMLInputElement
+    fireEvent.change(input, {
+      target: {
+        files: [new File(['%PDF'], 'a.pdf', { type: 'application/pdf' })],
+      },
+    })
+    await waitFor(() => expect(screen.getByText('4 B')).toBeTruthy())
+
+    const long = 'x'.repeat(1100)
+    fireEvent.change(textarea(), { target: { value: long } })
+    fireEvent.click(sendButton())
+
+    await waitFor(() => expect(textCalls(spy)).toEqual([{ text: long }]))
+    expect(mediaCalls(spy)).toEqual([
+      { mediaUrl: 'https://cdn/x.pdf', type: 'DOCUMENT', fileName: 'a.pdf' },
+    ])
+  })
+})

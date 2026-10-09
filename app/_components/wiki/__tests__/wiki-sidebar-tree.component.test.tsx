@@ -64,17 +64,34 @@ function indentOf(name: string) {
 }
 
 describe('<WikiSidebarTree /> states', () => {
-  it('renders nothing while the pages load', () => {
+  it('shows a loading placeholder, not the empty state, while the pages load', () => {
     const deferred = deferredResponse()
     mockFetch().mockReturnValueOnce(deferred.promise)
-    const { container } = renderWithProviders(
+    renderWithProviders(
       <WikiSidebarTree workspaceId={WORKSPACE_ID} workspaceSlug='acme' />,
     )
 
-    expect(container.innerHTML).toBe('')
+    expect(
+      screen.getByRole('status', { name: 'Carregando páginas' }),
+    ).toBeTruthy()
     expect(screen.queryByText('Nenhuma página ainda.')).toBeNull()
 
     deferred.resolve(apiSuccess([]))
+  })
+
+  it('paints the server-rendered pages at once, without a request', () => {
+    const fetchSpy = mockFetch()
+    renderWithProviders(
+      <WikiSidebarTree
+        workspaceId={WORKSPACE_ID}
+        workspaceSlug='acme'
+        initialPages={[buildPage({ title: 'Manual' })]}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'Manual' })).toBeTruthy()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('invites the first page when the workspace has none', async () => {

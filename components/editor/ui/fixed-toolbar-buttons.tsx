@@ -23,7 +23,9 @@ import { ImportToolbarButton } from '@/components/editor/ui/import-toolbar-butto
 
 export function FixedToolbarButtons() {
   return (
-    <div className='flex w-full flex-wrap items-center gap-y-1'>
+    // One swipeable row on phones (six wrapped rows buried the text there),
+    // wrapping from `sm` up.
+    <div className='flex w-max min-w-full flex-nowrap items-center gap-y-1 sm:w-full sm:flex-wrap'>
       <ToolbarGroup>
         <UndoToolbarButton />
         <RedoToolbarButton />

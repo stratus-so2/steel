@@ -124,7 +124,7 @@ export function UserStick({ sticky }: UserStickyProps) {
   return (
     <div
       className={cn(
-        'w-67.5 flex flex-col p-4 rounded-sm group/sticky',
+        'flex w-full flex-col rounded-sm p-4 group/sticky sm:w-67.5',
         colorToBg(color),
       )}
     >

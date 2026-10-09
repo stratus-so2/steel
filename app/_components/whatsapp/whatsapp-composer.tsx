@@ -56,7 +56,6 @@ import {
 } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
-import { cn } from '@/lib/utils'
 import { useUser } from '@/src/hooks/use-user'
 import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
 import { useUploadWhatsAppMedia } from '@/src/hooks/use-whatsapp-media-upload'
@@ -69,6 +68,11 @@ import {
 import { useWhatsAppQuickReplies } from '@/src/hooks/use-whatsapp-quick-replies'
 import { useWhatsAppTemplates } from '@/src/hooks/use-whatsapp-templates'
 import {
+  fileNameFromUrl,
+  findExactQuickReply,
+  mediaTypeFromUrl,
+} from '@/src/lib/whatsapp/quick-reply-match'
+import {
   extractTemplateFillableFields,
   hasFillableFields,
   parseMetaTemplateComponents,
@@ -78,7 +82,14 @@ import type {
   WhatsAppMessageDTO,
   WhatsAppMessageTypeDTO,
 } from '@/types/whatsapp-message'
+import type { WhatsAppQuickReplyDTO } from '@/types/whatsapp-quick-reply'
 import type { WhatsAppTemplateDTO } from '@/types/whatsapp-template'
+import {
+  QUICK_REPLY_LIST_ID,
+  QuickReplyOption,
+  QuickReplySlashMenu,
+  useQuickReplySlash,
+} from './quick-reply-slash-menu'
 import { TemplateVariablesDialog } from './template-variables-dialog'
 
 function mediaTypeFromMime(mime: string): WhatsAppMessageTypeDTO {
@@ -90,11 +101,36 @@ function mediaTypeFromMime(mime: string): WhatsAppMessageTypeDTO {
 
 interface StagedAttachment {
   id: string
-  file: File
+  name: string
+  /** Bytes of a local file; null for a quick reply's stored media. */
+  size: number | null
   type: WhatsAppMessageTypeDTO
   previewUrl?: string
   status: 'uploading' | 'done' | 'error'
   uploadedUrl?: string
+}
+
+/** WhatsApp caps a media caption; longer text goes as its own message. */
+const MAX_CAPTION_LENGTH = 1024
+
+/** A quick reply's media, already stored: staged as a finished upload. */
+function stagedFromQuickReplyMedia(mediaUrl: string): StagedAttachment {
+  const type = mediaTypeFromUrl(mediaUrl)
+  return {
+    id: `qr:${mediaUrl}`,
+    name: fileNameFromUrl(mediaUrl),
+    size: null,
+    type,
+    previewUrl: type === 'IMAGE' ? mediaUrl : undefined,
+    status: 'done',
+    uploadedUrl: mediaUrl,
+  }
+}
+
+function revokePreview(attachment: StagedAttachment) {
+  if (attachment.previewUrl?.startsWith('blob:')) {
+    URL.revokeObjectURL(attachment.previewUrl)
+  }
 }
 
 function formatFileSize(bytes: number): string {
@@ -144,11 +180,7 @@ function useAudioRecorder(onRecorded: (blob: Blob) => void) {
 /** Id of the message textarea (the `R` shortcut focuses it). */
 export const WHATSAPP_COMPOSER_INPUT_ID = 'whatsapp-composer-input'
 
-/** `/abc` typed at the start of the message → the quick-reply query. */
-export function quickReplyQueryOf(text: string): string | null {
-  const match = /^\/(\S*)$/.exec(text)
-  return match ? match[1].toLowerCase() : null
-}
+export { quickReplyQueryOf } from '@/src/lib/whatsapp/quick-reply-match'
 
 export function WhatsappComposer({
   workspaceId,
@@ -167,8 +199,6 @@ export function WhatsappComposer({
 }) {
   const [text, setText] = useState('')
   const quickSend = useQuickSend()
-  const [slashActive, setSlashActive] = useState(0)
-  const [slashDismissed, setSlashDismissed] = useState<string | null>(null)
   const [attachments, setAttachments] = useState<StagedAttachment[]>([])
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [quickReplyOpen, setQuickReplyOpen] = useState(false)
@@ -210,24 +240,32 @@ export function WhatsappComposer({
     }
   })
 
-  const slashQuery = quickReplyQueryOf(text)
-  const slashMatches =
-    slashQuery === null || slashDismissed === text
-      ? []
-      : (quickReplies.data ?? [])
-          .filter((qr) => qr.shortcut.toLowerCase().startsWith(slashQuery))
-          .slice(0, 8)
-  const slashIndex = Math.min(slashActive, slashMatches.length - 1)
-
-  function applyQuickReply(body: string) {
-    setText(
-      renderQuickReplyBody(body, {
-        contactName,
-        userName: currentUser.data?.name,
-      }),
-    )
-    setSlashActive(0)
+  function renderQuickReply(quickReply: WhatsAppQuickReplyDTO): string {
+    return renderQuickReplyBody(quickReply.body, {
+      contactName,
+      userName: currentUser.data?.name,
+    })
   }
+
+  function stageQuickReplyMedia(quickReply: WhatsAppQuickReplyDTO) {
+    const { mediaUrl } = quickReply
+    if (!mediaUrl) return
+    const staged = stagedFromQuickReplyMedia(mediaUrl)
+    setAttachments((current) =>
+      current.some((a) => a.id === staged.id) ? current : [...current, staged],
+    )
+  }
+
+  // `/saudacao` + Enter (or a click in the picker): the draft becomes the
+  // reply, its media is staged, and the agent sends when ready.
+  const slash = useQuickReplySlash({
+    text,
+    quickReplies: quickReplies.data,
+    onApply: (quickReply) => {
+      setText(renderQuickReply(quickReply))
+      stageQuickReplyMedia(quickReply)
+    },
+  })
 
   const isUploading = attachments.some((a) => a.status === 'uploading')
   const isBusy =
@@ -238,33 +276,51 @@ export function WhatsappComposer({
   function removeAttachment(id: string) {
     setAttachments((current) => {
       const target = current.find((a) => a.id === id)
-      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+      if (target) revokePreview(target)
       return current.filter((a) => a.id !== id)
     })
   }
 
   async function handleSend() {
-    const trimmed = text.trim()
     if (isDisabled) return
 
-    if (hasAttachments) {
-      const readyAttachments = attachments.filter((a) => a.status === 'done')
-      if (readyAttachments.length === 0) return
+    // The send button (or the quick-send key with the picker closed) on an
+    // exact `/shortcut`: send the reply itself, never the literal command.
+    const exact = hasAttachments
+      ? null
+      : findExactQuickReply(quickReplies.data ?? [], text)
+    if (exact) {
+      await send(
+        renderQuickReply(exact).trim(),
+        exact.mediaUrl ? [stagedFromQuickReplyMedia(exact.mediaUrl)] : [],
+      )
+      return
+    }
+    await send(text.trim(), attachments)
+  }
+
+  async function send(trimmed: string, staged: StagedAttachment[]) {
+    if (staged.length > 0) {
+      const ready = staged.filter((a) => a.status === 'done' && a.uploadedUrl)
+      if (ready.length === 0) return
+      const captionFits = trimmed.length <= MAX_CAPTION_LENGTH
       try {
-        for (const [index, attachment] of readyAttachments.entries()) {
-          if (!attachment.uploadedUrl) continue
+        for (const [index, attachment] of ready.entries()) {
           await sendMedia.mutateAsync({
-            mediaUrl: attachment.uploadedUrl,
+            mediaUrl: attachment.uploadedUrl as string,
             type: attachment.type,
-            fileName: attachment.file.name,
-            caption: index === 0 ? trimmed || undefined : undefined,
+            fileName: attachment.name,
+            caption:
+              index === 0 && captionFits ? trimmed || undefined : undefined,
             replyToMessageId: index === 0 ? replyTarget?.id : undefined,
           })
         }
-        for (const attachment of readyAttachments) {
-          if (attachment.previewUrl) URL.revokeObjectURL(attachment.previewUrl)
+        if (trimmed && !captionFits) {
+          await sendText.mutateAsync({ text: trimmed })
         }
-        setAttachments((current) => current.filter((a) => a.status !== 'done'))
+        for (const attachment of ready) revokePreview(attachment)
+        const sentIds = new Set(ready.map((a) => a.id))
+        setAttachments((current) => current.filter((a) => !sentIds.has(a.id)))
         setText('')
         onClearReply?.()
       } catch {
@@ -300,7 +356,14 @@ export function WhatsappComposer({
 
     setAttachments((current) => [
       ...current,
-      { id, file, type, previewUrl, status: 'uploading' },
+      {
+        id,
+        name: file.name,
+        size: file.size,
+        type,
+        previewUrl,
+        status: 'uploading',
+      },
     ])
 
     uploadMedia.mutate(file, {
@@ -354,19 +417,21 @@ export function WhatsappComposer({
                 variant={attachment.previewUrl ? 'image' : 'icon'}
               >
                 {attachment.previewUrl && attachment.type === 'IMAGE' ? (
-                  <img src={attachment.previewUrl} alt={attachment.file.name} />
+                  <img src={attachment.previewUrl} alt={attachment.name} />
                 ) : (
                   <SteelIcon icon={File02Icon} size={16} />
                 )}
               </AttachmentMedia>
               <AttachmentContent>
-                <AttachmentTitle>{attachment.file.name}</AttachmentTitle>
+                <AttachmentTitle>{attachment.name}</AttachmentTitle>
                 <AttachmentDescription>
                   {attachment.status === 'uploading'
                     ? 'Enviando…'
                     : attachment.status === 'error'
                       ? 'Falha no envio'
-                      : formatFileSize(attachment.file.size)}
+                      : attachment.size === null
+                        ? 'Anexo da mensagem rápida'
+                        : formatFileSize(attachment.size)}
                 </AttachmentDescription>
               </AttachmentContent>
               <AttachmentActions>
@@ -381,7 +446,10 @@ export function WhatsappComposer({
           ))}
         </AttachmentGroup>
       )}
-      <div className='flex items-end gap-1.5'>
+      {/* Wraps when the pane is narrow (tablet with the conversation list
+          open): the message box then takes its own line instead of shrinking
+          to a sliver beside the tool buttons. */}
+      <div className='flex flex-wrap items-end gap-1.5'>
         <input
           ref={photoInputRef}
           type='file'
@@ -420,24 +488,15 @@ export function WhatsappComposer({
             <div className='max-h-64 overflow-y-auto'>
               {quickReplies.data?.length ? (
                 quickReplies.data.map((qr) => (
-                  <button
+                  <QuickReplyOption
                     key={qr.id}
-                    type='button'
-                    className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
+                    quickReply={qr}
                     onClick={() => {
-                      const rendered = renderQuickReplyBody(qr.body, {
-                        contactName,
-                        userName: currentUser.data?.name,
-                      })
-                      setText((current) => `${current}${rendered}`)
+                      setText((current) => `${current}${renderQuickReply(qr)}`)
+                      stageQuickReplyMedia(qr)
                       setQuickReplyOpen(false)
                     }}
-                  >
-                    <span className='font-medium'>/{qr.shortcut}</span>
-                    <span className='line-clamp-1 text-muted-foreground text-xs'>
-                      {qr.body}
-                    </span>
-                  </button>
+                  />
                 ))
               ) : (
                 <p className='p-2 text-muted-foreground text-xs'>
@@ -584,64 +643,19 @@ export function WhatsappComposer({
           <SteelIcon icon={Mic01Icon} size={18} />
         </Button>
 
-        <div className='relative min-w-0 flex-1'>
-          {slashMatches.length > 0 ? (
-            <div
-              id='whatsapp-quick-reply-list'
-              role='listbox'
-              aria-label='Mensagens rápidas'
-              className='absolute bottom-full left-0 z-10 mb-1 max-h-64 w-full overflow-y-auto rounded-md border bg-popover p-1 shadow-md'
-            >
-              {slashMatches.map((qr, index) => (
-                <button
-                  key={qr.id}
-                  type='button'
-                  role='option'
-                  aria-selected={index === slashIndex}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => applyQuickReply(qr.body)}
-                  className={cn(
-                    'flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted',
-                    index === slashIndex && 'bg-muted',
-                  )}
-                >
-                  <span className='font-medium'>/{qr.shortcut}</span>
-                  <span className='line-clamp-1 text-muted-foreground text-xs'>
-                    {qr.body}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : null}
+        <div className='relative min-w-48 flex-1'>
+          <QuickReplySlashMenu
+            matches={slash.matches}
+            activeIndex={slash.activeIndex}
+            onApply={slash.apply}
+          />
           <Textarea
             id={WHATSAPP_COMPOSER_INPUT_ID}
             data-composer
             value={text}
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => {
-              // `/` at the start: ↑↓ choose, Enter/Tab apply, Esc closes.
-              if (slashMatches.length > 0 && !event.nativeEvent.isComposing) {
-                const count = slashMatches.length
-                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                  event.preventDefault()
-                  const step = event.key === 'ArrowDown' ? 1 : -1
-                  setSlashActive((slashIndex + step + count) % count)
-                  return
-                }
-                if (
-                  (event.key === 'Enter' || event.key === 'Tab') &&
-                  !event.shiftKey
-                ) {
-                  event.preventDefault()
-                  applyQuickReply(slashMatches[slashIndex].body)
-                  return
-                }
-                if (event.key === 'Escape') {
-                  event.preventDefault()
-                  setSlashDismissed(text)
-                  return
-                }
-              }
+              if (slash.onKeyDown(event)) return
               if (quickSend.isSend(event)) {
                 event.preventDefault()
                 handleSend()
@@ -649,9 +663,7 @@ export function WhatsappComposer({
             }}
             placeholder='Digite uma mensagem'
             aria-label='Mensagem'
-            aria-controls={
-              slashMatches.length > 0 ? 'whatsapp-quick-reply-list' : undefined
-            }
+            aria-controls={slash.open ? QUICK_REPLY_LIST_ID : undefined}
             title={quickSend.hint}
             disabled={isDisabled}
             className='max-h-32 min-h-9 w-full resize-none'

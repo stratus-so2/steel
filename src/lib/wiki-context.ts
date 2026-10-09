@@ -56,3 +56,18 @@ export const getWikiPageContext = cache(
     return { ...context, page: page.value }
   },
 )
+
+/**
+ * The workspace's wiki pages for a server render (the sidebar tree's first
+ * paint and the `/wiki` redirect). Null when the list cannot be read: the
+ * tree then loads it on the client.
+ */
+export const getWikiPages = cache(
+  async (context: WikiContext): Promise<WikiPageDTO[] | null> => {
+    const pages = await WikiPageService.list(
+      context.userId,
+      context.workspaceId,
+    )
+    return pages.ok ? pages.value : null
+  },
+)

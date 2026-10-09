@@ -1,7 +1,12 @@
 'use client'
 
-import { type FormEvent, useState } from 'react'
+import {
+  Attachment01Icon,
+  Cancel01Icon,
+} from '@hugeicons-pro/core-stroke-rounded'
+import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { useCan } from '@/app/_components/workspace/workspace-permissions'
+import { SteelIcon } from '@/components/icon/icon'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +33,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import {
   Table,
@@ -39,11 +50,13 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
+import { useUploadWhatsAppMedia } from '@/src/hooks/use-whatsapp-media-upload'
 import {
   useCreateWhatsAppQuickReply,
   useDeleteWhatsAppQuickReply,
   useWhatsAppQuickReplies,
 } from '@/src/hooks/use-whatsapp-quick-replies'
+import { fileNameFromUrl } from '@/src/lib/whatsapp/quick-reply-match'
 import { QUICK_REPLY_VARIABLES } from '@/src/lib/whatsapp/template-variables'
 import type { WhatsAppQuickReplyDTO } from '@/types/whatsapp-quick-reply'
 
@@ -52,18 +65,38 @@ function CreateQuickReplyDialog({ workspaceId }: { workspaceId: string }) {
   const [shortcut, setShortcut] = useState('')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
+  const [media, setMedia] = useState<{ name: string; url: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const createQuickReply = useCreateWhatsAppQuickReply(workspaceId)
+  const uploadMedia = useUploadWhatsAppMedia(workspaceId)
+
+  function handleFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    uploadMedia.mutate(file, {
+      onSuccess: (uploaded) => setMedia({ name: file.name, url: uploaded.url }),
+      onError: (error) => notify.error(error, 'Erro ao enviar arquivo'),
+    })
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
     createQuickReply.mutate(
-      { shortcut, title, body },
+      {
+        // Typed as in the composer (`/saudacao`) or bare: stored bare.
+        shortcut: shortcut.trim().replace(/^\/+/, ''),
+        title,
+        body,
+        ...(media ? { mediaUrl: media.url } : {}),
+      },
       {
         onSuccess: () => {
           notify.success('Mensagem rápida criada')
           setShortcut('')
           setTitle('')
           setBody('')
+          setMedia(null)
           setOpen(false)
         },
         onError: (error) => notify.error(error, 'Não foi possível criar'),
@@ -81,13 +114,23 @@ function CreateQuickReplyDialog({ workspaceId }: { workspaceId: string }) {
         <form onSubmit={handleSubmit} className='space-y-3'>
           <div className='space-y-1.5'>
             <Label htmlFor='shortcut'>Atalho</Label>
-            <Input
-              id='shortcut'
-              required
-              placeholder='saudacao'
-              value={shortcut}
-              onChange={(event) => setShortcut(event.target.value)}
-            />
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>/</InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                id='shortcut'
+                required
+                placeholder='saudacao'
+                value={shortcut}
+                onChange={(event) => setShortcut(event.target.value)}
+              />
+            </InputGroup>
+            <p className='text-muted-foreground text-xs'>
+              Na conversa, digite /
+              {shortcut.trim().replace(/^\/+/, '') || 'saudacao'} e tecle Enter
+              para usar.
+            </p>
           </div>
           <div className='space-y-1.5'>
             <Label htmlFor='title'>Título</Label>
@@ -131,8 +174,47 @@ function CreateQuickReplyDialog({ workspaceId }: { workspaceId: string }) {
               onChange={(event) => setBody(event.target.value)}
             />
           </div>
+          <div className='space-y-1.5'>
+            <Label htmlFor='quick-reply-media'>Anexo (opcional)</Label>
+            <input
+              ref={fileInputRef}
+              id='quick-reply-media'
+              type='file'
+              className='hidden'
+              onChange={handleFile}
+            />
+            {media ? (
+              <div className='flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm'>
+                <SteelIcon icon={Attachment01Icon} size={16} />
+                <span className='min-w-0 flex-1 truncate'>{media.name}</span>
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon-xs'
+                  aria-label='Remover anexo'
+                  onClick={() => setMedia(null)}
+                >
+                  <SteelIcon icon={Cancel01Icon} size={14} />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                disabled={uploadMedia.isPending}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <SteelIcon icon={Attachment01Icon} size={16} />
+                {uploadMedia.isPending ? 'Enviando…' : 'Anexar arquivo'}
+              </Button>
+            )}
+          </div>
           <DialogFooter>
-            <Button type='submit' disabled={createQuickReply.isPending}>
+            <Button
+              type='submit'
+              disabled={createQuickReply.isPending || uploadMedia.isPending}
+            >
               {createQuickReply.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
@@ -178,9 +260,17 @@ export function WhatsappSettingsQuickReplies({
           <TableBody>
             {(quickReplies.data ?? []).map((quickReply) => (
               <TableRow key={quickReply.id}>
-                <TableCell>/{quickReply.shortcut}</TableCell>
+                <TableCell>
+                  /{quickReply.shortcut.replace(/^\/+/, '')}
+                </TableCell>
                 <TableCell>{quickReply.title}</TableCell>
                 <TableCell className='max-w-64 truncate'>
+                  {quickReply.mediaUrl ? (
+                    <span className='mr-1.5 inline-flex items-center gap-1 align-middle text-muted-foreground text-xs'>
+                      <SteelIcon icon={Attachment01Icon} size={14} />
+                      {fileNameFromUrl(quickReply.mediaUrl)} ·
+                    </span>
+                  ) : null}
                   {quickReply.body}
                 </TableCell>
                 <TableCell>
@@ -220,8 +310,8 @@ export function WhatsappSettingsQuickReplies({
           <AlertDialogHeader>
             <AlertDialogTitle>Remover mensagem rápida</AlertDialogTitle>
             <AlertDialogDescription>
-              "/{deletingQuickReply?.shortcut}" não vai mais aparecer no
-              composer da conversa.
+              "/{deletingQuickReply?.shortcut.replace(/^\/+/, '')}" não vai mais
+              aparecer no composer da conversa.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

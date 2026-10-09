@@ -177,7 +177,7 @@ export function GlobalSearch({
       <Button
         variant='outline'
         size='sm'
-        className='hidden w-56 justify-start gap-2 text-muted-foreground lg:inline-flex'
+        className='hidden w-full max-w-md justify-start gap-2 text-muted-foreground lg:inline-flex'
         onClick={() => setOpen(true)}
         aria-label='Buscar no workspace'
       >
