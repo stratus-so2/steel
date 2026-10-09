@@ -1,0 +1,43 @@
+---
+title: Modelos prontos para administradores
+description: A galeria de modelos de Steel Agents e de skills para começar sem escrever instruções do zero.
+section: steel-ai
+order: 6
+---
+
+<Callout type='admin'>
+  A galeria de modelos aparece só para o dono e os administradores, pelo botão
+  **Modelos** em **Agentes** e em **Skills**.
+</Callout>
+
+Usar um modelo **só preenche** o formulário: nada é salvo até você criar. Um
+agente criado a partir de modelo **começa pausado**, com o aviso *Teste antes de
+ativar* e o botão **Testar agente**.
+
+Os modelos sugerem consultas automáticas e deixam toda alteração com
+**aprovação**. Nenhum modelo de agente envia mensagem a cliente. Modelos que
+dependem de um módulo desligado aparecem desabilitados, com o motivo.
+
+## Modelos de agente
+
+| Modelo | Módulo | Agenda | Propõe (com aprovação) |
+| --- | --- | --- | --- |
+| Chamados sem responsável | ServiceDesk | Dias úteis, de hora em hora (8h–18h) | Atribuir chamado |
+| SLA em risco | ServiceDesk | Dias úteis, a cada 30 min (8h–18h) | Nota interna |
+| Fila parada por técnico | ServiceDesk | Dias úteis às 9h | — |
+| Oportunidades paradas no funil | CRM | Segundas às 8h | Tarefa no CRM |
+| Propostas vencendo | CRM | Dias úteis às 8h | Tarefa no CRM |
+| Conversas sem resposta | Comunicação | Dias úteis, de hora em hora (8h–18h) | Atribuir conversa |
+| Conexões do WhatsApp desconectadas | Comunicação | A cada hora | — |
+| Consumo de IA acima do ritmo | Plataforma | Todo dia às 9h | — |
+| Auditoria semanal de acessos | Plataforma | Segundas às 9h | — |
+| Resumo executivo semanal | Plataforma | Segundas às 7h | — |
+
+O resultado de um agente de relatório fica no resumo da execução, na tela do
+agente.
+
+## Modelos de skill
+
+`/saude-workspace`, `/membros`, `/consumo-ia`, `/auditoria`, `/sla-equipe`,
+`/fila-equipe`, `/pipeline-time` e `/atendimento-whatsapp`. Uma skill cujo
+comando já existe aparece como *Já adicionada*.

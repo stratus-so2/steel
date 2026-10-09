@@ -1,0 +1,48 @@
+---
+title: Painéis, modo TV e relatórios de SLA
+description: Painéis personalizados, a exibição em TV com rotação e os relatórios de SLA agendados em PDF e CSV.
+section: servicedesk
+order: 11
+---
+
+## Painéis
+
+Em **Painéis**, crie e organize os indicadores do atendimento: **Novo painel**,
+renomear, duplicar e excluir. O ServiceDesk já vem com dois painéis de exemplo,
+um analítico e um de KPIs para TV.
+
+<Callout type='nota'>
+  Criar, editar e excluir painéis exige a permissão de painéis do ServiceDesk
+  (dono e administradores a têm sempre).
+</Callout>
+
+## Modo TV
+
+Abra um painel em **Modo TV** para deixá-lo à vista da equipe:
+
+- Atualiza a cada 30 segundos; use **Atualizar agora** para forçar.
+- **Tela cheia**.
+- Para alternar entre painéis, acrescente ao endereço
+  `?rotate=<id1>,<id2>&interval=<segundos>` (de 10 segundos a 1 hora; 60 por
+  padrão).
+
+O modo TV é só para agentes conectados.
+
+## Relatórios de SLA agendados
+
+<Callout type='admin'>
+  Configurados em **Configurações › Relatórios**.
+</Callout>
+
+Um relatório agendado é enviado por e-mail todo mês:
+
+- **Recorte**: clientes, departamento e tipos de chamado (vazio = todos).
+- **Período apurado**: últimos 7, 30 ou 90 dias, mês corrente até agora ou mês
+  anterior.
+- **Formatos**: PDF e/ou CSV.
+- **Quando**: dia do mês (1 a 28), horário e fuso.
+- **Destinatários**: e-mails separados por vírgula e, se quiser, os
+  responsáveis pelas contas.
+
+O **Histórico de execuções** guarda os arquivos para download. Anexos acima de
+8 MB são trocados por um link, e o mesmo período nunca é enviado duas vezes.

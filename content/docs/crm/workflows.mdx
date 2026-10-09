@@ -1,0 +1,33 @@
+---
+title: Workflows
+description: Automações visuais do CRM, com gatilhos por registro, por lead, por agenda ou por webhook, ações de registros, controle, e-mail e etapas humanas.
+section: crm
+order: 8
+---
+
+Em **Workflows**, monte automações num editor visual ligando um **gatilho** a
+uma sequência de **ações**.
+
+## Gatilhos
+
+- **Registros**: registro criado, atualizado, excluído ou criado/atualizado.
+- **Leads**: lead criado, etapa do lead alterada, lead ganho, lead perdido.
+- **Disparo manual**.
+- **Agendado**: por uma expressão cron, com fuso horário.
+- **Webhook**: outro sistema dispara o workflow chamando o endereço mostrado no
+  gatilho, com o token do webhook.
+
+## Ações
+
+| Grupo | Ações |
+| --- | --- |
+| **Registros** | Criar, atualizar, excluir, buscar e "upsert" de registros |
+| **Controle** | Iterar, Filtro, If / Else e Atraso |
+| **Comunicação** | Enviar e-mail e rascunho de e-mail |
+| **Humano** | Formulário: o workflow pausa até alguém responder |
+
+## Ciclo de vida
+
+Um workflow fica **Rascunho**, **Ativo** ou **Desativado**. Teste antes de
+ativar. O **Histórico de execuções** mostra cada execução, e as que pararam podem
+ser retomadas.

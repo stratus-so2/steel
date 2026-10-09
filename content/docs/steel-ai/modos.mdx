@@ -1,0 +1,57 @@
+---
+title: Modos Ask, Build, Autopilot e Teste
+description: O que cada modo da Steel AI pode fazer, como funciona a confirmação de ações e quando usar o modo Teste.
+section: steel-ai
+order: 1
+---
+
+Escolha o modo no seletor **Modo do Steel AI**, ao lado do campo de mensagem.
+
+| Modo | O que faz |
+| --- | --- |
+| **Ask** | Só responde e consulta dados. Não altera nada. |
+| **Build** | Consulta e **propõe** ações. Nada é feito sem a sua confirmação. |
+| **Autopilot** | Executa as ações sozinho e registra tudo. Só existe se um administrador liberar. |
+| **Teste** | Faz as consultas de verdade e **simula** as ações, sem alterar nada. |
+
+## Build: confirmação antes de mudar
+
+Quando a Steel AI quer criar, alterar, excluir ou enviar algo, ela mostra um
+cartão com a prévia do que vai mudar e espera:
+
+- **Confirmar** executa a ação; **Cancelar** descarta.
+- Exclusões pedem uma segunda confirmação (*Confirmar exclusão?*).
+- Uma ação pendente expira em **30 minutos**. Perto de expirar, você recebe um
+  aviso, e as pendências também aparecem na
+  [caixa de entrada](/docs/workspace/caixa-de-entrada#pendências-da-steel-ai).
+- <Kbd>Ctrl</Kbd> <Kbd>Shift</Kbd> <Kbd>Enter</Kbd> aprova a ação proposta.
+
+Se o modo Build foi desligado, o seletor avisa: *"O modo Build foi desativado por
+um administrador em Ajustes > Steel IA."*
+
+## Autopilot
+
+<Callout type='aviso'>
+  No Autopilot, a Steel AI executa as ações **sem pedir confirmação**, inclusive
+  exclusões e mensagens a clientes. Cada ação aparece na conversa como um cartão
+  compacto e fica registrada. O Autopilot vem desligado e só um administrador o
+  libera, em **Ajustes › Steel IA › Permitir Autopilot**.
+</Callout>
+
+## Teste
+
+O modo Teste mostra o que a Steel AI faria sem mudar nada:
+
+- As consultas rodam de verdade.
+- Cada ação vira um cartão tracejado *Simulado — Faria: …*, com a prévia.
+- No fim, o resumo diz quantas ações foram simuladas e que nada foi alterado.
+- **Executar de verdade em Build** troca a conversa para o Build e repete o
+  último pedido; aí as ações passam pela confirmação normal.
+
+O Teste está disponível sempre que a Steel AI está ligada. O consumo de IA conta
+normalmente na cota.
+
+## Mensagens a clientes
+
+Ações que falam com clientes (WhatsApp, e-mail) respeitam os descadastros da
+LGPD: quem pediu para não receber não recebe.

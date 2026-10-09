@@ -1,0 +1,77 @@
+---
+title: Canais, automações e plantão
+description: Chamados por e-mail, WhatsApp, monitoramento e Slack, regras de automação, chamados recorrentes e escala de plantão.
+section: servicedesk
+order: 9
+---
+
+<Callout type='admin'>
+  Tudo nesta página é configurado em **ServiceDesk › Configurações** por
+  administradores.
+</Callout>
+
+## E-mail
+
+Em **Configurações › E-mail**, cadastre caixas de e-mail (IMAP, lidas a cada
+minuto, e SMTP opcional para as respostas). Cada caixa define os padrões do
+chamado aberto (tipo, departamento, categoria, prioridade), remetentes aceitos e
+bloqueados (`@dominio.com` vale para o domínio inteiro), se cria contato para
+remetente desconhecido e se confirma a abertura por e-mail. Respostas por e-mail
+entram no histórico do chamado.
+
+## WhatsApp
+
+Em **Configurações › WhatsApp**, conecte números (Z-API ou Meta) só para o
+ServiceDesk, separados do módulo Comunicação. No chamado, a aba **WhatsApp**
+inicia uma conversa por número, vincula uma conversa existente ou envia um
+template aprovado. Arquivos de até 16 MB.
+
+## Monitoramento
+
+Em **Configurações › Monitoramento**, ligue o **Zabbix** ou um **webhook
+genérico** para que alertas abram chamados sozinhos:
+
+- A URL do webhook aparece **uma única vez**: trate-a como senha.
+- Defina os padrões do chamado e como a severidade do alerta vira prioridade.
+- **Encerrar o chamado quando o alerta normalizar**.
+- **Janela de instabilidade**: o mesmo alerta que volta dentro da janela reabre o
+  chamado anterior em vez de abrir outro.
+
+## Slack, GitHub e GitLab
+
+Com a integração conectada em [Ajustes › Integrações](/docs/workspace/integracoes),
+**Configurações › Integrações** define o departamento e o tipo do chamado aberto
+pelo Slack e se as respostas da thread entram no histórico. GitHub e GitLab
+abrem issues a partir de chamados de problema e de mudança.
+
+## Automações
+
+Em **Configurações › Automações**, monte regras **evento → condições → ações**:
+
+- Eventos: chamado aberto ou atualizado, fase alterada, mensagem recebida,
+  aprovação respondida, SLA em risco, SLA violado.
+- Ações: alterar campo, atribuir departamento ou responsável, distribuir por
+  round-robin, adicionar participante ou tag, notificar, publicar mensagem
+  (interna ou pública), criar tarefa, aplicar modelo e escalonar.
+
+## Chamados recorrentes
+
+Em **Configurações › Recorrentes**, programe chamados de rotina (manutenções,
+verificações): frequência diária, semanal, mensal ou anual, horário, fuso,
+vigência, antecedência, o modelo de chamado e a opção de não abrir se o anterior
+ainda estiver aberto. A tela mostra as próximas cinco execuções e o histórico,
+e **Gerar agora** abre um chamado na hora.
+
+## Plantão
+
+Em **Configurações › Plantão**, monte escalas de sobreaviso:
+
+- Time coberto (ou o workspace inteiro), fuso, rodízio diário, semanal ou
+  quinzenal e hora da virada.
+- Com um calendário de expediente, a escala vale só fora do expediente.
+- Camadas: a primeira é quem atende, as outras são a retaguarda.
+- **Trocas de plantão** para cobrir alguém num período.
+
+A linha do tempo mostra as próximas duas semanas, e quem está de plantão aparece
+na barra lateral do ServiceDesk. O [escalonamento](/docs/servicedesk/prioridade-e-sla#escalonamento)
+pode passar chamados para o plantão.

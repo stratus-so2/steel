@@ -1,0 +1,59 @@
+---
+title: Catálogo, CMDB e cadastros
+description: Catálogo de serviços, clientes, empresas, contatos, itens de configuração, importação por planilha, campos customizados, modelos e respostas prontas.
+section: servicedesk
+order: 6
+---
+
+## Catálogo de serviços
+
+Em **Configurações › Catálogo**, organize os serviços em três níveis:
+**categoria › subcategoria › serviço**. Cada item pode ter departamento e
+política de SLA padrão, os tipos de chamado em que aparece e se fica
+**visível no portal** do solicitante. As **classificações** (de chamado e de
+solução) ficam em **Configurações › Classificações**.
+
+## Clientes, empresas e contatos
+
+- **Clientes** e **Empresas**: quem você atende. A ficha tem as abas **Dados**,
+  **Chamados** e, quando há contrato, **Contrato**.
+- **Contatos**: as pessoas dos clientes, que podem abrir chamados e acessar o
+  [portal externo](/docs/servicedesk/portal-do-solicitante).
+
+### Importar por planilha (CSV)
+
+Clientes e contatos podem ser importados por CSV, com o cabeçalho na primeira
+linha e até **1.000 linhas** por importação. As linhas recusadas são listadas
+com o motivo.
+
+- Clientes: nome/razão social, fantasia, CPF/CNPJ, e-mail, telefone, WhatsApp,
+  CEP, logradouro, número, complemento, bairro, cidade, UF e observações.
+- Contatos: nome, cargo, e-mail, telefone, WhatsApp, observações e
+  `documento_cliente` (o CPF/CNPJ do cliente a que o contato pertence).
+
+## Itens de configuração (CMDB)
+
+Em **Itens de configuração** ficam os equipamentos, sistemas e serviços que
+você mantém. Um chamado aponta o item afetado; a ficha do item mostra os
+chamados e as **rotinas** (chamados recorrentes) ligados a ele. Os tipos de
+item são gerenciados por administradores.
+
+## Campos customizados
+
+Em **Configurações › Campos customizados**, crie campos para chamados, clientes,
+contatos e itens de configuração: texto curto ou longo, número, moeda, data,
+data e hora, caixa de seleção, lista de uma ou várias opções, e-mail, telefone,
+link e usuário. Cada campo pode ser obrigatório, ter valor padrão e aparecer no
+portal.
+
+## Modelos de chamado
+
+Em **Configurações › Modelos**, guarde valores padrão e um checklist de tarefas
+para pedidos que se repetem. O modelo pode aparecer no portal como **pedido
+pronto**.
+
+## Respostas prontas
+
+Em **Configurações › Respostas prontas**, cadastre textos com um **atalho**.
+Na conversa do chamado, digite <Kbd>/</Kbd> para inserir. Cada agente cria as
+suas; administradores gerenciam todas.

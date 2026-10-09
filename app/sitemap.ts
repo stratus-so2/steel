@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getAllEntriesMeta } from '@/src/lib/changelog/entries'
+import { getAllDocsMeta } from '@/src/lib/docs/pages'
 import { SITE_URL } from '@/src/lib/seo/site'
 
 type ChangeFrequency = NonNullable<
@@ -16,10 +17,14 @@ interface StaticRoute {
 // (e.g. Bing) still read them and they cost nothing. lastModified (the
 // changelog entries below) is the field Google actually uses. There is no
 // home: "/" redirects to /sign-in, so it is left out. Placeholder pages
-// (/docs, /marketplace) stay out until they have content.
+// (/marketplace) stay out until they have content; the manual's pages
+// (/docs/**) are listed from content/docs below.
 const STATIC_ROUTES: StaticRoute[] = [
   { path: '/sign-in', priority: 1, changeFrequency: 'monthly' },
   { path: '/changelog', priority: 0.8, changeFrequency: 'weekly' },
+  { path: '/docs', priority: 0.8, changeFrequency: 'weekly' },
+  { path: '/dev', priority: 0.5, changeFrequency: 'monthly' },
+  { path: '/dev/api', priority: 0.5, changeFrequency: 'weekly' },
   { path: '/about', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/manifesto', priority: 0.7, changeFrequency: 'yearly' },
   { path: '/pricing', priority: 0.7, changeFrequency: 'monthly' },
@@ -47,13 +52,21 @@ const STATIC_ROUTES: StaticRoute[] = [
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entries = await getAllEntriesMeta()
+  const [entries, docs] = await Promise.all([
+    getAllEntriesMeta(),
+    getAllDocsMeta(),
+  ])
 
   return [
     ...STATIC_ROUTES.map(({ path, priority, changeFrequency }) => ({
       url: `${SITE_URL}${path}`,
       priority,
       changeFrequency,
+    })),
+    ...docs.map((page) => ({
+      url: `${SITE_URL}${page.href}`,
+      priority: page.slug === 'index' ? 0.7 : 0.6,
+      changeFrequency: 'monthly' as ChangeFrequency,
     })),
     ...entries.map((entry) => ({
       url: `${SITE_URL}/changelog/${entry.slug}`,

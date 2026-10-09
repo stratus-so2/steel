@@ -1,0 +1,48 @@
+---
+title: Skills
+description: Instruções reutilizáveis chamadas com uma barra no chat, as skills que já vêm prontas e como criar as suas.
+section: steel-ai
+order: 3
+---
+
+Uma **skill** é um pedido que você repete, salvo como instrução. Digite{' '}
+<Kbd>/</Kbd> no início da mensagem para abrir a lista, escolha com{' '}
+<Kbd>↑</Kbd> <Kbd>↓</Kbd> e <Kbd>Enter</Kbd> (ou <Kbd>Tab</Kbd>), e complete o
+pedido se quiser.
+
+## Skills prontas
+
+| Comando | O que faz |
+| --- | --- |
+| `/my-work` | Meu trabalho |
+| `/sla` | SLA em risco |
+| `/pipeline` | Resumo do funil |
+| `/follow-ups` | Follow-ups pendentes |
+| `/inbox` | Minha caixa de entrada |
+| `/resumo-semana` | Resumo da semana |
+
+Um administrador pode desligar uma skill pronta para o workspace, mas não
+editá-la.
+
+## Criar uma skill
+
+Em **Steel AI › Skills**, crie uma skill com:
+
+- **Nome**, **Comando** (de 1 a 40 caracteres: letras minúsculas, números e
+  hífen) e **Descrição**.
+- **Instruções**: o que a Steel AI deve fazer.
+- **Modo ao usar**: Ask, Build ou Autopilot. Ao escolher a skill, o chat troca
+  para esse modo se ele estiver liberado.
+- **Ferramentas sugeridas**.
+- **Quem pode usar**: só você ou **todo o workspace**.
+
+| Escopo | Quem cria |
+| --- | --- |
+| Pessoal | Qualquer membro, inclusive visualizadores |
+| Workspace | Dono e administradores |
+
+Quando dois comandos coincidem, vale a skill pessoal, depois a do workspace,
+depois a pronta. **Usar no chat** abre uma conversa com o comando já escrito.
+
+Administradores também encontram skills prontas para governança na galeria de
+[modelos](/docs/steel-ai/modelos-prontos).

@@ -1,7 +1,6 @@
 import {
   CheckIcon,
   InformationCircleIcon,
-  SolidLine01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { SteelIcon } from '@/components/icon/icon'
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
@@ -55,23 +54,16 @@ function PlanValueCell({ row, plan }: { row: PricingRow; plan: PlanGrid }) {
 function CellContent({ cell }: { cell: PricingCell }) {
   if (cell.kind === 'check') {
     return (
-      <SteelIcon
-        icon={CheckIcon}
-        size={20}
-        strokeWidth={2}
-        className='mx-auto'
-      />
-    )
-  }
-
-  if (cell.kind === 'dash') {
-    return (
-      <SteelIcon
-        icon={SolidLine01Icon}
-        size={20}
-        strokeWidth={2}
-        className='mx-auto text-muted-foreground'
-      />
+      <>
+        <SteelIcon
+          icon={CheckIcon}
+          size={20}
+          strokeWidth={2}
+          className='mx-auto'
+          aria-hidden
+        />
+        <span className='sr-only'>Incluído</span>
+      </>
     )
   }
 
@@ -84,7 +76,7 @@ function FeatureCell({ label, tooltip }: { label: string; tooltip: string }) {
       <div className='flex items-center gap-2'>
         {label}
         <Tooltip>
-          <TooltipTrigger>
+          <TooltipTrigger aria-label={`Sobre: ${label}`}>
             <SteelIcon icon={InformationCircleIcon} strokeWidth={2} />
           </TooltipTrigger>
           <TooltipContent align='start'>{tooltip}</TooltipContent>

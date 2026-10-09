@@ -1,3 +1,4 @@
+import type { MdxHeading } from '@/src/lib/mdx/headings'
 import type { ChangelogEntryTag } from '@/src/schemas/changelog-entry.schema'
 
 export interface ChangelogEntryMetaDTO {
@@ -10,11 +11,7 @@ export interface ChangelogEntryMetaDTO {
   cover: string | null
 }
 
-export interface ChangelogEntryHeading {
-  level: 2 | 3
-  id: string
-  text: string
-}
+export type ChangelogEntryHeading = MdxHeading
 
 export interface ChangelogEntryDTO extends ChangelogEntryMetaDTO {
   /** MDX body without the frontmatter (also served as plain markdown). */

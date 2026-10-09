@@ -24,9 +24,9 @@ export function PricingTableHeader({
   const [billing] = useQueryState('billing', billingParser)
 
   return (
-    <div className='border-b border-border z-30 hidden lg:sticky lg:top-16 lg:flex lg:justify-end bg-background'>
+    <div className='border-b border-border z-30 hidden lg:sticky lg:top-[72px] lg:flex lg:justify-end bg-background'>
       <div className='w-full lg:w-[30%] p-4 border-border'>
-        <span className='font-medium text-xl'>Funcionalidades</span>
+        <span className='font-medium text-xl'>Recursos</span>
       </div>
       <div className='border-border w-full flex shrink-0 justify-evenly lg:w-[70%]'>
         {PLAN_ORDER.map((plan) => (
@@ -64,7 +64,7 @@ function PlanColumn({ plan, billing, billingEnabled }: PlanColumnProps) {
           </>
         ) : (
           <strong className='font-normal text-base text-primary'>
-            Cotação a pedido
+            Sob consulta
           </strong>
         )}
       </Muted>
@@ -79,7 +79,7 @@ function PlanCta({ plan, billing, billingEnabled }: PlanColumnProps) {
       <Button
         variant='outline'
         nativeButton={false}
-        render={<Link href='/sign-up'>Comece grátis</Link>}
+        render={<Link href='/sign-up'>Criar conta grátis</Link>}
       />
     )
   }
@@ -89,7 +89,7 @@ function PlanCta({ plan, billing, billingEnabled }: PlanColumnProps) {
     return (
       <Button
         nativeButton={false}
-        render={<Link href='/talk-to-sales'>Fale conosco</Link>}
+        render={<Link href='/talk-to-sales'>Falar com vendas</Link>}
       />
     )
   }
@@ -99,7 +99,7 @@ function PlanCta({ plan, billing, billingEnabled }: PlanColumnProps) {
       nativeButton={false}
       render={
         <Link href={upgradeUrl(plan, billing)}>
-          Obtenha o {formatPlanName(plan)}
+          Assinar o {formatPlanName(plan)}
         </Link>
       }
     />

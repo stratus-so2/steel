@@ -256,7 +256,7 @@ function TriggerForm({
       {data.type === 'webhook' && (
         <Field
           label='Token do webhook'
-          hint='URL: POST /api/crm/workflows/webhook/<token>'
+          hint='URL: POST /api/crm/workflows/<token>/trigger'
         >
           <Input
             value={data.token}

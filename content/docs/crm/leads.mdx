@@ -1,0 +1,60 @@
+---
+title: Leads
+description: As seis etapas do funil de leads, o que cada etapa exige para avançar, perda e reabertura, pontuação e roteamento.
+section: crm
+order: 1
+---
+
+## Criar um lead
+
+Clique em **Novo lead** (ou <Kbd>C</Kbd> <Kbd>L</Kbd>) e informe **Nome**,
+**Origem** e pelo menos um contato: **Email** ou **Telefone**. O Steel recusa
+leads duplicados.
+
+Leads também chegam por [formulários](/docs/crm/formularios-e-paginas), pela
+[API](/docs/crm/configuracoes#chaves-de-api) e pelas automações.
+
+## As etapas
+
+O quadro de leads tem seis etapas fixas:
+
+1. Lead recebido
+2. Em contato
+3. Lead qualificado
+4. Interesse/Oportunidade
+5. Proposta
+6. Fechado/Encerrado
+
+Os leads **não são arrastados** entre etapas: eles avançam conforme você
+registra o trabalho no painel lateral, que mostra o formulário da etapa atual.
+
+| Etapa | O que registrar | Para onde vai |
+| --- | --- | --- |
+| Recebido / Em contato | **Registrar contato**: com quem falou, canal (telefone, WhatsApp, e-mail, reunião, outro), resultado e observação | Uma tentativa leva a *Em contato*; um contato efetivo, a *Qualificado* |
+| Qualificado | **Qualificar lead**: previsão de fechamento, nome e cargo do decisor | *Oportunidade* |
+| Oportunidade | **Registrar reunião** (data, formato, pessoa de contato, interesse, necessidade) e depois **Criar proposta comercial** | *Proposta* (exige ao menos uma reunião) |
+| Proposta | **Registrar apresentação** (data, forma, valor, termômetro de interesse, interações, negociações) e depois **Fechar como ganho** (data da assinatura, forma de cobrança, valor fechado) | *Fechado* como ganho |
+
+Ao fechar como ganho, o lead vira uma **Pessoa** no CRM.
+
+## Perder e reabrir
+
+Qualquer lead em aberto pode ser marcado como perdido, com o **Motivo da
+perda**. Um lead perdido pode ser reaberto, com o motivo da reabertura; ele volta
+para a etapa definida nas configurações, mas nunca além de uma etapa cujos
+registros estão faltando. Leads ganhos não são reabertos.
+
+## Pontuação e roteamento
+
+<Callout type='admin'>
+  Configurados em **Configurações do CRM**.
+</Callout>
+
+- **Pontuação de leads**: regras "campo + operador + valor = pontos" (por
+  exemplo, origem é igual a "indicação" soma 20 pontos). Os campos são nome,
+  e-mail, telefone, empresa, cargo, origem e cidade; os operadores, é igual a, é
+  diferente de, contém, está vazio e não está vazio.
+- **Roteamento de leads**: a mesma condição define o **responsável** do lead
+  novo.
+
+As regras rodam quando o lead é criado, inclusive pela API.

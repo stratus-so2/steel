@@ -27,187 +27,98 @@ export interface PlanCopy {
   features: PlanFeature[]
 }
 
+const MODULES: PlanFeature = {
+  title: 'ServiceDesk, CRM e Comunicação',
+  description:
+    'Os três módulos no mesmo workspace, habilitados por workspace pela equipe da Stratus Telecom.',
+}
+
+const STEEL_AI: PlanFeature = {
+  title: 'Steel AI e Steel Agents',
+  description:
+    'Assistente nos três módulos, com confirmação antes de alterar dados, e agentes em segundo plano. Uso dentro da cota mensal de IA do workspace.',
+}
+
+const WORKSPACE: PlanFeature = {
+  title: 'Caixa de entrada, busca e Wiki',
+  description:
+    'Notificações de todos os módulos, busca global com Ctrl+K e páginas colaborativas em tempo real.',
+}
+
+const INTEGRATIONS: PlanFeature = {
+  title: 'Slack, GitHub e GitLab',
+  description: 'Uma conexão por workspace, usada por todos os módulos.',
+}
+
+const SECURITY: PlanFeature = {
+  title: 'Verificação em duas etapas e LGPD',
+  description:
+    'Código por e-mail ou app autenticador, auditoria, exportação completa dos dados e descadastro de marketing.',
+}
+
+/**
+ * Copy of each plan on /pricing (and in the in-app upgrade screens). Today
+ * the plans differ only in seats (`src/config/plans.ts`, the only enforced
+ * limit); everything else is included in all of them.
+ */
 export const PLANS: Record<PlanGrid, PlanCopy> = {
   FREE: {
     description:
-      'Gerenciamento de projetos sem complicação para startups, projetos pessoais e muito mais.',
+      'Para conhecer o Steel com uma equipe pequena, com todos os recursos.',
     features: [
       {
-        title: '500 créditos de IA por usuário',
-        description:
-          'Compartilhado em todo o seu espaço de trabalho. Sem rollover. Visualizar resultados/histórico é gratuito.',
+        title: 'Até 12 membros',
+        description: 'Membros e convites pendentes contam como assentos.',
       },
-      {
-        title: 'Projetos e itens de trabalho',
-        description:
-          'Entregue projetos rapidamente com itens de trabalho ricos em recursos e fáceis de usar.',
-      },
-      {
-        title: 'Ciclos e módulos',
-        description:
-          'Defina timeboxes para o trabalho e divida-o em blocos repetíveis com poucos cliques.',
-      },
-      {
-        title: 'Layouts e visualizações',
-        description:
-          'Cinco layouts, visualizações ilimitadas e flexibilidade para todos.',
-      },
-      {
-        title: 'Estimativas',
-        description: 'Tire a adivinhação do esforço e dos prazos.',
-      },
-      {
-        title: 'Páginas de projeto',
-        description:
-          'Documente tudo sobre o seu trabalho sem trocar de interface.',
-      },
-      {
-        title: 'Até 12 usuários',
-        description: 'Convide até 12 membros para colaborar no workspace.',
-      },
+      MODULES,
+      STEEL_AI,
+      WORKSPACE,
+      INTEGRATIONS,
+      SECURITY,
     ],
   },
   PRO: {
-    description:
-      'Para equipes em crescimento que precisam de mais recursos e controle.',
+    description: 'Para equipes que crescem sem limite de membros.',
     features: [
       {
-        title: '1.000 créditos de IA por usuário',
-        description:
-          'Créditos são emitidos mensalmente por assento. Recargas disponíveis.',
+        title: 'Membros ilimitados',
+        description: 'Convide toda a empresa, sem teto de assentos.',
       },
-      {
-        title: 'Entrada de itens de trabalho',
-        description:
-          'Capture todas as entradas e escolha quais transformar em itens de trabalho.',
-      },
-      {
-        title: 'Tipos de itens e propriedades personalizadas',
-        description:
-          'Personalize como sua equipe trabalha com aparências e propriedades exclusivas.',
-      },
-      {
-        title: 'Wiki do workspace',
-        description:
-          'Conhecimento por tópico e por equipe para toda a empresa.',
-      },
-      {
-        title: 'Controle de tempo e registros de trabalho',
-        description:
-          'Acompanhe o tempo por item de trabalho, baixe relatórios e edite como preferir.',
-      },
-      {
-        title: 'Modelos de itens e páginas',
-        description:
-          'Replique seus itens de trabalho padrão sem dor de cabeça.',
-      },
-      {
-        title: 'Dashboards',
-        description:
-          'Visualize seus dados de trabalho, com zoom rápido para dentro e para fora.',
-      },
-      {
-        title: 'Iniciativas',
-        description: 'Codifique sua missão e seus objetivos com facilidade.',
-      },
-      {
-        title: 'Espaços de equipe (Teamspaces)',
-        description:
-          'Um espaço sem ruído e personalizável para suas equipes colaborarem.',
-      },
-      {
-        title: 'Integrações + Marketplace',
-        description: 'Conecte sua pilha de ferramentas existente.',
-      },
-      {
-        title: 'Convidados (1 para cada 5 usuários)',
-        description:
-          'Convide colaboradores externos na proporção de 1 para cada 5 usuários.',
-      },
+      MODULES,
+      STEEL_AI,
+      WORKSPACE,
+      INTEGRATIONS,
+      SECURITY,
     ],
   },
   BUSINESS: {
     description:
-      'Ideal para gerentes de projeto, equipes maiores e maior controle do fluxo de trabalho.',
+      'O plano do período de teste: todo workspace novo começa com 14 dias de Business.',
     features: [
       {
-        title: '2.000 créditos de IA por usuário',
-        description:
-          'Os créditos são emitidos mensalmente por assento, com limites de administração e relatórios de uso.',
+        title: 'Até 12 membros',
+        description: 'Membros e convites pendentes contam como assentos.',
       },
-      {
-        title: 'Modelos de projeto',
-        description:
-          'Dimensione fluxos de trabalho comprovados entre as equipes.',
-      },
-      {
-        title: 'Itens de trabalho recorrentes',
-        description:
-          'Automatize o trabalho cíclico para que sua equipe nunca esqueça, duplique ou gere errado.',
-      },
-      {
-        title: 'Solicitações por e-mail e formulários',
-        description:
-          'Transforme e-mails externos e envios de formulários em itens de trabalho triageáveis.',
-      },
-      {
-        title: 'Páginas aninhadas e incorporações',
-        description:
-          'Registre o conhecimento progressivamente e traga contexto rico de outras fontes.',
-      },
-      {
-        title: 'Fluxo de trabalho único',
-        description:
-          'Controle como os itens de trabalho se movem entre estados dentro de cada projeto.',
-      },
-      {
-        title: 'Clientes',
-        description:
-          'Perfis dedicados dos seus clientes, com as solicitações vinculadas a itens de trabalho.',
-      },
-      {
-        title: 'Dashboards com widgets avançados',
-        description:
-          'Painéis com widgets avançados para análises mais profundas.',
-      },
+      MODULES,
+      STEEL_AI,
+      WORKSPACE,
+      INTEGRATIONS,
+      SECURITY,
     ],
   },
   ENTERPRISE: {
     description:
-      'Para organizações que exigem escala, governança e infraestrutura dedicada.',
+      'Para operações maiores, com condições comerciais definidas com a Stratus Telecom.',
     features: [
       {
-        title: 'Créditos de IA flexíveis',
-        description:
-          'Alocações de crédito personalizadas, controles de uso e suporte prioritário.',
+        title: 'Membros ilimitados',
+        description: 'Convide toda a empresa, sem teto de assentos.',
       },
-      {
-        title: 'Implantações privadas e gerenciadas',
-        description:
-          'Plano como serviço, personalizado e totalmente gerenciado.',
-      },
-      {
-        title: 'Controle de acesso granular',
-        description: 'Controle quem vê o quê e quando, no nível mais granular.',
-      },
-      {
-        title: 'Múltiplos fluxos + aprovações',
-        description:
-          'Execute fluxos de trabalho por tipo de item, com aprovadores designados por transição.',
-      },
-      {
-        title: 'Suporte a LDAP',
-        description:
-          'Autentique, autorize e sincronize grupos com seu diretório LDAP.',
-      },
-      {
-        title: 'Logs de auditoria via API',
-        description: 'Rastreie programaticamente quem fez o quê e quando.',
-      },
-      {
-        title: 'Serviços de migração e implementação',
-        description: 'Equipe dedicada para migração de dados e onboarding.',
-      },
+      MODULES,
+      STEEL_AI,
+      WORKSPACE,
+      INTEGRATIONS,
+      SECURITY,
     ],
   },
 }

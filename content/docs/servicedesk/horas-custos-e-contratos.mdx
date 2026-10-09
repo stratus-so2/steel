@@ -1,0 +1,68 @@
+---
+title: Horas, custos e contratos
+description: Tarefas, cronômetro de horas, custos, peças, assinatura digital e contratos com franquia de horas por cliente.
+section: servicedesk
+order: 4
+---
+
+## Tarefas
+
+Na aba **Tarefas**, digite e pressione <Kbd>Enter</Kbd> para adicionar. Cada
+tarefa tem status (a fazer, em andamento, concluída, cancelada), responsável e
+prazo; perto do prazo, o responsável recebe um lembrete. A barra **Progresso**
+mostra quanto já foi feito.
+
+## Horas
+
+A aba **Horas** registra o tempo de atendimento:
+
+- **Cronômetro**: **Iniciar**, **Pausar**, **Retomar** e **Parar**. Cada pessoa
+  tem um cronômetro rodando por vez.
+- **Lançar horas**: para registrar um tempo à mão.
+
+Cada lançamento mostra agente, quando, tempo, janela (expediente, fora de hora,
+fim de semana, feriado) e valor. No rodapé ficam o total apontado, o faturável e
+o valor. Todos os lançamentos aparecem também em
+[Registros de trabalho](/docs/workspace/registros-de-trabalho).
+
+<Callout type='admin'>
+  Editar ou excluir lançamentos de outras pessoas é só para administradores.
+</Callout>
+
+## Custos e peças
+
+- **Custos**: categoria, data, descrição, quantidade e valor unitário, marcados
+  como **custo interno** ou **repassado ao cliente**. Os totais separam o
+  faturável do não faturável.
+- **Peças**: as peças usadas no atendimento, com número de série, quantidade,
+  valor e status. O catálogo de peças (SKU, custo, estoque) fica em
+  **Configurações › Peças**; também é possível lançar uma peça em texto livre.
+
+## Assinatura digital
+
+Na aba **Assinatura**, use **Colher assinatura**: a pessoa assina na tela e você
+informa nome, e-mail, documento (CPF ou RG) e a finalidade (por padrão,
+"Aceite do atendimento"). Ao **Registrar assinatura**, o Steel guarda uma
+impressão digital (hash SHA-256) da imagem e do estado do chamado naquele
+momento. Se a configuração **Exigir assinatura ao fechar** estiver ligada, o
+chamado só fecha com assinatura.
+
+## Contratos
+
+<Callout type='admin'>
+  Contratos são cadastrados por administradores em **Configurações › Contratos**.
+</Callout>
+
+Um contrato liga um cliente a regras de faturamento das horas:
+
+- Situação: rascunho, vigente, suspenso ou encerrado.
+- Ciclo de faturamento: mensal, trimestral ou anual.
+- **Franquia do período** em horas, com a opção de acumular o que sobrar.
+- **Valor da hora** e **hora excedente**.
+- Arredondamento (sempre para cima) e mínimo por chamado, em minutos.
+- Tipos de chamado cobertos e o SLA prometido.
+- Multiplicadores por tipo, prioridade e janela (expediente, fora de hora, fim
+  de semana, feriado).
+
+Na ficha do cliente, a aba **Contrato** mostra a franquia consumida. Fechar um
+período congela os lançamentos dele.

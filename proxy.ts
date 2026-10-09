@@ -19,13 +19,15 @@ const PUBLIC_ROUTES = [
   '/', '/sign-in', '/sign-up', '/forget-password',
   '/reset-password', '/api/auth', '/api/status',
   '/api/payment/webhook', '/docs', '/legals',
-  '/status', '/pricing', '/talk-to-sales',
+  '/status', '/pricing', '/talk-to-sales', '/dev',
   '/marketplace', '/invite', '/api/talk-to-sales',
   // Institutional pages and the crawler/answer-engine files (SEO/AEO/GEO)
   '/about', '/contact', '/manifesto', '/changelog',
   '/robots.txt', '/sitemap.xml', '/llms.txt', '/llms-full.txt',
   '/manifest.webmanifest', '/opengraph-image', '/twitter-image', '/icon',
   '/apple-icon',
+  // Old address of the API reference: redirects to /dev/api
+  '/reference',
   '/api/whatsapp/webhook', '/api/crm/proposals', '/api/crm/forms',
   '/api/crm/integrations', '/api/crm/workflows', '/api/crm/landing-pages',
   '/f', '/p', '/l', '/api/social/blob',

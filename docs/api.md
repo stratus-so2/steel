@@ -4,9 +4,12 @@ A referência da API (`public/openapi.json`, OpenAPI 3.1) é **gerada** a
 partir do código em `src/openapi/`. Não edite o JSON à mão: um teste unitário
 compara o arquivo commitado com a saída do gerador e falha se divergirem.
 
-- Visualização: Scalar em [`/reference`](http://localhost:3001/reference)
-  (só em desenvolvimento; `app/(private)/reference/route.ts`), lendo
-  `/openapi.json`.
+- Visualização: Scalar em [`/dev/api`](http://localhost:3001/dev/api)
+  (pública, em todos os ambientes; `app/(web)/dev/api/route.ts`), lendo
+  `/dev/api/openapi.json` — a cópia pública do spec, sem as rotas do painel
+  admin (`/admin/**`) nem os coletores de status, e com o servidor apontando
+  para o próprio site (`src/lib/docs/public-openapi.ts`). O endereço antigo
+  `/reference` redireciona para lá.
 - Servidores declarados: local (`http://localhost:3001/api`) e homologação
   (`https://homologacao.stratustelecom.com.br/api`). Os paths do spec são
   relativos a `/api`.

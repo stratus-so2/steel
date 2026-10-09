@@ -1,0 +1,68 @@
+---
+title: Membros e papéis
+description: Como convidar pessoas, importar convites por planilha, o limite de assentos do plano e o que cada papel pode fazer.
+section: comecando
+order: 3
+---
+
+<Callout type='admin'>
+  Convidar, remover e mudar o papel de membros é feito pelo dono e pelos
+  administradores em **Ajustes › Membros**.
+</Callout>
+
+## Convidar alguém
+
+1. Abra **Ajustes › Membros** e clique em **Adicionar membro**.
+2. Informe o **E-mail do convidado** e escolha o **Cargo**: Administrador,
+   Membro ou Visualizador.
+3. A pessoa recebe o convite por e-mail. Ao aceitar, ela entra no workspace.
+
+O convite vale por **7 dias**. Em **Convites pendentes** você acompanha a
+validade, reenvia, exclui ou muda o papel de um convite.
+
+### Importar convites por planilha
+
+Use **Importar membros via CSV** para convidar várias pessoas de uma vez. A
+planilha tem a coluna `email` e, se quiser, a coluna `role` com o papel. O
+arquivo aceita até 500 linhas (1 MB).
+
+## Limite de assentos
+
+Cada membro e cada convite pendente ocupa um **assento**. O cabeçalho da tela
+mostra quantos estão em uso. Quando todos estão ocupados, o Steel avisa:
+*"Todos os assentos do plano estão em uso. Revogue um convite ou remova um
+membro para convidar outra pessoa."*
+
+| Plano | Assentos |
+| --- | --- |
+| Free | até 12 |
+| Pro | ilimitados |
+| Business | até 12 |
+| Enterprise | ilimitados |
+
+## Os papéis
+
+| Papel | O que pode fazer |
+| --- | --- |
+| **Dono** (OWNER) | Tudo. É o único que pode excluir o workspace. |
+| **Administrador** (ADMIN) | Tudo, exceto excluir o workspace: membros, ajustes, integrações e configurações dos módulos. |
+| **Membro** (MEMBER) | Consulta, cria e edita o trabalho do dia a dia (chamados, leads, conversas…). Não exclui registros do CRM e da Comunicação e não acessa membros, ajustes nem integrações. Algumas configurações, como funis, metas e campos customizados, ficam só para leitura. |
+| **Visualizador** (VIEWER) | Só consulta o que um membro pode ver. Nunca cria, edita ou exclui. |
+
+### Perfis de acesso personalizados
+
+Além dos quatro papéis, um administrador pode criar **perfis de acesso** com
+uma matriz de recurso × Ver/Criar/Editar/Excluir, em **Configurações do CRM ›
+Perfis de acesso**, e atribuir um perfil a cada membro. Tudo o que o perfil não
+libera fica negado.
+
+### Agentes e solicitantes no ServiceDesk
+
+No ServiceDesk há mais uma distinção: quem faz parte de um **departamento**
+atende chamados (**agente**); quem não faz parte de nenhum só abre e acompanha os
+próprios chamados (**solicitante**). Veja [ServiceDesk](/docs/servicedesk).
+
+## Remover um membro
+
+Na linha do membro, use **Remover do workspace**. Para voltar, a pessoa
+precisa de um novo convite. Para mudar o papel, use **Alterar cargo**.

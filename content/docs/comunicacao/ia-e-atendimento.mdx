@@ -1,0 +1,60 @@
+---
+title: IA, atendimento e sentimento
+description: Resposta automática por IA com base de conhecimento, passagem para humano, fechamento automático e alertas de sentimento negativo.
+section: comunicacao
+order: 7
+---
+
+<Callout type='admin'>
+  As abas **IA** e **Atendimento** de **Comunicação › Configurações** são do dono
+  e dos administradores.
+</Callout>
+
+## Resposta automática por IA
+
+Em **Configurações › IA**, use **Configurar IA**:
+
+- **IA ativa**: a IA responde as conversas novas até um atendente assumir.
+- **Ler imagens e áudios**: a IA entende fotos e transcreve áudios. Requer um
+  provedor OpenAI configurado e consome mais da cota de IA.
+- **Instruções da IA**: como a IA deve se comportar (tom, o que pode e o que não
+  pode dizer).
+- **Base de conhecimento**: envie documentos (PDF, DOCX, TXT ou CSV, até 10 MB)
+  para a IA consultar. Documentos escaneados (só imagem) não são lidos.
+
+O provedor e o modelo da IA são escolhidos em
+[Ajustes › Steel IA](/docs/steel-ai/ajustes), e o uso conta na cota mensal de IA
+do workspace.
+
+### Passagem para humano
+
+Quando o cliente pede uma pessoa ou a IA não consegue ajudar, ela para de
+responder, a conversa fica **Em atendimento** e aparece *"Esta conversa foi
+transferida para atendimento humano."* O responsável é avisado; se não houver
+responsável, os administradores são.
+
+## Fechamento automático
+
+Em **Configurações › Atendimento**, **Fechar após quantas horas sem mensagens**
+fecha conversas paradas (de 0 a 720 horas; 24 por padrão; 0 desliga). Uma
+mensagem nova do contato reabre a conversa.
+
+## Alerta de sentimento negativo
+
+O Steel acompanha o tom das mensagens dos clientes. Configure:
+
+- **Avisar quando a média for**: levemente negativo, negativo (padrão), bem
+  negativo ou muito negativo.
+- **Canais**: notificação na caixa de entrada e/ou e-mail.
+- **Quem avisar**: sem ninguém escolhido, avisa o dono e os administradores.
+- **Atribuir conversas sem atendente a** um supervisor, ou não atribuir.
+- **Intervalo mínimo entre alertas** da mesma conversa (de 1 a 168 horas).
+
+Na conversa, o alerta aparece como *"Sentimento negativo: supervisores
+avisados"*.
+
+## Painéis e relatórios
+
+Em **Painéis**, acompanhe conversas, sentimento médio, faixa de humor, não
+lidas, conversas com a IA e transferidas para humano, e transmissões. Em
+**Relatórios**, monte relatórios sobre essas fontes.
