@@ -22,7 +22,7 @@ const PUBLIC_ROUTES = [
   '/status', '/pricing', '/talk-to-sales',
   '/marketplace', '/invite', '/api/talk-to-sales',
   // Institutional pages and the crawler/answer-engine files (SEO/AEO/GEO)
-  '/about', '/contact', '/manifesto', '/changelog',
+  '/about', '/contact', '/manifesto', '/changelog', '/product', '/features',
   '/robots.txt', '/sitemap.xml', '/llms.txt', '/llms-full.txt',
   '/manifest.webmanifest', '/opengraph-image', '/twitter-image', '/icon',
   '/apple-icon',
