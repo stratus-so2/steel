@@ -1,6 +1,6 @@
 import {
+  AiMagicIcon,
   DatabaseIcon,
-  ServerStack01Icon,
   Shield01Icon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
@@ -8,14 +8,33 @@ import { connection } from 'next/server'
 import { SteelIcon } from '@/components/icon/icon'
 import { Button } from '@/components/ui/button'
 import { isBillingEnabled } from '@/src/lib/billing'
-import { CardCertifications } from '../_components/card-certifications'
-import { Faq } from '../_components/faq'
+import { WebFooter } from '../_components/footer'
+import { PricingBillingNote } from '../_components/pricing/pricing-billing-note'
 import { BillingToggle } from '../_components/pricing/pricing-billing-toggle'
-import { PricingCalculator } from '../_components/pricing/pricing-calculator'
 import { PricingCardPlan } from '../_components/pricing/pricing-card-plan'
+import { PricingComparison } from '../_components/pricing/pricing-comparison'
+import { PricingFaq } from '../_components/pricing/pricing-faq'
 import { PricingTableDetailsPlan } from '../_components/pricing/table/pricing-table-details-plan'
 import { SubTitle } from '../_components/text/sub-title'
 import { Title } from '../_components/text/title'
+
+const HIGHLIGHTS = [
+  {
+    icon: AiMagicIcon,
+    title: 'Steel AI nos três módulos',
+    text: 'Consulta e age sobre chamados, leads e conversas, sempre com a sua confirmação antes de alterar dados.',
+  },
+  {
+    icon: DatabaseIcon,
+    title: 'Seus dados, exportáveis',
+    text: 'O administrador exporta todos os dados e os registros de atividade do workspace quando quiser.',
+  },
+  {
+    icon: Shield01Icon,
+    title: 'Segurança e LGPD',
+    text: 'Verificação em duas etapas, auditoria das ações sensíveis, backup diário criptografado e descadastro de marketing.',
+  },
+] as const
 
 export default async function PricingPage() {
   // Read the billing flag per request (a restart flips it, no rebuild). With
@@ -24,99 +43,70 @@ export default async function PricingPage() {
   const billingEnabled = isBillingEnabled()
 
   return (
-    <main className='mx-auto w-full flex flex-col items-center px-4 py-3 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384'>
-      <div className='border-border lg:border-x mx-auto w-full flex flex-col items-center gap-4 py-20'>
-        <Title>
-          Comece grátis, <br />
-          evolua no seu ritmo
-        </Title>
-        <SubTitle>
-          Do essencial ao avançado, nossos planos crescem com a sua empresa -
-          com recursos que simplificam a gestão de projetos e aumenta a
-          produtividade.{' '}
-          <Link
-            href='#features'
-            className='text-branding-600 dark:text-branding-400'
-          >
-            Compare e veja por si mesmo.
-          </Link>
-        </SubTitle>
-      </div>
-      <div className='w-full flex justify-start gap-4 border-border items-center border px-5 py-6'>
-        <BillingToggle />
-      </div>
-      <div className='border-x border-border grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-4'>
-        <PricingCardPlan plan='FREE' billingEnabled={billingEnabled} />
-        <PricingCardPlan plan='PRO' billingEnabled={billingEnabled} />
-        <PricingCardPlan plan='BUSINESS' billingEnabled={billingEnabled} />
-        <PricingCardPlan plan='ENTERPRISE' billingEnabled={billingEnabled} />
-      </div>
-      <div className='grid grid-cols-3 border border-border gap-4 px-5 py-8'>
-        <div className='flex gap-2'>
-          <SteelIcon icon={ServerStack01Icon} size={24} strokeWidth={2} />
-          <div className='flex flex-col gap-1.5'>
-            <h5 className='flex gap-2 text-base font-semibold'>
-              Execute o Steel em sua infraestrutura
-            </h5>
-            <div className='text-sm'>
-              Implante o Steel em seus próprios servidores com controle e
-              flexibilidade completos.
-            </div>
-          </div>
+    <>
+      <main className='mx-auto w-full flex flex-col items-center px-4 py-3 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384'>
+        <div className='border-border lg:border-x mx-auto w-full flex flex-col items-center gap-4 py-16 sm:py-20'>
+          <Title className='text-4xl sm:text-6xl'>
+            ServiceDesk, CRM e WhatsApp <br className='hidden sm:block' />
+            num só workspace
+          </Title>
+          <SubTitle>
+            Todos os planos incluem os três módulos e a Steel AI. O que muda
+            entre eles é o número de membros.{' '}
+            <Link
+              href='#features'
+              className='text-branding-600 dark:text-branding-400'
+            >
+              Veja tudo o que está incluído.
+            </Link>
+          </SubTitle>
         </div>
-        <div className='flex gap-2'>
-          <SteelIcon icon={DatabaseIcon} size={24} strokeWidth={2} />
-          <div className='flex flex-col gap-1.5'>
-            <h5 className='flex gap-2 text-base font-semibold'>
-              Propriedade completa de dados
-            </h5>
-            <div className='text-sm'>
-              Seus dados ficam com você: exportação completa, retenção
-              configurável e conformidade com a LGPD.
-            </div>
-          </div>
+        <div className='w-full flex flex-col gap-3 border-border border px-5 py-6 sm:flex-row sm:items-center sm:justify-between'>
+          <BillingToggle />
+          <PricingBillingNote billingEnabled={billingEnabled} />
         </div>
-        <div className='flex gap-2'>
-          <SteelIcon icon={Shield01Icon} size={24} strokeWidth={2} />
-          <div className='flex flex-col gap-1.5'>
-            <h5 className='flex gap-2 text-base font-semibold'>
-              Construído para conformidade e infra personalizada
-            </h5>
-            <div className='text-sm'>
-              Criptografia, auditoria de acessos e verificação em duas etapas
-              para proteger o seu workspace.
-            </div>
-          </div>
+        <div className='border-x border-border grid w-full grid-cols-1 lg:grid-cols-2 xl:grid-cols-4'>
+          <PricingCardPlan plan='FREE' billingEnabled={billingEnabled} />
+          <PricingCardPlan plan='PRO' billingEnabled={billingEnabled} />
+          <PricingCardPlan plan='BUSINESS' billingEnabled={billingEnabled} />
+          <PricingCardPlan plan='ENTERPRISE' billingEnabled={billingEnabled} />
         </div>
-      </div>
-      <div className='flex flex-wrap items-center justify-center gap-4 px-4 py-4 border border-border w-full'>
-        <Link href='#features'>
-          <Button size='sm'>Lista completa de recursos</Button>
-        </Link>
-        <Link href='#calculator'>
-          <Button size='sm' variant='outline'>
-            Calculadora de poupança
-          </Button>
-        </Link>
-      </div>
-      <div className='w-full border border-border flex flex-col gap-4 px-4 pt-20 pb-4'>
-        <h4 className='font-normal text-3xl'>
-          Reduza seus custos em mais de 70%
-        </h4>
-        <p>
-          Escolha uma ferramenta de cada categoria abaixo e compararemos
-          automaticamente os planos equivalentes.
-        </p>
-      </div>
-      <PricingCalculator />
-      <div className='w-full border border-border flex flex-col gap-4 px-4 pt-20 pb-4'>
-        <h4 className='font-normal text-3xl'>
-          Recursos que desbloqueiam apenas quando você precisa deles
-        </h4>
-      </div>
-      <PricingTableDetailsPlan billingEnabled={billingEnabled} />
-      <CardCertifications />
-      <Faq />
-    </main>
+        <div className='grid w-full grid-cols-1 gap-6 border border-border px-5 py-8 md:grid-cols-3'>
+          {HIGHLIGHTS.map((item) => (
+            <div key={item.title} className='flex gap-2'>
+              <SteelIcon icon={item.icon} size={24} strokeWidth={2} />
+              <div className='flex flex-col gap-1.5'>
+                <h2 className='text-base font-semibold'>{item.title}</h2>
+                <p className='text-sm'>{item.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className='flex flex-wrap items-center justify-center gap-4 px-4 py-4 border border-border w-full'>
+          <Button
+            size='sm'
+            nativeButton={false}
+            render={<Link href='#features'>Tudo o que está incluído</Link>}
+          />
+          <Button
+            size='sm'
+            variant='outline'
+            nativeButton={false}
+            render={<Link href='#comparar'>Comparar com outros produtos</Link>}
+          />
+        </div>
+        <div className='w-full border border-border flex flex-col gap-4 px-4 pt-16 pb-4'>
+          <h2 className='font-normal text-3xl'>Tudo o que está incluído</h2>
+          <p className='text-muted-foreground'>
+            Os mesmos recursos em todos os planos. O limite de membros é a única
+            diferença.
+          </p>
+        </div>
+        <PricingTableDetailsPlan billingEnabled={billingEnabled} />
+        <PricingComparison />
+        <PricingFaq />
+      </main>
+      <WebFooter showBanner={false} />
+    </>
   )
 }

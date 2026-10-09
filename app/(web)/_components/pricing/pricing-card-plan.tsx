@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  AiMagicIcon,
-  ArrowRight01Icon,
-  CheckIcon,
-} from '@hugeicons-pro/core-stroke-rounded'
+import { CheckIcon } from '@hugeicons-pro/core-stroke-rounded'
 import Link from 'next/link'
 import { useQueryState } from 'nuqs'
 import { SteelIcon } from '@/components/icon/icon'
@@ -15,14 +11,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 import {
   formatCurrency,
   formatPlanName,
   getPrice,
   PLANS,
   type PlanGrid,
-  previousPlan,
   priceForBilling,
   upgradeUrl,
   yearlyDiscount,
@@ -43,7 +37,6 @@ export function PricingCardPlan({
 
   const { description, features } = PLANS[plan]
   const price = getPrice(plan)
-  const previous = previousPlan(plan)
   const discount = price ? yearlyDiscount(price) : 0
 
   return (
@@ -67,25 +60,25 @@ export function PricingCardPlan({
                 <Muted>por usuário/mês</Muted>
               </>
             ) : (
-              <h5 className='text-2xl font-medium'>Cotação a pedido</h5>
+              <h5 className='text-2xl font-medium'>Sob consulta</h5>
             )}
           </div>
           <Muted className='text-sm'>{description}</Muted>
           <div className='flex flex-col gap-2'>
-            {plan === 'ENTERPRISE' || (plan !== 'FREE' && !billingEnabled) ? (
-              <Button
-                nativeButton={false}
-                size='sm'
-                className='w-full'
-                render={<Link href='/talk-to-sales'>Falar com vendas</Link>}
-              />
-            ) : plan === 'FREE' ? (
+            {plan === 'FREE' ? (
               <Button
                 nativeButton={false}
                 size='sm'
                 variant='outline'
                 className='w-full'
-                render={<Link href='/sign-up'>Comece grátis</Link>}
+                render={<Link href='/sign-up'>Criar conta grátis</Link>}
+              />
+            ) : plan === 'ENTERPRISE' || !billingEnabled ? (
+              <Button
+                nativeButton={false}
+                size='sm'
+                className='w-full'
+                render={<Link href='/talk-to-sales'>Falar com vendas</Link>}
               />
             ) : (
               <Button
@@ -94,64 +87,35 @@ export function PricingCardPlan({
                 className='w-full'
                 render={
                   <Link href={upgradeUrl(plan, billing)}>
-                    Obter {formatPlanName(plan)} por este preço
+                    Assinar o {formatPlanName(plan)}
                   </Link>
                 }
               />
-            )}
-            {plan === 'FREE' || plan === 'ENTERPRISE' ? (
-              <Button
-                variant='ghost'
-                size='sm'
-                className='hover:bg-transparent! cursor-auto'
-              />
-            ) : (
-              <Button variant='ghost' size='sm' className='w-full'>
-                Iniciar teste gratuito de duas semanas
-                <SteelIcon icon={ArrowRight01Icon} />
-              </Button>
             )}
           </div>
         </div>
       </div>
       <div className='flex flex-col gap-6 p-6'>
         <div className='flex flex-col gap-3'>
-          <Muted className='text-primary font-semibold text-sm'>
-            {previous
-              ? `Tudo do ${formatPlanName(previous)} +`
-              : 'Comece grátis com'}
-          </Muted>
+          <Muted className='text-primary font-semibold text-sm'>Inclui</Muted>
           <ul className='flex flex-col gap-3'>
-            {features.map((feature, index) => {
-              const isAi = index === 0
-
-              return (
-                <li key={feature.title}>
-                  <Tooltip>
-                    <TooltipTrigger
-                      className={cn(
-                        'text-start flex items-center gap-1.5 hover:underline',
-                        isAi && 'text-branding-600 dark:text-branding-400',
-                      )}
-                    >
-                      <SteelIcon
-                        icon={isAi ? AiMagicIcon : CheckIcon}
-                        size={20}
-                        strokeWidth={2}
-                      />
-                      {feature.title}
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side='bottom'
-                      align='start'
-                      className='text-sm'
-                    >
-                      {feature.description}
-                    </TooltipContent>
-                  </Tooltip>
-                </li>
-              )
-            })}
+            {features.map((feature) => (
+              <li key={feature.title}>
+                <Tooltip>
+                  <TooltipTrigger className='text-start flex items-center gap-1.5 hover:underline'>
+                    <SteelIcon icon={CheckIcon} size={20} strokeWidth={2} />
+                    {feature.title}
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side='bottom'
+                    align='start'
+                    className='text-sm'
+                  >
+                    {feature.description}
+                  </TooltipContent>
+                </Tooltip>
+              </li>
+            ))}
           </ul>
         </div>
       </div>

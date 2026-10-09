@@ -21,15 +21,13 @@ describe('<PricingCardPlan /> and the billing flag', () => {
   it('starts a checkout for a paid plan while billing is on', () => {
     renderCard('PRO', true)
 
-    expect(hrefOf('Obter Pro por este preço')).toBe(
-      '/upgrade?plan=PRO&billing=monthly',
-    )
+    expect(hrefOf('Assinar o Pro')).toBe('/upgrade?plan=PRO&billing=monthly')
   })
 
   it('sends a paid plan to sales while billing is off', () => {
     const { container } = renderCard('BUSINESS', false)
 
-    expect(container.textContent).not.toMatch(/Obter Business/)
+    expect(container.textContent).not.toMatch(/Assinar o Business/)
     expect(container.querySelector('a[href="/talk-to-sales"]')).not.toBeNull()
     expect(container.querySelector('a[href^="/upgrade"]')).toBeNull()
   })
@@ -53,13 +51,13 @@ describe('<PricingTableHeader /> and the billing flag', () => {
   it('links paid plans to the checkout while billing is on', () => {
     renderHeader(true)
 
-    expect(hrefOf('Obtenha o Pro')).toBe('/upgrade?plan=PRO&billing=yearly')
+    expect(hrefOf('Assinar o Pro')).toBe('/upgrade?plan=PRO&billing=yearly')
   })
 
   it('links every paid plan to sales while billing is off', () => {
     const { container } = renderHeader(false)
 
-    expect(container.textContent).not.toMatch(/Obtenha o/)
+    expect(container.textContent).not.toMatch(/Assinar o/)
     expect(container.querySelector('a[href^="/upgrade"]')).toBeNull()
     const sales = container.querySelectorAll('a[href="/talk-to-sales"]')
     // Every tier but FREE (which keeps its sign-up CTA).
