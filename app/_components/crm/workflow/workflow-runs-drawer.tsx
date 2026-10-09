@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
 import {
+  useCrmWorkflowRun,
   useCrmWorkflowRuns,
   useResumeCrmWorkflowRun,
 } from '@/src/hooks/use-crm-workflow'
@@ -134,9 +135,8 @@ export function WorkflowRunsDrawer({
                     ))}
                   </ul>
                 )}
-                {run.status === 'WAITING' && <DelayNotice run={run} />}
                 {run.status === 'WAITING' && (
-                  <ResumeForm
+                  <WaitingRun
                     workspaceId={workspaceId}
                     workflowId={workflowId}
                     run={run}
@@ -148,6 +148,36 @@ export function WorkflowRunsDrawer({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+/**
+ * The runs list comes without steps; a waiting run loads its detail to know
+ * whether it waits for a delay (shows when it continues) or for a form.
+ */
+function WaitingRun({
+  workspaceId,
+  workflowId,
+  run,
+  onResolved,
+}: {
+  workspaceId: string
+  workflowId: string
+  run: CrmWorkflowRunDTO
+  onResolved: () => void
+}) {
+  const { data } = useCrmWorkflowRun(workspaceId, workflowId, run.id)
+  const detailed = data ?? run
+  return (
+    <>
+      <DelayNotice run={detailed} />
+      <ResumeForm
+        workspaceId={workspaceId}
+        workflowId={workflowId}
+        run={detailed}
+        onResolved={onResolved}
+      />
+    </>
   )
 }
 

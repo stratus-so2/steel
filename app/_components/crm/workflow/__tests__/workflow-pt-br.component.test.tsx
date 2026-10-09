@@ -29,6 +29,7 @@ import { WorkflowRunsDrawer } from '../workflow-runs-drawer'
 
 const hooks = vi.hoisted(() => ({
   runs: [] as CrmWorkflowRunDTO[],
+  detail: undefined as CrmWorkflowRunDTO | undefined,
   resume: vi.fn(),
 }))
 
@@ -42,6 +43,7 @@ vi.mock('@/src/hooks/use-crm-workflow', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useCrmWorkflowRun: () => ({ data: hooks.detail }),
   useResumeCrmWorkflowRun: () => ({
     mutateAsync: hooks.resume,
     isPending: false,
@@ -205,6 +207,35 @@ describe('<WorkflowRunsDrawer />', () => {
         .map((n) => n.textContent)
         .join(' '),
     ).not.toMatch(ENGLISH)
+  })
+
+  it('should load a waiting run to say when its delay ends', () => {
+    const resumeAt = '2026-10-10T12:00:00.000Z'
+    hooks.runs = [run({ status: 'WAITING', waitingStepId: 's1', steps: [] })]
+    hooks.detail = run({
+      status: 'WAITING',
+      waitingStepId: 's1',
+      steps: [
+        {
+          ...run().steps?.[0],
+          status: 'RUNNING',
+          output: { delayMs: 86_400_000, resumeAt },
+        },
+      ],
+    } as Partial<CrmWorkflowRunDTO>)
+    render(
+      <WorkflowRunsDrawer
+        workspaceId='ws'
+        workflowId='wf-1'
+        open
+        onOpenChange={noop}
+      />,
+    )
+    expect(screen.getByText('Aguardando')).toBeTruthy()
+    expect(
+      screen.getByText(/Aguardando o atraso. Continua sozinha em/),
+    ).toBeTruthy()
+    hooks.detail = undefined
   })
 
   it('should point to the pt-BR test button when there are no runs', () => {
