@@ -2,6 +2,7 @@ import { logger } from '@/lib/axiom/logger'
 import { TRIAL_EXPIRY_CRON } from '@/src/config/trial'
 import {
   AiUsageWeeklyEmailJob,
+  CrmCampaignsJob,
   CrmCompetitorSyncJob,
   CrmProposalExpiryJob,
   CrmScheduledSendJob,
@@ -32,6 +33,7 @@ import {
 } from './jobs'
 import {
   getAiUsageWeeklyEmailQueue,
+  getCrmCampaignsQueue,
   getCrmCompetitorSyncQueue,
   getCrmProposalExpiryQueue,
   getCrmScheduledSendQueue,
@@ -63,6 +65,7 @@ import {
 import {
   AiUsageWeeklyEmailCron,
   CommunicationWaitingCron,
+  CrmCampaignsTickCron,
   CrmCompetitorSyncCron,
   CrmProposalExpiryCron,
   CrmScheduledSendCron,
@@ -553,6 +556,21 @@ export async function scheduleWorkspaceIntegrationsJobs(): Promise<void> {
   logger.info('queue.scheduler.workspace_integrations_registered', {
     component: 'Worker',
     pattern: CommunicationWaitingCron,
+    timezone: RetentionTimezone,
+  })
+}
+
+export async function scheduleCrmCampaignsJobs(): Promise<void> {
+  const queue = getCrmCampaignsQueue()
+  await queue.upsertJobScheduler(
+    CrmCampaignsJob.Tick,
+    { pattern: CrmCampaignsTickCron, tz: RetentionTimezone },
+    { name: CrmCampaignsJob.Tick, data: {} },
+  )
+
+  logger.info('queue.scheduler.crm_campaigns_registered', {
+    component: 'Worker',
+    pattern: CrmCampaignsTickCron,
     timezone: RetentionTimezone,
   })
 }

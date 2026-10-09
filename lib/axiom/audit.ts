@@ -63,6 +63,7 @@ export type AuditEntity =
   | 'crm_integration_api_key'
   | 'crm_email_template'
   | 'crm_email_campaign'
+  | 'crm_campaign'
   | 'crm_email_opt_out'
   | 'crm_email_brand'
   | 'crm_mailing_list'

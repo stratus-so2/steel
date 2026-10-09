@@ -651,6 +651,13 @@ describe('CrmCampaignAudienceRepository', () => {
         deletedAt: new Date(),
       },
     })
+    await prisma.crmPerson.create({
+      data: {
+        workspaceId: workspace.id,
+        createdById: user.id,
+        name: 'Sem contato',
+      },
+    })
     const list = await prisma.crmMailingList.create({
       data: { workspaceId: workspace.id, createdById: user.id, name: 'L' },
     })
@@ -688,7 +695,7 @@ describe('CrmCampaignAudienceRepository', () => {
       await CrmCampaignAudienceRepository.collectCandidates(workspace.id, {
         mailingListIds: [list.id],
         allPeople: true,
-        leadStages: ['QUALIFIED'],
+        leadStages: ['QUALIFIED', 'RECEIVED'],
       }),
     )
     expect(candidates.map((c) => c.name)).toEqual([
@@ -696,13 +703,15 @@ describe('CrmCampaignAudienceRepository', () => {
       'Avulso',
       'semnome@example.com',
       'Ana Pessoa',
+      'Sem contato',
       'Lead Q',
+      'Lead R',
     ])
     expect(candidates[0]).toMatchObject({
       personId: person.id,
       phone: '11999990000',
     })
-    expect(candidates[4]).toMatchObject({
+    expect(candidates[5]).toMatchObject({
       phone: '11988880000',
       personId: null,
     })

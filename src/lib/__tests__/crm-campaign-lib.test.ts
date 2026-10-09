@@ -137,7 +137,7 @@ describe('campaign URLs', () => {
       'promocao-de-verao-2026',
     )
     expect(slugifyCampaignName('!!!')).toBe('campanha')
-    expect(slugifyCampaignName('a'.repeat(59) + ' b')).toHaveLength(59)
+    expect(slugifyCampaignName(`${'a'.repeat(59)} b`)).toHaveLength(59)
   })
 
   it('should read campaign params of a page URL', () => {
