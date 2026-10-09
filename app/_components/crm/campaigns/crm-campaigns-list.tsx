@@ -83,7 +83,7 @@ function CampaignCard({
           </span>
         ) : null}
       </div>
-      <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-3'>
         <Kpi
           label='Enviados'
           value={String(kpis.emailSent + kpis.whatsappSent)}

@@ -18,10 +18,13 @@ export const metadata: Metadata = {
 
 export default async function CrmCampaignPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ 'workspace-slug': string; id: string }>
+  searchParams: Promise<{ passo?: string }>
 }) {
   const { 'workspace-slug': slug, id } = await params
+  const { passo } = await searchParams
 
   const session = await getAuthSession()
   if (!session.ok) redirect('/sign-in')
@@ -50,6 +53,7 @@ export default async function CrmCampaignPage({
           workspaceId={membership.value.workspaceId}
           workspaceSlug={slug}
           campaignId={id}
+          initialStep={passo ? Number(passo) - 1 || 0 : 0}
         />
       </div>
     </div>

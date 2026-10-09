@@ -13,10 +13,12 @@ export function CrmCampaignView({
   workspaceId,
   workspaceSlug,
   campaignId,
+  initialStep = 0,
 }: {
   workspaceId: string
   workspaceSlug: string
   campaignId: string
+  initialStep?: number
 }) {
   const campaign = useCrmCampaign(workspaceId, campaignId)
   const options = useCrmCampaignOptions(workspaceId)
@@ -46,6 +48,7 @@ export function CrmCampaignView({
         campaign={campaign.data}
         options={options.data}
         onRefreshOptions={() => void options.refetch()}
+        initialStep={initialStep}
       />
     )
   }

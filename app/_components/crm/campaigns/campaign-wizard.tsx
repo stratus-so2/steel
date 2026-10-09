@@ -312,14 +312,19 @@ export function CrmCampaignWizard({
   campaign,
   options,
   onRefreshOptions,
+  initialStep = 0,
 }: {
   workspaceId: string
   workspaceSlug: string
   campaign: CrmCampaignDetailDTO
   options: CrmCampaignOptionsDTO
   onRefreshOptions: () => void
+  /** Opens on this step (0–3), e.g. from a `?passo=` deep link. */
+  initialStep?: number
 }) {
-  const [step, setStep] = useState(0)
+  const [step, setStep] = useState(
+    Math.min(Math.max(initialStep, 0), WIZARD_STEPS.length - 1),
+  )
   const [draft, setDraft] = useState<CampaignDraft>(() =>
     draftFromCampaign(campaign),
   )
@@ -375,7 +380,7 @@ export function CrmCampaignWizard({
   return (
     <div className='flex min-w-0 flex-col gap-6 p-4 sm:p-6'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
-        <div className='flex min-w-0 flex-1 items-center gap-2'>
+        <div className='flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1'>
           <Button
             variant='ghost'
             size='icon'
