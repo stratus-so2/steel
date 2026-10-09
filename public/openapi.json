@@ -82291,7 +82291,8 @@
                   "shortcut": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "pattern": "^\\S+$"
                   },
                   "title": {
                     "type": "string",
@@ -82390,7 +82391,8 @@
                   "shortcut": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 50
+                    "maxLength": 50,
+                    "pattern": "^\\S+$"
                   },
                   "title": {
                     "type": "string",

@@ -78,6 +78,113 @@ describe('<WhatsappSettingsQuickReplies />', () => {
     })
   })
 
+  it('stores a shortcut typed with the slash bare and attaches a file', async () => {
+    const fetchSpy = mockFetch([
+      {
+        method: 'POST',
+        match: '/api/workspaces/ws_1/whatsapp/media/upload',
+        data: { url: 'https://cdn.test/media/ws_1/tabela.pdf' },
+      },
+      { match: BASE, data: [] },
+      { method: 'POST', match: BASE, data: quickReply },
+    ])
+    renderWithQuery(<WhatsappSettingsQuickReplies workspaceId='ws_1' />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nova mensagem rápida' }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.change(within(dialog).getByLabelText('Atalho'), {
+      target: { value: ' /tabela' },
+    })
+    expect(
+      within(dialog).getByText(/Na conversa, digite \/tabela/),
+    ).toBeTruthy()
+    fireEvent.change(within(dialog).getByLabelText('Título'), {
+      target: { value: 'Tabela' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Mensagem'), {
+      target: { value: 'Segue a tabela.' },
+    })
+    fireEvent.change(within(dialog).getByLabelText('Anexo (opcional)'), {
+      target: {
+        files: [new File(['%PDF'], 'tabela.pdf', { type: 'application/pdf' })],
+      },
+    })
+    expect(await within(dialog).findByText('tabela.pdf')).toBeTruthy()
+
+    // Removing and re-attaching keeps the last file.
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Remover anexo' }),
+    )
+    expect(within(dialog).queryByText('tabela.pdf')).toBeNull()
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: /Anexar arquivo/ }),
+    )
+    fireEvent.change(within(dialog).getByLabelText('Anexo (opcional)'), {
+      target: {
+        files: [new File(['%PDF'], 'tabela.pdf', { type: 'application/pdf' })],
+      },
+    })
+    await within(dialog).findByText('tabela.pdf')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Salvar' }))
+    await waitFor(() =>
+      expect(notify.success).toHaveBeenCalledWith('Mensagem rápida criada'),
+    )
+    expect(fetchBody(fetchSpy, /quick-replies$/)).toEqual({
+      shortcut: 'tabela',
+      title: 'Tabela',
+      body: 'Segue a tabela.',
+      mediaUrl: 'https://cdn.test/media/ws_1/tabela.pdf',
+    })
+  })
+
+  it('warns when the attachment upload fails', async () => {
+    mockFetch([
+      {
+        method: 'POST',
+        match: '/media/upload',
+        status: 500,
+        error: 'falhou',
+      },
+      { match: BASE, data: [] },
+    ])
+    renderWithQuery(<WhatsappSettingsQuickReplies workspaceId='ws_1' />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nova mensagem rápida' }),
+    )
+    const dialog = await screen.findByRole('dialog')
+    const input = within(dialog).getByLabelText(
+      'Anexo (opcional)',
+    ) as HTMLInputElement
+    fireEvent.change(input, { target: { files: [] } })
+    expect(notify.error).not.toHaveBeenCalled()
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'a.txt', { type: 'text/plain' })] },
+    })
+    await waitFor(() => expect(notify.error).toHaveBeenCalled())
+    expect(notify.error.mock.calls[0][1]).toBe('Erro ao enviar arquivo')
+  })
+
+  it('shows legacy shortcuts saved with a slash once, and their attachment', async () => {
+    mockFetch([
+      {
+        match: BASE,
+        data: [
+          {
+            ...quickReply,
+            shortcut: '/saudacao',
+            mediaUrl: 'https://cdn.test/media/ws_1/logo.png',
+          },
+        ],
+      },
+    ])
+    renderWithQuery(<WhatsappSettingsQuickReplies workspaceId='ws_1' />)
+    expect(await screen.findByText('/saudacao')).toBeTruthy()
+    expect(screen.getByText(/logo\.png/)).toBeTruthy()
+  })
+
   it('reports an error toast when creation fails', async () => {
     mockFetch([
       { match: BASE, data: [] },

@@ -41,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { notify } from '@/lib/notify'
 import { cn } from '@/lib/utils'
+import { useUser } from '@/src/hooks/use-user'
 import { useWhatsAppContacts } from '@/src/hooks/use-whatsapp-contacts'
 import {
   useSendWhatsAppGroupTextMessage,
@@ -55,11 +56,20 @@ import {
   useWhatsAppGroupInviteLink,
 } from '@/src/hooks/use-whatsapp-groups'
 import { useWhatsAppQuickReplies } from '@/src/hooks/use-whatsapp-quick-replies'
+import { findExactQuickReply } from '@/src/lib/whatsapp/quick-reply-match'
+import { renderQuickReplyBody } from '@/src/lib/whatsapp/template-variables'
 import type {
   WhatsAppGroupDTO,
   WhatsAppGroupParticipantDTO,
 } from '@/types/whatsapp-group'
 import type { WhatsAppGroupMessageDTO } from '@/types/whatsapp-group-message'
+import type { WhatsAppQuickReplyDTO } from '@/types/whatsapp-quick-reply'
+import {
+  QUICK_REPLY_LIST_ID,
+  QuickReplyOption,
+  QuickReplySlashMenu,
+  useQuickReplySlash,
+} from './quick-reply-slash-menu'
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -476,6 +486,21 @@ export function WhatsappGroupView({
   const messages = useWhatsAppGroupMessages(workspaceId, group.id)
   const sendText = useSendWhatsAppGroupTextMessage(workspaceId, group.id)
   const quickReplies = useWhatsAppQuickReplies(workspaceId)
+  const currentUser = useUser()
+
+  // Groups send text only: a quick reply's media is not attached here.
+  function renderQuickReply(quickReply: WhatsAppQuickReplyDTO): string {
+    return renderQuickReplyBody(quickReply.body, {
+      contactName: null,
+      userName: currentUser.data?.name,
+    })
+  }
+
+  const slash = useQuickReplySlash({
+    text,
+    quickReplies: quickReplies.data,
+    onApply: (quickReply) => setText(renderQuickReply(quickReply)),
+  })
 
   const mentionCandidates =
     mentionQuery === null
@@ -515,7 +540,8 @@ export function WhatsappGroupView({
   }
 
   async function handleSend() {
-    const trimmed = text.trim()
+    const exact = findExactQuickReply(quickReplies.data ?? [], text)
+    const trimmed = (exact ? renderQuickReply(exact) : text).trim()
     if (!trimmed) return
     try {
       const outgoing = buildOutgoingGroupMessage(trimmed, group.participants)
@@ -570,6 +596,11 @@ export function WhatsappGroupView({
       </MessageScroller>
 
       <div className='relative border-t p-2'>
+        <QuickReplySlashMenu
+          matches={slash.matches}
+          activeIndex={slash.activeIndex}
+          onApply={slash.apply}
+        />
         {mentionQuery !== null && mentionCandidates.length > 0 && (
           <div className='absolute bottom-full left-2 z-10 mb-1 max-h-40 w-64 overflow-y-auto rounded-md border bg-popover p-1 shadow-md'>
             {mentionCandidates.map((participant) => (
@@ -607,20 +638,16 @@ export function WhatsappGroupView({
               <div className='max-h-64 overflow-y-auto'>
                 {quickReplies.data?.length ? (
                   quickReplies.data.map((qr) => (
-                    <button
+                    <QuickReplyOption
                       key={qr.id}
-                      type='button'
-                      className='flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted'
+                      quickReply={qr}
                       onClick={() => {
-                        setText((current) => `${current}${qr.body}`)
+                        setText(
+                          (current) => `${current}${renderQuickReply(qr)}`,
+                        )
                         setQuickReplyOpen(false)
                       }}
-                    >
-                      <span className='font-medium'>/{qr.shortcut}</span>
-                      <span className='line-clamp-1 text-muted-foreground text-xs'>
-                        {qr.body}
-                      </span>
-                    </button>
+                    />
                   ))
                 ) : (
                   <p className='p-2 text-muted-foreground text-xs'>
@@ -640,6 +667,7 @@ export function WhatsappGroupView({
               )
             }
             onKeyDown={(event) => {
+              if (slash.onKeyDown(event)) return
               if (event.key === 'Escape' && mentionQuery !== null) {
                 setMentionQuery(null)
                 return
@@ -650,6 +678,7 @@ export function WhatsappGroupView({
               }
             }}
             placeholder='Digite uma mensagem — use @ para mencionar'
+            aria-controls={slash.open ? QUICK_REPLY_LIST_ID : undefined}
             disabled={sendText.isPending}
             className='max-h-32 min-h-9 flex-1 resize-none'
             rows={1}

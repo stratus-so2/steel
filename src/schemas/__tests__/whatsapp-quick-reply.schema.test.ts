@@ -20,6 +20,32 @@ describe('CreateWhatsAppQuickReplySchema', () => {
     expect(CreateWhatsAppQuickReplySchema.safeParse(rest).success).toBe(false)
   })
 
+  it('should drop the leading slash and outer spaces of the shortcut', () => {
+    const result = CreateWhatsAppQuickReplySchema.safeParse({
+      ...valid,
+      shortcut: '  /Saudação ',
+    })
+    expect(result.success && result.data.shortcut).toBe('Saudação')
+  })
+
+  it('should reject a shortcut that is only a slash', () => {
+    expect(
+      CreateWhatsAppQuickReplySchema.safeParse({ ...valid, shortcut: '/' })
+        .success,
+    ).toBe(false)
+  })
+
+  it('should reject a shortcut with spaces', () => {
+    const result = CreateWhatsAppQuickReplySchema.safeParse({
+      ...valid,
+      shortcut: 'boas vindas',
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toBe(
+      'O atalho não pode ter espaços',
+    )
+  })
+
   it('should reject an empty body', () => {
     expect(
       CreateWhatsAppQuickReplySchema.safeParse({ ...valid, body: '' }).success,
@@ -30,6 +56,13 @@ describe('CreateWhatsAppQuickReplySchema', () => {
 describe('UpdateWhatsAppQuickReplySchema', () => {
   it('should accept an empty object', () => {
     expect(UpdateWhatsAppQuickReplySchema.safeParse({}).success).toBe(true)
+  })
+
+  it('should normalize the shortcut on update too', () => {
+    const result = UpdateWhatsAppQuickReplySchema.safeParse({
+      shortcut: '/preco',
+    })
+    expect(result.success && result.data.shortcut).toBe('preco')
   })
 
   it('should accept a partial update of just the body', () => {
