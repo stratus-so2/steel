@@ -14,7 +14,7 @@ export function UserStickyList() {
     return (
       <div className='flex flex-wrap gap-3'>
         {SKELETON_KEYS.map((key) => (
-          <Skeleton key={key} className='w-67.5 h-80 rounded-sm' />
+          <Skeleton key={key} className='h-80 w-full rounded-sm sm:w-67.5' />
         ))}
       </div>
     )
