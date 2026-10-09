@@ -1,0 +1,141 @@
+---
+title: Disparar workflow do CRM
+description: Inicie um workflow do CRM a partir de um evento do seu sistema com o gatilho Webhook, use o corpo da chamada nos passos e leia o resultado da execução.
+section: guias
+order: 3
+---
+
+## Quando usar
+
+O gatilho **Webhook** liga um evento do seu sistema a um workflow do CRM: um
+pedido faturado no ERP cria uma tarefa para o vendedor, um cadastro novo no seu
+app cria uma pessoa e manda um e-mail, e assim por diante. O seu sistema faz um
+`POST` com o JSON que quiser, e os passos do workflow usam esse JSON.
+
+## 1. Monte o workflow
+
+1. Em **CRM › Workflows**, crie um workflow e escolha o gatilho **Webhook**.
+2. O gatilho já vem com um **Token do webhook**. A URL é
+   `https://<seu-steel>/api/crm/workflows/<token>/trigger`.
+3. Adicione os passos. Nos campos dos passos, use o corpo da chamada com
+   `{{trigger.payload.<campo>}}`, como `{{trigger.payload.cliente.email}}`.
+4. **Teste** e depois **ative** o workflow. A URL só responde com o workflow
+   ativo, e roda sempre a versão ativa.
+
+```bash
+export STEEL_URL="https://homologacao.stratustelecom.com.br"
+export STEEL_WORKFLOW_TOKEN="<token-do-gatilho>"
+```
+
+<Callout type='aviso'>
+  O token na URL é a única proteção da chamada. Guarde-o no servidor e troque-o
+  (no gatilho, ativando o workflow de novo) se ele vazar.
+</Callout>
+
+## 2. Dispare
+
+O corpo é um objeto JSON qualquer, que vira o `triggerPayload` da execução.
+Corpo vazio vale como `{}`.
+
+```bash
+curl -X POST "$STEEL_URL/api/crm/workflows/$STEEL_WORKFLOW_TOKEN/trigger" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pedido": "PV-1042",
+    "valor": 1890.5,
+    "cliente": { "nome": "Carlos Lima", "email": "carlos@empresa.com.br" }
+  }'
+```
+
+```js
+// Node.js 18+
+const response = await fetch(
+  `${process.env.STEEL_URL}/api/crm/workflows/${process.env.STEEL_WORKFLOW_TOKEN}/trigger`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pedido: 'PV-1042',
+      valor: 1890.5,
+      cliente: { nome: 'Carlos Lima', email: 'carlos@empresa.com.br' },
+    }),
+  },
+)
+const body = await response.json()
+if (!body.success) throw new Error(`${body.statusCode} ${body.error.code}`)
+console.log(body.data.id, body.data.status)
+```
+
+```python
+import os
+import requests
+
+token = os.environ["STEEL_WORKFLOW_TOKEN"]
+response = requests.post(
+    f"{os.environ['STEEL_URL']}/api/crm/workflows/{token}/trigger",
+    json={
+        "pedido": "PV-1042",
+        "valor": 1890.5,
+        "cliente": {"nome": "Carlos Lima", "email": "carlos@empresa.com.br"},
+    },
+    timeout=90,
+)
+body = response.json()
+if not body["success"]:
+    raise RuntimeError(f"{body['statusCode']} {body['error']['code']}")
+print(body["data"]["id"], body["data"]["status"])
+```
+
+## 3. Leia o resultado
+
+A chamada espera o workflow rodar e responde `201` com a execução:
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "data": {
+    "id": "ckx3run00000ab7d3k1e5xyz",
+    "workflowId": "ckx3wkfl0000ab7d3k1e5xyz",
+    "status": "COMPLETED",
+    "triggerType": "webhook",
+    "triggerPayload": { "pedido": "PV-1042", "valor": 1890.5 },
+    "error": null,
+    "startedAt": "2026-10-09T13:00:00.000Z",
+    "finishedAt": "2026-10-09T13:00:01.000Z",
+    "steps": [
+      { "nodeId": "n1", "nodeType": "create-record", "status": "COMPLETED", "error": null }
+    ]
+  }
+}
+```
+
+O exemplo está resumido. Em `status`:
+
+- **`COMPLETED`**: todos os passos rodaram.
+- **`WAITING`**: o workflow parou num passo **Formulário** e espera alguém
+  responder no Steel. A execução continua sozinha depois da resposta.
+- **`FAILED`**: um passo falhou; `error` e o `error` do passo dizem por quê. A
+  execução aparece no **Histórico de execuções** do workflow.
+
+Um passo **Atraso** de até um minuto segura a resposta por esse tempo; use um
+timeout de pelo menos 90 segundos no seu cliente. Atrasos maiores ainda não
+pausam a execução: o passo fica registrado e o workflow segue em frente.
+
+## Erros
+
+| Status | Código | Causa |
+| --- | --- | --- |
+| `404` | `CRM_WORKFLOW_WEBHOOK_INVALID` | Token desconhecido ou workflow inativo |
+| `403` | `MODULE_DISABLED` | O CRM foi desabilitado no workspace |
+| `422` | `VALIDATION_ERROR` | JSON malformado |
+| `429` | `RATE_LIMITED` | Mais de 100 chamadas por minuto do mesmo IP (somadas aos formulários) |
+| `500` | `CRM_WORKFLOW_EXECUTION_FAILED` | A execução não pôde ser iniciada |
+
+## Sem duplicar
+
+Cada chamada inicia uma execução nova; o Steel não deduplica disparos. Se o seu
+sistema pode reenviar o mesmo evento (depois de um timeout, por exemplo), mande
+um identificador seu no corpo (`"pedido": "PV-1042"`) e comece o workflow com um
+passo de **busca** ou **upsert** por esse identificador, em vez de criar o
+registro direto.

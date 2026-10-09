@@ -1,0 +1,119 @@
+---
+title: Autenticação e chaves
+description: As formas de acesso da API, o escopo de cada uma, como rodar e revogar chaves e tokens e como guardar segredos.
+section: fundamentos
+order: 1
+---
+
+## As formas de acesso
+
+Cada entrada de integração do Steel tem uma forma de acesso própria. Nenhuma
+delas usa usuário e senha.
+
+| Forma | Onde vai | Usada em | Escopo |
+| --- | --- | --- | --- |
+| Chave de API do CRM | `Authorization: Bearer crm_live_...` | `POST /api/crm/integrations/leads` | Criar leads no CRM de **um** workspace |
+| Token do formulário | Na URL | `POST /api/crm/forms/<token>/submit` | Enviar **um** formulário publicado |
+| Token do workflow | Na URL | `POST /api/crm/workflows/<token>/trigger` | Disparar **um** workflow ativo |
+| Token da origem de monitoramento | Na URL | `POST /api/servicedesk/monitoring/<token>` | Abrir e encerrar chamados de **uma** origem |
+| Assinatura HMAC (GitHub) | `X-Hub-Signature-256` | `POST /api/integrations/github/webhook` | Eventos de **um** repositório conectado |
+| Secret token (GitLab) | `X-Gitlab-Token` | `POST /api/integrations/gitlab/webhook` | Eventos de **um** projeto conectado |
+| Sessão de usuário | Cookie `better-auth.session_token` | `/api/workspaces/<id>/...` e o resto da API | O que o usuário pode fazer no aplicativo |
+
+Toda chave e todo token valem para um único workspace e um único ambiente: o que
+foi criado em homologação não funciona em produção.
+
+## Chave de API do CRM
+
+A chave é a forma de acesso de quem envia leads de outro sistema. Ela tem um só
+escopo, **criar leads**, e não lê nada do CRM.
+
+- **Quem cria:** o dono ou um administrador do workspace, com o módulo CRM
+  habilitado, na tela **Chaves de API** (`/<seu-workspace>/crm/integration-keys`).
+  O passo a passo está em [Começando](/dev/comecando#crie-uma-chave-de-api).
+- **Formato:** `crm_live_` seguido de 32 caracteres. O valor completo aparece
+  uma única vez, na criação; depois a tela mostra só o começo da chave, para você
+  reconhecê-la.
+- **Como enviar:** no header `Authorization`, com o prefixo `Bearer `.
+- **Leads criados pela chave** ficam registrados como criados por quem gerou a
+  chave, com origem `integration` e canal `API` quando o corpo não informa
+  `source` e `channel`.
+
+```bash
+curl -X POST "$STEEL_URL/api/crm/integrations/leads" \
+  -H "Authorization: Bearer $STEEL_CRM_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Ana Souza", "emails": ["ana@empresa.com.br"]}'
+```
+
+### Rotação
+
+Uma chave não expira. Para trocá-la sem parar a integração:
+
+1. Crie uma chave nova com outro nome (por exemplo, "ERP 2026-10").
+2. Troque o segredo no seu sistema e confirme que as chamadas seguem com `201`
+   ou `200`.
+3. Revogue a chave antiga.
+
+Faça isso sempre que alguém que conhecia a chave sair da equipe, e pelo menos
+uma vez por ano.
+
+### Revogação
+
+Na tela **Chaves de API**, revogue a chave. O efeito é imediato: a próxima
+chamada com ela responde `401 CRM_INTEGRATION_KEY_INVALID`. Uma chave revogada
+não volta a funcionar; crie outra.
+
+## Tokens na URL
+
+Formulários, workflows e origens de monitoramento usam um token **dentro da
+URL**. Quem tem a URL consegue usar a entrada, então trate a URL inteira como uma
+senha.
+
+- **Formulário do CRM:** o token é o da página pública `/f/<token>`, criado
+  junto com o formulário. Ele só aceita envios enquanto o formulário estiver
+  publicado.
+- **Workflow do CRM:** o token aparece no gatilho **Webhook** do editor de
+  workflows. A URL só responde enquanto o workflow estiver **ativo**, e roda a
+  versão ativa. Para invalidar uma URL, troque o token no gatilho e ative o
+  workflow de novo.
+- **Origem de monitoramento do ServiceDesk:** criada em **ServiceDesk ›
+  Configurações › Monitoramento** por quem administra o ServiceDesk. A URL com o
+  token aparece **uma única vez**. **Gerar token** cria outro e o anterior para
+  de funcionar na hora; desativar a origem faz a URL responder como token
+  inválido.
+
+## Assinaturas de webhook
+
+O GitHub e o GitLab chamam o Steel, e não o contrário. O acesso é provado pelo
+segredo que você cadastrou no Steel e no repositório:
+
+- **GitHub:** o Steel calcula o HMAC-SHA256 do corpo bruto com o segredo do
+  webhook e compara, em tempo constante, com `X-Hub-Signature-256`.
+- **GitLab:** o GitLab não assina o corpo; o Steel compara o
+  `X-Gitlab-Token` com o segredo, também em tempo constante.
+
+Os detalhes estão em [Webhooks](/dev/webhooks).
+
+## Sessão de usuário
+
+As rotas em `/api/workspaces/<id>/...` (chamados, registros do CRM, conversas,
+configurações) são as que o aplicativo do Steel usa. Elas exigem o cookie de
+sessão que o login define (`better-auth.session_token`; em HTTPS,
+`__Secure-better-auth.session_token`) e respondem `401 UNAUTHORIZED` sem ele.
+Cada chamada vale pelo usuário da sessão: papel no workspace, módulos habilitados
+e perfis de acesso.
+
+Não há, hoje, chave de API para essas rotas. Para uma integração, prefira as
+entradas acima; se o seu caso precisar de outra rota, fale com o
+[suporte](/dev/suporte) antes de automatizar um login.
+
+## Guarde os segredos com cuidado
+
+- Guarde chaves e URLs com token num cofre de segredos ou em variáveis de
+  ambiente do servidor. Nunca no repositório, no front-end, num aplicativo móvel
+  ou numa planilha compartilhada.
+- Use uma chave por sistema. Assim dá para revogar uma sem derrubar as outras.
+- Não registre o header `Authorization` nem URLs com token nos logs do seu
+  sistema.
+- Vazou? Revogue a chave ou gere outro token **antes** de investigar.

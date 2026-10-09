@@ -1,22 +1,10 @@
-import type {
-  SidebarHome,
-  SidebarSection,
-} from '../docs/_components/docs-sidebar'
+import type { SidebarHome } from '../docs/_components/docs-sidebar'
 
 /**
- * Sidebar of the developer site (`/dev`). Guides (authentication and API
- * keys, webhooks, errors, rate limits, examples) are added here as they are
- * written; the API reference itself is `/dev/api`.
+ * Home link of the developer site's sidebar. The groups below it come from
+ * the guides in `content/dev` plus the API reference (`getDevNav`).
  */
 export const DEV_HOME: SidebarHome = {
   href: '/dev',
   label: 'Visão geral',
 }
-
-export const DEV_NAV: SidebarSection[] = [
-  {
-    slug: 'referencia',
-    label: 'Referência',
-    pages: [{ href: '/dev/api', title: 'Referência da API' }],
-  },
-]
