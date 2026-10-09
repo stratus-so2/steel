@@ -63,7 +63,9 @@ sequência nem ramificação.
   contatos/24 h) adia o excedente para o próximo tick.
 - **Rastreamento.** E-mail: pixel de abertura, clique pelo redirecionador,
   descadastro pelo link do rodapé (mesma tabela de opt-out LGPD do CRM) e, com
-  `RESEND_WEBHOOK_SECRET`, entregue/bounce/reclamação pelo webhook do Resend.
+  `RESEND_WEBHOOK_SECRET`, entregue/bounce/reclamação pelo webhook do Resend
+  (`/api/crm/campaigns/resend-webhook`, assinatura Svix; a reclamação marca o
+  descadastro no funil do destinatário).
   WhatsApp: entregue/lida pelos webhooks de status já existentes; resposta
   marca o destinatário, liga a conversa da Comunicação ao contato da campanha
   e registra uma atividade na pessoa do CRM. `SAIR` continua descadastrando
