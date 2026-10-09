@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { KEYS, Value } from "platejs"
 import { Plate, usePlateEditor } from "platejs/react"
 import { YjsPlugin } from "@platejs/yjs/react"
@@ -40,6 +40,12 @@ import { CommentKit } from "./plugins/comment-kit"
 import { DiscussionKit } from "./plugins/discussion-kit"
 import { wikiEditorBackend } from "@/src/hooks/wiki-editor-backend"
 import { EditorDocumentProvider } from "./editor-document-context"
+import {
+  type WikiSyncStatus,
+  wikiSyncStatus,
+} from "@/src/lib/wiki-sync-status"
+
+export type { WikiSyncStatus }
 
 // Deterministic color per user — same userId, same remote cursor always.
 function colorFromUserId(userId: string): string {
@@ -57,6 +63,9 @@ interface WikiPageRichEditorProps {
   userName: string
   content: Value
   onChange: (content: Value) => void
+  /** Rendered above the toolbar, inside the editor's Plate context. */
+  header?: ReactNode
+  onStatusChange?: (status: WikiSyncStatus) => void
   className?: string
 }
 
@@ -67,9 +76,17 @@ export function WikiPageRichEditor({
   userName,
   content,
   onChange,
+  header,
+  onStatusChange,
   className
 }: WikiPageRichEditorProps) {
   const [isSynced, setIsSynced] = useState(false)
+  const [connected, setConnected] = useState<boolean | null>(null)
+  const status = wikiSyncStatus(isSynced, connected)
+
+  useEffect(() => {
+    onStatusChange?.(status)
+  }, [status, onStatusChange])
 
   const editor = usePlateEditor({
     plugins: [
@@ -107,6 +124,7 @@ export function WikiPageRichEditor({
         userName,
         userColor: colorFromUserId(userId),
         onSyncChange: setIsSynced,
+        onConnectionChange: setConnected,
       }),
     ],
     value: content,
@@ -170,18 +188,25 @@ export function WikiPageRichEditor({
           onChange(value)
         }}
       >
-        <div className={cn('flex h-full flex-col no-scrollbar', className)}>
-          {/* Forces remounting the editable area as soon as Yjs syncs — the
-              editor.tf.init() called internally by yjs.init() doesn't always
-              propagate the new editor.children to this tree on its own. */}
+        <div className={cn('flex flex-col', className)}>
+          {header}
+          {/* The page scrolls as a whole (title, labels, toolbar, text), so
+              the container does not scroll on its own: the toolbar then
+              sticks to the top of the page's scroller. */}
           <EditorContainer
-            key={isSynced ? 'synced' : 'pending'}
             // What the browser suite waits on before typing: keystrokes made
-            // before the first sync are thrown away by the remount above.
+            // before the first sync are thrown away by the remount below.
             data-sync-state={isSynced ? 'synced' : 'pending'}
-            className='min-h-0 flex-1 no-scrollbar'
+            className='h-auto overflow-visible'
           >
-            <Editor placeholder='Digite algo...' />
+            {/* Forces remounting the editable area as soon as Yjs syncs — the
+                editor.tf.init() called internally by yjs.init() doesn't always
+                propagate the new editor.children to this tree on its own. */}
+            <Editor
+              key={isSynced ? 'synced' : 'pending'}
+              placeholder='Digite algo, ou / para comandos'
+              className='min-h-[50vh] max-sm:px-5 max-sm:pb-40'
+            />
             <CursorOverlay />
           </EditorContainer>
         </div>

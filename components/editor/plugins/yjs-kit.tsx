@@ -21,11 +21,14 @@ export function createYjsKit({
   userName,
   userColor,
   onSyncChange,
+  onConnectionChange,
 }: {
   documentName: string
   userName: string
   userColor: string
   onSyncChange?: (isSynced: boolean) => void
+  /** The collaboration socket opened (true) or dropped (false). */
+  onConnectionChange?: (connected: boolean) => void
   }) {
   return [
     YjsPlugin.configure({
@@ -39,9 +42,11 @@ export function createYjsKit({
         ],
         onConnect: ({ type }) => {
           console.log('[yjs] connected', type)
+          onConnectionChange?.(true)
         },
         onDisconnect: ({ type }) => {
           console.log('[yjs] disconnected', type)
+          onConnectionChange?.(false)
         },
         onError: ({ type, error }) => {
           console.error('[yjs] error', type, error)

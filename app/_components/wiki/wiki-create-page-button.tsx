@@ -1,6 +1,6 @@
 'use client'
 
-import { SlidersHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded'
+import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
 import { useRouter } from 'next/navigation'
 import { useShortcut } from '@/app/_components/shortcuts/shortcuts-provider'
 import { SteelIcon } from '@/components/icon/icon'
@@ -37,7 +37,7 @@ export function WikiCreatePageButton({
       onClick={handleCreate}
       disabled={createWikiPage.isPending}
     >
-      <SteelIcon icon={SlidersHorizontalIcon} />
+      <SteelIcon icon={PlusSignIcon} />
       Nova Página
     </ContextPrimaryAction>
   )

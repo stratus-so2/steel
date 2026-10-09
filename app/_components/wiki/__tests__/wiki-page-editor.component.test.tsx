@@ -1,8 +1,10 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { Value } from 'platejs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ShortcutsProvider } from '@/app/_components/shortcuts/shortcuts-provider'
 import {
   apiSuccess,
+  createTestQueryClient,
   getFetchCall,
   mockFetch,
   renderWithProviders,
@@ -24,13 +26,24 @@ vi.mock('@/components/editor/wiki-editor', () => ({
     userName,
     content,
     onChange,
+    header,
+    onStatusChange,
   }: {
     documentName: string
     userName: string
     content: Value
     onChange: (content: Value) => void
+    header?: React.ReactNode
+    onStatusChange?: (status: string) => void
   }) => (
     <div>
+      {header}
+      <button type='button' onClick={() => onStatusChange?.('synced')}>
+        Sincronizar
+      </button>
+      <button type='button' onClick={() => onStatusChange?.('offline')}>
+        Cair conexão
+      </button>
       <p>
         Documento {documentName} por {userName}
       </p>
@@ -68,18 +81,28 @@ function buildPage(overrides: Partial<WikiPageDTO> = {}): WikiPageDTO {
   }
 }
 
-function renderEditor(page = buildPage()) {
+const ROOT = buildPage({ id: 'root', title: 'Processos' })
+const MID = buildPage({ id: 'mid', parentId: 'root', title: '' })
+
+function renderEditor(page = buildPage(), tree: WikiPageDTO[] = [page]) {
   const fetchSpy = mockFetch().mockImplementation(async () =>
     apiSuccess(buildPage()),
   )
+  // The page tree comes from the sidebar's query; seeding it keeps the fetch
+  // spy about the saves only.
+  const queryClient = createTestQueryClient()
+  queryClient.setQueryData(['wiki-pages', WORKSPACE_ID], tree)
   const utils = renderWithProviders(
-    <WikiPageEditor
-      workspaceId={WORKSPACE_ID}
-      workspaceSlug='acme'
-      userId='user-1'
-      userName='Ana'
-      page={page}
-    />,
+    <ShortcutsProvider>
+      <WikiPageEditor
+        workspaceId={WORKSPACE_ID}
+        workspaceSlug='acme'
+        userId='user-1'
+        userName='Ana'
+        page={page}
+      />
+    </ShortcutsProvider>,
+    { queryClient },
   )
   return { ...utils, fetchSpy }
 }
@@ -122,16 +145,71 @@ describe('<WikiPageEditor /> rendering', () => {
     const { rerender } = renderEditor()
 
     rerender(
-      <WikiPageEditor
-        workspaceId={WORKSPACE_ID}
-        workspaceSlug='acme'
-        userId='user-1'
-        userName='Ana'
-        page={buildPage({ id: 'page-2', title: 'Arquitetura' })}
-      />,
+      <ShortcutsProvider>
+        <WikiPageEditor
+          workspaceId={WORKSPACE_ID}
+          workspaceSlug='acme'
+          userId='user-1'
+          userName='Ana'
+          page={buildPage({ id: 'page-2', title: 'Arquitetura' })}
+        />
+      </ShortcutsProvider>,
     )
 
     expect(titleInput()).toHaveProperty('value', 'Arquitetura')
+  })
+})
+
+describe('<WikiPageEditor /> header', () => {
+  it('shows the path from the wiki root to the page', () => {
+    renderEditor(buildPage({ id: 'leaf', parentId: 'mid' }), [
+      ROOT,
+      MID,
+      buildPage({ id: 'leaf', parentId: 'mid' }),
+    ])
+
+    const nav = screen.getByRole('navigation', { name: 'breadcrumb' })
+    const links = Array.from(nav.querySelectorAll('a')).map((a) => [
+      a.textContent,
+      a.getAttribute('href'),
+    ])
+    expect(links).toEqual([
+      ['Wiki', '/acme/wiki'],
+      ['Processos', '/acme/wiki/root'],
+      ['Sem título', '/acme/wiki/mid'],
+    ])
+    expect(nav.textContent).toContain('Manual')
+  })
+
+  it('reports the collaboration status as it changes', () => {
+    renderEditor()
+    const status = () => screen.getByRole('status')
+
+    expect(status().getAttribute('data-status')).toBe('connecting')
+    expect(status().textContent).toBe('Conectando…')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sincronizar' }))
+    expect(status().textContent).toBe('Sincronizado')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cair conexão' }))
+    expect(status().getAttribute('data-status')).toBe('offline')
+    expect(status().textContent).toBe('Sem conexão')
+  })
+
+  it('names an untitled page in the breadcrumb while the title is empty', async () => {
+    const { user } = renderEditor()
+    await user.clear(titleInput())
+    const nav = screen.getByRole('navigation', { name: 'breadcrumb' })
+    expect(nav.textContent).toContain('Sem título')
+  })
+
+  it('toggles the page tree from the header button', () => {
+    renderEditor()
+    // No sidebar is mounted here; the button just must not throw.
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Mostrar ou ocultar as páginas' }),
+    )
+    expect(titleInput()).toBeTruthy()
   })
 })
 
