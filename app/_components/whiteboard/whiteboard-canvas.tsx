@@ -151,6 +151,9 @@ export default function WhiteboardCanvas({
   const saving = useRef<Promise<void> | null>(null)
   const canEditRef = useRef(false)
   const lastThumbnail = useRef(0)
+  // Until the person touches the canvas, every change is Excalidraw
+  // normalizing the loaded scene (defaults, scroll to content): baseline.
+  const touched = useRef(false)
   const stateRef = useRef<WhiteboardCanvasState>({
     status: 'loading',
     canEdit: false,
@@ -288,17 +291,6 @@ export default function WhiteboardCanvas({
     if (body.data.revision !== revision.current) await applyBoard(body.data)
   }, [applyBoard, board.id, workspaceId])
 
-  // Opening a board restores and scrolls it to its content: that first
-  // normalized scene is the saved state, not an edit worth a new revision.
-  useEffect(() => {
-    if (!api) return
-    const timer = setTimeout(() => {
-      const loaded = currentScene()
-      if (loaded) savedSignature.current = sceneSignature(loaded)
-    }, 0)
-    return () => clearTimeout(timer)
-  }, [api, currentScene])
-
   // Images of the first scene (the scene itself comes via initialData).
   useEffect(() => {
     if (!api) return
@@ -399,7 +391,12 @@ export default function WhiteboardCanvas({
     ) => {
       if (!canEditRef.current) return
       const scene = currentScene()
-      if (!scene || sceneSignature(scene) === savedSignature.current) return
+      if (!scene) return
+      if (!touched.current) {
+        savedSignature.current = sceneSignature(scene)
+        return
+      }
+      if (sceneSignature(scene) === savedSignature.current) return
       if (stateRef.current.status !== 'dirty') emit({ status: 'dirty' })
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
@@ -409,6 +406,10 @@ export default function WhiteboardCanvas({
     },
     [currentScene, emit, flush],
   )
+
+  const markTouched = useCallback(() => {
+    touched.current = true
+  }, [])
 
   const initialData = useMemo(
     () => ({
@@ -420,7 +421,14 @@ export default function WhiteboardCanvas({
   )
 
   return (
-    <div className='whiteboard-canvas h-full w-full'>
+    <div
+      className='whiteboard-canvas h-full w-full'
+      onPointerDownCapture={markTouched}
+      onKeyDownCapture={markTouched}
+      onWheelCapture={markTouched}
+      onPasteCapture={markTouched}
+      onDropCapture={markTouched}
+    >
       <Excalidraw
         excalidrawAPI={setApi}
         initialData={initialData}
