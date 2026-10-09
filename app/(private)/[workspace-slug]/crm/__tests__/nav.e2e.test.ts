@@ -40,16 +40,31 @@ describe('CRM sidebar entries', () => {
     expect(html).not.toContain(`href="/${workspace.slug}/crm/integration-keys"`)
   })
 
+  // Streaming keeps the HTTP status at 200 when `notFound()` fires; the RSC
+  // marker is the reliable signal (see admin-pages.e2e.test.ts).
   it('should not render the API keys page for a plain member', async () => {
     const { workspace } = await authenticatedOwner()
     const member = await addMember(workspace.id, 'MEMBER')
 
-    const { status } = await renderPage(
+    const { html } = await renderPage(
       workspace.slug,
       member.cookie,
       'integration-keys',
     )
 
-    expect(status).toBe(404)
+    expect(html).toContain('NEXT_HTTP_ERROR_FALLBACK;404')
+  })
+
+  it('should render the API keys page for an owner', async () => {
+    const { user, workspace } = await authenticatedOwner()
+
+    const { status, html } = await renderPage(
+      workspace.slug,
+      user.cookie,
+      'integration-keys',
+    )
+
+    expect(status).toBe(200)
+    expect(html).not.toContain('NEXT_HTTP_ERROR_FALLBACK;404')
   })
 })
