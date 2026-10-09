@@ -1,0 +1,60 @@
+---
+title: Fases e fluxos
+description: As fases de cada prática ITIL, o percentual de conclusão, as regras de transição e as fases que pausam o SLA.
+section: servicedesk
+order: 2
+---
+
+Cada tipo de chamado tem o seu **fluxo**: as fases por onde ele passa. Os fluxos
+chegam prontos no padrão ITIL e podem ser ajustados em **Configurações ›
+Fluxos**.
+
+## Os fluxos padrão
+
+Entre parênteses, o percentual de conclusão de cada fase.
+
+- **Incidente**: Novo (0), Em triagem (10), Em atendimento (40), Aguardando
+  cliente (50), Aguardando terceiro (55), Resolvido (90), Fechado (100),
+  Cancelado (100).
+- **Requisição**: Nova (0), Em aprovação (15), Aprovada / Em atendimento (40),
+  Aguardando solicitante (60), Atendida (90), Fechada (100), Cancelada /
+  Rejeitada (100).
+- **Mudança**: Registrada (0), Avaliação (15), Aprovação CAB (30), Planejada
+  (45), Em implementação (65), Revisão pós-implementação (85), Concluída (100),
+  Rejeitada (100).
+- **Problema**: Registrado (0), Em investigação (25), Causa raiz identificada
+  (50), Erro conhecido (70), Resolvido (90), Fechado (100), Cancelado (100).
+
+As fases de espera (aguardando cliente, terceiro ou solicitante, e em aprovação)
+**pausam o SLA**.
+
+## Regras de cada fase
+
+<Callout type='admin'>
+  Fluxos são editados por administradores do workspace ou por quem tem permissão
+  de editar as configurações do ServiceDesk.
+</Callout>
+
+- **Semântica**: novo, em andamento, aguardando, resolvido, fechado ou
+  cancelado. É o que os relatórios e o SLA usam.
+- **Pausa o SLA**.
+- **Exige aprovação**: o chamado só entra na fase com uma aprovação concedida.
+- **Campos obrigatórios para entrar**.
+- **Limite WIP**: quantos chamados podem estar na fase ao mesmo tempo (0 = sem
+  limite).
+- **Restringir a departamentos**.
+- **Fase inicial**.
+
+## Transições
+
+Em **Transições**, uma matriz define para quais fases cada fase pode ir: linhas
+são a fase de origem, colunas o destino. Sem nenhuma transição marcada, o fluxo
+é livre.
+
+## Encerramento e reabertura
+
+Nas configurações gerais você define se é preciso informar a **solução ao
+resolver**, se é preciso **assinatura ao fechar**, depois de quantas horas um
+chamado resolvido fecha sozinho (72 horas por padrão) e se ele **reabre quando
+o solicitante responde**. Para voltar aos fluxos de fábrica, use **Restaurar
+padrões ITIL**.

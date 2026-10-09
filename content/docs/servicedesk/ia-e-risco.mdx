@@ -1,0 +1,55 @@
+---
+title: IA no atendimento e risco preditivo
+description: Copiloto do chamado, triagem automática, pré-atendimento no portal, resposta automática no WhatsApp e a análise de risco.
+section: servicedesk
+order: 10
+---
+
+## Copiloto do chamado
+
+O painel **Copiloto de IA**, na lateral do chamado, oferece:
+
+- **Resumo do chamado**.
+- **Sugestão de resposta**, com um campo opcional para orientar o tom ou o
+  conteúdo.
+- **Rascunho da solução**.
+- **Classificação sugerida**: categoria, subcategoria, serviço, impacto,
+  urgência, prioridade, departamento e tags, cada uma aplicada com **Aplicar**.
+- **Artigos da base** relacionados.
+- **Perguntar ao copiloto**.
+
+Nada é alterado no chamado sem você clicar.
+
+## Triagem, pré-atendimento e WhatsApp
+
+<Callout type='admin'>
+  Ligados em **ServiceDesk › Configurações › IA**: IA habilitada,
+  pré-atendimento, resposta automática no WhatsApp, triagem automática, persona,
+  instruções e as palavras que passam o atendimento para um humano.
+</Callout>
+
+- **Triagem automática**: classifica o chamado ao ser aberto.
+- **Pré-atendimento**: no portal, o **Assistente do ServiceDesk** tenta resolver
+  com a base de conhecimento. O solicitante escolhe **Resolvido, obrigado** ou
+  **Abrir chamado**, e a conversa vai junto para o chamado.
+- **Resposta automática no WhatsApp**, até a conversa passar para um agente.
+
+A IA do ServiceDesk usa a cota mensal de IA do workspace (veja
+[Uso e análises](/docs/steel-ai/uso-e-analises)).
+
+## Análise de risco
+
+A tela **Análise de risco** (só agentes) estima quais chamados abertos têm mais
+chance de violar o SLA:
+
+- Cada chamado recebe uma faixa (alta, média ou baixa) e mostra **os fatores**
+  que levaram a ela. A estimativa é explicável, não uma caixa-preta.
+- A previsão é recalculada a cada 10 minutos.
+- **Agrupamentos de incidentes**: incidentes parecidos dos últimos 7 dias, a
+  partir de três ocorrências, viram um grupo. Dali você pode **Abrir problema**
+  ou dispensar o grupo.
+
+## Perguntar à Steel AI
+
+No menu **⋯** do chamado, **Perguntar ao Steel AI** abre a
+[Steel AI](/docs/steel-ai) com a referência ao chamado já escrita.

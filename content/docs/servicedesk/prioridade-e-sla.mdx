@@ -1,0 +1,72 @@
+---
+title: Prioridade, SLA e escalonamento
+description: A matriz impacto × urgência, severidades, políticas de SLA e OLA sobre calendários de expediente e as regras de escalonamento.
+section: servicedesk
+order: 3
+---
+
+## Matriz impacto × urgência
+
+Impacto (baixo, médio, alto) e urgência (baixa, média, alta) definem a
+prioridade do chamado:
+
+| Prioridade | Exemplo na matriz padrão |
+| --- | --- |
+| **P1 – Crítica** | impacto alto e urgência alta |
+| **P2 – Alta** | alto e médio, ou médio e alto |
+| **P3 – Média** | médio e médio (é a prioridade padrão) |
+| **P4 – Baixa** | baixo e baixo |
+
+A matriz é editada em **Configurações › Prioridades**. Célula vazia usa a
+prioridade padrão. As **severidades** (menor, moderada, maior, crítica)
+complementam a prioridade.
+
+## SLA e OLA
+
+Em **Configurações › SLA** você cria políticas de dois tipos:
+
+- **SLA**: o compromisso com o cliente.
+- **OLA**: o compromisso interno entre departamentos.
+
+Cada política tem metas de primeira resposta e de resolução por prioridade, em
+minutos úteis, e condições para valer. As condições são avaliadas em ordem; a
+primeira política ativa que combina é aplicada, senão vale a política padrão.
+
+Políticas que já vêm prontas:
+
+| Política | Calendário | P1 | P2 | P3 | P4 |
+| --- | --- | --- | --- | --- | --- |
+| **Padrão** (resposta / resolução) | Comercial 8×5 | 30 min / 4 h | 1 h / 8 h | 4 h / 24 h | 8 h / 40 h |
+| **Crítico 24×7** (incidentes P1) | 24×7 | 15 min / 4 h | | | |
+
+### Calendários de expediente
+
+O SLA conta só o tempo útil do calendário: fuso horário, horário de cada dia da
+semana e feriados (os feriados nacionais já vêm cadastrados). Um calendário
+pode ser **24×7**.
+
+### Situação do SLA
+
+No chamado e nas listas, o SLA aparece como **No prazo**, **Em risco**,
+**Violado**, **Cumprido**, **Pausado** ou **Sem SLA**. "Em risco" começa,
+por padrão, quando 80% do prazo foi consumido (ajustável em Configurações ›
+Geral).
+
+## Escalonamento
+
+### Manual
+
+Na aba **Escalonamento** do chamado:
+
+- **Funcional**: transfere para outro departamento ou especialista.
+- **Hierárquico**: sobe um nível, para o líder do time ou o gestor.
+
+O motivo é obrigatório e fica no histórico.
+
+### Automático
+
+Em **Configurações › Escalonamento**, regras disparam quando a primeira resposta
+ou a resolução fica em risco ou é violada, ou quando o chamado passa tempo
+demais sem atualização. As ações escalonam (funcional ou hierárquico), notificam
+o responsável ou os líderes do departamento, ou passam o chamado para quem está
+de [plantão](/docs/servicedesk/canais-e-automacoes#plantão).

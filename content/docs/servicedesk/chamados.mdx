@@ -1,0 +1,105 @@
+---
+title: Chamados
+description: Os tipos de chamado, como abrir, a tela do chamado, as abas, a conversa com o solicitante e as notas internas.
+section: servicedesk
+order: 1
+---
+
+## Os quatro tipos
+
+| Tipo | Prefixo | Quando usar |
+| --- | --- | --- |
+| **Incidente** | `INC` | Algo parou de funcionar ou piorou |
+| **Requisição** | `REQ` | Um pedido de serviço: acesso, equipamento, informação |
+| **Mudança** | `CHG` | Uma alteração planejada no ambiente |
+| **Problema** | `PRB` | A causa raiz por trás de um ou vários incidentes |
+
+O código do chamado é o prefixo mais um número sequencial de seis dígitos, por
+exemplo `INC-000123`. Os prefixos podem ser trocados em **Configurações ›
+Geral › Numeração dos chamados**.
+
+Um chamado pode chegar pelo agente, pelo portal, por e-mail, pelo WhatsApp, por
+telefone, pela IA ou pela API; o canal fica registrado.
+
+## Abrir um chamado
+
+Use o botão de novo chamado (ou <Kbd>C</Kbd> <Kbd>T</Kbd>). O formulário tem:
+
+- **Tipo do chamado**, **Modelo** (opcional), **Título** e **Descrição**.
+- **Prioridade**: informe **Impacto** e **Urgência** e o Steel calcula a
+  prioridade pela matriz. Para escolher à mão, ligue **Definir manualmente**.
+  Há também a **Severidade**.
+- **Catálogo**: categoria, subcategoria, serviço e classificação.
+- **Cliente**: cliente, empresa, contato e item de configuração.
+- **Atendimento**: departamento, responsável, solicitante, participantes, item
+  pai e tags.
+- Em **mudanças**: tipo (padrão, normal ou emergencial), risco, início e fim
+  planejados e os planos de implantação, retorno e testes.
+- Em **problemas**: causa raiz, solução de contorno e erro conhecido.
+- Os [campos customizados](/docs/servicedesk/catalogo-e-cadastros) do
+  workspace.
+
+Clique em **Abrir chamado** ou use <Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd>.
+
+## A tela do chamado
+
+No topo ficam o título (editável), **Mudar fase**, **Seguir** e o menu **Mais
+ações do chamado**: escalonar, adicionar item filho, vincular ou trocar o item
+pai, copiar o link, perguntar à Steel AI e, para administradores, excluir.
+
+A lateral reúne os dados do chamado: prioridade, catálogo, cliente e CMDB,
+atendimento, solução, campos customizados, datas (abertura, primeira resposta,
+resolução, fechamento, reaberturas), trabalho, risco preditivo e o copiloto de
+IA.
+
+### Responsável
+
+No campo de responsável: **Atribuir a mim**, escolher um agente ou **Remover
+responsável**. A distribuição automática (round-robin) pode ser ligada nas
+configurações.
+
+## As abas
+
+| Aba | Para que serve |
+| --- | --- |
+| **Conversa** | Mensagens com o solicitante e notas internas |
+| **WhatsApp** | Conversa de WhatsApp ligada ao chamado (só agentes) |
+| **Tarefas** | Checklist com responsável, prazo e status |
+| **Horas** | Cronômetro e lançamentos de horas |
+| **Custos** e **Peças** | O que foi gasto e instalado no atendimento |
+| **Aprovação** | Pedidos de aprovação por e-mail |
+| **Mudança** | Agenda e rodada do comitê (CAB), só em mudanças |
+| **Itens filhos** | Chamados vinculados a este |
+| **Escalonamento** | Escalonar e ver o histórico de escalonamentos |
+| **Rastreabilidade** | Tudo o que aconteceu no chamado, com filtros |
+| **Assinatura** | Coleta de assinatura digital |
+| **Conhecimento** | Artigos ligados e criação de artigo a partir do chamado |
+
+As abas menos usadas ficam no menu **Mais**. Veja
+[Horas, custos e contratos](/docs/servicedesk/horas-custos-e-contratos) e
+[Aprovações e mudanças](/docs/servicedesk/aprovacoes-e-mudancas).
+
+## Conversa e notas internas
+
+No compositor, escolha a visibilidade:
+
+- **Público**: o solicitante vê. Se o chamado veio por e-mail, a resposta sai
+  por e-mail também.
+- **Nota interna**: só a equipe vê. O botão vira **Salvar nota**.
+
+Você pode mencionar agentes com <Kbd>@</Kbd>, inserir respostas prontas com{' '}
+<Kbd>/</Kbd> e anexar até **10 arquivos de 25 MB** por mensagem.
+
+Quando o chamado é resolvido, fechado ou cancelado, a conversa fica travada:
+*"Chamado encerrado — não aceita novas mensagens."*
+
+## Itens pai e filho
+
+Um chamado pode ter um **item pai** e vários **itens filhos**, por exemplo um
+problema com os incidentes que ele causou. O Steel não mescla chamados: use o
+vínculo pai e filho.
+
+<Callout type='admin'>
+  **Excluir chamado** é só para administradores. O chamado sai das filas e dos
+  relatórios, mas a rastreabilidade é mantida.
+</Callout>

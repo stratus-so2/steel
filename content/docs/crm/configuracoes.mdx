@@ -1,0 +1,38 @@
+---
+title: Configurações e chaves de API
+description: As configurações do CRM, perfis de acesso, log de auditoria, privacidade e as chaves de API para receber leads de outros sistemas.
+section: crm
+order: 11
+---
+
+<Callout type='admin'>
+  As configurações do CRM são alteradas pelo dono e pelos administradores.
+</Callout>
+
+**CRM › Configurações** reúne, em ordem:
+
+- **Membros**: os membros do workspace com o perfil de acesso de cada um no CRM.
+- **Pipelines**: os funis das oportunidades.
+- **Campos customizados**.
+- **Pontuação de leads** e **Roteamento de leads** (veja [Leads](/docs/crm/leads)).
+- **Funil e propostas**: a etapa para onde volta um lead reaberto, a validade
+  padrão das propostas e o aviso por e-mail quando uma proposta expira.
+- **Perfis de acesso**: crie perfis com a matriz recurso × Ver, Criar, Editar e
+  Excluir e atribua a membros. O padrão de cada pessoa é o do seu papel.
+- **Log de auditoria**: quem fez o quê.
+- **Privacidade**: consentimento de cookies de análise.
+- **Conexões sociais**.
+
+## Chaves de API
+
+Para receber leads de outro sistema (um site, uma ferramenta de automação), um
+administrador cria uma chave na tela **Chaves de API**, em
+`/<workspace>/crm/integration-keys`:
+
+1. Clique em **Criar chave** e dê um nome (por exemplo, "Site").
+2. Copie a chave na hora: ela **não é mostrada de novo**.
+3. Entregue a chave à equipe técnica que fará a integração.
+
+Leads recebidos pela API passam pelas mesmas regras da criação manual:
+bloqueio de duplicados, pontuação e roteamento. Uma chave pode ser revogada a
+qualquer momento.

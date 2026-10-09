@@ -1,0 +1,59 @@
+---
+title: Portal do solicitante
+description: O portal para membros sem departamento e o portal externo em /suporte, com acesso por link mágico, abertura de chamados e avaliação do atendimento.
+section: servicedesk
+order: 8
+---
+
+O ServiceDesk tem dois portais para quem pede atendimento.
+
+## Portal interno
+
+Para membros do workspace que não fazem parte de nenhum departamento (veja
+[agente ou solicitante](/docs/servicedesk#agente-ou-solicitante)). Ele fica em
+**ServiceDesk › Portal do solicitante** e mostra:
+
+- **Meus chamados**, com a barra de progresso de cada um.
+- **Resolva sozinho**: busca na base de conhecimento.
+- O **assistente do ServiceDesk** (pré-atendimento por IA), quando ligado.
+
+### Abrir chamado pelo portal
+
+Escolha o tipo pelo cartão que descreve a situação, um **pedido pronto**
+(modelo) se houver, o **serviço**, o assunto, o resumo, os detalhes e
+**Qual a urgência?** (inclusive "Não sei dizer"). Envie com **Enviar chamado**.
+
+### Acompanhar
+
+Na página do chamado o solicitante conversa com a equipe, assina quando pedido e
+pode **Reabrir chamado** informando o motivo. Depois do atendimento, ele avalia
+em **Como foi o atendimento?**, de 1 a 5 estrelas, com um comentário opcional.
+
+## Portal externo (/suporte)
+
+Para os **contatos** dos seus clientes, que não têm conta no Steel.
+
+1. O contato acessa `/suporte`, informa o e-mail e clica em **Receber link de
+   acesso**. A resposta é a mesma exista ou não o e-mail, por segurança.
+2. O link vale por **7 dias** e só pode ser usado uma vez. A sessão aberta dura
+   **12 horas**.
+3. Um agente também pode mandar o acesso pela ficha do contato ou pela lateral
+   do chamado, em **Enviar acesso ao portal**, e acompanhar os **Acessos
+   emitidos**.
+
+No portal externo o contato:
+
+- vê **Meus chamados** (em aberto e encerrados) e busca por assunto ou código;
+- **abre chamado**, com modelo opcional, serviço, assunto, urgência, resumo e
+  detalhes;
+- responde com até 5 anexos e avalia o atendimento;
+- consulta a **Ajuda** (artigos da base marcados como Portal).
+
+Com **Contato externo vê os chamados da empresa dele** ligado (o padrão), o
+contato vê os chamados de todas as empresas a que está vinculado.
+
+<Callout type='admin'>
+  O portal é ligado e configurado em **Configurações › Geral › Portal do
+  solicitante**: habilitar, os tipos que o solicitante pode abrir (por padrão,
+  incidente e requisição) e a visibilidade dos chamados da empresa.
+</Callout>

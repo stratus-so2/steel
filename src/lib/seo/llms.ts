@@ -1,4 +1,6 @@
 import { CHANGELOG_TAG_LABELS } from '@/src/lib/changelog/labels'
+import type { DocsPage, DocsPageMeta } from '@/src/lib/docs/pages'
+import { docsSectionLabel } from '@/src/lib/docs/sections'
 import { SITE_DESCRIPTION, SITE_URL } from '@/src/lib/seo/site'
 import type {
   ChangelogEntryDTO,
@@ -27,8 +29,25 @@ function changelogIndex(entries: ChangelogEntryMetaDTO[]): string {
     .join('\n')
 }
 
+function docsIndex(docs: DocsPageMeta[]): string {
+  return docs
+    .map(
+      (page) =>
+        `- [${docsSectionLabel(page.section)}: ${page.title}](${url(page.href)}): ${page.description}`,
+    )
+    .join('\n')
+}
+
 /** `/llms.txt` (llmstxt.org): a short markdown map for answer engines. */
-export function buildLlmsTxt(entries: ChangelogEntryMetaDTO[]): string {
+export function buildLlmsTxt(
+  entries: ChangelogEntryMetaDTO[],
+  docs: DocsPageMeta[] = [],
+): string {
+  const manual =
+    docs.length > 0
+      ? `\n## Documentação (manual do usuário)\n\n${docsIndex(docs)}\n`
+      : ''
+
   return `# Steel
 
 > ${SITE_DESCRIPTION}
@@ -37,6 +56,8 @@ ${PRODUCT_OVERVIEW}
 
 ## Páginas
 
+- [Documentação](${url('/docs')}): manual de uso do Steel, módulo a módulo.
+- [Para desenvolvedores](${url('/dev')}): integração com a API do Steel e a [referência da API](${url('/dev/api')}).
 - [Sobre](${url('/about')}): por que o Steel existe e para quem ele é feito.
 - [Manifesto](${url('/manifesto')}): os princípios de produto e engenharia do Steel.
 - [Changelog](${url('/changelog')}): novidades, release a release ([RSS](${url('/changelog/rss.xml')})).
@@ -44,7 +65,7 @@ ${PRODUCT_OVERVIEW}
 - [Fale com vendas](${url('/talk-to-sales')}): demonstração, preços e implantação.
 - [Contato](${url('/contact')}): canais de vendas, suporte e outros assuntos.
 - [Status](${url('/status')}): status em tempo real dos serviços e histórico de incidentes.
-
+${manual}
 ## Changelog recente
 
 ${changelogIndex(entries.slice(0, 10))}
@@ -58,12 +79,30 @@ ${changelogIndex(entries.slice(0, 10))}
 
 ## Opcional
 
-- [Versão completa deste arquivo](${url('/llms-full.txt')}): inclui o texto integral de cada novidade do changelog.
+- [Versão completa deste arquivo](${url('/llms-full.txt')}): inclui o texto integral do manual e de cada novidade do changelog.
 `
 }
 
-/** `/llms-full.txt`: the overview plus every changelog entry in full. */
-export function buildLlmsFullTxt(entries: ChangelogEntryDTO[]): string {
+/** `/llms-full.txt`: the overview, the whole manual and every changelog entry. */
+export function buildLlmsFullTxt(
+  entries: ChangelogEntryDTO[],
+  docs: DocsPage[] = [],
+): string {
+  const manual = docs
+    .map((page) => {
+      // Page headings are demoted one level so they nest under the title.
+      const body = page.source.replace(/^(#{2,5}) /gm, '#$1 ')
+      return `## ${docsSectionLabel(page.section)}: ${page.title}
+
+${url(page.href)}
+
+> ${page.description}
+
+${body}`
+    })
+    .join('\n\n---\n\n')
+  const manualPart = manual ? `# Documentação\n\n${manual}\n\n` : ''
+
   const bodies = entries
     .map((entry) => {
       const tags = entry.tags.map((tag) => CHANGELOG_TAG_LABELS[tag]).join(', ')
@@ -85,7 +124,7 @@ ${body}`
 
 ${PRODUCT_OVERVIEW}
 
-# Changelog
+${manualPart}# Changelog
 
 ${bodies}
 `

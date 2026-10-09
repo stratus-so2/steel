@@ -1,0 +1,65 @@
+---
+title: Steel Agents
+description: Agentes que trabalham em segundo plano por agenda, evento ou sob demanda, com ferramentas automáticas ou com aprovação.
+section: steel-ai
+order: 5
+---
+
+Um **Steel Agent** é uma rotina da Steel AI que roda sozinha: confere a fila,
+acompanha o funil, avisa sobre conversas paradas. Ele tem instruções próprias e
+age com as permissões de um responsável.
+
+<Callout type='admin'>
+  Criar, editar e excluir agentes é feito pelo dono e pelos administradores, em
+  **Steel AI › Agentes**. Membros e visualizadores consultam os agentes e as
+  execuções.
+</Callout>
+
+## Configurar um agente
+
+- **Nome**, **Descrição** e **Instruções** (o que o agente faz). **Inserir
+  skill** copia as instruções de uma skill.
+- **Gatilho**:
+  - **Agenda**: opções prontas (todo dia às 8h, dias úteis às 8h…) ou uma
+    expressão cron, com fuso horário.
+  - **Evento**: chamado aberto, lead criado, conversa atribuída ou IA transferiu
+    a conversa.
+  - **Manual**: só pelo botão **Executar agora**.
+- **Responsável**: o agente roda com as permissões dessa pessoa.
+- **Máximo de etapas** (8 por padrão, até 20) e **limite de execuções por mês**
+  (opcional).
+- **Ferramentas permitidas**.
+- **Ativo** ou **Pausado**.
+
+## Ferramentas e aprovação
+
+Consultas sempre rodam. Para cada ferramenta que altera dados, escolha:
+
+- **Automática**: o agente executa sozinho.
+- **Requer aprovação** (o padrão): o agente propõe e espera.
+
+**Exclusões sempre exigem aprovação**, sem exceção.
+
+As aprovações chegam na [caixa de entrada](/docs/workspace/caixa-de-entrada) do
+responsável e dos administradores, com a prévia do antes e depois. Decide o
+responsável ou quem pode editar agentes. A aprovação vale por **72 horas**.
+
+## Execuções
+
+Cada execução fica no histórico do agente, com a linha do tempo de cada passo
+(modelo, ferramenta, aprovação), o resultado e o custo. Situações: **Na fila**,
+**Executando**, **Concluída**, **Falhou**, **Não executada** e **Aguardando
+aprovação**. Se uma execução falha, o responsável é avisado.
+
+Um agente **não executa** quando está pausado, quando o responsável saiu do
+workspace, quando a cota de IA acabou, quando o limite mensal foi atingido ou
+quando os agentes estão desligados nos ajustes.
+
+## Testar antes de ativar
+
+**Testar agente** roda o agente em [modo Teste](/docs/steel-ai/modos#teste):
+consultas de verdade, ações simuladas, nada alterado e nenhuma aprovação pedida.
+O teste funciona com o agente pausado e não conta no limite mensal. A execução
+mostra o selo **Teste** e a seção *O que o agente faria*.
+
+Para começar rápido, veja os [modelos prontos](/docs/steel-ai/modelos-prontos).

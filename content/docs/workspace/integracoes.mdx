@@ -1,0 +1,48 @@
+---
+title: Integrações (Slack, GitHub e GitLab)
+description: Conecte o Slack, o GitHub e o GitLab uma vez e use em todos os módulos do workspace.
+section: workspace
+order: 9
+---
+
+<Callout type='admin'>
+  As integrações são conectadas pelo dono ou por administradores em **Ajustes ›
+  Integrações**. Cada serviço tem uma conexão por workspace, usada por todos os
+  módulos.
+</Callout>
+
+## Slack
+
+- **Avisos nos canais**: em **Notificações no Slack**, crie regras "quando
+  acontecer tal evento, publicar em tal canal", separadas por módulo. Exemplos de
+  eventos: chamado urgente aberto, novo lead, negócio ganho ou perdido, conversa
+  aguardando resposta há muito tempo, aprovação pendente de um Steel Agent.
+- **Chamado a partir do Slack**: abra um chamado do ServiceDesk por um atalho de
+  mensagem ou por um comando, e as respostas da thread entram no histórico do
+  chamado. Os detalhes ficam em **ServiceDesk › Configurações › Integrações**.
+
+<Callout type='nota'>
+  Para publicar num canal, o app precisa estar nele: no Slack, digite
+  `/invite @Steel` no canal.
+</Callout>
+
+## GitHub
+
+Vincule issues e pull requests a chamados, abra uma issue a partir de um chamado
+e receba o estado dela (fechada, reaberta, mesclada) automaticamente. A conexão
+usa um token de acesso com permissão de leitura e escrita em Issues e Pull
+requests, e um webhook no repositório para o Steel receber as mudanças.
+
+## GitLab
+
+Os mesmos recursos do GitHub, com issues e merge requests, no gitlab.com ou numa
+instância própria (self-managed) acessível por HTTPS.
+
+## Manutenção da conexão
+
+Cada integração tem **Testar conexão**, troca do token e do segredo do webhook e
+**Desconectar**.
+
+No ServiceDesk, abrir issue a partir do chamado fica disponível nos chamados de
+**problema** e de **mudança**, e fechar a issue pode sugerir o avanço de fase do
+chamado.

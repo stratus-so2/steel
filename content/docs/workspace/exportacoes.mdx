@@ -1,0 +1,35 @@
+---
+title: Exportações
+description: Gere uma cópia completa dos dados do workspace ou dos registros de atividade, uma vez por dia de cada tipo.
+section: workspace
+order: 7
+---
+
+<Callout type='admin'>
+  Só o dono e os administradores veem e usam **Ajustes › Exportações**.
+</Callout>
+
+## Os dois tipos
+
+| Exportação | O que contém | Formato |
+| --- | --- | --- |
+| **Dados completos do workspace** | Todos os registros de todos os módulos | Arquivo ZIP com JSON e CSV |
+| **Logs do workspace** | Os registros de atividade do workspace nas últimas 24 horas, 7 dias ou 30 dias | CSV ou NDJSON |
+
+Clique em **Exportar dados** ou **Exportar logs**. O arquivo é preparado em
+segundo plano e você é avisado quando ele fica pronto. O **Histórico** mostra os
+pedidos anteriores e a situação de cada um.
+
+## Regras
+
+- Cada tipo pode ser pedido **uma vez por dia**.
+- O arquivo fica disponível por **7 dias** e só é baixado por dono ou
+  administrador conectado.
+- Senhas, segredos, tokens e credenciais de integração **não** entram no arquivo
+  de dados. Os logs não trazem endereço IP nem o conteúdo das requisições.
+- O pedido, a conclusão e cada download ficam registrados na auditoria.
+
+<Callout type='aviso'>
+  O arquivo contém dados pessoais de membros, clientes e contatos. Quem baixa
+  passa a ser responsável pela guarda da cópia, conforme a LGPD.
+</Callout>

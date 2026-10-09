@@ -1,0 +1,55 @@
+---
+title: Transmissões
+description: Envie a mesma mensagem para vários contatos, com mídia, importação por planilha e descadastro por palavra-chave.
+section: comunicacao
+order: 6
+---
+
+Uma **transmissão** envia a mesma mensagem para vários contatos, com um
+intervalo automático entre os envios (4 segundos).
+
+<Callout type='admin'>
+  Criar, importar e iniciar transmissões é feito pelo dono e pelos
+  administradores. Membros acompanham.
+</Callout>
+
+## Lista de transmissão
+
+Em **Transmissões**, clique em **Nova lista de transmissão** e informe nome,
+conexão, mensagem, mídia (opcional) e os contatos.
+
+| Mídia | Formatos | Limite |
+| --- | --- | --- |
+| Imagem | JPG, PNG | 5 MB |
+| Vídeo | MP4, 3GP | 16 MB |
+| Áudio | | 16 MB |
+| Documento | PDF, Word, Excel, PowerPoint, TXT | 16 MB |
+
+Com mídia, a mensagem vai como legenda. Ao iniciar, a transmissão passa por
+**Na fila**, **Enviando** e **Concluída** (ou **Falhou**).
+
+## Importar planilha (CSV)
+
+Para lembretes com data (consultas, vencimentos), use **Importar planilha
+(CSV)**:
+
+- Escolha a conexão, um **template aprovado** e quantas horas antes da data de
+  referência a mensagem deve sair.
+- Colunas obrigatórias: `telefone`, `data_referencia` e `var_1`, `var_2`… (as
+  variáveis do template). A coluna `nome` é opcional.
+- Linhas recusadas são listadas pelo número da linha.
+
+## Descadastro (LGPD)
+
+Um contato que responde **exatamente** `SAIR`, `PARAR`, `STOP` ou
+`DESCADASTRAR` (sem diferença entre maiúsculas e minúsculas, acentos ou
+pontuação nas pontas) sai das transmissões do workspace e recebe uma
+confirmação na conversa. A IA não responde a essa mensagem.
+
+- `CANCELAR` **não** descadastra, de propósito: é a resposta natural a um
+  lembrete de consulta.
+- Quem saiu é pulado no envio, mesmo que tenha saído depois de a lista ser
+  criada.
+- As conversas individuais continuam normalmente.
+
+Para reinscrever, veja [Contatos](/docs/comunicacao/contatos-e-grupos#descadastro-e-reinscrição).

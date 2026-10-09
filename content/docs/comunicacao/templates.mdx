@@ -1,0 +1,41 @@
+---
+title: Templates da Meta
+description: Crie templates de mensagem, envie para aprovação da Meta, sincronize e use nas conversas e transmissões.
+section: comunicacao
+order: 5
+---
+
+Templates são mensagens pré-aprovadas pela Meta. Eles são necessários para
+iniciar conversas pela Meta Cloud API fora da janela de 24 horas e para as
+transmissões por planilha. Só existem em conexões **Meta**.
+
+<Callout type='admin'>
+  Criar e sincronizar templates é feito pelo dono e pelos administradores.
+  Membros consultam.
+</Callout>
+
+## Sincronizar
+
+Em **Templates**, escolha a conexão Meta e clique em **Sincronizar agora**. A
+tabela mostra nome, categoria, idioma e situação de cada template.
+
+## Criar
+
+Clique em **Novo template** e preencha:
+
+- **Nome**, em letras minúsculas com sublinhado (ex.: `lembrete_consulta`).
+- **Categoria**: Marketing, Utilidade (lembretes, confirmações) ou
+  Autenticação.
+- **Idioma**.
+- **Cabeçalho** (opcional), **Corpo da mensagem** e **Rodapé** (opcional). O
+  corpo aceita variáveis como `{{1}}`, cada uma com um valor de exemplo.
+- **Botões** (opcional): resposta rápida, link ou telefone.
+
+Clique em **Enviar para aprovação**. A Meta analisa e a situação muda depois da
+sincronização.
+
+## Usar
+
+Na conversa, o botão **Template** lista os templates aprovados. Nas
+[transmissões por planilha](/docs/comunicacao/transmissoes#importar-planilha-csv),
+o template é obrigatório.

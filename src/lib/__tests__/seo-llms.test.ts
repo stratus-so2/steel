@@ -44,6 +44,43 @@ describe('buildLlmsFullTxt', () => {
   })
 })
 
+const DOC = {
+  section: 'crm' as const,
+  slug: 'leads',
+  href: '/docs/crm/leads',
+  title: 'Leads',
+  description: 'As etapas do funil de leads.',
+  order: 1,
+  source: '## Etapas\n\nTexto.',
+  headings: [],
+}
+
+describe('llms files with the manual', () => {
+  it('lists the manual pages in llms.txt', () => {
+    const txt = buildLlmsTxt([ENTRY], [DOC])
+    expect(txt).toContain('## Documentação (manual do usuário)')
+    expect(txt).toContain(
+      '- [CRM: Leads](https://steel.test/docs/crm/leads): As etapas do funil de leads.',
+    )
+    expect(txt).toContain('[Para desenvolvedores](https://steel.test/dev)')
+  })
+
+  it('leaves the manual block out when there are no pages', () => {
+    expect(buildLlmsTxt([ENTRY])).not.toContain('manual do usuário')
+    expect(buildLlmsFullTxt([ENTRY])).not.toContain('# Documentação')
+  })
+
+  it('inlines every manual page in llms-full.txt before the changelog', () => {
+    const txt = buildLlmsFullTxt([ENTRY], [DOC, { ...DOC, href: '/docs/crm' }])
+    expect(txt).toContain('# Documentação\n\n## CRM: Leads')
+    expect(txt).toContain('https://steel.test/docs/crm/leads')
+    expect(txt).toContain('### Etapas')
+    expect(txt.indexOf('# Documentação')).toBeLessThan(
+      txt.indexOf('# Changelog'),
+    )
+  })
+})
+
 describe('seo helpers', () => {
   it('builds canonical and social metadata for a public page', () => {
     expect(
