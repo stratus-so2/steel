@@ -3,6 +3,7 @@ import {
   createFakeCrmEmailBrand,
   createFakeCrmEmailBuilderTemplate,
   createFakeCrmEmailCampaign,
+  createFakeCrmEmailCampaignRecipient,
   createFakeCrmEmailTemplate,
 } from '@/src/__tests__/factories/crm-email-marketing.factory'
 import { createBuilderDocument } from '@/src/lib/crm-email-builder/layouts'
@@ -12,7 +13,9 @@ import {
 } from '../crm-email-builder.mapper'
 import {
   toCrmEmailCampaignDTO,
+  toCrmEmailCampaignRecipientDTO,
   toCrmEmailTemplateDTO,
+  toCrmMailingListMemberDTO,
 } from '../crm-email-marketing.mapper'
 
 describe('toCrmEmailTemplateDTO() builder fields', () => {
@@ -106,5 +109,65 @@ describe('toCrmEmailLinkTargetsDTO()', () => {
       ],
       forms: [{ id: 'f1', name: 'Contato', url: 'https://steel.app/f/ft' }],
     })
+  })
+})
+
+describe('toCrmMailingListMemberDTO()', () => {
+  it('should map a member', () => {
+    const createdAt = new Date('2026-10-09T12:00:00.000Z')
+    expect(
+      toCrmMailingListMemberDTO({
+        id: 'm1',
+        mailingListId: 'l1',
+        email: 'a@b.com',
+        name: null,
+        personId: 'p1',
+        createdAt,
+      }),
+    ).toEqual({
+      id: 'm1',
+      mailingListId: 'l1',
+      email: 'a@b.com',
+      name: null,
+      personId: 'p1',
+      createdAt: '2026-10-09T12:00:00.000Z',
+    })
+  })
+})
+
+describe('toCrmEmailCampaignDTO() counts and dates', () => {
+  it('should count recipients by status and serialize dates', () => {
+    const when = new Date('2026-10-09T12:00:00.000Z')
+    const dto = toCrmEmailCampaignDTO({
+      ...createFakeCrmEmailCampaign({ scheduledAt: when, sentAt: when }),
+      _count: { recipients: 4 },
+      recipients: [
+        { status: 'SENT' },
+        { status: 'SENT' },
+        { status: 'FAILED' },
+        { status: 'SKIPPED' },
+      ],
+    })
+    expect(dto).toMatchObject({
+      recipientCount: 4,
+      sentCount: 2,
+      failedCount: 1,
+      skippedCount: 1,
+      scheduledAt: '2026-10-09T12:00:00.000Z',
+      sentAt: '2026-10-09T12:00:00.000Z',
+    })
+  })
+
+  it('should serialize the recipient send time', () => {
+    const sentAt = new Date('2026-10-09T12:00:00.000Z')
+    expect(
+      toCrmEmailCampaignRecipientDTO(
+        createFakeCrmEmailCampaignRecipient({ sentAt }),
+      ).sentAt,
+    ).toBe('2026-10-09T12:00:00.000Z')
+    expect(
+      toCrmEmailCampaignRecipientDTO(createFakeCrmEmailCampaignRecipient())
+        .sentAt,
+    ).toBeNull()
   })
 })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,9 +35,10 @@ import {
   SAMPLE_CONTACT,
 } from '@/src/lib/crm-email-builder/variables'
 
-const THUMB_WIDTH = 600
+// The e-mail body plus canvas padding; the thumbnail scales it to the card.
+const THUMB_WIDTH = 640
 const THUMB_HEIGHT = 760
-const THUMB_SCALE = 0.42
+const THUMB_DEFAULT_SCALE = 0.4
 
 /** Static, non-interactive thumbnail of a layout with the workspace brand. */
 function LayoutThumbnail({
@@ -48,6 +49,21 @@ function LayoutThumbnail({
   brand: EmailBrand
 }) {
   const [html, setHtml] = useState('')
+  const boxRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(THUMB_DEFAULT_SCALE)
+
+  useEffect(() => {
+    const node = boxRef.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width > 0) {
+        setScale(entry.contentRect.width / THUMB_WIDTH)
+      }
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     renderBuilderEmail(createBuilderDocument(layout.id), brand, {
@@ -66,8 +82,9 @@ function LayoutThumbnail({
 
   return (
     <div
-      className='relative overflow-hidden rounded-t-lg border-b bg-muted/40'
-      style={{ height: THUMB_HEIGHT * THUMB_SCALE }}
+      ref={boxRef}
+      className='relative w-full overflow-hidden rounded-t-lg border-b bg-muted/40'
+      style={{ height: Math.min(THUMB_HEIGHT * scale, 360) }}
     >
       {html ? (
         <iframe
@@ -76,12 +93,12 @@ function LayoutThumbnail({
           sandbox=''
           tabIndex={-1}
           aria-hidden='true'
-          className='pointer-events-none absolute top-0 left-1/2 border-0'
+          className='pointer-events-none absolute top-0 left-0 border-0'
           style={{
             width: THUMB_WIDTH,
             height: THUMB_HEIGHT,
-            transform: `translateX(-50%) scale(${THUMB_SCALE})`,
-            transformOrigin: 'top center',
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
           }}
         />
       ) : null}

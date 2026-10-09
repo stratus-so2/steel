@@ -197,6 +197,45 @@ describe('renderCampaignEmail()', () => {
     expect(email.text).toContain('Oi João')
   })
 
+  it('keeps a legacy template that already carries the unsubscribe link and text', async () => {
+    mockedTemplates.findById.mockResolvedValueOnce(
+      ok(
+        createFakeCrmEmailTemplate({
+          workspaceId: 'ws1',
+          contentHtml: '<p>Oi</p><a href="{{unsubscribe_url}}">sair</a>',
+          contentText: 'Oi {{nome}} sair {{unsubscribe_url}}',
+        }),
+      ),
+    )
+    const email = expectOk(
+      await renderCampaignEmail('legacy', contact, {
+        workspaceId: 'ws1',
+        unsubscribeUrl: 'https://u/2',
+      }),
+    )
+    expect(email.html).not.toContain('Clique aqui para se descadastrar')
+    expect(email.text).toBe('Oi João Lima sair https://u/2')
+  })
+
+  it('evicts the oldest base render past the cache limit', async () => {
+    for (let i = 0; i < 205; i += 1) {
+      mockedTemplates.findById.mockResolvedValueOnce(
+        ok(
+          createFakeCrmEmailBuilderTemplate('follow-up-proposta', {
+            id: 't-cache',
+            workspaceId: 'ws1',
+            subject: `Versão ${i}`,
+            updatedAt: new Date(2026, 0, 1, 0, 0, i),
+          }),
+        ),
+      )
+      const email = expectOk(
+        await renderCampaignEmail('t-cache', contact, { workspaceId: 'ws1' }),
+      )
+      expect(email.subject).toBe(`Versão ${i}`)
+    }
+  })
+
   it('propagates NOT_FOUND for a template of another workspace', async () => {
     mockedTemplates.findById.mockResolvedValueOnce(
       err(notFound('CrmEmailTemplate')),
@@ -527,6 +566,44 @@ describe('CrmEmailBuilderService', () => {
       expectErr(
         await CrmEmailBuilderService.testSend('u1', 'ws1', 't', {}),
         'RESOURCE_NOT_FOUND',
+      )
+    })
+  })
+
+  describe('edge cases', () => {
+    it('returns FORBIDDEN when a non-member renders', async () => {
+      mockedMembership.findByUserAndWorkspace.mockResolvedValue(ok(null))
+      expectErr(
+        await CrmEmailBuilderService.render('u1', 'ws1', 't1', {}),
+        'FORBIDDEN',
+      )
+    })
+
+    it('stops the test send when the person is not found', async () => {
+      asRole('MEMBER')
+      mockedBuilder.findUserIdentity.mockResolvedValueOnce(
+        ok({ email: 'me@acme.com', name: 'Eu' }),
+      )
+      mockedBuilder.findContacts.mockResolvedValueOnce(ok([]))
+      expectErr(
+        await CrmEmailBuilderService.testSend('u1', 'ws1', 't1', {
+          personId: 'p-x',
+        }),
+        'RESOURCE_NOT_FOUND',
+      )
+      expect(mockedSend).not.toHaveBeenCalled()
+    })
+
+    it('maps a non-Error provider failure to MAIL_ERROR', async () => {
+      asRole('MEMBER')
+      mockedTemplates.findById.mockResolvedValueOnce(ok(builderTemplate()))
+      mockedBuilder.findUserIdentity.mockResolvedValueOnce(
+        ok({ email: 'me@acme.com', name: 'Eu' }),
+      )
+      mockedSend.mockRejectedValueOnce('timeout')
+      expectErr(
+        await CrmEmailBuilderService.testSend('u1', 'ws1', 't-newsletter', {}),
+        'MAIL_ERROR',
       )
     })
   })

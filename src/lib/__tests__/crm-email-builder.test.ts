@@ -684,6 +684,61 @@ describe('crm-email-builder render', () => {
     ).not.toContain('quanto você recomendaria')
   })
 
+  it('handles blank labels, missing links, captions, old prices and roles', async () => {
+    let doc = createBuilderDocument('anuncio-produto')
+    doc = { ...doc, previewText: '' }
+    doc = withSection(doc, 'hero', (s) =>
+      s.type === 'hero' ? { ...s, props: { ...s.props, buttonLabel: ' ' } } : s,
+    )
+    doc = withSection(doc, 'cta', (s) =>
+      s.type === 'button' ? { ...s, props: { ...s.props, url: '' } } : s,
+    )
+    doc = withSection(doc, 'quote', (s) =>
+      s.type === 'quote' ? { ...s, props: { ...s.props, role: '' } } : s,
+    )
+    const { html } = await renderBuilderEmail(doc, brand, { subject: 's' })
+    expect(html).toContain('Ana Souza')
+    expect(html).not.toContain('Conhecer agora')
+    expect(html).toContain('Quero conhecer')
+
+    let promo = createBuilderDocument('promocao')
+    promo = withSection(promo, 'products', (s) =>
+      s.type === 'products'
+        ? {
+            ...s,
+            props: {
+              ...s.props,
+              items: [{ ...s.props.items[0], oldPrice: '' }],
+            },
+          }
+        : s,
+    )
+    const promoHtml = (await renderBuilderEmail(promo, brand, { subject: 's' }))
+      .html
+    expect(promoHtml).not.toContain('line-through')
+
+    const news = withSection(
+      createBuilderDocument('newsletter'),
+      'image',
+      (s) =>
+        s.type === 'image'
+          ? {
+              ...s,
+              hidden: false,
+              props: {
+                imageSrc: 'https://img/b.png',
+                imageAlt: 'B',
+                linkUrl: '',
+                caption: '',
+              },
+            }
+          : s,
+    )
+    const newsHtml = (await renderBuilderEmail(news, brand, { subject: 's' }))
+      .html
+    expect(newsHtml).toContain('https://img/b.png')
+  })
+
   it('personalizes subject, html and text', async () => {
     const rendered = await renderBuilderEmail(
       createBuilderDocument('follow-up-proposta'),

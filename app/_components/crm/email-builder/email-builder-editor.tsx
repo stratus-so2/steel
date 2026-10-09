@@ -350,7 +350,8 @@ export function EmailBuilderEditor({
   const zoomIndex = ZOOMS.indexOf(zoom)
 
   return (
-    <div className='flex h-full min-h-0 w-full flex-col'>
+    // Phones: the page scrolls (preview, then panel); md+: fixed split.
+    <div className='flex h-full min-h-0 w-full flex-col overflow-y-auto md:overflow-hidden'>
       {/* Top bar */}
       <div className='flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2'>
         <Button
@@ -465,7 +466,7 @@ export function EmailBuilderEditor({
       </div>
 
       {/* Subject / preview text / sample contact */}
-      <div className='grid shrink-0 gap-2 border-b px-3 py-2 sm:grid-cols-[1fr_1fr_14rem]'>
+      <div className='grid shrink-0 gap-2 border-b px-3 py-2 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_14rem]'>
         <div className='grid min-w-0 gap-1'>
           <Label
             htmlFor='builder-subject'
@@ -526,7 +527,7 @@ export function EmailBuilderEditor({
       </div>
 
       {/* Preview */}
-      <div className='min-h-0 flex-1 overflow-auto bg-muted/40 px-2 py-4 sm:px-4'>
+      <div className='min-h-[60vh] shrink-0 overflow-auto bg-muted/40 px-2 py-4 sm:px-4 md:min-h-0 md:flex-1 md:shrink'>
         <p className='mb-2 text-center text-muted-foreground text-xs'>
           {layout.label} · clique em um bloco para editar
         </p>
@@ -541,7 +542,7 @@ export function EmailBuilderEditor({
       </div>
 
       {/* Bottom panel */}
-      <div className='h-[45%] min-h-56 shrink-0 border-t bg-background'>
+      <div className='h-[70vh] shrink-0 border-t bg-background md:h-[42%] md:min-h-56'>
         <EmailBuilderPanel
           workspaceId={workspaceId}
           document={draft.document}
