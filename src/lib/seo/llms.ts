@@ -1,4 +1,7 @@
 import { CHANGELOG_TAG_LABELS } from '@/src/lib/changelog/labels'
+import { errorCatalogMarkdown } from '@/src/lib/dev/error-catalog'
+import type { DevPage, DevPageMeta } from '@/src/lib/dev/pages'
+import { devSectionLabel } from '@/src/lib/dev/sections'
 import type { DocsPage, DocsPageMeta } from '@/src/lib/docs/pages'
 import { docsSectionLabel } from '@/src/lib/docs/sections'
 import { SITE_DESCRIPTION, SITE_URL } from '@/src/lib/seo/site'
@@ -38,14 +41,38 @@ function docsIndex(docs: DocsPageMeta[]): string {
     .join('\n')
 }
 
+function devIndex(pages: DevPageMeta[]): string {
+  return pages
+    .map(
+      (page) =>
+        `- [${devSectionLabel(page.section)}: ${page.title}](${url(page.href)}): ${page.description}`,
+    )
+    .join('\n')
+}
+
+/**
+ * A developer guide as plain markdown: its MDX-only blocks become text
+ * (`<ErrorCodeTable />` → the generated table, `<BaseUrl />` → the url).
+ */
+export function devPageMarkdown(source: string): string {
+  return source
+    .replace(/^<ErrorCodeTable\s*\/>$/m, () => errorCatalogMarkdown())
+    .replace(/<BaseUrl\s*\/>/g, `\`${url('/api')}\``)
+}
+
 /** `/llms.txt` (llmstxt.org): a short markdown map for answer engines. */
 export function buildLlmsTxt(
   entries: ChangelogEntryMetaDTO[],
   docs: DocsPageMeta[] = [],
+  dev: DevPageMeta[] = [],
 ): string {
   const manual =
     docs.length > 0
       ? `\n## Documentação (manual do usuário)\n\n${docsIndex(docs)}\n`
+      : ''
+  const developers =
+    dev.length > 0
+      ? `\n## Desenvolvedores (guias da API)\n\n- [Visão geral](${url('/dev')}): o que dá para integrar, endereço base e ambientes.\n${devIndex(dev)}\n- [Referência da API](${url('/dev/api')}): todas as rotas, geradas do código ([OpenAPI](${url('/dev/api/openapi.json')})).\n`
       : ''
 
   return `# Steel
@@ -65,7 +92,7 @@ ${PRODUCT_OVERVIEW}
 - [Fale com vendas](${url('/talk-to-sales')}): demonstração, preços e implantação.
 - [Contato](${url('/contact')}): canais de vendas, suporte e outros assuntos.
 - [Status](${url('/status')}): status em tempo real dos serviços e histórico de incidentes.
-${manual}
+${manual}${developers}
 ## Changelog recente
 
 ${changelogIndex(entries.slice(0, 10))}
@@ -79,14 +106,18 @@ ${changelogIndex(entries.slice(0, 10))}
 
 ## Opcional
 
-- [Versão completa deste arquivo](${url('/llms-full.txt')}): inclui o texto integral do manual e de cada novidade do changelog.
+- [Versão completa deste arquivo](${url('/llms-full.txt')}): inclui o texto integral do manual, dos guias para desenvolvedores e de cada novidade do changelog.
 `
 }
 
-/** `/llms-full.txt`: the overview, the whole manual and every changelog entry. */
+/**
+ * `/llms-full.txt`: the overview, the whole manual, the developer guides and
+ * every changelog entry.
+ */
 export function buildLlmsFullTxt(
   entries: ChangelogEntryDTO[],
   docs: DocsPage[] = [],
+  dev: DevPage[] = [],
 ): string {
   const manual = docs
     .map((page) => {
@@ -102,6 +133,20 @@ ${body}`
     })
     .join('\n\n---\n\n')
   const manualPart = manual ? `# Documentação\n\n${manual}\n\n` : ''
+
+  const guides = dev
+    .map((page) => {
+      const body = devPageMarkdown(page.source).replace(/^(#{2,5}) /gm, '#$1 ')
+      return `## ${devSectionLabel(page.section)}: ${page.title}
+
+${url(page.href)}
+
+> ${page.description}
+
+${body}`
+    })
+    .join('\n\n---\n\n')
+  const devPart = guides ? `# Desenvolvedores\n\n${guides}\n\n` : ''
 
   const bodies = entries
     .map((entry) => {
@@ -124,7 +169,7 @@ ${body}`
 
 ${PRODUCT_OVERVIEW}
 
-${manualPart}# Changelog
+${manualPart}${devPart}# Changelog
 
 ${bodies}
 `
