@@ -136,6 +136,12 @@ Campanhas de e-mail e transmissões do WhatsApp respeitam o descadastro LGPD
 (link + `List-Unsubscribe` no e-mail, palavras-chave no WhatsApp) — regras,
 registro e política de reinscrição em [LGPD — descadastro](../lgpd.md).
 
+Os templates de e-mail do CRM têm um **editor visual** (galeria de modelos
+prontos sobre componentes do React Email, estrutura travada, edição só do
+conteúdo, marca do workspace, variáveis por contato) e a API de renderização
+`renderCampaignEmail` para as campanhas — ver
+[CRM · Editor visual de e-mail](../crm-email-builder.md).
+
 **Atendimento no WhatsApp** (Configurações do WhatsApp > Atendimento, só
 OWNER/ADMIN; `WhatsAppSettings`):
 
