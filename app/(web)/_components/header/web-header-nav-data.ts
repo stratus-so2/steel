@@ -1,245 +1,142 @@
 import type { IconSvgElement } from '@hugeicons/react'
 import {
-  ActivityIcon,
   Agreement02Icon,
-  Airplane01Icon,
   Book02Icon,
-  Building03Icon,
-  ChartUpIcon,
   CustomerSupportIcon,
   DatabaseIcon,
-  Factory01Icon,
-  InformationCircleIcon,
   Mail02Icon,
-  Megaphone01Icon,
   PresentationLineChart02Icon,
-  Rocket01Icon,
-  SecurityCheckIcon,
-  ServerStack03Icon,
-  Settings02Icon,
-  SourceCodeIcon,
   SparklesIcon,
-  Stethoscope02Icon,
-  Store01Icon,
   Target01Icon,
   UserGroupIcon,
   WhatsappIcon,
   WorkflowSquare01Icon,
 } from '@hugeicons-pro/core-solid-rounded'
 
-export interface NavItemData {
-  title: string
+export interface WebNavLink {
+  label: string
   href: string
-  description: string
-  icon?: IconSvgElement
 }
 
-// Produto
-export const products: NavItemData[] = [
-  {
-    title: 'ServiceDesk',
-    description: 'Chamados ITIL 4 com SLA, CMDB e portal',
-    href: '#',
-    icon: CustomerSupportIcon,
-  },
-  {
-    title: 'CRM',
-    description: 'Leads, pipelines, propostas e forecast',
-    href: '#',
-    icon: Agreement02Icon,
-  },
-  {
-    title: 'Comunicação',
-    description: 'WhatsApp Business com inbox e disparos',
-    href: '#',
-    icon: WhatsappIcon,
-  },
-  {
-    title: 'Steel AI',
-    description: 'Assistente de IA que age com sua confirmação',
-    href: '#',
-    icon: SparklesIcon,
-  },
-]
+export interface WebNavItem extends WebNavLink {
+  description: string
+  icon: IconSvgElement
+}
 
-export const featureCapabilities: NavItemData[] = [
-  {
-    title: 'Portal do solicitante',
-    description: 'Abertura e acompanhamento de chamados pelo cliente',
-    href: '#',
-    icon: UserGroupIcon,
-  },
-  {
-    title: 'SLA e OLA',
-    description: 'Prazos sobre calendários úteis, com escalonamento',
-    href: '#',
-    icon: Target01Icon,
-  },
-  {
-    title: 'Base de conhecimento',
-    description: 'Artigos com KCS, revisão e métrica de reuso',
-    href: '#',
-    icon: Book02Icon,
-  },
-  {
-    title: 'CMDB',
-    description: 'Itens de configuração ligados aos chamados',
-    href: '#',
-    icon: DatabaseIcon,
-  },
-  {
-    title: 'Dashboards e modo TV',
-    description: 'Filas, SLA e resultados visíveis para o time',
-    href: '#',
-    icon: PresentationLineChart02Icon,
-  },
-  {
-    title: 'Campanhas e landing pages',
-    description: 'E-mail, formulários e páginas de captura',
-    href: '#',
-    icon: Mail02Icon,
-  },
-  {
-    title: 'Workflows e Aprovações',
-    description: 'Automações por regra e aprovações por e-mail',
-    href: '#',
-    icon: WorkflowSquare01Icon,
-  },
-]
+/**
+ * Single source of the public site's navigation, shared by the web header
+ * (desktop bar + mobile menu) and the footer. Keep it to the essentials:
+ * every entry is a page a visitor looks for before signing up, and no entry
+ * may point at `#`.
+ */
+export const webNav = {
+  /** The four modules (Produto menu, first column). */
+  product: [
+    {
+      label: 'ServiceDesk',
+      href: '/product/servicedesk',
+      description: 'Chamados ITIL 4 com SLA, CMDB e portal',
+      icon: CustomerSupportIcon,
+    },
+    {
+      label: 'CRM',
+      href: '/product/crm',
+      description: 'Leads, pipelines, propostas e forecast',
+      icon: Agreement02Icon,
+    },
+    {
+      label: 'Comunicação',
+      href: '/product/comunicacao',
+      description: 'WhatsApp Business com inbox e disparos',
+      icon: WhatsappIcon,
+    },
+    {
+      label: 'Steel AI',
+      href: '/product/steel-ai',
+      description: 'Assistente de IA que age com sua confirmação',
+      icon: SparklesIcon,
+    },
+  ] satisfies WebNavItem[],
+  /** Feature pages (Produto menu, "Capacidades de Recursos"). */
+  features: [
+    {
+      label: 'Portal do solicitante',
+      href: '/features/portal-do-solicitante',
+      description: 'Abertura e acompanhamento de chamados pelo cliente',
+      icon: UserGroupIcon,
+    },
+    {
+      label: 'SLA e OLA',
+      href: '/features/sla',
+      description: 'Prazos sobre calendários úteis, com escalonamento',
+      icon: Target01Icon,
+    },
+    {
+      label: 'Base de conhecimento',
+      href: '/features/base-de-conhecimento',
+      description: 'Artigos com KCS, revisão e métrica de reuso',
+      icon: Book02Icon,
+    },
+    {
+      label: 'CMDB',
+      href: '/features/cmdb',
+      description: 'Itens de configuração ligados aos chamados',
+      icon: DatabaseIcon,
+    },
+    {
+      label: 'Dashboards e modo TV',
+      href: '/features/dashboards',
+      description: 'Filas, SLA e resultados visíveis para o time',
+      icon: PresentationLineChart02Icon,
+    },
+    {
+      label: 'Campanhas e landing pages',
+      href: '/features/campanhas',
+      description: 'E-mail, formulários e páginas de captura',
+      icon: Mail02Icon,
+    },
+    {
+      label: 'Workflows e Aprovações',
+      href: '/features/workflows',
+      description: 'Automações por regra e aprovações por e-mail',
+      icon: WorkflowSquare01Icon,
+    },
+  ] satisfies WebNavItem[],
+  /** Plain links next to "Produto" in the bar, in this order. */
+  main: [
+    { label: 'Preços', href: '/pricing' },
+    { label: 'Docs', href: '/docs' },
+    { label: 'Changelog', href: '/changelog' },
+  ] satisfies WebNavLink[],
+  signIn: { label: 'Entrar', href: '/sign-in' } satisfies WebNavLink,
+  /** The one primary call to action of the public site. */
+  cta: {
+    label: 'Fale com vendas',
+    href: '/talk-to-sales',
+  } satisfies WebNavLink,
+}
 
-// Soluções
-export const useCases: NavItemData[] = [
-  {
-    title: 'Suporte de TI',
-    description: 'Incidentes, requisições, mudanças e problemas',
-    href: '#',
-    icon: CustomerSupportIcon,
-  },
-  {
-    title: 'Operação',
-    description: 'Coordene o trabalho entre todas as equipes',
-    href: '#',
-    icon: Settings02Icon,
-  },
-  {
-    title: 'Marketing',
-    description: 'Campanhas, landing pages e redes sociais',
-    href: '#',
-    icon: Megaphone01Icon,
-  },
-  {
-    title: 'Vendas',
-    description: 'Do lead à proposta aceita, com previsibilidade',
-    href: '#',
-    icon: Agreement02Icon,
-  },
-  {
-    title: 'Atendimento',
-    description: 'Conversas no WhatsApp com contexto do cliente',
-    href: '#',
-    icon: WhatsappIcon,
-  },
-]
+/**
+ * Routes linked from the header or footer whose pages a later slice creates
+ * (`/product/*`, `/features/*`, the developer docs at `/dev`). The
+ * route-existence test reports them as "coming" instead of failing; remove a
+ * prefix here once its pages land.
+ */
+export const COMING_ROUTE_PREFIXES = [
+  '/product/',
+  '/features/',
+  '/dev',
+] as const
 
-export const industries: NavItemData[] = [
-  {
-    title: 'Aeroespacial',
-    description: 'Controle de operações de missão crítica',
-    href: '#',
-    icon: Airplane01Icon,
-  },
-  {
-    title: 'Saúde',
-    description: 'Atendimento com trilha de auditoria e LGPD',
-    href: '#',
-    icon: Stethoscope02Icon,
-  },
-  {
-    title: 'Governo',
-    description: 'Dados em banco próprio, sob seu controle',
-    href: '#',
-    icon: Building03Icon,
-  },
-  {
-    title: 'Varejo',
-    description: 'Operações de loja e coordenação de fornecedores',
-    href: '#',
-    icon: Store01Icon,
-  },
-  {
-    title: 'Manufatura',
-    description: 'Fluxos regulamentados com trilhas de auditoria',
-    href: '#',
-    icon: Factory01Icon,
-  },
-]
+/** A nav entry is active on its own page and on any page below it. */
+export function isWebNavActive(pathname: string | null, href: string) {
+  if (!pathname) return false
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
 
-export const scale: NavItemData[] = [
-  {
-    title: 'Startups',
-    description: 'Comece rápido e evolua a estrutura conforme cresce',
-    href: '#',
-    icon: Rocket01Icon,
-  },
-  {
-    title: 'Equipes em crescimento',
-    description: 'Escale sem aumentar a complexidade',
-    href: '#',
-    icon: ChartUpIcon,
-  },
-  {
-    title: 'Empresa',
-    description: 'Módulos apontados para o seu próprio PostgreSQL',
-    href: '#',
-    icon: ServerStack03Icon,
-  },
-]
-
-// Recursos
-export const discover: NavItemData[] = [
-  {
-    title: 'Novidades',
-    description: 'Histórico completo de mudanças e lançamentos',
-    href: '/changelog',
-    icon: Megaphone01Icon,
-  },
-  {
-    title: 'Manifesto',
-    description: 'Os princípios que guiam como construímos o Steel',
-    href: '/manifesto',
-    icon: Target01Icon,
-  },
-  {
-    title: 'Sobre',
-    description: 'Por que a Stratus Telecom construiu o Steel',
-    href: '/about',
-    icon: InformationCircleIcon,
-  },
-  {
-    title: 'Contato',
-    description: 'Vendas, suporte e outros canais',
-    href: '/contact',
-    icon: UserGroupIcon,
-  },
-]
-
-export const learn: NavItemData[] = [
-  {
-    title: 'Referência de API',
-    description: 'Endpoints REST e integrações',
-    href: '/docs',
-    icon: SourceCodeIcon,
-  },
-  {
-    title: 'Status',
-    description: 'Disponibilidade e histórico de incidentes',
-    href: '/status',
-    icon: ActivityIcon,
-  },
-  {
-    title: 'Segurança',
-    description: 'Conformidade, LGPD e confiança',
-    href: '/legals/security',
-    icon: SecurityCheckIcon,
-  },
-]
+/** The Produto menu is active on any module or feature page. */
+export function isProductActive(pathname: string | null) {
+  return [...webNav.product, ...webNav.features].some((item) =>
+    isWebNavActive(pathname, item.href),
+  )
+}

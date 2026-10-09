@@ -26,7 +26,13 @@ export function HistoryBars({ history }: HistoryBarsProps) {
   }
 
   return (
-    <div className='flex items-center justify-end'>
+    // Nexo spreads the 90 days across the row so every component's bars line
+    // up under its uptime figure; on phones the bars shrink instead of
+    // overflowing (each one is at most 4px wide, with a 1px gap).
+    <div
+      data-testid='history-bars'
+      className='flex w-full items-center justify-between gap-px'
+    >
       {history.map((point) => {
         const meta = STATUS_META[point.status]
         const date = new Date(`${point.day}T00:00:00Z`)
@@ -48,7 +54,7 @@ export function HistoryBars({ history }: HistoryBarsProps) {
               render={
                 <div
                   className={cn(
-                    'w-1 h-4 rounded-xs',
+                    'h-4 min-w-0 max-w-1 flex-1 rounded-xs',
                     meta.bar,
                     point.incidentId && 'cursor-pointer',
                   )}

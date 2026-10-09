@@ -5,12 +5,10 @@ import {
 import { Calendar04Icon } from '@hugeicons-pro/core-solid-rounded'
 import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded'
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
+import { ButtonLink } from '@/components/button-link'
 import { SteelIcon } from '@/components/icon/icon'
 import { Muted } from '@/components/typography/text/muted'
 import { P } from '@/components/typography/text/p'
-import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
@@ -21,6 +19,7 @@ import { publicPageMetadata } from '@/src/lib/seo/metadata'
 import { StatusService } from '@/src/services/status/status.service'
 import { STATUS_META } from '@/src/services/status/status-map'
 import { HistoryBars } from './_components/history-bars'
+import { StatusPageHeader } from './_components/status-page-header'
 
 export const metadata: Metadata = publicPageMetadata({
   title: 'Status | Steel',
@@ -51,21 +50,7 @@ export default async function StatusPage() {
 
   return (
     <div className='max-w-3xl flex flex-col items-center mx-auto px-4 py-4 gap-y-8 md:px-0'>
-      <div className='w-full flex flex-wrap items-center justify-between gap-3'>
-        <Image src='/brand/logo.svg' width={100} height={30} alt='Steel' />
-        <div className='flex flex-wrap items-center gap-2'>
-          <Link href='#'>
-            <Button variant='outline' size='sm'>
-              Relate um problema
-            </Button>
-          </Link>
-          <Link href='#'>
-            <Button variant='default' size='sm'>
-              Receba atualizações
-            </Button>
-          </Link>
-        </div>
-      </div>
+      <StatusPageHeader />
       <div className='w-full h-fit overflow-hidden flex flex-col rounded-lg border border-zinc-200'>
         <span
           className={cn(
@@ -91,7 +76,7 @@ export default async function StatusPage() {
               key={component.key}
               className='w-full flex flex-col p-4 md:p-3 gap-y-2 border-t border-zinc-800'
             >
-              <div className='w-full flex justify-between items-center'>
+              <div className='w-full flex justify-between items-center gap-3'>
                 <div className='flex items-center gap-2'>
                   <SteelIcon
                     icon={CheckmarkCircle02Icon}
@@ -111,7 +96,7 @@ export default async function StatusPage() {
                     <TooltipContent>{component.description}</TooltipContent>
                   </Tooltip>
                 </div>
-                <Muted className='text-end'>
+                <Muted className='shrink-0 whitespace-nowrap text-end'>
                   {component.uptime90d > 0
                     ? `${component.uptime90d.toFixed(2)}% uptime`
                     : 'Sem dados'}
@@ -122,12 +107,10 @@ export default async function StatusPage() {
           )
         })}
       </div>
-      <Link href='/status/history'>
-        <Button variant='outline'>
-          <SteelIcon icon={Calendar04Icon} />
-          Ver histórico
-        </Button>
-      </Link>
+      <ButtonLink href='/status/history' variant='outline' size='lg'>
+        <SteelIcon icon={Calendar04Icon} />
+        Ver histórico
+      </ButtonLink>
     </div>
   )
 }
