@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/src/lib/seo/site'
-import { WebHeader } from './_components/header/web-header'
+import { WebShell } from './_components/web-shell'
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -9,10 +9,5 @@ export const metadata: Metadata = {
 }
 
 export default function WebLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className='w-full'>
-      <WebHeader />
-      {children}
-    </div>
-  )
+  return <WebShell>{children}</WebShell>
 }

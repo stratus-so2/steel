@@ -9,7 +9,6 @@ import {
 import type { Metadata } from 'next'
 import { ButtonLink } from '@/components/button-link'
 import { SteelIcon } from '@/components/icon/icon'
-import { WebFooter } from '../_components/footer'
 import { SubTitle } from '../_components/text/sub-title'
 import { Title } from '../_components/text/title'
 
@@ -99,44 +98,40 @@ const CONTACT_CARDS: ContactCard[] = [
 
 export default function ContactPage() {
   return (
-    <>
-      <main className='w-full flex flex-col items-center flex-1 mx-auto'>
-        <div className='text-center mx-auto w-full xl:max-w-336 xl:px-11 2xl:max-w-384 py-16 space-y-12 px-4 sm:px-8'>
-          <div className='space-y-4'>
-            <Title>Como podemos ajudar?</Title>
-            <SubTitle>
-              De dúvidas técnicas a parcerias, é só escolher o canal certo
-              abaixo.
-            </SubTitle>
-          </div>
-          <div className='grid grid-cols-1 gap-6 text-start sm:grid-cols-2 lg:grid-cols-3'>
-            {CONTACT_CARDS.map((card) => (
-              <div
-                key={card.title}
-                className='border border-border flex flex-col justify-between gap-16 rounded-xl p-6 transition bg-card'
-              >
-                <div className='flex size-10 items-center justify-center rounded-md border border-border'>
-                  <SteelIcon icon={card.icon} size={24} />
-                </div>
-                <div className='space-y-6'>
-                  <div className='space-y-2'>
-                    <h3 className='font-medium text-lg md:whitespace-pre-line'>
-                      {card.title}
-                    </h3>
-                    <p className='text-base text-muted-foreground'>
-                      {card.description}
-                    </p>
-                  </div>
-                  <ButtonLink href={card.href} size='lg'>
-                    {card.cta}
-                  </ButtonLink>
-                </div>
-              </div>
-            ))}
-          </div>
+    <main className='w-full flex flex-col items-center flex-1 mx-auto'>
+      <div className='text-center mx-auto w-full xl:max-w-336 xl:px-11 2xl:max-w-384 py-16 space-y-12 px-4 sm:px-8'>
+        <div className='space-y-4'>
+          <Title>Como podemos ajudar?</Title>
+          <SubTitle>
+            De dúvidas técnicas a parcerias, é só escolher o canal certo abaixo.
+          </SubTitle>
         </div>
-      </main>
-      <WebFooter showBanner={false} />
-    </>
+        <div className='grid grid-cols-1 gap-6 text-start sm:grid-cols-2 lg:grid-cols-3'>
+          {CONTACT_CARDS.map((card) => (
+            <div
+              key={card.title}
+              className='border border-border flex flex-col justify-between gap-16 rounded-xl p-6 transition bg-card'
+            >
+              <div className='flex size-10 items-center justify-center rounded-md border border-border'>
+                <SteelIcon icon={card.icon} size={24} />
+              </div>
+              <div className='space-y-6'>
+                <div className='space-y-2'>
+                  <h3 className='font-medium text-lg md:whitespace-pre-line'>
+                    {card.title}
+                  </h3>
+                  <p className='text-base text-muted-foreground'>
+                    {card.description}
+                  </p>
+                </div>
+                <ButtonLink href={card.href} size='lg'>
+                  {card.cta}
+                </ButtonLink>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
   )
 }
