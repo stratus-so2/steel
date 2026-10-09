@@ -79,9 +79,17 @@ const COMPONENTS: MDXComponents = {
 
 /**
  * Compiles a manual page on the server. Sources come from this repository
- * (`content/docs`), never from users, so evaluating them is safe.
+ * (`content/docs`, `content/dev`), never from users, so evaluating them is
+ * safe. `components` adds page-specific blocks (the developer site's error
+ * table) on top of the shared ones.
  */
-export async function DocsMdx({ source }: { source: string }) {
+export async function DocsMdx({
+  source,
+  components,
+}: {
+  source: string
+  components?: MDXComponents
+}) {
   const { default: Content } = await evaluate(source, {
     ...runtime,
     remarkPlugins: [remarkGfm],
@@ -90,7 +98,7 @@ export async function DocsMdx({ source }: { source: string }) {
 
   return (
     <div className='prose prose-neutral dark:prose-invert max-w-none w-full prose-headings:scroll-mt-24 prose-headings:font-medium prose-a:text-primary prose-a:underline-offset-4 prose-img:rounded-2xl prose-pre:rounded-xl prose-pre:bg-muted prose-code:before:content-none prose-code:after:content-none'>
-      <Content components={COMPONENTS} />
+      <Content components={{ ...COMPONENTS, ...components }} />
     </div>
   )
 }
