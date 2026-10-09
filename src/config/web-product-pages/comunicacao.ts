@@ -6,7 +6,6 @@ import {
   Message01Icon,
   Notification01Icon,
   Shield01Icon,
-  SmileIcon,
   UserGroupIcon,
   UserSwitchIcon,
   WhatsappBusinessIcon,

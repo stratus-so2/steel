@@ -1,5 +1,7 @@
+import { PRODUCT_PAGES } from '@/src/config/web-product-pages'
 import { CHANGELOG_TAG_LABELS } from '@/src/lib/changelog/labels'
 import { SITE_DESCRIPTION, SITE_URL } from '@/src/lib/seo/site'
+import { productPagePath } from '@/src/schemas/web-product-page.schema'
 import type {
   ChangelogEntryDTO,
   ChangelogEntryMetaDTO,
@@ -18,6 +20,16 @@ O Steel é a plataforma multi-tenant da Stratus Telecom que junta três módulos
 
 Cada módulo é habilitado por workspace, e um workspace pode apontar um módulo para o próprio banco PostgreSQL. A plataforma segue a LGPD: consentimento de cookies, exportação de dados e trilha de auditoria.`
 
+/** The module and capability pages, one line each, from their config. */
+function productIndex(kind: 'product' | 'feature'): string {
+  return PRODUCT_PAGES.filter((page) => page.kind === kind)
+    .map(
+      (page) =>
+        `- [${page.label}](${url(productPagePath(page))}): ${page.meta.description}`,
+    )
+    .join('\n')
+}
+
 function changelogIndex(entries: ChangelogEntryMetaDTO[]): string {
   return entries
     .map(
@@ -35,12 +47,21 @@ export function buildLlmsTxt(entries: ChangelogEntryMetaDTO[]): string {
 
 ${PRODUCT_OVERVIEW}
 
+## Módulos
+
+${productIndex('product')}
+
+## Recursos
+
+${productIndex('feature')}
+
 ## Páginas
 
 - [Sobre](${url('/about')}): por que o Steel existe e para quem ele é feito.
 - [Manifesto](${url('/manifesto')}): os princípios de produto e engenharia do Steel.
 - [Changelog](${url('/changelog')}): novidades, release a release ([RSS](${url('/changelog/rss.xml')})).
 - [Planos e preços](${url('/pricing')}): planos por assento.
+- [Marketplace](${url('/marketplace')}): integrações disponíveis no Steel.
 - [Fale com vendas](${url('/talk-to-sales')}): demonstração, preços e implantação.
 - [Contato](${url('/contact')}): canais de vendas, suporte e outros assuntos.
 - [Status](${url('/status')}): status em tempo real dos serviços e histórico de incidentes.

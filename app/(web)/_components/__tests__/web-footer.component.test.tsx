@@ -62,7 +62,7 @@ describe('public site links', () => {
     },
   )
 
-  // Pages a later slice creates (`/product/*`, `/features/*`, `/dev`): listed
+  // Pages a later slice creates (`/dev`): listed
   // so the report shows them; drop the prefix from COMING_ROUTE_PREFIXES when
   // they land and the test above starts covering them.
   it.each(all.filter(isComing))('%s is a "coming" route', (href) => {
