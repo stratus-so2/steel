@@ -284,6 +284,16 @@ export const ERROR_CODES = {
     code: 'CRM_EMAIL_UNSUBSCRIBE_INVALID',
     status: 400,
   },
+  // Builder-only operation (document, render, test send) on a LEGACY template.
+  CRM_EMAIL_TEMPLATE_NOT_BUILDER: {
+    code: 'CRM_EMAIL_TEMPLATE_NOT_BUILDER',
+    status: 409,
+  },
+  // Builder document does not match the locked structure of its layout.
+  CRM_EMAIL_BUILDER_STRUCTURE_LOCKED: {
+    code: 'CRM_EMAIL_BUILDER_STRUCTURE_LOCKED',
+    status: 422,
+  },
   CRM_MAILING_LIST_NOT_FOUND: {
     code: 'CRM_MAILING_LIST_NOT_FOUND',
     status: 404,
