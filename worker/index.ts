@@ -11,6 +11,7 @@ import { QueueName } from '../src/lib/queue/jobs'
 import { processAccountLifecycle } from '../src/lib/queue/processors/account-lifecycle'
 import { processAiUsageWeeklyEmail } from '../src/lib/queue/processors/ai-usage-weekly-email'
 import { processChangelog } from '../src/lib/queue/processors/changelog'
+import { processCrmCampaigns } from '../src/lib/queue/processors/crm-campaigns'
 import { processCrmCompetitorSync } from '../src/lib/queue/processors/crm-competitor-sync'
 import { processCrmProposalExpiry } from '../src/lib/queue/processors/crm-proposal-expiry'
 import { processCrmScheduledSend } from '../src/lib/queue/processors/crm-scheduled-send'
@@ -46,6 +47,7 @@ import { processWorkspaceIntegrations } from '../src/lib/queue/processors/worksp
 import '../src/lib/zod-locale'
 import {
   scheduleAiUsageWeeklyEmailJobs,
+  scheduleCrmCampaignsJobs,
   scheduleCrmCompetitorSyncJobs,
   scheduleCrmProposalExpiryJobs,
   scheduleCrmScheduledSendJobs,
@@ -178,6 +180,7 @@ async function main(): Promise<void> {
   workers.push(
     registerWorker(QueueName.CrmScheduledSend, processCrmScheduledSend),
   )
+  workers.push(registerWorker(QueueName.CrmCampaigns, processCrmCampaigns))
   workers.push(
     registerWorker(QueueName.CrmWorkflowSchedule, processCrmWorkflowSchedule),
   )
@@ -265,6 +268,7 @@ async function main(): Promise<void> {
   await scheduleAiUsageWeeklyEmailJobs()
   await scheduleWorkspaceExportJobs()
   await scheduleWorkspaceIntegrationsJobs()
+  await scheduleCrmCampaignsJobs()
 
   logger.info('queue.worker.started', {
     component: 'Worker',

@@ -23,6 +23,7 @@ import type {
   CrmLandingPageViewDTO,
 } from '@/types/crm-landing-page'
 import { assertModuleEnabled, assertModuleMember } from './authz'
+import { CrmCampaignTrackingService } from './crm-campaign-tracking.service'
 
 function hashIp(ip: string): string {
   return createHash('sha256').update(ip).digest('hex')
@@ -296,6 +297,20 @@ export const CrmLandingPageService = {
       referrer: dto.referrer,
     })
     if (!result.ok) return result
+
+    // Multichannel campaign attribution (best-effort, never fails the view).
+    if (dto.campaign) {
+      await CrmCampaignTrackingService.attribute(
+        {
+          workspaceId: page.value.workspaceId,
+          kind: 'LANDING_VIEW',
+          sourceRef: dto.viewId,
+          landingPageId: page.value.id,
+          ref: dto.campaign,
+        },
+        new Date(),
+      )
+    }
 
     return ok(undefined)
   },

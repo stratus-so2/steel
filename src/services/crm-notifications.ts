@@ -337,3 +337,33 @@ export function notifyCrmCompetitorSyncFailed(input: {
     dedupeKey: `crm-competitor-sync-failed:${input.workspaceId}:${input.day}`,
   })
 }
+
+/** Multichannel campaign finished (ADR 0025) → its owner. */
+export function notifyCrmMultichannelCampaignFinished(input: {
+  workspaceId: string
+  campaign: { id: string; name: string; createdById: string }
+  status: 'COMPLETED' | 'FAILED'
+  emailSent: number
+  whatsappSent: number
+  failed: number
+}): Promise<number> {
+  const ok = input.status === 'COMPLETED'
+  const sent = [
+    input.emailSent > 0 ? `${input.emailSent} e-mail(s)` : null,
+    input.whatsappSent > 0 ? `${input.whatsappSent} WhatsApp` : null,
+  ].filter(Boolean)
+  return emitNotification({
+    workspaceId: input.workspaceId,
+    recipients: [input.campaign.createdById],
+    actorId: null,
+    kind: 'CRM_CAMPAIGN_FINISHED',
+    title: ok
+      ? `Campanha concluída: ${input.campaign.name}`
+      : `Falha no envio da campanha: ${input.campaign.name}`,
+    body: ok
+      ? `${sent.length > 0 ? `${sent.join(' e ')} enviado(s)` : 'Nenhuma mensagem enviada'}${input.failed > 0 ? `, ${input.failed} com falha` : ''}.`
+      : 'Nenhuma mensagem da campanha pôde ser enviada.',
+    path: `/crm/campaigns/${input.campaign.id}`,
+    dedupeKey: `crm-multichannel-campaign-finished:${input.campaign.id}`,
+  })
+}

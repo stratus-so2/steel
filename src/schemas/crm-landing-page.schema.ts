@@ -1,4 +1,5 @@
 import z from 'zod'
+import { CrmCampaignRefSchema } from './crm-campaign.schema'
 import { CrmLandingPageSectionInputSchema } from './crm-landing-page-section.schema'
 
 export const CreateCrmLandingPageSchema = z.object({
@@ -33,6 +34,8 @@ export const RecordCrmLandingPageViewSchema = z.object({
   durationMs: z.number().int().min(0).default(0),
   ctaClicks: z.number().int().min(0).default(0),
   referrer: z.string().max(500).optional(),
+  /** Campaign parameters of the page URL (multichannel campaigns). */
+  campaign: CrmCampaignRefSchema.optional(),
 })
 
 export type RecordCrmLandingPageViewDTO = z.infer<

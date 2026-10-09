@@ -16,6 +16,7 @@ vi.mock('@/lib/axiom/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }))
 vi.mock('@/src/repositories/whatsapp-ai-config.repository')
+vi.mock('@/src/services/crm-campaign-tracking.service')
 vi.mock('@/src/repositories/whatsapp-contact.repository')
 vi.mock('@/src/repositories/whatsapp-conversation.repository')
 vi.mock('@/src/repositories/whatsapp-conversation-event.repository')

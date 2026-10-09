@@ -294,6 +294,27 @@ export const ERROR_CODES = {
     code: 'CRM_EMAIL_BUILDER_STRUCTURE_LOCKED',
     status: 422,
   },
+  // Multichannel campaigns (ADR 0025)
+  CRM_CAMPAIGN_NOT_FOUND: { code: 'CRM_CAMPAIGN_NOT_FOUND', status: 404 },
+  // Edit/launch outside DRAFT, or an invalid pause/resume/cancel transition.
+  CRM_CAMPAIGN_LOCKED: { code: 'CRM_CAMPAIGN_LOCKED', status: 409 },
+  // Launch with something missing (details: the issues per wizard step).
+  CRM_CAMPAIGN_INCOMPLETE: { code: 'CRM_CAMPAIGN_INCOMPLETE', status: 422 },
+  CRM_CAMPAIGN_NO_RECIPIENTS: {
+    code: 'CRM_CAMPAIGN_NO_RECIPIENTS',
+    status: 422,
+  },
+  // WhatsApp add-on without Comunicação, connection or valid template.
+  CRM_CAMPAIGN_WHATSAPP_UNAVAILABLE: {
+    code: 'CRM_CAMPAIGN_WHATSAPP_UNAVAILABLE',
+    status: 422,
+  },
+  CRM_CAMPAIGN_LINK_INVALID: { code: 'CRM_CAMPAIGN_LINK_INVALID', status: 404 },
+  // Resend webhook called while RESEND_WEBHOOK_SECRET is not set.
+  CRM_CAMPAIGN_WEBHOOK_NOT_CONFIGURED: {
+    code: 'CRM_CAMPAIGN_WEBHOOK_NOT_CONFIGURED',
+    status: 503,
+  },
   CRM_MAILING_LIST_NOT_FOUND: {
     code: 'CRM_MAILING_LIST_NOT_FOUND',
     status: 404,

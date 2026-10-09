@@ -37,6 +37,7 @@ import { WhatsAppGroupRepository } from '@/src/repositories/whatsapp-group.repos
 import { WhatsAppGroupMessageRepository } from '@/src/repositories/whatsapp-group-message.repository'
 import { WhatsAppMessageRepository } from '@/src/repositories/whatsapp-message.repository'
 import type { WhatsAppMessageTypeDTO } from '@/types/whatsapp-message'
+import { CrmCampaignTrackingService } from './crm-campaign-tracking.service'
 import { SdWhatsappInboundService } from './sd-whatsapp-inbound.service'
 import { reopenWhatsAppConversation } from './whatsapp-conversation.service'
 
@@ -315,6 +316,12 @@ export const WhatsAppWebhookService = {
       message: toWhatsAppMessageDTO(message.value),
     })
     await publishConversationSnapshot(workspaceId, conversationId)
+
+    // Reply to a CRM campaign: links this conversation to the contact.
+    await CrmCampaignTrackingService.onWhatsAppInbound(
+      { workspaceId, waId: input.waId, conversationId },
+      new Date(),
+    )
 
     const isOptOut =
       input.type === 'TEXT' && isWhatsAppOptOutKeyword(input.text)
@@ -607,6 +614,12 @@ export const WhatsAppWebhookService = {
         input.status,
       )
     if (!result.ok) return result
+    // CRM campaign messages are not chat messages: track them by provider id.
+    await CrmCampaignTrackingService.onWhatsAppStatus(
+      input.providerMessageId,
+      input.status,
+      new Date(),
+    )
     if (!result.value) return ok(undefined)
     if (await notifyServiceDesk(input.module, result.value)) {
       return ok(undefined)

@@ -33,6 +33,10 @@ const PUBLIC_ROUTES = [
   '/f', '/p', '/l', '/api/social/blob',
   // Descadastro LGPD de campanhas de e-mail: link sem sessão (token HMAC)
   '/unsubscribe', '/api/crm/unsubscribe',
+  // CRM multichannel campaigns: click redirect + open pixel (signed token)
+  // and the Resend webhook (Svix signature) — no session.
+  '/api/crm/campaigns/c', '/api/crm/campaigns/o',
+  '/api/crm/campaigns/resend-webhook',
   // Aprovação de chamado do ServiceDesk por e-mail: link sem sessão (token)
   '/servicedesk/approval', '/api/servicedesk/approvals',
   // Abertura de chamado por monitoramento: webhook sem sessão (token na URL)

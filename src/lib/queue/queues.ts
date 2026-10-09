@@ -7,6 +7,8 @@ import {
   type AiUsageWeeklyEmailJobPayload,
   type ChangelogJob,
   type ChangelogJobPayload,
+  type CrmCampaignsJob,
+  type CrmCampaignsJobPayload,
   type CrmCompetitorSyncJob,
   type CrmCompetitorSyncJobPayload,
   type CrmProposalExpiryJob,
@@ -122,6 +124,7 @@ let searchReindexQueue: Queue | null = null
 let aiUsageWeeklyEmailQueue: Queue | null = null
 let workspaceExportQueue: Queue | null = null
 let workspaceIntegrationsQueue: Queue | null = null
+let crmCampaignsQueue: Queue | null = null
 
 export function getDataRetentionQueue(): Queue<
   DataRetentionJobPayload[DataRetentionJob],
@@ -938,6 +941,24 @@ export function getWorkspaceIntegrationsQueue(): Queue<
   >
 }
 
+export function getCrmCampaignsQueue(): Queue<
+  CrmCampaignsJobPayload[CrmCampaignsJob],
+  unknown,
+  CrmCampaignsJob
+> {
+  if (!crmCampaignsQueue) {
+    crmCampaignsQueue = new Queue(QueueName.CrmCampaigns, {
+      connection: getQueueConnection(),
+      defaultJobOptions,
+    })
+  }
+  return crmCampaignsQueue as Queue<
+    CrmCampaignsJobPayload[CrmCampaignsJob],
+    unknown,
+    CrmCampaignsJob
+  >
+}
+
 // Typed as a full record so a new queue without an entry fails the build.
 const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.DataRetention]: getDataRetentionQueue,
@@ -978,6 +999,7 @@ const QUEUE_GETTERS: Record<QueueName, () => unknown> = {
   [QueueName.AiUsageWeeklyEmail]: getAiUsageWeeklyEmailQueue,
   [QueueName.WorkspaceExport]: getWorkspaceExportQueue,
   [QueueName.WorkspaceIntegrations]: getWorkspaceIntegrationsQueue,
+  [QueueName.CrmCampaigns]: getCrmCampaignsQueue,
 }
 
 /** Resolves a queue singleton by name, for code that is generic over queues. */

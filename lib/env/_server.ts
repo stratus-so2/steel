@@ -32,6 +32,7 @@ const serverEnv = {
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS:
     process.env.ACCOUNT_DELETION_GRACE_OVERRIDE_MS,
   WHATSAPP_META_APP_SECRET: process.env.WHATSAPP_META_APP_SECRET,
+  RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET,
   WHATSAPP_META_VERIFY_TOKEN: process.env.WHATSAPP_META_VERIFY_TOKEN,
   JITSI_DOMAIN: process.env.JITSI_DOMAIN,
   OPENAI_API_KEY: process.env.OPENAI_API_KEY,
@@ -209,6 +210,12 @@ export const serverEnvSchema = z.object({
       message: 'ACCOUNT_DELETION_GRACE_OVERRIDE_MS must be a non-negative number',
     }),
   WHATSAPP_META_APP_SECRET: z.string().min(1).max(255).optional(),
+  // Resend webhook signing secret (whsec_...): delivery/bounce events of CRM
+  // multichannel campaigns. Optional — without it the endpoint answers 503.
+  RESEND_WEBHOOK_SECRET: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.string().startsWith('whsec_').optional(),
+  ),
   WHATSAPP_META_VERIFY_TOKEN: z.string().min(8).max(255).optional(),
   JITSI_DOMAIN: z.string().min(1).max(255).default('meet.jit.si'),
   OPENAI_API_KEY: z.string().min(1).optional(),
@@ -368,6 +375,7 @@ export const {
   CONNECTION_SECRETS,
   ACCOUNT_DELETION_GRACE_OVERRIDE_MS,
   WHATSAPP_META_APP_SECRET,
+  RESEND_WEBHOOK_SECRET,
   WHATSAPP_META_VERIFY_TOKEN,
   JITSI_DOMAIN,
   OPENAI_API_KEY,

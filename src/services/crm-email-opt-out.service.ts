@@ -1,9 +1,11 @@
 import type { CrmEmailOptOutSource } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
 import { crmEmailUnsubscribeInvalid } from '@/src/errors'
+import { verifyCampaignUnsubscribeToken } from '@/src/lib/crm-campaign/tokens'
 import { verifyCrmUnsubscribeToken } from '@/src/lib/crm-email-unsubscribe'
 import { err, ok, type Result } from '@/src/lib/result'
 import { toCrmEmailOptOutDTO } from '@/src/mappers/crm-email-marketing.mapper'
+import { CrmCampaignRecipientRepository } from '@/src/repositories/crm-campaign.repository'
 import { CrmEmailCampaignRecipientRepository } from '@/src/repositories/crm-email-campaign.repository'
 import { CrmEmailOptOutRepository } from '@/src/repositories/crm-email-opt-out.repository'
 import type {
@@ -12,11 +14,35 @@ import type {
 } from '@/types/crm-email-marketing'
 import { assertModuleMember } from './authz'
 
+/**
+ * Unsubscribe token of a multichannel campaign e-mail (ADR 0025): same
+ * opt-out table and page, but the token names a `CrmCampaignRecipient`.
+ * Shaped like the e-mail campaign recipient so the flow below is shared.
+ */
+async function resolveCampaignRecipient(token: string) {
+  const recipientId = verifyCampaignUnsubscribeToken(token)
+  if (!recipientId) return err(crmEmailUnsubscribeInvalid())
+  const recipient =
+    await CrmCampaignRecipientRepository.findWithCampaign(recipientId)
+  if (!recipient.ok) return recipient
+  if (!recipient.value?.email) return err(crmEmailUnsubscribeInvalid())
+  return ok({
+    id: recipient.value.id,
+    email: recipient.value.email,
+    personId: recipient.value.personId,
+    campaign: {
+      id: recipient.value.campaign.id,
+      workspaceId: recipient.value.campaign.workspaceId,
+    },
+    multichannel: true,
+  })
+}
+
 /** Resolve o token assinado para o destinatário. Qualquer falha vira o
  * mesmo erro genérico — não revela se o destinatário existe. */
 async function resolveRecipient(token: string) {
   const verified = verifyCrmUnsubscribeToken(token)
-  if (!verified.ok) return err(crmEmailUnsubscribeInvalid())
+  if (!verified.ok) return resolveCampaignRecipient(token)
 
   const recipient =
     await CrmEmailCampaignRecipientRepository.findByIdWithCampaign(
@@ -73,6 +99,15 @@ export const CrmEmailOptOutService = {
         meta: { workspaceId: campaign.workspaceId, campaignId: campaign.id },
       })
       return result
+    }
+
+    // Multichannel campaign funnel: "descadastrou" for this recipient.
+    if ('multichannel' in recipient.value) {
+      await CrmCampaignRecipientRepository.markFirst(
+        { id: recipient.value.id },
+        'unsubscribedAt',
+        new Date(),
+      )
     }
 
     // Registro LGPD: quando (timestamp do log + createdAt) e como (source,

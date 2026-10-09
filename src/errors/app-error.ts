@@ -490,6 +490,33 @@ export const crmEmailTemplateNotBuilder = (): AppError =>
 export const crmEmailBuilderStructureLocked = (
   message = 'A estrutura deste modelo não pode ser alterada — edite apenas o conteúdo',
 ): AppError => appError('CRM_EMAIL_BUILDER_STRUCTURE_LOCKED', message)
+export const crmCampaignNotFound = (): AppError =>
+  appError('CRM_CAMPAIGN_NOT_FOUND', 'Campanha não encontrada')
+
+export const crmCampaignLocked = (
+  message = 'Esta campanha já foi lançada e não pode mais ser alterada',
+): AppError => appError('CRM_CAMPAIGN_LOCKED', message)
+
+/** `details.issues`: what is missing, per wizard step. */
+export const crmCampaignIncomplete = (
+  issues: { step: string; message: string }[],
+): AppError =>
+  appError(
+    'CRM_CAMPAIGN_INCOMPLETE',
+    issues[0]?.message ?? 'Complete a campanha antes de enviar',
+    { issues },
+  )
+
+export const crmCampaignNoRecipients = (
+  message = 'Nenhum contato do público pode receber esta campanha',
+): AppError => appError('CRM_CAMPAIGN_NO_RECIPIENTS', message)
+
+export const crmCampaignWhatsappUnavailable = (
+  message = 'O WhatsApp não está disponível para esta campanha',
+): AppError => appError('CRM_CAMPAIGN_WHATSAPP_UNAVAILABLE', message)
+
+export const crmCampaignLinkInvalid = (): AppError =>
+  appError('CRM_CAMPAIGN_LINK_INVALID', 'Link de campanha inválido')
 
 export const crmMailingListNotFound = (): AppError =>
   appError('CRM_MAILING_LIST_NOT_FOUND', 'Lista de e-mail não encontrada')

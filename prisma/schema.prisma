@@ -473,6 +473,7 @@ model Workspace {
   crmCalendarEvents         CrmCalendarEvent[]
   crmHookVaultItems         CrmHookVaultItem[]
   crmTrackedCompetitors     CrmTrackedCompetitor[]
+  crmCampaigns              CrmCampaign[]
 
   profiles               Profile[]
   crmLeadContactAttempts CrmLeadContactAttempt[]
@@ -3616,6 +3617,175 @@ model CrmCalendarEvent {
   @@index([personId, startsAt])
   @@index([opportunityId, startsAt])
   @@map("crm_calendar_events")
+}
+
+// ─── CRM multichannel campaigns (e-mail + optional WhatsApp) ─────────────
+// One campaign = destination (landing page or form) + e-mail content +
+// audience, with WhatsApp as an optional add-on. See ADR 0025.
+
+enum CrmCampaignRunStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  PAUSED
+  COMPLETED
+  CANCELED
+  FAILED
+}
+
+enum CrmCampaignDestinationType {
+  LANDING_PAGE
+  FORM
+}
+
+/// LGPD legal basis declared for a channel at launch.
+enum CrmCampaignLegalBasis {
+  CONSENT
+  LEGITIMATE_INTEREST
+  CONTRACT
+}
+
+/// Per-recipient, per-channel delivery state. NONE = channel not used for
+/// this recipient (no address or channel off); SENDING = claimed by a job.
+enum CrmCampaignDeliveryStatus {
+  NONE
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum CrmCampaignChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum CrmCampaignConversionKind {
+  LANDING_VIEW
+  FORM_SUBMISSION
+}
+
+model CrmCampaign {
+  id                   String                      @id @default(cuid())
+  workspaceId          String                      @map("workspace_id")
+  name                 String
+  /// utm_campaign value — unique per workspace.
+  slug                 String
+  status               CrmCampaignRunStatus        @default(DRAFT)
+  destinationType      CrmCampaignDestinationType? @map("destination_type")
+  landingPageId        String?                     @map("landing_page_id")
+  formId               String?                     @map("form_id")
+  utmMedium            String                      @default("campanha") @map("utm_medium")
+  emailFrom            String?                     @map("email_from")
+  emailSubject         String?                     @map("email_subject")
+  emailPreheader       String?                     @map("email_preheader")
+  emailTemplateId      String?                     @map("email_template_id")
+  emailLegalBasis      CrmCampaignLegalBasis?      @map("email_legal_basis")
+  /// { mailingListIds, allPeople, leadStages } — see crm-campaign.schema.ts.
+  audience             Json                        @default("{}")
+  whatsappEnabled      Boolean                     @default(false) @map("whatsapp_enabled")
+  whatsappConnectionId String?                     @map("whatsapp_connection_id")
+  whatsappTemplateId   String?                     @map("whatsapp_template_id")
+  /// Meta template variable mapping (header/body/buttons → source).
+  whatsappVariables    Json?                       @map("whatsapp_variables")
+  whatsappText         String?                     @map("whatsapp_text")
+  whatsappMediaUrl     String?                     @map("whatsapp_media_url")
+  whatsappDelayHours   Int                         @default(0) @map("whatsapp_delay_hours")
+  whatsappLegalBasis   CrmCampaignLegalBasis?      @map("whatsapp_legal_basis")
+  scheduledAt          DateTime?                   @map("scheduled_at")
+  /// Send window in America/Sao_Paulo hours [start, end); null = any time.
+  sendWindowStartHour  Int?                        @map("send_window_start_hour")
+  sendWindowEndHour    Int?                        @map("send_window_end_hour")
+  sendWeekdaysOnly     Boolean                     @default(false) @map("send_weekdays_only")
+  consentConfirmedAt   DateTime?                   @map("consent_confirmed_at")
+  consentConfirmedById String?                     @map("consent_confirmed_by_id")
+  launchedAt           DateTime?                   @map("launched_at")
+  /// When sending starts (scheduledAt or the launch moment).
+  startAt              DateTime?                   @map("start_at")
+  completedAt          DateTime?                   @map("completed_at")
+  createdById          String                      @map("created_by_id")
+  updatedById          String?                     @map("updated_by_id")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  deletedAt            DateTime?                   @map("deleted_at")
+
+  workspace   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  recipients  CrmCampaignRecipient[]
+  conversions CrmCampaignConversion[]
+
+  @@unique([workspaceId, slug])
+  @@index([workspaceId, deletedAt])
+  @@index([status, startAt])
+  @@map("crm_campaigns")
+}
+
+/// Audience snapshot taken at launch — one row per contact, with the state
+/// and funnel timestamps of each channel.
+model CrmCampaignRecipient {
+  id                        String                    @id @default(cuid())
+  campaignId                String                    @map("campaign_id")
+  workspaceId               String                    @map("workspace_id")
+  personId                  String?                   @map("person_id")
+  leadId                    String?                   @map("lead_id")
+  name                      String
+  email                     String?
+  /// WhatsApp number, digits only (E.164 without "+").
+  waId                      String?                   @map("wa_id")
+  emailStatus               CrmCampaignDeliveryStatus @default(NONE) @map("email_status")
+  emailSkipReason           String?                   @map("email_skip_reason")
+  emailProviderMessageId    String?                   @unique @map("email_provider_message_id")
+  emailError                String?                   @map("email_error")
+  emailSentAt               DateTime?                 @map("email_sent_at")
+  emailDeliveredAt          DateTime?                 @map("email_delivered_at")
+  emailOpenedAt             DateTime?                 @map("email_opened_at")
+  emailClickedAt            DateTime?                 @map("email_clicked_at")
+  emailBouncedAt            DateTime?                 @map("email_bounced_at")
+  unsubscribedAt            DateTime?                 @map("unsubscribed_at")
+  whatsappStatus            CrmCampaignDeliveryStatus @default(NONE) @map("whatsapp_status")
+  whatsappSkipReason        String?                   @map("whatsapp_skip_reason")
+  whatsappProviderMessageId String?                   @unique @map("whatsapp_provider_message_id")
+  whatsappError             String?                   @map("whatsapp_error")
+  whatsappSentAt            DateTime?                 @map("whatsapp_sent_at")
+  whatsappDeliveredAt       DateTime?                 @map("whatsapp_delivered_at")
+  whatsappReadAt            DateTime?                 @map("whatsapp_read_at")
+  whatsappClickedAt         DateTime?                 @map("whatsapp_clicked_at")
+  whatsappRepliedAt         DateTime?                 @map("whatsapp_replied_at")
+  /// Comunicação conversation opened by the contact's reply.
+  conversationId            String?                   @map("conversation_id")
+  convertedAt               DateTime?                 @map("converted_at")
+  createdAt                 DateTime                  @default(now()) @map("created_at")
+  updatedAt                 DateTime                  @updatedAt @map("updated_at")
+
+  campaign    CrmCampaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  conversions CrmCampaignConversion[]
+
+  @@index([campaignId, emailStatus])
+  @@index([campaignId, whatsappStatus])
+  @@index([workspaceId, waId])
+  @@map("crm_campaign_recipients")
+}
+
+/// A visit or submission on the campaign destination, attributed through
+/// the tracked link (recipient) or the utm_campaign slug (no recipient).
+model CrmCampaignConversion {
+  id          String                    @id @default(cuid())
+  campaignId  String                    @map("campaign_id")
+  recipientId String?                   @map("recipient_id")
+  channel     CrmCampaignChannel?
+  kind        CrmCampaignConversionKind
+  /// Landing view id or form submission id — idempotency key.
+  sourceRef   String                    @map("source_ref")
+  leadId      String?                   @map("lead_id")
+  personId    String?                   @map("person_id")
+  createdAt   DateTime                  @default(now()) @map("created_at")
+
+  campaign  CrmCampaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recipient CrmCampaignRecipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, kind, sourceRef])
+  @@index([campaignId, createdAt])
+  @@map("crm_campaign_conversions")
 }
 
 // ─── Changelog (admin, cross-workspace) ───────────────────────────────────

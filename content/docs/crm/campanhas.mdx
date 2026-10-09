@@ -1,0 +1,102 @@
+---
+title: Campanhas
+description: Campanha completa por e-mail, com WhatsApp opcional, levando o contato a uma landing page ou formulário — com links rastreados, público por LGPD e resultados até a conversão.
+section: crm
+order: 6
+---
+
+Em **Marketing › Campanhas** você monta a campanha em quatro passos e acompanha
+o resultado até a conversão. Pode salvar o rascunho a qualquer momento e voltar
+depois.
+
+## 1. Destino
+
+Escolha para onde o contato vai ao clicar: uma **landing page** ou um
+**formulário** do CRM. Se ainda não existe, use **Criar página** /
+**Criar formulário** (abre em outra aba) e depois **Atualizar lista**.
+
+O destino precisa estar **publicado** para a campanha ser enviada.
+
+A campanha gera os links com os parâmetros de origem já preenchidos
+(`utm_source=email` ou `whatsapp`, `utm_medium` e `utm_campaign` com o nome
+da campanha). Use **Copiar** para levar o link a outros lugares — quem chegar
+por ele também conta nas conversões. Nos envios, cada contato recebe a própria
+versão rastreada do link.
+
+## 2. Conteúdo
+
+- **Remetente**, **Assunto** e **Pré-cabeçalho** (o texto que aparece ao lado
+  do assunto na caixa de entrada).
+- **Visual do e-mail**: escolha um dos visuais de **Templates**, ou use
+  **Criar visual** / **Abrir no editor** para montar no editor visual (abre em
+  outra aba). No botão, escolha **Link da campanha** (`{{campaign_link}}`) para
+  levar ao destino; `{{primeiro_nome}}` personaliza o texto. O rodapé de
+  descadastro entra sozinho.
+- A **Prévia** mostra o e-mail como um contato vai recebê-lo.
+
+### WhatsApp (opcional)
+
+Ligue **Também enviar pelo WhatsApp** para mandar uma mensagem junto ou algumas
+horas depois do e-mail. Só aparece quando a **Comunicação** está ativa e há uma
+conexão de WhatsApp conectada.
+
+- **Conexão oficial (Meta)**: escolha um **template aprovado** e diga de onde
+  vem cada variável — nome, primeiro nome, link da campanha, código do link
+  (para botão de URL) ou um texto fixo. A Meta só aceita template na primeira
+  mensagem para o contato.
+- **Z-API**: escreva a mensagem com `{nome}`, `{primeiro_nome}` e `{link}`
+  (obrigatório) e, se quiser, um link de imagem, vídeo ou PDF.
+
+Quem responder vira uma conversa na **Comunicação**, ligada ao contato da
+campanha, e a resposta aparece na linha do tempo da pessoa no CRM.
+
+## 3. Público
+
+Combine **listas de e-mail**, **todas as pessoas do CRM** e **leads por
+etapa**. Cada contato entra uma vez só. O quadro ao lado mostra quantos são
+alcançáveis por e-mail e por WhatsApp, quantos se **descadastraram** e quantos
+não têm o canal.
+
+Informe a **base legal (LGPD)** de cada canal: consentimento, legítimo
+interesse ou execução de contrato. Ela fica registrada na campanha, com quem
+confirmou o envio e quando.
+
+## 4. Revisar e enviar
+
+- **Enviar agora** ou **Agendar** (horário de Brasília).
+- **Janela de envio**: limite os envios a um horário (ex.: das 8h às 18h) e, se
+  quiser, só a dias úteis. Fora da janela, os envios esperam o próximo horário.
+- **Envio de teste**: manda o e-mail (com "[Teste]" no assunto) e o WhatsApp
+  para você.
+- A lista **Antes de enviar** mostra o que falta em cada passo.
+
+Marque a confirmação da base legal e clique em **Enviar campanha** (ou
+**Agendar campanha**).
+
+## Resultados
+
+Depois do envio, a campanha mostra:
+
+- **E-mail**: enviados, entregues, abertos e cliques — e quem falhou, voltou ou
+  se descadastrou.
+- **WhatsApp**: enviados, entregues, lidos, cliques no link e respostas.
+- **Conversões** no destino (envios do formulário ou visitas à landing page)
+  por canal, com a lista de quem converteu e o link para o lead.
+- **Contatos**: a linha do tempo de cada pessoa (enviado, aberto, clicou,
+  respondeu, converteu).
+
+Os números se atualizam sozinhos enquanto a campanha está enviando. Você recebe
+um aviso na caixa de entrada quando ela termina.
+
+Use **Pausar** para segurar os envios que faltam, **Retomar** para continuar e
+**Cancelar** para descartar o que não foi enviado.
+
+## Descadastro (LGPD)
+
+Todo e-mail sai com o link de descadastro, que vale para todas as campanhas do
+workspace. No WhatsApp, quem responder **SAIR**, **PARAR** ou **STOP** deixa de
+receber. Os descadastrados são excluídos na montagem do público **e** de novo
+no momento do envio.
+
+As campanhas de e-mail simples continuam em **Marketing › E-mail avulso**
+(veja [Campanhas de e-mail](/docs/crm/campanhas-de-email)).

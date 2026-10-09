@@ -18,6 +18,7 @@ vi.mock('@/src/repositories/crm-lead-routing-rule.repository')
 vi.mock('@/src/repositories/crm-company.repository')
 vi.mock('@/src/repositories/crm-person.repository')
 vi.mock('@/src/services/crm-workflow-dispatcher')
+vi.mock('@/src/services/crm-campaign-tracking.service')
 
 import { CrmCompanyRepository } from '@/src/repositories/crm-company.repository'
 import {
@@ -30,6 +31,7 @@ import { CrmLeadScoringRuleRepository } from '@/src/repositories/crm-lead-scorin
 import { CrmPersonRepository } from '@/src/repositories/crm-person.repository'
 import { MembershipRepository } from '@/src/repositories/membership.repository'
 import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-module-access.repository'
+import { CrmCampaignTrackingService } from '../crm-campaign-tracking.service'
 import { CrmFormService } from '../crm-form.service'
 import {
   notifyCrmFormSubmitted,
@@ -190,9 +192,20 @@ describe('CrmFormService', () => {
       const dto = expectOk(
         await CrmFormService.submit('tok', '1.2.3.4', undefined, {
           values: { full_name: 'Jane', work_email: 'jane@acme.com' },
+          campaign: { ref: 'campaign-token', utmSource: 'email' },
         }),
       )
       expect(dto.createdLeadId).toBe('lead1')
+      // Campaign attribution of the submission (multichannel campaigns).
+      expect(CrmCampaignTrackingService.attribute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'FORM_SUBMISSION',
+          sourceRef: 's1',
+          formId: 'f1',
+          leadId: 'lead1',
+        }),
+        expect.any(Date),
+      )
       expect(mockedLeadRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           workspaceId: 'ws1',

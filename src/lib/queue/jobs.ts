@@ -36,6 +36,7 @@ export const QueueName = {
   AiUsageWeeklyEmail: 'ai-usage-weekly-email',
   WorkspaceExport: 'workspace-export',
   WorkspaceIntegrations: 'workspace-integrations',
+  CrmCampaigns: 'crm-campaigns',
 } as const
 
 export type QueueName = (typeof QueueName)[keyof typeof QueueName]
@@ -695,4 +696,33 @@ export type WorkspaceIntegrationsJobPayload = {
     url: string | null
   }
   [WorkspaceIntegrationsJob.CommunicationWaitingTick]: Record<string, never>
+}
+
+/**
+ * CRM multichannel campaigns (ADR 0025): `dispatch` (delayed until a
+ * channel's start or the next send-window opening) queues a batch of
+ * `send` jobs; `send` claims one recipient row and sends one message;
+ * `tick` (every 5 min) starts due campaigns, re-dispatches pending work,
+ * frees rows stuck in SENDING and closes drained campaigns.
+ */
+export const CrmCampaignsJob = {
+  Dispatch: 'dispatch',
+  Send: 'send',
+  Tick: 'tick',
+} as const
+
+export type CrmCampaignsJob =
+  (typeof CrmCampaignsJob)[keyof typeof CrmCampaignsJob]
+
+export type CrmCampaignsJobPayload = {
+  [CrmCampaignsJob.Dispatch]: {
+    campaignId: string
+    channel: 'EMAIL' | 'WHATSAPP'
+  }
+  [CrmCampaignsJob.Send]: {
+    campaignId: string
+    recipientId: string
+    channel: 'EMAIL' | 'WHATSAPP'
+  }
+  [CrmCampaignsJob.Tick]: Record<string, never>
 }
