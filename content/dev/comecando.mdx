@@ -1,0 +1,174 @@
+---
+title: Começando
+description: Escolha a porta de entrada certa, crie uma chave de API do CRM e faça a primeira requisição com cURL, JavaScript ou Python.
+section: introducao
+order: 1
+---
+
+## Escolha a porta de entrada
+
+O Steel recebe dados de outros sistemas por entradas próprias para integração.
+Cada uma tem a sua forma de acesso, pensada para o caso de uso:
+
+| Você quer | Entrada | Acesso |
+| --- | --- | --- |
+| Criar leads no CRM a partir do site, do ERP ou de uma automação | `POST /api/crm/integrations/leads` | Chave de API no header `Authorization` |
+| Enviar um formulário do CRM pelo seu próprio front | `POST /api/crm/forms/<token>/submit` | Token público do formulário publicado |
+| Iniciar um workflow do CRM a partir de um evento seu | `POST /api/crm/workflows/<token>/trigger` | Token do gatilho, na URL |
+| Abrir (e encerrar) chamados no ServiceDesk a partir do seu sistema | `POST /api/servicedesk/monitoring/<token>` | Token da origem, na URL |
+| Refletir issues e pull/merge requests nos chamados | `POST /api/integrations/github/webhook` e `POST /api/integrations/gitlab/webhook` | Assinatura do GitHub ou secret token do GitLab |
+
+O restante da API (as rotas em `/api/workspaces/<id>/...`) é a que o próprio
+aplicativo usa e exige a sessão de um usuário. Veja
+[Autenticação e chaves](/dev/autenticacao) antes de usá-la numa integração.
+
+Este guia usa a primeira entrada, a de leads, porque é a única que trabalha com
+uma **chave de API**. As outras estão nos [guias por caso de uso](/dev/guias/criar-lead).
+
+## Crie uma chave de API
+
+<Callout type='admin'>
+  Só o **dono** ou um **administrador** do workspace cria e revoga chaves, e o
+  módulo **CRM** precisa estar habilitado no workspace.
+</Callout>
+
+1. Entre no Steel e abra a tela **Chaves de API** do CRM, no endereço
+   `/<seu-workspace>/crm/integration-keys`.
+2. Clique em **Nova chave** e dê um nome que diga quem vai usá-la (por exemplo,
+   "Site institucional" ou "ERP").
+3. Clique em **Criar chave** e copie o valor na hora. Ele começa com
+   `crm_live_` e **não é mostrado de novo**: o Steel guarda só um hash.
+
+Guarde a chave num cofre de segredos ou numa variável de ambiente do servidor
+que vai chamar a API, nunca no código-fonte nem no navegador.
+
+```bash
+export STEEL_URL="https://homologacao.stratustelecom.com.br"
+export STEEL_CRM_KEY="crm_live_..."
+```
+
+<Callout type='aviso'>
+  Chame a API **do seu servidor**. A chave dá acesso de escrita ao CRM do
+  workspace, e a API não libera chamadas de outros domínios pelo navegador
+  (CORS).
+</Callout>
+
+## Faça a primeira requisição
+
+O corpo precisa de um `name` e de **ao menos um e-mail ou telefone**. Os outros
+campos são opcionais.
+
+### cURL
+
+```bash
+curl -X POST "$STEEL_URL/api/crm/integrations/leads" \
+  -H "Authorization: Bearer $STEEL_CRM_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Carlos Lima",
+    "emails": ["carlos@empresa.com.br"],
+    "phones": ["+5511999990000"],
+    "company": "Empresa Exemplo Ltda",
+    "source": "site"
+  }'
+```
+
+### JavaScript (Node.js 18 ou mais novo)
+
+```js
+const response = await fetch(`${process.env.STEEL_URL}/api/crm/integrations/leads`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.STEEL_CRM_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: 'Carlos Lima',
+    emails: ['carlos@empresa.com.br'],
+    company: 'Empresa Exemplo Ltda',
+    source: 'site',
+  }),
+})
+
+const body = await response.json()
+if (!body.success) {
+  throw new Error(`${body.statusCode} ${body.error.code}: ${body.message ?? ''}`)
+}
+console.log(response.status === 201 ? 'Lead criado' : 'Lead já existia', body.data.id)
+```
+
+### Python
+
+```python
+import os
+import requests
+
+response = requests.post(
+    f"{os.environ['STEEL_URL']}/api/crm/integrations/leads",
+    headers={"Authorization": f"Bearer {os.environ['STEEL_CRM_KEY']}"},
+    json={
+        "name": "Carlos Lima",
+        "emails": ["carlos@empresa.com.br"],
+        "company": "Empresa Exemplo Ltda",
+        "source": "site",
+    },
+    timeout=10,
+)
+body = response.json()
+if not body["success"]:
+    raise RuntimeError(f"{body['statusCode']} {body['error']['code']}")
+print("Lead criado" if response.status_code == 201 else "Lead já existia", body["data"]["id"])
+```
+
+## Leia a resposta
+
+Toda resposta vem no mesmo envelope. Um lead novo responde `201`:
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "data": {
+    "id": "ckx3lead0000ab7d3k1e5xyz",
+    "name": "Carlos Lima",
+    "emails": ["carlos@empresa.com.br"],
+    "phones": [],
+    "company": "Empresa Exemplo Ltda",
+    "source": "site",
+    "channel": "API",
+    "stage": "RECEIVED",
+    "score": 20,
+    "ownerId": "ckx3user0000ab7d3k1e5abc",
+    "createdAt": "2026-10-09T13:00:00.000Z"
+  }
+}
+```
+
+O exemplo está resumido: a referência de
+[`POST /crm/integrations/leads`](/dev/api) lista todos os campos do lead.
+
+- **`201`**: lead novo, já pontuado pelas regras de score e com dono pelas
+  regras de roteamento.
+- **`200`**: já existia um lead **em aberto** com o mesmo e-mail ou telefone. A
+  API devolve esse lead e não cria outro, então reenviar a mesma requisição é
+  seguro.
+
+Se algo der errado, `success` vem `false` com um código estável em
+`error.code`. Os mais comuns aqui:
+
+| Status | Código | Causa |
+| --- | --- | --- |
+| `401` | `UNAUTHORIZED` | Header `Authorization` ausente ou sem `Bearer ` |
+| `401` | `CRM_INTEGRATION_KEY_INVALID` | Chave errada ou revogada |
+| `403` | `MODULE_DISABLED` | O CRM foi desabilitado no workspace da chave |
+| `422` | `VALIDATION_ERROR` | Corpo inválido: sem `name`, sem e-mail nem telefone, e-mail malformado |
+| `429` | `RATE_LIMITED` | Mais de 100 requisições por minuto com a mesma chave |
+
+## Próximos passos
+
+- [Autenticação e chaves](/dev/autenticacao): rotação, revogação e as outras
+  formas de acesso.
+- [Formato de resposta e erros](/dev/respostas-e-erros): o envelope e a tabela
+  completa de códigos.
+- [Criar lead a partir do seu site](/dev/guias/criar-lead): um exemplo completo,
+  com o formulário do seu site.

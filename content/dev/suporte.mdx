@@ -1,0 +1,48 @@
+---
+title: Suporte
+description: Como falar com a equipe da Stratus Telecom sobre a sua integração, o que mandar para a gente resolver mais rápido e onde ver o status dos serviços.
+section: recursos
+order: 2
+---
+
+## Fale com a gente
+
+Dúvidas sobre a API, um erro que você não entende ou um caso de uso que as
+entradas de hoje não cobrem: escreva para
+[suporte@stratustelecom.com.br](mailto:suporte@stratustelecom.com.br).
+
+Para conversar sobre volume, planos ou um projeto de integração maior, use
+[Fale com vendas](/talk-to-sales).
+
+## O que mandar
+
+Uma mensagem com isto costuma ser resolvida na primeira resposta:
+
+- o **workspace** (o endereço, como `/<seu-workspace>`) e o **ambiente**
+  (homologação ou produção);
+- a **rota** e o **método** (`POST /api/crm/integrations/leads`, por exemplo);
+- a **data e a hora** da chamada, com fuso;
+- o **status** e o **`error.code`** da resposta;
+- o **corpo** que você enviou, sem dados pessoais desnecessários.
+
+<Callout type='aviso'>
+  **Nunca** mande a chave de API, o token de uma URL ou o segredo de um webhook,
+  nem por e-mail. Se mandou, revogue a chave ou gere outro token e avise a gente.
+</Callout>
+
+## Antes de escrever
+
+- **Status dos serviços:** a [página de status](/status) mostra se há algum
+  incidente em andamento.
+- **Erros:** procure o `error.code` na
+  [tabela de códigos](/dev/respostas-e-erros#códigos-de-erro).
+- **Limites:** um `429` diz em `Retry-After` quando tentar de novo. Veja
+  [Limites de requisição](/dev/limites).
+- **Uso do produto:** o [manual](/docs) explica as telas, como onde criar uma
+  chave ou uma origem de monitoramento.
+
+## Segurança
+
+Achou uma vulnerabilidade? Avise
+[juridico@stratustelecom.com.br](mailto:juridico@stratustelecom.com.br) antes de
+divulgá-la, como descrito na nossa [página de segurança](/legals/security).

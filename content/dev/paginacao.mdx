@@ -1,0 +1,117 @@
+---
+title: Paginação e filtros
+description: Os três jeitos que as listas da API paginam (página, cursor e limite), como filtrar e ordenar e quais listas vêm inteiras.
+section: fundamentos
+order: 4
+---
+
+## Onde há paginação
+
+As entradas de integração (leads, formulários, workflows, monitoramento e
+webhooks) gravam um registro por chamada e não têm lista. A paginação é das
+rotas de leitura com sessão de usuário, em `/api/workspaces/<id>/...`. Cada lista
+segue um destes padrões, e a [referência da API](/dev/api) diz qual em cada
+rota.
+
+| Padrão | Parâmetros | Resposta (`data`) | Exemplos |
+| --- | --- | --- | --- |
+| Página | `page`, `pageSize` | `items`, `total`, `page`, `pageSize` | Clientes, contatos e itens de configuração do ServiceDesk, diretório de membros, registros de trabalho |
+| Cursor | `cursor`, `limit` | `items`, `nextCursor` | Notificações, histórico de eventos do chamado, mensagens do WhatsApp |
+| Página ou cursor | `page`, `pageSize`, `cursor` | `items`, `total`, `page`, `pageSize`, `nextCursor` | Chamados do ServiceDesk |
+| Limite | `limit` | Lista com até `limit` itens | Busca, sugestões e listas de opções |
+| Sem paginação | — | Lista completa | A maior parte das listas do CRM e das configurações |
+
+Valores fora do intervalo (uma `pageSize` acima do máximo, uma `page` zero)
+respondem `422 VALIDATION_ERROR`: a API não corta o valor em silêncio.
+
+## Por página
+
+`page` começa em 1. O padrão e o máximo de `pageSize` variam por lista (por
+exemplo, 25 e 100 nos cadastros do ServiceDesk). `total` é o número de itens
+com os filtros aplicados.
+
+```bash
+curl "$STEEL_URL/api/workspaces/$WORKSPACE_ID/servicedesk/customers?page=2&pageSize=50&sort=name&order=asc" \
+  -b "better-auth.session_token=$STEEL_SESSION"
+```
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "items": [{ "id": "ckx3cust0000ab7d3k1e5xyz", "name": "Empresa Exemplo Ltda" }],
+    "total": 73,
+    "page": 2,
+    "pageSize": 50
+  }
+}
+```
+
+Termina quando `page * pageSize >= total`.
+
+## Por cursor
+
+Use o cursor quando a lista muda enquanto você lê (mensagens novas chegando, por
+exemplo): ele não pula nem repete itens. Na primeira chamada, não mande `cursor`;
+nas seguintes, mande o `nextCursor` da resposta anterior. `nextCursor: null`
+significa fim.
+
+```js
+async function* allNotifications(workspaceId, session) {
+  let cursor = null
+  do {
+    const query = new URLSearchParams({ limit: '50' })
+    if (cursor) query.set('cursor', cursor)
+    const response = await fetch(
+      `${process.env.STEEL_URL}/api/workspaces/${workspaceId}/notifications?${query}`,
+      { headers: { Cookie: `better-auth.session_token=${session}` } },
+    )
+    const body = await response.json()
+    if (!body.success) throw new Error(body.error.code)
+    yield* body.data.items
+    cursor = body.data.nextCursor
+  } while (cursor)
+}
+```
+
+Na lista de chamados, `cursor` tem precedência sobre `page` quando os dois vêm
+juntos.
+
+## Filtros
+
+Filtros são parâmetros de query, combinados com **e**:
+
+- **Busca livre:** `q` (ou `search` nas notificações) procura no texto; na lista
+  de chamados, também pelo código (`INC-000123`).
+- **Listas de valores:** separadas por vírgula (`types=INCIDENT,PROBLEM`) ou com
+  a chave repetida (`phaseIds=a&phaseIds=b`), onde a referência indicar CSV.
+- **Atalhos do usuário:** alguns filtros aceitam `me` (`assigneeIds=me`,
+  `requesterId=me`) e `unassigned`.
+- **Datas:** ISO 8601 com fuso, como `2026-10-01T00:00:00-03:00`
+  (`createdFrom`, `createdTo`, `dueFrom`, `dueTo`).
+- **Booleanos:** `true` ou `false`, por extenso.
+
+```bash
+curl -G "$STEEL_URL/api/workspaces/$WORKSPACE_ID/servicedesk/tickets" \
+  -b "better-auth.session_token=$STEEL_SESSION" \
+  --data-urlencode "types=INCIDENT,PROBLEM" \
+  --data-urlencode "assigneeIds=me" \
+  --data-urlencode "createdFrom=2026-10-01T00:00:00-03:00" \
+  --data-urlencode "sort=createdAt" \
+  --data-urlencode "order=desc" \
+  --data-urlencode "pageSize=100"
+```
+
+## Ordenação
+
+Listas ordenáveis recebem `sort` (o campo) e `order` (`asc` ou `desc`). Os
+campos aceitos estão na referência de cada rota; um campo fora da lista responde
+`422`.
+
+<Callout type='nota'>
+  Os exemplos desta página usam o cookie de sessão de um usuário, porque as
+  listas são rotas do aplicativo. Leia a seção [Sessão de
+  usuário](/dev/autenticacao#sessão-de-usuário) antes de usá-las numa
+  integração.
+</Callout>

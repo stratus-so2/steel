@@ -1,0 +1,177 @@
+---
+title: Receber eventos do GitHub e do GitLab
+description: Configure o webhook do repositório para o Steel espelhar nos chamados o estado de issues, pull requests e merge requests, e teste a entrega com uma assinatura de verdade.
+section: guias
+order: 4
+---
+
+## O que o Steel faz com os eventos
+
+Com o GitHub ou o GitLab conectado, um chamado de **problema** ou de **mudança**
+pode ter issues, pull requests e merge requests vinculados. Quando um deles é
+fechado, reaberto ou mesclado, o repositório avisa o Steel por webhook e o Steel:
+
+1. atualiza o estado do vínculo no chamado (aberta, fechada ou mesclada);
+2. registra o evento no histórico do chamado;
+3. publica uma mensagem no chamado e, se configurado, **sugere** avançar a fase.
+   Quem move a fase é sempre o agente.
+
+Eventos de itens que não estão vinculados a nenhum chamado são aceitos e não
+fazem nada.
+
+## 1. Conecte o repositório no Steel
+
+<Callout type='admin'>
+  Só o dono ou um administrador do workspace conecta integrações, em **Ajustes ›
+  Integrações**. Cada workspace tem uma conexão por serviço, usada por todos os
+  módulos.
+</Callout>
+
+Em **Ajustes › Integrações**, conecte o GitHub ou o GitLab com:
+
+- **Repositório** (`dono/repositório`) ou **projeto** (`grupo/projeto`; no GitLab
+  self-managed, informe também a URL da instância);
+- **Token de acesso**: no GitHub, um token fine-grained com _Issues_ e _Pull
+  requests_ em leitura e escrita; no GitLab, um token pessoal, de projeto ou de
+  grupo com escopo `api`;
+- **Segredo do webhook**: pelo menos 16 caracteres. Gere um com:
+
+```bash
+openssl rand -hex 24
+```
+
+A tela mostra a URL do webhook para cadastrar no repositório. Sem segredo, o
+Steel recusa as entregas.
+
+## 2. Cadastre o webhook no GitHub
+
+Em **Settings › Webhooks › Add webhook** do repositório:
+
+| Campo | Valor |
+| --- | --- |
+| Payload URL | `https://<seu-steel>/api/integrations/github/webhook` |
+| Content type | `application/json` |
+| Secret | O segredo do webhook cadastrado no Steel |
+| Eventos | _Let me select individual events_: **Issues** e **Pull requests** |
+
+Ou pela linha de comando, com a [GitHub CLI](https://cli.github.com):
+
+```bash
+gh api repos/sua-empresa/seu-repo/hooks \
+  -f name=web \
+  -F active=true \
+  -f "events[]=issues" -f "events[]=pull_request" \
+  -f config[url]="$STEEL_URL/api/integrations/github/webhook" \
+  -f config[content_type]=json \
+  -f config[secret]="$STEEL_WEBHOOK_SECRET"
+```
+
+Ao salvar, o GitHub manda um `ping`, que o Steel aceita e ignora. O
+**Recent Deliveries** do GitHub deve mostrar `200`.
+
+## 3. Ou no GitLab
+
+Em **Settings › Webhooks** do projeto:
+
+| Campo | Valor |
+| --- | --- |
+| URL | `https://<seu-steel>/api/integrations/gitlab/webhook` |
+| Secret token | O segredo do webhook cadastrado no Steel |
+| Trigger | **Issues events** e **Merge request events** |
+
+## 4. Teste a entrega
+
+Dá para simular uma entrega do GitHub assinando um corpo com o mesmo segredo,
+exatamente como o GitHub faz. A assinatura é o HMAC-SHA256 do **corpo bruto**,
+em hexadecimal, com o prefixo `sha256=`:
+
+```bash
+BODY='{"action":"closed","repository":{"full_name":"sua-empresa/seu-repo"},"issue":{"number":42,"state":"closed","title":"Erro no faturamento"}}'
+SIGNATURE="sha256=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$STEEL_WEBHOOK_SECRET" -hex | sed 's/^.* //')"
+
+curl -X POST "$STEEL_URL/api/integrations/github/webhook" \
+  -H "Content-Type: application/json" \
+  -H "X-GitHub-Event: issues" \
+  -H "X-GitHub-Delivery: teste-$(date +%s)" \
+  -H "X-Hub-Signature-256: $SIGNATURE" \
+  --data-binary "$BODY"
+```
+
+O mesmo teste em Node.js:
+
+```js
+import { createHmac, randomUUID } from 'node:crypto'
+
+const body = JSON.stringify({
+  action: 'closed',
+  repository: { full_name: 'sua-empresa/seu-repo' },
+  issue: { number: 42, state: 'closed', title: 'Erro no faturamento' },
+})
+const signature = `sha256=${createHmac('sha256', process.env.STEEL_WEBHOOK_SECRET)
+  .update(body)
+  .digest('hex')}`
+
+const response = await fetch(`${process.env.STEEL_URL}/api/integrations/github/webhook`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-GitHub-Event': 'issues',
+    'X-GitHub-Delivery': randomUUID(),
+    'X-Hub-Signature-256': signature,
+  },
+  body,
+})
+console.log(response.status, await response.json())
+```
+
+E uma entrega do GitLab, que manda o segredo em `X-Gitlab-Token`:
+
+```bash
+curl -X POST "$STEEL_URL/api/integrations/gitlab/webhook" \
+  -H "Content-Type: application/json" \
+  -H "X-Gitlab-Event: Issue Hook" \
+  -H "X-Gitlab-Event-UUID: teste-$(date +%s)" \
+  -H "X-Gitlab-Token: $STEEL_WEBHOOK_SECRET" \
+  -d '{"object_kind":"issue","project":{"path_with_namespace":"sua-empresa/seu-projeto"},"object_attributes":{"iid":42,"state":"closed","action":"close","title":"Erro no faturamento"}}'
+```
+
+## As respostas
+
+Uma entrega aceita responde `200`:
+
+```json
+{ "success": true, "statusCode": 200, "data": { "outcome": "state_updated", "state": "closed" } }
+```
+
+| `outcome` | Quando |
+| --- | --- |
+| `state_updated` | O item está vinculado a um chamado e o estado mudou |
+| `unlinked` | Assinatura válida, mas o item não está vinculado a nenhum chamado |
+| `duplicate` | Esta entrega já foi processada (mesmo id nas últimas 2 horas) |
+| `ignored` | Evento ou ação que não interessa (`ping`, edição, estado igual ao anterior) |
+
+| Status | Código | Causa |
+| --- | --- | --- |
+| `401` | `SD_INTEGRATION_SIGNATURE_INVALID` | Assinatura ou token não confere com o segredo de nenhuma conexão |
+| `403` | `MODULE_DISABLED` | O ServiceDesk foi desabilitado no workspace da conexão |
+| `422` | `VALIDATION_ERROR` | Corpo que não é JSON, ou sem `repository.full_name` / `project.path_with_namespace` |
+| `503` | `SD_INTEGRATION_NOT_CONFIGURED` | O repositório não está conectado a nenhum workspace, ou a conexão está sem segredo |
+| `413` | — | Corpo acima de 1 MB (texto puro, fora do envelope) |
+
+## Reentregas
+
+- O GitHub não reenvia sozinho; use **Redeliver** no _Recent Deliveries_. O
+  Steel reconhece a entrega pelo `X-GitHub-Delivery` e não repete o efeito.
+- O GitLab reenvia entregas que falharam. O Steel reconhece a entrega pelo
+  `X-Gitlab-Event-UUID` (ou `Idempotency-Key`).
+- Uma entrega que falhou do lado do Steel (`5xx`) pode ser reenviada: ela não
+  fica marcada como processada.
+
+## Problemas comuns
+
+- **`401` em toda entrega:** o segredo do repositório não é o mesmo do Steel.
+  Troque o segredo em **Ajustes › Integrações** e no repositório, ao mesmo tempo.
+- **`503 SD_INTEGRATION_NOT_CONFIGURED`:** o nome do repositório no Steel não é
+  o do payload (confira `dono/repositório`), ou a integração foi desconectada.
+- **`200` com `unlinked`:** a entrega está certa; falta vincular a issue ou o PR
+  ao chamado.

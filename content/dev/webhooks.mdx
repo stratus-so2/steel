@@ -1,0 +1,139 @@
+---
+title: Webhooks recebidos e enviados
+description: As URLs que o Steel recebe hoje, como cada uma verifica quem chama, o que responde, como lida com reenvios e o que o Steel envia para fora.
+section: webhooks
+order: 1
+---
+
+## Webhooks que o Steel recebe
+
+| URL | Quem chama | Verificação | Reenvio seguro por |
+| --- | --- | --- | --- |
+| `POST /api/crm/workflows/<token>/trigger` | O seu sistema | Token na URL | Não há: cada chamada é uma execução |
+| `POST /api/servicedesk/monitoring/<token>` | Zabbix ou o seu sistema | Token na URL | `externalId` do alerta |
+| `POST /api/crm/forms/<token>/submit` | O seu site | Token público do formulário | Leads em aberto com o mesmo contato |
+| `POST /api/integrations/github/webhook` | GitHub | HMAC `X-Hub-Signature-256` | `X-GitHub-Delivery` |
+| `POST /api/integrations/gitlab/webhook` | GitLab | `X-Gitlab-Token` | `X-Gitlab-Event-UUID` ou `Idempotency-Key` |
+| `POST /api/servicedesk/integrations/slack` | O app do Steel no Slack | `X-Slack-Signature` | Id do evento do Slack |
+| `POST /api/whatsapp/webhook/meta` | Meta (WhatsApp Cloud API) | HMAC `X-Hub-Signature-256` | Id da mensagem no provedor |
+| `POST /api/whatsapp/webhook/zapi` | Z-API | `secret` na query, por conexão | Id da mensagem no provedor |
+
+Todas respondem só depois de processar: um `2xx` quer dizer que o efeito já
+aconteceu (o chamado foi aberto, a execução rodou). Todas têm
+[limite de requisição](/dev/limites).
+
+### Workflow do CRM
+
+O gatilho **Webhook** de um workflow do CRM gera uma URL com token. O corpo
+JSON, qualquer objeto, vira o `triggerPayload` disponível para os nós do
+workflow. A resposta é a execução já processada, com `status` `COMPLETED`,
+`FAILED` ou `WAITING` (parada num formulário). Token desconhecido ou workflow
+inativo respondem `404 CRM_WORKFLOW_WEBHOOK_INVALID`.
+
+Passo a passo e exemplos: [Disparar workflow do CRM](/dev/guias/disparar-workflow).
+
+### Monitoramento do ServiceDesk
+
+Uma origem de monitoramento (Zabbix ou webhook genérico) abre um chamado quando
+um alerta chega com problema e encerra quando o alerta normaliza. O mesmo
+`externalId` nunca abre dois chamados. A resposta diz o que aconteceu em
+`outcome`: `ticket_created`, `ticket_reopened`, `alert_updated`,
+`ticket_resolved` ou `alert_resolved`.
+
+Passo a passo e exemplos: [Abrir chamado a partir do seu sistema](/dev/guias/abrir-chamado).
+
+### Formulários do CRM
+
+O envio de um formulário publicado cria o registro configurado nele (pessoa,
+empresa ou lead). O header `Referer` da requisição é gravado como origem.
+Exemplo em [Criar lead a partir do seu site](/dev/guias/criar-lead#opção-b-formulário-do-crm).
+
+### GitHub
+
+Conectado em **Ajustes › Integrações**, o GitHub avisa o Steel quando uma issue
+ou pull request vinculada a um chamado é fechada, reaberta ou mesclada. No
+repositório, o webhook usa:
+
+- **Payload URL:** `https://<seu-steel>/api/integrations/github/webhook`
+- **Content type:** `application/json`
+- **Secret:** o mesmo segredo de webhook cadastrado no Steel
+- **Eventos:** _Issues_ e _Pull requests_
+
+O Steel calcula o HMAC-SHA256 do **corpo bruto** com o segredo e compara, em
+tempo constante, com o `X-Hub-Signature-256`. Se vários workspaces conectaram o
+mesmo repositório, vale o que tiver o segredo que confere. O evento `ping` é
+aceito e ignorado. O endereço antigo `/api/servicedesk/integrations/github`
+continua funcionando, com o mesmo comportamento.
+
+### GitLab
+
+Mesmo comportamento do GitHub, com issues e merge requests, no gitlab.com ou numa
+instância própria. O GitLab não assina o corpo: o _Secret token_ do webhook chega
+em `X-Gitlab-Token` e é comparado em tempo constante.
+
+- **URL:** `https://<seu-steel>/api/integrations/gitlab/webhook`
+- **Secret token:** o mesmo segredo de webhook cadastrado no Steel
+- **Gatilhos:** _Issues events_ e _Merge request events_
+
+Configuração completa e respostas: [Receber eventos do GitHub e do GitLab](/dev/guias/eventos-github-gitlab).
+
+### Slack
+
+O endereço do Slack recebe eventos, atalhos de mensagem e o comando do app do
+Steel. Ele é cadastrado uma vez, no app do Steel, pela Stratus Telecom; o seu
+workspace só conecta o Slack em **Ajustes › Integrações**. Cada chamada é
+verificada pela assinatura `X-Slack-Signature` com o horário em
+`X-Slack-Request-Timestamp`.
+
+### WhatsApp (Meta e Z-API)
+
+As conexões de WhatsApp recebem mensagens e status de entrega por webhook:
+
+- **Meta:** uma URL para todas as conexões, `https://<seu-steel>/api/whatsapp/webhook/meta`,
+  verificada pelo HMAC `X-Hub-Signature-256` com o App Secret da Meta. A
+  conexão é achada pelo `phone_number_id` do evento.
+- **Z-API:** uma URL por conexão,
+  `https://<seu-steel>/api/whatsapp/webhook/zapi?secret=<segredo-da-conexão>`.
+  O segredo aparece uma vez, quando a conexão é criada.
+
+Respondem em texto puro, como os provedores esperam. O passo a passo da conexão
+está no [manual](/docs/comunicacao/conexoes).
+
+## Reenvios e idempotência
+
+Os provedores reenviam quando não recebem `2xx` a tempo, e o seu sistema pode
+repetir uma chamada depois de uma falha de rede. O Steel trata cada caso assim:
+
+- **GitHub, GitLab e Slack:** o id da entrega fica registrado por 2 horas. A
+  mesma entrega de novo responde `200` com `outcome: "duplicate"` e não repete o
+  efeito.
+- **WhatsApp:** cada mensagem é gravada uma vez, pelo id que o provedor dá a ela.
+- **Monitoramento:** o mesmo `externalId` atualiza o alerta existente. Sem
+  `externalId`, a chave é o hash de `host` com `subject`.
+- **Formulários e leads:** um lead em aberto com o mesmo e-mail ou telefone é
+  reaproveitado.
+- **Workflows:** **não** há deduplicação. Cada chamada inicia uma execução. Se o
+  seu sistema reenvia, mande um identificador próprio no corpo e trate a repetição
+  no workflow.
+
+Do seu lado, ao chamar o Steel:
+
+- Considere sucesso só um `2xx` com `success: true`.
+- Repita `429` depois do `Retry-After` e `5xx` com espera crescente.
+- Não repita `4xx` (fora o `429`): o pedido está errado e vai falhar de novo.
+
+## Webhooks que o Steel envia
+
+Hoje o Steel **não** envia webhooks para URLs suas. O que sai do Steel para
+outros sistemas é:
+
+- **Avisos no Slack:** regras "quando acontecer tal evento, publicar em tal
+  canal", em **Ajustes › Integrações** (chamado urgente aberto, novo lead,
+  negócio ganho ou perdido, conversa esperando resposta, aprovação pendente de
+  um Steel Agent, entre outros).
+- **Issues no GitHub e no GitLab:** abertas a partir de um chamado de problema ou
+  de mudança.
+- **E-mails** transacionais, de campanhas e do ServiceDesk.
+
+Precisa receber eventos do Steel no seu sistema? Escreva para o
+[suporte](/dev/suporte) contando o caso: isso ajuda a decidir o que vem a seguir.

@@ -1,0 +1,58 @@
+---
+title: Changelog da API
+description: O que mudou nas entradas de integração e na documentação da API do Steel, da mais recente para a mais antiga, e como acompanhar as próximas mudanças.
+section: recursos
+order: 1
+---
+
+## Como as mudanças chegam
+
+- **Versão:** o Steel usa versões por data (`AAAA.MM.DD`), a mesma do produto. A
+  versão da API aparece no topo da [referência](/dev/api).
+- **Compatibilidade:** campos novos podem aparecer nas respostas a qualquer
+  momento; o seu código deve ignorar campos que não conhece. Remover ou renomear
+  um campo, mudar um código de erro ou o comportamento de uma entrada de
+  integração é anunciado aqui antes.
+- **Produto:** as novidades de tela ficam no [changelog do produto](/changelog),
+  que também tem [RSS](/changelog/rss.xml).
+
+## 09/10/2026: site de desenvolvedores
+
+- Guias em `/dev`: começando, autenticação e chaves, formato de resposta e erros,
+  limites de requisição, paginação, webhooks e quatro guias por caso de uso.
+- A tabela de códigos de erro passa a ser gerada do registro central de erros da
+  API.
+- A referência da API passa a ser pública em `/dev/api`, sem as rotas internas de
+  operação. O endereço antigo `/reference` redireciona para ela.
+
+## 08/10/2026: GitHub e GitLab no workspace
+
+- Novas entradas `POST /api/integrations/github/webhook` e
+  `POST /api/integrations/gitlab/webhook`: o GitHub e o GitLab passam a ser
+  conectados uma vez por workspace, em **Ajustes › Integrações**.
+- GitLab (gitlab.com e self-managed), verificado por `X-Gitlab-Token` e
+  idempotente por `X-Gitlab-Event-UUID`.
+- O endereço anterior do GitHub, `POST /api/servicedesk/integrations/github`,
+  continua aceito, com o mesmo comportamento.
+
+## 02/10/2026: Slack e GitHub no ServiceDesk
+
+- Primeira versão do webhook do GitHub, com assinatura `X-Hub-Signature-256` e
+  idempotência por `X-GitHub-Delivery`.
+- Entrada do app do Slack (`POST /api/servicedesk/integrations/slack`) para abrir
+  chamados por atalho e espelhar respostas de thread.
+
+## 01/10/2026: chamados por monitoramento
+
+- Nova entrada `POST /api/servicedesk/monitoring/<token>`: abre, atualiza,
+  reabre e encerra chamados a partir do Zabbix ou de qualquer sistema, com
+  deduplicação por `externalId`.
+
+## 23/07/2026: integrações do CRM
+
+- Nova entrada `POST /api/crm/integrations/leads`, com chave de API
+  (`Authorization: Bearer crm_live_...`), deduplicação contra leads em aberto e
+  resposta `200` para lead existente.
+- Formulários públicos: `GET /api/crm/forms/<token>` e
+  `POST /api/crm/forms/<token>/submit`.
+- Gatilho **Webhook** dos workflows: `POST /api/crm/workflows/<token>/trigger`.

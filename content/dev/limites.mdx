@@ -1,0 +1,111 @@
+---
+title: Limites de requisição
+description: Quantas chamadas cada entrada aceita por minuto, como o limite é contado, o que vem no 429 com Retry-After e como repetir com segurança.
+section: fundamentos
+order: 3
+---
+
+## Os limites
+
+Os limites valem por janela fixa: o contador começa na primeira chamada e zera
+quando a janela termina.
+
+| Entrada | Limite | Contado por |
+| --- | --- | --- |
+| `POST /api/crm/integrations/leads` | 100 requisições a cada 60 segundos | Chave de API |
+| `GET /api/crm/forms/<token>` e `POST /api/crm/forms/<token>/submit` | 100 requisições a cada 60 segundos | Endereço IP de origem |
+| `POST /api/crm/workflows/<token>/trigger` | 100 requisições a cada 60 segundos | Endereço IP de origem |
+| `POST /api/servicedesk/monitoring/<token>` | 100 requisições a cada 60 segundos | Endereço IP de origem |
+| `POST /api/integrations/github/webhook` e `POST /api/integrations/gitlab/webhook` | 100 requisições a cada 60 segundos | Endereço IP de origem, por provedor |
+| `POST /api/whatsapp/webhook/meta` e `POST /api/whatsapp/webhook/zapi` | 120 eventos a cada 60 segundos | Conexão de WhatsApp |
+| Rotas com sessão (`/api/workspaces/<id>/...`) | 100 requisições a cada 60 segundos | Usuário, somando todas as rotas |
+| Envio de arquivo com sessão (anexos, mídia, imagens) | 10 envios de arquivo a cada 60 segundos | Usuário |
+| Login e verificação em duas etapas (`/api/auth/...`) | 10 tentativas a cada 15 minutos, com bloqueio de 30 minutos | Endereço IP e rota |
+
+<Callout type='nota'>
+  O formulário do CRM e o gatilho de workflow somam no **mesmo** contador por
+  IP. Um servidor que dispara workflows e envia formulários tem 100 chamadas por
+  minuto para os dois juntos.
+</Callout>
+
+## O que acontece no limite
+
+Passou do limite, a API responde `429` com o header `Retry-After` (em segundos)
+e o mesmo valor em `error.details.retryAfterSeconds`:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 23
+Content-Type: application/json
+
+{
+  "success": false,
+  "statusCode": 429,
+  "message": "Muitas requisições",
+  "error": {
+    "code": "RATE_LIMITED",
+    "details": { "retryAfterSeconds": 23 }
+  }
+}
+```
+
+A chamada recusada não é processada: nada foi gravado, e ela pode ser repetida
+depois do tempo indicado.
+
+## Como repetir com segurança
+
+Espere o `Retry-After` antes de repetir um `429`. Para `5xx` e falhas de rede,
+use espera exponencial com um teto de tentativas.
+
+```js
+async function postWithRetry(url, init, attempts = 5) {
+  for (let attempt = 1; ; attempt++) {
+    const response = await fetch(url, init)
+    const retryable = response.status === 429 || response.status >= 500
+    if (!retryable || attempt === attempts) return response
+
+    const retryAfter = Number(response.headers.get('Retry-After'))
+    const waitMs = retryAfter > 0 ? retryAfter * 1000 : 2 ** attempt * 500
+    await new Promise((resolve) => setTimeout(resolve, waitMs))
+  }
+}
+
+const response = await postWithRetry(`${process.env.STEEL_URL}/api/crm/integrations/leads`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.STEEL_CRM_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ name: 'Carlos Lima', emails: ['carlos@empresa.com.br'] }),
+})
+```
+
+Repetir é seguro nas entradas de integração:
+
+- **Leads:** um lead em aberto com o mesmo e-mail ou telefone é devolvido com
+  `200`, sem duplicar.
+- **Alertas de monitoramento:** o mesmo `externalId` atualiza o alerta e não abre
+  outro chamado.
+- **GitHub e GitLab:** a entrega é identificada pelo id do evento e processada
+  uma vez só.
+- **Workflows:** cada chamada **inicia uma nova execução**. Se o seu sistema
+  pode reenviar, inclua um identificador seu no corpo e trate a repetição no
+  próprio workflow (por exemplo, buscando o registro antes de criar).
+
+## Tamanho do corpo
+
+Além do número de chamadas, algumas entradas limitam o tamanho do corpo:
+
+| Entrada | Tamanho máximo | Acima disso |
+| --- | --- | --- |
+| `POST /api/servicedesk/monitoring/<token>` | 64 KB | `422 SD_MONITOR_PAYLOAD_INVALID` |
+| `POST /api/integrations/github/webhook` e `POST /api/integrations/gitlab/webhook` | 1 MB | `413`, em texto puro |
+
+## Para ficar longe do limite
+
+- Envie em lotes pequenos e espalhados, em vez de rajadas.
+- Se vários servidores seus saem pelo mesmo IP, eles dividem o mesmo contador nas
+  entradas contadas por IP.
+- Use uma chave de API por sistema: cada chave tem o seu contador.
+- Precisa de mais? Escreva para o [suporte](/dev/suporte) contando o volume e o
+  caso de uso.

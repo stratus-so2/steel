@@ -1,0 +1,112 @@
+---
+title: Formato de resposta e erros
+description: O envelope de toda resposta da API, o formato dos erros e a tabela completa de códigos, gerada do código-fonte do Steel.
+section: fundamentos
+order: 2
+---
+
+## O envelope
+
+Toda resposta JSON da API vem no mesmo envelope, com sucesso ou erro. O campo
+`statusCode` repete o status HTTP, para quem lê só o corpo.
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": { "id": "ckx3lead0000ab7d3k1e5xyz", "name": "Carlos Lima" }
+}
+```
+
+| Campo | Tipo | Quando |
+| --- | --- | --- |
+| `success` | boolean | Sempre. `true` em 2xx, `false` em erro |
+| `statusCode` | número | Sempre. Igual ao status HTTP |
+| `data` | qualquer | Só em sucesso. O que a rota devolve (objeto, lista ou `null`) |
+| `message` | texto | Opcional. Mensagem legível, em português |
+| `error.code` | texto | Só em erro. Código estável, em inglês |
+| `error.details` | objeto ou lista | Opcional. Detalhes do erro, quando há |
+
+## Erros
+
+```json
+{
+  "success": false,
+  "statusCode": 422,
+  "message": "Dados inválidos",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": [
+      {
+        "code": "too_small",
+        "path": ["name"],
+        "message": "Nome é obrigatório"
+      }
+    ]
+  }
+}
+```
+
+- **Trate pelo `error.code`**, nunca pela `message`. O código é contrato; a
+  mensagem é texto para pessoas e pode mudar.
+- **`VALIDATION_ERROR`** traz em `details` a lista de problemas do corpo ou da
+  query: `path` diz o campo, `message` o que está errado. JSON malformado também
+  é `VALIDATION_ERROR`, com a mensagem `Corpo inválido (JSON malformado)`.
+- **`RATE_LIMITED`** traz `details.retryAfterSeconds` e o header `Retry-After`.
+  Veja [Limites de requisição](/dev/limites).
+- Erros `5xx` são do lado do Steel ou de um serviço externo (e-mail, Meta,
+  GitHub). Pode tentar de novo com espera crescente.
+
+### Um tratador de erros completo
+
+```js
+async function callSteel(path, init = {}) {
+  const response = await fetch(`${process.env.STEEL_URL}/api${path}`, init)
+  const body = await response.json()
+  if (body.success) return body.data
+
+  const error = new Error(body.message ?? body.error.code)
+  error.status = body.statusCode
+  error.code = body.error.code
+  error.details = body.error.details
+  error.retryAfter = Number(response.headers.get('Retry-After')) || null
+  throw error
+}
+
+try {
+  const lead = await callSteel('/crm/integrations/leads', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.STEEL_CRM_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name: 'Carlos Lima', emails: ['carlos@empresa.com.br'] }),
+  })
+  console.log(lead.id)
+} catch (error) {
+  if (error.code === 'VALIDATION_ERROR') console.error(error.details)
+  else if (error.code === 'RATE_LIMITED') console.warn(`Tente em ${error.retryAfter}s`)
+  else throw error
+}
+```
+
+## Respostas fora do envelope
+
+Algumas rotas respondem no formato que o outro lado espera, e não no envelope:
+
+- **Login e sessão** (`/api/auth/...`): seguem o formato do provedor de
+  autenticação.
+- **Webhooks do WhatsApp** (`/api/whatsapp/webhook/meta` e
+  `/api/whatsapp/webhook/zapi`): respondem em texto puro, como a Meta e a Z-API
+  pedem.
+- **Webhooks do GitHub e do GitLab**: corpo acima de 1 MB recebe `413` em texto
+  puro, antes de qualquer verificação. O resto vem no envelope.
+
+## Códigos de erro
+
+A tabela abaixo é gerada a partir do registro central de erros do Steel, o mesmo
+que a API usa para responder. Um código novo aparece aqui no deploy em que passa
+a existir. A mensagem padrão é a de quando a rota não informa uma mais
+específica.
+
+<ErrorCodeTable />

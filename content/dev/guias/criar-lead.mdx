@@ -1,0 +1,245 @@
+---
+title: Criar lead a partir do seu site
+description: Leve os contatos do formulário do seu site para o CRM do Steel, com a chave de API ou com um formulário do próprio CRM, sem duplicar leads.
+section: guias
+order: 1
+---
+
+## Duas formas de fazer
+
+| | Opção A: chave de API | Opção B: formulário do CRM |
+| --- | --- | --- |
+| O formulário é | O seu, com os campos que quiser | Montado no CRM, com mapeamento de campos |
+| Quem chama o Steel | O seu servidor | O seu servidor, ou a página pública do Steel |
+| Cria | Lead | Lead, pessoa ou empresa (o que o formulário mandar) |
+| Rota | `POST /api/crm/integrations/leads` | `POST /api/crm/forms/<token>/submit` |
+
+Nas duas, o lead passa pelo mesmo caminho da criação manual: validação,
+bloqueio de duplicados, pontuação e roteamento para um dono.
+
+## Opção A: chave de API
+
+### 1. Crie a chave
+
+Peça a um administrador do workspace uma chave na tela **Chaves de API** do CRM
+(veja [Começando](/dev/comecando#crie-uma-chave-de-api)) e guarde-a no servidor
+do site:
+
+```bash
+export STEEL_URL="https://homologacao.stratustelecom.com.br"
+export STEEL_CRM_KEY="crm_live_..."
+```
+
+### 2. O formulário do site
+
+O formulário envia para o **seu** servidor, nunca direto para o Steel: a chave
+não pode ir para o navegador.
+
+```html
+<form method="post" action="/contato">
+  <input name="nome" required placeholder="Seu nome" />
+  <input name="email" type="email" required placeholder="E-mail" />
+  <input name="telefone" placeholder="Telefone" />
+  <input name="empresa" placeholder="Empresa" />
+  <button type="submit">Quero falar com vendas</button>
+</form>
+```
+
+### 3. O servidor repassa para o Steel
+
+**Node.js (Express):**
+
+```js
+import express from 'express'
+
+const app = express()
+app.use(express.urlencoded({ extended: false }))
+
+app.post('/contato', async (req, res) => {
+  const { nome, email, telefone, empresa } = req.body
+  const response = await fetch(`${process.env.STEEL_URL}/api/crm/integrations/leads`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.STEEL_CRM_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: nome,
+      emails: email ? [email] : [],
+      phones: telefone ? [telefone] : [],
+      company: empresa || undefined,
+      source: 'site',
+      channel: 'formulario-contato',
+    }),
+  })
+  const body = await response.json()
+
+  if (body.success) return res.redirect('/obrigado')
+  if (body.error.code === 'VALIDATION_ERROR') {
+    return res.status(400).send('Confira o nome e o e-mail.')
+  }
+  console.error('Steel respondeu', body.statusCode, body.error.code)
+  return res.status(502).send('Não conseguimos enviar agora. Tente de novo.')
+})
+
+app.listen(3000)
+```
+
+**Python (Flask):**
+
+```python
+import os
+import requests
+from flask import Flask, redirect, request
+
+app = Flask(__name__)
+
+@app.post("/contato")
+def contato():
+    form = request.form
+    lead = {
+        "name": form["nome"],
+        "emails": [form["email"]] if form.get("email") else [],
+        "phones": [form["telefone"]] if form.get("telefone") else [],
+        "source": "site",
+        "channel": "formulario-contato",
+    }
+    if form.get("empresa"):
+        lead["company"] = form["empresa"]
+
+    response = requests.post(
+        f"{os.environ['STEEL_URL']}/api/crm/integrations/leads",
+        headers={"Authorization": f"Bearer {os.environ['STEEL_CRM_KEY']}"},
+        json=lead,
+        timeout=10,
+    )
+    body = response.json()
+    if body["success"]:
+        return redirect("/obrigado")
+    if body["error"]["code"] == "VALIDATION_ERROR":
+        return "Confira o nome e o e-mail.", 400
+    app.logger.error("Steel respondeu %s %s", body["statusCode"], body["error"]["code"])
+    return "Não conseguimos enviar agora. Tente de novo.", 502
+```
+
+<Callout type='aviso'>
+  Campo opcional sem valor fica **fora** do corpo. `null` não é aceito nos
+  campos de texto e responde `422 VALIDATION_ERROR`.
+</Callout>
+
+### 4. Os campos
+
+| Campo | Tipo | Obrigatório | Observação |
+| --- | --- | --- | --- |
+| `name` | texto (até 200) | Sim | Nome do contato |
+| `emails` | lista de e-mails | Um e-mail **ou** um telefone | E-mails válidos |
+| `phones` | lista de textos (até 30 cada) | Um e-mail **ou** um telefone | Com DDI de preferência: `+5511999990000` |
+| `company` | texto (até 200) | Não | |
+| `jobTitle` | texto (até 150) | Não | Cargo |
+| `city` | texto (até 100) | Não | |
+| `linkedin` | texto (até 300) | Não | URL do perfil |
+| `source` | texto (até 100) | Não | Origem; sem ela, `integration` |
+| `channel` | texto (até 100) | Não | Canal; sem ele, `API` |
+
+### 5. As respostas
+
+- **`201`:** lead novo, com pontuação e dono.
+- **`200`:** já havia um lead **em aberto** com o mesmo e-mail ou telefone; a API
+  devolve esse lead e não cria outro. Um visitante que envia o formulário duas
+  vezes não vira dois leads.
+- **`401 CRM_INTEGRATION_KEY_INVALID`:** chave errada ou revogada.
+- **`422 VALIDATION_ERROR`:** veja `error.details` para saber o campo.
+- **`429 RATE_LIMITED`:** mais de 100 envios por minuto com a mesma chave.
+
+## Opção B: formulário do CRM
+
+Monte o formulário em **CRM › Formulários**, com o mapeamento de cada campo
+(para lead, pessoa ou empresa), e publique. O formulário ganha uma página pública
+em `https://<seu-steel>/f/<token>`, que você pode linkar do seu site (por
+segurança, as páginas do Steel não abrem dentro de `iframe` em outro domínio). O
+token é o último trecho dessa URL.
+
+Se preferir usar o seu próprio HTML, o seu servidor envia as respostas pela API.
+
+### 1. Leia a estrutura do formulário
+
+Os campos e as chaves (`key`) que o envio espera:
+
+```bash
+curl "$STEEL_URL/api/crm/forms/$STEEL_FORM_TOKEN"
+```
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "id": "ckw1form0000ab7d3k1e5xyz",
+    "name": "Solicite um orçamento",
+    "fields": [
+      { "key": "nome", "label": "Nome", "type": "text", "required": true },
+      { "key": "email", "label": "E-mail", "type": "email", "required": true },
+      { "key": "telefone", "label": "Telefone", "type": "phone", "required": false }
+    ],
+    "successMessage": "Obrigado! Entraremos em contato.",
+    "redirectUrl": null
+  }
+}
+```
+
+### 2. Envie as respostas
+
+`values` é um objeto com a `key` de cada campo. Campos `checkbox` levam `true` ou
+`false`; os demais, texto.
+
+```bash
+curl -X POST "$STEEL_URL/api/crm/forms/$STEEL_FORM_TOKEN/submit" \
+  -H "Content-Type: application/json" \
+  -H "Referer: https://www.suaempresa.com.br/orcamento" \
+  -d '{
+    "values": {
+      "nome": "Carlos Lima",
+      "email": "carlos@empresa.com.br",
+      "telefone": "+5511999990000"
+    }
+  }'
+```
+
+```js
+const response = await fetch(
+  `${process.env.STEEL_URL}/api/crm/forms/${process.env.STEEL_FORM_TOKEN}/submit`,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Referer: 'https://www.suaempresa.com.br/orcamento',
+    },
+    body: JSON.stringify({
+      values: { nome: 'Carlos Lima', email: 'carlos@empresa.com.br' },
+    }),
+  },
+)
+const body = await response.json()
+console.log(body.success ? `Envio ${body.data.id}` : body.error.code)
+```
+
+A resposta `201` traz o envio registrado, com o id do lead, da pessoa ou da
+empresa criada (`createdLeadId`, `createdPersonId`, `createdCompanyId`). O
+`Referer` fica gravado como a origem do envio.
+
+| Status | Código | Causa |
+| --- | --- | --- |
+| `404` | `RESOURCE_NOT_FOUND` | Token desconhecido ou formulário excluído |
+| `403` | `MODULE_DISABLED` | O CRM foi desabilitado no workspace do formulário |
+| `422` | `CRM_FORM_NOT_PUBLISHED` | O formulário não está publicado |
+| `422` | `VALIDATION_ERROR` | Corpo sem `values`, ou lead sem e-mail nem telefone |
+| `429` | `RATE_LIMITED` | Mais de 100 chamadas por minuto do mesmo IP |
+
+## Antes de ir para produção
+
+- Crie a chave (ou publique o formulário) **no ambiente de produção**: os de
+  homologação não valem lá.
+- Teste um envio repetido e confirme que a segunda resposta é `200`.
+- Registre `error.code` e `statusCode` quando a resposta não for sucesso.
+- Combine com o time comercial os valores de `source` e `channel`, que aparecem
+  nos relatórios do CRM.

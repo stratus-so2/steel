@@ -1,0 +1,179 @@
+---
+title: Abrir chamado a partir do seu sistema
+description: Abra, atualize e encerre chamados do ServiceDesk a partir de um ERP, um monitoramento ou qualquer sistema, com uma URL com token e sem chamados duplicados.
+section: guias
+order: 2
+---
+
+## Como funciona
+
+O ServiceDesk recebe eventos de outros sistemas por uma **origem de
+monitoramento**: uma URL com token, `POST /api/servicedesk/monitoring/<token>`,
+que aceita um JSON simples. Cada evento tem um identificador seu (`externalId`):
+
+- **Problema novo** abre um chamado, com tipo, departamento, categoria e cliente
+  definidos na origem e prioridade pelo mapa de severidade.
+- **O mesmo `externalId` de novo** atualiza o alerta, sem abrir outro chamado.
+- **Normalizado** (`status: "RESOLVED"`) encerra o alerta e, se a origem estiver
+  configurada para isso, leva o chamado para a fase de resolvido.
+- **O mesmo problema voltando** dentro da janela de instabilidade reabre o
+  chamado anterior em vez de abrir outro.
+
+Os chamados entram com o canal **API**, e o `host` informado é ligado ao item de
+configuração (CMDB) de mesmo nome, código ou IP.
+
+## 1. Crie a origem
+
+<Callout type='admin'>
+  Quem administra o ServiceDesk (dono, administrador ou um perfil com edição das
+  configurações do ServiceDesk) cria as origens.
+</Callout>
+
+1. Em **ServiceDesk › Configurações › Monitoramento**, clique em **Nova origem**.
+2. Em **Ferramenta**, escolha **Webhook genérico**.
+3. Defina o **Tipo do chamado** (incidente, requisição, mudança ou problema) e,
+   se quiser, **Departamento**, **Categoria** e cliente padrão.
+4. Monte o mapa de severidade: cada severidade que o seu sistema manda (por
+   exemplo, `high`) aponta para uma prioridade do ServiceDesk.
+5. Deixe **Encerrar o chamado quando o alerta normalizar** ligado se o seu
+   sistema avisa quando o problema acaba.
+6. Salve e **copie a URL do webhook**: ela aparece uma única vez. Perdeu? Use
+   **Gerar token**, e a URL anterior para de funcionar.
+
+```bash
+export STEEL_MONITOR_URL="https://homologacao.stratustelecom.com.br/api/servicedesk/monitoring/<token>"
+```
+
+<Callout type='aviso'>
+  Qualquer um com essa URL abre chamados no seu workspace. Guarde-a como uma
+  senha, no servidor.
+</Callout>
+
+## 2. Abra um chamado
+
+```bash
+curl -X POST "$STEEL_MONITOR_URL" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "externalId": "erp-pedido-1042",
+    "status": "PROBLEM",
+    "severity": "high",
+    "host": "erp-01",
+    "subject": "Pedido 1042 travado no faturamento",
+    "body": "A nota fiscal do pedido 1042 foi recusada pela SEFAZ (rejeição 539).",
+    "tags": ["erp", "faturamento"]
+  }'
+```
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "alertId": "ckx3alrt0000ab7d3k1e5xyz",
+    "status": "OPEN",
+    "outcome": "ticket_created",
+    "ticket": { "id": "ckx3tckt0000ab7d3k1e5xyz", "number": 42, "code": "INC-000042" }
+  }
+}
+```
+
+Guarde o `ticket.code` se quiser mostrá-lo no seu sistema.
+
+## 3. Encerre quando o problema acabar
+
+Mande o **mesmo** `externalId` com `status: "RESOLVED"`:
+
+```bash
+curl -X POST "$STEEL_MONITOR_URL" \
+  -H "Content-Type: application/json" \
+  -d '{ "externalId": "erp-pedido-1042", "status": "RESOLVED", "subject": "Pedido 1042 faturado" }'
+```
+
+Com o encerramento automático ligado, a resposta vem com
+`outcome: "ticket_resolved"` e o chamado vai para a fase de resolvido com uma
+solução automática. Se a fase exigir algo que só uma pessoa preenche (campos
+obrigatórios, aprovação, classificação da solução), o chamado fica onde está, uma
+mensagem pública registra que o alerta normalizou, e a resposta vem com
+`outcome: "alert_resolved"`.
+
+## O mesmo fluxo em JavaScript e Python
+
+```js
+// Node.js 18+
+export async function reportToSteel(event) {
+  const response = await fetch(process.env.STEEL_MONITOR_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(event),
+  })
+  const body = await response.json()
+  if (!body.success) throw new Error(`${body.statusCode} ${body.error.code}`)
+  return body.data // { alertId, status, outcome, ticket }
+}
+
+await reportToSteel({
+  externalId: 'erp-pedido-1042',
+  status: 'PROBLEM',
+  severity: 'high',
+  subject: 'Pedido 1042 travado no faturamento',
+})
+```
+
+```python
+import os
+import requests
+
+def report_to_steel(event: dict) -> dict:
+    response = requests.post(os.environ["STEEL_MONITOR_URL"], json=event, timeout=10)
+    body = response.json()
+    if not body["success"]:
+        raise RuntimeError(f"{body['statusCode']} {body['error']['code']}")
+    return body["data"]
+
+report_to_steel({
+    "externalId": "erp-pedido-1042",
+    "status": "RESOLVED",
+    "subject": "Pedido 1042 faturado",
+})
+```
+
+## Os campos
+
+| Campo | Obrigatório | O que faz |
+| --- | --- | --- |
+| `subject` | Sim (ou `body`) | Título do chamado; só a primeira linha, até 200 caracteres. Sem ele, vale a primeira linha de `body` |
+| `externalId` | Recomendado | Seu identificador do evento, até 200 caracteres. Sem ele, o Steel usa um hash de `host` com `subject` |
+| `status` | Não | `PROBLEM` ou `FIRING` abrem; `OK` ou `RESOLVED` encerram. Sem `status`, é problema |
+| `severity` | Não | Procurada no mapa de severidade da origem (sem diferenciar maiúsculas) |
+| `host` | Não | Liga o chamado ao item de configuração de mesmo nome, código ou IP |
+| `body` | Não | Descrição do chamado, até 8.000 caracteres |
+| `tags` | Não | Lista de textos ou texto separado por vírgulas, até 20 |
+| `startedAt` | Não | Início do problema: data ISO 8601 ou epoch em segundos/milissegundos |
+
+O corpo vai até 64 KB. A [referência](/dev/api) lista também os nomes que o
+Zabbix usa (`eventId`, `eventName`, `hostName`...), aceitos no mesmo endereço.
+
+## As respostas
+
+| `outcome` | Quando |
+| --- | --- |
+| `ticket_created` | Problema novo: chamado aberto |
+| `ticket_reopened` | O mesmo problema voltou dentro da janela de instabilidade |
+| `alert_updated` | O problema já estava aberto: o alerta foi atualizado |
+| `ticket_resolved` | Normalizou e o chamado foi para a fase de resolvido |
+| `alert_resolved` | Normalizou, mas o chamado ficou para uma pessoa resolver (ou não havia chamado) |
+
+| Status | Código | Causa |
+| --- | --- | --- |
+| `401` | `SD_MONITOR_TOKEN_INVALID` | Token errado, gerado de novo ou origem desativada |
+| `403` | `MODULE_DISABLED` | O ServiceDesk foi desabilitado no workspace |
+| `422` | `SD_MONITOR_PAYLOAD_INVALID` | JSON malformado, sem `subject` nem `body`, ou acima de 64 KB |
+| `429` | `RATE_LIMITED` | Mais de 100 chamadas por minuto do mesmo IP |
+
+## E se for uma pessoa pedindo?
+
+A origem de monitoramento é para eventos de sistema. Pedidos de pessoas chegam
+melhor pelos canais do ServiceDesk, que identificam o solicitante: e-mail,
+WhatsApp, Slack e o portal do solicitante. Veja
+[Canais e automações](/docs/servicedesk/canais-e-automacoes) no manual.
