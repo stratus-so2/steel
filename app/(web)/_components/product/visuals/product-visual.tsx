@@ -245,7 +245,7 @@ function ListVisual({ visual }: { visual: Of<'list'> }) {
 
 function KanbanVisual({ visual }: { visual: Of<'kanban'> }) {
   return (
-    <div className='grid auto-cols-[minmax(9rem,1fr)] grid-flow-col gap-2.5 overflow-hidden'>
+    <div className='grid auto-cols-[minmax(7.5rem,1fr)] grid-flow-col gap-2.5 overflow-hidden'>
       {visual.columns.map((column) => (
         <div
           key={column.title}
