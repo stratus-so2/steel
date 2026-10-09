@@ -1,3 +1,5 @@
+import type { EmailBuilderDocument } from '@/src/schemas/crm-email-builder.schema'
+
 export interface CrmEmailTemplateDTO {
   id: string
   name: string
@@ -6,6 +8,10 @@ export interface CrmEmailTemplateDTO {
   contentJson: string | null
   templateId: string | null
   templateProps: Record<string, string> | null
+  /** LEGACY = free HTML/old layout; BUILDER = visual editor document. */
+  kind: 'LEGACY' | 'BUILDER'
+  builderDocument: EmailBuilderDocument | null
+  contentText: string | null
   workspaceId: string
   createdById: string
   updatedById: string | null
@@ -41,6 +47,9 @@ export interface CrmEmailCampaignDTO {
   skippedCount: number
   scheduledAt: string | null
   sentAt: string | null
+  /** Visual-builder template the campaign was rendered from. */
+  templateId: string | null
+  campaignLink: string | null
   workspaceId: string
   createdById: string
   createdAt: string
@@ -94,4 +103,33 @@ export interface CrmEmailOptOutDTO {
 export interface CrmEmailUnsubscribeResultDTO {
   email: string
   alreadyOptedOut: boolean
+}
+
+/** Workspace branding of the visual e-mail builder (resolved with defaults). */
+export interface CrmEmailBrandDTO {
+  companyName: string
+  logoUrl: string
+  primaryColor: string
+  address: string
+  website: string
+  /** `false` while the workspace never saved a brand (defaults shown). */
+  saved: boolean
+  updatedAt: string | null
+}
+
+/** A builder template rendered for one contact. */
+export interface CrmEmailRenderDTO {
+  subject: string
+  html: string
+  text: string
+}
+
+/** Quick picks of the link picker: published landing pages and forms. */
+export interface CrmEmailLinkTargetsDTO {
+  landingPages: { id: string; title: string; url: string }[]
+  forms: { id: string; name: string; url: string }[]
+}
+
+export interface CrmEmailTestSendDTO {
+  to: string
 }

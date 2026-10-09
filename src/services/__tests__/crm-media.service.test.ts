@@ -8,6 +8,7 @@ vi.mock('@/lib/axiom/logger', () => ({
 
 import { logger } from '@/lib/axiom/logger'
 import { ensurePublicBucket, putObject } from '@/src/lib/storage/s3'
+import { persistCrmEmailImage } from '../media/crm-email-media.service'
 import {
   persistCrmLandingPageImage,
   persistCrmLandingPageVideo,
@@ -46,6 +47,12 @@ describe.each([
     persistCrmProposalImage,
     'crm-proposal-images',
     'crm_proposal_media.persist_failed',
+  ],
+  [
+    'persistCrmEmailImage',
+    persistCrmEmailImage,
+    'crm-email-images',
+    'crm_email_media.persist_failed',
   ],
 ] as const)('%s()', (_name, persist, bucket, failureEvent) => {
   it('should store a supported image in its public bucket', async () => {

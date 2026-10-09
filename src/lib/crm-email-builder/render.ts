@@ -7,6 +7,17 @@ import { applyVariables, type EmailVariableValues } from './variables'
 
 export type RenderedEmail = { subject: string; html: string; text: string }
 
+/** html-to-text uppercases headings by default, which would turn
+ * `{{primeiro_nome}}` into an unknown `{{PRIMEIRO_NOME}}`. */
+const HEADING_SELECTORS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].map(
+  (selector) => ({ selector, options: { uppercase: false } }),
+)
+
+/** Plain-text version of e-mail HTML (keeps variables intact). */
+export function emailHtmlToText(html: string): string {
+  return toPlainText(html, { selectors: HEADING_SELECTORS })
+}
+
 /**
  * Renders a builder document to e-mail HTML + plain text with
  * `@react-email/render`. Variables stay as `{{key}}` — personalize the
@@ -25,7 +36,7 @@ export async function renderBuilderEmail(
     preview: options.preview ?? false,
   })
   const html = await render(element)
-  return { subject: options.subject, html, text: toPlainText(html) }
+  return { subject: options.subject, html, text: emailHtmlToText(html) }
 }
 
 /** Resolves the variables of an already-rendered e-mail for one contact. */

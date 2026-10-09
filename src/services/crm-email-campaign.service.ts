@@ -4,6 +4,11 @@ import {
   crmEmailCampaignAlreadySent,
   crmEmailCampaignNoRecipients,
 } from '@/src/errors'
+import { personalizeEmail } from '@/src/lib/crm-email-builder/render'
+import {
+  contactToVariables,
+  UNSUBSCRIBE_URL,
+} from '@/src/lib/crm-email-builder/variables'
 import {
   buildCrmUnsubscribeHeaders,
   buildCrmUnsubscribeUrls,
@@ -16,6 +21,10 @@ import {
   toCrmEmailCampaignDTO,
   toCrmEmailCampaignRecipientDTO,
 } from '@/src/mappers/crm-email-marketing.mapper'
+import {
+  CrmEmailBuilderRepository,
+  type PersonalizationContact,
+} from '@/src/repositories/crm-email-builder.repository'
 import {
   CrmEmailCampaignRecipientRepository,
   CrmEmailCampaignRepository,
@@ -35,6 +44,7 @@ import type {
   CrmEmailCampaignRecipientDTO,
 } from '@/types/crm-email-marketing'
 import { assertModuleMember } from './authz'
+import { renderTemplateForCampaign } from './crm-email-builder.service'
 import { notifyCrmCampaignFinished } from './crm-notifications'
 
 export const CrmEmailCampaignService = {
@@ -113,11 +123,29 @@ export const CrmEmailCampaignService = {
       )
     }
 
+    // A visual-builder template is rendered once here (variables intact)
+    // and cached on the campaign; each recipient is personalized at send.
+    let content = {
+      html: dto.contentHtml ?? '',
+      text: undefined as string | undefined,
+    }
+    if (dto.templateId) {
+      const rendered = await renderTemplateForCampaign(
+        dto.templateId,
+        workspaceId,
+      )
+      if (!rendered.ok) return rendered
+      content = { html: rendered.value.html, text: rendered.value.text }
+    }
+
     const result = await CrmEmailCampaignRepository.create({
       workspaceId,
       createdById: actorId,
       subject: dto.subject,
-      contentHtml: dto.contentHtml,
+      contentHtml: content.html,
+      contentText: content.text,
+      templateId: dto.templateId,
+      campaignLink: dto.campaignLink,
       contentJson: dto.contentJson,
       fromAddress: dto.fromAddress,
       recipientScope: dto.recipientScope,
@@ -258,6 +286,12 @@ export const CrmEmailCampaignService = {
 
     await CrmEmailCampaignRepository.setStatus(campaignId, 'SENDING')
 
+    const contacts = await loadPersonalizationContacts(
+      workspaceId,
+      campaign.value,
+      recipients.value,
+    )
+
     let failures = 0
     let skipped = 0
     for (const recipient of recipients.value) {
@@ -273,14 +307,18 @@ export const CrmEmailCampaignService = {
           BETTER_AUTH_URL,
           createCrmUnsubscribeToken(recipient.id),
         )
+        const email = buildRecipientEmail(
+          campaign.value,
+          recipient,
+          contacts,
+          urls.pageUrl,
+        )
         const response = await sendEmail({
           from: campaign.value.fromAddress,
           to: recipient.email,
-          subject: campaign.value.subject,
-          html: withCrmUnsubscribeFooter(
-            campaign.value.contentHtml,
-            urls.pageUrl,
-          ),
+          subject: email.subject,
+          html: email.html,
+          text: email.text,
           headers: buildCrmUnsubscribeHeaders(urls),
         })
         await CrmEmailCampaignRecipientRepository.markSent(
@@ -328,6 +366,79 @@ export const CrmEmailCampaignService = {
 
     return ok(toCrmEmailCampaignDTO(result.value))
   },
+}
+
+type CampaignContent = {
+  subject: string
+  contentHtml: string
+  contentText: string | null
+  campaignLink: string | null
+}
+
+function usesVariables(campaign: CampaignContent): boolean {
+  return [
+    campaign.subject,
+    campaign.contentHtml,
+    campaign.contentText ?? '',
+  ].some((part) => part.includes('{{'))
+}
+
+/** CRM people behind the recipients, only when the content has variables.
+ * A failed lookup degrades to name/e-mail only — never blocks the send. */
+async function loadPersonalizationContacts(
+  workspaceId: string,
+  campaign: CampaignContent,
+  recipients: { personId: string | null }[],
+): Promise<Map<string, PersonalizationContact>> {
+  if (!usesVariables(campaign)) return new Map()
+  const ids = [
+    ...new Set(recipients.flatMap((r) => (r.personId ? [r.personId] : []))),
+  ]
+  const people = await CrmEmailBuilderRepository.findContacts(workspaceId, ids)
+  if (!people.ok) return new Map()
+  return new Map(people.value.map((person) => [person.id, person]))
+}
+
+/** Subject/html/text for one recipient: variables resolved and the
+ * unsubscribe link inline (builder footer) or appended (legacy HTML). */
+function buildRecipientEmail(
+  campaign: CampaignContent,
+  recipient: { email: string; name: string | null; personId: string | null },
+  contacts: Map<string, PersonalizationContact>,
+  unsubscribeUrl: string,
+): { subject: string; html: string; text?: string } {
+  const html = campaign.contentHtml.includes(UNSUBSCRIBE_URL)
+    ? campaign.contentHtml
+    : withCrmUnsubscribeFooter(campaign.contentHtml, unsubscribeUrl)
+  if (!usesVariables(campaign)) {
+    return {
+      subject: campaign.subject,
+      html,
+      text: campaign.contentText ?? undefined,
+    }
+  }
+  const person = recipient.personId
+    ? contacts.get(recipient.personId)
+    : undefined
+  const values = contactToVariables(
+    {
+      email: recipient.email,
+      name: recipient.name ?? person?.name ?? undefined,
+      company: person?.companyName ?? undefined,
+      jobTitle: person?.jobTitle ?? undefined,
+      phone: person?.phones[0],
+      city: person?.city ?? undefined,
+    },
+    {
+      campaignLink: campaign.campaignLink ?? undefined,
+      unsubscribeUrl,
+    },
+  )
+  const email = personalizeEmail(
+    { subject: campaign.subject, html, text: campaign.contentText ?? '' },
+    values,
+  )
+  return { ...email, text: campaign.contentText ? email.text : undefined }
 }
 
 type Recipient = { email: string; name?: string; personId?: string }

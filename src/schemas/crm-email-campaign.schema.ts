@@ -3,8 +3,16 @@ import z from 'zod'
 export const CreateCrmEmailCampaignSchema = z
   .object({
     subject: z.string().min(1, 'Assunto é obrigatório').max(300),
-    contentHtml: z.string().min(1, 'Conteúdo é obrigatório').max(200_000),
+    // Free HTML, or rendered from a visual-builder template (`templateId`).
+    contentHtml: z
+      .string()
+      .min(1, 'Conteúdo é obrigatório')
+      .max(200_000)
+      .optional(),
     contentJson: z.string().max(200_000).optional(),
+    templateId: z.string().min(1).optional(),
+    // Tracked URL that replaces `{{campaign_link}}` at send time.
+    campaignLink: z.url().max(2000).optional(),
     fromAddress: z.email(),
     recipientScope: z.enum(['ALL', 'SELECTED']),
     // Quando SELECTED, os três conjuntos abaixo são unidos (dedupe por
@@ -28,6 +36,10 @@ export const CreateCrmEmailCampaignSchema = z
       path: ['recipientScope'],
     },
   )
+  .refine((data) => Boolean(data.contentHtml) || Boolean(data.templateId), {
+    message: 'Conteúdo é obrigatório',
+    path: ['contentHtml'],
+  })
 
 export type CreateCrmEmailCampaignDTO = z.infer<
   typeof CreateCrmEmailCampaignSchema

@@ -1,12 +1,15 @@
 import { createId } from '@paralleldrive/cuid2'
 import type {
+  CrmEmailBrand,
   CrmEmailCampaign,
   CrmEmailCampaignRecipient,
   CrmEmailTemplate,
   CrmMailingList,
   CrmMailingListMember,
 } from '@prisma/client'
+import { createBuilderDocument } from '@/src/lib/crm-email-builder/layouts'
 import { prisma } from '@/src/lib/prisma'
+import type { EmailBuilderLayoutId } from '@/src/schemas/crm-email-builder.schema'
 
 export function createFakeCrmEmailTemplate(
   overrides?: Partial<CrmEmailTemplate>,
@@ -176,5 +179,76 @@ export async function seedCrmMailingListMember(
 ) {
   return prisma.crmMailingListMember.create({
     data: { mailingListId, email: 'seed@acme.com', ...overrides },
+  })
+}
+
+/** BUILDER template (visual editor) with the layout's default document. */
+export function createFakeCrmEmailBuilderTemplate(
+  layout: EmailBuilderLayoutId = 'newsletter',
+  overrides?: Partial<CrmEmailTemplate>,
+): CrmEmailTemplate {
+  return createFakeCrmEmailTemplate({
+    kind: 'BUILDER',
+    builderDocument: createBuilderDocument(layout),
+    contentHtml: '<html>{{unsubscribe_url}}</html>',
+    contentText: 'Descadastrar {{unsubscribe_url}}',
+    subject: 'Oi {{primeiro_nome}}',
+    ...overrides,
+  })
+}
+
+export async function seedCrmEmailBuilderTemplate(
+  workspaceId: string,
+  createdById: string,
+  layout: EmailBuilderLayoutId = 'newsletter',
+) {
+  return prisma.crmEmailTemplate.create({
+    data: {
+      name: 'Builder',
+      subject: 'Oi {{primeiro_nome}}',
+      contentHtml: '<html>{{unsubscribe_url}}</html>',
+      kind: 'BUILDER',
+      builderDocument: createBuilderDocument(layout),
+      workspaceId,
+      createdById,
+    },
+  })
+}
+
+export function createFakeCrmEmailBrand(
+  overrides?: Partial<CrmEmailBrand>,
+): CrmEmailBrand {
+  const now = new Date()
+  return {
+    id: createId(),
+    workspaceId: createId(),
+    companyName: 'Acme',
+    logoUrl: '',
+    primaryColor: '#2893CC',
+    address: 'Rua das Flores, 10',
+    website: 'https://acme.com.br',
+    updatedById: null,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
+
+export async function seedCrmEmailBrand(
+  workspaceId: string,
+  overrides?: Partial<
+    Pick<
+      CrmEmailBrand,
+      'companyName' | 'logoUrl' | 'primaryColor' | 'address' | 'website'
+    >
+  >,
+) {
+  return prisma.crmEmailBrand.create({
+    data: {
+      workspaceId,
+      companyName: 'Acme',
+      primaryColor: '#2893CC',
+      ...overrides,
+    },
   })
 }
