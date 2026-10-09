@@ -21,6 +21,7 @@ const SEGMENTS = [
   'forms',
   'custom-fields',
   'email-templates',
+  'campaigns',
   'email-campaigns',
   'mailing-lists',
   'landing-pages',

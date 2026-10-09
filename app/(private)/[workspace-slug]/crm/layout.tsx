@@ -102,8 +102,11 @@ export default async function CrmLayout({
         </NavGroup>
         <NavGroup>
           <NavGroupAccordion label='Marketing' icon={MegaphoneIcon}>
-            <NavItem href={`${base}/email-campaigns`} icon={MailSend01Icon}>
+            <NavItem href={`${base}/campaigns`} icon={Megaphone01Icon}>
               Campanhas
+            </NavItem>
+            <NavItem href={`${base}/email-campaigns`} icon={MailSend01Icon}>
+              E-mail avulso
             </NavItem>
             <NavItem href={`${base}/email-templates`} icon={Mail01Icon}>
               Templates
