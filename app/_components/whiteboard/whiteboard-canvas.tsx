@@ -270,12 +270,15 @@ export default function WhiteboardCanvas({
         appState: next.scene.appState as never,
         captureUpdate: CaptureUpdateAction.NEVER,
       })
+      // What Excalidraw normalized on load is the new baseline, not an edit.
+      const loaded = currentScene()
+      if (loaded) savedSignature.current = sceneSignature(loaded)
       const files = await loadFiles(workspaceId, next.scene)
       for (const file of files) uploaded.current.add(file.id)
       if (files.length) api.addFiles(files)
       emit({ status: canEditRef.current ? 'saved' : 'readonly' })
     },
-    [api, emit, workspaceId],
+    [api, currentScene, emit, workspaceId],
   )
 
   const reload = useCallback(async () => {
@@ -284,6 +287,17 @@ export default function WhiteboardCanvas({
     const body = (await res.json()) as { data: WhiteboardDTO }
     if (body.data.revision !== revision.current) await applyBoard(body.data)
   }, [applyBoard, board.id, workspaceId])
+
+  // Opening a board restores and scrolls it to its content: that first
+  // normalized scene is the saved state, not an edit worth a new revision.
+  useEffect(() => {
+    if (!api) return
+    const timer = setTimeout(() => {
+      const loaded = currentScene()
+      if (loaded) savedSignature.current = sceneSignature(loaded)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [api, currentScene])
 
   // Images of the first scene (the scene itself comes via initialData).
   useEffect(() => {
