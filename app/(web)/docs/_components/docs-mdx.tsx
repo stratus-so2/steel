@@ -63,7 +63,7 @@ function Img({ alt = '', ...props }: ComponentProps<'img'>) {
 function Table(props: ComponentProps<'table'>) {
   // Wide tables scroll inside their own box instead of the page.
   return (
-    <div className='my-6 w-full overflow-x-auto'>
+    <div className='relative my-6 w-full overflow-x-auto'>
       <table {...props} className='my-0' />
     </div>
   )

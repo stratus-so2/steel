@@ -116,7 +116,7 @@ function ComparisonBlockView({
         {block.title}
       </h3>
 
-      <div className='w-full overflow-x-auto'>
+      <div className='relative w-full overflow-x-auto'>
         <table className='w-full min-w-[640px] border-collapse text-sm'>
           <caption className='sr-only'>
             Recursos: Steel e {block.competitors.map((c) => c.name).join(', ')}
@@ -160,7 +160,7 @@ function ComparisonBlockView({
         </table>
       </div>
 
-      <div className='w-full overflow-x-auto'>
+      <div className='relative w-full overflow-x-auto'>
         <table className='w-full min-w-[640px] border-collapse text-sm'>
           <caption className='sr-only'>Preços de lista</caption>
           <thead>

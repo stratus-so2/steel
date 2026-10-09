@@ -33,9 +33,12 @@ describe('public docs, developer site and pricing', () => {
     expect(html).toContain('Nesta página')
   })
 
-  it('answers 404 for an unknown manual page', async () => {
-    const { res } = await page('/docs/crm/nao-existe')
-    expect(res.status).toBe(404)
+  it('renders the not-found page, out of the index, for an unknown page', async () => {
+    // Like /changelog/<slug>: with partial prerendering the status is sent
+    // with the shell, so the miss is signalled by the page and noindex.
+    const { html } = await page('/docs/crm/nao-existe')
+    expect(html).toContain('<title>Página não encontrada | Steel</title>')
+    expect(html).toMatch(/<meta name="robots" content="noindex/)
   })
 
   it('serves the developer landing and the API reference', async () => {

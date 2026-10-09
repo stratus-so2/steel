@@ -63,7 +63,7 @@ export function PricingCardPlan({
               <h5 className='text-2xl font-medium'>Sob consulta</h5>
             )}
           </div>
-          <Muted className='text-sm'>{description}</Muted>
+          <Muted className='text-sm xl:min-h-15'>{description}</Muted>
           <div className='flex flex-col gap-2'>
             {plan === 'FREE' ? (
               <Button
