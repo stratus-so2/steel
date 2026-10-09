@@ -134,6 +134,7 @@ export function WorkflowRunsDrawer({
                     ))}
                   </ul>
                 )}
+                {run.status === 'WAITING' && <DelayNotice run={run} />}
                 {run.status === 'WAITING' && (
                   <ResumeForm
                     workspaceId={workspaceId}
@@ -147,6 +148,19 @@ export function WorkflowRunsDrawer({
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+/** A run paused on an "Atraso" step continues by itself at `resumeAt`. */
+export function DelayNotice({ run }: { run: CrmWorkflowRunDTO }) {
+  const step = run.steps?.find((s) => s.id === run.waitingStepId)
+  const resumeAt = (step?.output as { resumeAt?: string } | null)?.resumeAt
+  if (step?.nodeType !== 'delay' || !resumeAt) return null
+  return (
+    <p className='mt-2 text-muted-foreground text-xs'>
+      Aguardando o atraso. Continua sozinha em{' '}
+      {new Date(resumeAt).toLocaleString('pt-BR')}.
+    </p>
   )
 }
 
