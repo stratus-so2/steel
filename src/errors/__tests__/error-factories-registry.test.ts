@@ -44,6 +44,9 @@ describe('AppError factories — registry contract', () => {
       'Mensagem de teste',
       new Date('2026-10-09T03:00:00.000Z'),
     ],
+    whiteboardLocked: [
+      { name: 'Ana', until: new Date('2026-10-09T03:00:00.000Z') },
+    ],
   }
 
   it.each(entries)(

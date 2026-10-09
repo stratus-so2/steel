@@ -44,6 +44,10 @@ model User {
   updatedWikiPages         WikiPage[]                  @relation("WikiPageEditor")
   wikiComments             WikiComment[]               @relation("WikiCommentAuthor")
   resolvedWikiComments     WikiComment[]               @relation("WikiCommentResolver")
+  createdWhiteboards       Whiteboard[]                @relation("WhiteboardAuthor")
+  updatedWhiteboards       Whiteboard[]                @relation("WhiteboardEditor")
+  lockedWhiteboards        Whiteboard[]                @relation("WhiteboardLockHolder")
+  whiteboardVersions       WhiteboardVersion[]         @relation("WhiteboardVersionAuthor")
   consentEvents            ConsentEvent[]
   projectsLed              Project[]                   @relation("ProjectLead")
   projectMemberships       ProjectMember[]
@@ -382,6 +386,9 @@ model Workspace {
   suspendedById   String?         @map("suspended_by_id")
   /// Wiki do workspace: desligada até um OWNER/ADMIN ativar em Ajustes > Wiki.
   wikiEnabled     Boolean         @default(false) @map("wiki_enabled")
+  /// Quadro-branco (Excalidraw): ligado por padrão; OWNER/ADMIN desliga em
+  /// Ajustes > Quadro-branco.
+  whiteboardEnabled Boolean       @default(true) @map("whiteboard_enabled")
   /// Logo público (bucket `workspace-logos`, chave `<id>/logo-<uuid>.<ext>`),
   /// editado em Ajustes > Geral. `null` = sem logo (a UI mostra a inicial).
   logoUrl         String?         @map("logo_url")
@@ -394,6 +401,7 @@ model Workspace {
   projects        Project[]
   wikiPages       WikiPage[]
   wikiLabels      WikiLabel[]
+  whiteboards     Whiteboard[]
 
   invitations       WorkspaceInvitation[]
   moduleConnections WorkspaceModuleConnection[]
@@ -6973,4 +6981,73 @@ model WorkspaceExport {
   @@index([workspaceId, createdAt])
   @@index([status, expiresAt])
   @@map("workspace_exports")
+}
+
+/// Quadro-branco (Excalidraw) do workspace. `scene` guarda os elementos, um
+/// recorte do appState e só as referências dos arquivos — as imagens ficam no
+/// bucket `whiteboards`, nunca em base64 no banco.
+model Whiteboard {
+  id                String    @id @default(cuid())
+  workspaceId       String    @map("workspace_id")
+  title             String
+  scene             Json
+  /// Bumped on every scene save; a save carries the revision it started from
+  /// (optimistic locking).
+  revision          Int       @default(0)
+  /// Board revision held by the newest version (drives the auto cadence).
+  versionedRevision Int       @default(0) @map("versioned_revision")
+  lastVersionAt     DateTime? @map("last_version_at")
+  /// PNG preview in the `whiteboards` bucket (`<ws>/thumbnails/<id>.png`).
+  thumbnailAt       DateTime? @map("thumbnail_at")
+  /// Edit lease: only its holder saves while it lasts (single editor).
+  lockedById        String?   @map("locked_by_id")
+  lockedUntil       DateTime? @map("locked_until")
+  createdById       String?   @map("created_by_id")
+  updatedById       String?   @map("updated_by_id")
+  archivedAt        DateTime? @map("archived_at")
+  /// Last content/title change ("editado há…"); `updatedAt` also moves on
+  /// lease renewals and thumbnails, so lists sort by this one.
+  editedAt          DateTime  @default(now()) @map("edited_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User?               @relation("WhiteboardAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User?               @relation("WhiteboardEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  lockedBy  User?               @relation("WhiteboardLockHolder", fields: [lockedById], references: [id], onDelete: SetNull)
+  versions  WhiteboardVersion[]
+
+  @@index([workspaceId, archivedAt, editedAt])
+  @@map("whiteboards")
+}
+
+enum WhiteboardVersionKind {
+  /// Cut by the save cadence; only the newest ones are kept.
+  AUTO
+  /// "Salvar versão" — kept for the life of the board.
+  MANUAL
+  /// Created by restoring an older version — kept like MANUAL.
+  RESTORE
+}
+
+/// Snapshot of a board's scene for the history panel. Restoring one creates
+/// a new RESTORE version; versions are never edited.
+model WhiteboardVersion {
+  id             String                @id @default(cuid())
+  whiteboardId   String                @map("whiteboard_id")
+  kind           WhiteboardVersionKind
+  name           String?
+  scene          Json
+  /// Board revision this snapshot holds.
+  revision       Int
+  elementCount   Int                   @default(0) @map("element_count")
+  restoredFromId String?               @map("restored_from_id")
+  createdById    String?               @map("created_by_id")
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  whiteboard Whiteboard @relation(fields: [whiteboardId], references: [id], onDelete: Cascade)
+  createdBy  User?      @relation("WhiteboardVersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([whiteboardId, kind, createdAt])
+  @@map("whiteboard_versions")
 }

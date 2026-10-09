@@ -1257,3 +1257,36 @@ export const workspaceExportNotReady = (
 export const workspaceExportLogsUnavailable = (
   message = 'A exportação de logs não está configurada neste servidor',
 ): AppError => appError('WORKSPACE_EXPORT_LOGS_UNAVAILABLE', message)
+
+/** O Quadro-branco está desligado neste workspace (Ajustes › Quadro-branco). */
+export const whiteboardDisabled = (
+  message = 'O Quadro-branco não está ativado neste workspace',
+): AppError => appError('WHITEBOARD_DISABLED', message)
+
+export const whiteboardNotFound = (): AppError =>
+  appError('WHITEBOARD_NOT_FOUND', 'Quadro não encontrado')
+
+export const whiteboardForbidden = (
+  message = 'Sem permissão para alterar este quadro',
+): AppError => appError('WHITEBOARD_FORBIDDEN', message)
+
+export const whiteboardVersionNotFound = (): AppError =>
+  appError('WHITEBOARD_VERSION_NOT_FOUND', 'Versão não encontrada')
+
+/** `details.holderName` / `details.until` say who edits and until when. */
+export const whiteboardLocked = (holder: {
+  name: string
+  until: Date
+}): AppError =>
+  appError(
+    'WHITEBOARD_LOCKED',
+    `${holder.name} está editando este quadro. Ele abre em modo leitura até a edição terminar.`,
+    { holderName: holder.name, until: holder.until.toISOString() },
+  )
+
+export const whiteboardRevisionConflict = (
+  message = 'Outra pessoa alterou este quadro. Recarregue para ver a versão mais recente.',
+): AppError => appError('WHITEBOARD_REVISION_CONFLICT', message)
+
+export const whiteboardFileNotFound = (): AppError =>
+  appError('WHITEBOARD_FILE_NOT_FOUND', 'Arquivo do quadro não encontrado')

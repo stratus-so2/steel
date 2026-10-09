@@ -683,6 +683,23 @@ export const ERROR_CODES = {
   WIKI_LABEL_NOT_FOUND: { code: 'WIKI_LABEL_NOT_FOUND', status: 404 },
   WIKI_LABEL_CONFLICT: { code: 'WIKI_LABEL_CONFLICT', status: 409 },
 
+  // Quadro-branco (Excalidraw). Off switch in Ajustes › Quadro-branco.
+  WHITEBOARD_DISABLED: { code: 'WHITEBOARD_DISABLED', status: 403 },
+  WHITEBOARD_NOT_FOUND: { code: 'WHITEBOARD_NOT_FOUND', status: 404 },
+  WHITEBOARD_FORBIDDEN: { code: 'WHITEBOARD_FORBIDDEN', status: 403 },
+  WHITEBOARD_VERSION_NOT_FOUND: {
+    code: 'WHITEBOARD_VERSION_NOT_FOUND',
+    status: 404,
+  },
+  // Another member holds the edit lease (single editor at a time).
+  WHITEBOARD_LOCKED: { code: 'WHITEBOARD_LOCKED', status: 409 },
+  // The save started from an older revision than the stored one.
+  WHITEBOARD_REVISION_CONFLICT: {
+    code: 'WHITEBOARD_REVISION_CONFLICT',
+    status: 409,
+  },
+  WHITEBOARD_FILE_NOT_FOUND: { code: 'WHITEBOARD_FILE_NOT_FOUND', status: 404 },
+
   // Ajustes › Exportações: one export of each kind per workspace per day.
   WORKSPACE_EXPORT_NOT_FOUND: {
     code: 'WORKSPACE_EXPORT_NOT_FOUND',
