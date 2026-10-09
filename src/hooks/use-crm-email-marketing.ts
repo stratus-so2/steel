@@ -149,8 +149,11 @@ export function useCreateCrmEmailCampaign(workspaceId: string) {
   return useMutation({
     mutationFn: (data: {
       subject: string
-      contentHtml: string
+      /** Free HTML — or `templateId` of a visual-builder template. */
+      contentHtml?: string
       contentJson?: string
+      templateId?: string
+      campaignLink?: string
       fromAddress: string
       recipientScope: CrmCampaignRecipientScopeDTO
       mailingListIds?: string[]

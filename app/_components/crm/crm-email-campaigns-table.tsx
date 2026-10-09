@@ -1,7 +1,7 @@
 'use client'
 
 import { Cancel01Icon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CrmEmailCampaignRecipientPicker,
   crmDefaultRecipientSelection,
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { notify } from '@/lib/notify'
+import { renderCrmEmailTemplate } from '@/src/hooks/use-crm-email-builder'
 import {
   useCreateCrmEmailCampaign,
   useCrmEmailCampaignRecipients,
@@ -281,6 +282,27 @@ function CampaignComposer({
   const createCampaign = useCreateCrmEmailCampaign(workspaceId)
   const sendCampaign = useSendCrmEmailCampaign(workspaceId)
   const [submitting, setSubmitting] = useState(false)
+  const [campaignLink, setCampaignLink] = useState('')
+  const [builderPreview, setBuilderPreview] = useState('')
+  const builderTemplate = templates.find(
+    (t) => t.id === selectedTemplateId && t.kind === 'BUILDER',
+  )
+
+  // Visual-builder templates are rendered by the server (sample contact).
+  useEffect(() => {
+    if (!builderTemplate) return
+    const link = /^https?:\/\//.test(campaignLink.trim())
+      ? campaignLink.trim()
+      : undefined
+    const handle = setTimeout(() => {
+      renderCrmEmailTemplate(workspaceId, builderTemplate.id, {
+        campaignLink: link,
+      })
+        .then((rendered) => setBuilderPreview(rendered.html))
+        .catch(() => setBuilderPreview(''))
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [builderTemplate, campaignLink, workspaceId])
 
   function handlePickTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
@@ -309,12 +331,33 @@ function CampaignComposer({
       return
     }
 
-    const html = (await editorRef.current?.getEmailHTML())?.trim()
-    if (!html) {
-      notify.error('Conteúdo vazio')
-      return
+    let content: {
+      contentHtml?: string
+      contentJson?: string
+      templateId?: string
+      campaignLink?: string
     }
-    const json = JSON.stringify(editorRef.current?.getJSON() ?? null)
+    if (builderTemplate) {
+      const link = campaignLink.trim()
+      if (link && !/^https?:\/\//.test(link)) {
+        notify.error('O link da campanha precisa começar com https://')
+        return
+      }
+      content = {
+        templateId: builderTemplate.id,
+        campaignLink: link || undefined,
+      }
+    } else {
+      const html = (await editorRef.current?.getEmailHTML())?.trim()
+      if (!html) {
+        notify.error('Conteúdo vazio')
+        return
+      }
+      content = {
+        contentHtml: html,
+        contentJson: JSON.stringify(editorRef.current?.getJSON() ?? null),
+      }
+    }
 
     let scheduledAt: string | undefined
     if (scheduleEnabled) {
@@ -334,8 +377,7 @@ function CampaignComposer({
     try {
       const created = await createCampaign.mutateAsync({
         subject,
-        contentHtml: html,
-        contentJson: json,
+        ...content,
         fromAddress,
         recipientScope: recipients.scope,
         personIds:
@@ -397,6 +439,7 @@ function CampaignComposer({
                     {templates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.name}
+                        {template.kind === 'BUILDER' ? ' · editor visual' : ''}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -405,17 +448,47 @@ function CampaignComposer({
             </Field>
           ) : null}
 
-          <Field label='Conteúdo'>
-            <div className='min-h-[420px]'>
-              <EmailEditorShell
-                key={selectedTemplateId || 'blank'}
-                initialContent={editorSeed}
-                ref={(r) => {
-                  editorRef.current = r as unknown as EditorRef | null
-                }}
-              />
-            </div>
-          </Field>
+          {builderTemplate ? (
+            <>
+              <Field label='Link da campanha'>
+                <Input
+                  type='url'
+                  value={campaignLink}
+                  onChange={(e) => setCampaignLink(e.target.value)}
+                  placeholder='https://suaempresa.com.br/oferta?utm_source=email'
+                />
+                <p className='mt-1 text-muted-foreground text-xs'>
+                  Usado nos botões que apontam para “Link da campanha”.
+                </p>
+              </Field>
+              <Field label='Pré-visualização (contato de exemplo)'>
+                {builderPreview ? (
+                  <iframe
+                    title='Pré-visualização da campanha'
+                    srcDoc={builderPreview}
+                    sandbox=''
+                    className='h-[480px] w-full rounded-lg border border-border bg-white'
+                  />
+                ) : (
+                  <div className='flex h-40 items-center justify-center rounded-lg border border-border text-muted-foreground text-xs'>
+                    Gerando pré-visualização…
+                  </div>
+                )}
+              </Field>
+            </>
+          ) : (
+            <Field label='Conteúdo'>
+              <div className='min-h-[420px]'>
+                <EmailEditorShell
+                  key={selectedTemplateId || 'blank'}
+                  initialContent={editorSeed}
+                  ref={(r) => {
+                    editorRef.current = r as unknown as EditorRef | null
+                  }}
+                />
+              </div>
+            </Field>
+          )}
 
           <Field label='Destinatários'>
             <CrmEmailCampaignRecipientPicker
