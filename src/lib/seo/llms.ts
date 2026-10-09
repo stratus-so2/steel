@@ -1,3 +1,4 @@
+import { PRODUCT_PAGES } from '@/src/config/web-product-pages'
 import { CHANGELOG_TAG_LABELS } from '@/src/lib/changelog/labels'
 import { errorCatalogMarkdown } from '@/src/lib/dev/error-catalog'
 import type { DevPage, DevPageMeta } from '@/src/lib/dev/pages'
@@ -5,6 +6,7 @@ import { devSectionLabel } from '@/src/lib/dev/sections'
 import type { DocsPage, DocsPageMeta } from '@/src/lib/docs/pages'
 import { docsSectionLabel } from '@/src/lib/docs/sections'
 import { SITE_DESCRIPTION, SITE_URL } from '@/src/lib/seo/site'
+import { productPagePath } from '@/src/schemas/web-product-page.schema'
 import type {
   ChangelogEntryDTO,
   ChangelogEntryMetaDTO,
@@ -22,6 +24,16 @@ O Steel é a plataforma multi-tenant da Stratus Telecom que junta três módulos
 - **Steel AI:** assistente com modos Ask (consulta), Build (propõe ações e pede confirmação) e Autopilot; Steel Agents que rodam por agenda, evento ou sob demanda; skills e memória. O provedor (OpenAI ou Anthropic) é escolhido por workspace.
 
 Cada módulo é habilitado por workspace, e um workspace pode apontar um módulo para o próprio banco PostgreSQL. A plataforma segue a LGPD: consentimento de cookies, exportação de dados e trilha de auditoria.`
+
+/** The module and capability pages, one line each, from their config. */
+function productIndex(kind: 'product' | 'feature'): string {
+  return PRODUCT_PAGES.filter((page) => page.kind === kind)
+    .map(
+      (page) =>
+        `- [${page.label}](${url(productPagePath(page))}): ${page.meta.description}`,
+    )
+    .join('\n')
+}
 
 function changelogIndex(entries: ChangelogEntryMetaDTO[]): string {
   return entries
@@ -81,6 +93,14 @@ export function buildLlmsTxt(
 
 ${PRODUCT_OVERVIEW}
 
+## Módulos
+
+${productIndex('product')}
+
+## Recursos
+
+${productIndex('feature')}
+
 ## Páginas
 
 - [Documentação](${url('/docs')}): manual de uso do Steel, módulo a módulo.
@@ -89,6 +109,7 @@ ${PRODUCT_OVERVIEW}
 - [Manifesto](${url('/manifesto')}): os princípios de produto e engenharia do Steel.
 - [Changelog](${url('/changelog')}): novidades, release a release ([RSS](${url('/changelog/rss.xml')})).
 - [Planos e preços](${url('/pricing')}): planos por assento.
+- [Marketplace](${url('/marketplace')}): integrações disponíveis no Steel.
 - [Fale com vendas](${url('/talk-to-sales')}): demonstração, preços e implantação.
 - [Contato](${url('/contact')}): canais de vendas, suporte e outros assuntos.
 - [Status](${url('/status')}): status em tempo real dos serviços e histórico de incidentes.

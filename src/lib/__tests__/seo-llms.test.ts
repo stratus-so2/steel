@@ -31,6 +31,17 @@ describe('buildLlmsTxt', () => {
     )
     expect(txt).toContain('https://steel.test/llms-full.txt')
   })
+
+  it('lists every module and capability page with its description', () => {
+    const txt = buildLlmsTxt([])
+    expect(txt).toContain(
+      '- [ServiceDesk](https://steel.test/product/servicedesk): Incidentes',
+    )
+    expect(txt).toContain('[SLA e OLA](https://steel.test/features/sla)')
+    expect(txt).toContain('[Marketplace](https://steel.test/marketplace)')
+    expect(txt.indexOf('## Módulos')).toBeGreaterThan(0)
+    expect(txt.indexOf('## Módulos')).toBeLessThan(txt.indexOf('## Recursos'))
+  })
 })
 
 describe('buildLlmsFullTxt', () => {
