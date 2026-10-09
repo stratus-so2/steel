@@ -149,6 +149,14 @@ describe('matchSpecPath', () => {
     })
   })
 
+  it('breaks ties between equally templated paths alphabetically', () => {
+    const paths = { '/x/{b}': { get: {} }, '/x/{a}': { put: {} } }
+    expect(matchSpecPath(paths, '/x/1')).toEqual({
+      template: '/x/{a}',
+      methods: ['PUT'],
+    })
+  })
+
   it('returns null for a route the spec does not have', () => {
     expect(matchSpecPath(PATHS, '/crm/leads')).toBeNull()
   })

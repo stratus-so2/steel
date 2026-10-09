@@ -134,6 +134,9 @@ describe('dev pages loader', () => {
     const first = await getAdjacentDevPages('/dev/a')
     expect(first.prev).toBeNull()
 
+    const last = await getAdjacentDevPages('/dev/c')
+    expect(last.next).toBeNull()
+
     await expect(getAdjacentDevPages('/dev/nada')).resolves.toEqual({
       prev: null,
       next: null,

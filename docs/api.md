@@ -16,6 +16,27 @@ compara o arquivo commitado com a saída do gerador e falha se divergirem.
 - `info.version` é a tag CalVer derivada do `version` do `package.json`
   (ADR 0003); `pnpm version:sync` continua funcionando.
 
+## Guias para desenvolvedores (`/dev`)
+
+Além da referência, `/dev` tem guias em pt-BR para quem integra com o Steel
+(autenticação, envelope e erros, limites, paginação, webhooks e guias por caso
+de uso). Cada guia é um MDX em `content/dev/<caminho>.mdx`, servido em
+`/dev/<caminho>`, com frontmatter validado por
+`src/schemas/dev-page.schema.ts` (`title`, `description`, `section` — o grupo
+da barra lateral — e `order`).
+
+- A tabela de códigos de erro é o componente `<ErrorCodeTable />`, gerado de
+  `src/errors/codes.ts` (`src/lib/dev/error-catalog.ts`): nunca escreva a
+  tabela à mão.
+- `src/lib/__tests__/dev-content.test.ts` compila cada guia, confere links e
+  âncoras e casa **toda** chamada `/api/...` dos guias (e da página `/dev`) com
+  `public/openapi.json`, incluindo o método quando ele aparece (`curl -X`,
+  `method:` do fetch, `requests.post(`, linha `POST /api/...`). Rota renomeada
+  ou removida quebra o teste até o guia ser corrigido. Os limites citados em
+  `content/dev/limites.mdx` são conferidos contra `src/lib/rate-limit.ts`.
+- Placeholders de caminho: `<token>`, `$VAR` ou `${var}` valem um segmento;
+  `/api/workspaces/<id>/...` indica uma família de rotas.
+
 ## Comandos
 
 ```bash
