@@ -35,14 +35,16 @@ export function ConnectedTabs({ items }: { items: ConnectedItem[] }) {
     return () => cancelAnimationFrame(frame)
   }, [auto, paused, active])
 
+  // One timer per open item: picking an item (or the timer itself moving on)
+  // restarts the countdown.
   useEffect(() => {
     if (!auto || paused) return
     const timer = setTimeout(
-      () => setActive((current) => (current + 1) % items.length),
+      () => setActive((active + 1) % items.length),
       CONNECTED_INTERVAL_MS,
     )
     return () => clearTimeout(timer)
-  }, [auto, paused, items.length])
+  }, [auto, paused, active, items.length])
 
   const current = items[active]
   const running = auto && !paused
@@ -88,6 +90,7 @@ export function ConnectedTabs({ items }: { items: ConnectedItem[] }) {
                   <p className='text-muted-foreground'>{item.description}</p>
                   <Link
                     href={item.href}
+                    aria-label={`Saiba mais: ${item.title}`}
                     className='inline-block font-medium text-foreground underline-offset-4 hover:underline'
                   >
                     Saiba mais →
