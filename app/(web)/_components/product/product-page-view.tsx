@@ -1,7 +1,6 @@
 import { JsonLd } from '@/components/seo/json-ld'
 import { productPageJsonLd } from '@/src/lib/seo/product'
 import type { ProductPage } from '@/src/schemas/web-product-page.schema'
-import { WebFooter } from '../footer'
 import { ConnectedTabs } from './connected-tabs'
 import {
   ProductAiBento,
@@ -88,7 +87,6 @@ export function ProductPageView({ page }: { page: ProductPage }) {
           return <Section key={key} page={page} />
         })}
       </main>
-      <WebFooter showBanner={false} />
     </>
   )
 }
