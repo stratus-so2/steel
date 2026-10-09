@@ -112982,7 +112982,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 500,
-                  "message": "Run não está aguardando input",
+                  "message": "A execução não está aguardando resposta",
                   "error": {
                     "code": "CRM_WORKFLOW_EXECUTION_FAILED"
                   }

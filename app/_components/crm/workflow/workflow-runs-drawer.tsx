@@ -18,6 +18,12 @@ import type {
   CrmWorkflowRunDTO,
   CrmWorkflowRunStatus,
 } from '@/src/schemas/crm-workflow.schema'
+import {
+  WORKFLOW_RUN_STATUS_LABELS,
+  WORKFLOW_STEP_STATUS_LABELS,
+  workflowNodeLabel,
+  workflowTriggerLabel,
+} from './workflow-labels'
 
 const STATUS_COLOR: Record<CrmWorkflowRunStatus, string> = {
   PENDING: 'bg-muted text-muted-foreground',
@@ -49,7 +55,7 @@ export function WorkflowRunsDrawer({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side='right'
-        className='!w-[480px] !max-w-[480px] overflow-auto p-0'
+        className='!w-full overflow-auto p-0 sm:!w-[480px] sm:!max-w-[480px]'
       >
         <div className='flex h-14 shrink-0 items-center gap-2 border-b px-4'>
           <span className='font-semibold text-sm'>Histórico de execuções</span>
@@ -72,7 +78,7 @@ export function WorkflowRunsDrawer({
           )}
           {!isLoading && (!runs || runs.length === 0) && (
             <p className='py-8 text-center text-muted-foreground text-sm'>
-              Nenhuma execução ainda. Use "Test" pra disparar uma run.
+              Nenhuma execução ainda. Use "Testar" para disparar uma.
             </p>
           )}
           {!isLoading &&
@@ -84,17 +90,17 @@ export function WorkflowRunsDrawer({
                 <div className='flex items-center gap-2'>
                   <span
                     className={cn(
-                      'rounded-full px-2 py-0.5 font-semibold text-xs uppercase',
+                      'rounded-full px-2 py-0.5 font-semibold text-xs',
                       STATUS_COLOR[run.status],
                     )}
                   >
-                    {run.status}
+                    {WORKFLOW_RUN_STATUS_LABELS[run.status]}
                   </span>
                   <span className='text-muted-foreground text-xs'>
-                    {run.triggerType}
+                    {workflowTriggerLabel(run.triggerType)}
                   </span>
                   <span className='ml-auto text-muted-foreground text-xs'>
-                    {new Date(run.createdAt).toLocaleString()}
+                    {new Date(run.createdAt).toLocaleString('pt-BR')}
                   </span>
                 </div>
                 {run.error && (
@@ -111,7 +117,7 @@ export function WorkflowRunsDrawer({
                       >
                         <span
                           className={cn(
-                            'rounded px-1.5 py-px text-[10px] uppercase',
+                            'rounded px-1.5 py-px text-[10px]',
                             step.status === 'COMPLETED'
                               ? 'bg-emerald-500/10 text-emerald-600'
                               : step.status === 'FAILED'
@@ -119,10 +125,10 @@ export function WorkflowRunsDrawer({
                                 : 'bg-muted text-muted-foreground',
                           )}
                         >
-                          {step.status}
+                          {WORKFLOW_STEP_STATUS_LABELS[step.status]}
                         </span>
                         <span className='truncate'>
-                          {step.nodeType} · {step.nodeId}
+                          {workflowNodeLabel(step.nodeType)} · {step.nodeId}
                         </span>
                       </li>
                     ))}
@@ -170,10 +176,10 @@ function ResumeForm({
         runId: run.id,
         payload: values,
       })
-      notify.success('Run retomada')
+      notify.success('Execução retomada')
       onResolved()
     } catch (err) {
-      notify.error(err, 'Falha ao retomar a run.')
+      notify.error(err, 'Não foi possível retomar a execução.')
     }
   }
 
