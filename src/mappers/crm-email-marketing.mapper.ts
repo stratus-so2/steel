@@ -26,6 +26,10 @@ export function toCrmEmailTemplateDTO(
     contentJson: template.contentJson,
     templateId: template.templateId,
     templateProps: template.templateProps as Record<string, string> | null,
+    kind: template.kind,
+    builderDocument:
+      template.builderDocument as CrmEmailTemplateDTO['builderDocument'],
+    contentText: template.contentText,
     workspaceId: template.workspaceId,
     createdById: template.createdById,
     updatedById: template.updatedById,
@@ -59,6 +63,8 @@ export function toCrmEmailCampaignDTO(
       ? campaign.scheduledAt.toISOString()
       : null,
     sentAt: campaign.sentAt ? campaign.sentAt.toISOString() : null,
+    templateId: campaign.templateId,
+    campaignLink: campaign.campaignLink,
     workspaceId: campaign.workspaceId,
     createdById: campaign.createdById,
     createdAt: campaign.createdAt.toISOString(),

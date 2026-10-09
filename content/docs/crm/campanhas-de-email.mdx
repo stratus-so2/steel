@@ -10,7 +10,9 @@ Tudo fica no grupo **Marketing** do menu do CRM.
 ## Criar uma campanha
 
 1. Em **Campanhas**, crie uma campanha e informe **Remetente**, **Assunto** e
-   **Conteúdo**. Comece de um template ou do editor em branco.
+   **Conteúdo**. Comece de um template ou do editor em branco. Com um template
+   do **editor visual**, informe o **Link da campanha** (o endereço, com UTMs,
+   para onde vão os botões) e confira a prévia com um contato de exemplo.
 2. Escolha os **Destinatários**: contatos, listas (que incluem quem for
    adicionado depois) ou endereços avulsos.
 3. Envie com **Enviar agora** ou **Agendar envio** para uma data futura.
@@ -20,8 +22,55 @@ Os contadores mostram enviados, falhas e descadastrados.
 
 ## Templates
 
-Em **Templates**, crie modelos de e-mail a partir de um layout pronto, com
-prévia.
+Em **Templates**, abra a **Galeria de modelos** e escolha um dos modelos
+prontos: Newsletter, Promoção / oferta, Convite para evento, Boas-vindas,
+Follow-up de proposta, Pesquisa NPS, Anúncio de produto e Lembrete. Dê um nome
+e um assunto e o editor visual abre.
+
+### Editor visual
+
+- **Em cima**, o e-mail como o contato vai ver. Clique em um bloco para
+  editá-lo. Os botões ao lado alternam **computador** e **celular**, simulam um
+  cliente de e-mail em **modo escuro** e mudam o **zoom**.
+- **Embaixo**, a barra de edição:
+  - **Conteúdo** — os campos do bloco selecionado: títulos, texto (com
+    negrito, itálico, sublinhado, links e listas), botões (texto e link),
+    imagens (envio de JPEG, PNG ou WebP até 5 MB, com texto alternativo),
+    produtos com preço e listas de itens.
+  - **Seções** — oculte as seções opcionais e troque a ordem das que têm
+    setas. A estrutura do modelo é fixa: você edita o conteúdo, não o layout.
+  - **Marca** — nome, logo, cor principal, endereço e site. Vale para todos os
+    templates do editor visual do workspace.
+- **Desfazer** e **Refazer** (também `Ctrl+Z` e `Ctrl+Shift+Z`) e salvamento
+  automático: o indicador ao lado do nome mostra **Salvo**.
+- **Enviar teste** manda o e-mail para o seu endereço, com o assunto
+  começando por *[Teste]*.
+
+### Personalização
+
+Use o botão **Inserir variável** nos campos de texto para inserir variáveis, preenchidas
+com os dados de cada contato no envio:
+
+| Variável | O que entra |
+| --- | --- |
+| `{{nome}}` / `{{primeiro_nome}}` | Nome completo / primeiro nome |
+| `{{email}}` | E-mail |
+| `{{empresa}}` | Empresa da pessoa |
+| `{{cargo}}`, `{{telefone}}`, `{{cidade}}` | Dados do cadastro |
+
+Para um valor padrão quando o dado não existe, use `{{primeiro_nome|cliente}}`.
+Em **Visualizar como**, veja o e-mail com o contato de exemplo, com uma pessoa
+do CRM ou com as variáveis à mostra.
+
+### Links
+
+O seletor de link (**Escolher**) oferece, nesta ordem: **Link da campanha**
+(definido em cada campanha, com rastreamento), as **landing pages** e os
+**formulários** publicados do workspace. Também dá para digitar um endereço
+`https://`, `mailto:` ou `tel:`. Os botões principais dos modelos já vêm com o
+link da campanha.
+
+Templates antigos, de HTML livre, continuam abrindo no editor de blocos.
 
 ## Listas
 
@@ -30,7 +79,8 @@ busca.
 
 ## Descadastro (LGPD)
 
-Todo e-mail de campanha sai com um link de descadastro e com o cabeçalho de
+Todo e-mail de campanha sai com um link de descadastro (no editor visual, ele
+fica sempre no rodapé e não pode ser removido) e com o cabeçalho de
 descadastro em um clique que os provedores de e-mail mostram. Quem clica
 confirma na página **Descadastrar e-mails**, sem precisar de login.
 

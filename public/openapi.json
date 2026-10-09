@@ -1784,7 +1784,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -6801,7 +6801,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_4"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -6867,7 +6867,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_4"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -7410,7 +7410,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -7476,7 +7476,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_5"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13252,7 +13252,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -13321,7 +13321,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13684,7 +13684,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -13879,7 +13879,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_COMPANY_CONFLICT"
@@ -13951,7 +13951,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -15299,7 +15299,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -15368,7 +15368,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -15472,7 +15472,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_18"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -16579,7 +16579,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_23"
@@ -16657,7 +16657,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -16872,6 +16872,272 @@
         ]
       }
     },
+    "/workspaces/{id}/crm/email-brand": {
+      "get": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Marca dos e-mails",
+        "operationId": "getWorkspacesByIdCrmEmailBrand",
+        "description": "Nome, logo, cor primária, endereço e site usados pelos templates do editor visual. Sem marca salva, devolve os padrões (nome/logo do workspace).\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Marca.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmEmailBrand"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Salvar marca dos e-mails",
+        "operationId": "putWorkspacesByIdCrmEmailBrand",
+        "description": "Acesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nExige o consentimento LGPD do usuário (Termos de Uso e Política de Privacidade aceitos); sem ele responde `403 FORBIDDEN`.\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "companyName": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "logoUrl": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "primaryColor": {
+                    "type": "string",
+                    "pattern": "^#[0-9a-fA-F]{6}$"
+                  },
+                  "address": {
+                    "type": "string",
+                    "maxLength": 300
+                  },
+                  "website": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": ["companyName", "logoUrl", "primaryColor", "address", "website"]
+              },
+              "example": {
+                "companyName": "Acme Ltda.",
+                "logoUrl": "",
+                "primaryColor": "#2893CC",
+                "address": "Av. Paulista, 1000 — São Paulo, SP",
+                "website": "https://acme.com.br"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Marca salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmEmailBrand"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/email-builder/images": {
+      "post": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Enviar imagem de e-mail",
+        "operationId": "postWorkspacesByIdCrmEmailBuilderImages",
+        "description": "Corpo **binário** (não multipart) com o `Content-Type` da imagem. JPEG, PNG ou WebP até 5 MB. Devolve a URL pública para os blocos de imagem do editor.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário (limite de upload); ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Bytes da imagem.",
+          "content": {
+            "image/*": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Imagem salva.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/MediaUrl"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400_BAD_REQUEST"
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_4"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "500": {
+            "$ref": "#/components/responses/500_STORAGE_ERROR"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/email-builder/links": {
+      "get": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Links rápidos do editor de e-mail",
+        "operationId": "getWorkspacesByIdCrmEmailBuilderLinks",
+        "description": "Landing pages e formulários publicados do workspace, com a URL pública, para o seletor de link do editor.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Destinos.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmEmailLinkTargets"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
     "/workspaces/{id}/crm/email-campaigns": {
       "get": {
         "tags": ["CRM · E-mail marketing"],
@@ -16956,6 +17222,15 @@
                     "type": "string",
                     "maxLength": 200000
                   },
+                  "templateId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "campaignLink": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "format": "uri"
+                  },
                   "fromAddress": {
                     "type": "string",
                     "format": "email"
@@ -16988,7 +17263,7 @@
                     "format": "date-time"
                   }
                 },
-                "required": ["subject", "contentHtml", "fromAddress", "recipientScope"]
+                "required": ["subject", "fromAddress", "recipientScope"]
               },
               "example": {
                 "subject": "Conheça o ServiceDesk",
@@ -17093,7 +17368,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -17188,7 +17463,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_EMAIL_CAMPAIGN_ALREADY_SENT"
@@ -17260,7 +17535,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -17323,7 +17598,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_15"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_EMAIL_CAMPAIGN_ALREADY_SENT"
@@ -17742,6 +18017,19 @@
                     "additionalProperties": {
                       "type": "string"
                     }
+                  },
+                  "builderLayout": {
+                    "type": "string",
+                    "enum": [
+                      "newsletter",
+                      "promocao",
+                      "convite-evento",
+                      "boas-vindas",
+                      "follow-up-proposta",
+                      "pesquisa-nps",
+                      "anuncio-produto",
+                      "lembrete"
+                    ]
                   }
                 },
                 "required": ["name", "subject"]
@@ -17784,7 +18072,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -17867,7 +18155,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -17881,6 +18169,67 @@
       }
     },
     "/workspaces/{id}/crm/email-templates/{templateId}": {
+      "get": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Detalhe do template de e-mail",
+        "operationId": "getWorkspacesByIdCrmEmailTemplatesByTemplateId",
+        "description": "Acesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "description": "ID do template de e-mail.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmEmailTemplate"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      },
       "patch": {
         "tags": ["CRM · E-mail marketing"],
         "summary": "Atualizar template de e-mail",
@@ -17934,6 +18283,583 @@
                     "additionalProperties": {
                       "type": "string"
                     }
+                  },
+                  "builderDocument": {
+                    "type": "object",
+                    "properties": {
+                      "version": {
+                        "type": "number",
+                        "const": 1
+                      },
+                      "layout": {
+                        "type": "string",
+                        "enum": [
+                          "newsletter",
+                          "promocao",
+                          "convite-evento",
+                          "boas-vindas",
+                          "follow-up-proposta",
+                          "pesquisa-nps",
+                          "anuncio-produto",
+                          "lembrete"
+                        ]
+                      },
+                      "previewText": {
+                        "type": "string",
+                        "maxLength": 150
+                      },
+                      "sections": {
+                        "minItems": 1,
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "header"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {}
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "hero"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "eyebrow": {
+                                      "type": "string",
+                                      "maxLength": 80
+                                    },
+                                    "heading": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "body": {
+                                      "type": "string",
+                                      "maxLength": 10000
+                                    },
+                                    "imageSrc": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
+                                    "imageAlt": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "buttonLabel": {
+                                      "type": "string",
+                                      "maxLength": 60
+                                    },
+                                    "buttonUrl": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    }
+                                  },
+                                  "required": ["eyebrow", "heading", "body", "imageSrc", "imageAlt", "buttonLabel", "buttonUrl"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "text"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "heading": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "body": {
+                                      "type": "string",
+                                      "maxLength": 10000
+                                    }
+                                  },
+                                  "required": ["heading", "body"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "image"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "imageSrc": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
+                                    "imageAlt": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "linkUrl": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
+                                    "caption": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    }
+                                  },
+                                  "required": ["imageSrc", "imageAlt", "linkUrl", "caption"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "button"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "label": {
+                                      "type": "string",
+                                      "maxLength": 60
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    },
+                                    "note": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    }
+                                  },
+                                  "required": ["label", "url", "note"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "products"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "heading": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "buttonLabel": {
+                                      "type": "string",
+                                      "maxLength": 60
+                                    },
+                                    "items": {
+                                      "minItems": 1,
+                                      "maxItems": 6,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "maxLength": 120
+                                          },
+                                          "description": {
+                                            "type": "string",
+                                            "maxLength": 300
+                                          },
+                                          "price": {
+                                            "type": "string",
+                                            "maxLength": 40
+                                          },
+                                          "oldPrice": {
+                                            "type": "string",
+                                            "maxLength": 40
+                                          },
+                                          "imageSrc": {
+                                            "type": "string",
+                                            "maxLength": 2000
+                                          },
+                                          "imageAlt": {
+                                            "type": "string",
+                                            "maxLength": 200
+                                          },
+                                          "url": {
+                                            "type": "string",
+                                            "maxLength": 2000
+                                          }
+                                        },
+                                        "required": ["name", "description", "price", "oldPrice", "imageSrc", "imageAlt", "url"]
+                                      }
+                                    }
+                                  },
+                                  "required": ["heading", "buttonLabel", "items"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "features"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "heading": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "items": {
+                                      "minItems": 1,
+                                      "maxItems": 6,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "title": {
+                                            "type": "string",
+                                            "maxLength": 120
+                                          },
+                                          "text": {
+                                            "type": "string",
+                                            "maxLength": 300
+                                          }
+                                        },
+                                        "required": ["title", "text"]
+                                      }
+                                    }
+                                  },
+                                  "required": ["heading", "items"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "event"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "heading": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "date": {
+                                      "type": "string",
+                                      "maxLength": 80
+                                    },
+                                    "time": {
+                                      "type": "string",
+                                      "maxLength": 80
+                                    },
+                                    "location": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "buttonLabel": {
+                                      "type": "string",
+                                      "maxLength": 60
+                                    },
+                                    "buttonUrl": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    }
+                                  },
+                                  "required": ["heading", "date", "time", "location", "buttonLabel", "buttonUrl"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "nps"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "question": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "lowLabel": {
+                                      "type": "string",
+                                      "maxLength": 60
+                                    },
+                                    "highLabel": {
+                                      "type": "string",
+                                      "maxLength": 60
+                                    },
+                                    "url": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    }
+                                  },
+                                  "required": ["question", "lowLabel", "highLabel", "url"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "quote"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "text": {
+                                      "type": "string",
+                                      "maxLength": 500
+                                    },
+                                    "author": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    }
+                                  },
+                                  "required": ["text", "author", "role"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "coupon"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "label": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "code": {
+                                      "type": "string",
+                                      "maxLength": 40
+                                    },
+                                    "expiry": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    }
+                                  },
+                                  "required": ["label", "code", "expiry"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "signature"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "closing": {
+                                      "type": "string",
+                                      "maxLength": 80
+                                    },
+                                    "name": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "role": {
+                                      "type": "string",
+                                      "maxLength": 120
+                                    },
+                                    "contact": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    }
+                                  },
+                                  "required": ["closing", "name", "role", "contact"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 40,
+                                  "pattern": "^[a-z0-9-]+$"
+                                },
+                                "hidden": {
+                                  "type": "boolean"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "const": "footer"
+                                },
+                                "props": {
+                                  "type": "object",
+                                  "properties": {
+                                    "note": {
+                                      "type": "string",
+                                      "maxLength": 300
+                                    }
+                                  },
+                                  "required": ["note"]
+                                }
+                              },
+                              "required": ["id", "hidden", "type", "props"]
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["version", "layout", "previewText", "sections"]
                   }
                 }
               }
@@ -17970,10 +18896,13 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+          },
+          "409": {
+            "$ref": "#/components/responses/409_CRM_EMAIL_TEMPLATE_NOT_BUILDER"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_EMAIL_BUILDER_STRUCTURE_LOCKED_2"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -18039,10 +18968,251 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/email-templates/{templateId}/render": {
+      "post": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Renderizar template para um contato",
+        "operationId": "postWorkspacesByIdCrmEmailTemplatesByTemplateIdRender",
+        "description": "Renderiza o template com as variáveis (`{{nome}}`, `{{empresa}}`, `{{campaign_link}}`…) resolvidas para uma pessoa do CRM (`personId`) ou um contato de exemplo (`sample`; padrão: contato fictício). O link de descadastro aponta para a página genérica. Nada é salvo.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `VIEW` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "description": "ID do template de e-mail.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "personId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sample": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "maxLength": 320
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "company": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "jobTitle": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "phone": {
+                        "type": "string",
+                        "maxLength": 60
+                      },
+                      "city": {
+                        "type": "string",
+                        "maxLength": 120
+                      }
+                    },
+                    "required": ["email"]
+                  },
+                  "campaignLink": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {
+                "campaignLink": "https://acme.com.br/l/abc?utm_source=email"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "E-mail renderizado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmEmailRender"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_EMAIL_BUILDER_STRUCTURE_LOCKED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          }
+        },
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ]
+      }
+    },
+    "/workspaces/{id}/crm/email-templates/{templateId}/test-send": {
+      "post": {
+        "tags": ["CRM · E-mail marketing"],
+        "summary": "Enviar e-mail de teste",
+        "operationId": "postWorkspacesByIdCrmEmailTemplatesByTemplateIdTestSend",
+        "description": "Envia o template renderizado (assunto com `[Teste]`) para o e-mail de quem chama. Limite de envio por usuário.\n\nAcesso: sessão + membro do workspace com o módulo **CRM** habilitado e a permissão `email` × `EDIT` no perfil (OWNER/ADMIN sempre passam).\n\nRate limit por usuário; ao estourar responde `429 RATE_LIMITED` com o header `Retry-After`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/WorkspaceId"
+          },
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "description": "ID do template de e-mail.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "personId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sample": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "maxLength": 320
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "company": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "jobTitle": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "phone": {
+                        "type": "string",
+                        "maxLength": 60
+                      },
+                      "city": {
+                        "type": "string",
+                        "maxLength": 120
+                      }
+                    },
+                    "required": ["email"]
+                  },
+                  "campaignLink": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "format": "uri"
+                  }
+                }
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Teste enviado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/SuccessEnvelope"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/CrmEmailTestSend"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401_UNAUTHORIZED"
+          },
+          "403": {
+            "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
+          },
+          "404": {
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_14"
+          },
+          "422": {
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_EMAIL_BUILDER_STRUCTURE_LOCKED"
+          },
+          "429": {
+            "$ref": "#/components/responses/429_RATE_LIMITED"
+          },
+          "502": {
+            "$ref": "#/components/responses/502_MAIL_ERROR"
           }
         },
         "security": [
@@ -19301,7 +20471,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -19370,7 +20540,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -20584,7 +21754,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_10"
+            "$ref": "#/components/responses/400_BAD_REQUEST_11"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -20738,7 +21908,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_9"
+            "$ref": "#/components/responses/400_BAD_REQUEST_10"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -25478,7 +26648,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -25547,7 +26717,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -25879,7 +27049,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26113,7 +27283,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26179,7 +27349,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26283,7 +27453,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_16"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_17"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -26806,7 +27976,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -26956,7 +28126,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_CRM_CUSTOM_FIELD_INVALID"
@@ -27025,7 +28195,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_19"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -27740,7 +28910,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -27818,7 +28988,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_30"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_PIPELINE_STAGE_IN_USE"
@@ -28127,7 +29297,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -28242,7 +29412,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "409": {
             "$ref": "#/components/responses/409_CRM_PRODUCT_CONFLICT"
@@ -28314,7 +29484,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_20"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -29745,7 +30915,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_12"
+            "$ref": "#/components/responses/400_BAD_REQUEST"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -30822,7 +31992,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -30891,7 +32061,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_8"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_28"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_29"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33194,7 +34364,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33257,7 +34427,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_2"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_21"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -33974,7 +35144,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_6"
+            "$ref": "#/components/responses/400_BAD_REQUEST_7"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -34075,7 +35245,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_8"
+            "$ref": "#/components/responses/400_BAD_REQUEST_9"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -34684,7 +35854,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -34753,7 +35923,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_31"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_32"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -39056,7 +40226,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_WORKSPACE_SUSPENDED_2"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -44703,7 +45873,7 @@
             "$ref": "#/components/responses/404_SD_CAB_BOARD_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -46834,7 +48004,7 @@
             "$ref": "#/components/responses/404_SD_CHANGE_WINDOW_NOT_FOUND"
           },
           "422": {
-            "$ref": "#/components/responses/422_VALIDATION_ERROR_6"
+            "$ref": "#/components/responses/422_VALIDATION_ERROR_5"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -53657,7 +54827,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_24"
@@ -53728,7 +54898,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_24"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_25"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -66718,7 +67888,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR"
@@ -66787,7 +67957,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_SD_NOT_AGENT_6"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_26"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_27"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -75778,7 +76948,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_3"
+            "$ref": "#/components/responses/400_BAD_REQUEST_4"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -76214,7 +77384,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_7"
+            "$ref": "#/components/responses/400_BAD_REQUEST_8"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -77359,7 +78529,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST"
+            "$ref": "#/components/responses/400_BAD_REQUEST_2"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -77918,7 +79088,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_2"
+            "$ref": "#/components/responses/400_BAD_REQUEST_3"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -81155,7 +82325,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_23"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "422": {
             "$ref": "#/components/responses/422_VALIDATION_ERROR_22"
@@ -81233,7 +82403,7 @@
             "$ref": "#/components/responses/403_FORBIDDEN_MODULE_DISABLED_WORKSPACE_SUSPENDED_22"
           },
           "404": {
-            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_22"
+            "$ref": "#/components/responses/404_RESOURCE_NOT_FOUND_23"
           },
           "429": {
             "$ref": "#/components/responses/429_RATE_LIMITED"
@@ -82196,7 +83366,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_11"
+            "$ref": "#/components/responses/400_BAD_REQUEST_12"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -84181,7 +85351,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_4"
+            "$ref": "#/components/responses/400_BAD_REQUEST_5"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -84262,7 +85432,7 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/400_BAD_REQUEST_5"
+            "$ref": "#/components/responses/400_BAD_REQUEST_6"
           },
           "401": {
             "$ref": "#/components/responses/401_UNAUTHORIZED"
@@ -87818,6 +88988,40 @@
             },
             "examples": {
               "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Sem header `Content-Type`",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Content-Type é obrigatório",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_2": {
+                "summary": "BAD_REQUEST — `Content-Length` acima de 5 MB",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Arquivo muito grande. Máximo 5 MB",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_2": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
                 "summary": "BAD_REQUEST — CSV sem as colunas obrigatórias (ou sem linhas de dados)",
                 "value": {
                   "success": false,
@@ -87832,7 +89036,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_2": {
+      "400_BAD_REQUEST_3": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -87866,7 +89070,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_3": {
+      "400_BAD_REQUEST_4": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -87889,7 +89093,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_4": {
+      "400_BAD_REQUEST_5": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -87923,7 +89127,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_5": {
+      "400_BAD_REQUEST_6": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -87957,7 +89161,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_6": {
+      "400_BAD_REQUEST_7": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -88013,7 +89217,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_7": {
+      "400_BAD_REQUEST_8": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -88036,7 +89240,7 @@
           }
         }
       },
-      "400_BAD_REQUEST_8": {
+      "400_BAD_REQUEST_9": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -88050,40 +89254,6 @@
                   "success": false,
                   "statusCode": 400,
                   "message": "Plataforma inválida para este endpoint",
-                  "error": {
-                    "code": "BAD_REQUEST"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "400_BAD_REQUEST_9": {
-        "description": "Requisição inválida: `BAD_REQUEST`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "BAD_REQUEST": {
-                "summary": "BAD_REQUEST — Sem header Content-Type",
-                "value": {
-                  "success": false,
-                  "statusCode": 400,
-                  "message": "Content-Type é obrigatório",
-                  "error": {
-                    "code": "BAD_REQUEST"
-                  }
-                }
-              },
-              "BAD_REQUEST_2": {
-                "summary": "BAD_REQUEST — Content-Length acima do limite",
-                "value": {
-                  "success": false,
-                  "statusCode": 400,
-                  "message": "Arquivo muito grande. Máximo 25 MB",
                   "error": {
                     "code": "BAD_REQUEST"
                   }
@@ -88117,7 +89287,7 @@
                 "value": {
                   "success": false,
                   "statusCode": 400,
-                  "message": "Arquivo muito grande. Máximo 5 MB",
+                  "message": "Arquivo muito grande. Máximo 25 MB",
                   "error": {
                     "code": "BAD_REQUEST"
                   }
@@ -88128,6 +89298,40 @@
         }
       },
       "400_BAD_REQUEST_11": {
+        "description": "Requisição inválida: `BAD_REQUEST`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "BAD_REQUEST": {
+                "summary": "BAD_REQUEST — Sem header Content-Type",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Content-Type é obrigatório",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              },
+              "BAD_REQUEST_2": {
+                "summary": "BAD_REQUEST — Content-Length acima do limite",
+                "value": {
+                  "success": false,
+                  "statusCode": 400,
+                  "message": "Arquivo muito grande. Máximo 5 MB",
+                  "error": {
+                    "code": "BAD_REQUEST"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400_BAD_REQUEST_12": {
         "description": "Requisição inválida: `BAD_REQUEST`",
         "content": {
           "application/json": {
@@ -88163,40 +89367,6 @@
                   "success": false,
                   "statusCode": 400,
                   "message": "Arquivo muito grande. Máximo 16 MB",
-                  "error": {
-                    "code": "BAD_REQUEST"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "400_BAD_REQUEST_12": {
-        "description": "Requisição inválida: `BAD_REQUEST`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "BAD_REQUEST": {
-                "summary": "BAD_REQUEST — Sem header `Content-Type`",
-                "value": {
-                  "success": false,
-                  "statusCode": 400,
-                  "message": "Content-Type é obrigatório",
-                  "error": {
-                    "code": "BAD_REQUEST"
-                  }
-                }
-              },
-              "BAD_REQUEST_2": {
-                "summary": "BAD_REQUEST — `Content-Length` acima de 5 MB",
-                "value": {
-                  "success": false,
-                  "statusCode": 400,
-                  "message": "Arquivo muito grande. Máximo 5 MB",
                   "error": {
                     "code": "BAD_REQUEST"
                   }
@@ -97452,6 +98622,29 @@
             },
             "examples": {
               "RESOURCE_NOT_FOUND": {
+                "summary": "RESOURCE_NOT_FOUND — Template inexistente no workspace",
+                "value": {
+                  "success": false,
+                  "statusCode": 404,
+                  "message": "CrmEmailTemplate not found",
+                  "error": {
+                    "code": "RESOURCE_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404_RESOURCE_NOT_FOUND_15": {
+        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "RESOURCE_NOT_FOUND": {
                 "summary": "RESOURCE_NOT_FOUND",
                 "value": {
                   "success": false,
@@ -97466,7 +98659,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_15": {
+      "404_RESOURCE_NOT_FOUND_16": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97489,7 +98682,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_16": {
+      "404_RESOURCE_NOT_FOUND_17": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97512,7 +98705,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_17": {
+      "404_RESOURCE_NOT_FOUND_18": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97535,7 +98728,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_18": {
+      "404_RESOURCE_NOT_FOUND_19": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97558,7 +98751,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_19": {
+      "404_RESOURCE_NOT_FOUND_20": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97581,7 +98774,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_20": {
+      "404_RESOURCE_NOT_FOUND_21": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97604,7 +98797,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_21": {
+      "404_RESOURCE_NOT_FOUND_22": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97627,7 +98820,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_22": {
+      "404_RESOURCE_NOT_FOUND_23": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97661,7 +98854,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_23": {
+      "404_RESOURCE_NOT_FOUND_24": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97695,7 +98888,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_24": {
+      "404_RESOURCE_NOT_FOUND_25": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97729,7 +98922,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_25": {
+      "404_RESOURCE_NOT_FOUND_26": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97752,7 +98945,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_26": {
+      "404_RESOURCE_NOT_FOUND_27": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97775,7 +98968,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_27": {
+      "404_RESOURCE_NOT_FOUND_28": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97798,7 +98991,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_28": {
+      "404_RESOURCE_NOT_FOUND_29": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97821,7 +99014,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_29": {
+      "404_RESOURCE_NOT_FOUND_30": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97844,7 +99037,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_30": {
+      "404_RESOURCE_NOT_FOUND_31": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97878,7 +99071,7 @@
           }
         }
       },
-      "404_RESOURCE_NOT_FOUND_31": {
+      "404_RESOURCE_NOT_FOUND_32": {
         "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
         "content": {
           "application/json": {
@@ -97892,29 +99085,6 @@
                   "success": false,
                   "statusCode": 404,
                   "message": "CrmTask not found",
-                  "error": {
-                    "code": "RESOURCE_NOT_FOUND"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "404_RESOURCE_NOT_FOUND_32": {
-        "description": "Não encontrado: `RESOURCE_NOT_FOUND`",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            },
-            "examples": {
-              "RESOURCE_NOT_FOUND": {
-                "summary": "RESOURCE_NOT_FOUND — Template inexistente no workspace",
-                "value": {
-                  "success": false,
-                  "statusCode": 404,
-                  "message": "CrmEmailTemplate not found",
                   "error": {
                     "code": "RESOURCE_NOT_FOUND"
                   }
@@ -102038,6 +103208,29 @@
           }
         }
       },
+      "409_CRM_EMAIL_TEMPLATE_NOT_BUILDER": {
+        "description": "Conflito com o estado atual: `CRM_EMAIL_TEMPLATE_NOT_BUILDER`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "CRM_EMAIL_TEMPLATE_NOT_BUILDER": {
+                "summary": "CRM_EMAIL_TEMPLATE_NOT_BUILDER — `builderDocument` enviado para um template `LEGACY`",
+                "value": {
+                  "success": false,
+                  "statusCode": 409,
+                  "message": "Este template não foi criado no editor visual",
+                  "error": {
+                    "code": "CRM_EMAIL_TEMPLATE_NOT_BUILDER"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "409_CRM_LEAD_ALREADY_CLOSED": {
         "description": "Conflito com o estado atual: `CRM_LEAD_ALREADY_CLOSED`",
         "content": {
@@ -104307,25 +105500,7 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
-                "value": {
-                  "success": false,
-                  "statusCode": 422,
-                  "message": "Dados inválidos",
-                  "error": {
-                    "code": "VALIDATION_ERROR",
-                    "details": [
-                      {
-                        "code": "too_small",
-                        "path": ["name"],
-                        "message": "Nome deve ter ao menos 2 caracteres"
-                      }
-                    ]
-                  }
-                }
-              },
-              "VALIDATION_ERROR_2": {
-                "summary": "VALIDATION_ERROR — `templateId` não é um layout do catálogo (`promo-announcement`, `newsletter-update`)",
+                "summary": "VALIDATION_ERROR",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -104355,7 +105530,25 @@
             },
             "examples": {
               "VALIDATION_ERROR": {
-                "summary": "VALIDATION_ERROR",
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — `templateId` não é um layout do catálogo (`promo-announcement`, `newsletter-update`)",
                 "value": {
                   "success": false,
                   "statusCode": 422,
@@ -105795,6 +106988,106 @@
                   "statusCode": 422,
                   "error": {
                     "code": "CRM_CUSTOM_FIELD_INVALID"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_CRM_EMAIL_BUILDER_STRUCTURE_LOCKED": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `CRM_EMAIL_BUILDER_STRUCTURE_LOCKED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED": {
+                "summary": "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED — Documento fora da estrutura travada do modelo (seção adicionada, removida, de outro tipo, ocultada sem ser opcional ou fora de posição), troca de modelo ou HTML livre num template `BUILDER`",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "A estrutura deste modelo não pode ser alterada — edite apenas o conteúdo",
+                  "error": {
+                    "code": "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "422_VALIDATION_ERROR_CRM_EMAIL_BUILDER_STRUCTURE_LOCKED_2": {
+        "description": "Dados inválidos: `VALIDATION_ERROR`, `CRM_EMAIL_BUILDER_STRUCTURE_LOCKED`",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            },
+            "examples": {
+              "VALIDATION_ERROR": {
+                "summary": "VALIDATION_ERROR — Corpo inválido ou JSON malformado",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "VALIDATION_ERROR_2": {
+                "summary": "VALIDATION_ERROR — `templateId` não é um layout do catálogo (`promo-announcement`, `newsletter-update`)",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "Dados inválidos",
+                  "error": {
+                    "code": "VALIDATION_ERROR",
+                    "details": [
+                      {
+                        "code": "too_small",
+                        "path": ["name"],
+                        "message": "Nome deve ter ao menos 2 caracteres"
+                      }
+                    ]
+                  }
+                }
+              },
+              "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED": {
+                "summary": "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED — Documento fora da estrutura travada do modelo (seção adicionada, removida, de outro tipo, ocultada sem ser opcional ou fora de posição), troca de modelo ou HTML livre num template `BUILDER`",
+                "value": {
+                  "success": false,
+                  "statusCode": 422,
+                  "message": "A estrutura deste modelo não pode ser alterada — edite apenas o conteúdo",
+                  "error": {
+                    "code": "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED"
                   }
                 }
               }
@@ -114702,6 +115995,44 @@
         ],
         "description": "Conta de e-mail de contexto. Não há sincronização real com Gmail/Outlook: serve para agrupar e-mails e eventos registrados manualmente."
       },
+      "CrmEmailBrand": {
+        "type": "object",
+        "properties": {
+          "companyName": {
+            "type": "string",
+            "example": "Acme Ltda."
+          },
+          "logoUrl": {
+            "type": "string"
+          },
+          "primaryColor": {
+            "type": "string",
+            "example": "#2893CC"
+          },
+          "address": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          },
+          "saved": {
+            "type": "boolean",
+            "description": "`false` enquanto o workspace nunca salvou uma marca (valem o nome/logo do workspace e a cor padrão)."
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["companyName", "logoUrl", "primaryColor", "address", "website", "saved", "updatedAt"]
+      },
       "CrmEmailCampaign": {
         "type": "object",
         "properties": {
@@ -114782,6 +116113,28 @@
               }
             ]
           },
+          "templateId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Template do editor visual de origem, se houver."
+          },
+          "campaignLink": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "URL rastreada que substitui `{{campaign_link}}` no envio."
+          },
           "workspaceId": {
             "type": "string"
           },
@@ -114811,6 +116164,8 @@
           "skippedCount",
           "scheduledAt",
           "sentAt",
+          "templateId",
+          "campaignLink",
           "workspaceId",
           "createdById",
           "createdAt",
@@ -114904,6 +116259,48 @@
           "sentAt",
           "createdAt"
         ]
+      },
+      "CrmEmailLinkTargets": {
+        "type": "object",
+        "properties": {
+          "landingPages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "title", "url"]
+            }
+          },
+          "forms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": ["id", "name", "url"]
+            }
+          }
+        },
+        "required": ["landingPages", "forms"]
       },
       "CrmEmailMessage": {
         "type": "object",
@@ -115050,6 +116447,22 @@
         "required": ["id", "email", "personId", "campaignId", "source", "createdAt"],
         "description": "Descadastro LGPD de campanhas."
       },
+      "CrmEmailRender": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "example": "Olá Maria, as novidades chegaram"
+          },
+          "html": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["subject", "html", "text"]
+      },
       "CrmEmailTemplate": {
         "type": "object",
         "properties": {
@@ -115105,6 +116518,31 @@
             ],
             "description": "Campos preenchidos do layout fixo."
           },
+          "kind": {
+            "type": "string",
+            "enum": ["LEGACY", "BUILDER"],
+            "description": "`LEGACY` = HTML livre ou layout antigo; `BUILDER` = editor visual (documento em `builderDocument`)."
+          },
+          "builderDocument": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Documento do editor visual: `{ version: 1, layout, previewText, sections: [{ id, type, hidden, props }] }`. A estrutura é travada pelo modelo."
+          },
+          "contentText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Texto puro da última renderização (templates `BUILDER`), com as variáveis intactas."
+          },
           "workspaceId": {
             "type": "string"
           },
@@ -115138,6 +116576,9 @@
           "contentJson",
           "templateId",
           "templateProps",
+          "kind",
+          "builderDocument",
+          "contentText",
           "workspaceId",
           "createdById",
           "updatedById",
@@ -115154,6 +116595,16 @@
           }
         },
         "required": ["html"]
+      },
+      "CrmEmailTestSend": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "string",
+            "example": "voce@acme.com.br"
+          }
+        },
+        "required": ["to"]
       },
       "CrmFacebookInsights": {
         "type": "object",
@@ -124846,6 +126297,8 @@
           "CRM_EMAIL_CAMPAIGN_ALREADY_SENT",
           "CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS",
           "CRM_EMAIL_UNSUBSCRIBE_INVALID",
+          "CRM_EMAIL_TEMPLATE_NOT_BUILDER",
+          "CRM_EMAIL_BUILDER_STRUCTURE_LOCKED",
           "CRM_MAILING_LIST_NOT_FOUND",
           "CRM_MAILING_LIST_MEMBER_CONFLICT",
           "CRM_WORKFLOW_NOT_FOUND",
@@ -125045,7 +126498,7 @@
           "BACKUP_FAILED",
           "BILLING_DISABLED"
         ],
-        "description": "Código estável do erro (fonte: `src/errors/codes.ts`). Use o código — não a mensagem — para tratar erros no cliente.\n\n| Código | Status HTTP |\n| ------ | ----------- |\n| `UNAUTHORIZED` | 401 |\n| `INVALID_TOKEN` | 401 |\n| `TOKEN_EXPIRED` | 401 |\n| `INVALID_CREDENTIALS` | 401 |\n| `FORBIDDEN` | 403 |\n| `INSUFFICIENT_PERMISSIONS` | 403 |\n| `PROJECT_FORBIDDEN` | 403 |\n| `SEAT_LIMIT_REACHED` | 403 |\n| `FEATURE_NOT_IN_PLAN` | 403 |\n| `CONNECTION_FORBIDDEN` | 403 |\n| `MODULE_DISABLED` | 403 |\n| `WORKSPACE_SUSPENDED` | 403 |\n| `BACKUP_DOWNLOAD_LINK_INVALID` | 403 |\n| `BAD_REQUEST` | 400 |\n| `VALIDATION_ERROR` | 422 |\n| `RESOURCE_NOT_FOUND` | 404 |\n| `CONFLICT` | 409 |\n| `USERNAME_CONFLICT` | 409 |\n| `RATE_LIMITED` | 429 |\n| `PROJECT_NOT_FOUND` | 404 |\n| `PROJECT_SLUG_CONFLICT` | 409 |\n| `INVITATION_NOT_FOUND` | 404 |\n| `INVITATION_NOT_PENDING` | 409 |\n| `INVITATION_EXPIRED` | 410 |\n| `INVITATION_EMAIL_MISMATCH` | 403 |\n| `INVITATION_DUPLICATE` | 409 |\n| `INVITATION_ALREADY_MEMBER` | 409 |\n| `MEMBER_NOT_FOUND` | 404 |\n| `MEMBER_PROTECTED` | 403 |\n| `PROJECT_MEMBER_ALREADY_EXISTS` | 409 |\n| `PROJECT_MEMBER_NOT_FOUND` | 404 |\n| `PROJECT_MEMBER_NOT_IN_WORKSPACE` | 409 |\n| `COUPON_INVALID` | 422 |\n| `CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_CONFLICT` | 409 |\n| `WHATSAPP_CONTACT_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `WHATSAPP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_ALREADY_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_NOT_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_AI_HANDLING` | 409 |\n| `WHATSAPP_QUICK_REPLY_NOT_FOUND` | 404 |\n| `WHATSAPP_QUICK_REPLY_CONFLICT` | 409 |\n| `WHATSAPP_TEMPLATE_NOT_FOUND` | 404 |\n| `WHATSAPP_TEMPLATE_NOT_APPROVED` | 422 |\n| `WHATSAPP_BROADCAST_NOT_FOUND` | 404 |\n| `WHATSAPP_BROADCAST_LOCKED` | 409 |\n| `WHATSAPP_BROADCAST_MEDIA_INVALID` | 422 |\n| `WHATSAPP_BROADCAST_NO_RECIPIENTS` | 422 |\n| `WHATSAPP_AI_CONFIG_NOT_FOUND` | 404 |\n| `WHATSAPP_PROVIDER_ERROR` | 502 |\n| `WHATSAPP_WEBHOOK_UNAUTHORIZED` | 401 |\n| `WHATSAPP_GROUP_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED` | 422 |\n| `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE` | 422 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND` | 404 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE` | 422 |\n| `WHATSAPP_CONTACT_OPTED_OUT` | 422 |\n| `WHATSAPP_SESSION_WINDOW_CLOSED` | 422 |\n| `CRM_COMPANY_NOT_FOUND` | 404 |\n| `CRM_COMPANY_CONFLICT` | 409 |\n| `CRM_PERSON_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_IN_USE` | 409 |\n| `CRM_PRODUCT_NOT_FOUND` | 404 |\n| `CRM_PRODUCT_CONFLICT` | 409 |\n| `CRM_OPPORTUNITY_NOT_FOUND` | 404 |\n| `CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND` | 404 |\n| `CRM_LEAD_NOT_FOUND` | 404 |\n| `CRM_LEAD_ALREADY_CONVERTED` | 409 |\n| `CRM_LEAD_SCORING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_ROUTING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_STAGE_TRANSITION_INVALID` | 409 |\n| `CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET` | 422 |\n| `CRM_LEAD_ALREADY_CLOSED` | 409 |\n| `CRM_LEAD_QUALIFICATION_NOT_FOUND` | 404 |\n| `CRM_LEAD_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_LEAD_DUPLICATE` | 409 |\n| `CRM_LEAD_REOPEN_NOT_ALLOWED` | 409 |\n| `CRM_CUSTOM_FIELD_NOT_FOUND` | 404 |\n| `CRM_CUSTOM_FIELD_CONFLICT` | 409 |\n| `CRM_CUSTOM_FIELD_INVALID` | 422 |\n| `CRM_TASK_NOT_FOUND` | 404 |\n| `CRM_NOTE_NOT_FOUND` | 404 |\n| `CRM_QUOTA_NOT_FOUND` | 404 |\n| `CRM_QUOTA_CONFLICT` | 409 |\n| `CRM_REPORT_NOT_FOUND` | 404 |\n| `CRM_REPORT_INVALID_SOURCE` | 422 |\n| `CRM_DASHBOARD_NOT_FOUND` | 404 |\n| `CRM_DASHBOARD_WIDGET_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_EXPIRED` | 409 |\n| `CRM_PROPOSAL_NOT_ACCEPTABLE` | 409 |\n| `CRM_PROPOSAL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_PUBLISHED` | 422 |\n| `CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `CRM_AI_NOT_CONFIGURED` | 503 |\n| `CRM_INTEGRATION_KEY_NOT_FOUND` | 404 |\n| `CRM_INTEGRATION_KEY_INVALID` | 401 |\n| `CRM_EMAIL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_ALREADY_SENT` | 409 |\n| `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS` | 422 |\n| `CRM_EMAIL_UNSUBSCRIBE_INVALID` | 400 |\n| `CRM_MAILING_LIST_NOT_FOUND` | 404 |\n| `CRM_MAILING_LIST_MEMBER_CONFLICT` | 409 |\n| `CRM_WORKFLOW_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_NOT_ACTIVE` | 409 |\n| `CRM_WORKFLOW_VERSION_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_VERSION_NOT_DRAFT` | 409 |\n| `CRM_WORKFLOW_INVALID_DEFINITION` | 422 |\n| `CRM_WORKFLOW_EXECUTION_FAILED` | 500 |\n| `CRM_WORKFLOW_WEBHOOK_INVALID` | 404 |\n| `CRM_LANDING_PAGE_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_CONFLICT` | 409 |\n| `CRM_SOCIAL_OAUTH_FAILED` | 502 |\n| `CRM_SOCIAL_STATE_INVALID` | 400 |\n| `CRM_SOCIAL_NOT_CONFIGURED` | 503 |\n| `CRM_SOCIAL_NO_PAGE` | 422 |\n| `CRM_SOCIAL_IG_NOT_LINKED` | 422 |\n| `CRM_SOCIAL_TOKEN_EXPIRED` | 409 |\n| `CRM_SOCIAL_SCOPE_MISSING` | 409 |\n| `CRM_SOCIAL_VIDEO_INVALID` | 422 |\n| `CRM_COMPETITOR_PROFILE_NOT_FOUND` | 404 |\n| `CRM_COMPETITOR_NO_POSTS` | 422 |\n| `CRM_COMPETITOR_IDEAS_FAILED` | 502 |\n| `CRM_SCHEDULED_POST_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_ALREADY_PUBLISHED` | 409 |\n| `CRM_SCHEDULED_POST_INVALID` | 400 |\n| `CRM_EMAIL_ACCOUNT_NOT_FOUND` | 404 |\n| `CRM_EMAIL_ACCOUNT_CONFLICT` | 409 |\n| `CRM_EMAIL_MESSAGE_NOT_FOUND` | 404 |\n| `CRM_CALENDAR_EVENT_NOT_FOUND` | 404 |\n| `CRM_AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `PROFILE_NOT_FOUND` | 404 |\n| `PROFILE_NAME_TAKEN` | 409 |\n| `PROFILE_SYSTEM_PROTECTED` | 409 |\n| `PROFILE_IN_USE` | 409 |\n| `CRM_HOOK_VAULT_ITEM_NOT_FOUND` | 404 |\n| `CRM_TRACKED_COMPETITOR_NOT_FOUND` | 404 |\n| `CHANGELOG_NOT_FOUND` | 404 |\n| `CHANGELOG_LOCKED` | 409 |\n| `BACKUP_NOT_FOUND` | 404 |\n| `BACKUP_NOT_RESTORABLE` | 409 |\n| `WORKSPACE_STATUS_CONFLICT` | 409 |\n| `WORKSPACE_OPERATION_IN_PROGRESS` | 409 |\n| `WORKSPACE_CONFIRMATION_MISMATCH` | 422 |\n| `AI_QUOTA_EXCEEDED` | 402 |\n| `AI_MODEL_NOT_ENABLED` | 422 |\n| `AI_PROVIDER_UNAVAILABLE` | 503 |\n| `FEATURE_NOT_ENABLED` | 403 |\n| `AI_CONVERSATION_NOT_FOUND` | 404 |\n| `AI_AGENT_MODE_DISABLED` | 403 |\n| `AI_TOOL_NOT_ALLOWED` | 403 |\n| `AI_PENDING_ACTION_NOT_FOUND` | 404 |\n| `AI_PENDING_ACTION_NOT_PENDING` | 409 |\n| `AI_PENDING_ACTION_EXPIRED` | 410 |\n| `AI_DOUBLE_CONFIRMATION_REQUIRED` | 422 |\n| `AI_DISABLED` | 403 |\n| `AI_AUTOPILOT_DISABLED` | 403 |\n| `AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `AI_ATTACHMENT_UNSUPPORTED` | 415 |\n| `AI_ATTACHMENT_TOO_LARGE` | 413 |\n| `AI_SKILL_NOT_FOUND` | 404 |\n| `AI_SKILL_SLUG_TAKEN` | 409 |\n| `AI_MEMORY_NOT_FOUND` | 404 |\n| `AI_MEMORY_DISABLED` | 403 |\n| `STEEL_AGENT_NOT_FOUND` | 404 |\n| `STEEL_AGENT_RUN_NOT_FOUND` | 404 |\n| `STEEL_AGENT_INVALID_TOOL` | 422 |\n| `STEEL_AGENT_INVALID_TRIGGER` | 422 |\n| `STEEL_AGENT_INVALID_OWNER` | 422 |\n| `STEEL_AGENT_DISABLED` | 409 |\n| `SD_TICKET_NOT_FOUND` | 404 |\n| `SD_TICKET_FORBIDDEN` | 403 |\n| `SD_NOT_AGENT` | 403 |\n| `SD_TICKET_CLOSED` | 409 |\n| `SD_PHASE_NOT_FOUND` | 404 |\n| `SD_PHASE_TRANSITION_NOT_ALLOWED` | 422 |\n| `SD_PHASE_REQUIREMENTS_UNMET` | 422 |\n| `SD_APPROVAL_REQUIRED` | 422 |\n| `SD_APPROVAL_NOT_FOUND` | 404 |\n| `SD_APPROVAL_NOT_PENDING` | 409 |\n| `SD_APPROVAL_EXPIRED` | 410 |\n| `SD_SIGNATURE_REQUIRED` | 422 |\n| `SD_CATEGORY_NOT_FOUND` | 404 |\n| `SD_CATEGORY_LEVEL_INVALID` | 422 |\n| `SD_DEPARTMENT_NOT_FOUND` | 404 |\n| `SD_DEPARTMENT_DEPTH_EXCEEDED` | 422 |\n| `SD_CUSTOMER_NOT_FOUND` | 404 |\n| `SD_CUSTOMER_DOCUMENT_CONFLICT` | 409 |\n| `SD_DOCUMENT_INVALID` | 422 |\n| `SD_CONTACT_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_TYPE_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_CYCLE` | 422 |\n| `SD_CONFIG_NOT_FOUND` | 404 |\n| `SD_CONFIG_CONFLICT` | 409 |\n| `SD_CUSTOM_FIELD_INVALID` | 422 |\n| `SD_KB_ARTICLE_NOT_FOUND` | 404 |\n| `SD_KB_ARTICLE_FORBIDDEN` | 403 |\n| `SD_KB_ARTICLE_MOVE_INVALID` | 422 |\n| `SD_KB_COMMENT_NOT_FOUND` | 404 |\n| `SD_KB_COMMENT_FORBIDDEN` | 403 |\n| `SD_KB_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `SD_ATTACHMENT_NOT_FOUND` | 404 |\n| `SD_ATTACHMENT_INVALID` | 422 |\n| `SD_CEP_NOT_FOUND` | 404 |\n| `SD_CEP_LOOKUP_FAILED` | 502 |\n| `SD_PORTAL_DISABLED` | 403 |\n| `SD_WHATSAPP_NOT_CONFIGURED` | 422 |\n| `SD_AI_DISABLED` | 403 |\n| `SD_MESSAGE_NOT_FOUND` | 404 |\n| `SD_MESSAGE_FORBIDDEN` | 403 |\n| `SD_TASK_NOT_FOUND` | 404 |\n| `SD_COST_NOT_FOUND` | 404 |\n| `SD_TICKET_PART_NOT_FOUND` | 404 |\n| `SD_PART_STATUS_INVALID` | 422 |\n| `SD_PART_OUT_OF_STOCK` | 409 |\n| `SD_SIGNATURE_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_CLOSED` | 409 |\n| `SD_WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_WHATSAPP_WINDOW_CLOSED` | 422 |\n| `SD_CSAT_ALREADY_SUBMITTED` | 409 |\n| `SD_CSAT_NOT_AVAILABLE` | 422 |\n| `SD_MAILBOX_NOT_FOUND` | 404 |\n| `SD_MAILBOX_CONFLICT` | 409 |\n| `SD_MAILBOX_CONNECTION_FAILED` | 502 |\n| `SD_MONITOR_SOURCE_NOT_FOUND` | 404 |\n| `SD_MONITOR_TOKEN_INVALID` | 401 |\n| `SD_MONITOR_PAYLOAD_INVALID` | 422 |\n| `SD_PORTAL_LINK_INVALID` | 401 |\n| `SD_PORTAL_LINK_EXPIRED` | 410 |\n| `SD_PORTAL_SESSION_EXPIRED` | 401 |\n| `SD_PORTAL_CONTACT_INACTIVE` | 403 |\n| `SD_NOTIFICATION_EVENT_UNKNOWN` | 422 |\n| `SD_CONTRACT_NOT_FOUND` | 404 |\n| `SD_CONTRACT_INACTIVE` | 422 |\n| `SD_CONTRACT_OVERLAP` | 409 |\n| `SD_CONTRACT_PERIOD_NOT_FOUND` | 404 |\n| `SD_CONTRACT_PERIOD_CLOSED` | 409 |\n| `SD_TIME_ENTRY_NOT_FOUND` | 404 |\n| `SD_TIME_ENTRY_RUNNING` | 409 |\n| `SD_TIME_ENTRY_INVALID` | 422 |\n| `SD_CHANGE_WINDOW_NOT_FOUND` | 404 |\n| `SD_CHANGE_WINDOW_INVALID` | 422 |\n| `SD_CHANGE_FROZEN` | 409 |\n| `SD_CHANGE_CONFLICT` | 409 |\n| `SD_CAB_BOARD_NOT_FOUND` | 404 |\n| `SD_CAB_QUORUM_INVALID` | 422 |\n| `SD_APPROVAL_ROUND_NOT_FOUND` | 404 |\n| `SD_APPROVAL_ROUND_CLOSED` | 409 |\n| `SD_ONCALL_SCHEDULE_NOT_FOUND` | 404 |\n| `SD_ONCALL_LAYER_INVALID` | 422 |\n| `SD_ONCALL_OVERRIDE_OVERLAP` | 409 |\n| `SD_RECURRING_NOT_FOUND` | 404 |\n| `SD_RECURRING_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_NOT_FOUND` | 404 |\n| `SD_REPORT_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_RECIPIENTS_REQUIRED` | 422 |\n| `SD_REPORT_RUN_NOT_FOUND` | 404 |\n| `SD_REPORT_GENERATION_FAILED` | 500 |\n| `SD_KB_REVIEW_NOT_FOUND` | 404 |\n| `SD_KB_REVIEW_CLOSED` | 409 |\n| `SD_KB_REVIEW_FORBIDDEN` | 403 |\n| `SD_RISK_PREDICTION_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_CLOSED` | 409 |\n| `SD_INTEGRATION_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_EXISTS` | 409 |\n| `SD_INTEGRATION_NOT_CONFIGURED` | 503 |\n| `SD_INTEGRATION_LINK_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_LINK_EXISTS` | 409 |\n| `SD_INTEGRATION_SIGNATURE_INVALID` | 401 |\n| `SD_INTEGRATION_REQUEST_FAILED` | 502 |\n| `TOTP_NOT_ENABLED` | 409 |\n| `TOTP_INVALID_CODE` | 401 |\n| `WIKI_DISABLED` | 403 |\n| `WIKI_PAGE_FORBIDDEN` | 403 |\n| `WIKI_PAGE_NOT_FOUND` | 404 |\n| `WIKI_COMMENT_NOT_FOUND` | 404 |\n| `WIKI_COMMENT_FORBIDDEN` | 403 |\n| `WIKI_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `WIKI_LABEL_NOT_FOUND` | 404 |\n| `WIKI_LABEL_CONFLICT` | 409 |\n| `WORKSPACE_EXPORT_NOT_FOUND` | 404 |\n| `WORKSPACE_EXPORT_LIMIT_REACHED` | 429 |\n| `WORKSPACE_EXPORT_NOT_READY` | 409 |\n| `WORKSPACE_EXPORT_LOGS_UNAVAILABLE` | 503 |\n| `INTERNAL_SERVER_ERROR` | 500 |\n| `DATABASE_ERROR` | 500 |\n| `STORAGE_ERROR` | 500 |\n| `PAYMENT_ERROR` | 502 |\n| `SUBSCRIPTION_CANCEL_FAILED` | 502 |\n| `MAIL_ERROR` | 502 |\n| `CONNECTION_TEST_FAILED` | 502 |\n| `RELEASE_NOTES_UNAVAILABLE` | 502 |\n| `ANALYTICS_QUERY_FAILED` | 502 |\n| `BACKUP_FAILED` | 500 |\n| `BILLING_DISABLED` | 503 |"
+        "description": "Código estável do erro (fonte: `src/errors/codes.ts`). Use o código — não a mensagem — para tratar erros no cliente.\n\n| Código | Status HTTP |\n| ------ | ----------- |\n| `UNAUTHORIZED` | 401 |\n| `INVALID_TOKEN` | 401 |\n| `TOKEN_EXPIRED` | 401 |\n| `INVALID_CREDENTIALS` | 401 |\n| `FORBIDDEN` | 403 |\n| `INSUFFICIENT_PERMISSIONS` | 403 |\n| `PROJECT_FORBIDDEN` | 403 |\n| `SEAT_LIMIT_REACHED` | 403 |\n| `FEATURE_NOT_IN_PLAN` | 403 |\n| `CONNECTION_FORBIDDEN` | 403 |\n| `MODULE_DISABLED` | 403 |\n| `WORKSPACE_SUSPENDED` | 403 |\n| `BACKUP_DOWNLOAD_LINK_INVALID` | 403 |\n| `BAD_REQUEST` | 400 |\n| `VALIDATION_ERROR` | 422 |\n| `RESOURCE_NOT_FOUND` | 404 |\n| `CONFLICT` | 409 |\n| `USERNAME_CONFLICT` | 409 |\n| `RATE_LIMITED` | 429 |\n| `PROJECT_NOT_FOUND` | 404 |\n| `PROJECT_SLUG_CONFLICT` | 409 |\n| `INVITATION_NOT_FOUND` | 404 |\n| `INVITATION_NOT_PENDING` | 409 |\n| `INVITATION_EXPIRED` | 410 |\n| `INVITATION_EMAIL_MISMATCH` | 403 |\n| `INVITATION_DUPLICATE` | 409 |\n| `INVITATION_ALREADY_MEMBER` | 409 |\n| `MEMBER_NOT_FOUND` | 404 |\n| `MEMBER_PROTECTED` | 403 |\n| `PROJECT_MEMBER_ALREADY_EXISTS` | 409 |\n| `PROJECT_MEMBER_NOT_FOUND` | 404 |\n| `PROJECT_MEMBER_NOT_IN_WORKSPACE` | 409 |\n| `COUPON_INVALID` | 422 |\n| `CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_NOT_FOUND` | 404 |\n| `WHATSAPP_CONNECTION_CONFLICT` | 409 |\n| `WHATSAPP_CONTACT_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `WHATSAPP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_CONVERSATION_ALREADY_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_NOT_CLOSED` | 409 |\n| `WHATSAPP_CONVERSATION_AI_HANDLING` | 409 |\n| `WHATSAPP_QUICK_REPLY_NOT_FOUND` | 404 |\n| `WHATSAPP_QUICK_REPLY_CONFLICT` | 409 |\n| `WHATSAPP_TEMPLATE_NOT_FOUND` | 404 |\n| `WHATSAPP_TEMPLATE_NOT_APPROVED` | 422 |\n| `WHATSAPP_BROADCAST_NOT_FOUND` | 404 |\n| `WHATSAPP_BROADCAST_LOCKED` | 409 |\n| `WHATSAPP_BROADCAST_MEDIA_INVALID` | 422 |\n| `WHATSAPP_BROADCAST_NO_RECIPIENTS` | 422 |\n| `WHATSAPP_AI_CONFIG_NOT_FOUND` | 404 |\n| `WHATSAPP_PROVIDER_ERROR` | 502 |\n| `WHATSAPP_WEBHOOK_UNAUTHORIZED` | 401 |\n| `WHATSAPP_GROUP_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_MESSAGE_NOT_FOUND` | 404 |\n| `WHATSAPP_GROUP_PROVIDER_UNSUPPORTED` | 422 |\n| `WHATSAPP_CONTACT_PHOTO_UNAVAILABLE` | 422 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_NOT_FOUND` | 404 |\n| `WHATSAPP_AI_KNOWLEDGE_DOCUMENT_UNSUPPORTED_TYPE` | 422 |\n| `WHATSAPP_CONTACT_OPTED_OUT` | 422 |\n| `WHATSAPP_SESSION_WINDOW_CLOSED` | 422 |\n| `CRM_COMPANY_NOT_FOUND` | 404 |\n| `CRM_COMPANY_CONFLICT` | 409 |\n| `CRM_PERSON_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_NOT_FOUND` | 404 |\n| `CRM_PIPELINE_STAGE_IN_USE` | 409 |\n| `CRM_PRODUCT_NOT_FOUND` | 404 |\n| `CRM_PRODUCT_CONFLICT` | 409 |\n| `CRM_OPPORTUNITY_NOT_FOUND` | 404 |\n| `CRM_OPPORTUNITY_LINE_ITEM_NOT_FOUND` | 404 |\n| `CRM_LEAD_NOT_FOUND` | 404 |\n| `CRM_LEAD_ALREADY_CONVERTED` | 409 |\n| `CRM_LEAD_SCORING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_ROUTING_RULE_NOT_FOUND` | 404 |\n| `CRM_LEAD_STAGE_TRANSITION_INVALID` | 409 |\n| `CRM_LEAD_STAGE_REQUIREMENTS_NOT_MET` | 422 |\n| `CRM_LEAD_ALREADY_CLOSED` | 409 |\n| `CRM_LEAD_QUALIFICATION_NOT_FOUND` | 404 |\n| `CRM_LEAD_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_LEAD_DUPLICATE` | 409 |\n| `CRM_LEAD_REOPEN_NOT_ALLOWED` | 409 |\n| `CRM_CUSTOM_FIELD_NOT_FOUND` | 404 |\n| `CRM_CUSTOM_FIELD_CONFLICT` | 409 |\n| `CRM_CUSTOM_FIELD_INVALID` | 422 |\n| `CRM_TASK_NOT_FOUND` | 404 |\n| `CRM_NOTE_NOT_FOUND` | 404 |\n| `CRM_QUOTA_NOT_FOUND` | 404 |\n| `CRM_QUOTA_CONFLICT` | 409 |\n| `CRM_REPORT_NOT_FOUND` | 404 |\n| `CRM_REPORT_INVALID_SOURCE` | 422 |\n| `CRM_DASHBOARD_NOT_FOUND` | 404 |\n| `CRM_DASHBOARD_WIDGET_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_NOT_FOUND` | 404 |\n| `CRM_PROPOSAL_EXPIRED` | 409 |\n| `CRM_PROPOSAL_NOT_ACCEPTABLE` | 409 |\n| `CRM_PROPOSAL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_FOUND` | 404 |\n| `CRM_FORM_NOT_PUBLISHED` | 422 |\n| `CRM_LANDING_PAGE_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `CRM_AI_NOT_CONFIGURED` | 503 |\n| `CRM_INTEGRATION_KEY_NOT_FOUND` | 404 |\n| `CRM_INTEGRATION_KEY_INVALID` | 401 |\n| `CRM_EMAIL_TEMPLATE_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_NOT_FOUND` | 404 |\n| `CRM_EMAIL_CAMPAIGN_ALREADY_SENT` | 409 |\n| `CRM_EMAIL_CAMPAIGN_NO_RECIPIENTS` | 422 |\n| `CRM_EMAIL_UNSUBSCRIBE_INVALID` | 400 |\n| `CRM_EMAIL_TEMPLATE_NOT_BUILDER` | 409 |\n| `CRM_EMAIL_BUILDER_STRUCTURE_LOCKED` | 422 |\n| `CRM_MAILING_LIST_NOT_FOUND` | 404 |\n| `CRM_MAILING_LIST_MEMBER_CONFLICT` | 409 |\n| `CRM_WORKFLOW_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_NOT_ACTIVE` | 409 |\n| `CRM_WORKFLOW_VERSION_NOT_FOUND` | 404 |\n| `CRM_WORKFLOW_VERSION_NOT_DRAFT` | 409 |\n| `CRM_WORKFLOW_INVALID_DEFINITION` | 422 |\n| `CRM_WORKFLOW_EXECUTION_FAILED` | 500 |\n| `CRM_WORKFLOW_WEBHOOK_INVALID` | 404 |\n| `CRM_LANDING_PAGE_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_NOT_FOUND` | 404 |\n| `CRM_SOCIAL_CONNECTION_CONFLICT` | 409 |\n| `CRM_SOCIAL_OAUTH_FAILED` | 502 |\n| `CRM_SOCIAL_STATE_INVALID` | 400 |\n| `CRM_SOCIAL_NOT_CONFIGURED` | 503 |\n| `CRM_SOCIAL_NO_PAGE` | 422 |\n| `CRM_SOCIAL_IG_NOT_LINKED` | 422 |\n| `CRM_SOCIAL_TOKEN_EXPIRED` | 409 |\n| `CRM_SOCIAL_SCOPE_MISSING` | 409 |\n| `CRM_SOCIAL_VIDEO_INVALID` | 422 |\n| `CRM_COMPETITOR_PROFILE_NOT_FOUND` | 404 |\n| `CRM_COMPETITOR_NO_POSTS` | 422 |\n| `CRM_COMPETITOR_IDEAS_FAILED` | 502 |\n| `CRM_SCHEDULED_POST_NOT_FOUND` | 404 |\n| `CRM_SCHEDULED_POST_ALREADY_PUBLISHED` | 409 |\n| `CRM_SCHEDULED_POST_INVALID` | 400 |\n| `CRM_EMAIL_ACCOUNT_NOT_FOUND` | 404 |\n| `CRM_EMAIL_ACCOUNT_CONFLICT` | 409 |\n| `CRM_EMAIL_MESSAGE_NOT_FOUND` | 404 |\n| `CRM_CALENDAR_EVENT_NOT_FOUND` | 404 |\n| `CRM_AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `PROFILE_NOT_FOUND` | 404 |\n| `PROFILE_NAME_TAKEN` | 409 |\n| `PROFILE_SYSTEM_PROTECTED` | 409 |\n| `PROFILE_IN_USE` | 409 |\n| `CRM_HOOK_VAULT_ITEM_NOT_FOUND` | 404 |\n| `CRM_TRACKED_COMPETITOR_NOT_FOUND` | 404 |\n| `CHANGELOG_NOT_FOUND` | 404 |\n| `CHANGELOG_LOCKED` | 409 |\n| `BACKUP_NOT_FOUND` | 404 |\n| `BACKUP_NOT_RESTORABLE` | 409 |\n| `WORKSPACE_STATUS_CONFLICT` | 409 |\n| `WORKSPACE_OPERATION_IN_PROGRESS` | 409 |\n| `WORKSPACE_CONFIRMATION_MISMATCH` | 422 |\n| `AI_QUOTA_EXCEEDED` | 402 |\n| `AI_MODEL_NOT_ENABLED` | 422 |\n| `AI_PROVIDER_UNAVAILABLE` | 503 |\n| `FEATURE_NOT_ENABLED` | 403 |\n| `AI_CONVERSATION_NOT_FOUND` | 404 |\n| `AI_AGENT_MODE_DISABLED` | 403 |\n| `AI_TOOL_NOT_ALLOWED` | 403 |\n| `AI_PENDING_ACTION_NOT_FOUND` | 404 |\n| `AI_PENDING_ACTION_NOT_PENDING` | 409 |\n| `AI_PENDING_ACTION_EXPIRED` | 410 |\n| `AI_DOUBLE_CONFIRMATION_REQUIRED` | 422 |\n| `AI_DISABLED` | 403 |\n| `AI_AUTOPILOT_DISABLED` | 403 |\n| `AI_ATTACHMENT_NOT_FOUND` | 404 |\n| `AI_ATTACHMENT_UNSUPPORTED` | 415 |\n| `AI_ATTACHMENT_TOO_LARGE` | 413 |\n| `AI_SKILL_NOT_FOUND` | 404 |\n| `AI_SKILL_SLUG_TAKEN` | 409 |\n| `AI_MEMORY_NOT_FOUND` | 404 |\n| `AI_MEMORY_DISABLED` | 403 |\n| `STEEL_AGENT_NOT_FOUND` | 404 |\n| `STEEL_AGENT_RUN_NOT_FOUND` | 404 |\n| `STEEL_AGENT_INVALID_TOOL` | 422 |\n| `STEEL_AGENT_INVALID_TRIGGER` | 422 |\n| `STEEL_AGENT_INVALID_OWNER` | 422 |\n| `STEEL_AGENT_DISABLED` | 409 |\n| `SD_TICKET_NOT_FOUND` | 404 |\n| `SD_TICKET_FORBIDDEN` | 403 |\n| `SD_NOT_AGENT` | 403 |\n| `SD_TICKET_CLOSED` | 409 |\n| `SD_PHASE_NOT_FOUND` | 404 |\n| `SD_PHASE_TRANSITION_NOT_ALLOWED` | 422 |\n| `SD_PHASE_REQUIREMENTS_UNMET` | 422 |\n| `SD_APPROVAL_REQUIRED` | 422 |\n| `SD_APPROVAL_NOT_FOUND` | 404 |\n| `SD_APPROVAL_NOT_PENDING` | 409 |\n| `SD_APPROVAL_EXPIRED` | 410 |\n| `SD_SIGNATURE_REQUIRED` | 422 |\n| `SD_CATEGORY_NOT_FOUND` | 404 |\n| `SD_CATEGORY_LEVEL_INVALID` | 422 |\n| `SD_DEPARTMENT_NOT_FOUND` | 404 |\n| `SD_DEPARTMENT_DEPTH_EXCEEDED` | 422 |\n| `SD_CUSTOMER_NOT_FOUND` | 404 |\n| `SD_CUSTOMER_DOCUMENT_CONFLICT` | 409 |\n| `SD_DOCUMENT_INVALID` | 422 |\n| `SD_CONTACT_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_TYPE_NOT_FOUND` | 404 |\n| `SD_CONFIG_ITEM_CYCLE` | 422 |\n| `SD_CONFIG_NOT_FOUND` | 404 |\n| `SD_CONFIG_CONFLICT` | 409 |\n| `SD_CUSTOM_FIELD_INVALID` | 422 |\n| `SD_KB_ARTICLE_NOT_FOUND` | 404 |\n| `SD_KB_ARTICLE_FORBIDDEN` | 403 |\n| `SD_KB_ARTICLE_MOVE_INVALID` | 422 |\n| `SD_KB_COMMENT_NOT_FOUND` | 404 |\n| `SD_KB_COMMENT_FORBIDDEN` | 403 |\n| `SD_KB_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `SD_ATTACHMENT_NOT_FOUND` | 404 |\n| `SD_ATTACHMENT_INVALID` | 422 |\n| `SD_CEP_NOT_FOUND` | 404 |\n| `SD_CEP_LOOKUP_FAILED` | 502 |\n| `SD_PORTAL_DISABLED` | 403 |\n| `SD_WHATSAPP_NOT_CONFIGURED` | 422 |\n| `SD_AI_DISABLED` | 403 |\n| `SD_MESSAGE_NOT_FOUND` | 404 |\n| `SD_MESSAGE_FORBIDDEN` | 403 |\n| `SD_TASK_NOT_FOUND` | 404 |\n| `SD_COST_NOT_FOUND` | 404 |\n| `SD_TICKET_PART_NOT_FOUND` | 404 |\n| `SD_PART_STATUS_INVALID` | 422 |\n| `SD_PART_OUT_OF_STOCK` | 409 |\n| `SD_SIGNATURE_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_AI_CONVERSATION_CLOSED` | 409 |\n| `SD_WHATSAPP_CONVERSATION_NOT_FOUND` | 404 |\n| `SD_WHATSAPP_WINDOW_CLOSED` | 422 |\n| `SD_CSAT_ALREADY_SUBMITTED` | 409 |\n| `SD_CSAT_NOT_AVAILABLE` | 422 |\n| `SD_MAILBOX_NOT_FOUND` | 404 |\n| `SD_MAILBOX_CONFLICT` | 409 |\n| `SD_MAILBOX_CONNECTION_FAILED` | 502 |\n| `SD_MONITOR_SOURCE_NOT_FOUND` | 404 |\n| `SD_MONITOR_TOKEN_INVALID` | 401 |\n| `SD_MONITOR_PAYLOAD_INVALID` | 422 |\n| `SD_PORTAL_LINK_INVALID` | 401 |\n| `SD_PORTAL_LINK_EXPIRED` | 410 |\n| `SD_PORTAL_SESSION_EXPIRED` | 401 |\n| `SD_PORTAL_CONTACT_INACTIVE` | 403 |\n| `SD_NOTIFICATION_EVENT_UNKNOWN` | 422 |\n| `SD_CONTRACT_NOT_FOUND` | 404 |\n| `SD_CONTRACT_INACTIVE` | 422 |\n| `SD_CONTRACT_OVERLAP` | 409 |\n| `SD_CONTRACT_PERIOD_NOT_FOUND` | 404 |\n| `SD_CONTRACT_PERIOD_CLOSED` | 409 |\n| `SD_TIME_ENTRY_NOT_FOUND` | 404 |\n| `SD_TIME_ENTRY_RUNNING` | 409 |\n| `SD_TIME_ENTRY_INVALID` | 422 |\n| `SD_CHANGE_WINDOW_NOT_FOUND` | 404 |\n| `SD_CHANGE_WINDOW_INVALID` | 422 |\n| `SD_CHANGE_FROZEN` | 409 |\n| `SD_CHANGE_CONFLICT` | 409 |\n| `SD_CAB_BOARD_NOT_FOUND` | 404 |\n| `SD_CAB_QUORUM_INVALID` | 422 |\n| `SD_APPROVAL_ROUND_NOT_FOUND` | 404 |\n| `SD_APPROVAL_ROUND_CLOSED` | 409 |\n| `SD_ONCALL_SCHEDULE_NOT_FOUND` | 404 |\n| `SD_ONCALL_LAYER_INVALID` | 422 |\n| `SD_ONCALL_OVERRIDE_OVERLAP` | 409 |\n| `SD_RECURRING_NOT_FOUND` | 404 |\n| `SD_RECURRING_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_NOT_FOUND` | 404 |\n| `SD_REPORT_SCHEDULE_INVALID` | 422 |\n| `SD_REPORT_RECIPIENTS_REQUIRED` | 422 |\n| `SD_REPORT_RUN_NOT_FOUND` | 404 |\n| `SD_REPORT_GENERATION_FAILED` | 500 |\n| `SD_KB_REVIEW_NOT_FOUND` | 404 |\n| `SD_KB_REVIEW_CLOSED` | 409 |\n| `SD_KB_REVIEW_FORBIDDEN` | 403 |\n| `SD_RISK_PREDICTION_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_NOT_FOUND` | 404 |\n| `SD_INCIDENT_CLUSTER_CLOSED` | 409 |\n| `SD_INTEGRATION_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_EXISTS` | 409 |\n| `SD_INTEGRATION_NOT_CONFIGURED` | 503 |\n| `SD_INTEGRATION_LINK_NOT_FOUND` | 404 |\n| `SD_INTEGRATION_LINK_EXISTS` | 409 |\n| `SD_INTEGRATION_SIGNATURE_INVALID` | 401 |\n| `SD_INTEGRATION_REQUEST_FAILED` | 502 |\n| `TOTP_NOT_ENABLED` | 409 |\n| `TOTP_INVALID_CODE` | 401 |\n| `WIKI_DISABLED` | 403 |\n| `WIKI_PAGE_FORBIDDEN` | 403 |\n| `WIKI_PAGE_NOT_FOUND` | 404 |\n| `WIKI_COMMENT_NOT_FOUND` | 404 |\n| `WIKI_COMMENT_FORBIDDEN` | 403 |\n| `WIKI_COMMENT_NESTING_TOO_DEEP` | 422 |\n| `WIKI_LABEL_NOT_FOUND` | 404 |\n| `WIKI_LABEL_CONFLICT` | 409 |\n| `WORKSPACE_EXPORT_NOT_FOUND` | 404 |\n| `WORKSPACE_EXPORT_LIMIT_REACHED` | 429 |\n| `WORKSPACE_EXPORT_NOT_READY` | 409 |\n| `WORKSPACE_EXPORT_LOGS_UNAVAILABLE` | 503 |\n| `INTERNAL_SERVER_ERROR` | 500 |\n| `DATABASE_ERROR` | 500 |\n| `STORAGE_ERROR` | 500 |\n| `PAYMENT_ERROR` | 502 |\n| `SUBSCRIPTION_CANCEL_FAILED` | 502 |\n| `MAIL_ERROR` | 502 |\n| `CONNECTION_TEST_FAILED` | 502 |\n| `RELEASE_NOTES_UNAVAILABLE` | 502 |\n| `ANALYTICS_QUERY_FAILED` | 502 |\n| `BACKUP_FAILED` | 500 |\n| `BILLING_DISABLED` | 503 |"
       },
       "ErrorResponse": {
         "type": "object",

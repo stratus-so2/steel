@@ -1,14 +1,22 @@
+import type { CrmEmailTemplate } from '@prisma/client'
 import { auditMutation } from '@/lib/axiom/audit'
+import {
+  crmEmailBuilderStructureLocked,
+  crmEmailTemplateNotBuilder,
+} from '@/src/errors'
+import { createBuilderDocument } from '@/src/lib/crm-email-builder/layouts'
 import { renderMarketingTemplate } from '@/src/lib/crm-marketing-templates.render'
-import { ok, type Result } from '@/src/lib/result'
+import { err, ok, type Result } from '@/src/lib/result'
 import { toCrmEmailTemplateDTO } from '@/src/mappers/crm-email-marketing.mapper'
 import { CrmEmailTemplateRepository } from '@/src/repositories/crm-email-template.repository'
+import type { EmailBuilderDocument } from '@/src/schemas/crm-email-builder.schema'
 import type {
   CreateCrmEmailTemplateDTO,
   UpdateCrmEmailTemplateDTO,
 } from '@/src/schemas/crm-email-template.schema'
 import type { CrmEmailTemplateDTO } from '@/types/crm-email-marketing'
 import { assertModuleMember } from './authz'
+import { buildBuilderTemplateContent } from './crm-email-builder.service'
 
 /** Layout fixo informado: HTML é sempre recalculado a partir dele, ignorando
  * qualquer `contentHtml` vindo do editor de blocos livre. */
@@ -54,18 +62,39 @@ export const CrmEmailTemplateService = {
     })
     if (!membership.ok) return membership
 
-    const contentHtml = await resolveContentHtml(dto)
+    let data: Parameters<typeof CrmEmailTemplateRepository.create>[0]
+    if (dto.builderLayout) {
+      // Visual builder: starts from the layout's default content.
+      const built = await buildBuilderTemplateContent(
+        workspaceId,
+        createBuilderDocument(dto.builderLayout),
+        dto.subject,
+      )
+      if (!built.ok) return built
+      data = {
+        workspaceId,
+        createdById: actorId,
+        name: dto.name,
+        subject: dto.subject,
+        kind: 'BUILDER',
+        builderDocument: built.value.document,
+        contentHtml: built.value.html,
+        contentText: built.value.text,
+      }
+    } else {
+      data = {
+        workspaceId,
+        createdById: actorId,
+        name: dto.name,
+        subject: dto.subject,
+        contentHtml: await resolveContentHtml(dto),
+        contentJson: dto.contentJson,
+        templateId: dto.templateId,
+        templateProps: dto.templateProps,
+      }
+    }
 
-    const result = await CrmEmailTemplateRepository.create({
-      workspaceId,
-      createdById: actorId,
-      name: dto.name,
-      subject: dto.subject,
-      contentHtml,
-      contentJson: dto.contentJson,
-      templateId: dto.templateId,
-      templateProps: dto.templateProps,
-    })
+    const result = await CrmEmailTemplateRepository.create(data)
 
     if (!result.ok) {
       auditMutation({
@@ -106,6 +135,11 @@ export const CrmEmailTemplateService = {
     )
     if (!existing.ok) return existing
 
+    if (existing.value.kind === 'BUILDER') {
+      return updateBuilderTemplate(actorId, workspaceId, existing.value, dto)
+    }
+    if (dto.builderDocument) return err(crmEmailTemplateNotBuilder())
+
     // Só recalcula o HTML a partir do layout fixo quando o layout ou seus
     // campos mudaram — do contrário, mantém o contentHtml enviado (edição
     // livre) ou não mexe nele (undefined = campo não alterado).
@@ -141,6 +175,25 @@ export const CrmEmailTemplateService = {
       meta: { fields: Object.keys(dto) },
     })
 
+    return ok(toCrmEmailTemplateDTO(result.value))
+  },
+
+  async getById(
+    actorId: string,
+    workspaceId: string,
+    templateId: string,
+  ): Promise<Result<CrmEmailTemplateDTO>> {
+    const membership = await assertModuleMember(actorId, workspaceId, 'CRM', {
+      resource: 'email',
+      action: 'VIEW',
+    })
+    if (!membership.ok) return membership
+
+    const result = await CrmEmailTemplateRepository.findById(
+      templateId,
+      workspaceId,
+    )
+    if (!result.ok) return result
     return ok(toCrmEmailTemplateDTO(result.value))
   },
 
@@ -190,4 +243,66 @@ export const CrmEmailTemplateService = {
     const html = await resolveContentHtml(dto)
     return ok({ html })
   },
+}
+
+/**
+ * Saves a visual-builder template: content edits (autosave), subject or
+ * name. The layout and its structure are locked; free HTML is refused.
+ */
+async function updateBuilderTemplate(
+  actorId: string,
+  workspaceId: string,
+  existing: CrmEmailTemplate,
+  dto: UpdateCrmEmailTemplateDTO,
+): Promise<Result<CrmEmailTemplateDTO>> {
+  if (dto.contentHtml || dto.templateId || dto.templateProps) {
+    return err(
+      crmEmailBuilderStructureLocked(
+        'Templates do editor visual são editados no editor',
+      ),
+    )
+  }
+  const current = existing.builderDocument as EmailBuilderDocument
+  if (dto.builderDocument && dto.builderDocument.layout !== current.layout) {
+    return err(
+      crmEmailBuilderStructureLocked('O modelo de um template não pode mudar'),
+    )
+  }
+
+  let rendered: {
+    builderDocument?: EmailBuilderDocument
+    contentHtml?: string
+    contentText?: string
+  } = {}
+  if (dto.builderDocument || dto.subject) {
+    const built = await buildBuilderTemplateContent(
+      workspaceId,
+      dto.builderDocument ?? current,
+      dto.subject ?? existing.subject,
+    )
+    if (!built.ok) return built
+    rendered = {
+      builderDocument: built.value.document,
+      contentHtml: built.value.html,
+      contentText: built.value.text,
+    }
+  }
+
+  const result = await CrmEmailTemplateRepository.update(existing.id, {
+    name: dto.name,
+    subject: dto.subject,
+    ...rendered,
+    updatedById: actorId,
+  })
+  if (!result.ok) return result
+
+  auditMutation({
+    entity: 'crm_email_template',
+    action: 'update',
+    actorId,
+    targetId: existing.id,
+    meta: { fields: Object.keys(dto), kind: 'BUILDER' },
+  })
+
+  return ok(toCrmEmailTemplateDTO(result.value))
 }

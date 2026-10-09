@@ -687,9 +687,10 @@ export function DataTable<TData extends WithId>({
   headerAction?: React.ReactNode
   /**
    * Sobrescreve o painel default ao abrir um registro. Recebe o registro
-   * completo. Útil para entidades que precisam de UI dedicada.
+   * completo. Útil para entidades que precisam de UI dedicada. Returning
+   * `false` falls back to the default panel for that record.
    */
-  onOpenRecord?: (record: TData) => void
+  onOpenRecord?: (record: TData) => unknown
   /**
    * Conteúdo extra renderizado no rodapé do painel de detalhes (ex.: line
    * items de uma oportunidade). Recebe o registro aberto.
@@ -856,8 +857,7 @@ export function DataTable<TData extends WithId>({
     (id: string) => {
       if (onOpenRecord) {
         const found = rows.find((r) => r.id === id)
-        if (found) onOpenRecord(found)
-        return
+        if (!found || onOpenRecord(found) !== false) return
       }
       setOpenRecordId(id)
     },

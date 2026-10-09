@@ -80,6 +80,13 @@ export const WORKSPACE_BUCKETS: readonly WorkspaceBucket[] = [
     public: false,
     writtenBy: 'src/services/ai-attachment.service.ts',
   },
+  {
+    // Visual e-mail builder images (public, read by mail clients):
+    // `<ws>/<uuid>.<ext>`.
+    name: 'crm-email-images',
+    public: true,
+    writtenBy: 'src/services/media/crm-email-media.service.ts',
+  },
 ] as const
 
 export const WORKSPACE_PREFIXED_BUCKETS = WORKSPACE_BUCKETS.map((b) => b.name)

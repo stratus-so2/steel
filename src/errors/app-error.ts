@@ -479,6 +479,18 @@ export const crmEmailUnsubscribeInvalid = (): AppError =>
     'Link de descadastro inválido. Verifique se copiou o endereço completo.',
   )
 
+/** Operação do editor visual sobre um template de HTML livre (LEGACY). */
+export const crmEmailTemplateNotBuilder = (): AppError =>
+  appError(
+    'CRM_EMAIL_TEMPLATE_NOT_BUILDER',
+    'Este template não foi criado no editor visual',
+  )
+
+/** Documento do editor visual fora da estrutura travada do modelo. */
+export const crmEmailBuilderStructureLocked = (
+  message = 'A estrutura deste modelo não pode ser alterada — edite apenas o conteúdo',
+): AppError => appError('CRM_EMAIL_BUILDER_STRUCTURE_LOCKED', message)
+
 export const crmMailingListNotFound = (): AppError =>
   appError('CRM_MAILING_LIST_NOT_FOUND', 'Lista de e-mail não encontrada')
 

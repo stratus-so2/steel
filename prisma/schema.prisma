@@ -455,6 +455,7 @@ model Workspace {
   crmEmailCampaigns         CrmEmailCampaign[]
   crmMailingLists           CrmMailingList[]
   crmEmailOptOuts           CrmEmailOptOut[]
+  crmEmailBrand             CrmEmailBrand?
   crmWorkflows              CrmWorkflow[]
   crmLandingPages           CrmLandingPage[]
   crmSocialConnections      CrmSocialConnection[]
@@ -2755,30 +2756,61 @@ model CrmIntegrationApiKey {
 }
 
 model CrmEmailTemplate {
-  id            String    @id @default(cuid())
-  name          String
-  subject       String
-  contentHtml   String    @map("content_html") @db.Text
-  contentJson   String?   @map("content_json") @db.Text
+  id              String               @id @default(cuid())
+  name            String
+  subject         String
+  contentHtml     String               @map("content_html") @db.Text
+  contentJson     String?              @map("content_json") @db.Text
   /// Layout fixo de origem (ex.: "promo-announcement"), quando o template foi
   /// criado a partir de um modelo pronto em vez do editor de blocos livre.
-  templateId    String?   @map("template_id")
+  templateId      String?              @map("template_id")
   /// Valores dos campos editáveis (texto/imagem) desse layout fixo.
-  templateProps Json?     @map("template_props")
-  workspaceId   String    @map("workspace_id")
-  createdById   String    @map("created_by_id")
-  updatedById   String?   @map("updated_by_id")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  deletedAt     DateTime? @map("deleted_at")
+  templateProps   Json?                @map("template_props")
+  /// LEGACY = HTML livre/layout antigo; BUILDER = editor visual (documento
+  /// estruturado em `builderDocument`, ver docs/crm-email-builder.md).
+  kind            CrmEmailTemplateKind @default(LEGACY)
+  builderDocument Json?                @map("builder_document")
+  /// Texto puro da última renderização (BUILDER), com variáveis intactas.
+  contentText     String?              @map("content_text") @db.Text
+  workspaceId     String               @map("workspace_id")
+  createdById     String               @map("created_by_id")
+  updatedById     String?              @map("updated_by_id")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+  deletedAt       DateTime?            @map("deleted_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdBy User      @relation("CrmEmailTemplateCreatedBy", fields: [createdById], references: [id])
-  updatedBy User?     @relation("CrmEmailTemplateUpdatedBy", fields: [updatedById], references: [id])
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User               @relation("CrmEmailTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?              @relation("CrmEmailTemplateUpdatedBy", fields: [updatedById], references: [id])
+  campaigns CrmEmailCampaign[]
 
   @@index([workspaceId])
   @@index([deletedAt])
   @@map("crm_email_templates")
+}
+
+enum CrmEmailTemplateKind {
+  LEGACY
+  BUILDER
+}
+
+/// Marca usada pelos templates do editor visual (uma por workspace). Sem
+/// linha, vale o nome/logo do workspace e a cor padrão.
+model CrmEmailBrand {
+  id           String   @id @default(cuid())
+  workspaceId  String   @unique @map("workspace_id")
+  companyName  String   @map("company_name")
+  logoUrl      String   @default("") @map("logo_url")
+  primaryColor String   @map("primary_color")
+  address      String   @default("")
+  website      String   @default("")
+  updatedById  String?  @map("updated_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("crm_email_brands")
 }
 
 enum CrmCampaignStatus {
@@ -2807,6 +2839,13 @@ model CrmEmailCampaign {
   subject        String
   contentHtml    String                    @map("content_html") @db.Text
   contentJson    String?                   @map("content_json") @db.Text
+  /// Texto puro renderizado (template do editor visual), com variáveis.
+  contentText    String?                   @map("content_text") @db.Text
+  /// Template do editor visual de origem; o HTML/texto acima é o cache da
+  /// renderização feita na criação da campanha.
+  templateId     String?                   @map("template_id")
+  /// URL rastreada que substitui `{{campaign_link}}` no envio.
+  campaignLink   String?                   @map("campaign_link")
   fromAddress    String                    @map("from_address")
   status         CrmCampaignStatus         @default(DRAFT)
   recipientScope CrmCampaignRecipientScope @map("recipient_scope")
@@ -2819,10 +2858,12 @@ model CrmEmailCampaign {
 
   workspace  Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy  User                        @relation("CrmEmailCampaignCreatedBy", fields: [createdById], references: [id])
+  template   CrmEmailTemplate?           @relation(fields: [templateId], references: [id], onDelete: SetNull)
   recipients CrmEmailCampaignRecipient[]
 
   @@index([workspaceId])
   @@index([status])
+  @@index([templateId])
   @@map("crm_email_campaigns")
 }
 

@@ -78,7 +78,7 @@ Os arquivos de um workspace ficam no MinIO sob o prefixo `<workspaceId>/`
 nos buckets `projects-covers`, `crm-landing-page-images`,
 `crm-landing-page-videos`, `crm-proposal-images`, `crm-scheduled-posts`,
 `crm-social-publish-tmp`, `whatsapp-media`, `whatsapp-ai-knowledge`,
-`servicedesk`, `steel-ai-attachments` e `workspace-logos` (lista
+`servicedesk`, `steel-ai-attachments`, `workspace-logos` e `crm-email-images` (lista
 em `src/lib/storage/workspace-files.ts`). Pelo console do MinIO
 (`http://127.0.0.1:9003`, via túnel SSH) ou com o `mc` (imagem
 `pgsty/mc`, o cliente do fork Silo — a `minio/mc` saiu do ar junto com a
@@ -87,7 +87,7 @@ distribuição pública do MinIO):
 ```bash
 docker run --rm --network steel_default --entrypoint sh pgsty/mc -c \
   'mc alias set s http://steel-minio:9000 "$MINIO_USER" "$MINIO_PASSWORD" && \
-   for b in projects-covers crm-landing-page-images crm-landing-page-videos crm-proposal-images crm-scheduled-posts crm-social-publish-tmp whatsapp-media whatsapp-ai-knowledge servicedesk steel-ai-attachments workspace-logos; do \
+   for b in projects-covers crm-landing-page-images crm-landing-page-videos crm-proposal-images crm-scheduled-posts crm-social-publish-tmp whatsapp-media whatsapp-ai-knowledge servicedesk steel-ai-attachments workspace-logos crm-email-images; do \
      mc rm --recursive --force "s/$b/<workspaceId>/"; done'
 ```
 

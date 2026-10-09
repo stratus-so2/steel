@@ -1,4 +1,8 @@
-import type { CrmEmailTemplate } from '@prisma/client'
+import type {
+  CrmEmailTemplate,
+  CrmEmailTemplateKind,
+  Prisma,
+} from '@prisma/client'
 import { notFound } from '@/src/errors'
 import { prisma } from '@/src/lib/prisma'
 import { err, ok, type Result } from '@/src/lib/result'
@@ -43,6 +47,9 @@ export const CrmEmailTemplateRepository = {
     contentJson?: string
     templateId?: string
     templateProps?: Record<string, string>
+    kind?: CrmEmailTemplateKind
+    builderDocument?: Prisma.InputJsonValue
+    contentText?: string
   }): Promise<Result<CrmEmailTemplate>> {
     try {
       const template = await prisma.crmEmailTemplate.create({ data })
@@ -61,6 +68,8 @@ export const CrmEmailTemplateRepository = {
       contentJson?: string
       templateId?: string
       templateProps?: Record<string, string>
+      builderDocument?: Prisma.InputJsonValue
+      contentText?: string
       updatedById?: string
     },
   ): Promise<Result<CrmEmailTemplate>> {

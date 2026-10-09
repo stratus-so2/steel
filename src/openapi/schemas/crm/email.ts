@@ -30,6 +30,18 @@ export const CrmEmailTemplateDTO = dto(
     templateProps: z.record(z.string(), z.string()).nullable().meta({
       description: 'Campos preenchidos do layout fixo.',
     }),
+    kind: z.enum(['LEGACY', 'BUILDER']).meta({
+      description:
+        '`LEGACY` = HTML livre ou layout antigo; `BUILDER` = editor visual (documento em `builderDocument`).',
+    }),
+    builderDocument: z.unknown().nullable().meta({
+      description:
+        'Documento do editor visual: `{ version: 1, layout, previewText, sections: [{ id, type, hidden, props }] }`. A estrutura é travada pelo modelo.',
+    }),
+    contentText: z.string().nullable().meta({
+      description:
+        'Texto puro da última renderização (templates `BUILDER`), com as variáveis intactas.',
+    }),
     workspaceId: z.string(),
     createdById: z.string(),
     updatedById: z.string().nullable(),
@@ -67,11 +79,59 @@ export const CrmEmailCampaignDTO = dto(
     }),
     scheduledAt: nullableDateTime(),
     sentAt: nullableDateTime(),
+    templateId: z.string().nullable().meta({
+      description: 'Template do editor visual de origem, se houver.',
+    }),
+    campaignLink: z.string().nullable().meta({
+      description: 'URL rastreada que substitui `{{campaign_link}}` no envio.',
+    }),
     workspaceId: z.string(),
     createdById: z.string(),
     createdAt: dateTime(),
     updatedAt: dateTime(),
   }),
+)
+
+export const CrmEmailBrandDTO = dto(
+  'CrmEmailBrand',
+  z.object({
+    companyName: z.string().meta({ example: 'Acme Ltda.' }),
+    logoUrl: z.string(),
+    primaryColor: z.string().meta({ example: '#2893CC' }),
+    address: z.string(),
+    website: z.string(),
+    saved: z.boolean().meta({
+      description:
+        '`false` enquanto o workspace nunca salvou uma marca (valem o nome/logo do workspace e a cor padrão).',
+    }),
+    updatedAt: nullableDateTime(),
+  }),
+)
+
+export const CrmEmailRenderDTO = dto(
+  'CrmEmailRender',
+  z.object({
+    subject: z.string().meta({ example: 'Olá Maria, as novidades chegaram' }),
+    html: z.string(),
+    text: z.string(),
+  }),
+)
+
+export const CrmEmailLinkTargetsDTO = dto(
+  'CrmEmailLinkTargets',
+  z.object({
+    landingPages: z.array(
+      z.object({ id: z.string(), title: z.string(), url: z.string() }),
+    ),
+    forms: z.array(
+      z.object({ id: z.string(), name: z.string(), url: z.string() }),
+    ),
+  }),
+)
+
+export const CrmEmailTestSendDTO = dto(
+  'CrmEmailTestSend',
+  z.object({ to: z.string().meta({ example: 'voce@acme.com.br' }) }),
 )
 
 export const CrmEmailCampaignRecipientDTO = dto(

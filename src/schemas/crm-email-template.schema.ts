@@ -1,5 +1,9 @@
 import z from 'zod'
 import { isMarketingTemplateId } from '@/src/lib/crm-marketing-templates'
+import {
+  EmailBuilderDocumentSchema,
+  EmailBuilderLayoutIdSchema,
+} from './crm-email-builder.schema'
 
 const TemplatePropsSchema = z.record(z.string(), z.string())
 
@@ -19,11 +23,20 @@ export const CreateCrmEmailTemplateSchema = z
     contentJson: z.string().max(200_000).optional(),
     templateId: MarketingTemplateIdSchema.optional(),
     templateProps: TemplatePropsSchema.optional(),
+    // Visual builder: starts a BUILDER template with the layout's default
+    // content (the server renders contentHtml/contentText).
+    builderLayout: EmailBuilderLayoutIdSchema.optional(),
   })
-  .refine((data) => Boolean(data.templateId) || Boolean(data.contentHtml), {
-    message: 'Informe o conteúdo ou escolha um layout',
-    path: ['contentHtml'],
-  })
+  .refine(
+    (data) =>
+      Boolean(data.templateId) ||
+      Boolean(data.contentHtml) ||
+      Boolean(data.builderLayout),
+    {
+      message: 'Informe o conteúdo ou escolha um layout',
+      path: ['contentHtml'],
+    },
+  )
 
 export type CreateCrmEmailTemplateDTO = z.infer<
   typeof CreateCrmEmailTemplateSchema
@@ -36,6 +49,8 @@ export const UpdateCrmEmailTemplateSchema = z.object({
   contentJson: z.string().max(200_000).optional(),
   templateId: MarketingTemplateIdSchema.optional(),
   templateProps: TemplatePropsSchema.optional(),
+  // Visual builder (BUILDER templates only): full document, autosaved.
+  builderDocument: EmailBuilderDocumentSchema.optional(),
 })
 
 export type UpdateCrmEmailTemplateDTO = z.infer<

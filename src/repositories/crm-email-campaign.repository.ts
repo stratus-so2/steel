@@ -68,6 +68,9 @@ export const CrmEmailCampaignRepository = {
     subject: string
     contentHtml: string
     contentJson?: string
+    contentText?: string
+    templateId?: string
+    campaignLink?: string
     fromAddress: string
     recipientScope: CrmCampaignRecipientScope
     scheduledAt?: Date
