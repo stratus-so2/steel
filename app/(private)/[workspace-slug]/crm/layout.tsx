@@ -45,10 +45,10 @@ import {
 } from '@/app/_components/navigation/sidebar-context'
 import { NavGroupAccordion } from '@/app/_components/navigation/sidebar-context/navigation-sidebar-context-accordion'
 import { RouteShortcuts } from '@/app/_components/shortcuts/route-shortcuts'
-import { getAuthSession } from '@/src/lib/auth-session'
-import { hasModuleAccess } from '@/src/lib/module-access-guard'
-import { isPrivilegedRole } from '@/src/services/authz'
-import { MembershipService } from '@/src/services/membership.service'
+import {
+  hasModuleAccess,
+  isWorkspacePrivileged,
+} from '@/src/lib/module-access-guard'
 
 export default async function CrmLayout({
   children,
@@ -60,7 +60,8 @@ export default async function CrmLayout({
   const { 'workspace-slug': slug } = await params
   if (!(await hasModuleAccess(slug, 'CRM'))) notFound()
   const base = `/${slug}/crm`
-  const canManageKeys = await canManageIntegrationKeys(slug)
+  // API keys are managed by OWNER/ADMIN only (the service enforces it too).
+  const canManageKeys = await isWorkspacePrivileged(slug)
 
   return (
     <>
@@ -203,20 +204,5 @@ export default async function CrmLayout({
       />
       {children}
     </>
-  )
-}
-
-/** API keys are managed by OWNER/ADMIN only (the service enforces it too). */
-async function canManageIntegrationKeys(slug: string): Promise<boolean> {
-  const session = await getAuthSession()
-  if (!session.ok) return false
-  const membership = await MembershipService.getByUserAndSlug(
-    session.value.user.id,
-    slug,
-  )
-  return (
-    membership.ok &&
-    !!membership.value &&
-    isPrivilegedRole(membership.value.role)
   )
 }
