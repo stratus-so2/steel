@@ -71,9 +71,11 @@ sequência nem ramificação.
   e registra uma atividade na pessoa do CRM. `SAIR` continua descadastrando
   pelo fluxo da Comunicação e é rechecado no envio.
 - **Conteúdo do e-mail** passa por `renderCampaignEmail(templateId, contato)`
-  (`src/lib/crm-campaign/email-renderer.ts`). Hoje usa o `CrmEmailTemplate`
-  com as marcações `{{nome}}`, `{{primeiro_nome}}` e `{{link_campanha}}`;
-  quando o editor visual de e-mail entrar, troca-se uma linha.
+  (`src/lib/crm-campaign/email-renderer.ts`), que delega à API de render do
+  editor visual de e-mail (`crm-email-builder.service`): o template (do editor
+  ou HTML livre), a variável `{{campaign_link}}` com o link rastreado do
+  destinatário e o rodapé de descadastro LGPD com o link dele. A campanha só
+  acrescenta o pré-cabeçalho e o pixel de abertura.
 
 ## Consequências
 

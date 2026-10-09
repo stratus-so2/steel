@@ -29,7 +29,6 @@ import {
 import {
   buildCrmUnsubscribeHeaders,
   buildCrmUnsubscribeUrls,
-  withCrmUnsubscribeFooter,
 } from '@/src/lib/crm-email-unsubscribe'
 import { sendEmail } from '@/src/lib/mail/send'
 import { CrmCampaignsJob } from '@/src/lib/queue/jobs'
@@ -168,9 +167,17 @@ export async function buildCampaignEmail(
     unsubscribePageUrl: string | null
   },
 ): Promise<Result<{ subject: string; html: string; text: string }>> {
+  // The builder renders the template, `{{campaign_link}}` and the LGPD
+  // unsubscribe footer (generic link on tests, the recipient's on sends).
   const rendered = await renderCampaignEmail(
     campaign.emailTemplateId as string,
-    { name: contact.name, email: contact.email, campaignLink: contact.link },
+    {
+      workspaceId: campaign.workspaceId,
+      name: contact.name,
+      email: contact.email,
+      campaignLink: contact.link,
+      unsubscribeUrl: contact.unsubscribePageUrl ?? undefined,
+    },
   )
   if (!rendered.ok) return rendered
 
@@ -186,9 +193,6 @@ export async function buildCampaignEmail(
       html,
       `<img src="${escapeHtml(contact.openPixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px" />`,
     )
-  }
-  if (contact.unsubscribePageUrl) {
-    html = withCrmUnsubscribeFooter(html, contact.unsubscribePageUrl)
   }
   return ok({
     subject: campaign.emailSubject || rendered.value.subject,

@@ -377,10 +377,12 @@ describe('send() — e-mail', () => {
     })
     expect(email.html).toContain('Só hoje')
     expect(email.html).toContain('/api/crm/campaigns/o/r1-e.')
-    expect(email.html).toContain('/unsubscribe/r1.')
     expect(email.headers).toHaveProperty('List-Unsubscribe')
     const contact = vi.mocked(renderCampaignEmail).mock.calls[0][1]
     expect(contact.campaignLink).toContain('/api/crm/campaigns/c/r1-e.')
+    // The builder adds the LGPD footer with this recipient's unsubscribe page.
+    expect(contact.unsubscribeUrl).toContain('/unsubscribe/r1.')
+    expect(contact.workspaceId).toBe('ws1')
     expect(recipients.markSent).toHaveBeenCalledWith(
       'r1',
       'EMAIL',

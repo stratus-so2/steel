@@ -673,6 +673,7 @@ export const CrmCampaignService = {
     if (!detail.ok) return detail
 
     const rendered = await renderCampaignEmail(campaign.value.emailTemplateId, {
+      workspaceId,
       name: 'Maria Silva',
       email: 'maria@exemplo.com.br',
       campaignLink: detail.value.links.email ?? BETTER_AUTH_URL,

@@ -1,12 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-const findFirst = vi.fn()
-vi.mock('@/src/lib/prisma', () => ({
-  prisma: {
-    crmEmailTemplate: { findFirst: (...a: unknown[]) => findFirst(...a) },
-  },
-}))
-
+import { describe, expect, it } from 'vitest'
 import {
   buildCampaignAudience,
   type CampaignOptOutIndex,
@@ -18,11 +10,6 @@ import {
   slugifyCampaignName,
   withCampaignParams,
 } from '../crm-campaign/campaign-url'
-import {
-  applyCampaignMergeTags,
-  htmlToText,
-  renderCampaignEmail,
-} from '../crm-campaign/email-renderer'
 import { formatE164, toCampaignWaId } from '../crm-campaign/phone'
 import {
   isWithinSendWindow,
@@ -43,10 +30,6 @@ import {
   templateFields,
   validateCampaignWhatsApp,
 } from '../crm-campaign/whatsapp-rules'
-
-beforeEach(() => {
-  findFirst.mockReset()
-})
 
 describe('send window (America/Sao_Paulo)', () => {
   // 2026-10-09 is a Friday; São Paulo is UTC-3.
@@ -443,60 +426,5 @@ describe('WhatsApp provider rules', () => {
   it('should take the first name', () => {
     expect(firstName('  Ana  Souza ')).toBe('Ana')
     expect(firstName('')).toBe('')
-  })
-})
-
-describe('campaign e-mail rendering', () => {
-  const contact = {
-    name: 'Ana <Souza>',
-    email: 'ana@x.com',
-    campaignLink: 'https://a.test/c/t?x=1&y=2',
-  }
-
-  it('should apply merge tags and default empty CTAs to the link', () => {
-    const html = applyCampaignMergeTags(
-      '<p>Oi {{primeiro_nome}} ({{nome}})</p><a href="{{link_campanha}}">A</a><a href="{{campaign_link}}">A2</a><a href="#">B</a><a href=\'\'>C</a><a href="https://x">D</a>',
-      contact,
-    )
-    expect(html).toContain('Oi Ana (Ana &lt;Souza&gt;)')
-    expect(
-      html.match(/href="https:\/\/a\.test\/c\/t\?x=1&amp;y=2"/g),
-    ).toHaveLength(4)
-    expect(html).toContain('href="https://x"')
-  })
-
-  it('should convert HTML to text', () => {
-    expect(
-      htmlToText(
-        '<head><title>x</title></head><style>p{}</style><h1>Título</h1><p>Linha&nbsp;1<br/>Linha 2 &amp; &lt;3&gt; &quot;</p><a href="https://l">Clique</a>\n\n\n\n<div>fim</div>',
-      ),
-    ).toBe('Título\nLinha 1\nLinha 2 & <3> "\nClique (https://l)\n\nfim')
-  })
-
-  it('should render a stored template', async () => {
-    findFirst.mockResolvedValue({
-      subject: 'Assunto',
-      contentHtml: '<p>Oi {{nome}}</p>',
-    })
-    const result = await renderCampaignEmail('tpl1', contact)
-    expect(result.ok && result.value).toEqual({
-      subject: 'Assunto',
-      html: '<p>Oi Ana &lt;Souza&gt;</p>',
-      text: 'Oi Ana <Souza>',
-    })
-    expect(findFirst).toHaveBeenCalledWith({
-      where: { id: 'tpl1', deletedAt: null },
-    })
-  })
-
-  it('should fail when the template is gone or the db fails', async () => {
-    findFirst.mockResolvedValueOnce(null)
-    const missing = await renderCampaignEmail('tpl1', contact)
-    expect(!missing.ok && missing.error.code).toBe(
-      'CRM_EMAIL_TEMPLATE_NOT_FOUND',
-    )
-    findFirst.mockRejectedValueOnce(new Error('boom'))
-    const failed = await renderCampaignEmail('tpl1', contact)
-    expect(!failed.ok && failed.error.code).toBe('DATABASE_ERROR')
   })
 })

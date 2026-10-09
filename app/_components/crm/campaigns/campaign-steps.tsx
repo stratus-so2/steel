@@ -345,24 +345,50 @@ export function ContentStep({
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                variant='outline'
-                nativeButton={false}
-                render={
-                  <a
-                    href={`/${workspaceSlug}/crm/email-templates`}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  >
-                    <SteelIcon icon={LinkSquare02Icon} /> Editar visuais
-                  </a>
-                }
-              />
+              <div className='flex gap-2'>
+                <Button
+                  variant='outline'
+                  nativeButton={false}
+                  render={
+                    <a
+                      href={
+                        draft.emailTemplateId
+                          ? `/${workspaceSlug}/crm/email-templates/${draft.emailTemplateId}`
+                          : `/${workspaceSlug}/crm/email-templates/new`
+                      }
+                      target='_blank'
+                      rel='noopener noreferrer'
+                    >
+                      <SteelIcon icon={LinkSquare02Icon} />
+                      {draft.emailTemplateId
+                        ? 'Abrir no editor'
+                        : 'Criar visual'}
+                    </a>
+                  }
+                />
+                {draft.emailTemplateId ? (
+                  <Button
+                    variant='ghost'
+                    nativeButton={false}
+                    render={
+                      <a
+                        href={`/${workspaceSlug}/crm/email-templates/new`}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                      >
+                        Galeria
+                      </a>
+                    }
+                  />
+                ) : null}
+              </div>
             </div>
             <p className='text-muted-foreground text-xs'>
-              No visual, use <code>{CAMPAIGN_LINK_MERGE_TAG}</code> no botão (ou
-              deixe o link do botão vazio) para levar ao destino, e{' '}
-              <code>{CAMPAIGN_FIRST_NAME_MERGE_TAG}</code> para personalizar.
+              No editor, escolha <strong>Link da campanha</strong> (
+              <code>{CAMPAIGN_LINK_MERGE_TAG}</code>) no botão para levar ao
+              destino, e use <code>{CAMPAIGN_FIRST_NAME_MERGE_TAG}</code> para
+              personalizar. Depois de salvar no editor, volte e atualize a
+              prévia.
             </p>
           </div>
         </div>

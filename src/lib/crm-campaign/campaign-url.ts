@@ -8,11 +8,8 @@ export type CampaignUtmSource = 'email' | 'whatsapp'
 /** Query parameter carrying the signed per-recipient link token. */
 export const CAMPAIGN_REF_PARAM = 'stc'
 
-/** Merge tags understood by the campaign e-mail and WhatsApp text. */
-export const CAMPAIGN_LINK_MERGE_TAG = '{{link_campanha}}'
-/** English alias, used by the visual e-mail builder's link picker. */
-export const CAMPAIGN_LINK_MERGE_TAG_ALIAS = '{{campaign_link}}'
-export const CAMPAIGN_NAME_MERGE_TAG = '{{nome}}'
+/** Variables of the visual e-mail builder (`crm-email-builder/variables.ts`). */
+export const CAMPAIGN_LINK_MERGE_TAG = '{{campaign_link}}'
 export const CAMPAIGN_FIRST_NAME_MERGE_TAG = '{{primeiro_nome}}'
 
 export interface CampaignDestinationRef {

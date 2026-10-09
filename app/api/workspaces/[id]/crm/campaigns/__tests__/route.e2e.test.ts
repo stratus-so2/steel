@@ -46,7 +46,7 @@ async function seedDestination(workspaceId: string, userId: string) {
       name: 'Oferta',
       subject: 'Oferta especial',
       contentHtml:
-        '<html><body><p>Oi {{primeiro_nome}}</p><a href="{{link_campanha}}">Quero</a></body></html>',
+        '<html><body><p>Oi {{primeiro_nome}}</p><a href="{{campaign_link}}">Quero</a></body></html>',
     },
   })
   await prisma.crmPerson.create({
