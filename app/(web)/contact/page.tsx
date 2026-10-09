@@ -84,7 +84,7 @@ const CONTACT_CARDS: ContactCard[] = [
     description:
       'Explore a referência da nossa API REST pra construir integrações com o Steel.',
     cta: 'Ver a API',
-    href: '/docs',
+    href: '/dev',
     icon: CodeSquareIcon,
   },
   {

@@ -175,7 +175,7 @@ Daily FULL `pg_dump` (03:15), app-encrypted with `CONNECTION_SECRETS`, stored in
 
 ### App Router layout
 
-`app/(public)` (sign-in/up, status, docs, legal), `app/(web)` (marketing: pricing, marketplace, talk-to-sales), `app/(private)/[workspace-slug]` (workspace-scoped UI: home, crm, zap, servicedesk, wiki, ai, settings), `app/onboarding`, `app/upgrade`, `app/jobs` (queue dashboard) and `app/api/**`. Shared UI in `app/_components` and `components/` (shadcn/Base UI). API reference is rendered with Scalar at `/docs` from `public/openapi.json`.
+`app/(public)` (sign-in/up, status, legal), `app/(web)` (marketing: pricing, marketplace, talk-to-sales; the user manual at `/docs` from `content/docs/**/*.mdx`; the developer site at `/dev`), `app/(private)/[workspace-slug]` (workspace-scoped UI: home, crm, zap, servicedesk, wiki, ai, settings), `app/onboarding`, `app/upgrade`, `app/jobs` (queue dashboard) and `app/api/**`. Shared UI in `app/_components` and `components/` (shadcn/Base UI). API reference is rendered with Scalar at `/dev/api` from `public/openapi.json` (admin routes stripped; `/reference` redirects there).
 
 ## Infrastructure
 

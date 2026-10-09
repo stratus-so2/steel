@@ -1,15 +1,7 @@
-import { ApiReference } from '@scalar/nextjs-api-reference'
 import { NextResponse } from 'next/server'
-import { NODE_ENV } from '@/lib/env/env'
 
-const config = {
-  url: '/openapi.json',
-  theme: 'saturn' as const,
+// The API reference moved to the developer site (/dev/api). Old links keep
+// working.
+export function GET(request: Request) {
+  return NextResponse.redirect(new URL('/dev/api', request.url), 308)
 }
-
-const handler = ApiReference(config)
-
-export const GET =
-  NODE_ENV === 'development'
-    ? handler
-    : () => NextResponse.json({ message: 'Not found' }, { status: 404 })
