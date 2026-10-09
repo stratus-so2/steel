@@ -65,7 +65,10 @@ export function consultationFooterDefaultContent(): FooterContent {
       {
         title: 'Contact us',
         links: [
-          { label: 'support@shadepro.io', href: 'mailto:support@shadepro.io' },
+          {
+            label: 'contato@suaempresa.com.br',
+            href: 'mailto:contato@suaempresa.com.br',
+          },
           { label: '+133-394-3439-1435', href: 'tel:+13339343439' },
         ],
       },

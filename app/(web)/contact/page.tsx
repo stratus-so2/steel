@@ -58,7 +58,7 @@ const CONTACT_CARDS: ContactCard[] = [
   {
     title: 'Ajuda e suporte',
     description:
-      'Abra e acompanhe seus chamados pelo portal de atendimento, ou escreva para suporte@steel.stratustelecom.com.br.',
+      'Abra e acompanhe seus chamados pelo portal de atendimento, ou escreva para suporte@stratustelecom.com.br.',
     cta: 'Abrir um chamado',
     href: '/suporte',
     icon: CircleQuestionMarkIcon,
@@ -92,7 +92,7 @@ const CONTACT_CARDS: ContactCard[] = [
     description:
       'Parcerias, imprensa ou qualquer outro assunto — é só mandar um e-mail.',
     cta: 'Enviar e-mail',
-    href: 'mailto:contato@steel.stratustelecom.com.br',
+    href: 'mailto:contato@stratustelecom.com.br',
     icon: Mail02Icon,
   },
 ]

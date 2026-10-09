@@ -110,7 +110,7 @@ The API reference is generated from the Zod schemas and rendered with Scalar.
 
 ## Security
 
-If you find a security vulnerability, report it privately instead of opening a public issue. E-mail **security@steel.stratustelecom.com.br** with a description and reproduction steps.
+If you find a security vulnerability, report it privately instead of opening a public issue. E-mail **security@stratustelecom.com.br** with a description and reproduction steps.
 
 ## License
 

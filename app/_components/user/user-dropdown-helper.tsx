@@ -54,7 +54,7 @@ export function UserDropdownHelper() {
               Suporte por mensagens
             </DropdownMenuItem>
           </Link>
-          <Link href='mailto:sales@steel.stratustelecom.com.br' target='_blank'>
+          <Link href='mailto:sales@stratustelecom.com.br' target='_blank'>
             <DropdownMenuItem className='text-xs'>
               <SteelIcon icon={UserIcon} strokeWidth={2} size={20} />
               Contatar vendas

@@ -246,8 +246,8 @@ export const webApplicationTemplate: LandingPageTemplateDefinition = {
             title: 'Contact us',
             links: [
               {
-                label: 'support@brainwave.io',
-                href: 'mailto:support@brainwave.io',
+                label: 'contato@suaempresa.com.br',
+                href: 'mailto:contato@suaempresa.com.br',
               },
               { label: '+133-394-3439-1435', href: 'tel:+13393943439' },
             ],

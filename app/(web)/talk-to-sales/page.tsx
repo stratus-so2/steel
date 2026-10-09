@@ -61,9 +61,9 @@ export default function TalkToSalesPage() {
             </div>
             <Muted className='text-xs'>
               Suporte técnico ou de produto:{' '}
-              <Link href='mailto:suporte@steel.stratustelecom.com.br'>
+              <Link href='mailto:suporte@stratustelecom.com.br'>
                 <strong className='text-primary'>
-                  suporte@steel.stratustelecom.com.br
+                  suporte@stratustelecom.com.br
                 </strong>
               </Link>{' '}
               ou veja os{' '}

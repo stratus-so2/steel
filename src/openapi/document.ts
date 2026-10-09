@@ -184,7 +184,7 @@ export function buildOpenApiDocument({ version }: BuildOptions): JsonSchema {
       description: INFO_DESCRIPTION,
       contact: {
         name: 'Stratus Telecom',
-        email: 'suporte@steel.stratustelecom.com.br',
+        email: 'suporte@stratustelecom.com.br',
       },
     },
     servers: [
