@@ -188,6 +188,59 @@ por OWNER/ADMIN e usadas por todos os módulos:
   tempo constante antes de qualquer gravação; o caminho antigo do GitHub
   continua aceito.
 
+## Quadro-branco (Excalidraw)
+
+Item **Quadro-branco** logo abaixo da Wiki no menu lateral (atalho
+<kbd>G</kbd> <kbd>Q</kbd>), em `/[slug]/whiteboard`. Diferente da Wiki, vem
+**ligado** (`workspaces.whiteboard_enabled`, padrão `true`): não guarda dado
+nenhum até alguém criar um quadro, então o interruptor em **Ajustes >
+Quadro-branco** (OWNER/ADMIN) serve para quem não quer o item no menu.
+Desligado, as páginas respondem 404 e a API `403 WHITEBOARD_DISABLED`.
+
+- **Camadas**: `src/schemas/whiteboard.schema.ts` →
+  `WhiteboardService` / `WhiteboardVersionService` /
+  `WhiteboardFileService` / `WhiteboardSettingsService` → repositórios
+  `whiteboard*.repository.ts`. Gate único em `_whiteboard-access.ts`: membro
+  do workspace + interruptor; VIEWER só lê; MEMBER arquiva os quadros que
+  criou, OWNER/ADMIN qualquer um. Rotas em
+  `app/api/workspaces/[id]/whiteboards/**` e `.../whiteboard/settings`.
+- **Cena** (`whiteboards.scene`, JSONB até 5 MB / 20 mil elementos):
+  elementos vivos, um recorte do appState (fundo, grade e viewport — cada
+  quadro reabre no mesmo ponto) e só as **referências** das imagens. Os bytes
+  vão para o bucket privado `whiteboards` (`<ws>/files/<fileId>`, o id do
+  Excalidraw é hash do conteúdo, então cópias e versões reaproveitam o
+  arquivo) e as miniaturas da lista para `<ws>/thumbnails/<id>.png`. Ambos
+  servidos pela própria API (`Content-Security-Policy: sandbox`, `nosniff`).
+- **Edição**: autosave com debounce de 1,5 s (`PUT .../scene`) com bloqueio
+  otimista (`baseRevision` → `409 WHITEBOARD_REVISION_CONFLICT`) e **trava de
+  edição** de 60 s renovada a cada 20 s pelo canvas aberto
+  (`POST/DELETE .../lock`). Um editor por vez: os demais abrem em modo
+  leitura, recebem a cena nova a cada 20 s e assumem a edição quando a trava
+  vence (`409 WHITEBOARD_LOCKED` se tentarem gravar antes).
+- **Por que não tempo real (Hocuspocus)**: o `steel-realtime` hoje é da Wiki
+  (o nome do documento é o id da página, load/store presos ao
+  `WikiPageRepository`) e não há binding Yjs ↔ Excalidraw nas dependências.
+  Colaboração real exigiria um CRDT por elemento (reconciliação por
+  `version`/`versionNonce` + índices fracionários), mapear awareness para os
+  `collaborators` do Excalidraw e manter duas persistências (estado Yjs e a
+  cena JSON que versões, miniaturas e busca leem). Ficou para uma fatia
+  própria; a trava cobre o caso comum sem risco de sobrescrita.
+- **Histórico** (`whiteboard_versions`): versão **AUTO** no primeiro
+  salvamento e depois a cada 10 min de edição ou 100 salvamentos; **MANUAL**
+  em "Salvar versão" (nome opcional); **RESTORE** ao restaurar. Retenção: as
+  **50 AUTO mais recentes** por quadro (podadas na mesma transação);
+  MANUAL e RESTORE ficam enquanto o quadro existir. Restaurar nunca apaga:
+  se há edições sem versão, guarda antes um AUTO "Antes da restauração", põe
+  a cena antiga numa nova revisão e registra o RESTORE.
+- **Busca global**: tipo `whiteboard` em `search_documents` (título + texto
+  dos elementos de texto), escondido quando o interruptor está desligado;
+  reindexado ao criar/renomear/arquivar e a cada versão automática.
+- **Biblioteca** do Excalidraw: pessoal, no `localStorage` do navegador.
+  Exportar PNG/SVG/arquivo `.excalidraw` pelo menu do próprio canvas.
+- **Arquivar** é soft (`archived_at`), com aba "Arquivados" e "Restaurar";
+  backup/exclusão do workspace incluem os quadros e o histórico
+  (`workspace-snapshot.ts`).
+
 ## Caixa de entrada (notificações in-app)
 
 `/[slug]/inbox` é a caixa de entrada do usuário no workspace, no formato de

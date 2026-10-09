@@ -42,6 +42,7 @@ describe('toUserDTO()', () => {
             suspendedReason: null,
             suspendedById: null,
             wikiEnabled: false,
+            whiteboardEnabled: true,
             logoUrl: 'https://cdn.test/acme.png',
             companySize: null,
             createdAt: new Date(),

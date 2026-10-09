@@ -37,9 +37,11 @@ const MD_QUERY = '(min-width: 48rem)'
 export function MobileNavDrawer({
   slug,
   wikiEnabled = false,
+  whiteboardEnabled = false,
 }: {
   slug: string
   wikiEnabled?: boolean
+  whiteboardEnabled?: boolean
 }) {
   const pathname = usePathname()
   const mobileNav = useMobileNav()
@@ -111,29 +113,33 @@ export function MobileNavDrawer({
             onClick={closeOnLink}
           >
             <nav aria-label='Módulos' className='space-y-1'>
-              {globalNavItems(slug, { wikiEnabled }).map((item) => {
-                const active = isGlobalNavActive(pathname, item.href)
-                return (
-                  <Fragment key={item.href}>
-                    {item.separated && <div className='my-2 h-px bg-border' />}
-                    <Link
-                      href={item.href}
-                      aria-current={active ? 'page' : undefined}
-                      className={cn(
-                        buttonVariants({
-                          variant: active ? 'secondary' : 'ghost',
-                          size: 'lg',
-                        }),
-                        'w-full justify-start gap-3',
-                        !active && 'text-muted-foreground',
+              {globalNavItems(slug, { wikiEnabled, whiteboardEnabled }).map(
+                (item) => {
+                  const active = isGlobalNavActive(pathname, item.href)
+                  return (
+                    <Fragment key={item.href}>
+                      {item.separated && (
+                        <div className='my-2 h-px bg-border' />
                       )}
-                    >
-                      <SteelIcon icon={item.icon} className='size-5' />
-                      {item.label}
-                    </Link>
-                  </Fragment>
-                )
-              })}
+                      <Link
+                        href={item.href}
+                        aria-current={active ? 'page' : undefined}
+                        className={cn(
+                          buttonVariants({
+                            variant: active ? 'secondary' : 'ghost',
+                            size: 'lg',
+                          }),
+                          'w-full justify-start gap-3',
+                          !active && 'text-muted-foreground',
+                        )}
+                      >
+                        <SteelIcon icon={item.icon} className='size-5' />
+                        {item.label}
+                      </Link>
+                    </Fragment>
+                  )
+                },
+              )}
               <button
                 type='button'
                 aria-haspopup='dialog'

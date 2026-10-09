@@ -12,6 +12,7 @@ import type {
   SdCustomerSearchRow,
   SdKbArticleSearchRow,
   SdTicketSearchRow,
+  WhiteboardSearchRow,
   ZapContactSearchRow,
   ZapConversationSearchRow,
 } from '@/src/repositories/search-source.repository'
@@ -29,6 +30,7 @@ import {
   toSdKbArticleSearchDocument,
   toSdTicketSearchDocument,
   toSearchResultDTO,
+  toWhiteboardSearchDocument,
   toZapContactSearchDocument,
   toZapConversationSearchDocument,
 } from '../search-document.mapper'
@@ -466,6 +468,48 @@ describe('search document mapper', () => {
           user: { ...row.user, updatedAt: new Date('2020-01-01T00:00:00Z') },
         }).updatedAt,
       ).toEqual(T)
+    })
+  })
+
+  describe('whiteboard', () => {
+    it('should index the title and the live text of the board', () => {
+      const row: WhiteboardSearchRow = {
+        id: 'b1',
+        title: 'Retro da sprint',
+        scene: {
+          elements: [
+            { id: 'a', type: 'text', text: 'Melhorar deploy' },
+            { id: 'b', type: 'text', text: 'apagado', isDeleted: true },
+          ],
+        },
+        createdById: 'u1',
+        updatedById: 'u2',
+        editedAt: T,
+        createdBy: { name: 'Ana' },
+      }
+      expect(toWhiteboardSearchDocument(WS, row)).toMatchObject({
+        entityType: 'whiteboard',
+        entityId: 'b1',
+        module: null,
+        title: 'Retro da sprint',
+        subtitle: 'Quadro-branco · Ana',
+        body: 'Melhorar deploy',
+        userIds: ['u1', 'u2'],
+        path: '/whiteboard/b1',
+        updatedAt: T,
+      })
+      expect(
+        toWhiteboardSearchDocument(WS, {
+          ...row,
+          title: '',
+          scene: null,
+          createdBy: null,
+        }),
+      ).toMatchObject({
+        title: 'Quadro sem título',
+        subtitle: 'Quadro-branco',
+        body: null,
+      })
     })
   })
 

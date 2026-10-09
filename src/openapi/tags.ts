@@ -71,6 +71,11 @@ export const TAG_GROUPS = [
           'Páginas colaborativas do workspace (árvore, editor Plate com edição em tempo real via Hocuspocus em `/realtime`), comentários, mídia e etiquetas. Desligada por padrão: um OWNER/ADMIN ativa em Ajustes › Wiki; enquanto isso as rotas de página/comentário/mídia respondem `403 WIKI_DISABLED`.',
       },
       {
+        name: 'Quadro-branco',
+        description:
+          'Quadros Excalidraw do workspace: lista, criação, renomear, duplicar, arquivar, autosave da cena com bloqueio otimista (`baseRevision`) e trava de edição (um editor por vez), histórico de versões com restauração, imagens e miniaturas no bucket privado `whiteboards`. Ligado por padrão; OWNER/ADMIN desliga em Ajustes › Quadro-branco (rotas respondem `403 WHITEBOARD_DISABLED`).',
+      },
+      {
         name: 'Integrações',
         description:
           'Slack, GitHub e GitLab conectados uma vez por workspace (Ajustes › Integrações, OWNER/ADMIN) e usados por todos os módulos: regras de notificação no Slack, vínculo de chamados com issues/PRs/MRs e os webhooks públicos dos repositórios (ADR 0024).',

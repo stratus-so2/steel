@@ -20,6 +20,7 @@ import {
   UserGroupIcon,
   UserIcon,
   WhatsappIcon,
+  WhiteboardIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -76,6 +77,7 @@ const TYPE_ICON: Record<SearchEntityType, IconType> = {
   'zap-conversation': Message01Icon,
   'zap-contact': WhatsappIcon,
   member: UserGroupIcon,
+  whiteboard: WhiteboardIcon,
 }
 
 const RECENT_MAX = 6
@@ -162,10 +164,12 @@ export function GlobalSearch({
   slug,
   workspaceId,
   wikiEnabled = false,
+  whiteboardEnabled = false,
 }: {
   slug: string
   workspaceId: string
   wikiEnabled?: boolean
+  whiteboardEnabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
 
@@ -206,6 +210,7 @@ export function GlobalSearch({
             slug={slug}
             workspaceId={workspaceId}
             wikiEnabled={wikiEnabled}
+            whiteboardEnabled={whiteboardEnabled}
             onClose={() => setOpen(false)}
           />
         ) : null}
@@ -218,11 +223,13 @@ export function GlobalSearchPalette({
   slug,
   workspaceId,
   wikiEnabled = false,
+  whiteboardEnabled = false,
   onClose,
 }: {
   slug: string
   workspaceId: string
   wikiEnabled?: boolean
+  whiteboardEnabled?: boolean
   onClose: () => void
 }) {
   const shortcuts = useShortcuts()
@@ -286,11 +293,14 @@ export function GlobalSearchPalette({
 
   // Navigation commands with their keys (`G → S`), filtered by the query.
   const navigation = useMemo(() => {
-    const commands = availableCommands(slug, modules, wikiEnabled).filter(
-      (command) => command.id.startsWith('nav.'),
-    )
+    const commands = availableCommands(
+      slug,
+      modules,
+      wikiEnabled,
+      whiteboardEnabled,
+    ).filter((command) => command.id.startsWith('nav.'))
     return commands.filter((command) => matchesQuery(command.label, trimmed))
-  }, [slug, modules, wikiEnabled, trimmed])
+  }, [slug, modules, wikiEnabled, whiteboardEnabled, trimmed])
 
   const showShortcutsItem =
     Boolean(shortcuts) &&

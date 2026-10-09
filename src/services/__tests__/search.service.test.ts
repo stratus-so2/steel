@@ -110,12 +110,26 @@ function ticketRow(
 
 beforeEach(() => {
   workspaces.findById.mockResolvedValue(
-    ok(createFakeWorkspace({ id: WS, slug: 'agro' })),
+    // The whiteboard switch has its own case below.
+    ok(createFakeWorkspace({ id: WS, slug: 'agro', whiteboardEnabled: false })),
   )
   docs.search.mockResolvedValue(ok([]))
 })
 
 describe('SearchService.resolveAccess()', () => {
+  it('should add whiteboards only while the workspace switch is on', async () => {
+    member('VIEWER')
+    enable()
+    workspaces.findById.mockResolvedValueOnce(
+      ok(
+        createFakeWorkspace({ id: WS, slug: 'agro', whiteboardEnabled: true }),
+      ),
+    )
+
+    const access = expectOk(await SearchService.resolveAccess(USER, WS))
+    expect(access.types).toEqual(['member', 'whiteboard'])
+  })
+
   it('should deny a non-member before anything else', async () => {
     memberships.findByUserAndWorkspace.mockResolvedValue(ok(null))
     expectErr(await SearchService.resolveAccess(USER, WS), 'FORBIDDEN')

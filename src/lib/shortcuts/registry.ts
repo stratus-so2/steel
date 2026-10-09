@@ -201,6 +201,14 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = define([
     priority: 'P2',
   },
   {
+    id: 'nav.whiteboard',
+    keys: 'g q',
+    scope: 'global',
+    group: 'navigation',
+    label: 'Ir para o Quadro-branco',
+    priority: 'P2',
+  },
+  {
     id: 'nav.settings',
     keys: 'g a',
     scope: 'global',

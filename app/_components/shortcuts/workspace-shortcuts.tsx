@@ -45,10 +45,12 @@ function BuiltinShortcuts({
   slug,
   workspaceId,
   wikiEnabled,
+  whiteboardEnabled,
 }: {
   slug: string
   workspaceId: string
   wikiEnabled: boolean
+  whiteboardEnabled: boolean
 }) {
   const go = useCommandNavigate()
   const capabilities = useSteelAiCapabilities(workspaceId)
@@ -120,7 +122,8 @@ function BuiltinShortcuts({
           go={go}
           enabled={
             (!command.module || modules.includes(command.module)) &&
-            (!command.wiki || wikiEnabled)
+            (!command.wiki || wikiEnabled) &&
+            (!command.whiteboard || whiteboardEnabled)
           }
         />
       ))}
@@ -148,11 +151,13 @@ export function WorkspaceShortcuts({
   slug,
   workspaceId,
   wikiEnabled = false,
+  whiteboardEnabled = false,
   children,
 }: {
   slug: string
   workspaceId: string
   wikiEnabled?: boolean
+  whiteboardEnabled?: boolean
   children: ReactNode
 }) {
   const preferences = useUserPreferences()
@@ -167,6 +172,7 @@ export function WorkspaceShortcuts({
         slug={slug}
         workspaceId={workspaceId}
         wikiEnabled={wikiEnabled}
+        whiteboardEnabled={whiteboardEnabled}
       />
       {children}
       <ShortcutsCheatSheet />

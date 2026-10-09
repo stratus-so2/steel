@@ -13,6 +13,8 @@ export type WorkspaceCommand = {
   /** Hidden while the module is off. */
   module?: ModuleKind
   wiki?: boolean
+  /** Hidden while Ajustes › Quadro-branco is off. */
+  whiteboard?: boolean
 }
 
 /** Navigation and "create" commands, shared by the shortcuts and Ctrl+K. */
@@ -49,6 +51,12 @@ export function workspaceCommands(slug: string): WorkspaceCommand[] {
       label: 'Ir para a Wiki',
       href: `${base}/wiki`,
       wiki: true,
+    },
+    {
+      id: 'nav.whiteboard',
+      label: 'Ir para o Quadro-branco',
+      href: `${base}/whiteboard`,
+      whiteboard: true,
     },
     {
       id: 'nav.settings',
@@ -110,11 +118,13 @@ export function availableCommands(
   slug: string,
   modules: readonly string[],
   wikiEnabled: boolean,
+  whiteboardEnabled = false,
 ): WorkspaceCommand[] {
   return workspaceCommands(slug).filter(
     (command) =>
       (!command.module || modules.includes(command.module)) &&
-      (!command.wiki || wikiEnabled),
+      (!command.wiki || wikiEnabled) &&
+      (!command.whiteboard || whiteboardEnabled),
   )
 }
 

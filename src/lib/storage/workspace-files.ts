@@ -87,6 +87,13 @@ export const WORKSPACE_BUCKETS: readonly WorkspaceBucket[] = [
     public: true,
     writtenBy: 'src/services/media/crm-email-media.service.ts',
   },
+  {
+    // Whiteboard (private): canvas images in `<ws>/files/<fileId>` and list
+    // previews in `<ws>/thumbnails/<boardId>.png`.
+    name: 'whiteboards',
+    public: false,
+    writtenBy: 'src/services/whiteboard-file.service.ts',
+  },
 ] as const
 
 export const WORKSPACE_PREFIXED_BUCKETS = WORKSPACE_BUCKETS.map((b) => b.name)
