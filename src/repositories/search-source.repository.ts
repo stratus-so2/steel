@@ -247,6 +247,19 @@ export type MemberSearchRow = Prisma.MembershipGetPayload<{
   select: typeof memberSelect
 }>
 
+const whiteboardSelect = {
+  id: true,
+  title: true,
+  scene: true,
+  createdById: true,
+  updatedById: true,
+  editedAt: true,
+  createdBy: { select: { name: true } },
+} satisfies Prisma.WhiteboardSelect
+export type WhiteboardSearchRow = Prisma.WhiteboardGetPayload<{
+  select: typeof whiteboardSelect
+}>
+
 async function load<T>(
   label: string,
   run: () => Promise<T>,
@@ -419,6 +432,18 @@ export const SearchSourceRepository = {
         where: { workspaceId, userId: idFilter(opts) },
         select: memberSelect,
         orderBy: { userId: 'asc' },
+        take: opts.take,
+      }),
+    )
+  },
+
+  /** Live (not archived) whiteboards. */
+  whiteboards(workspaceId: string, opts: SearchSourceOptions) {
+    return load('whiteboards', () =>
+      prisma.whiteboard.findMany({
+        where: { workspaceId, archivedAt: null, id: idFilter(opts) },
+        select: whiteboardSelect,
+        orderBy: { id: 'asc' },
         take: opts.take,
       }),
     )

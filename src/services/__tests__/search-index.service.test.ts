@@ -41,6 +41,7 @@ function emptySources() {
     'zapContacts',
     'zapConversations',
     'members',
+    'whiteboards',
   ] as const) {
     sources[key].mockResolvedValue(ok([]) as never)
   }

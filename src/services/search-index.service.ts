@@ -18,6 +18,7 @@ import {
   toSdCustomerSearchDocument,
   toSdKbArticleSearchDocument,
   toSdTicketSearchDocument,
+  toWhiteboardSearchDocument,
   toZapContactSearchDocument,
   toZapConversationSearchDocument,
 } from '@/src/mappers/search-document.mapper'
@@ -113,6 +114,10 @@ const LOADERS: Record<SearchEntityType, Loader> = {
   member: simple(
     (ws, o) => SearchSourceRepository.members(ws, o),
     toMemberSearchDocument,
+  ),
+  whiteboard: simple(
+    (ws, o) => SearchSourceRepository.whiteboards(ws, o),
+    toWhiteboardSearchDocument,
   ),
 }
 

@@ -78,6 +78,9 @@ export const SearchService = {
     const { isPrivileged, permissions } = membership.value
     const types = SEARCH_ENTITY_TYPES.filter((type) => {
       const meta = SEARCH_ENTITIES[type]
+      if (type === 'whiteboard' && !workspace.value.whiteboardEnabled) {
+        return false
+      }
       if (meta.module && !enabled.has(meta.module)) return false
       if (
         meta.module === 'SERVICE_DESK' &&

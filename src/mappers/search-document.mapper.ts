@@ -26,10 +26,12 @@ import type {
   SdCustomerSearchRow,
   SdKbArticleSearchRow,
   SdTicketSearchRow,
+  WhiteboardSearchRow,
   ZapContactSearchRow,
   ZapConversationSearchRow,
 } from '@/src/repositories/search-source.repository'
 import type { SearchResultDTO } from '@/types/search'
+import { toWhiteboardScene, whiteboardSceneText } from './whiteboard.mapper'
 
 /**
  * Builds the `search_documents` row of each indexed entity and maps a
@@ -480,6 +482,27 @@ export function toMemberSearchDocument(
     userIds: [row.userId],
     path: '/settings/members',
     updatedAt,
+  }
+}
+
+export function toWhiteboardSearchDocument(
+  workspaceId: string,
+  row: WhiteboardSearchRow,
+): SearchDocumentInput {
+  return {
+    workspaceId,
+    entityType: 'whiteboard',
+    entityId: row.id,
+    module: null,
+    audience: 'PUBLIC',
+    title: row.title || 'Quadro sem título',
+    subtitle: joinParts(['Quadro-branco', row.createdBy?.name]),
+    body: clampBody(whiteboardSceneText(toWhiteboardScene(row.scene))),
+    keywords: '',
+    codes: [],
+    userIds: userIdsOf([row.createdById, row.updatedById]),
+    path: `/whiteboard/${row.id}`,
+    updatedAt: row.editedAt,
   }
 }
 

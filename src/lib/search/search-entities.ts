@@ -27,6 +27,7 @@ export const SEARCH_ENTITY_TYPES = [
   'zap-conversation',
   'zap-contact',
   'member',
+  'whiteboard',
 ] as const
 
 export type SearchEntityType = (typeof SEARCH_ENTITY_TYPES)[number]
@@ -131,6 +132,13 @@ export const SEARCH_ENTITIES: Record<SearchEntityType, SearchEntityMeta> = {
     resource: null,
     group: 'Membros',
     label: 'Membro',
+  },
+  // Gated by the workspace switch (Ajustes › Quadro-branco), not a module.
+  whiteboard: {
+    module: null,
+    resource: null,
+    group: 'Quadros-brancos',
+    label: 'Quadro-branco',
   },
 }
 

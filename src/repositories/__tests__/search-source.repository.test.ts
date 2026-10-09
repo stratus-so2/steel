@@ -18,6 +18,7 @@ import {
   seedSdTicket,
 } from '@/src/__tests__/factories/sd-kb.factory'
 import { seedUser } from '@/src/__tests__/factories/user.factory'
+import { seedWhiteboard } from '@/src/__tests__/factories/whiteboard.factory'
 import { seedWorkspace } from '@/src/__tests__/factories/workspace.factory'
 import { expectErr, expectOk } from '@/src/__tests__/helpers/result.helpers'
 import { prisma } from '@/src/lib/prisma'
@@ -211,5 +212,21 @@ describe('SearchSourceRepository', () => {
       await SearchSourceRepository.crmLeads('ws', { take: 1 }),
       'DATABASE_ERROR',
     )
+  })
+})
+
+describe('SearchSourceRepository.whiteboards()', () => {
+  it('loads live boards with their author, skipping archived ones', async () => {
+    const ws = await seedWorkspace()
+    const user = await seedUser({ name: 'Ana' })
+    const live = await seedWhiteboard(ws.id, user.id, { title: 'Retro' })
+    await seedWhiteboard(ws.id, user.id, { archivedAt: GONE })
+
+    const rows = expectOk(
+      await SearchSourceRepository.whiteboards(ws.id, { take: 10 }),
+    )
+
+    expect(rows.map((r) => r.id)).toEqual([live.id])
+    expect(rows[0].createdBy?.name).toBe('Ana')
   })
 })

@@ -20,6 +20,7 @@ import {
   UserGroupIcon,
   UserIcon,
   WhatsappIcon,
+  WhiteboardIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -76,6 +77,7 @@ const TYPE_ICON: Record<SearchEntityType, IconType> = {
   'zap-conversation': Message01Icon,
   'zap-contact': WhatsappIcon,
   member: UserGroupIcon,
+  whiteboard: WhiteboardIcon,
 }
 
 const RECENT_MAX = 6
