@@ -118,15 +118,10 @@ export const webNav = {
 
 /**
  * Routes linked from the header or footer whose pages a later slice creates
- * (`/product/*`, `/features/*`, the developer docs at `/dev`). The
- * route-existence test reports them as "coming" instead of failing; remove a
- * prefix here once its pages land.
+ * (`/product/*`, `/features/*`). The route-existence test reports them as
+ * "coming" instead of failing; remove a prefix here once its pages land.
  */
-export const COMING_ROUTE_PREFIXES = [
-  '/product/',
-  '/features/',
-  '/dev',
-] as const
+export const COMING_ROUTE_PREFIXES = ['/product/', '/features/'] as const
 
 /** A nav entry is active on its own page and on any page below it. */
 export function isWebNavActive(pathname: string | null, href: string) {
