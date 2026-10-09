@@ -172,6 +172,10 @@ export type AuditEntity =
   // Ajustes › Exportações (complete data / Axiom logs) and the work-log CSVs
   | 'workspace_export'
   | 'worklog'
+  // Quadro-branco (Excalidraw): boards, version history, workspace switch
+  | 'whiteboard'
+  | 'whiteboard_version'
+  | 'whiteboard_settings'
 
 export type AuditAction =
   | 'create'
