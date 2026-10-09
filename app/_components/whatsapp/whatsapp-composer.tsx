@@ -446,7 +446,10 @@ export function WhatsappComposer({
           ))}
         </AttachmentGroup>
       )}
-      <div className='flex items-end gap-1.5'>
+      {/* Wraps when the pane is narrow (tablet with the conversation list
+          open): the message box then takes its own line instead of shrinking
+          to a sliver beside the tool buttons. */}
+      <div className='flex flex-wrap items-end gap-1.5'>
         <input
           ref={photoInputRef}
           type='file'
@@ -640,7 +643,7 @@ export function WhatsappComposer({
           <SteelIcon icon={Mic01Icon} size={18} />
         </Button>
 
-        <div className='relative min-w-0 flex-1'>
+        <div className='relative min-w-48 flex-1'>
           <QuickReplySlashMenu
             matches={slash.matches}
             activeIndex={slash.activeIndex}

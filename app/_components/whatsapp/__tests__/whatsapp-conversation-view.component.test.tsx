@@ -136,6 +136,36 @@ function setup(extra: FetchRoute[] = [], messages = thread) {
 }
 
 describe('<WhatsappConversationView />', () => {
+  it('goes back to the list from the header below lg', () => {
+    setup()
+    const onBack = vi.fn()
+    const { rerender } = renderWithQuery(
+      <WhatsappConversationView
+        workspaceId='ws_1'
+        conversation={conversation()}
+        onSelectConversation={vi.fn()}
+        onBack={onBack}
+      />,
+    )
+    const back = screen.getByRole('button', {
+      name: 'Voltar para as conversas',
+    })
+    expect(back.className).toContain('lg:hidden')
+    fireEvent.click(back)
+    expect(onBack).toHaveBeenCalledTimes(1)
+
+    rerender(
+      <WhatsappConversationView
+        workspaceId='ws_1'
+        conversation={conversation()}
+        onSelectConversation={vi.fn()}
+      />,
+    )
+    expect(
+      screen.queryByRole('button', { name: 'Voltar para as conversas' }),
+    ).toBeNull()
+  })
+
   it('closes the conversation with an optional reason', async () => {
     const onSelectConversation = vi.fn()
     const fetchSpy = setup([

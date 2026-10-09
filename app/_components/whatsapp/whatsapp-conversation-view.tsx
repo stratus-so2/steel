@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  ArrowLeft01Icon,
   CheckmarkCircle02Icon,
   ComputerVideoCallIcon,
   RefreshIcon,
@@ -220,7 +221,19 @@ export function WhatsappConversationView({
 
   return (
     <div className='flex h-full min-w-0 flex-1 flex-col'>
-      <div className='flex items-center justify-between gap-3 border-b px-4 py-3'>
+      <div className='flex items-center justify-between gap-3 border-b px-4 py-3 max-lg:pl-2'>
+        {onBack ? (
+          // Below `lg` the list and the chat take turns: this goes back.
+          <Button
+            variant='ghost'
+            size='icon-sm'
+            className='-mr-1.5 shrink-0 lg:hidden'
+            aria-label='Voltar para as conversas'
+            onClick={onBack}
+          >
+            <SteelIcon icon={ArrowLeft01Icon} size={18} />
+          </Button>
+        ) : null}
         <Popover>
           <PopoverTrigger
             render={
