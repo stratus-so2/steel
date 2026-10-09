@@ -24,7 +24,7 @@ export function PricingTableHeader({
   const [billing] = useQueryState('billing', billingParser)
 
   return (
-    <div className='border-b border-border z-30 hidden lg:sticky lg:top-16 lg:flex lg:justify-end bg-background'>
+    <div className='border-b border-border z-30 hidden lg:sticky lg:top-[72px] lg:flex lg:justify-end bg-background'>
       <div className='w-full lg:w-[30%] p-4 border-border'>
         <span className='font-medium text-xl'>Recursos</span>
       </div>

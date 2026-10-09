@@ -127,7 +127,7 @@ export default async function DocsArticlePage({ params }: Props) {
         </article>
         <DocsPager prev={prev} next={next} />
       </main>
-      <aside className='sticky top-8 hidden h-fit w-56 shrink-0 xl:block'>
+      <aside className='sticky top-24 hidden h-fit w-56 shrink-0 xl:block'>
         <DocsToc headings={page.headings} />
       </aside>
     </div>

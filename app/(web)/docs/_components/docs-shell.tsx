@@ -38,13 +38,13 @@ export function DocsShell({
         <div className='flex w-full gap-10 lg:border-x lg:border-border'>
           <aside
             aria-label={title ?? 'Documentação'}
-            className='sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 overflow-y-auto border-r border-border py-8 pr-4 pl-4 lg:flex'
+            className='sticky top-16 hidden h-[calc(100dvh-4rem)] w-64 md:top-[72px] md:h-[calc(100dvh-72px)] shrink-0 flex-col gap-6 overflow-y-auto border-r border-border py-8 pr-4 pl-4 lg:flex'
           >
             {index.length > 0 && <DocsSearch index={index} />}
             <DocsSidebar nav={nav} home={home} />
           </aside>
           <div className='flex min-w-0 flex-1 flex-col'>
-            <div className='sticky top-0 z-30 flex items-center border-b border-border bg-background py-3 lg:hidden'>
+            <div className='sticky top-16 z-30 flex items-center md:top-[72px] border-b border-border bg-background py-3 lg:hidden'>
               <DocsMobileNav
                 nav={nav}
                 index={index}
