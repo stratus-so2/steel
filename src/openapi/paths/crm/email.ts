@@ -1,5 +1,9 @@
 import { z } from 'zod'
 import {
+  CrmEmailBrandSchema,
+  RenderCrmEmailTemplateSchema,
+} from '@/src/schemas/crm-email-builder.schema'
+import {
   CreateCrmEmailCampaignSchema,
   UpdateCrmEmailCampaignSchema,
 } from '@/src/schemas/crm-email-campaign.schema'
@@ -18,14 +22,19 @@ import {
   UpdateCrmMailingListSchema,
 } from '@/src/schemas/crm-mailing-list.schema'
 import type { ErrorEntry, RouteConfig } from '../../registry'
+import { MediaUrlDTO } from '../../schemas/core'
 import {
   CrmEmailAccountDTO,
+  CrmEmailBrandDTO,
   CrmEmailCampaignDTO,
   CrmEmailCampaignRecipientDTO,
+  CrmEmailLinkTargetsDTO,
   CrmEmailMessageDTO,
   CrmEmailOptOutDTO,
+  CrmEmailRenderDTO,
   CrmEmailTemplateDTO,
   CrmEmailTemplatePreviewDTO,
+  CrmEmailTestSendDTO,
   CrmMailingListDTO,
   CrmMailingListMemberDTO,
 } from '../../schemas/crm/email'
@@ -65,7 +74,151 @@ const LAYOUT_UNKNOWN: ErrorEntry = {
   when: '`templateId` não é um layout do catálogo (`promo-announcement`, `newsletter-update`)',
 }
 
+const NOT_BUILDER: ErrorEntry = {
+  code: 'CRM_EMAIL_TEMPLATE_NOT_BUILDER',
+  when: '`builderDocument` enviado para um template `LEGACY`',
+}
+const STRUCTURE_LOCKED: ErrorEntry = {
+  code: 'CRM_EMAIL_BUILDER_STRUCTURE_LOCKED',
+  when: 'Documento fora da estrutura travada do modelo (seção adicionada, removida, de outro tipo, ocultada sem ser opcional ou fora de posição), troca de modelo ou HTML livre num template `BUILDER`',
+}
+
+/** Visual e-mail builder (editor de templates prontos). */
+const builderRoutes: RouteConfig[] = [
+  {
+    method: 'get',
+    path: '/workspaces/{id}/crm/email-templates/{templateId}',
+    tags: TAGS,
+    summary: 'Detalhe do template de e-mail',
+    description: crmAccess('email', 'VIEW'),
+    params: { templateId: TEMPLATE_ID },
+    responses: {
+      200: { description: 'Template.', schema: CrmEmailTemplateDTO },
+    },
+    errors: [...CRM_ERRORS, TEMPLATE_NOT_FOUND],
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/crm/email-templates/{templateId}/render',
+    tags: TAGS,
+    summary: 'Renderizar template para um contato',
+    description: describe(
+      'Renderiza o template com as variáveis (`{{nome}}`, `{{empresa}}`, `{{campaign_link}}`…) resolvidas para uma pessoa do CRM (`personId`) ou um contato de exemplo (`sample`; padrão: contato fictício). O link de descadastro aponta para a página genérica. Nada é salvo.',
+      crmAccess('email', 'VIEW'),
+    ),
+    params: { templateId: TEMPLATE_ID },
+    body: {
+      schema: RenderCrmEmailTemplateSchema,
+      example: { campaignLink: 'https://acme.com.br/l/abc?utm_source=email' },
+    },
+    responses: {
+      200: { description: 'E-mail renderizado.', schema: CrmEmailRenderDTO },
+    },
+    errors: [...CRM_ERRORS, TEMPLATE_NOT_FOUND, STRUCTURE_LOCKED],
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/crm/email-templates/{templateId}/test-send',
+    tags: TAGS,
+    summary: 'Enviar e-mail de teste',
+    description: describe(
+      'Envia o template renderizado (assunto com `[Teste]`) para o e-mail de quem chama. Limite de envio por usuário.',
+      crmAccess('email', 'EDIT'),
+    ),
+    params: { templateId: TEMPLATE_ID },
+    body: { schema: RenderCrmEmailTemplateSchema, example: {} },
+    responses: {
+      200: { description: 'Teste enviado.', schema: CrmEmailTestSendDTO },
+    },
+    errors: [...CRM_ERRORS, TEMPLATE_NOT_FOUND, STRUCTURE_LOCKED, 'MAIL_ERROR'],
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/crm/email-brand',
+    tags: TAGS,
+    summary: 'Marca dos e-mails',
+    description: describe(
+      'Nome, logo, cor primária, endereço e site usados pelos templates do editor visual. Sem marca salva, devolve os padrões (nome/logo do workspace).',
+      crmAccess('email', 'VIEW'),
+    ),
+    responses: { 200: { description: 'Marca.', schema: CrmEmailBrandDTO } },
+    errors: CRM_ERRORS,
+  },
+  {
+    method: 'put',
+    path: '/workspaces/{id}/crm/email-brand',
+    tags: TAGS,
+    summary: 'Salvar marca dos e-mails',
+    description: crmAccess('email', 'EDIT'),
+    consent: true,
+    body: {
+      schema: CrmEmailBrandSchema,
+      example: {
+        companyName: 'Acme Ltda.',
+        logoUrl: '',
+        primaryColor: '#2893CC',
+        address: 'Av. Paulista, 1000 — São Paulo, SP',
+        website: 'https://acme.com.br',
+      },
+    },
+    responses: {
+      200: { description: 'Marca salva.', schema: CrmEmailBrandDTO },
+    },
+    errors: CRM_ERRORS,
+  },
+  {
+    method: 'post',
+    path: '/workspaces/{id}/crm/email-builder/images',
+    tags: TAGS,
+    summary: 'Enviar imagem de e-mail',
+    description: describe(
+      'Corpo **binário** (não multipart) com o `Content-Type` da imagem. JPEG, PNG ou WebP até 5 MB. Devolve a URL pública para os blocos de imagem do editor.',
+      crmAccess('email', 'EDIT'),
+    ),
+    rateLimit: 'upload',
+    body: {
+      contentType: 'image/*',
+      schema: { type: 'string', format: 'binary' },
+      description: 'Bytes da imagem.',
+    },
+    responses: { 201: { description: 'Imagem salva.', schema: MediaUrlDTO } },
+    errors: [
+      ...CRM_ERRORS,
+      {
+        code: 'BAD_REQUEST',
+        message: 'Content-Type é obrigatório',
+        when: 'Sem header `Content-Type`',
+      },
+      {
+        code: 'BAD_REQUEST',
+        message: 'Arquivo muito grande. Máximo 5 MB',
+        when: '`Content-Length` acima de 5 MB',
+      },
+      {
+        code: 'VALIDATION_ERROR',
+        message: 'Formato não suportado. Use JPEG, PNG ou WebP',
+      },
+      'STORAGE_ERROR',
+    ],
+  },
+  {
+    method: 'get',
+    path: '/workspaces/{id}/crm/email-builder/links',
+    tags: TAGS,
+    summary: 'Links rápidos do editor de e-mail',
+    description: describe(
+      'Landing pages e formulários publicados do workspace, com a URL pública, para o seletor de link do editor.',
+      crmAccess('email', 'VIEW'),
+    ),
+    responses: {
+      200: { description: 'Destinos.', schema: CrmEmailLinkTargetsDTO },
+    },
+    errors: CRM_ERRORS,
+  },
+]
+
 export const crmEmailRoutes: RouteConfig[] = [
+  ...builderRoutes,
   /* ------------------------------- templates ------------------------------ */
   {
     method: 'get',
@@ -146,7 +299,13 @@ export const crmEmailRoutes: RouteConfig[] = [
     responses: {
       200: { description: 'Template atualizado.', schema: CrmEmailTemplateDTO },
     },
-    errors: [...CRM_ERRORS, TEMPLATE_NOT_FOUND, LAYOUT_UNKNOWN],
+    errors: [
+      ...CRM_ERRORS,
+      TEMPLATE_NOT_FOUND,
+      LAYOUT_UNKNOWN,
+      NOT_BUILDER,
+      STRUCTURE_LOCKED,
+    ],
   },
   {
     method: 'delete',
