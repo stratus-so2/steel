@@ -10,7 +10,6 @@ import {
   formatChangelogDate,
 } from '@/src/lib/changelog/labels'
 import { SITE_URL } from '@/src/lib/seo/site'
-import { WebFooter } from '../_components/footer'
 import { SubTitle } from '../_components/text/sub-title'
 import { Title } from '../_components/text/title'
 
@@ -62,78 +61,75 @@ export default async function ChangelogPage() {
   }
 
   return (
-    <>
-      <main className='w-full flex flex-col items-center flex-1 mx-auto'>
-        <JsonLd data={collectionSchema} />
-        <div className='mx-auto w-full px-4 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384 py-16 space-y-16'>
-          <div className='space-y-4 text-center'>
-            <Title>Changelog</Title>
-            <SubTitle>
-              Tudo o que entrou no Steel, do mais recente ao mais antigo.
-            </SubTitle>
-          </div>
+    <main className='w-full flex flex-col items-center flex-1 mx-auto'>
+      <JsonLd data={collectionSchema} />
+      <div className='mx-auto w-full px-4 sm:px-8 xl:max-w-336 xl:px-11 2xl:max-w-384 py-16 space-y-16'>
+        <div className='space-y-4 text-center'>
+          <Title>Changelog</Title>
+          <SubTitle>
+            Tudo o que entrou no Steel, do mais recente ao mais antigo.
+          </SubTitle>
+        </div>
 
-          {entries.length === 0 ? (
-            <Muted className='text-center'>
-              Nenhuma novidade publicada ainda.
-            </Muted>
-          ) : (
-            <ol className='mx-auto w-full max-w-4xl'>
-              {entries.map((entry) => (
-                <li
-                  key={entry.slug}
-                  className='grid grid-cols-1 gap-3 border-t border-border py-10 md:grid-cols-[200px_1fr] md:gap-10'
-                >
-                  <div className='space-y-1'>
-                    <time
-                      dateTime={entry.date}
-                      className='text-sm font-medium text-primary'
-                    >
-                      {formatChangelogDate(entry.date)}
-                    </time>
-                    {entry.version && (
-                      <Muted className='font-mono text-xs'>
-                        v{entry.version}
-                      </Muted>
-                    )}
-                  </div>
-                  <article className='space-y-4'>
-                    <div className='flex flex-wrap gap-2'>
-                      {entry.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className='rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground'
-                        >
-                          {CHANGELOG_TAG_LABELS[tag]}
-                        </span>
-                      ))}
-                    </div>
-                    <h2 className='text-2xl font-normal'>
-                      <Link
-                        href={`/changelog/${entry.slug}`}
-                        className='hover:underline underline-offset-4'
+        {entries.length === 0 ? (
+          <Muted className='text-center'>
+            Nenhuma novidade publicada ainda.
+          </Muted>
+        ) : (
+          <ol className='mx-auto w-full max-w-4xl'>
+            {entries.map((entry) => (
+              <li
+                key={entry.slug}
+                className='grid grid-cols-1 gap-3 border-t border-border py-10 md:grid-cols-[200px_1fr] md:gap-10'
+              >
+                <div className='space-y-1'>
+                  <time
+                    dateTime={entry.date}
+                    className='text-sm font-medium text-primary'
+                  >
+                    {formatChangelogDate(entry.date)}
+                  </time>
+                  {entry.version && (
+                    <Muted className='font-mono text-xs'>
+                      v{entry.version}
+                    </Muted>
+                  )}
+                </div>
+                <article className='space-y-4'>
+                  <div className='flex flex-wrap gap-2'>
+                    {entry.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className='rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground'
                       >
-                        {entry.title}
-                      </Link>
-                    </h2>
-                    <p className='text-base text-muted-foreground'>
-                      {entry.summary}
-                    </p>
+                        {CHANGELOG_TAG_LABELS[tag]}
+                      </span>
+                    ))}
+                  </div>
+                  <h2 className='text-2xl font-normal'>
                     <Link
                       href={`/changelog/${entry.slug}`}
-                      className='inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4'
+                      className='hover:underline underline-offset-4'
                     >
-                      Ler a novidade
-                      <SteelIcon icon={ArrowRight02Icon} size={16} />
+                      {entry.title}
                     </Link>
-                  </article>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-      </main>
-      <WebFooter showBanner={false} />
-    </>
+                  </h2>
+                  <p className='text-base text-muted-foreground'>
+                    {entry.summary}
+                  </p>
+                  <Link
+                    href={`/changelog/${entry.slug}`}
+                    className='inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline underline-offset-4'
+                  >
+                    Ler a novidade
+                    <SteelIcon icon={ArrowRight02Icon} size={16} />
+                  </Link>
+                </article>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </main>
   )
 }

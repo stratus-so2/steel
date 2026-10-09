@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
-import { WebFooter } from '@/app/(web)/_components/footer'
-import { WebHeader } from '@/app/(web)/_components/header/web-header'
+import { WebShell } from '@/app/(web)/_components/web-shell'
 
 /**
  * The status pages live in `(public)` but read as part of the public site,
@@ -9,10 +8,8 @@ import { WebHeader } from '@/app/(web)/_components/header/web-header'
  */
 export default function StatusLayout({ children }: { children: ReactNode }) {
   return (
-    <div className='w-full'>
-      <WebHeader />
+    <WebShell>
       <main className='pt-6 pb-16'>{children}</main>
-      <WebFooter showBanner={false} />
-    </div>
+    </WebShell>
   )
 }
