@@ -231,12 +231,12 @@ export const WhiteboardRepository = {
 
   async setThumbnailAt(id: string, at: Date): Promise<Result<Date>> {
     try {
-      const board = await prisma.whiteboard.update({
+      await prisma.whiteboard.update({
         where: { id },
         data: { thumbnailAt: at },
-        select: { thumbnailAt: true },
+        select: { id: true },
       })
-      return ok(board.thumbnailAt ?? at)
+      return ok(at)
     } catch (error) {
       return err(dbError('Failed to store whiteboard thumbnail time', error))
     }

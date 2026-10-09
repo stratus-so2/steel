@@ -88,6 +88,14 @@ describe('access gate', () => {
     )
   })
 
+  it('checks the switch before the role on writes', async () => {
+    settings.isEnabled.mockResolvedValue(ok(false))
+    expectErr(
+      await WhiteboardService.create(ACTOR, WS, { title: 'x' }),
+      'WHITEBOARD_DISABLED',
+    )
+  })
+
   it('keeps VIEWERs read-only', async () => {
     as('VIEWER')
     expectErr(
