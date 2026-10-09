@@ -8,6 +8,7 @@ import {
   SparklesIcon,
   Upload01Icon,
   UserMultipleIcon,
+  WhiteboardIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { ReactNode } from 'react'
 import {
@@ -57,6 +58,9 @@ export default async function SettingsLayout({
           </NavItem>
           <NavItem href={`${base}/wiki`} icon={BookOpen01Icon}>
             Wiki
+          </NavItem>
+          <NavItem href={`${base}/whiteboard`} icon={WhiteboardIcon}>
+            Quadro-branco
           </NavItem>
           <NavItem href={`${base}/steel-intelligence`} icon={SparklesIcon}>
             Steel IA

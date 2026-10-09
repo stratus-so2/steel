@@ -206,7 +206,7 @@ describe('WorkspaceShortcuts', () => {
 
 describe('workspace commands', () => {
   it('filters by module and wiki', () => {
-    expect(workspaceCommands('a')).toHaveLength(16)
+    expect(workspaceCommands('a')).toHaveLength(17)
     const ids = availableCommands('a', ['CRM'], false).map((c) => c.id)
     expect(ids).toContain('create.lead')
     expect(ids).not.toContain('create.ticket')

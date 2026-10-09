@@ -11,10 +11,12 @@ export function UserHeader({
   slug,
   workspaceId,
   wikiEnabled = false,
+  whiteboardEnabled = false,
 }: {
   slug: string
   workspaceId: string
   wikiEnabled?: boolean
+  whiteboardEnabled?: boolean
 }) {
   // Below `lg`: a row — workspace on the left, then the search icon and the
   // account actions pushed to the right edge. From `lg` up: three columns with
@@ -26,7 +28,11 @@ export function UserHeader({
       className='flex w-full min-h-11 items-center gap-1 px-1.5 pt-[env(safe-area-inset-top)] md:px-3.5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(16rem,28rem)_minmax(0,1fr)] lg:gap-3'
     >
       <div className='flex min-w-0 flex-1 items-center gap-0.5 lg:justify-self-start'>
-        <MobileNavDrawer slug={slug} wikiEnabled={wikiEnabled} />
+        <MobileNavDrawer
+          slug={slug}
+          wikiEnabled={wikiEnabled}
+          whiteboardEnabled={whiteboardEnabled}
+        />
         <WorkSpaceDropdown currentSlug={slug} />
       </div>
       {/* Touch targets: 40px below `md`, the compact 32-36px from there up. */}
@@ -38,6 +44,7 @@ export function UserHeader({
           slug={slug}
           workspaceId={workspaceId}
           wikiEnabled={wikiEnabled}
+          whiteboardEnabled={whiteboardEnabled}
         />
       </div>
       <div className='flex shrink-0 items-center gap-1 max-md:[&_[data-slot=button]]:size-10 lg:justify-self-end'>

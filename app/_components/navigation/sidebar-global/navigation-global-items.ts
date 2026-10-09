@@ -5,6 +5,7 @@ import {
   Ticket01Icon,
   UserGroupIcon,
   WhatsappBusinessIcon,
+  WhiteboardIcon,
 } from '@hugeicons-pro/core-stroke-rounded'
 import type { SteelIcon } from '@/components/icon/icon'
 
@@ -26,7 +27,10 @@ export type GlobalNavItem = {
  */
 export function globalNavItems(
   slug: string,
-  { wikiEnabled = false }: { wikiEnabled?: boolean } = {},
+  {
+    wikiEnabled = false,
+    whiteboardEnabled = false,
+  }: { wikiEnabled?: boolean; whiteboardEnabled?: boolean } = {},
 ): GlobalNavItem[] {
   const base = `/${slug}`
   return [
@@ -60,11 +64,23 @@ export function globalNavItems(
           },
         ]
       : []),
+    // Right below the Wiki; on by default, off in Ajustes > Quadro-branco.
+    ...(whiteboardEnabled
+      ? [
+          {
+            href: `${base}/whiteboard`,
+            label: 'Quadro-branco',
+            icon: WhiteboardIcon,
+            separated: !wikiEnabled,
+            shortcut: 'nav.whiteboard',
+          },
+        ]
+      : []),
     {
       href: `${base}/ai`,
       label: 'Steel AI',
       icon: AiMagicIcon,
-      separated: !wikiEnabled,
+      separated: !wikiEnabled && !whiteboardEnabled,
       shortcut: 'nav.ai',
     },
     {
