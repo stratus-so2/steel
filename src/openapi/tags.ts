@@ -30,6 +30,11 @@ export const TAG_GROUPS = [
         description:
           'Consentimento de cookies, exportação e exclusão de dados (LGPD, art. 18).',
       },
+      {
+        name: 'Apps conectados (OAuth)',
+        description:
+          'Provedor OAuth 2.1 do Steel para integrações (servidor MCP): autorização com PKCE, registro dinâmico de cliente, tokens, consentimento por workspace e módulos, e a lista de apps conectados do usuário, com revogação (ADR 0033).',
+      },
     ],
   },
   {
@@ -445,6 +450,11 @@ export const TAG_GROUPS = [
         name: 'Steel Agents',
         description:
           'Agentes autônomos: rodam por agenda, evento ou botão, com as permissões do responsável. Cada ferramenta é automática ou requer aprovação (exclusão sempre requer), e as aprovações acontecem pela caixa de entrada.',
+      },
+      {
+        name: 'Steel MCP',
+        description:
+          'Servidor MCP remoto para clientes de IA (Claude, ChatGPT, Cursor…): as ferramentas de leitura do Steel AI, artigos da base de conhecimento e páginas da Wiki como resources e prompts prontos. Autenticado por OAuth do Steel (token por usuário e workspace).',
       },
     ],
   },

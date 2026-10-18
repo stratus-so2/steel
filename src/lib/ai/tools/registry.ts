@@ -1,4 +1,9 @@
-import type { AiPendingAction, ModuleKind, Prisma } from '@prisma/client'
+import type {
+  AiActionSource,
+  AiPendingAction,
+  ModuleKind,
+  Prisma,
+} from '@prisma/client'
 import { logFields } from '@/lib/axiom/log-fields'
 import { logger } from '@/lib/axiom/logger'
 import {
@@ -68,6 +73,12 @@ export interface AiToolAccess {
   autopilotEnabled: boolean
   /** Steel AI memory tools offered (`resolveToolAccess` sets it; default on). */
   memoryEnabled?: boolean
+  /**
+   * MCP clients with `mcp:write` may be offered write tools
+   * (`resolveToolAccess` sets it; default off). Read by the MCP server only —
+   * `isToolAllowed` ignores it, so the in-app assistant is unaffected.
+   */
+  mcpWriteEnabled?: boolean
 }
 
 const TOOL_NAME = /^[a-z][a-z0-9_]{1,63}$/
@@ -92,6 +103,49 @@ export function validateToolRegistry(
     if (tool.parameters.type !== 'object') {
       problems.push(`Tool "${tool.name}" parameters must be an object schema`)
     }
+    problems.push(...hintProblems(tool))
+  }
+  return problems
+}
+
+const LABEL_MAX_LENGTH = 40
+
+/**
+ * Consistency of the MCP-facing metadata (`label`, `annotations`,
+ * `customerFacing`). External clients trust these hints to decide what to
+ * confirm, so a wrong one is a security bug, not a cosmetic one.
+ */
+function hintProblems(tool: AnySteelAiTool): string[] {
+  const problems: string[] = []
+  const hints = tool.annotations ?? {}
+  const label = tool.label.trim()
+  if (label === '' || label.length > LABEL_MAX_LENGTH) {
+    problems.push(
+      `Tool "${tool.name}" label must have 1–${LABEL_MAX_LENGTH} chars`,
+    )
+  }
+  if (tool.kind === 'READ') {
+    if (hints.destructiveHint) {
+      problems.push(`Read tool "${tool.name}" cannot be destructive`)
+    }
+    if (tool.customerFacing) {
+      problems.push(`Read tool "${tool.name}" cannot be customer-facing`)
+    }
+    return problems
+  }
+  if (typeof hints.destructiveHint !== 'boolean') {
+    problems.push(`Write tool "${tool.name}" must declare destructiveHint`)
+  }
+  if (tool.kind === 'DELETE' && hints.destructiveHint === false) {
+    problems.push(`Delete tool "${tool.name}" must be destructive`)
+  }
+  if (tool.kind === 'CREATE' && hints.destructiveHint === true) {
+    problems.push(`Create tool "${tool.name}" must not be destructive`)
+  }
+  if (tool.customerFacing && hints.openWorldHint !== true) {
+    problems.push(
+      `Customer-facing tool "${tool.name}" must declare openWorldHint`,
+    )
   }
   return problems
 }
@@ -109,6 +163,15 @@ export function assertValidToolRegistry(
 // preview would otherwise only show up when the model calls it.
 assertValidToolRegistry(STEEL_AI_TOOLS)
 
+/** AiActionLog source of a tool context (who drove the write). */
+export function aiActionSource(
+  ctx: Pick<AiToolContext, 'source'>,
+): AiActionSource {
+  if (ctx.source === 'agent') return 'AGENT'
+  if (ctx.source === 'mcp') return 'MCP'
+  return 'ASSISTANT'
+}
+
 /** Whether the model may be offered `tool` in `mode` for this caller. */
 export function isToolAllowed(
   tool: AnySteelAiTool,
@@ -121,6 +184,18 @@ export function isToolAllowed(
     if (mode !== 'TEST' && !access.agentModeEnabled) return false
     if (mode === 'AUTOPILOT' && !access.autopilotEnabled) return false
   }
+  return hasToolAccess(tool, access)
+}
+
+/**
+ * Module and RBAC gate of a tool, without the mode switches — for callers
+ * with their own write gate (the MCP server: `mcp:write` + the admin
+ * switch, independent of agent mode).
+ */
+export function hasToolAccess(
+  tool: AnySteelAiTool,
+  access: AiToolAccess,
+): boolean {
   if (tool.module && !access.modules.includes(tool.module)) return false
   if (tool.permission && !access.isPrivileged) {
     if (
@@ -178,7 +253,7 @@ export function toToolSpecs(tools: readonly AnySteelAiTool[]): AiToolSpec[] {
 /**
  * Resolves the caller's access in one go: membership (403 for strangers and
  * suspended workspaces), enabled modules, RBAC matrix and the workspace
- * switches (AI, agent mode, Steel Agents, Autopilot).
+ * switches (AI, agent mode, Steel Agents, Autopilot, MCP writes).
  */
 export async function resolveToolAccess(
   actorId: string,
@@ -203,6 +278,7 @@ export async function resolveToolAccess(
     agentsEnabled: settings.value?.agentsEnabled ?? true,
     autopilotEnabled: settings.value?.autopilotEnabled ?? false,
     memoryEnabled: settings.value?.memoryEnabled ?? true,
+    mcpWriteEnabled: settings.value?.mcpWriteEnabled ?? false,
   })
 }
 
@@ -300,6 +376,8 @@ export async function proposeWriteTool(
      * offered for confirmation.
      */
     claimedBy?: string
+    /** MCP: grant of the external client that proposed it. */
+    integrationGrantId?: string
   } = {},
   now: Date = new Date(),
 ): Promise<Result<AiPendingAction>> {
@@ -318,7 +396,8 @@ export async function proposeWriteTool(
 
   return AiPendingActionRepository.create({
     workspaceId: ctx.workspaceId,
-    requestedById: ctx.source === 'assistant' ? ctx.actorId : null,
+    // Assistant and MCP: the user who asked is the only one who confirms.
+    requestedById: ctx.source === 'agent' ? null : ctx.actorId,
     conversationId: origin.conversationId ?? null,
     agentRunId: origin.agentRunId ?? null,
     toolName: tool.name,
@@ -331,6 +410,9 @@ export async function proposeWriteTool(
     expiresAt: new Date(
       now.getTime() + (origin.ttlMs ?? PENDING_ACTION_TTL_MS),
     ),
+    ...(origin.integrationGrantId && {
+      integrationGrantId: origin.integrationGrantId,
+    }),
     ...(origin.claimedBy && {
       status: 'EXECUTED' as const,
       decidedById: origin.claimedBy,
@@ -382,7 +464,7 @@ export async function simulateWriteTool(
   }
   const logged = await AiActionLogRepository.create({
     workspaceId: ctx.workspaceId,
-    source: ctx.source === 'agent' ? 'AGENT' : 'ASSISTANT',
+    source: aiActionSource(ctx),
     actorId: log.actorId,
     agentId: ctx.agentId ?? null,
     toolName: tool.name,

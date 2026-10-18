@@ -19,9 +19,11 @@ import { WorkspaceModuleAccessRepository } from '@/src/repositories/workspace-mo
 import { STEEL_AI_TOOLS } from '../ai/tools'
 import {
   type AiToolAccess,
+  aiActionSource,
   assertValidToolRegistry,
   availableTools,
   findTool,
+  hasToolAccess,
   isWriteMode,
   PENDING_ACTION_TTL_MS,
   proposeWriteTool,
@@ -95,7 +97,11 @@ describe('tool registry validation', () => {
       read,
       read,
       tool({ name: 'Bad-Name' }),
-      tool({ name: 'w_tool', kind: 'UPDATE' }),
+      tool({
+        name: 'w_tool',
+        kind: 'UPDATE',
+        annotations: { destructiveHint: true },
+      }),
       tool({ name: 'p_tool', parameters: { type: 'string' } }),
     ])
     expect(problems).toEqual([
@@ -107,6 +113,140 @@ describe('tool registry validation', () => {
     expect(() => assertValidToolRegistry([read, read])).toThrow(
       'Invalid Steel AI tool registry',
     )
+  })
+})
+
+describe('tool registry validation: MCP hints', () => {
+  const preview = vi.fn(async () => ok({ title: 't', summary: 's' }))
+  const writeTool = (overrides: Partial<AnySteelAiTool>) =>
+    tool({ kind: 'UPDATE', preview, ...overrides })
+
+  it('should accept consistent hints on reads and writes', () => {
+    expect(
+      validateToolRegistry([
+        tool({ name: 'r_plain' }),
+        tool({ name: 'r_hint', annotations: { destructiveHint: false } }),
+        writeTool({
+          name: 'u_tool',
+          annotations: { idempotentHint: true, destructiveHint: true },
+        }),
+        writeTool({
+          name: 'c_tool',
+          kind: 'CREATE',
+          annotations: { destructiveHint: false },
+        }),
+        writeTool({
+          name: 'd_tool',
+          kind: 'DELETE',
+          annotations: { destructiveHint: true },
+        }),
+        writeTool({
+          name: 'a_send',
+          kind: 'ACTION',
+          annotations: { destructiveHint: false, openWorldHint: true },
+          customerFacing: true,
+        }),
+      ]),
+    ).toEqual([])
+  })
+
+  it('should refuse destructive or customer-facing read tools', () => {
+    expect(
+      validateToolRegistry([
+        tool({ name: 'r_destroy', annotations: { destructiveHint: true } }),
+        tool({ name: 'r_customer', customerFacing: true }),
+      ]),
+    ).toEqual([
+      'Read tool "r_destroy" cannot be destructive',
+      'Read tool "r_customer" cannot be customer-facing',
+    ])
+  })
+
+  it('should require destructiveHint on every write tool', () => {
+    expect(
+      validateToolRegistry([
+        writeTool({ name: 'u_none' }),
+        writeTool({ name: 'u_partial', annotations: { idempotentHint: true } }),
+      ]),
+    ).toEqual([
+      'Write tool "u_none" must declare destructiveHint',
+      'Write tool "u_partial" must declare destructiveHint',
+    ])
+  })
+
+  it('should keep DELETE destructive and CREATE additive', () => {
+    expect(
+      validateToolRegistry([
+        writeTool({
+          name: 'd_soft',
+          kind: 'DELETE',
+          annotations: { destructiveHint: false },
+        }),
+        writeTool({
+          name: 'c_hard',
+          kind: 'CREATE',
+          annotations: { destructiveHint: true },
+        }),
+      ]),
+    ).toEqual([
+      'Delete tool "d_soft" must be destructive',
+      'Create tool "c_hard" must not be destructive',
+    ])
+  })
+
+  it('should require openWorldHint on customer-facing tools', () => {
+    expect(
+      validateToolRegistry([
+        writeTool({
+          name: 'a_silent',
+          kind: 'ACTION',
+          annotations: { destructiveHint: false },
+          customerFacing: true,
+        }),
+        writeTool({
+          name: 'a_closed',
+          kind: 'ACTION',
+          annotations: { destructiveHint: false, openWorldHint: false },
+          customerFacing: true,
+        }),
+      ]),
+    ).toEqual([
+      'Customer-facing tool "a_silent" must declare openWorldHint',
+      'Customer-facing tool "a_closed" must declare openWorldHint',
+    ])
+  })
+
+  it('should refuse empty and long labels', () => {
+    expect(
+      validateToolRegistry([
+        tool({ name: 'l_empty', label: '  ' }),
+        tool({ name: 'l_long', label: 'x'.repeat(41) }),
+        tool({ name: 'l_edge', label: 'x'.repeat(40) }),
+      ]),
+    ).toEqual([
+      'Tool "l_empty" label must have 1–40 chars',
+      'Tool "l_long" label must have 1–40 chars',
+    ])
+  })
+
+  it('should annotate every registered tool consistently', () => {
+    for (const t of STEEL_AI_TOOLS) {
+      if (t.kind === 'READ') {
+        expect(t.customerFacing, t.name).not.toBe(true)
+      } else {
+        expect(typeof t.annotations?.destructiveHint, t.name).toBe('boolean')
+      }
+    }
+    const customerFacing = STEEL_AI_TOOLS.filter((t) => t.customerFacing)
+      .map((t) => t.name)
+      .sort()
+    expect(customerFacing).toEqual([
+      'sd_cancel_ticket',
+      'sd_move_ticket_phase',
+      'sd_reply_to_requester',
+      'sd_request_approval',
+      'zap_message_send_text',
+    ])
   })
 })
 
@@ -423,6 +563,7 @@ describe('Steel AI 2 — AUTOPILOT and workspace switches', () => {
         aiEnabled: true,
         agentsEnabled: true,
         autopilotEnabled: false,
+        mcpWriteEnabled: false,
       }),
     )
     settings.findByWorkspace.mockResolvedValue(
@@ -431,6 +572,7 @@ describe('Steel AI 2 — AUTOPILOT and workspace switches', () => {
           aiEnabled: false,
           agentsEnabled: false,
           autopilotEnabled: true,
+          mcpWriteEnabled: true,
         }),
       ),
     )
@@ -439,6 +581,40 @@ describe('Steel AI 2 — AUTOPILOT and workspace switches', () => {
         aiEnabled: false,
         agentsEnabled: false,
         autopilotEnabled: true,
+        mcpWriteEnabled: true,
+      }),
+    )
+  })
+})
+
+describe('MCP governance helpers', () => {
+  it('aiActionSource() should map each context source', () => {
+    expect(aiActionSource({ source: 'assistant' })).toBe('ASSISTANT')
+    expect(aiActionSource({ source: 'agent' })).toBe('AGENT')
+    expect(aiActionSource({ source: 'mcp' })).toBe('MCP')
+  })
+
+  it('hasToolAccess() should check module and RBAC, not the mode switches', () => {
+    const off = access({ agentModeEnabled: false, autopilotEnabled: false })
+    expect(hasToolAccess(write, off)).toBe(true)
+    expect(hasToolAccess(write, access({ modules: ['CRM'] }))).toBe(false)
+    expect(hasToolAccess(crmRead, access({ permissions: null }))).toBe(false)
+  })
+
+  it('proposeWriteTool() should own MCP proposals by the user and keep the grant', async () => {
+    const repo = vi.mocked(AiPendingActionRepository)
+    repo.create.mockResolvedValue(ok(createFakeAiPendingAction()))
+    await proposeWriteTool(
+      write,
+      { ...ctx, source: 'mcp', oauthClientId: 'client1' },
+      {},
+      { integrationGrantId: 'g1' },
+    )
+    expect(repo.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        requestedById: 'u1',
+        conversationId: null,
+        integrationGrantId: 'g1',
       }),
     )
   })
