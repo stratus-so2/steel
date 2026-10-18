@@ -202,6 +202,8 @@ export type AuditEntity =
   | 'crm_email_template_version'
   // Sales TV: read-only TV links of CRM dashboards
   | 'crm_dashboard_tv_link'
+  // MCP wave: OAuth grants revoked by a workspace admin
+  | 'integration_grant'
 
 export type AuditAction =
   | 'create'
@@ -299,6 +301,11 @@ type AuditAuthEvent =
   | 'auth.oauth_grant.servicedesk_slack'
   // Slack app OAuth grant for a workspace (Ajustes > Integrações, ADR 0024).
   | 'auth.oauth_grant.workspace_slack'
+  // OAuth provider for integrations (MCP, ADR 0033): the user consented to
+  // (or refused) a client on a workspace, and revoked a connected app.
+  | 'auth.oauth_consent.granted'
+  | 'auth.oauth_consent.denied'
+  | 'auth.integration_grant.revoked'
 
 interface AuditMutationInput {
   entity: AuditEntity
